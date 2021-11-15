@@ -34,7 +34,7 @@ S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES'])
 
-S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN = 15 * 60  # Max lambda duration.
+S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS = 15 * 60  # Max lambda duration.
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
 
@@ -208,7 +208,7 @@ def calculate_pkg_entry_hash(s3_client, pkg_entry):
         params['VersionId'] = pk.version_id
     url = s3_client.generate_presigned_url(
         ClientMethod='get_object',
-        ExpiresIn=S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN,
+        ExpiresIn=S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
         Params=params,
     )
     pkg_entry.hash = {

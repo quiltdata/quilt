@@ -970,7 +970,7 @@ class HashCalculationTest(unittest.TestCase):
         invoke_hash_lambda_mock.assert_called_once_with(s3_client_mock.generate_presigned_url.return_value)
         s3_client_mock.generate_presigned_url.assert_called_once_with(
             ClientMethod='get_object',
-            ExpiresIn=index.S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN,
+            ExpiresIn=index.S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
             Params={
                 'Bucket': self.entry_without_hash.physical_key.bucket,
                 'Key': self.entry_without_hash.physical_key.path,
