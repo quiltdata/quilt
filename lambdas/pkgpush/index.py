@@ -32,7 +32,7 @@ PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
 S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
-S3_HASH_LAMBDA_MAX_FILE_SIZE = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE'])
+S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES'])
 
 S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN = 15 * 60  # Max lambda duration.
 
@@ -184,7 +184,7 @@ def calculate_pkg_hashes(s3_client, pkg):
     for lk, entry in pkg.walk():
         if entry.hash is not None:
             continue
-        if entry.size > S3_HASH_LAMBDA_MAX_FILE_SIZE:
+        if entry.size > S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES:
             raise FileTooLargeForHashing(lk)
 
         entries.append(entry)
@@ -285,7 +285,7 @@ class FileTooLargeForHashing(ApiException):
         super().__init__(
             HTTPStatus.BAD_REQUEST,
             f'Package entry {logical_key!r} is too large for hashing. '
-            f'Max size is {S3_HASH_LAMBDA_MAX_FILE_SIZE} bytes.'
+            f'Max size is {S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES} bytes.'
         )
 
 

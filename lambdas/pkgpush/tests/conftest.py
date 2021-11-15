@@ -14,7 +14,7 @@ def pytest_configure(config):
                 'PROMOTE_PKG_MAX_FILES',
                 'PKG_FROM_FOLDER_MAX_PKG_SIZE',
                 'PKG_FROM_FOLDER_MAX_FILES',
-                'S3_HASH_LAMBDA_MAX_FILE_SIZE',
+                'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES',
             ),
             str(2 ** 64),  # Value big enough to serve as 'unlimited'.
         ),

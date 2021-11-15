@@ -955,7 +955,7 @@ class HashCalculationTest(unittest.TestCase):
 
         calculate_pkg_entry_hash_mock.assert_called_once_with(s3_client, self.entry_without_hash)
 
-    @mock.patch.object(index, 'S3_HASH_LAMBDA_MAX_FILE_SIZE', 1)
+    @mock.patch.object(index, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
     def test_calculate_pkg_hashes_too_large_file_error(self):
         s3_client = mock.MagicMock()
         with pytest.raises(index.FileTooLargeForHashing):
