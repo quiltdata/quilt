@@ -13,7 +13,6 @@ SUPPORTED_LAMBDAS = frozenset([
     'thumbnail',
     'preview',
     's3select',
-    's3proxy',
 ])
 
 
