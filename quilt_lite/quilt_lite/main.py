@@ -7,8 +7,10 @@ import quilt3
 
 
 from .api import api
+from .lambdas import lambdas
 
 REG_PREFIX = "/__reg"
+LAMBDA_PREFIX = "/__lambda"
 CATALOG_BUNDLE = os.getenv("CATALOG_BUNDLE", "../catalog/build")
 CATALOG_URL = os.getenv("CATALOG_URL")
 
@@ -60,6 +62,7 @@ def config():
 
 
 app.mount(REG_PREFIX, api, "API")
+app.mount(LAMBDA_PREFIX, lambdas, "Lambda")
 
 if CATALOG_URL:
     # to avoid long-polling connections preventing server restarts
