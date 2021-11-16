@@ -1,4 +1,5 @@
 import ariadne.asgi
+from botocore.exceptions import ClientError
 import boto3
 import fastapi
 
