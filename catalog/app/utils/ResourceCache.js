@@ -148,6 +148,8 @@ function* handleInit({ resource, input, resolver }) {
 }
 
 function* cleanup() {
+  // TODO: refactor cleanup logic, so that the cleanup action is only dispatched
+  // when there's anything to cleanup (to avoid re-renders every 5 sec)
   while (true) {
     yield effects.delay(RELEASE_TIME)
     yield effects.put(Action.CleanUp({ time: new Date() }))

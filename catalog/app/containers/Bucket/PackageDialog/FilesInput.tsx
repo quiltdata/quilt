@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
@@ -30,32 +31,37 @@ const COLORS = {
 
 interface FileWithHash extends File {
   hash: {
-    value: string | undefined
     ready: boolean
-    promise: Promise<string>
+    value?: string
+    error?: Error
+    promise: Promise<string | undefined>
   }
   meta?: JsonRecord
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
 
-// XXX: it might make sense to limit concurrency, tho the tests show perf is ok, since hashing is async anyways
+const hashLimit = pLimit(2)
+
 function computeHash(f: File) {
   if (hasHash(f)) return f
-  const promise = PD.hashFile(f)
+  const hashP = hashLimit(PD.hashFile, f)
   const fh = f as FileWithHash
-  fh.hash = { value: undefined, ready: false, promise }
-  promise
+  fh.hash = { ready: false } as any
+  fh.hash.promise = hashP
     .catch((e) => {
       // eslint-disable-next-line no-console
-      console.log('Error hashing file:')
+      console.log(`Error hashing file "${fh.name}":`)
       // eslint-disable-next-line no-console
       console.error(e)
+      fh.hash.error = e
+      fh.hash.ready = true
       return undefined
     })
     .then((hash) => {
       fh.hash.value = hash
       fh.hash.ready = true
+      return hash
     })
   return fh
 }

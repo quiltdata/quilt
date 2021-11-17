@@ -1,6 +1,5 @@
 import type { S3 } from 'aws-sdk'
 import * as FP from 'fp-ts'
-import invariant from 'invariant'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -12,7 +11,7 @@ import useMemoEq from 'utils/useMemoEq'
 
 import type { LocalFile, ExistingFile } from './FilesInput'
 
-export interface UploadResult extends S3.ManagedUpload.SendData {
+interface UploadResult extends S3.ManagedUpload.SendData {
   VersionId: string
 }
 
@@ -25,8 +24,7 @@ export interface UploadTotalProgress {
 export interface UploadsState {
   [path: string]: {
     file: File
-    upload: S3.ManagedUpload
-    promise: Promise<UploadResult>
+    promise: Promise<S3.ManagedUpload.SendData>
     progress?: { total: number; loaded: number }
   }
 }
@@ -78,41 +76,52 @@ export function useUploads() {
     }) => {
       const limit = pLimit(2)
       let rejected = false
+      const pendingUploads: Record<string, S3.ManagedUpload> = {}
+
+      const uploadFile = async (path: string, file: LocalFile) => {
+        if (rejected) {
+          remove(path)
+          return undefined as never
+        }
+
+        const upload: S3.ManagedUpload = s3.upload({
+          Bucket: bucket,
+          Key: `${prefix}/${path}`,
+          Body: file,
+        })
+
+        upload.on('httpUploadProgress', ({ loaded }) => {
+          if (rejected) return
+          setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
+        })
+
+        pendingUploads[path] = upload
+
+        try {
+          const uploadP = upload.promise()
+          await file.hash.promise
+          return await uploadP
+        } catch (e) {
+          if ((e as any).code !== 'RequestAbortedError') {
+            // eslint-disable-next-line no-console
+            console.log(`Error uploading file "${file.name}"`)
+            rejected = true
+            Object.values(pendingUploads).forEach((u) => u.abort())
+          }
+          remove(path)
+          throw e
+        } finally {
+          delete pendingUploads[path]
+        }
+      }
+
       const uploadStates = files.map(({ path, file }) => {
         // reuse state if file hasnt changed
         const entry = uploads[path]
         if (entry && entry.file === file) return { ...entry, path }
 
-        const upload: S3.ManagedUpload = s3.upload(
-          {
-            Bucket: bucket,
-            Key: `${prefix}/${path}`,
-            Body: file,
-          },
-          {
-            queueSize: 2,
-          },
-        )
-        upload.on('httpUploadProgress', ({ loaded }) => {
-          if (rejected) return
-          setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
-        })
-        const promise = limit(async () => {
-          if (rejected) {
-            remove(path)
-            return undefined
-          }
-          try {
-            const uploadP = upload.promise()
-            await file.hash.promise
-            return await uploadP
-          } catch (e) {
-            rejected = true
-            remove(path)
-            throw e
-          }
-        }) as Promise<UploadResult>
-        return { path, file, upload, promise, progress: { total: file.size, loaded: 0 } }
+        const promise = limit(uploadFile, path, file)
+        return { path, file, promise, progress: { total: file.size, loaded: 0 } }
       })
 
       FP.function.pipe(
@@ -125,22 +134,24 @@ export function useUploads() {
       const uploaded = await Promise.all(uploadStates.map((x) => x.promise))
 
       return FP.function.pipe(
-        FP.array.zipWith(files, uploaded, (f, r) => {
-          invariant(f.file.hash.value, 'File must have a hash')
-          return [
-            f.path,
-            {
-              physicalKey: s3paths.handleToS3Url({
-                bucket,
-                key: r.Key,
-                version: r.VersionId,
-              }),
-              size: f.file.size,
-              hash: f.file.hash.value,
-              meta: getMeta?.(f.path),
-            },
-          ] as R.KeyValuePair<string, ExistingFile>
-        }),
+        FP.array.zipWith(
+          files,
+          uploaded,
+          (f, r) =>
+            [
+              f.path,
+              {
+                physicalKey: s3paths.handleToS3Url({
+                  bucket,
+                  key: r.Key,
+                  version: (r as UploadResult).VersionId,
+                }),
+                size: f.file.size,
+                hash: f.file.hash.value,
+                meta: getMeta?.(f.path),
+              },
+            ] as R.KeyValuePair<string, ExistingFile>,
+        ),
         R.fromPairs,
       )
     },
