@@ -1,3 +1,10 @@
+"""
+Overall performance of this function is mostly limited by hashing rate which is
+limited by lambda's network throughput. Max network thoughput in
+benchmarks was about 75 MiB/s. To overcome this limitation this function
+concurrently invokes dedicated hash lambda for multiple files.
+"""
+import concurrent.futures
 import contextlib
 import functools
 import json
@@ -29,6 +36,12 @@ PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ['PROMOTE_PKG_MAX_PKG_SIZE'])
 PROMOTE_PKG_MAX_FILES = int(os.environ['PROMOTE_PKG_MAX_FILES'])
 PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
+S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']  # To dispatch separate, stack-created lambda function.
+# CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
+S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
+S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES'])
+
+S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS = 15 * 60  # Max lambda duration.
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
 
@@ -162,6 +175,7 @@ PACKAGE_CREATE_ENTRY_SCHEMA = {
 
 
 s3 = boto3.client('s3')
+lambda_ = boto3.client('lambda')
 
 
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
@@ -170,6 +184,55 @@ quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: us
 
 
 logger = get_quilt_logger()
+
+
+def calculate_pkg_hashes(s3_client, pkg):
+    entries = []
+    for lk, entry in pkg.walk():
+        if entry.hash is not None:
+            continue
+        if entry.size > S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES:
+            raise FileTooLargeForHashing(lk)
+
+        entries.append(entry)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as pool:
+        fs = [
+            pool.submit(calculate_pkg_entry_hash, s3_client, entry)
+            for entry in entries
+        ]
+        for f in concurrent.futures.as_completed(fs):
+            f.result()
+
+
+def calculate_pkg_entry_hash(s3_client, pkg_entry):
+    pk = pkg_entry.physical_key
+    params = {
+        'Bucket': pk.bucket,
+        'Key': pk.path,
+    }
+    if pk.version_id is not None:
+        params['VersionId'] = pk.version_id
+    url = s3_client.generate_presigned_url(
+        ClientMethod='get_object',
+        ExpiresIn=S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
+        Params=params,
+    )
+    pkg_entry.hash = {
+        'type': 'SHA256',
+        'value': invoke_hash_lambda(url),
+    }
+
+
+class S3HashLambdaUnhandledError(Exception):
+    pass
+
+
+def invoke_hash_lambda(url):
+    resp = lambda_.invoke(FunctionName=S3_HASH_LAMBDA, Payload=json.dumps(url))
+    if 'FunctionError' in resp:
+        raise S3HashLambdaUnhandledError
+    return json.load(resp['Payload'])
 
 
 def get_user_credentials(request):
@@ -227,6 +290,15 @@ class ApiException(Exception):
             boto_response['Error']['Message']
         )
         return cls(status_code, message)
+
+
+class FileTooLargeForHashing(ApiException):
+    def __init__(self, logical_key):
+        super().__init__(
+            HTTPStatus.BAD_REQUEST,
+            f'Package entry {logical_key!r} is too large for hashing. '
+            f'Max size is {S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES} bytes.'
+        )
 
 
 def api_exception_handler(f):
@@ -407,6 +479,7 @@ def package_from_folder(request):
         for entry in data['entries']:
             set_entry = p.set_dir if entry['is_dir'] else p.set
             set_entry(entry['logical_key'], str(src_registry.base.join(entry['path'])))
+        calculate_pkg_hashes(user_boto_session.client('s3'), p)
         return p
 
     return _push_pkg_to_successor(
@@ -538,6 +611,7 @@ def create_package(request):
     except quilt3.util.QuiltException as qe:
         raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
 
+    calculate_pkg_hashes(user_boto_session.client('s3'), pkg)
     try:
         top_hash = pkg._build(
             name=handle,
