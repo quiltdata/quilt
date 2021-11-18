@@ -140,16 +140,20 @@ function DialogForm({
   )
 
   const [editorElement, setEditorElement] = React.useState()
+  const resizeObserver = React.useMemo(
+    () =>
+      new window.ResizeObserver((entries) => {
+        const { height } = entries[0].contentRect
+        setMetaHeight(height)
+      }),
+    [setMetaHeight],
+  )
 
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
 
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
-      if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement.clientHeight)
-      }
-
       if (modified.workflow && values.workflow !== selectedWorkflow) {
         setWorkflow(values.workflow)
 
@@ -162,14 +166,15 @@ function DialogForm({
 
       handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, selectedWorkflow, setMetaHeight, setWorkflow],
+    [handleNameChange, selectedWorkflow, setWorkflow],
   )
 
   React.useEffect(() => {
-    if (document.body.contains(editorElement)) {
-      setMetaHeight(editorElement.clientHeight)
+    if (editorElement) resizeObserver.observe(editorElement)
+    return () => {
+      if (editorElement) resizeObserver.unobserve(editorElement)
     }
-  }, [editorElement, setMetaHeight])
+  }, [editorElement, resizeObserver])
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 

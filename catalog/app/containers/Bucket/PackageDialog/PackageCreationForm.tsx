@@ -293,7 +293,6 @@ function PackageCreationForm({
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-
   const resizeObserver = React.useMemo(
     () =>
       new window.ResizeObserver((entries) => {
