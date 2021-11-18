@@ -7,16 +7,17 @@ import type * as RF from 'react-final-form'
 import { fade } from '@material-ui/core/styles'
 import * as M from '@material-ui/core'
 
-import JsonDisplay from 'components/JsonDisplay'
+import JsonEditor from 'components/JsonEditor'
 import { JsonValue } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
 import Delay from 'utils/Delay'
 import useDragging from 'utils/dragging'
-import { JsonSchema, makeSchemaDefaultsSetter } from 'utils/json-schema'
+import { JsonSchema } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
+import { JsonRecord } from 'utils/types'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
@@ -64,7 +65,7 @@ function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
       open={open}
       classes={dialogClasses}
     >
-      <M.DialogTitle>Metadata for package</M.DialogTitle>
+      <M.DialogTitle>Package-level metadata</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         <MetadataEditor
           multiColumned
@@ -146,9 +147,6 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
     display: 'flex',
   },
-  jsonDisplay: {
-    margin: t.spacing(1, 2, 0, 0),
-  },
   jsonTrigger: {
     marginLeft: 'auto',
   },
@@ -165,6 +163,10 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     overflowY: 'auto',
     position: 'relative',
+  },
+  metaContent: {
+    display: 'flex',
+    flexDirection: 'column',
   },
   outlined: {
     bottom: '1px',
@@ -235,8 +237,17 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
     const openEditor = React.useCallback(() => setOpen(true), [setOpen])
 
-    const onJsonEditor = React.useCallback(
-      (json: {}) => {
+    const onChangeFullscreen = React.useCallback(
+      (json: JsonRecord) => {
+        setJsonInlineEditorKey(R.inc)
+        onChange(json)
+      },
+      [onChange],
+    )
+
+    const onChangeInline = React.useCallback(
+      (json: JsonRecord) => {
+        setJsonFullscreenEditorKey(R.inc)
         onChange(json)
       },
       [onChange],
@@ -246,7 +257,8 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const [locked, setLocked] = React.useState(false)
 
     // used to force json editor re-initialization
-    const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
+    const [jsonInlineEditorKey, setJsonInlineEditorKey] = React.useState(1)
+    const [jsonFullscreenEditorKey, setJsonFullscreenEditorKey] = React.useState(1)
 
     const onDrop = React.useCallback(
       ([file]) => {
@@ -263,7 +275,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         readFile(file, schema)
           .then((contents: string | {}) => {
             if (R.is(Object, contents)) {
-              onJsonEditor(contents)
+              onChange(contents)
             } else {
               try {
                 JSON.parse(contents as string)
@@ -273,7 +285,8 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
               // FIXME: show error
             }
             // force json editor to re-initialize
-            setJsonEditorKey(R.inc)
+            setJsonInlineEditorKey(R.inc)
+            setJsonFullscreenEditorKey(R.inc)
           })
           .catch((e) => {
             if (e.message === 'abort') return
@@ -287,17 +300,19 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
             setLocked(false)
           })
       },
-      [schema, setLocked, onJsonEditor, setJsonEditorKey, notify],
+      [
+        schema,
+        setLocked,
+        onChange,
+        setJsonInlineEditorKey,
+        setJsonFullscreenEditorKey,
+        notify,
+      ],
     )
 
     const isDragging = useDragging()
 
     const { getRootProps, isDragActive } = useDropzone({ onDrop })
-
-    const valueToDisplay = React.useMemo(
-      () => makeSchemaDefaultsSetter(schema)(value),
-      [schema, value],
-    )
 
     return (
       <div className={className}>
@@ -306,48 +321,46 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
             Metadata
           </M.Typography>
+          <M.Button
+            className={classes.jsonTrigger}
+            onClick={openEditor}
+            title="Edit meta"
+            size="small"
+            variant="outlined"
+            endIcon={
+              <M.Icon fontSize="inherit" color="primary">
+                fullscreen
+              </M.Icon>
+            }
+          >
+            Edit
+          </M.Button>
         </div>
 
         <Dialog
           schema={schema}
-          key={jsonEditorKey}
-          onChange={onChange}
+          key={jsonFullscreenEditorKey}
+          onChange={onChangeFullscreen}
           onClose={closeEditor}
           open={open}
           value={value}
         />
 
-        <div
-          {...getRootProps({ className: classes.dropzone })}
-          tabIndex={undefined}
-          ref={ref}
-        >
-          {isDragging && <div className={classes.outlined} />}
+        <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+          <div className={classes.metaContent} ref={ref}>
+            {isDragging && <div className={classes.outlined} />}
 
-          <div className={classes.json}>
-            <JsonDisplay
-              name=""
-              topLevel={1}
-              value={valueToDisplay}
-              className={classes.jsonDisplay}
-              defaultExpanded={1}
-            />
-            <M.Button
-              className={classes.jsonTrigger}
-              onClick={openEditor}
-              startIcon={
-                <M.Icon fontSize="inherit" color="primary">
-                  list
-                </M.Icon>
-              }
-              title="Edit meta"
-              variant="outlined"
-            >
-              Edit
-            </M.Button>
+            <div className={classes.json}>
+              <JsonEditor
+                key={jsonInlineEditorKey}
+                value={value}
+                onChange={onChangeInline}
+                schema={schema}
+              />
+            </div>
+
+            <JsonValidationErrors className={classes.errors} error={error} />
           </div>
-
-          <JsonValidationErrors className={classes.errors} error={error} />
 
           {locked && (
             <div className={classes.overlay}>

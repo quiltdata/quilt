@@ -75,7 +75,7 @@ const useStyles = M.makeStyles((t) => ({
   meta: {
     display: 'flex',
     flexDirection: 'column',
-    marginTop: t.spacing(3),
+    paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
 }))
@@ -293,7 +293,6 @@ function PackageCreationForm({
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-
   const resizeObserver = React.useMemo(
     () =>
       new window.ResizeObserver((entries) => {
@@ -382,10 +381,6 @@ function PackageCreationForm({
 
               <Layout.Container>
                 <Layout.LeftColumn>
-                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
-                    Main
-                  </M.Typography>
-
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"

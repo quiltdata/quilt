@@ -58,7 +58,7 @@ const useStyles = M.makeStyles((t) => ({
   meta: {
     display: 'flex',
     flexDirection: 'column',
-    marginTop: t.spacing(3),
+    paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
 }))
@@ -183,23 +183,27 @@ function DialogForm({
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLElement | null>(null)
-
+  const resizeObserver = React.useMemo(
+    () =>
+      new window.ResizeObserver((entries) => {
+        const { height } = entries[0]!.contentRect
+        setMetaHeight(height)
+      }),
+    [setMetaHeight],
+  )
   const onFormChange = React.useCallback(
     async ({ values }) => {
-      if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement!.clientHeight)
-      }
-
       handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, setMetaHeight],
+    [handleNameChange],
   )
 
   React.useEffect(() => {
-    if (document.body.contains(editorElement)) {
-      setMetaHeight(editorElement!.clientHeight)
+    if (editorElement) resizeObserver.observe(editorElement)
+    return () => {
+      if (editorElement) resizeObserver.unobserve(editorElement)
     }
-  }, [editorElement, setMetaHeight])
+  }, [editorElement, resizeObserver])
 
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
@@ -252,10 +256,6 @@ function DialogForm({
 
               <PD.Container>
                 <PD.LeftColumn>
-                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
-                    Main
-                  </M.Typography>
-
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"

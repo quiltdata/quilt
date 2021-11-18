@@ -303,12 +303,6 @@ export function CommitMessageInput({
   return <Field {...props} />
 }
 
-const useWorkflowInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-  },
-}))
-
 interface WorkflowInputProps {
   input: RF.FieldInputProps<workflows.Workflow>
   meta: RF.FieldMetaState<workflows.Workflow>
@@ -322,14 +316,11 @@ export function WorkflowInput({
   workflowsConfig,
   errors = {},
 }: WorkflowInputProps) {
-  const classes = useWorkflowInputStyles()
-
   const disabled = meta.submitting || meta.submitSucceeded
   const errorKey = meta.submitFailed && meta.error
 
   return (
     <SelectWorkflow
-      className={classes.root}
       items={workflowsConfig ? workflowsConfig.workflows : []}
       onChange={input.onChange}
       value={input.value}
@@ -469,7 +460,7 @@ export function useCryptoApiValidation() {
 }
 
 export function calcDialogHeight(windowHeight: number, metaHeight: number): number {
-  const neededSpace = 400 /* space to fit other inputs */ + metaHeight
+  const neededSpace = 345 /* space to fit other inputs */ + metaHeight
   const availableSpace = windowHeight - 200 /* free space for headers */
   const minimalSpace = 420 /* minimal height */
   if (availableSpace < minimalSpace) return minimalSpace

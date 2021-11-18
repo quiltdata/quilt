@@ -46,9 +46,11 @@ export default function MetadataEditor({
   value,
 }: MetadataEditorProps) {
   const classes = useStyles()
-  const [errors, setErrors] = React.useState<(Error | ErrorObject)[]>([])
-
   const schemaValidator = React.useMemo(() => makeSchemaValidator(schema), [schema])
+  const [errors, setErrors] = React.useState<(Error | ErrorObject)[]>(() =>
+    schemaValidator(value),
+  )
+
   const handleChange = React.useCallback(
     (newValue: JsonValue) => {
       setErrors(schemaValidator(newValue))
