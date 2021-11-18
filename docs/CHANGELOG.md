@@ -11,9 +11,13 @@
 ## Python API
 * [Added] Declared compatibility with `jsonschema==4.*`.
 
+## Catalog, Lambdas
+* [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
+
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
 * [Added] Add a "transcode" lambda for previewing video files ([#2366](https://github.com/quiltdata/quilt/pull/2366/))
