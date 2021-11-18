@@ -460,7 +460,7 @@ export function useCryptoApiValidation() {
 }
 
 export function calcDialogHeight(windowHeight: number, metaHeight: number): number {
-  const neededSpace = 321 /* space to fit other inputs */ + metaHeight
+  const neededSpace = 345 /* space to fit other inputs */ + metaHeight
   const availableSpace = windowHeight - 200 /* free space for headers */
   const minimalSpace = 420 /* minimal height */
   if (availableSpace < minimalSpace) return minimalSpace
