@@ -7,6 +7,16 @@ import tempfile
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
+VIDEO_FORMATS = ['mp4', 'webm']
+AUDIO_FORMATS = ['mp3', 'ogg']
+
+CONTENT_TYPES = {
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mp3': 'audio/mpeg',
+    'ogg': 'audio/ogg',
+}
+
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -14,7 +24,7 @@ SCHEMA = {
             'type': 'string'
         },
         'format': {
-            'enum': ['mp4', 'webm']
+            'enum': VIDEO_FORMATS + AUDIO_FORMATS
         },
         'width': {
             'type': 'string'
@@ -75,16 +85,30 @@ def lambda_handler(request):
     except ValueError:
         return make_json_response(400, {'error': "Invalid 'duration'"})
 
+    format_params = []
+
+    if format in AUDIO_FORMATS:
+        format_params.extend([
+            '-b:a', '128k',  # 128KB audio bitrate
+            '-vn',  # Drop the video stream
+        ])
+    elif format in VIDEO_FORMATS:
+        format_params.extend([
+            "-vf", ','.join([
+                f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
+                "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
+            ]),
+        ])
+    else:
+        assert False
+
     with tempfile.NamedTemporaryFile() as output_file:
         p = subprocess.run([
             FFMPEG,
             "-t", str(duration),
             "-i", url,
             "-f", format,
-            "-vf", ','.join([
-                f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
-                "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
-            ]),
+            *format_params,
             "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
             "-fs", str(MAX_VIDEO_SIZE),
             "-y",  # Overwrite output file
@@ -97,4 +121,4 @@ def lambda_handler(request):
 
         data = output_file.read()
 
-    return 200, data, {'Content-Type': f'video/{format}'}
+    return 200, data, {'Content-Type': CONTENT_TYPES[format]}

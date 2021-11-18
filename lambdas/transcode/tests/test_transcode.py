@@ -65,9 +65,18 @@ def test_bad_params(params):
     assert body['error']
 
 
-def test_success():
+@pytest.mark.parametrize(
+    'format',
+    [
+        'mp4',
+        'webm',
+        'mp3',
+        'ogg',
+    ]
+)
+def test_format(format):
     url = "https://example.com/folder/file.ext"
-    event = _make_event({"url": url})
+    event = _make_event({"url": url, "format": format})
 
     # Get the response
     with patch.object(index, 'FFMPEG', '/bin/true'):
