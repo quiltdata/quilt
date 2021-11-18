@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   spinner: {
     display: 'block',
-    margin: t.spacing(9, 'auto', 0),
+    margin: t.spacing(12, 'auto'),
   },
 }))
 
@@ -29,8 +29,8 @@ interface VideoProps extends React.HTMLAttributes<HTMLVideoElement> {
 
 function Video({ src, className, ...props }: VideoProps) {
   const classes = useStyles()
-  const videoRef = React.useRef<HTMLVideoElement | null>(null)
-  const sourceRef = React.useRef<HTMLSourceElement | null>(null)
+  const [videoEl, setVideoEl] = React.useState<HTMLVideoElement | null>(null)
+  const [sourceEl, setSourceEl] = React.useState<HTMLSourceElement | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [failed, setFailed] = React.useState(false)
   const handleLoad = React.useCallback(() => setLoading(false), [setLoading])
@@ -39,29 +39,27 @@ function Video({ src, className, ...props }: VideoProps) {
     setLoading(false)
   }, [setLoading, setFailed])
   React.useEffect(() => {
-    const videoEl = videoRef.current
-    const sourceEl = sourceRef.current
-    videoEl?.addEventListener('canplay', handleLoad)
     sourceEl?.addEventListener('error', handleError)
+    videoEl?.addEventListener('canplay', handleLoad)
     return () => {
-      videoEl?.removeEventListener('canplay', handleLoad)
       sourceEl?.removeEventListener('error', handleError)
+      videoEl?.removeEventListener('canplay', handleLoad)
     }
-  }, [handleError, handleLoad, videoRef, sourceRef])
+  }, [handleError, handleLoad, sourceEl, videoEl])
   return (
     <div className={cx(className, classes.root)}>
       <video
-        ref={videoRef}
+        ref={setVideoEl}
         controls
         muted
         className={cx(classes.video, { [classes.hidden]: loading || failed })}
         {...props}
       >
-        <source src={src} ref={sourceRef} />
+        <source src={src} ref={setSourceEl} />
         <p>Sorry, your browser doesn't support embedded videos</p>
       </video>
 
-      {loading && <M.CircularProgress className={classes.spinner} size={96} />}
+      {loading && <M.CircularProgress className={classes.spinner} size={48} />}
 
       {failed && (
         <M.Typography variant="body1" gutterBottom>
