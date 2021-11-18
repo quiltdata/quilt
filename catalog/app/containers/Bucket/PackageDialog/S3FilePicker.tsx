@@ -10,6 +10,7 @@ import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
+import { JsonRecord } from 'utils/types'
 
 import * as Listing from '../Listing'
 import { displayError } from '../errors'
@@ -24,6 +25,7 @@ export interface S3File {
   key: string
   version?: string
   size: number
+  meta?: JsonRecord
 }
 
 export const isS3File = (f: any): f is S3File =>

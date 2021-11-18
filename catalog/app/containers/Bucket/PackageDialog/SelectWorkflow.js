@@ -18,26 +18,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function SelectWorkflow({
-  className,
-  disabled,
-  error,
-  items,
-  onChange,
-  value,
-}) {
+export default function SelectWorkflow({ disabled, error, items, onChange, value }) {
   const classes = useStyles()
 
   const noChoice = items.length === 1
 
   return (
-    <M.FormControl
-      className={className}
-      disabled={disabled || noChoice}
-      fullWidth
-      size="small"
-      error={!!error}
-    >
+    <M.FormControl disabled={disabled || noChoice} fullWidth size="small" error={!!error}>
       <M.InputLabel id="schema-select" shrink>
         Workflow
       </M.InputLabel>
