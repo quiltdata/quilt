@@ -5,21 +5,20 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
-    height: '240px',
   },
   video: {
     display: 'block',
-    height: '240px',
+    height: '240px', // default transcoded video height
     margin: 'auto',
     maxWidth: '100%',
   },
   hidden: {
-    position: 'absolute',
     opacity: 0,
+    position: 'absolute',
   },
   spinner: {
-    margin: t.spacing(9, 'auto', 0),
     display: 'block',
+    margin: t.spacing(9, 'auto', 0),
   },
 }))
 
@@ -48,7 +47,7 @@ function Video({ src, className, ...props }: VideoProps) {
       videoEl?.removeEventListener('canplay', handleLoad)
       sourceEl?.removeEventListener('error', handleError)
     }
-  }, [handleError, handleLoad, videoRef])
+  }, [handleError, handleLoad, videoRef, sourceRef])
   return (
     <div className={cx(className, classes.root)}>
       <video
