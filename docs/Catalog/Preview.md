@@ -17,5 +17,6 @@ Quilt can display any plaintext file format, including the following.
 * Excel (.xls, .xlsx)
 * FCS Flow Cytometry files (.fcs)
 * Images (.gif, .jpg, .png, .tif, .tiff, etc.)
+* Media (.mp4, .webm)
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
