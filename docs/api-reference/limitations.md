@@ -12,12 +12,15 @@ the following limits on pushes. These limits do not apply to the `quilt3` Python
 API.
 
 
- Dimension                                                  | Max    
+ Dimension                                                  | Max
 ------------------------------------------------------------|--------
- Package manifest size (metadata)                           | 100 MB 
+ Package manifest size (metadata)                           | 100 MB
  Package size (data; via promotion or from an S3 directory) | 100 GB
+ Total size of uploaded files (soft limit)                  | 20 GB
+ Total size of files from S3 (soft limit)                   | 50 GB
  Maximum file size                                          | 10 GB
- Maximum number of files per push                           | 5,000  
+ Maximum number of files per push: soft limit               | 1,000
+ Maximum number of files per push: hard limit               | 5,000
 
 
 ### API
