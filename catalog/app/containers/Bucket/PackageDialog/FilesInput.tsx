@@ -733,37 +733,29 @@ function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
-    if (error) return error
-    const warnings: React.ReactNode[] = []
-    const push = (key: string, warning: React.ReactNode) => {
-      if (warnings.length) warnings.push(<br key={`sep-${key}`} />)
-      warnings.push(<React.Fragment key={key}>{warning}</React.Fragment>)
+    if (error) return <span>{error}</span>
+    if (!warn.s3 && !warn.count && !warn.upload) {
+      return <span>Drop files here or click to browse</span>
     }
-    if (warn.upload) {
-      push(
-        'upload',
-        <>
-          Total size of local files exceeds recommended maximum of{' '}
-          {readableBytes(PD.MAX_UPLOAD_SIZE)}.
-        </>,
-      )
-    }
-    if (warn.s3) {
-      push(
-        's3',
-        <>
-          Total size of files from S3 exceeds recommended maximum of{' '}
-          {readableBytes(PD.MAX_S3_SIZE)}.
-        </>,
-      )
-    }
-    if (warn.count) {
-      push(
-        'count',
-        <>Total number of files exceeds recommended maximum of {PD.MAX_FILE_COUNT}.</>,
-      )
-    }
-    return warnings.length ? warnings : 'Drop files here or click to browse'
+    return (
+      <div>
+        {warn.upload && (
+          <p>
+            Total size of local files exceeds recommended maximum of{' '}
+            {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+          </p>
+        )}
+        {warn.s3 && (
+          <p>
+            Total size of files from S3 exceeds recommended maximum of{' '}
+            {readableBytes(PD.MAX_S3_SIZE)}.
+          </p>
+        )}
+        {warn.count && (
+          <p>Total number of files exceeds recommended maximum of {PD.MAX_FILE_COUNT}.</p>
+        )}
+      </div>
+    )
   }, [error, warn.upload, warn.s3, warn.count])
 
   return (
@@ -773,7 +765,7 @@ function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
         [classes.warning]: !error && (warn.upload || warn.s3 || warn.count),
       })}
     >
-      <span>{label}</span>
+      {label}
     </div>
   )
 }
