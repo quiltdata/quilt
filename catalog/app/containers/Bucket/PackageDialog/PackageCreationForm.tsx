@@ -191,6 +191,7 @@ function PackageCreationForm({
       Object.entries,
       R.map(([path, file]) => ({
         logical_key: path,
+        meta: file.meta,
         size: file.size,
       })),
     )
