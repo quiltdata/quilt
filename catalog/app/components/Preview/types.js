@@ -37,7 +37,7 @@ export const PreviewData = tagged([
   'Text', // { head: string, tail: string, lang: string, highlighted: { head: string, tail: string }, ...PreviewStatus }
   'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }
   'Vega', // { spec: Object }
-  'Video', // { handle: object }
+  'Video', // { src: string }
   'Voila', // { src: string }
 ])
 
