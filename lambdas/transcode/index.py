@@ -3,6 +3,7 @@ Generate video previews for videos in S3.
 """
 import subprocess
 import tempfile
+from urllib.parse import urlparse
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
@@ -121,4 +122,13 @@ def lambda_handler(request):
 
         data = output_file.read()
 
-    return 200, data, {'Content-Type': CONTENT_TYPES[format]}
+    parsed = urlparse(url)
+    filename = parsed.path.rsplit('/', 1)[-1]
+
+    headers = {
+        'Content-Type': CONTENT_TYPES[format],
+        'Title': f"Preview of {filename}",
+        'Content-Disposition': f'inline; filename="{filename}"',
+    }
+
+    return 200, data, headers
