@@ -13,6 +13,7 @@ import * as Parquet from './loaders/Parquet'
 import * as Pdf from './loaders/Pdf'
 import * as Text from './loaders/Text'
 import * as Vcf from './loaders/Vcf'
+import * as Video from './loaders/Video'
 import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
 
@@ -31,6 +32,7 @@ const loaderChain = [
   Html,
   Text,
   Image,
+  Video,
   fallback,
 ]
 
