@@ -40,7 +40,11 @@ def lambda_handler(request):
     elif len(parts) == 3:
         s3_region, s3_bucket, s3_path = parts
     else:
-        return requests.codes.bad_request, 'Expected region/bucket/path', {'content-type': 'text/plain', **cors_headers}
+        return (
+            requests.codes.bad_request,
+            'Expected region/bucket/path',
+            {'content-type': 'text/plain', **cors_headers}
+        )
 
     if request.method == 'OPTIONS':
         return requests.codes.ok, '', cors_headers
