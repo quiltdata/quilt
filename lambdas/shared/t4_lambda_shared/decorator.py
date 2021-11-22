@@ -49,12 +49,12 @@ class ELBRequest(Request):
         )
 
 
-def api(cors_origins=(), *, request_class=Request):
+def api(cors_origins=(), *, request_class=Request, custom_options=False):
     def innerdec(f):
         @wraps(f)
         def wrapper(event, context):
             request = request_class(event, context)
-            if request.method == 'OPTIONS':
+            if not custom_options and request.method == 'OPTIONS':
                 status = 200
                 response_headers = {}
                 body = ''
