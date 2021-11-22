@@ -121,6 +121,7 @@ type PackageRevision {
   modified: Datetime!
   message: String
   metadata: JsonRecord!
+  userMeta: JsonRecord
   # header: do we need this?
   totalEntries: Int!
   totalBytes: Int!
@@ -149,7 +150,6 @@ enum PackageListOrder {
 }
 
 type PackageList {
-  # id? bucket + filter?
   total: Int!
   page(
     number: Int = 1

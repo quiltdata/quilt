@@ -1267,6 +1267,15 @@ export default {
             args: [],
           },
           {
+            name: 'userMeta',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'totalEntries',
             type: {
               kind: 'NON_NULL',
