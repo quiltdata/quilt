@@ -21,12 +21,19 @@ interface UseQueryArgs<V, D> extends urql.UseQueryArgs<V, D> {
   suspend?: boolean
 }
 
-export default function useQuery<V, D>({
+export interface UseQueryResult<D, V = any> extends urql.UseQueryState<D, V> {
+  case: <DR, ER, FR>(cases: OpCases<D, DR, ER, FR>) => DR | ER | FR
+  run: (opts?: Partial<urql.OperationContext>) => void
+}
+
+export function useQuery<V, D>({
   context,
   suspend = false,
   ...args
-}: UseQueryArgs<V, D>) {
+}: UseQueryArgs<V, D>): UseQueryResult<D, V> {
   const ctxMemo = useMemoEq({ suspense: suspend, ...context }, R.identity)
   const [result, run] = urql.useQuery({ ...args, context: ctxMemo })
   return useMemoEq({ ...result, run, case: useMemoEq(result, opCase) }, R.identity)
 }
+
+export default useQuery
