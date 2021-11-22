@@ -31,10 +31,10 @@ const loaderChain = [
   Pdf,
   Vcf,
   Html,
-  Text,
   Image,
   Video,
   Audio,
+  Text,
   fallback,
 ]
 
