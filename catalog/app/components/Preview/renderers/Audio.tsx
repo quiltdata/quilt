@@ -50,7 +50,6 @@ function Audio({ src, className, ...props }: AudioProps) {
       <audio
         ref={setAudioEl}
         controls
-        muted
         className={cx(classes.audio, { [classes.hidden]: loading || failed })}
         {...props}
       >
