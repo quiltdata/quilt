@@ -26,6 +26,7 @@ interface DialogProps {
 }
 
 function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
+  // TODO: add button to reset innerValue
   const [innerValue, setInnerValue] = React.useState(value)
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
@@ -90,9 +91,8 @@ interface EditMetaProps {
 }
 
 export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
-  // TODO: move innerValue from Dialog here and:
-  //       1. add button to reset innerValue
-  //       2. show "modified" state
+  // TODO: show "modified" state
+  //       possible solution: store value and its state in one object `metaValue = { value, state }`
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
