@@ -83,12 +83,13 @@ function MetadataIcon({ color }: MetadataIconProps) {
 }
 
 interface EditMetaProps {
+  disabled?: boolean
   name: string
-  value: JsonValue
   onChange?: (value: JsonValue) => void
+  value: JsonValue
 }
 
-export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
+export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
   // TODO: move innerValue from Dialog here and:
   //       1. add button to reset innerValue
   //       2. show "modified" state
@@ -98,7 +99,9 @@ export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
   // TODO: simplify R.isEmpty when meta will be normalized to null
   const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
 
-  if (!onChange) {
+  if (!onChange) return null
+
+  if (disabled) {
     return (
       <M.IconButton size="small" disabled>
         <MetadataIcon color="disabled" />
