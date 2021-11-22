@@ -703,6 +703,8 @@ const withCalculatedRevisions = (s) => ({
 
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
+const TIMESTAMP_RE_SRC = '[0-9]{10}'
+
 // TODO: remove this, only used by Overview ATM
 export const countPackageRevisions = ({ req, bucket, name }) =>
   req(
