@@ -326,7 +326,7 @@ function Revision({
   hash,
   modified,
   message,
-  metadata,
+  userMeta,
   totalEntries,
   totalBytes,
   accessCounts,
@@ -353,10 +353,10 @@ function Revision({
         </M.Typography>
       }
       meta={
-        !!metadata &&
-        !R.isEmpty(metadata) && (
+        !!userMeta &&
+        !R.isEmpty(userMeta) && (
           // @ts-expect-error
-          <JsonDisplay name="Metadata" value={metadata} pl={1.5} py={1.75} pr={2} />
+          <JsonDisplay name="Metadata" value={userMeta} pl={1.5} py={1.75} pr={2} />
         )
       }
       hash={
@@ -422,25 +422,26 @@ export default function PackageRevisions({
     }
   })
 
-  const refreshData = React.useCallback(() => {
-    // TODO: reexecute queries
-    // eslint-disable-next-line no-console
-    console.log('refresh data')
-  }, [])
-
   const revisionCountQuery = useQuery({
     query: REVISION_COUNT_QUERY,
     variables: { bucket, name },
+    requestPolicy: 'cache-and-network',
   })
   const revisionListQuery = useQuery({
     query: REVISION_LIST_QUERY,
     variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
+    requestPolicy: 'cache-and-network',
   })
+
+  const refreshData = React.useCallback(() => {
+    revisionCountQuery.run({ requestPolicy: 'cache-and-network' })
+    revisionListQuery.run({ requestPolicy: 'cache-and-network' })
+  }, [revisionCountQuery, revisionListQuery])
 
   const onExited = React.useCallback(
     (res) => {
       // refresh data if new revision of current package was pushed
-      if (res && res.pushed && res.pushed.name === name) {
+      if (res?.pushed?.name === name) {
         refreshData()
         return true
       }

@@ -3,13 +3,14 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
+import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
-import useQuery from 'utils/useQuery'
+import { UseQueryResult } from 'utils/useQuery'
 
 import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
@@ -43,6 +44,7 @@ interface RevisionInfoProps {
   path: string
   hashOrTag: string
   hash?: string
+  revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
 }
 
 export default function RevisionInfo({
@@ -51,6 +53,7 @@ export default function RevisionInfo({
   hash,
   hashOrTag,
   path,
+  revisionListQuery,
 }: RevisionInfoProps) {
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
@@ -61,11 +64,6 @@ export default function RevisionInfo({
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
-
-  const revisionsQuery = useQuery({
-    query: REVISION_LIST_QUERY,
-    variables: { bucket, name },
-  })
 
   const getHttpsUri = (h: string) =>
     `${window.origin}${urls.bucketPackageTree(bucket, name, h, path)}`
@@ -110,7 +108,7 @@ export default function RevisionInfo({
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <M.List className={classes.list} ref={listRef}>
-          {revisionsQuery.case({
+          {revisionListQuery.case({
             data: (d) =>
               d.package ? (
                 d.package.revisions.page.map((r) => (

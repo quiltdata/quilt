@@ -65,7 +65,6 @@ type CountsProps = NonNullable<
 >
 
 function Counts({ counts, total }: CountsProps) {
-  // TODO: consider fetching access counts separately for every package
   const [cursor, setCursor] = React.useState<number | null>(null)
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -368,11 +367,13 @@ export default function PackageList({
   const totalCountQuery = useQuery({
     query: PACKAGE_COUNT_QUERY,
     variables: { bucket, filter: null },
+    requestPolicy: 'cache-and-network',
   })
 
   const filteredCountQuery = useQuery({
     query: PACKAGE_COUNT_QUERY,
     variables: { bucket, filter: filter || null },
+    requestPolicy: 'cache-and-network',
   })
 
   const packagesQuery = useQuery({
@@ -384,12 +385,12 @@ export default function PackageList({
       page: computedPage,
       perPage: PER_PAGE,
     },
+    requestPolicy: 'cache-and-network',
   })
 
   const refreshData = React.useCallback(() => {
-    // console.log('refresh data')
-    // TODO: reexecute queries
-  }, [])
+    packagesQuery.run({ requestPolicy: 'cache-and-network' })
+  }, [packagesQuery])
 
   const makeSortUrl = React.useCallback(
     (s) =>
