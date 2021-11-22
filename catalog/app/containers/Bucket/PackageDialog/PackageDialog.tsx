@@ -20,8 +20,9 @@ import * as workflows from 'utils/workflows'
 import * as requests from '../requests'
 import SelectWorkflow from './SelectWorkflow'
 
-export const MAX_UPLOAD_SIZE = 1000 * 1000 * 1000 // 1GB
-export const MAX_S3_SIZE = 10 * 1000 * 1000 * 1000 // 10GB
+export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
+export const MAX_S3_SIZE = 50 * 1000 * 1000 * 1000 // 50GB
+export const MAX_FILE_COUNT = 1000
 
 export const ERROR_MESSAGES = {
   UPLOAD: 'Error uploading files',

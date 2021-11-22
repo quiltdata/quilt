@@ -726,43 +726,46 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 
 interface DropzoneMessageProps {
   error: React.ReactNode
-  warn: { upload: boolean; s3: boolean }
+  warn: { upload: boolean; s3: boolean; count: boolean }
 }
 
 function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
-    if (error) return error
-    if (warn.upload || warn.s3)
-      return (
-        <>
-          {warn.upload && (
-            <>
-              Total size of local files exceeds recommended maximum of{' '}
-              {readableBytes(PD.MAX_UPLOAD_SIZE)}.
-            </>
-          )}
-          {warn.upload && warn.s3 && <br />}
-          {warn.s3 && (
-            <>
-              Total size of files from S3 exceeds recommended maximum of{' '}
-              {readableBytes(PD.MAX_S3_SIZE)}.
-            </>
-          )}
-        </>
-      )
-    return 'Drop files here or click to browse'
-  }, [error, warn.upload, warn.s3])
+    if (error) return <span>{error}</span>
+    if (!warn.s3 && !warn.count && !warn.upload) {
+      return <span>Drop files here or click to browse</span>
+    }
+    return (
+      <div>
+        {warn.upload && (
+          <p>
+            Total size of local files exceeds recommended maximum of{' '}
+            {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+          </p>
+        )}
+        {warn.s3 && (
+          <p>
+            Total size of files from S3 exceeds recommended maximum of{' '}
+            {readableBytes(PD.MAX_S3_SIZE)}.
+          </p>
+        )}
+        {warn.count && (
+          <p>Total number of files exceeds recommended maximum of {PD.MAX_FILE_COUNT}.</p>
+        )}
+      </div>
+    )
+  }, [error, warn.upload, warn.s3, warn.count])
 
   return (
     <div
       className={cx(classes.root, {
         [classes.error]: error,
-        [classes.warning]: !error && (warn.upload || warn.s3),
+        [classes.warning]: !error && (warn.upload || warn.s3 || warn.count),
       })}
     >
-      <span>{label}</span>
+      {label}
     </div>
   )
 }
@@ -1420,6 +1423,7 @@ export function FilesInput({
   const warn = {
     upload: stats.upload.size > PD.MAX_UPLOAD_SIZE,
     s3: stats.s3.size > PD.MAX_S3_SIZE,
+    count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
   }
 
   const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
@@ -1458,7 +1462,7 @@ export function FilesInput({
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
               ? 'error'
-              : warn.upload || warn.s3
+              : warn.upload || warn.s3 || warn.count
               ? 'warn'
               : undefined
           }
@@ -1498,7 +1502,7 @@ export function FilesInput({
               )
             </M.Box>
           )}
-          {(warn.upload || warn.s3) && (
+          {(warn.upload || warn.s3 || warn.count) && (
             <M.Icon style={{ marginLeft: 6 }} fontSize="small">
               error_outline
             </M.Icon>
@@ -1530,12 +1534,12 @@ export function FilesInput({
           interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
-          warn={warn.upload || warn.s3}
+          warn={warn.upload || warn.s3 || warn.count}
         >
           <input {...getInputProps()} />
 
           {!!computedEntries.length && (
-            <FilesContainer error={!!error} warn={warn.upload || warn.s3}>
+            <FilesContainer error={!!error} warn={warn.upload || warn.s3 || warn.count}>
               {computedEntries.map(
                 FilesEntry.match({
                   Dir: (ps) => (
