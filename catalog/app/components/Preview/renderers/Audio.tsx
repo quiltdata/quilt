@@ -8,7 +8,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   audio: {
     display: 'block',
-    margin: 'auto',
+    margin: t.spacing(10, 'auto'),
     maxWidth: '100%',
   },
   hidden: {
