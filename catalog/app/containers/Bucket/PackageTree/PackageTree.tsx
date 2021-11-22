@@ -5,11 +5,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
+import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import * as Intercom from 'components/Intercom'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -23,12 +23,11 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
-import Link from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
-import useQuery from 'utils/useQuery'
+import { UseQueryResult, useQuery } from 'utils/useQuery'
 
 import Code from '../Code'
 import CopyButton from '../CopyButton'
@@ -49,6 +48,7 @@ import RevisionInfo from './RevisionInfo'
 import RevisionMenu from './RevisionMenu'
 
 import REVISION_QUERY from './gql/Revision.generated'
+import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 
@@ -174,7 +174,6 @@ interface DirDisplayProps {
   path: string
   crumbs: $TSFixMe[] // Crumb
   onRevisionPush: (result: PushResult) => void
-  onCrossBucketPush: (result: PushResult) => void
 }
 
 function DirDisplay({
@@ -185,18 +184,11 @@ function DirDisplay({
   path,
   crumbs,
   onRevisionPush,
-  onCrossBucketPush,
 }: DirDisplayProps) {
   const { noDownload } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
-  const intercom = Intercom.use()
   const classes = useDirDisplayStyles()
-
-  const showIntercom = React.useMemo(
-    () => (intercom.dummy ? null : () => intercom('show')),
-    [intercom],
-  )
 
   const dirQuery = useQuery({
     query: DIR_QUERY,
@@ -217,13 +209,9 @@ function DirDisplay({
 
   const [successor, setSuccessor] = React.useState(null)
 
-  const onPackageCopyDialogExited = React.useCallback(
-    (res: PushResult) => {
-      if (res && res.pushed) onCrossBucketPush(res)
-      setSuccessor(null)
-    },
-    [setSuccessor, onCrossBucketPush],
-  )
+  const onPackageCopyDialogExited = React.useCallback(() => {
+    setSuccessor(null)
+  }, [setSuccessor])
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
@@ -293,37 +281,15 @@ function DirDisplay({
 
   const dir = dirQuery.data?.package?.revision?.dir
   if (!dir) {
-    let heading = 'Error loading directory'
-    let body: React.ReactNode = "Seems like there's no such directory in this package"
-    // TODO: handle urql error
-    // if (e.status === 500 && /Could not reserve memory block/.test(e.message)) {
-    if (dirQuery.error) {
-      heading = 'Oops, this is a large package'
-      body = (
-        <>
-          The Lambda process ran out of memory
-          {!!showIntercom && (
-            <>
-              , but don&apos;t worry,{' '}
-              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
-              <Link component="span" role="button" onClick={showIntercom}>
-                we can fix it
-              </Link>
-            </>
-          )}
-          .
-        </>
-      )
-    }
     return (
       <>
         <TopBar crumbs={crumbs} />
         <M.Box mt={4}>
           <M.Typography variant="h4" align="center" gutterBottom>
-            {heading}
+            Error loading directory
           </M.Typography>
           <M.Typography variant="body1" align="center">
-            {body}
+            Seems like there's no such directory in this package
           </M.Typography>
         </M.Box>
       </>
@@ -657,6 +623,9 @@ interface PackageTreeProps {
   path: string
   mode?: string
   resolvedFrom?: string
+  revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
+  refreshRevisionData: () => void
+  refreshRevisionListData: () => void
 }
 
 function PackageTree({
@@ -667,6 +636,9 @@ function PackageTree({
   path,
   mode,
   resolvedFrom,
+  revisionListQuery,
+  refreshRevisionData,
+  refreshRevisionListData,
 }: PackageTreeProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -696,28 +668,20 @@ function PackageTree({
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, hashOrTag, path, urls])
 
-  // TODO: refresh revision(s) data on package push
-  const [, /* revisionKey */ setRevisionKey] = React.useState(1)
-  const [revisionListKey, setRevisionListKey] = React.useState(1)
-
   const onRevisionPush = React.useCallback(
     (res: PushResult) => {
       const pushedSamePackage = R.pathEq(['pushed', 'name'], name, res)
       if (pushedSamePackage) {
         // refresh revision list if a new revision of the current package has been pushed
-        setRevisionListKey(R.inc)
+        refreshRevisionListData()
         if (hashOrTag === 'latest') {
           // when browsing 'latest' revision, also refresh the package view
-          setRevisionKey(R.inc)
+          refreshRevisionData()
         }
       }
     },
-    [name, hashOrTag, setRevisionKey, setRevisionListKey],
+    [name, hashOrTag, refreshRevisionData, refreshRevisionListData],
   )
-
-  const onCrossBucketPush = React.useCallback(() => {
-    setRevisionKey(R.inc)
-  }, [setRevisionKey])
 
   return (
     <FileView.Root>
@@ -763,10 +727,7 @@ function PackageTree({
       <M.Typography variant="body1">
         <PackageLink {...{ bucket, name }} />
         {' @ '}
-        <RevisionInfo
-          {...{ hash, hashOrTag, bucket, name, path }}
-          key={`revinfo:${revisionListKey}`}
-        />
+        <RevisionInfo {...{ hash, hashOrTag, bucket, name, path, revisionListQuery }} />
       </M.Typography>
       {hash ? (
         <ResolverProvider {...{ bucket, name, hash }}>
@@ -780,7 +741,6 @@ function PackageTree({
                 hashOrTag,
                 crumbs,
                 onRevisionPush,
-                onCrossBucketPush,
                 key: hash,
               }}
             />
@@ -830,7 +790,20 @@ export default function PackageTreeWrapper({
     variables: { bucket, name, hashOrTag },
   })
 
-  // XXX: consider using different request policy
+  const revisionListQuery = useQuery({
+    query: REVISION_LIST_QUERY,
+    variables: { bucket, name },
+    requestPolicy: 'cache-and-network',
+  })
+
+  const refreshRevisionData = React.useCallback(() => {
+    revisionQuery.run({ requestPolicy: 'network-only' })
+  }, [revisionQuery])
+
+  const refreshRevisionListData = React.useCallback(() => {
+    revisionListQuery.run({ requestPolicy: 'cache-and-network' })
+  }, [revisionListQuery])
+
   if (revisionQuery.fetching || revisionQuery.stale) {
     return <Placeholder color="text.secondary" />
   }
@@ -850,5 +823,20 @@ export default function PackageTreeWrapper({
   }
 
   const hash = revisionQuery.data.package.revision?.hash
-  return <PackageTree {...{ bucket, name, hashOrTag, hash, path, mode, resolvedFrom }} />
+  return (
+    <PackageTree
+      {...{
+        bucket,
+        name,
+        hashOrTag,
+        hash,
+        path,
+        mode,
+        resolvedFrom,
+        revisionListQuery,
+        refreshRevisionData,
+        refreshRevisionListData,
+      }}
+    />
+  )
 }

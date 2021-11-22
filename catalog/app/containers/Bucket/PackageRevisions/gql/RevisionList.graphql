@@ -7,7 +7,7 @@ query ($bucket: String!, $name: String!, $page: Int!, $perPage: Int!) {
         hash
         modified
         message
-        metadata
+        userMeta
         totalEntries
         totalBytes
         accessCounts {

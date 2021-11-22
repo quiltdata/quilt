@@ -19,7 +19,7 @@ export type containers_Bucket_PackageRevisions_gql_RevisionListQuery = {
           readonly page: ReadonlyArray<
             { readonly __typename: 'PackageRevision' } & Pick<
               Types.PackageRevision,
-              'hash' | 'modified' | 'message' | 'metadata' | 'totalEntries' | 'totalBytes'
+              'hash' | 'modified' | 'message' | 'userMeta' | 'totalEntries' | 'totalBytes'
             > & {
                 readonly accessCounts: Types.Maybe<
                   { readonly __typename: 'AccessCounts' } & Pick<
@@ -141,7 +141,7 @@ export const containers_Bucket_PackageRevisions_gql_RevisionListDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'hash' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'modified' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'message' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'metadata' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'userMeta' } },
                             {
                               kind: 'Field',
                               name: { kind: 'Name', value: 'totalEntries' },
