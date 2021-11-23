@@ -493,6 +493,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number
   action?: React.ReactNode
   meta?: JsonRecord
+  metaDisabled?: boolean
   onMeta?: (value: JsonRecord) => void
   interactive?: boolean
   faint?: boolean
@@ -506,6 +507,7 @@ function File({
   size,
   action,
   meta,
+  metaDisabled,
   onMeta,
   interactive = false,
   faint = false,
@@ -538,7 +540,13 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta key={metaKey} name={name} value={meta} onChange={onMeta} />
+      <EditFileMeta
+        disabled={metaDisabled}
+        key={metaKey}
+        name={name}
+        onChange={onMeta}
+        value={meta}
+      />
       {action}
     </div>
   )
@@ -1109,7 +1117,8 @@ function FileUpload({
       name={name}
       size={size}
       meta={meta}
-      onMeta={state !== 'deleted' ? onMeta : undefined}
+      metaDisabled={state === 'deleted'}
+      onMeta={onMeta}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
