@@ -1123,18 +1123,6 @@ export default {
         name: 'PackageRevision',
         fields: [
           {
-            name: 'pointer',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'hash',
             type: {
               kind: 'NON_NULL',
@@ -1153,6 +1141,18 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'isLatest',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
                 ofType: null,
               },
             },
@@ -1190,6 +1190,24 @@ export default {
               },
             },
             args: [],
+          },
+          {
+            name: 'accessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'window',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
           },
         ],
         interfaces: [],
