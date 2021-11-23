@@ -50,7 +50,7 @@ class TestS3Proxy(TestCase):
         assert resp['statusCode'] == 400
         assert resp['headers']['access-control-allow-origin'] == '*'
 
-    def test_success(self):
+    def test_get(self):
         url = 'https://bucket.s3.us-west-1.amazonaws.com/weird%20%2B%20path?a=1&b=2'
 
         self.requests_mock.add(responses.GET, url)
@@ -66,3 +66,19 @@ class TestS3Proxy(TestCase):
         assert resp['headers']['access-control-allow-origin'] == '*'
         assert resp['headers']['access-control-allow-headers'] == 'foo, bar'
         assert resp['headers']['access-control-allow-methods'] == 'GET'
+
+    def test_put(self):
+        url = 'https://bucket.s3.us-west-1.amazonaws.com/weird%20%2B%20path?a=1&b=2'
+
+        self.requests_mock.add(
+            responses.PUT,
+            url,
+            match=[
+                lambda request: (request.body == '12345', None)
+            ]
+        )
+
+        event = self._make_event('PUT', 'us-west-1/bucket/weird + path', {'a': '1', 'b': '2'}, None, '12345')
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        assert resp['headers']['access-control-allow-origin'] == '*'

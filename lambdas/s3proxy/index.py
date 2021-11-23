@@ -24,7 +24,6 @@ def lambda_handler(request):
             'Content-Length',
             'Content-Range',
             'ETag',
-            'x-amz-meta-helium',
             'x-amz-bucket-region',
             'x-amz-delete-marker',
             'x-amz-request-id',
@@ -65,6 +64,7 @@ def lambda_handler(request):
     response = session.request(
         method=request.method,
         url=url,
+        data=request.data,
         headers=request_headers,
     )
 
