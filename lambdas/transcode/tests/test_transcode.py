@@ -26,7 +26,7 @@ class MockContext:
 def test_403():
     """test 403 cases, such as Glacier"""
     url = "https://example.com/folder/file.ext"
-    event = _make_event({"url": url})
+    event = _make_event({"url": url, "format": "video/mp4"})
 
     # Get the response
     with patch.object(index, 'FFMPEG', '/bin/false'):
@@ -49,12 +49,15 @@ def test_403():
         {"duration": "zzz"},
         {"duration": "20"},
         {"duration": "-1"},
+        {"file_size": ""},
+        {"file_size": "0"},
+        {"file_size": "100000000"},
     ]
 )
 def test_bad_params(params):
     """test invalid input"""
     url = "https://example.com/folder/file.ext"
-    event = _make_event({"url": url, **params})
+    event = _make_event({"url": url, "format": "video/mp4", **params})
 
     # Get the response
     with patch.object(index, 'FFMPEG', '/bin/false'):
@@ -65,9 +68,19 @@ def test_bad_params(params):
     assert body['error']
 
 
-def test_success():
+@pytest.mark.parametrize(
+    'format',
+    [
+        'video/mp4',
+        'video/webm',
+        'audio/mpeg',
+        'audio/ogg',
+        'mp4',
+    ]
+)
+def test_format(format):
     url = "https://example.com/folder/file.ext"
-    event = _make_event({"url": url})
+    event = _make_event({"url": url, "format": format, "file_size": "10000"})
 
     # Get the response
     with patch.object(index, 'FFMPEG', '/bin/true'):
