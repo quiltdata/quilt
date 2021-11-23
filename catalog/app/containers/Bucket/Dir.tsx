@@ -143,7 +143,7 @@ function DirContents({
           />
         }
       />
-      <Summary files={response.files} mkUrl={null} />
+      <Summary files={response.files} mkUrl={null} packageHandle={null} />
     </>
   )
 }

@@ -238,8 +238,10 @@ function DirDisplay({
       bucket,
       hash,
       name,
+      revision,
+      path,
     }),
-    [bucket, hash, name],
+    [bucket, hash, name, revision, path],
   )
 
   return data.case({
@@ -333,11 +335,11 @@ function DirDisplay({
               />
             )}
           </TopBar>
-          <PkgCode {...{ bucket, name, hash, revision, path }} />
+          <PkgCode {...packageHandle} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
             <Listing items={items} />
-            <Summary files={summaryHandles} mkUrl={mkUrl} />
+            <Summary files={summaryHandles} mkUrl={mkUrl} packageHandle={packageHandle} />
           </M.Box>
         </>
       )
