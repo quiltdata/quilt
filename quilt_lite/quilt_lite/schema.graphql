@@ -4,7 +4,7 @@ scalar Datetime
 
 scalar Json
 
-scalar JsonDict
+scalar JsonRecord
 
 type ContentIndexingSettings {
   extensions: [String!]!
@@ -93,7 +93,7 @@ type AccessCounts {
 #
 #   size: Int!
 #   hash: String! # optional?
-#   meta: JsonDict
+#   meta: JsonRecord
 #   modified: Date! # optional
 #   # meta
 #   # type and preview stuff
@@ -102,7 +102,7 @@ type AccessCounts {
 # type PackageEntryFile {
 #   name: String! # absolute vs relative?
 #   size: Int!
-#   meta: JsonDict
+#   meta: JsonRecord
 #   # physicalKey
 #   physicalObject: PhysicalObject!
 # }
@@ -110,7 +110,7 @@ type AccessCounts {
 # type PackageEntryDir {
 #   name: String!
 #   size: Int!
-#   meta: JsonDict
+#   meta: JsonRecord
 #   children: PackageEntryList!
 # }
 #
@@ -129,7 +129,7 @@ type PackageRevision {
   modified: Datetime!
   # stats: PackageRevisionStats!
   message: String
-  metadata: JsonDict!
+  metadata: JsonRecord!
   # header: do we need this?
   entries: PackageEntryList!
   # entry(path: String!): PackageEntry
