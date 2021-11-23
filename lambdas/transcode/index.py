@@ -123,7 +123,7 @@ def lambda_handler(request):
         data = output_file.read()
 
     parsed = urlparse(url)
-    filename = parsed.path.rsplit('/', 1)[-1]
+    filename = parsed.path.rpartition('/')[-1]
 
     headers = {
         'Content-Type': format,
