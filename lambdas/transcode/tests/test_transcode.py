@@ -80,7 +80,7 @@ def test_bad_params(params):
 )
 def test_format(format):
     url = "https://example.com/folder/file.ext"
-    event = _make_event({"url": url, "format": format})
+    event = _make_event({"url": url, "format": format, "file_size": "10000"})
 
     # Get the response
     with patch.object(index, 'FFMPEG', '/bin/true'):
