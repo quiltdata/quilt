@@ -17,7 +17,6 @@ export const detect = utils.extIn([
   '.ogg',
   '.ts',
   '.tsa',
-  '.tsv',
   '.wav',
 ])
 
