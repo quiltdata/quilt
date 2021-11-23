@@ -38,6 +38,7 @@ export const PreviewData = tagged([
   'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }
   'Vega', // { spec: Object }
   'Video', // { src: string }
+  'Audio', // { src: string }
   'Voila', // { src: string }
 ])
 

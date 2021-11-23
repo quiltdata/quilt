@@ -23,6 +23,7 @@
 * [Added] Add a "transcode" lambda for previewing video files ([#2366](https://github.com/quiltdata/quilt/pull/2366/))
 * [Added] Add object-level metadata editor and move package metadata editor to popup ([#2510](https://github.com/quiltdata/quilt/pull/2510/))
 * [Added] Video previews ([#2540](https://github.com/quiltdata/quilt/pull/2540))
+* [Added] Audio previews ([#2547](https://github.com/quiltdata/quilt/pull/2547))
 
 # 3.6.0 - 2021-10-15
 ## Python API

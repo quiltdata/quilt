@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import * as Audio from './loaders/Audio'
 import * as Csv from './loaders/Csv'
 import * as Echarts from './loaders/Echarts'
 import * as Excel from './loaders/Excel'
@@ -30,9 +31,10 @@ const loaderChain = [
   Pdf,
   Vcf,
   Html,
-  Text,
   Image,
   Video,
+  Audio,
+  Text,
   fallback,
 ]
 
