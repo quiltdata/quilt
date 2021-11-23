@@ -75,7 +75,7 @@ def lambda_handler(request):
                 raise ValueError
             return value
         except ValueError:
-            raise ValueError(f"Invalid {name!r}; must be between {min_value} and {max_value}")
+            raise ValueError(f"Invalid {name!r}; must be between {min_value} and {max_value} inclusive")
 
     try:
         width = _parse_param('width', 320, 10, 640)
