@@ -38,25 +38,4 @@ def get_credentials():
     return creds["Credentials"]
 
 
-# TODO: use quilt3 API
-@api.get("/api/package_count")
-def package_count():
-    return 0
-
-
-@api.get("/api/package_list")
-def package_list():
-    return []
-
-
-@api.get("/api/package_revision_count")
-def package_revision_count():
-    return 0
-
-
-@api.get("/api/package_revision_list")
-def package_revision_list():
-    return []
-
-
 api.mount("/graphql", ariadne.asgi.GraphQL(graphql_schema), "GraphQL")
