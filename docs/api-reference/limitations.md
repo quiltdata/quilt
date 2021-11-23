@@ -19,8 +19,8 @@ API.
  Total size of uploaded files (soft limit)                  | 20 GB
  Total size of files from S3 (soft limit)                   | 50 GB
  Maximum file size                                          | 10 GB
- Maximum number of files per push: soft limit               | 1,000
- Maximum number of files per push: hard limit               | 5,000
+ Maximum number of files per push (soft limit)              | 1,000
+ Maximum number of files per push (hard limit)              | 5,000
 
 
 ### API
