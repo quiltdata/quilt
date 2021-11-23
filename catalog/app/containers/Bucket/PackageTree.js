@@ -422,14 +422,14 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
     [bucket, history, name, path, revision, urls],
   )
 
-  const withPreview = ({ archived, deleted, handle }, callback) => {
+  const withPreview = ({ archived, deleted, handle, packageHandle }, callback) => {
     if (deleted) {
       return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
     }
     if (archived) {
       return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
     }
-    return Preview.load({ ...handle, mode: viewModes.mode }, callback)
+    return Preview.load({ ...handle, mode: viewModes.mode, packageHandle }, callback)
   }
 
   const renderProgress = () => (
@@ -457,6 +457,8 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
       </M.Box>
     </>
   )
+
+  const packageHandle = { bucket, name, hash, revision, path }
 
   return data.case({
     Ok: ({ meta, ...handle }) => (
@@ -487,11 +489,11 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
                     <FileView.DownloadButton className={classes.button} handle={handle} />
                   )}
                 </TopBar>
-                <PkgCode {...{ bucket, name, hash, revision, path }} />
+                <PkgCode {...packageHandle} />
                 <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                   {withPreview(
-                    { archived, deleted, handle },
+                    { archived, deleted, handle, packageHandle },
                     renderPreview(viewModes.handlePreviewResult),
                   )}
                 </Section>

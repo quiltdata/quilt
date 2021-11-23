@@ -15,6 +15,15 @@ const getCredentialsQuery = (credentials) => ({
 
 const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
 
+function usePackageQuery(packageHandle) {
+  if (!packageHandle) return null
+  return {
+    pkg_bucket: packageHandle.bucket,
+    pkg_name: packageHandle.name,
+    pkg_top_hash: packageHandle.hash,
+  }
+}
+
 const FILE_TYPE = 'voila'
 export const detect = (key, options) =>
   options?.types?.find((type) => type === FILE_TYPE || type.name === FILE_TYPE)
@@ -70,12 +79,14 @@ const useVoilaUrl = (handle) => {
   const sign = AWS.Signer.useS3Signer()
   const endpoint = Config.use().registryUrl
   const credentialsQuery = useCredentialsQuery()
+  const packageQuery = usePackageQuery(handle.packageHandle)
   return useMemoEq(
-    [credentialsQuery, endpoint, handle, sign],
+    [credentialsQuery, endpoint, handle, packageQuery, sign],
     () =>
       `${endpoint}/voila/voila/render/${mkSearch({
         url: sign(handle),
         ...credentialsQuery,
+        ...packageQuery,
       })}`,
   )
 }
