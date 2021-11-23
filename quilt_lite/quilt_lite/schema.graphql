@@ -149,10 +149,15 @@ type Package {
   accessCounts(window: Int = 30): AccessCounts
 }
 
+enum PackageListOrder {
+  NAME
+  MODIFIED
+}
+
 type PackageList {
   # id? bucket + filter?
   total: Int!
-  page(number: Int = 1, perPage: Int = 30): [Package!]!
+  page(number: Int = 1, perPage: Int = 30, order: PackageListOrder = NAME): [Package!]!
 }
 
 type Query {
