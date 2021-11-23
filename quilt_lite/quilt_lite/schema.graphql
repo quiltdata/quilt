@@ -124,15 +124,16 @@ type PackageEntryList {
 
 type PackageRevision {
   # link to package?
-  pointer: String!
   hash: String!
   modified: Datetime!
+  isLatest: Boolean!
   # stats: PackageRevisionStats!
   message: String
   metadata: JsonRecord!
   # header: do we need this?
   entries: PackageEntryList!
   # entry(path: String!): PackageEntry
+  accessCounts(window: Int = 30): AccessCounts
 }
 
 type PackageRevisionList {
