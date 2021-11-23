@@ -49,6 +49,9 @@ def test_403():
         {"duration": "zzz"},
         {"duration": "20"},
         {"duration": "-1"},
+        {"file_size": ""},
+        {"file_size": "0"},
+        {"file_size": "100000000"},
     ]
 )
 def test_bad_params(params):

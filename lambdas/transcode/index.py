@@ -36,6 +36,9 @@ SCHEMA = {
         'duration': {
             'type': 'string'
         },
+        'file_size': {
+            'type': 'string'
+        }
     },
     'required': ['url'],
     'additionalProperties': False
@@ -45,7 +48,7 @@ FFMPEG = '/opt/bin/ffmpeg'
 
 # Lambda has a 6MB limit for request and response, however, base64 adds 33% overhead.
 # Also, leave a few KB for the headers.
-MAX_VIDEO_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
+MAX_FILE_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
 
 MIN_WIDTH = 10
 MAX_WIDTH = 640
@@ -64,6 +67,7 @@ def lambda_handler(request):
     width_str = request.args.get('width', '320')
     height_str = request.args.get('height', '240')
     duration_str = request.args.get('duration', '5')
+    file_size_str = request.args.get('file_size', MAX_FILE_SIZE)
 
     try:
         width = int(width_str)
@@ -85,6 +89,13 @@ def lambda_handler(request):
             raise ValueError
     except ValueError:
         return make_json_response(400, {'error': "Invalid 'duration'"})
+
+    try:
+        file_size = float(file_size_str)
+        if not 0 < file_size <= MAX_FILE_SIZE:
+            raise ValueError
+    except ValueError:
+        return make_json_response(400, {'error': f"Invalid 'file_size'; must be between 0 and {MAX_FILE_SIZE}"})
 
     format_params = []
 
@@ -111,7 +122,7 @@ def lambda_handler(request):
             "-f", format,
             *format_params,
             "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
-            "-fs", str(MAX_VIDEO_SIZE),
+            "-fs", str(file_size),
             "-y",  # Overwrite output file
             "-v", "error",  # Only print errors
             output_file.name
