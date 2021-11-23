@@ -9,16 +9,7 @@ import { PreviewData } from '../types'
 
 import * as utils from './utils'
 
-export const detect = utils.extIn([
-  '.flac',
-  '.m2t',
-  '.mp3',
-  '.mp4',
-  '.ogg',
-  '.ts',
-  '.tsa',
-  '.wav',
-])
+export const detect = utils.extIn(['.flac', '.mp3', '.ogg', '.ts', '.tsa', '.wav'])
 
 interface AudioLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
