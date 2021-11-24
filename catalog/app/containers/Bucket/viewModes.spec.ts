@@ -87,6 +87,13 @@ describe('containers/Bucket/viewModes', () => {
             mode: 'jupyter',
           })
         })
+
+        it('returns Jupyter and JSON and Voila modes and defaults to Jupyter mode when package is not provided', () => {
+          expect(render(path, 'voila').result.current).toMatchObject({
+            modes: ['jupyter', 'json'],
+            mode: 'jupyter',
+          })
+        })
       })
 
       describe('when Voila is unavailable', () => {
