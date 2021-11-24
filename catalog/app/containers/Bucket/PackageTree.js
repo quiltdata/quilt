@@ -460,7 +460,10 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
     </>
   )
 
-  const packageHandle = { bucket, name, hash, revision, path }
+  const packageHandle = React.useMemo(
+    () => ({ bucket, name, hash, revision, path }),
+    [bucket, name, hash, revision, path],
+  )
 
   return data.case({
     Ok: ({ meta, ...handle }) => (
