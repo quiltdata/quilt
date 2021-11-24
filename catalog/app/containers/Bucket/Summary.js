@@ -183,9 +183,9 @@ export default function BucketSummary({
       {!readme && !summarize && !images.length && whenEmpty()}
       {readme && (
         <SummaryItemFile
+          title={basename(readme.logicalKey || readme.key)}
           handle={readme}
           mkUrl={mkUrl}
-          title={basename(readme.logicalKey || readme.key)}
         />
       )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
