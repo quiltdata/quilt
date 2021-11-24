@@ -143,7 +143,9 @@ function DirContents({
           />
         }
       />
-      <Summary files={response.files} mkUrl={null} packageHandle={null} />
+      {/* Remove TS workaround when Summary will be converted to .tsx */}
+      {/* @ts-expect-error */}
+      <Summary files={response.files} mkUrl={null} />
     </>
   )
 }
