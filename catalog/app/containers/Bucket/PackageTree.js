@@ -391,6 +391,16 @@ function DirDisplay({
   })
 }
 
+const withPreview = ({ archived, deleted, handle, mode, packageHandle }, callback) => {
+  if (deleted) {
+    return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
+  }
+  if (archived) {
+    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+  }
+  return Preview.load({ ...handle, mode, packageHandle }, callback)
+}
+
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(2),
@@ -415,7 +425,12 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
     path,
   })
 
-  const viewModes = useViewModes(path, mode)
+  const packageHandle = React.useMemo(
+    () => ({ bucket, name, hash, revision, path }),
+    [bucket, name, hash, revision, path],
+  )
+
+  const viewModes = useViewModes(path, mode, packageHandle)
 
   const onViewModeChange = React.useCallback(
     (m) => {
@@ -423,16 +438,6 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
     },
     [bucket, history, name, path, revision, urls],
   )
-
-  const withPreview = ({ archived, deleted, handle, packageHandle }, callback) => {
-    if (deleted) {
-      return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
-    }
-    if (archived) {
-      return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
-    }
-    return Preview.load({ ...handle, mode: viewModes.mode, packageHandle }, callback)
-  }
 
   const renderProgress = () => (
     // TODO: skeleton placeholder
@@ -458,11 +463,6 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
         )}
       </M.Box>
     </>
-  )
-
-  const packageHandle = React.useMemo(
-    () => ({ bucket, name, hash, revision, path }),
-    [bucket, name, hash, revision, path],
   )
 
   return data.case({
@@ -498,7 +498,7 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
                 <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                   {withPreview(
-                    { archived, deleted, handle, packageHandle },
+                    { archived, deleted, handle, mode: viewModes.mode, packageHandle },
                     renderPreview(viewModes.handlePreviewResult),
                   )}
                 </Section>

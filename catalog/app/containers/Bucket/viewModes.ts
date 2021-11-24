@@ -6,6 +6,7 @@ import { PreviewData } from 'components/Preview/types'
 import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 import { useVoila } from 'utils/voila'
+import { PackageHandle } from 'utils/packageHandle'
 
 const MODES = {
   json: 'JSON',
@@ -32,7 +33,11 @@ export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null 
   )
 }
 
-export function useViewModes(path: string, modeInput: string | null | undefined) {
+export function useViewModes(
+  path: string,
+  modeInput: string | null | undefined,
+  packageHandle?: PackageHandle,
+) {
   const voilaAvailable = useVoila()
   const [previewResult, setPreviewResult] = React.useState(null)
 
@@ -48,7 +53,9 @@ export function useViewModes(path: string, modeInput: string | null | undefined)
   const modes: ViewMode[] = React.useMemo(() => {
     switch (extname(path)) {
       case '.ipynb':
-        return voilaAvailable ? ['jupyter', 'json', 'voila'] : ['jupyter', 'json']
+        return !!packageHandle && voilaAvailable
+          ? ['jupyter', 'json', 'voila']
+          : ['jupyter', 'json']
       case '.json':
         return PreviewData.case(
           {
@@ -64,7 +71,7 @@ export function useViewModes(path: string, modeInput: string | null | undefined)
       default:
         return []
     }
-  }, [path, previewResult, voilaAvailable])
+  }, [path, packageHandle, previewResult, voilaAvailable])
 
   const mode = (
     modes.includes(modeInput as any) ? modeInput : modes[0] || null
