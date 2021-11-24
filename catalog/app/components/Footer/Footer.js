@@ -14,6 +14,8 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
 import iconGithub from './icon-github.svg'
+import iconInstagram from './icon-instagram.svg'
+import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
@@ -165,6 +167,8 @@ export default function Footer() {
             <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
             <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
             <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
+            <NavIcon icon={iconInstagram} href={URLS.instagram} target="_blank" ml={4} />
+            <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={4} />
             {!intercom.dummy && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
