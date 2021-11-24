@@ -9,8 +9,6 @@ from fastapi import FastAPI, Request, Response
 
 s3proxy = FastAPI()
 
-session = aiohttp.ClientSession()
-
 
 @s3proxy.api_route("/{s3_region}/{s3_bucket}", methods=['GET', 'HEAD', 'POST', 'PUT', 'OPTIONS'])
 @s3proxy.api_route("/{s3_region}/{s3_bucket}/{s3_path:path}", methods=['GET', 'HEAD', 'POST', 'PUT', 'OPTIONS'])
@@ -53,22 +51,23 @@ async def s3proxy_request(request: Request, s3_region: str, s3_bucket:str, s3_pa
     request_headers.pop('host', None)  # Correct host header will come from the URL.
     request_headers.pop('connection', None)  # Let requests handle keep-alive, etc.
 
-    async with session.request(
-        method=request.method,
-        url=url,
-        data=req_body,
-        headers=request_headers,
-    ) as response:
-        response_headers = response.headers.copy()  # It's a case-insensitive dict, not a regular dict.
-        response_body = await response.content.read()  # TODO: Use a StreamingResponse?
+    async with aiohttp.ClientSession() as session:
+        async with session.request(
+            method=request.method,
+            url=url,
+            data=req_body,
+            headers=request_headers,
+        ) as response:
+            response_headers = response.headers.copy()  # It's a case-insensitive dict, not a regular dict.
+            response_body = await response.content.read()  # TODO: Use a StreamingResponse?
 
-        response_headers.update(cors_headers)
+            response_headers.update(cors_headers)
 
-        # Drop headers that will get added automatically, so we don't have duplicates.
-        response_headers.pop('date', None)
-        response_headers.pop('server', None)
+            # Drop headers that will get added automatically, so we don't have duplicates.
+            response_headers.pop('date', None)
+            response_headers.pop('server', None)
 
-        # Add a default content type
-        response_headers.setdefault('content-type', 'application/octet-stream')
+            # Add a default content type
+            response_headers.setdefault('content-type', 'application/octet-stream')
 
-        return Response(content=response_body, status_code=response.status, headers=response_headers)
+            return Response(content=response_body, status_code=response.status, headers=response_headers)
