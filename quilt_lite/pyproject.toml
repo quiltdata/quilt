@@ -9,7 +9,7 @@ authors = ["Alexei Mochalov <alexei@quiltdata.io>"]
 python = "^3.8"
 ariadne = {git = "https://github.com/mirumee/ariadne.git"}
 boto3 = "^1.10.0"
-quilt3 = {path = "../api/python/", develop = true}
+quilt3 = "^3.6.0"
 fastapi = "^0.70.0"
 uvicorn = {extras = ["standard"], version = "^0.15.0"}
 importlib-resources = "^5.3.0"
