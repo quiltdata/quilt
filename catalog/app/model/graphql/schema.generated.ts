@@ -1070,6 +1070,18 @@ export default {
             args: [],
           },
           {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'children',
             type: {
               kind: 'NON_NULL',

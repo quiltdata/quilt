@@ -33,7 +33,7 @@ import { UseQueryResult, useQuery } from 'utils/useQuery'
 import Code from '../Code'
 import CopyButton from '../CopyButton'
 import * as FileView from '../FileView'
-import Listing from '../Listing'
+import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import PackageDeleteDialog from '../PackageDeleteDialog'
 import * as PD from '../PackageDialog'
@@ -293,7 +293,7 @@ function DirDisplay({
     )
   }
 
-  const items = dir.children.map((c) => {
+  const items: ListingItem[] = dir.children.map((c) => {
     switch (c.__typename) {
       case 'PackageFile':
         return {
@@ -312,6 +312,7 @@ function DirDisplay({
             hashOrTag,
             s3paths.ensureSlash(c.path),
           ),
+          size: c.size,
         }
       default:
         return assertNever(c)

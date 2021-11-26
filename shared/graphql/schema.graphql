@@ -71,38 +71,10 @@ type AccessCounts {
   counts: [AccessCountForDate!]!
 }
 
-# enum ObjectType {
-#   # TBD
-# }
-#
-# type ObjectPreview {
-#   # TBD
-# }
-#
-# interface ObjectLike {
-#   name: String! # absolute vs relative?
-#   size: Int!
-#   type: ObjectType!
-#   preview(opts?): ObjectPreview
-# }
-#
-# type PhysicalObject {
-#   bucket: String!
-#   key: String!
-#   versionId: String!
-#
-#   size: Int!
-#   hash: String! # optional?
-#   meta: JsonRecord
-#   modified: Date! # optional
-#   # meta
-#   # type and preview stuff
-# }
-
 type PackageDir {
   path: String!
   metadata: JsonRecord
-  # TODO: paginate
+  size: Int!
   children: [PackageEntry!]!
 }
 
@@ -116,13 +88,11 @@ type PackageFile {
 union PackageEntry = PackageFile | PackageDir
 
 type PackageRevision {
-  # XXX: link to package?
   hash: String!
   modified: Datetime!
   message: String
   metadata: JsonRecord!
   userMeta: JsonRecord
-  # header: do we need this?
   totalEntries: Int!
   totalBytes: Int!
   dir(path: String!): PackageDir

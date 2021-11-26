@@ -16,6 +16,7 @@ query ($bucket: String!, $name: String!, $hash: String!, $path: String!) {
           }
           ... on PackageDir {
             path
+            size
           }
         }
       }

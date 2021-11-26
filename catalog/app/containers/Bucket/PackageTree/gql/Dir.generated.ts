@@ -31,7 +31,7 @@ export type containers_Bucket_PackageTree_gql_DirQuery = {
                         >)
                       | ({ readonly __typename: 'PackageDir' } & Pick<
                           Types.PackageDir,
-                          'path'
+                          'path' | 'size'
                         >)
                     >
                   }
@@ -184,6 +184,10 @@ export const containers_Bucket_PackageTree_gql_DirDocument = {
                                         {
                                           kind: 'Field',
                                           name: { kind: 'Name', value: 'path' },
+                                        },
+                                        {
+                                          kind: 'Field',
+                                          name: { kind: 'Name', value: 'size' },
                                         },
                                       ],
                                     },

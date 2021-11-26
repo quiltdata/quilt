@@ -272,6 +272,7 @@ export interface PackageDir {
   readonly __typename: 'PackageDir'
   readonly path: Scalars['String']
   readonly metadata: Maybe<Scalars['JsonRecord']>
+  readonly size: Scalars['Int']
   readonly children: ReadonlyArray<PackageEntry>
 }
 
