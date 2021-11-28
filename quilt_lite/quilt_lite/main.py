@@ -16,8 +16,6 @@ S3_PROXY_PREFIX = "/__s3proxy"
 CATALOG_BUNDLE = os.getenv("CATALOG_BUNDLE", "../catalog/build")
 CATALOG_URL = os.getenv("CATALOG_URL")
 
-open_config = quilt3.api._config()
-
 app = fastapi.FastAPI()
 
 
@@ -41,23 +39,23 @@ def config():
     return {
         "alwaysRequiresAuth": False,
         "analyticsBucket": "",
-        "apiGatewayEndpoint": open_config["apiGatewayEndpoint"],
-        "binaryApiGatewayEndpoint": open_config["binaryApiGatewayEndpoint"],
+        "apiGatewayEndpoint": LAMBDA_PREFIX,
+        "binaryApiGatewayEndpoint": LAMBDA_PREFIX,
         "googleClientId": "",
         "mixpanelToken": "",
         "mode": "LOCAL",
-        "noDownload": False, #?
+        "noDownload": True,
         "oktaBaseUrl": "",
         "oktaClientId": "",
         "oneLoginBaseUrl": "",
         "oneLoginClientId": "",
         "passwordAuth": "DISABLED",
         "registryUrl": REG_PREFIX,
-        "s3Proxy": open_config["s3Proxy"],
+        "s3Proxy": S3_PROXY_PREFIX,
         "sentryDSN": "",
-        "serviceBucket": "", #?
-        "signInRedirect": "/", #?
-        "signOutRedirect": "/", #?
+        "serviceBucket": "",
+        "signInRedirect": "/",
+        "signOutRedirect": "/",
         "ssoAuth": "DISABLED",
         "ssoProviders": "",
     }
