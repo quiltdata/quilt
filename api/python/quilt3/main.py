@@ -4,11 +4,10 @@ Parses the command-line arguments and runs a command.
 
 import argparse
 import json
-import subprocess
 import sys
 import time
+import _thread
 
-import dns.resolver
 import requests
 
 from . import Package
@@ -81,50 +80,6 @@ def _test_url(url):
         return False
 
 
-def _launch_local_catalog():
-    """"
-    Launches a docker container to run nginx hosting
-    the Quilt catalog on localhost:3000
-    """
-    open_config = api._config()
-    command = ["docker", "run", "--rm"]
-    env = dict(REGISTRY_URL="http://localhost:5000",
-               S3_PROXY_URL=open_config["s3Proxy"],
-               ALWAYS_REQUIRE_AUTH="false",
-               NO_DOWNLOAD="false",
-               CATALOG_MODE="LOCAL",
-               SSO_AUTH="DISABLED",
-               PASSWORD_AUTH="ENABLED",
-               API_GATEWAY=open_config["apiGatewayEndpoint"],
-               BINARY_API_GATEWAY=open_config["binaryApiGatewayEndpoint"])
-    for var in [f"{key}={value}" for key, value in env.items()]:
-        command += ["-e", var]
-    command += ["-p", "3000:80", "quiltdata/catalog"]
-    subprocess.run(command, check=True)
-
-
-def _launch_local_s3proxy():
-    """"
-    Launches an s3 proxy (via docker)
-    on localhost:5002
-    """
-    dns_resolver = dns.resolver.Resolver()
-    command = ["docker", "run", "--rm"]
-
-    # Workaround for a Docker-for-Mac bug in which the container
-    # ends up with a different DNS server than the host.
-    # Workaround #2: use only IPv4 addresses.
-    # Note: leaving this code in though it isn't called so that it
-    # can be reintroduced once Docker-for-Mac DNS works reliably.
-    # TODO: switch back to this local s3proxy or remove this function
-    if sys.platform == 'darwin':
-        nameservers = [ip for ip in dns_resolver.nameservers if ip.count('.') == 3]
-        command += ["--dns", nameservers[0]]
-
-    command += ["-p", "5002:80", "quiltdata/s3proxy"]
-    subprocess.run(command, check=True)
-
-
 catalog_cmd_detailed_help = """
 Run the Quilt catalog on your machine (requires Docker). Running
 `quilt3 catalog` launches a webserver on your local machine using
@@ -149,6 +104,11 @@ https://quiltdata.com for more information.
 """
 
 
+def _launch_local_catalog():
+    import uvicorn
+    uvicorn.run("quilt3_local.main:app", host="127.0.0.1", port=3000, log_level="info")
+
+
 def cmd_catalog(navigation_target=None, detailed_help=False):
     """
     Run the Quilt catalog locally. If navigation_targets starts with 's3://', open file view. Otherwise assume it
@@ -156,8 +116,6 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
-    from .registry import app  # Delay importing it cause it's expensive.
-
     if detailed_help:
         print(catalog_cmd_detailed_help)
         return
@@ -180,7 +138,7 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
         catalog_url = catalog_package_url(local_catalog_url, bucket, package_name)
 
     if not _test_url(local_catalog_url):
-        _launch_local_catalog()
+        _thread.start_new_thread(_launch_local_catalog, ())
 
     # Make sure the containers are running and available before opening the browser window
     print("Waiting for containers to launch...")
@@ -204,7 +162,12 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
             time.sleep(poll_interval_secs)  # The containers can take a moment to launch
 
     open_url(catalog_url)
-    app.run()
+
+    while True:
+        try:
+            time.sleep(1)
+        except KeyboardInterrupt:
+            sys.exit(0)
 
 
 def cmd_disable_telemetry():
