@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "quilt_lite"
+name = "quilt3_local"
 version = "0.1.0"
 description = ""
 authors = ["Alexei Mochalov <alexei@quiltdata.io>"]
