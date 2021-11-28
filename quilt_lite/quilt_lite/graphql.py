@@ -4,6 +4,7 @@ import re
 import typing as T
 
 import ariadne
+from cached_property import cached_property
 import importlib_resources
 import quilt3
 
@@ -45,7 +46,7 @@ class PackageDirWrapper:
     def metadata(self):
         return self._subpkg._meta
 
-    @functools.cached_property
+    @cached_property
     def children(self):
         dirs = []
         files = []
@@ -59,31 +60,36 @@ class PackageDirWrapper:
 
         return dirs + files
 
+    @property
+    def size(self):
+        # TODO: compute size
+        return 0
+
 class PackageFileWrapper:
     def __init__(self, path: str, entry: quilt3.packages.PackageEntry):
         self.path = path
         self.entry = entry
 
-    @functools.cached_property
+    @cached_property
     def size(self):
         return self.entry.size
 
-    @functools.cached_property
+    @cached_property
     def metadata(self):
         return self.entry._meta
 
-    @functools.cached_property
+    @cached_property
     def physicalKey(self):
         return str(self.entry.physical_key)
 
 class RevisionWrapper:
-    def __init__(self, bucket: str, name: str, hash: str, tags: T.Optional[list[str]] = None):
+    def __init__(self, bucket: str, name: str, hash: str, tags: T.Optional[T.List[str]] = None):
         self.bucket = bucket
         self.name = name
         self.hash = hash
         self.tags = tags
 
-    @functools.cached_property
+    @cached_property
     def _browse(self):
         return quilt3.Package.browse(self.name, f"s3://{self.bucket}", self.hash)
 
@@ -91,19 +97,23 @@ class RevisionWrapper:
         # TODO: figure out where to find mtime (manifest timestamp maybe?)
         return datetime.datetime.now()
 
-    @functools.cached_property
+    @property
     def metadata(self):
         return self._browse._meta
 
-    @functools.cached_property
+    @property
+    def userMeta(self):
+        return self.metadata.get("user_meta")
+
+    @cached_property
     def message(self):
         return self.metadata.get("message")
 
-    @functools.cached_property
+    @cached_property
     def totalEntries(self):
         return sum(1 for _ in self._browse.walk())
 
-    @functools.cached_property
+    @cached_property
     def totalBytes(self, *_):
         return sum(entry.size for key, entry in self._browse.walk())
 
@@ -127,20 +137,18 @@ class RevisionWrapper:
             return None
         return PackageFileWrapper(path, entry)
 
-    def accessCounts(self, *_, **__):
-        return None
 
 class RevisionListWrapper:
     def __init__(self, bucket: str, name: str):
         self.bucket = bucket
         self.name = name
 
-    @functools.cached_property
+    @cached_property
     def _package_versions(self):
         # XXX: for some reason it's sooooooo slow
         return dict(quilt3.list_package_versions(self.name, f"s3://{self.bucket}"))
 
-    @functools.cached_property
+    @cached_property
     def _revisions_by_hash(self):
         by_hash = {}
         for tag, hash in self._package_versions.items():
@@ -150,13 +158,13 @@ class RevisionListWrapper:
                 by_hash[hash] = [tag]
         return by_hash
 
-    @functools.cached_property
+    @cached_property
     def _revision_wrappers(self):
         #XXX: order?
         wrappers = [RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash, tags=tags) for hash, tags in self._revisions_by_hash.items()]
         return wrappers
 
-    @functools.cached_property
+    @cached_property
     def total(self):
         print('versions', self._revisions_by_hash)
         return len(self._revisions_by_hash)
@@ -179,16 +187,16 @@ class PackageWrapper:
         self.bucket = bucket
         self.name = name
 
-    @functools.cached_property
+    @cached_property
     def _browse(self):
         return quilt3.Package.browse(self.name, f"s3://{self.bucket}")
 
-    @functools.cached_property
+    @cached_property
     def modified(self):
         # TODO: figure out where to find mtime (manifest timestamp maybe?)
         return datetime.datetime.fromisoformat("2021-10-21")
 
-    @functools.cached_property
+    @cached_property
     def revisions(self):
         return RevisionListWrapper(self.bucket, self.name)
 
@@ -200,9 +208,6 @@ class PackageWrapper:
             registry.resolve_top_hash(self.name, hashOrTag)
         )
         return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash)
-
-    def accessCounts(self, *_, **__):
-        return None
 
 
 class PackageListWrapper:
@@ -223,14 +228,14 @@ class PackageListWrapper:
     #             ]),
     #           ),
     #           R.join(''),
-    @functools.cached_property
+    @cached_property
     def _filtered_package_list(self):
         packages = quilt3.list_packages(f"s3://{self.bucket}")
         if self.filter:
             packages = filter(lambda package_name: self.filter in package_name, packages)
         return list(packages)
 
-    @functools.cached_property
+    @cached_property
     def _package_wrappers(self):
         return [PackageWrapper(self.bucket, name) for name in self._filtered_package_list]
 
