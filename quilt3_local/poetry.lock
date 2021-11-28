@@ -23,7 +23,7 @@ test = ["codecov", "flake8", "pytest", "pytest-cov", "pytest-raises"]
 name = "aiohttp"
 version = "3.8.1"
 description = "Async http client/server framework (asyncio)"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -45,7 +45,7 @@ speedups = ["aiodns", "brotli", "cchardet"]
 name = "aiosignal"
 version = "1.2.0"
 description = "aiosignal: a list of registered asynchronous callbacks"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -128,7 +128,7 @@ tests = ["pytest", "pytest-asyncio", "mypy (>=0.800)"]
 name = "async-timeout"
 version = "4.0.1"
 description = "Timeout context manager for asyncio programs"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -139,7 +139,7 @@ typing-extensions = ">=3.6.5"
 name = "asynctest"
 version = "0.13.0"
 description = "Enhance the standard unittest package with features for testing asyncio libraries"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.5"
 
@@ -406,7 +406,7 @@ Flask = ">=0.10"
 name = "frozenlist"
 version = "1.2.0"
 description = "A list-like structure which implements collections.abc.MutableSequence"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -627,7 +627,7 @@ python-versions = "*"
 name = "multidict"
 version = "5.2.0"
 description = "multidict implementation"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1254,7 +1254,7 @@ test = ["pytest", "pytest-cov"]
 name = "yarl"
 version = "1.7.2"
 description = "Yet another URL library"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1278,7 +1278,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.11"
-content-hash = "ac728882fcea95508017abfa8e587abaeeef74d2703a10d2fd457f2b1588e6e5"
+content-hash = "5ddb5fc96e932d884145bc72150469c5d891ea84816b2425e9d83649255fdf1c"
 
 [metadata.files]
 aicsimageio = [
