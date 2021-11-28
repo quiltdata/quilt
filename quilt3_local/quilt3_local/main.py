@@ -13,15 +13,17 @@ from .s3proxy import s3proxy
 REG_PREFIX = "/__reg"
 LAMBDA_PREFIX = "/__lambda"
 S3_PROXY_PREFIX = "/__s3proxy"
-CATALOG_BUNDLE = os.getenv("CATALOG_BUNDLE", "../catalog/build")
-CATALOG_URL = os.getenv("CATALOG_URL")
+CATALOG_BUNDLE = os.getenv("QUILT_CATALOG_BUNDLE")
+CATALOG_URL = os.getenv("QUILT_CATALOG_URL")
 
 app = fastapi.FastAPI()
 
 
 class SPA(starlette.staticfiles.StaticFiles):
-    def __init__(self, directory: os.PathLike, index='index.html') -> None:
+    def __init__(self, directory: T.Optional[os.PathLike]=None, index='index.html') -> None:
         self.index = index
+        if not directory:
+            directory = os.path.join(os.path.dirname(__file__), "catalog_bundle")
         super().__init__(directory=directory, packages=None, html=True, check_dir=True)
 
     async def lookup_path(self, path: str) -> T.Tuple[str, os.stat_result]:
