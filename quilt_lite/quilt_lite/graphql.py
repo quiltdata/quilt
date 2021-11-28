@@ -34,14 +34,14 @@ def query_bucket_config(*_, name: str):
 
 def append_path(base: str, child: str):
     if not base: return child
-    return base + "/" + child
+    return f"{base}/{child}"
 
 class PackageDirWrapper:
     def __init__(self, path: str, subpkg: quilt3.Package):
         self.path = path
         self._subpkg = subpkg
 
-    @functools.cached_property
+    @property
     def metadata(self):
         return self._subpkg._meta
 
@@ -100,15 +100,12 @@ class RevisionWrapper:
         return self.metadata.get("message")
 
     @functools.cached_property
-    def totalEntries(self, *_):
-        return len(list(self._browse.walk()))
+    def totalEntries(self):
+        return sum(1 for _ in self._browse.walk())
 
     @functools.cached_property
     def totalBytes(self, *_):
-        sum = 0
-        for key, entry in self._browse.walk():
-            sum += entry.size
-        return sum
+        return sum(entry.size for key, entry in self._browse.walk())
 
     def dir(self, *_, path: str):
         try:
@@ -213,10 +210,6 @@ class PackageListWrapper:
         self.bucket = bucket
         self.filter = filter
 
-    @functools.cached_property
-    def _package_list(self):
-        return quilt3.list_packages(f"s3://{self.bucket}")
-
     # TODO: proper filtering
     # pipeThru(filter)(
     #           R.unless(R.test(/[*?]/), (f) => `*${f}*`),
@@ -230,13 +223,12 @@ class PackageListWrapper:
     #             ]),
     #           ),
     #           R.join(''),
-    def _filter(self, package_name):
-        if not self.filter: return True
-        return self.filter in package_name
-
     @functools.cached_property
     def _filtered_package_list(self):
-        return list(filter(self._filter, self._package_list))
+        packages = quilt3.list_packages(f"s3://{self.bucket}")
+        if self.filter:
+            packages = filter(lambda package_name: self.filter in package_name, packages)
+        return list(packages)
 
     @functools.cached_property
     def _package_wrappers(self):
