@@ -10,7 +10,7 @@ import quilt3
 
 
 # TODO: load schema from a public shared folder
-with importlib_resources.path("quilt_lite", "schema.graphql") as schema_path:
+with importlib_resources.path("quilt3_local", "schema.graphql") as schema_path:
     type_defs = ariadne.load_schema_from_path(str(schema_path))
 
 datetime_scalar = ariadne.ScalarType("Datetime")

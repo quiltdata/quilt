@@ -13,7 +13,7 @@ poetry install
 (cd ../catalog && npm i && npm run build)
 
 # run the app at http://localhost:3000
-poetry run uvicorn quilt_lite.main:app --reload --port 3000
+poetry run uvicorn quilt3_local.main:app --reload --port 3000
 ```
 
 ## Set-up
@@ -43,7 +43,7 @@ proxy static files from a running catalog instance.
 
 ### Serving a static catalog bundle
 
-Run `poetry run uvicorn quilt_lite.main:app --reload --port 3000` to start the
+Run `poetry run uvicorn quilt3_local.main:app --reload --port 3000` to start the
 app serving the static catalog bundle from the catalog directory in the same
 repo (`../catalog/build/`). The path to the bundle can be overriden by
 `CATALOG_BUNDLE` env var.
@@ -58,11 +58,11 @@ bundle to pick up the changes. To address this there's a "proxy" mode available.
 In this mode the app proxies all the static files requests to a running catalog
 instance. One can be started by executing `PORT=3001 npm start` from the catalog
 directory (setting port to `3001` required to avoid conflicts with the
-`quilt_lite` app).
+`quilt3_local` app).
 
-After starting up a catalog instance, you can start the `quilt_lite` app and
+After starting up a catalog instance, you can start the `quilt3_local` app and
 point it to that instance by running
-`CATALOG_URL=http://localhost:3001 poetry run uvicorn quilt_lite.main:app --reload --port 3000`
+`CATALOG_URL=http://localhost:3001 poetry run uvicorn quilt3_local.main:app --reload --port 3000`
 (the app will be available at `http://localhost:3000` and will serve static
 files from the catalog running at `http://localhost:3001`, catalog instance URL
 is configurable via `CATALOG_URL` env var).
