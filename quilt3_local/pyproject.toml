@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quilt3_local"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 description = ""
 authors = ["Alexei Mochalov <alexei@quiltdata.io>"]
 include = ["quilt3_local/catalog_bundle/*"]
@@ -29,6 +29,7 @@ botocore = "^1.23.14"
 jsonschema = "^3.0.1"
 numpy = "^1.21.4"
 Pillow = "^8.4.0"
+aiohttp = "^3.8.1"
 
 [tool.poetry.dev-dependencies]
 asgiproxy = "^0.0"
