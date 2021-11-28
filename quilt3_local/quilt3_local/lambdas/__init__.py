@@ -4,16 +4,13 @@ import sys
 
 from fastapi import FastAPI, HTTPException, Request, Response
 
-sys.path.extend([
-    '../lambdas/shared/',
-    '../lambdas/',
-])
+from . import thumbnail, preview, s3select
 
-SUPPORTED_LAMBDAS = frozenset([
-    'thumbnail',
-    'preview',
-    's3select',
-])
+LAMBDAS = {
+    "thumbnail": thumbnail,
+    "preview": preview,
+    "s3select": s3select,
+}
 
 
 lambdas = FastAPI()
@@ -22,7 +19,7 @@ lambdas = FastAPI()
 @lambdas.api_route("/{name}", methods=['GET', 'POST', 'OPTIONS'])
 @lambdas.api_route("/{name}/{path:path}", methods=['GET', 'POST', 'OPTIONS'])
 async def lambda_request(request: Request, name: str, path: str = ''):
-    if name not in SUPPORTED_LAMBDAS:
+    if name not in LAMBDAS:
         raise HTTPException(404, "No such lambda")
 
     req_body = await request.body()
@@ -39,18 +36,12 @@ async def lambda_request(request: Request, name: str, path: str = ''):
         'isBase64Encoded': True
     }
 
-    module = importlib.import_module(f'{name}.index')
-
-    result = module.lambda_handler(args, None)
+    result = LAMBDAS[name].lambda_handler(args, None)
 
     code = result['statusCode']
     headers = result['headers']
     body = result['body']
     encoded = result.get("isBase64Encoded", False)
+    content = b64decode(body) if encoded else body.encode()
 
-    if encoded:
-        body = b64decode(body)
-    else:
-        body = body.encode()
-
-    return Response(content=body, status_code=code, headers=headers)
+    return Response(content=content, status_code=code, headers=headers)
