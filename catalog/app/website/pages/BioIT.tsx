@@ -88,8 +88,22 @@ function Video() {
   )
 }
 
+const useBioITStyles = M.makeStyles((t) => ({
+  awsPartner: {
+    display: 'block',
+    maxWidth: '70%',
+    margin: t.spacing(0, 'auto', 2),
+    [t.breakpoints.up('sm')]: {
+      float: 'left',
+      height: t.spacing(32),
+      margin: t.spacing(0, 2, 0, 0),
+    },
+  },
+}))
+
 function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
+  const classes = useBioITStyles()
   return (
     <>
       <MetaTitle />
@@ -148,7 +162,7 @@ function BioIT() {
         heading={<>Run with a proven partner</>}
         detail={
           <>
-            <AwsPartner style={{ height: '256px', float: 'left', marginRight: '32px' }} />
+            <AwsPartner className={classes.awsPartner} />
             As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
             demonstrate deep knowledge, experience, and customer success with Amazon Web
             Services. Below are a few of Quilt's life science customers, followed by case
