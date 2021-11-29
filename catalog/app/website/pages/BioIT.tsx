@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 import { useTalkToUs } from 'components/TalkToUs'
 import MetaTitle from 'utils/MetaTitle'
 
+import AwsPartner from 'website/components/AwsPartner'
+import CaseStudies from 'website/pages/Landing'
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
@@ -84,42 +86,75 @@ function BioIT() {
       <Dots />
       <Lede
         variant="flying"
-        heading={<>Your data volumes are growing</>}
+        heading={<>Your data are growing</>}
         detail={
           <>
             Your company rapidly accumulates data from instruments, CROs, scientists, and
-            computational pipelines. But naively storing data adds cost without benefit.
+            computational pipelines. But simply storing data adds cost without benefit.
             Data without context (labels, documentation, links, and charts) quickly
             becomes meaningless. Decision quality suffers, experiments are needlessly
-            repeated, and teams waste months doing "data archaeology" on past results.
+            repeated, and teams waste months doing "data archaeology" to reconstruct past
+            results.
           </>
         }
       />
       <Lede
         heading={
           <>
-            You need a FAIR <br />
-            data management system
+            You need FAIR data, <br />
+            powered by Amazon S3
           </>
         }
         detail={
           <>
-            A scientific data management system (SDMS) stores, tags, manages, and
-            integrates data sources so that all of your data are FAIR: findable,
-            accessible, interoperable, and reusable.
+            Quilt is a <em>scientific data management system (SDMS)</em> that stores,
+            tags, manages, and integrates data sources so that all of your data are FAIR:
+            findable, accessible, interoperable, and reusable.
             <br />
-            Watch Alex Bangs, CIO of Vir Bio, explain how his team built a scientific data
-            management on Quilt and AWS. (Recorded at BioIT World.)
+            <br />
+            Quilt is delivered as a CloudFormation stack that runs privately in your AWS
+            account.&nbsp;
+            <strong>
+              Quilt is powered by scalable and secure services like Amazon S3, Amazon
+              OpenSearch, Amazon Athena.
+            </strong>
+            &nbsp; With Quilt, your data remain in your account, in open file formats, in
+            you Amazon S3 buckets, under IAM policies that you control.
+            <br />
+            <br />
+            Watch Alex Bangs, CIO of Vir Biotechnology, explain how his team built a
+            scientific data management on Quilt and AWS. Vir Bio is a commercial-stage
+            immunology company focused on combining immunologic insights with cutting-edge
+            technologies to treat and prevent serious infectious diseases.
           </>
-        }
-        cta={
-          <M.Button variant="contained" color="primary" onClick={talk}>
-            Schedule a demo
-          </M.Button>
         }
       />
       <Section>
         <Video />
+      </Section>
+      <Lede
+        heading={<>Quilt is an AWS Advanced Technology Partner</>}
+        detail={
+          <>
+            As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
+            demonstrate a deep knowledge and experience with Amazon Web Services. Below
+            are a few of the life science customers that Quilt has made successful,
+            followed by case studies.
+          </>
+        }
+      />
+      <Section>
+        <LogosCarousel
+          logos={logos}
+          title="Life science companies trust Quilt for data management"
+        />
+        <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
+          <AwsPartner width="256px" />
+        </M.Box>
+      </Section>
+      <Section>
+        {/* @ts-expect-error */}
+        <CaseStudies />
       </Section>
       <M.Box pt={{ xs: 3, md: 25 }} />
       <Lede
@@ -137,7 +172,6 @@ function BioIT() {
           </>
         }
       />
-
       <Section>
         <M.Box pt={5} />
         <Tabs
@@ -195,8 +229,6 @@ function BioIT() {
           ]}
         />
       </Section>
-
-      <LogosCarousel logos={logos} title="Companies that love Quilt" />
 
       <M.Box pt={2} />
       <Section>
