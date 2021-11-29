@@ -5,7 +5,7 @@ import { useTalkToUs } from 'components/TalkToUs'
 import MetaTitle from 'utils/MetaTitle'
 
 import AwsPartner from 'website/components/AwsPartner'
-import CaseStudies from 'website/pages/Landing'
+import CaseStudies from 'website/pages/Landing/CaseStudies'
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
@@ -133,42 +133,30 @@ function BioIT() {
         <Video />
       </Section>
       <Lede
-        heading={<>Quilt is an AWS Advanced Technology Partner</>}
+        heading={<>Run with a proven partner</>}
         detail={
           <>
+            <AwsPartner style={{ height: '300px', float: 'left', marginRight: '32px' }} />
             As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
-            demonstrate a deep knowledge and experience with Amazon Web Services. Below
-            are a few of the life science customers that Quilt has made successful,
-            followed by case studies.
+            demonstrate deep knowledge, experience, and customer success with Amazon Web
+            Services. Below are a few of Quilt's life science customers and case studies.
           </>
         }
       />
-      <Section>
-        <LogosCarousel
-          logos={logos}
-          title="Life science companies trust Quilt for data management"
-        />
-        <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
-          <AwsPartner style={{ width: '256px' }} />
-        </M.Box>
-      </Section>
-      <Section>
-        {/* @ts-expect-error */}
-        <CaseStudies />
-      </Section>
-      <M.Box pt={{ xs: 3, md: 25 }} />
+      <LogosCarousel
+        logos={logos}
+        title="The life sciences trust Quilt for data management"
+      />
+      <CaseStudies />
       <Lede
         variant="center"
-        heading="Data hubs make data appreciate in value"
+        heading="Quilt transforms data into discoveries"
         detail={
           <>
-            Data hubs integrate data sources so that everyone is on the same page with the
-            latest and most accurate data. Teams with data hubs make informed decisions
-            faster—and get drugs, targets, and therapies to market on time.
-            <br />
-            <br />
-            Data hubs do what data lakes, databases, data catalogs, data warehouses, and
-            notebooks cannot: link to large data in any format.
+            Quilt integrates data sources so that everyone is on the same page with the
+            latest and most accurate data. Teams with Quilt as their SDMS leverage all
+            their organizational knowledge into credible decisions —and bring drugs and
+            therapies to market faster.
           </>
         }
       />
@@ -188,10 +176,7 @@ function BioIT() {
                   Spend less time and money on custom infrastructure (Quilt gives you a
                   six to nine month head start)
                 </>,
-                <>
-                  Ensure that every dataset is reproducible (via versioning) and
-                  discoverable, via search
-                </>,
+                <>Ensure that every dataset has an immutable version that can be</>,
               ],
             },
             {
