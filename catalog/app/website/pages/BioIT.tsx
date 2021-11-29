@@ -149,7 +149,7 @@ function BioIT() {
           title="Life science companies trust Quilt for data management"
         />
         <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
-          <AwsPartner width="256px" />
+          <AwsPartner style={{ width: '256px' }} />
         </M.Box>
       </Section>
       <Section>
