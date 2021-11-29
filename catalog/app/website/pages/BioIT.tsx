@@ -198,9 +198,7 @@ function BioIT() {
         />
       </Section>
 
-      <Section>
-        <LogosCarousel logos={logos} />
-      </Section>
+      <LogosCarousel logos={logos} />
 
       <M.Box pt={2} />
       <Section bg="fancy">
