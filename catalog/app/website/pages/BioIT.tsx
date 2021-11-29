@@ -136,12 +136,13 @@ function BioIT() {
         heading={<>Run with a proven partner</>}
         detail={
           <>
-            <AwsPartner style={{ height: '300px', float: 'left', marginRight: '32px' }} />
+            <AwsPartner style={{ height: '200px', float: 'left', marginRight: '32px' }} />
             As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
             demonstrate deep knowledge, experience, and customer success with Amazon Web
             Services. Below are a few of Quilt's life science customers and case studies.
           </>
         }
+        maxWidth="55rem"
       />
       <LogosCarousel
         logos={logos}
