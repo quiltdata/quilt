@@ -26,27 +26,27 @@ const DECK_URL =
 const logos = [
   {
     src: logoCelsius,
-    title: 'Celsius',
+    title: 'Celsius Therapeutics',
   },
   {
     src: logoVir,
-    title: 'Vir',
+    title: 'Vir Bio',
   },
   {
     src: logoNeumora,
-    title: 'Neumora',
+    title: 'Neumora Therapeutics',
   },
   {
     src: logoObsidian,
-    title: 'Obsidian',
+    title: 'Obsidian Therapeutics',
   },
   {
     src: logoStemson,
-    title: 'Stemson',
+    title: 'Stemson Therapeutics',
   },
   {
     src: logoAllencell,
-    title: 'AllenCell',
+    title: 'Allen Institute for Cell Science',
   },
 ]
 
