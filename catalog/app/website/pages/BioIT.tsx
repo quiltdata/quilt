@@ -6,14 +6,64 @@ import MetaTitle from 'utils/MetaTitle'
 
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
+import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 import Layout from 'website/components/Layout'
 import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
+import logoAics from 'website/pages/Landing/Logos/logo-aics.png'
+import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
+import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
+import logoRibon from 'website/pages/Landing/Logos/logo-ribon.png'
+import logoSight from 'website/pages/Landing/Logos/logo-sight.png'
+import logoAI2 from 'website/pages/Landing/Logos/logo-ai2.png'
+import logoNetguru from 'website/pages/Landing/Logos/logo-netguru.png'
+import logoBT from 'website/pages/Landing/Logos/logo-bt.png'
+import logoZee5 from 'website/pages/Landing/Logos/logo-zee5.png'
+
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://quilt-web-public.s3.amazonaws.com/deck/Quilt%E2%80%94the+data+hub+for+biotech.pdf'
+
+const logos = [
+  {
+    src: logoAics,
+    title: 'Allen Institute for Cell Science',
+  },
+  {
+    src: logoBT,
+    title: 'BlackThorn Therapeutics',
+  },
+  {
+    src: logoHudl,
+    title: 'hudl',
+  },
+  {
+    src: logoAI2,
+    title: 'Allen Institute for AI',
+  },
+  {
+    src: logoCelsius,
+    title: 'Celsius',
+  },
+  {
+    src: logoRibon,
+    title: 'Ribon Therapeutics',
+  },
+  {
+    src: logoSight,
+    title: 'Sighthound',
+  },
+  {
+    src: logoNetguru,
+    title: 'Netguru',
+  },
+  {
+    src: logoZee5,
+    title: 'Zee5',
+  },
+]
 
 function Video() {
   return (
@@ -146,6 +196,10 @@ function BioIT() {
             },
           ]}
         />
+      </Section>
+
+      <Section>
+        <LogosCarousel logos={logos} />
       </Section>
 
       <M.Box pt={2} />
