@@ -12,6 +12,7 @@ import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
+import awsPartner from 'website/pages/aws-partner.png'
 import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
@@ -76,6 +77,14 @@ function Video() {
   )
 }
 
+function AWSPartner() {
+  return (
+    <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
+      <img src={awsPartner} height="200px" />
+    </M.Box>
+  )
+}
+
 function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
   return (
@@ -124,6 +133,10 @@ function BioIT() {
           </>
         }
       />
+
+      <Section bg="light">
+        <AWSPartner />
+      </Section>
 
       <Section>
         <M.Box pt={5} />
