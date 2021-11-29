@@ -110,7 +110,7 @@ function BioIT() {
       <Dots />
       <Lede
         variant="flying"
-        heading={<>Your data are growing</>}
+        heading={<>Your data are growing wildly</>}
         detail={
           <>
             Your company rapidly accumulates data from instruments, CROs, scientists, and
@@ -132,21 +132,19 @@ function BioIT() {
         }
         detail={
           <>
-            Quilt is a <em>scientific data management system (SDMS)</em> that stores,
-            tags, manages, and integrates data sources so that all of your data is
-            findable, accessible, interoperable, and reusable (FAIR).
-            <M.Box display="flex" flexDirection="column" pt={4}>
+            Quilt is a <strong>scientific data management system (SDMS)</strong> that
+            stores, tags, manages, and integrates data sources so that all of your data
+            are findable, accessible, interoperable, and reusable (FAIR).
+            <M.Box display="flex" flexDirection="column" pt={6}>
               <M.Button variant="contained" color="primary" onClick={talk}>
                 See Quilt at re:Invent 2021
               </M.Button>
             </M.Box>
             <M.Box pt={2} />
-            <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
-            <M.Box pt={2} />
             <ChevronLink href={DECK_URL}>
               Learn more about Quilt for life sciences (PDF)
             </ChevronLink>
-            <M.Box pt={4} />
+            <M.Box pt={6} />
             Quilt runs privately and securely in your AWS account, as a CloudFormation
             stack.&nbsp;
             <strong>
@@ -171,7 +169,7 @@ function BioIT() {
         heading={<>Run with a proven partner</>}
         detail={
           <>
-            <AwsPartner className={classes.awsPartner} />
+            <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
             As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
             demonstrate deep knowledge, experience, and customer success with Amazon Web
             Services. Below are a few of Quilt's life science customers, followed by case
@@ -180,10 +178,7 @@ function BioIT() {
         }
         maxWidth="55rem"
       />
-      <LogosCarousel
-        logos={logos}
-        title="Life scientists trust Quilt for data management"
-      />
+      <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" />
       <CaseStudies />
       <Lede
         variant="center"
@@ -191,9 +186,9 @@ function BioIT() {
         detail={
           <>
             Quilt integrates data sources so that everyone is on the same page with the
-            latest and most accurate data. Teams with Quilt as their SDMS leverage all of
-            their organizational knowledge into credible decisions—bringing drugs and
-            therapies to market faster.
+            latest and most accurate data. Teams choose Quilt as their SDMS to leverage
+            all of their organizational knowledge into credible decisions—bringing drugs
+            and therapies to market faster.
           </>
         }
       />
@@ -206,11 +201,12 @@ function BioIT() {
               bullets: [
                 <>
                   Link large datasets to any notebook, ELN, or lab information management
-                  system with a single URL
+                  system (LIMS) with immutable URLs
                 </>,
+                <>Find, document, and understand all of your data in a central catalog</>,
                 <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
                 <>
-                  Confidently capture data, metadata, and documentation as immutable
+                  Confidently capture data, metadata, and documentation in immutable
                   collections, known as Quilt packages
                 </>,
                 <>
@@ -223,8 +219,8 @@ function BioIT() {
                 </>,
                 <>Collaboratively create, tag, and document datasets for FAIR reuse</>,
                 <>
-                  Longitudinally query all experiments of a given type with SQL, Python,
-                  or natural language search
+                  Longitudinally query all experiments with natural language, SQL, or
+                  Python
                 </>,
               ],
             },
@@ -233,15 +229,16 @@ function BioIT() {
               title: 'Benefits',
               bullets: [
                 <>
-                  Know who, when, why, and how for every piece of data your company
-                  creates
+                  Know the lineage and provenance of every datum your company creates
+                  (who, when, where, why, and how)
                 </>,
                 <>
                   Make informed decisions faster from a single, trusted source of truth
                 </>,
                 <>Ensure that your data are FAIR for decades to come</>,
                 <>
-                  Trust immutable data versions to losslessly retain data and knowledge
+                  Trust immutable data versions to preserve data and knowledge over
+                  decades
                 </>,
               ],
             },
@@ -249,9 +246,10 @@ function BioIT() {
               title: 'Security and scale',
               bullets: [
                 <>Quilt runs in your Virtual Private Cloud (VPC)</>,
-                <>Integrates with Single Sign-On (SSO)</>,
-                <>Integrates with Amazon S3 for limitless storage</>,
-                <>You set the security policies via Amazon IAM</>,
+                <>Integrate with Single Sign-On (SSO)</>,
+                <>Integrate with your VPN</>,
+                <>Integrate with Amazon S3</>,
+                <>Customize security policies with Amazon IAM</>,
               ],
             },
           ]}
