@@ -166,7 +166,6 @@ class RevisionListWrapper:
 
     @cached_property
     def total(self):
-        print('versions', self._revisions_by_hash)
         return len(self._revisions_by_hash)
 
     def page(self, *_, number: int, perPage: int):
