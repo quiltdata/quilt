@@ -43,14 +43,6 @@ const logos = [
     src: logoStemson,
     title: 'Stemson',
   },
-  {
-    src: logoHudl,
-    title: 'hudl',
-  },
-  {
-    src: logoSight,
-    title: 'Sighthound',
-  },
 ]
 
 function Video() {
