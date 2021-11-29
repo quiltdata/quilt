@@ -14,6 +14,7 @@ import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
+import imageArch from 'website/pages/Landing/Assets/quilt-architecture.png'
 import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
@@ -149,7 +150,7 @@ function BioIT() {
             stack.&nbsp;
             <strong>
               Quilt is powered by scalable and secure services like Amazon S3, Amazon
-              OpenSearch, Amazon Athena, and Amazon Lambda.
+              OpenSearch, and Amazon Athena.
             </strong>
             &nbsp;Quilt stores your data in open file formats, in your Amazon S3 buckets,
             under IAM policies that you control.
@@ -166,7 +167,7 @@ function BioIT() {
         <Video />
       </Section>
       <Lede
-        heading={<>Run with a proven partner</>}
+        heading={<>Run with a proven AWS partner</>}
         detail={
           <>
             <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
@@ -174,10 +175,17 @@ function BioIT() {
             demonstrate deep knowledge, experience, and customer success with Amazon Web
             Services. Below are a few of Quilt's life science customers, followed by case
             studies.
+            <M.Box pt={2} />
+            Quilt is an AWS-native application that invokes Amazon services like S3,
+            OpenSearch, Athena, Lambda, RDS, and more. See the following diagram for
+            details on the Quilt solution architecture.
           </>
         }
         maxWidth="55rem"
       />
+      <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
+        <img src={imageArch} width="80%" />
+      </M.Box>
       <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" />
       <CaseStudies />
       <Lede
