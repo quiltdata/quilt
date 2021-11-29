@@ -112,14 +112,14 @@ function BioIT() {
             findable, accessible, interoperable, and reusable.
             <br />
             <br />
-            Quilt is delivered as a CloudFormation stack that runs privately in your AWS
-            account.&nbsp;
+            Quilt runs privately and securely in your AWS account, as a CloudFormation
+            stack. &nbsp;
             <strong>
               Quilt is powered by scalable and secure services like Amazon S3, Amazon
               OpenSearch, Amazon Athena.
             </strong>
-            &nbsp; With Quilt, your data remain in your account, in open file formats, in
-            you Amazon S3 buckets, under IAM policies that you control.
+            &nbsp; Quilt stores your data in open file formats, in you Amazon S3 buckets,
+            secured by IAM policies that you control.
             <br />
             <br />
             Watch Alex Bangs, CIO of Vir Biotechnology, explain how his team built a
@@ -154,8 +154,8 @@ function BioIT() {
         detail={
           <>
             Quilt integrates data sources so that everyone is on the same page with the
-            latest and most accurate data. Teams with Quilt as their SDMS leverage all
-            their organizational knowledge into credible decisions —and bring drugs and
+            latest and most accurate data. Teams with Quilt as their SDMS leverage all of
+            their organizational knowledge into credible decisions—bringing drugs and
             therapies to market faster.
           </>
         }
@@ -165,18 +165,41 @@ function BioIT() {
         <Tabs
           sections={[
             {
+              title: 'Use cases',
+              bullets: [
+                <>Link large datasets to any ELN or LIMS system with a single URL</>,
+                <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
+                <>
+                  Trust and version data with immutable URLs that never change without
+                  your consent
+                </>,
+                <>
+                  Automate screens to analyze data (e.g. FASTQs), produce charts, and
+                  eliminate meetings and PowerPoint presentations
+                </>,
+                <>
+                  Share charts and visualizations on the web—no backend coding required
+                </>,
+                <>Collaboratively create, tag, and document datasets for FAIR reuse</>,
+                <>
+                  Longitudinally query all experiments of a given type with SQL, Python,
+                  or natural language search
+                </>,
+              ],
+            },
+
+            {
               title: 'Benefits',
               bullets: [
-                <>Trust and act upon your results with confidence</>,
                 <>
-                  Know who, when, why, and how for every file your company creates produce
+                  Know who, when, why, and how for every piece of data your company
+                  creates
                 </>,
-                <>Make informed decisions faster from a single source of truth</>,
                 <>
-                  Spend less time and money on custom infrastructure (Quilt gives you a
-                  six to nine month head start)
+                  Make informed decisions faster from a single, trusted source of truth
                 </>,
-                <>Ensure that every dataset has an immutable version that can be</>,
+                <>Ensure that your data are FAIR for decades to come</>,
+                <>Trust immutable data versions to retain data and knowledge</>,
               ],
             },
             {
@@ -186,29 +209,6 @@ function BioIT() {
                 <>Integrates with Single Sign-On (SSO)</>,
                 <>Integrates with Amazon S3 for limitless storage</>,
                 <>You set the security policies via Amazon IAM</>,
-              ],
-            },
-            {
-              title: 'Use cases',
-              bullets: [
-                <>Connect large datasets to any ELN or LIMS system with a single URL</>,
-                <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
-                <>
-                  Version data and models for rapid iteration in statistics and machine
-                  learning
-                </>,
-                <>
-                  Automate screens to analyze data (e.g. FASTQs), produce charts, and
-                  eliminate meetings and PowerPoint presentations
-                </>,
-                <>
-                  Bench science and data science can collaboratively annotate and document
-                  datasets for reuse
-                </>,
-                <>
-                  Longitudinally query all experiments of a given type with SQL, Python,
-                  or natural language search
-                </>,
               ],
             },
           ]}
@@ -222,9 +222,11 @@ function BioIT() {
             Schedule a demo
           </M.Button>
           <M.Box pt={3} />
-          <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
+          <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
           <M.Box pt={2} />
-          <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
+          <ChevronLink href={DECK_URL}>
+            Learn more about Quilt for life sciences (PDF)
+          </ChevronLink>
         </M.Box>
       </Section>
     </>
