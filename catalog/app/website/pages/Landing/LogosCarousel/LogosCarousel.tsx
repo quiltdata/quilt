@@ -50,17 +50,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface LogosCarouselProps {
-  title?: string
+  title: string
   logos: {
     title: string
     src: string
   }[]
 }
 
-export default function LogosCarousel({
-  title = 'Companies that love Quilt',
-  logos,
-}: LogosCarouselProps) {
+export default function LogosCarousel({ title, logos }: LogosCarouselProps) {
   const classes = useStyles()
 
   return (

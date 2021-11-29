@@ -12,15 +12,12 @@ import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
-import logoAics from 'website/pages/Landing/Logos/logo-aics.png'
+import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
-import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
-import logoRibon from 'website/pages/Landing/Logos/logo-ribon.png'
-import logoSight from 'website/pages/Landing/Logos/logo-sight.png'
-import logoAI2 from 'website/pages/Landing/Logos/logo-ai2.png'
-import logoNetguru from 'website/pages/Landing/Logos/logo-netguru.png'
-import logoBT from 'website/pages/Landing/Logos/logo-bt.png'
-import logoZee5 from 'website/pages/Landing/Logos/logo-zee5.png'
+import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
+import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
+import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
+import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
@@ -28,40 +25,28 @@ const DECK_URL =
 
 const logos = [
   {
-    src: logoAics,
-    title: 'Allen Institute for Cell Science',
-  },
-  {
-    src: logoBT,
-    title: 'BlackThorn Therapeutics',
-  },
-  {
-    src: logoHudl,
-    title: 'hudl',
-  },
-  {
-    src: logoAI2,
-    title: 'Allen Institute for AI',
-  },
-  {
     src: logoCelsius,
-    title: 'Celsius',
+    title: 'Celsius Therapeutics',
   },
   {
-    src: logoRibon,
-    title: 'Ribon Therapeutics',
+    src: logoVir,
+    title: 'Vir Bio',
   },
   {
-    src: logoSight,
-    title: 'Sighthound',
+    src: logoNeumora,
+    title: 'Neumora Therapeutics',
   },
   {
-    src: logoNetguru,
-    title: 'Netguru',
+    src: logoObsidian,
+    title: 'Obsidian Therapeutics',
   },
   {
-    src: logoZee5,
-    title: 'Zee5',
+    src: logoStemson,
+    title: 'Stemson Therapeutics',
+  },
+  {
+    src: logoAllencell,
+    title: 'Allen Institute for Cell Science',
   },
 ]
 
@@ -198,7 +183,7 @@ function BioIT() {
         />
       </Section>
 
-      <LogosCarousel logos={logos} />
+      <LogosCarousel logos={logos} title="Companies that love Quilt" />
 
       <M.Box pt={2} />
       <Section bg="fancy">
