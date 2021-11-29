@@ -166,6 +166,7 @@ export default function BucketSummary({
   files,
   whenEmpty = () => null,
   mkUrl: mkUrlProp,
+  packageHandle,
 }) {
   const { urls } = NamedRoutes.use()
   const mkUrl = React.useCallback(
@@ -188,7 +189,13 @@ export default function BucketSummary({
         />
       )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
-      {summarize && <Summarize.SummaryNested handle={summarize} mkUrl={mkUrl} />}
+      {summarize && (
+        <Summarize.SummaryNested
+          handle={summarize}
+          mkUrl={mkUrl}
+          packageHandle={packageHandle}
+        />
+      )}
     </>
   )
 }

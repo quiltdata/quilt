@@ -6,14 +6,49 @@ import MetaTitle from 'utils/MetaTitle'
 
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
+import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 import Layout from 'website/components/Layout'
 import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
+import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
+import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
+import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
+import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
+import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
+import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
+
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://quilt-web-public.s3.amazonaws.com/deck/Quilt%E2%80%94the+data+hub+for+biotech.pdf'
+
+const logos = [
+  {
+    src: logoCelsius,
+    title: 'Celsius Therapeutics',
+  },
+  {
+    src: logoVir,
+    title: 'Vir Bio',
+  },
+  {
+    src: logoNeumora,
+    title: 'Neumora Therapeutics',
+  },
+  {
+    src: logoObsidian,
+    title: 'Obsidian Therapeutics',
+  },
+  {
+    src: logoStemson,
+    title: 'Stemson Therapeutics',
+  },
+  {
+    src: logoAllencell,
+    title: 'Allen Institute for Cell Science',
+  },
+]
 
 function Video() {
   return (
@@ -160,6 +195,8 @@ function BioIT() {
           ]}
         />
       </Section>
+
+      <LogosCarousel logos={logos} title="Companies that love Quilt" />
 
       <M.Box pt={2} />
       <Section>
