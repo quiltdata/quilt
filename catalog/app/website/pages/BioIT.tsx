@@ -34,7 +34,7 @@ function Video() {
             height: '100%',
             width: '100%',
           }}
-          src="https://www.youtube.com/embed/wDgPvwUD84I?list=PLmXfD6KoA_vBtgGgt0X4ui4cRlEkdJKp9"
+          src="https://www.youtube.com/embed/ykmvxb_kTc4"
         />
       </M.Box>
     </M.Box>
@@ -47,17 +47,34 @@ function BioIT() {
     <>
       <MetaTitle />
       <Dots />
-      <M.Box pt={10} />
       <Lede
         variant="flying"
-        heading={<>Get bench science and data science on the same page</>}
+        heading={<>Your data volumes are growing</>}
         detail={
           <>
-            Your team is rapidly accumulating data from instruments, CROs, scientists, and
-            executives. But naively storing data adds cost without benefit. Data without
-            context (labels, documentation, links, and charts) quickly becomes
-            meaningless. Decision quality suffers, experiments are needlessly repeated,
-            and teams waste months doing "data archaeology" on past results.
+            Your company rapidly accumulates data from instruments, CROs, scientists, and
+            computational pipelines. But naively storing data adds cost without benefit.
+            Data without context (labels, documentation, links, and charts) quickly
+            becomes meaningless. Decision quality suffers, experiments are needlessly
+            repeated, and teams waste months doing "data archaeology" on past results.
+          </>
+        }
+      />
+      <Lede
+        heading={
+          <>
+            You need a FAIR <br />
+            data management system
+          </>
+        }
+        detail={
+          <>
+            A scientific data management system (SDMS) stores, tags, manages, and
+            integrates data sources so that all of your data are FAIR: findable,
+            accessible, interoperable, and reusable.
+            <br />
+            Watch Alex Bangs, CIO of Vir Bio, explain how his team built a scientific data
+            management on Quilt and AWS. (Recorded at BioIT World.)
           </>
         }
         cta={
@@ -65,14 +82,10 @@ function BioIT() {
             Schedule a demo
           </M.Button>
         }
-        link={
-          <>
-            <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
-            <M.Box pt={2} />
-            <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
-          </>
-        }
       />
+      <Section>
+        <Video />
+      </Section>
       <M.Box pt={{ xs: 3, md: 25 }} />
       <Lede
         variant="center"
@@ -149,10 +162,6 @@ function BioIT() {
       </Section>
 
       <M.Box pt={2} />
-      <Section bg="fancy">
-        <Video />
-      </Section>
-
       <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
           <M.Button variant="contained" color="primary" onClick={talk}>
