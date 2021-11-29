@@ -2,14 +2,14 @@ import * as React from 'react'
 
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 
+import logoAI2 from './logo-ai2.png'
 import logoAics from './logo-aics.png'
 import logoCelsius from './logo-celsius.png'
 import logoHudl from './logo-hudl.png'
+import logoNetguru from './logo-netguru.png'
+import logoNeumora from './logo-neumora.png'
 import logoRibon from './logo-ribon.png'
 import logoSight from './logo-sight.png'
-import logoAI2 from './logo-ai2.png'
-import logoNetguru from './logo-netguru.png'
-import logoBT from './logo-bt.png'
 import logoZee5 from './logo-zee5.png'
 
 const logos = [
@@ -18,8 +18,8 @@ const logos = [
     title: 'Allen Institute for Cell Science',
   },
   {
-    src: logoBT,
-    title: 'BlackThorn Therapeutics',
+    src: logoNeumora,
+    title: 'Neumora',
   },
   {
     src: logoHudl,

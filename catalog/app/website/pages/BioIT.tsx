@@ -12,14 +12,14 @@ import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
+import logoAI2 from 'website/pages/Landing/Logos/logo-ai2.png'
 import logoAics from 'website/pages/Landing/Logos/logo-aics.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
+import logoNetguru from 'website/pages/Landing/Logos/logo-netguru.png'
+import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
 import logoRibon from 'website/pages/Landing/Logos/logo-ribon.png'
 import logoSight from 'website/pages/Landing/Logos/logo-sight.png'
-import logoAI2 from 'website/pages/Landing/Logos/logo-ai2.png'
-import logoNetguru from 'website/pages/Landing/Logos/logo-netguru.png'
-import logoBT from 'website/pages/Landing/Logos/logo-bt.png'
 import logoZee5 from 'website/pages/Landing/Logos/logo-zee5.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
@@ -32,8 +32,8 @@ const logos = [
     title: 'Allen Institute for Cell Science',
   },
   {
-    src: logoBT,
-    title: 'BlackThorn Therapeutics',
+    src: logoNeumora,
+    title: 'Neumora',
   },
   {
     src: logoHudl,
