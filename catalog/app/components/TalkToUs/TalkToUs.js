@@ -5,8 +5,8 @@ import { useTracker } from 'utils/tracking'
 
 const Ctx = React.createContext()
 
-const CALENDLY_CSS = 'https://calendly.com/assets/external/widget.css'
-const CALENDLY_JS = 'https://calendly.com/assets/external/widget.js'
+const CALENDLY_CSS = 'https://assets.calendly.com/assets/external/widget.css'
+const CALENDLY_JS = 'https://assets.calendly.com/assets/external/widget.js'
 
 const CALENDLY_PROMISE = Symbol('calendly')
 
@@ -36,10 +36,10 @@ function getCalendlyPromise() {
   return window[CALENDLY_PROMISE]
 }
 
-const getCalendlyEvent = (e) =>
-  e.data.event &&
-  e.data.event.startsWith('calendly.') &&
-  e.data.event.substring('calendly.'.length)
+// const getCalendlyEvent = (e) =>
+//   e.data.event &&
+//   e.data.event.startsWith('calendly.') &&
+//   e.data.event.substring('calendly.'.length)
 
 export function TalkToUsProvider({ children }) {
   const cfg = useConfig()
@@ -57,19 +57,18 @@ export function TalkToUsProvider({ children }) {
         return
       }
 
-      function handleCalendlyEvent(e) {
-        if (getCalendlyEvent(e) === 'event_scheduled') {
-          t.track('WEB', { type: 'meeting', action: 'scheduled', ...extra })
-        }
-      }
+      // function handleCalendlyEvent(e) {
+      //   if (getCalendlyEvent(e) === 'event_scheduled') {
+      //     t.track('WEB', { type: 'meeting', action: 'scheduled', ...extra })
+      //   }
+      // }
 
       calendlyP.then((C) => {
-        const handleClose = () => {
-          window.removeEventListener('message', handleCalendlyEvent)
-        }
-        const w = new C.PopupWidget(cfg.calendlyLink, handleClose, 'PopupText')
-        window.addEventListener('message', handleCalendlyEvent)
-        w.show()
+        // const handleClose = () => {
+        //   window.removeEventListener('message', handleCalendlyEvent)
+        // }
+        // window.addEventListener('message', handleCalendlyEvent)
+        C.initPopupWidget({ url: cfg.calendlyLink })
       })
     },
     [t, cfg.calendlyLink, calendlyP],
