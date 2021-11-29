@@ -103,16 +103,26 @@ function BioIT() {
           <>
             Gain confident control
             <br />
-            with a cloud SDMS
+            with cloud data management
           </>
         }
         detail={
           <>
             Quilt is a <em>scientific data management system (SDMS)</em> that stores,
-            tags, manages, and integrates data sources so that all of your data are FAIR:
-            findable, accessible, interoperable, and reusable.
-            <br />
-            <br />
+            tags, manages, and integrates data sources so that all of your data is
+            findable, accessible, interoperable, and reusable (FAIR).
+            <M.Box display="flex" flexDirection="column" pt={4}>
+              <M.Button variant="contained" color="primary" onClick={talk}>
+                See Quilt at re:Invent 2021
+              </M.Button>
+            </M.Box>
+            <M.Box pt={2} />
+            <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
+            <M.Box pt={2} />
+            <ChevronLink href={DECK_URL}>
+              Learn more about Quilt for life sciences (PDF)
+            </ChevronLink>
+            <M.Box pt={4} />
             Quilt runs privately and securely in your AWS account, as a CloudFormation
             stack.&nbsp;
             <strong>
@@ -121,8 +131,7 @@ function BioIT() {
             </strong>
             &nbsp;Quilt stores your data in open file formats, in your Amazon S3 buckets,
             under IAM policies that you control.
-            <br />
-            <br />
+            <M.Box pt={4} />
             Watch Alex Bangs, CIO of Vir Biotechnology, explain how he deployed Vir's
             scientific data management system on Quilt and AWS. Vir Bio is a
             commercial-stage immunology company focused on combining immunologic insights
@@ -171,7 +180,10 @@ function BioIT() {
             {
               title: 'Use cases',
               bullets: [
-                <>Link large datasets to any ELN or LIMS system with a single URL</>,
+                <>
+                  Link large datasets to any notebook, ELN, or lab information management
+                  system with a single URL
+                </>,
                 <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
                 <>
                   Confidently capture data, metadata, and documentation as immutable
