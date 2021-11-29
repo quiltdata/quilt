@@ -308,21 +308,6 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
-name = "dnspython"
-version = "2.1.0"
-description = "DNS toolkit"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.extras]
-dnssec = ["cryptography (>=2.6)"]
-doh = ["requests", "requests-toolbelt"]
-idna = ["idna (>=2.1)"]
-curio = ["curio (>=1.2)", "sniffio (>=1.1)"]
-trio = ["trio (>=0.14.0)", "sniffio (>=1.1)"]
-
-[[package]]
 name = "entrypoints"
 version = "0.3"
 description = "Discover and load entry points from installed packages."
@@ -360,47 +345,6 @@ python-versions = "*"
 numpy = "*"
 pandas = "*"
 six = "*"
-
-[[package]]
-name = "flask"
-version = "2.0.2"
-description = "A simple framework for building complex web applications."
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-click = ">=7.1.2"
-itsdangerous = ">=2.0"
-Jinja2 = ">=3.0"
-Werkzeug = ">=2.0"
-
-[package.extras]
-async = ["asgiref (>=3.2)"]
-dotenv = ["python-dotenv"]
-
-[[package]]
-name = "flask-cors"
-version = "3.0.10"
-description = "A Flask extension adding a decorator for CORS support"
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-Flask = ">=0.9"
-Six = "*"
-
-[[package]]
-name = "flask-json"
-version = "0.3.4"
-description = "Better JSON support for Flask"
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-Flask = ">=0.10"
 
 [[package]]
 name = "frozenlist"
@@ -503,14 +447,6 @@ description = "Vestigial utilities from IPython"
 category = "main"
 optional = false
 python-versions = "*"
-
-[[package]]
-name = "itsdangerous"
-version = "2.0.1"
-description = "Safely pass data to untrusted environments and back."
-category = "main"
-optional = false
-python-versions = ">=3.6"
 
 [[package]]
 name = "jinja2"
@@ -941,22 +877,18 @@ py = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "quilt3"
-version = "3.6.0"
+version = "4.0.0a0"
 description = "Quilt: where data comes together"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 appdirs = ">=1.4.0"
 aws-requests-auth = ">=0.4.2"
 boto3 = ">=1.10.0"
-dnspython = ">=1.16.0"
-flask = "*"
-flask-cors = "*"
-flask-json = "*"
 jsonlines = "1.2.0"
-jsonschema = ">=3.0.0,<4.0.0"
+jsonschema = ">=3,<5"
 PyYAML = ">=5.1"
 requests = ">=2.12.4"
 requests-futures = "1.0.0"
@@ -964,8 +896,9 @@ tenacity = ">=5.1.1"
 tqdm = ">=4.32"
 
 [package.extras]
+catalog = ["quilt3-local (>=1.0.0,<2.0.0)"]
 pyarrow = ["numpy (>=1.14.0)", "pandas (>=0.19.2)", "pyarrow (>=0.14.1)"]
-tests = ["urllib3 (>=1.25.4numpy,<1.26)", "pandas (>=0.19.2)", "pyarrow (>=0.14.1)", "pytest (<5.1.0)", "pytest-cov", "pytest-env", "pytest-subtests", "responses", "git-pylint-commit-hook"]
+tests = ["numpy (>=1.14.0)", "pandas (>=0.19.2)", "pyarrow (>=0.14.1)", "pytest (>=6.0.0,<7.0.0)", "pytest-cov", "pytest-env", "pytest-subtests", "responses", "git-pylint-commit-hook"]
 
 [[package]]
 name = "regex"
@@ -1227,17 +1160,6 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
-name = "werkzeug"
-version = "2.0.2"
-description = "The comprehensive WSGI web application library."
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.extras]
-watchdog = ["watchdog"]
-
-[[package]]
 name = "xlrd"
 version = "2.0.1"
 description = "Library for developers to extract data from Microsoft Excel (tm) .xls spreadsheet files"
@@ -1278,7 +1200,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.11"
-content-hash = "5ddb5fc96e932d884145bc72150469c5d891ea84816b2425e9d83649255fdf1c"
+content-hash = "6d4a2f280328e473a5c9bf8fd854dae0bca34fb3bf82b885c7b71827010f3dd2"
 
 [metadata.files]
 aicsimageio = [
@@ -1490,10 +1412,6 @@ defusedxml = [
     {file = "defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"},
     {file = "defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69"},
 ]
-dnspython = [
-    {file = "dnspython-2.1.0-py3-none-any.whl", hash = "sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216"},
-    {file = "dnspython-2.1.0.zip", hash = "sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4"},
-]
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
     {file = "entrypoints-0.3.tar.gz", hash = "sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451"},
@@ -1505,18 +1423,6 @@ fastapi = [
 fcsparser = [
     {file = "fcsparser-0.2.4-py3-none-any.whl", hash = "sha256:52e07e96ec21c5915c78c0481aa796888890f704e56a0c7114f5c198ef6de46e"},
     {file = "fcsparser-0.2.4.tar.gz", hash = "sha256:fa8e60d1bbda2fd592b6fd387e7bf3048fa357359e06e0b263e7034469f617b3"},
-]
-flask = [
-    {file = "Flask-2.0.2-py3-none-any.whl", hash = "sha256:cb90f62f1d8e4dc4621f52106613488b5ba826b2e1e10a33eac92f723093ab6a"},
-    {file = "Flask-2.0.2.tar.gz", hash = "sha256:7b2fb8e934ddd50731893bdcdb00fc8c0315916f9fcd50d22c7cc1a95ab634e2"},
-]
-flask-cors = [
-    {file = "Flask-Cors-3.0.10.tar.gz", hash = "sha256:b60839393f3b84a0f3746f6cdca56c1ad7426aa738b70d6c61375857823181de"},
-    {file = "Flask_Cors-3.0.10-py2.py3-none-any.whl", hash = "sha256:74efc975af1194fc7891ff5cd85b0f7478be4f7f59fe158102e91abb72bb4438"},
-]
-flask-json = [
-    {file = "Flask-JSON-0.3.4.tar.gz", hash = "sha256:470835a9df80c283e3cc0a82fef376ba1be712f711ec385332b3e045a7cc91a8"},
-    {file = "Flask_JSON-0.3.4-py3-none-any.whl", hash = "sha256:6bf46b1ebc68f3a085ee955e43c872c299f05cc97d681d88cf3178b816fd200a"},
 ]
 frozenlist = [
     {file = "frozenlist-1.2.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:977a1438d0e0d96573fd679d291a1542097ea9f4918a8b6494b06610dfeefbf9"},
@@ -1636,10 +1542,6 @@ importlib-resources = [
 ipython-genutils = [
     {file = "ipython_genutils-0.2.0-py2.py3-none-any.whl", hash = "sha256:72dd37233799e619666c9f639a9da83c34013a73e8bbc79a7a6348d93c61fab8"},
     {file = "ipython_genutils-0.2.0.tar.gz", hash = "sha256:eb2e116e75ecef9d4d228fdc66af54269afa26ab4463042e33785b887c628ba8"},
-]
-itsdangerous = [
-    {file = "itsdangerous-2.0.1-py3-none-any.whl", hash = "sha256:5174094b9637652bdb841a3029700391451bd092ba3db90600dea710ba28e97c"},
-    {file = "itsdangerous-2.0.1.tar.gz", hash = "sha256:9e724d68fc22902a1435351f84c3fb8623f303fffcc566a4cb952df8c572cff0"},
 ]
 jinja2 = [
     {file = "Jinja2-3.0.3-py3-none-any.whl", hash = "sha256:077ce6014f7b40d03b47d1f1ca4b0fc8328a692bd284016f806ed0eaca390ad8"},
@@ -2184,8 +2086,8 @@ pyzmq = [
     {file = "pyzmq-22.3.0.tar.gz", hash = "sha256:8eddc033e716f8c91c6a2112f0a8ebc5e00532b4a6ae1eb0ccc48e027f9c671c"},
 ]
 quilt3 = [
-    {file = "quilt3-3.6.0-py3-none-any.whl", hash = "sha256:aa8692d041e4882e4a9d75dd5ba0986f3e0ad751abe208b3fb1d2ee561529b3f"},
-    {file = "quilt3-3.6.0.tar.gz", hash = "sha256:f7def2855cad84304bd99777dd6fe6c71d0e02548cf00fe841417d4ef280abb2"},
+    {file = "quilt3-4.0.0a0-py3-none-any.whl", hash = "sha256:38e6a0cbc964bf4d7cf4ec712fd2455530ce36a4ba3b86b823439cfa49248fc1"},
+    {file = "quilt3-4.0.0a0.tar.gz", hash = "sha256:c37f2ce8f400a8197c89978327b46e80261e12f41cd413c7976db97460125f37"},
 ]
 regex = [
     {file = "regex-2021.11.10-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9345b6f7ee578bad8e475129ed40123d265464c4cfead6c261fd60fc9de00bcf"},
@@ -2499,10 +2401,6 @@ websockets = [
     {file = "websockets-10.1-pp37-pypy37_pp73-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:816ae7dac2c6522cfa620947ead0ca95ac654916eebf515c94d7c28de5601a6e"},
     {file = "websockets-10.1-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:1dafe98698ece09b8ccba81b910643ff37198e43521d977be76caf37709cf62b"},
     {file = "websockets-10.1.tar.gz", hash = "sha256:181d2b25de5a437b36aefedaf006ecb6fa3aa1328ec0236cdde15f32f9d3ff6d"},
-]
-werkzeug = [
-    {file = "Werkzeug-2.0.2-py3-none-any.whl", hash = "sha256:63d3dc1cf60e7b7e35e97fa9861f7397283b75d765afcaefd993d6046899de8f"},
-    {file = "Werkzeug-2.0.2.tar.gz", hash = "sha256:aa2bb6fc8dee8d6c504c0ac1e7f5f7dc5810a9903e793b6f715a9f015bdadb9a"},
 ]
 xlrd = [
     {file = "xlrd-2.0.1-py2.py3-none-any.whl", hash = "sha256:6a33ee89877bd9abc1158129f6e94be74e2679636b8a205b43b85206c3f0bbdd"},
