@@ -90,7 +90,7 @@ function BioIT() {
         detail={
           <>
             Your company rapidly accumulates data from instruments, CROs, scientists, and
-            computational pipelines. But simply storing data adds cost without benefit.
+            computational pipelines. But simply storing data brings cost without benefit.
             Data without context (labels, documentation, links, and charts) quickly
             becomes meaningless. Decision quality suffers, experiments are needlessly
             repeated, and teams waste months doing "data archaeology" to reconstruct past
@@ -101,8 +101,9 @@ function BioIT() {
       <Lede
         heading={
           <>
-            You need FAIR data, <br />
-            powered by Amazon S3
+            Gain confident control
+            <br />
+            with a cloud SDMS
           </>
         }
         detail={
@@ -113,19 +114,20 @@ function BioIT() {
             <br />
             <br />
             Quilt runs privately and securely in your AWS account, as a CloudFormation
-            stack. &nbsp;
+            stack.&nbsp;
             <strong>
               Quilt is powered by scalable and secure services like Amazon S3, Amazon
-              OpenSearch, Amazon Athena.
+              OpenSearch, Amazon Athena, and Amazon Lambda.
             </strong>
-            &nbsp; Quilt stores your data in open file formats, in you Amazon S3 buckets,
-            secured by IAM policies that you control.
+            &nbsp;Quilt stores your data in open file formats, in your Amazon S3 buckets,
+            under IAM policies that you control.
             <br />
             <br />
-            Watch Alex Bangs, CIO of Vir Biotechnology, explain how his team built a
-            scientific data management on Quilt and AWS. Vir Bio is a commercial-stage
-            immunology company focused on combining immunologic insights with cutting-edge
-            technologies to treat and prevent serious infectious diseases.
+            Watch Alex Bangs, CIO of Vir Biotechnology, explain how he deployed Vir's
+            scientific data management system on Quilt and AWS. Vir Bio is a
+            commercial-stage immunology company focused on combining immunologic insights
+            with cutting-edge technologies to treat and prevent serious infectious
+            diseases.
           </>
         }
       />
@@ -136,17 +138,18 @@ function BioIT() {
         heading={<>Run with a proven partner</>}
         detail={
           <>
-            <AwsPartner style={{ height: '200px', float: 'left', marginRight: '32px' }} />
+            <AwsPartner style={{ height: '256px', float: 'left', marginRight: '32px' }} />
             As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
             demonstrate deep knowledge, experience, and customer success with Amazon Web
-            Services. Below are a few of Quilt's life science customers and case studies.
+            Services. Below are a few of Quilt's life science customers, followed by case
+            studies.
           </>
         }
         maxWidth="55rem"
       />
       <LogosCarousel
         logos={logos}
-        title="The life sciences trust Quilt for data management"
+        title="Life scientists trust Quilt for data management"
       />
       <CaseStudies />
       <Lede
@@ -171,12 +174,13 @@ function BioIT() {
                 <>Link large datasets to any ELN or LIMS system with a single URL</>,
                 <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
                 <>
-                  Trust and version data with immutable URLs that never change without
-                  your consent
+                  Confidently capture data, metadata, and documentation as immutable
+                  collections, known as Quilt packages
                 </>,
                 <>
-                  Automate screens to analyze data (e.g. FASTQs), produce charts, and
-                  eliminate meetings and PowerPoint presentations
+                  Automate pipelines to analyze data (e.g. FASTQs), produce charts, and
+                  notify collaborators as soon as the results are ready (reducing the need
+                  for tedious meetings and slide presentations)
                 </>,
                 <>
                   Share charts and visualizations on the web—no backend coding required
@@ -200,13 +204,15 @@ function BioIT() {
                   Make informed decisions faster from a single, trusted source of truth
                 </>,
                 <>Ensure that your data are FAIR for decades to come</>,
-                <>Trust immutable data versions to retain data and knowledge</>,
+                <>
+                  Trust immutable data versions to losslessly retain data and knowledge
+                </>,
               ],
             },
             {
               title: 'Security and scale',
               bullets: [
-                <>The Quilt Data Hub runs in your Virtual Private Cloud (VPC)</>,
+                <>Quilt runs in your Virtual Private Cloud (VPC)</>,
                 <>Integrates with Single Sign-On (SSO)</>,
                 <>Integrates with Amazon S3 for limitless storage</>,
                 <>You set the security policies via Amazon IAM</>,
