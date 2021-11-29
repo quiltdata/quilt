@@ -51,35 +51,59 @@ const logos = [
     title: 'Allen Institute for Cell Science',
   },
 ]
+const useVideoStyles = M.makeStyles({
+  wrapper: {
+    maxWidth: '900px',
+    width: '100%',
+  },
+  video: {
+    position: 'absolute',
+    height: '100%',
+    width: '100%',
+  },
+})
 
 function Video() {
+  const classes = useVideoStyles()
   return (
     <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
-      <M.Box
-        position="relative"
-        maxWidth={900}
-        width="100%"
-        bgcolor="common.black"
-        pb="56.25%"
-      >
-        <iframe
-          frameBorder="0"
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          style={{
-            position: 'absolute',
-            height: '100%',
-            width: '100%',
-          }}
-          src="https://www.youtube.com/embed/ykmvxb_kTc4"
-        />
-      </M.Box>
+      <div className={classes.wrapper}>
+        <M.Box
+          position="relative"
+          maxWidth={900}
+          width="100%"
+          bgcolor="common.black"
+          pb="56.25%"
+        >
+          <iframe
+            className={classes.video}
+            frameBorder="0"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            src="https://www.youtube.com/embed/ykmvxb_kTc4"
+          />
+        </M.Box>
+      </div>
     </M.Box>
   )
 }
 
+const useBioITStyles = M.makeStyles((t) => ({
+  awsPartner: {
+    display: 'block',
+    maxWidth: '70%',
+    margin: t.spacing(0, 'auto', 2),
+    [t.breakpoints.up('sm')]: {
+      float: 'left',
+      height: t.spacing(32),
+      margin: t.spacing(0, 2, 0, 0),
+    },
+  },
+}))
+
 function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
+  const classes = useBioITStyles()
   return (
     <>
       <MetaTitle />
@@ -147,7 +171,7 @@ function BioIT() {
         heading={<>Run with a proven partner</>}
         detail={
           <>
-            <AwsPartner style={{ height: '256px', float: 'left', marginRight: '32px' }} />
+            <AwsPartner className={classes.awsPartner} />
             As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
             demonstrate deep knowledge, experience, and customer success with Amazon Web
             Services. Below are a few of Quilt's life science customers, followed by case
