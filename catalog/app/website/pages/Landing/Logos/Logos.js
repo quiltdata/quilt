@@ -42,5 +42,5 @@ const logos = [
 ]
 
 export default function Logos() {
-  return <LogosCarousel logos={logos} />
+  return <LogosCarousel logos={logos} title="Companies that love Quilt" />
 }

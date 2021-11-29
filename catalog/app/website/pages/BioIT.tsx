@@ -12,6 +12,7 @@ import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
+import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
 import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
@@ -42,6 +43,10 @@ const logos = [
   {
     src: logoStemson,
     title: 'Stemson',
+  },
+  {
+    src: logoAllencell,
+    title: 'AllenCell',
   },
 ]
 
@@ -178,7 +183,7 @@ function BioIT() {
         />
       </Section>
 
-      <LogosCarousel logos={logos} />
+      <LogosCarousel logos={logos} title="Companies that love Quilt" />
 
       <M.Box pt={2} />
       <Section bg="fancy">
