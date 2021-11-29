@@ -68,7 +68,7 @@ export function TalkToUsProvider({ children }) {
         //   window.removeEventListener('message', handleCalendlyEvent)
         // }
         // window.addEventListener('message', handleCalendlyEvent)
-        C.initPopupWidget()
+        C.initPopupWidget({ url: cfg.calendlyLink })
       })
     },
     [t, cfg.calendlyLink, calendlyP],
