@@ -51,29 +51,39 @@ const logos = [
     title: 'Allen Institute for Cell Science',
   },
 ]
+const useVideoStyles = M.makeStyles({
+  wrapper: {
+    maxWidth: '900px',
+    width: '100%',
+  },
+  video: {
+    position: 'absolute',
+    height: '100%',
+    width: '100%',
+  },
+})
 
 function Video() {
+  const classes = useVideoStyles()
   return (
     <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
-      <M.Box
-        position="relative"
-        maxWidth={900}
-        width="100%"
-        bgcolor="common.black"
-        pb="56.25%"
-      >
-        <iframe
-          frameBorder="0"
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          style={{
-            position: 'absolute',
-            height: '100%',
-            width: '100%',
-          }}
-          src="https://www.youtube.com/embed/ykmvxb_kTc4"
-        />
-      </M.Box>
+      <div className={classes.wrapper}>
+        <M.Box
+          position="relative"
+          maxWidth={900}
+          width="100%"
+          bgcolor="common.black"
+          pb="56.25%"
+        >
+          <iframe
+            className={classes.video}
+            frameBorder="0"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            src="https://www.youtube.com/embed/ykmvxb_kTc4"
+          />
+        </M.Box>
+      </div>
     </M.Box>
   )
 }
