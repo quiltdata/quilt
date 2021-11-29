@@ -2,52 +2,42 @@ import * as React from 'react'
 
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 
-import logoAI2 from './logo-ai2.png'
-import logoAics from './logo-aics.png'
 import logoCelsius from './logo-celsius.png'
 import logoHudl from './logo-hudl.png'
-import logoNetguru from './logo-netguru.png'
 import logoNeumora from './logo-neumora.png'
-import logoRibon from './logo-ribon.png'
+import logoObsidian from './logo-obsidian.png'
 import logoSight from './logo-sight.png'
-import logoZee5 from './logo-zee5.png'
+import logoStemson from './logo-stemson.png'
+import logoVir from './logo-vir.png'
 
 const logos = [
   {
-    src: logoAics,
-    title: 'Allen Institute for Cell Science',
+    src: logoCelsius,
+    title: 'Celsius',
+  },
+  {
+    src: logoVir,
+    title: 'Vir',
   },
   {
     src: logoNeumora,
     title: 'Neumora',
   },
   {
+    src: logoObsidian,
+    title: 'Obsidian',
+  },
+  {
+    src: logoStemson,
+    title: 'Stemson',
+  },
+  {
     src: logoHudl,
     title: 'hudl',
   },
   {
-    src: logoAI2,
-    title: 'Allen Institute for AI',
-  },
-  {
-    src: logoCelsius,
-    title: 'Celsius',
-  },
-  {
-    src: logoRibon,
-    title: 'Ribon Therapeutics',
-  },
-  {
     src: logoSight,
     title: 'Sighthound',
-  },
-  {
-    src: logoNetguru,
-    title: 'Netguru',
-  },
-  {
-    src: logoZee5,
-    title: 'Zee5',
   },
 ]
 

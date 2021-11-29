@@ -12,15 +12,11 @@ import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
-import logoAI2 from 'website/pages/Landing/Logos/logo-ai2.png'
-import logoAics from 'website/pages/Landing/Logos/logo-aics.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
-import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
-import logoNetguru from 'website/pages/Landing/Logos/logo-netguru.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoRibon from 'website/pages/Landing/Logos/logo-ribon.png'
-import logoSight from 'website/pages/Landing/Logos/logo-sight.png'
-import logoZee5 from 'website/pages/Landing/Logos/logo-zee5.png'
+import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
+import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
+import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
@@ -28,40 +24,32 @@ const DECK_URL =
 
 const logos = [
   {
-    src: logoAics,
-    title: 'Allen Institute for Cell Science',
+    src: logoCelsius,
+    title: 'Celsius',
+  },
+  {
+    src: logoVir,
+    title: 'Vir',
   },
   {
     src: logoNeumora,
     title: 'Neumora',
   },
   {
+    src: logoObsidian,
+    title: 'Obsidian',
+  },
+  {
+    src: logoStemson,
+    title: 'Stemson',
+  },
+  {
     src: logoHudl,
     title: 'hudl',
   },
   {
-    src: logoAI2,
-    title: 'Allen Institute for AI',
-  },
-  {
-    src: logoCelsius,
-    title: 'Celsius',
-  },
-  {
-    src: logoRibon,
-    title: 'Ribon Therapeutics',
-  },
-  {
     src: logoSight,
     title: 'Sighthound',
-  },
-  {
-    src: logoNetguru,
-    title: 'Netguru',
-  },
-  {
-    src: logoZee5,
-    title: 'Zee5',
   },
 ]
 
