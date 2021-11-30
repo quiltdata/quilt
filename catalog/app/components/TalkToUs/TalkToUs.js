@@ -10,6 +10,13 @@ const CALENDLY_JS = 'https://assets.calendly.com/assets/external/widget.js'
 
 const CALENDLY_PROMISE = Symbol('calendly')
 
+function moveCloseButtonToPopup() {
+  const closeEl = document.querySelector('.calendly-popup-close')
+  const popupEl = document.querySelector('.calendly-popup')
+  closeEl.parentElement.removeChild(closeEl)
+  popupEl.appendChild(closeEl)
+}
+
 function insertEl(tag, attrs) {
   const el = Object.assign(window.document.createElement(tag), attrs)
   window.document.head.appendChild(el)
@@ -69,6 +76,8 @@ export function TalkToUsProvider({ children }) {
         // }
         // window.addEventListener('message', handleCalendlyEvent)
         C.initPopupWidget({ url: cfg.calendlyLink })
+
+        moveCloseButtonToPopup()
       })
     },
     [t, cfg.calendlyLink, calendlyP],
