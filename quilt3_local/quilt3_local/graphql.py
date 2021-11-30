@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 from functools import partial
 import re
@@ -6,27 +5,39 @@ import typing as T
 
 import ariadne
 import boto3
+import graphql
 from cached_property import cached_property
 import importlib_resources
 import quilt3
 
+from . import pkgselect
+from .run_async import run_async
+
 
 NAMED_PACKAGES_PREFIX = ".quilt/named_packages/"
+MANIFESTS_PREFIX = ".quilt/packages/"
+
+POINTER_RE = re.compile("^1[0-9]{9}$")
+
+
+def is_pointer(hash_or_tag: str):
+    if hash_or_tag == "latest": return True
+    if POINTER_RE.match(hash_or_tag): return True
+    return False
+
+
+def append_path(base: str, child: str):
+    if not base: return child
+    return f"{base}/{child}"
+
 
 s3 = boto3.client("s3")
 
 
-async def run_async(fn, executor=None, loop=None):
-    if loop is None:
-        loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(executor, fn)
-
-
-datetime_scalar = ariadne.ScalarType("Datetime")
-
-@datetime_scalar.serializer
-def serialize_datetime(value):
-    return value.isoformat()
+datetime_scalar = ariadne.ScalarType(
+    "Datetime",
+    serializer=lambda value: value and value.isoformat(),
+)
 
 
 query_type = ariadne.QueryType()
@@ -42,55 +53,6 @@ def query_bucket_config(*_, name: str):
     return None
 
 
-def append_path(base: str, child: str):
-    if not base: return child
-    return f"{base}/{child}"
-
-
-class PackageDirWrapper:
-    def __init__(self, path: str, subpkg: quilt3.Package):
-        self.path = path
-        self._subpkg = subpkg
-
-    @property
-    def metadata(self):
-        return self._subpkg._meta
-
-    @cached_property
-    def children(self):
-        dirs = []
-        files = []
-        for path in self._subpkg.keys():
-            sub = self._subpkg[path]
-            full_path = append_path(self.path, path)
-            if isinstance(sub, quilt3.Package):
-                dirs.append(PackageDirWrapper(full_path, sub))
-            else:
-                files.append(PackageFileWrapper(full_path, sub))
-
-        return dirs + files
-
-    @property
-    def size(self):
-        # TODO: compute size
-        return 0
-
-class PackageFileWrapper:
-    def __init__(self, path: str, entry: quilt3.packages.PackageEntry):
-        self.path = path
-        self.entry = entry
-
-    @cached_property
-    def size(self):
-        return self.entry.size
-
-    @cached_property
-    def metadata(self):
-        return self.entry._meta
-
-    @cached_property
-    def physicalKey(self):
-        return str(self.entry.physical_key)
 
 class RevisionWrapper:
     def __init__(
@@ -106,61 +68,73 @@ class RevisionWrapper:
         self.modified = modified
 
     @cached_property
-    async def _browse(self):
-        return await run_async(partial(
-            quilt3.Package.browse,
-            self.name,
-            f"s3://{self.bucket}",
-            self.hash,
-        ))
+    async def _root(self):
+        return await pkgselect.select_root(
+            bucket=self.bucket,
+            manifest=f"{MANIFESTS_PREFIX}{self.hash}",
+        )
 
-    #XXX: get from s3select
     @property
     async def metadata(self):
-        return (await self._browse)._meta
+        return (await self._root)["meta"]
 
-    #XXX: get from s3select
     @property
     async def userMeta(self):
         return (await self.metadata).get("user_meta")
 
-    #XXX: get from s3select
-    @cached_property
+    @property
     async def message(self):
         return (await self.metadata).get("message")
 
-    #XXX: get from s3select
-    @cached_property
+    @property
     async def totalEntries(self):
-        return sum(1 for _ in (await self._browse).walk())
+        return (await self._root)["total_files"]
 
-    #XXX: get from s3select
-    @cached_property
-    async def totalBytes(self, *_):
-        return sum(entry.size for key, entry in (await self._browse).walk())
+    @property
+    async def totalBytes(self):
+        return (await self._root)["total_bytes"]
 
-    #XXX: get from s3select
     async def dir(self, *_, path: str):
-        try:
-            pkg = await self._browse
-            subpkg = pkg[path] if path else pkg
-        except KeyError:
-            return None
+        res = await pkgselect.select_dir(
+            bucket=self.bucket,
+            manifest=f"{MANIFESTS_PREFIX}{self.hash}",
+            path=path,
+            limit=20_000,
+        )
+        if res is None: return None
 
-        if not isinstance(subpkg, quilt3.Package):
-            return None
-        return PackageDirWrapper(path, subpkg)
+        dirs = [{
+            "__typename": "PackageDir",
+            "path": append_path(path, p["logical_key"]),
+            "size": p["size"],
+        } for p in res["prefixes"]]
 
-    #XXX: get from s3select
+        files = [{
+            "__typename": "PackageFile",
+            "path": append_path(path, o["logical_key"]),
+            "size": o["size"],
+            "physicalKey": o["physical_key"],
+        } for o in res["objects"]]
+
+        return {
+            "path": path,
+            "metadata": res["meta"],
+            "children": dirs + files,
+        }
+
     async def file(self, *_, path: str):
-        try:
-            entry = (await self._browse)[path]
-        except KeyError:
-            return None
-
-        if not isinstance(entry, quilt3.packages.PackageEntry):
-            return None
-        return PackageFileWrapper(path, entry)
+        res = await pkgselect.select_file(
+            bucket=self.bucket,
+            manifest=f"{MANIFESTS_PREFIX}{self.hash}",
+            path=path,
+        )
+        if res is None: return None
+        return {
+            "path": path,
+            "size": res["size"],
+            "physicalKey": res["physical_key"],
+            "metadata": res["meta"],
+        }
 
 
 class RevisionListWrapper:
@@ -179,7 +153,8 @@ class RevisionListWrapper:
 
     @cached_property
     async def _revisions_by_hash(self):
-        hashes_futures = {pointer: self._get_hash(pointer) for pointer in self._revision_map}
+        hashes_futures = {pointer: self._get_hash(pointer)
+            for pointer in self._revision_map}
         by_hash = {}
         for pointer, modified in self._revision_map.items():
             hash_ = await hashes_futures[pointer]
@@ -218,14 +193,6 @@ class RevisionListWrapper:
         return (await self._revision_wrappers)[offset:offset + perPage]
 
 
-POINTER_RE = re.compile("^1[0-9]{9}$")
-
-
-def is_pointer(hash_or_tag: str):
-    if hash_or_tag == "latest": return True
-    if POINTER_RE.match(hash_or_tag): return True
-    return False
-
 class PackageWrapper:
     def __init__(self, bucket: str, name: str, revisions: T.Optional[dict] = None):
         self.bucket = bucket
@@ -258,13 +225,15 @@ class PackageWrapper:
     async def revisions(self):
         return RevisionListWrapper(self.bucket, self.name, await self.revision_map)
 
-    def revision(self, *_, hashOrTag: str):
-        #TODO: s3/s3select?
+    async def revision(self, *_, hashOrTag: str):
         registry = quilt3.backends.get_package_registry(f"s3://{self.bucket}")
         hash_ = (
-            quilt3.data_transfer.get_bytes(registry.pointer_pk(self.name, hashOrTag)).decode()
+            (await run_async(partial(
+                quilt3.data_transfer.get_bytes,
+                registry.pointer_pk(self.name, hashOrTag),
+            ))).decode()
             if is_pointer(hashOrTag) else
-            registry.resolve_top_hash(self.name, hashOrTag)
+            await run_async(partial(registry.resolve_top_hash, self.name, hashOrTag))
         )
         return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash_)
 
@@ -287,6 +256,7 @@ def make_filter_re(filter: str):
         filter = f"*{filter}*"
     value = "".join(transform_char(char) for char in filter)
     return re.compile(f"^{value}$")
+
 
 class PackageListWrapper:
     def __init__(self, bucket: str, filter: T.Optional[str] = None):
@@ -342,16 +312,9 @@ class PackageListWrapper:
         return sorted_packages[offset:offset + perPage]
 
 
-def resolve_package_entry_type(obj, *_):
-    if isinstance(obj, PackageFileWrapper): return "PackageFile"
-    if isinstance(obj, PackageDirWrapper): return "PackageDir"
-    return None
-
-package_entry_type = ariadne.UnionType("PackageEntry", resolve_package_entry_type)
-
 @query_type.field("packages")
 def query_packages(_query, _info, bucket: str, filter: T.Optional[str] = None):
-    return PackageListWrapper(bucket=bucket, filter=filter)
+    return PackageListWrapper(bucket, filter)
 
 @query_type.field("package")
 def package(_query, _info, bucket: str, name: str):
@@ -365,6 +328,10 @@ with importlib_resources.path("quilt3_local", "schema.graphql") as schema_path:
 schema = ariadne.make_executable_schema(
     type_defs,
     query_type,
-    package_entry_type,
     datetime_scalar,
 )
+
+# patch graphql constraints to supports largest ints JS can handle
+# (graphql only supports 32-bit ints by the spec)
+graphql.type.scalars.MAX_INT = 2**53 - 1
+graphql.type.scalars.MIN_INT = -(2**53 - 1)
