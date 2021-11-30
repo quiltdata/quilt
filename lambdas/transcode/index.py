@@ -16,9 +16,6 @@ FORMATS = {
     'audio/ogg': 'ogg',
 }
 
-# TODO: Remove this.
-LEGACY_FORMATS = {v: k for k, v in FORMATS.items()}
-
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -26,7 +23,7 @@ SCHEMA = {
             'type': 'string'
         },
         'format': {
-            'enum': list(FORMATS) + list(LEGACY_FORMATS)
+            'enum': list(FORMATS)
         },
         'width': {
             'type': 'string'
@@ -86,7 +83,6 @@ def lambda_handler(request):
     except ValueError as ex:
         return make_json_response(400, {'error': str(ex)})
 
-    format = LEGACY_FORMATS.get(format, format)
     category = format.split('/')[0]
 
     format_params = []

@@ -75,7 +75,6 @@ def test_bad_params(params):
         'video/webm',
         'audio/mpeg',
         'audio/ogg',
-        'mp4',
     ]
 )
 def test_format(format):
