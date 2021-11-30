@@ -6,13 +6,12 @@ import urllib.parse
 import aiohttp
 from fastapi import FastAPI, Request, Response
 
-
 s3proxy = FastAPI()
 
 
 @s3proxy.api_route("/{s3_region}/{s3_bucket}", methods=['GET', 'HEAD', 'POST', 'PUT', 'OPTIONS'])
 @s3proxy.api_route("/{s3_region}/{s3_bucket}/{s3_path:path}", methods=['GET', 'HEAD', 'POST', 'PUT', 'OPTIONS'])
-async def s3proxy_request(request: Request, s3_region: str, s3_bucket:str, s3_path: str = ''):
+async def s3proxy_request(request: Request, s3_region: str, s3_bucket: str, s3_path: str = ''):
     """
     Forward the request to S3.
     """

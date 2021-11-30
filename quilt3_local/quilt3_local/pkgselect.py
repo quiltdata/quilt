@@ -135,8 +135,10 @@ async def select_dir(bucket: str, manifest: str, path: str, limit: int = None, o
         meta: dict,
     }
     """
-    if limit is None: limit = 1000
-    if offset is None: offset = 0
+    if limit is None:
+        limit = 1000
+    if offset is None:
+        offset = 0
 
     select = _bind_select(bucket, manifest)
 
