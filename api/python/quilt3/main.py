@@ -2,11 +2,11 @@
 Parses the command-line arguments and runs a command.
 """
 
+import _thread
 import argparse
 import json
 import sys
 import time
-import _thread
 
 import requests
 
