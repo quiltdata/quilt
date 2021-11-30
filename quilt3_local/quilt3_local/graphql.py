@@ -269,6 +269,25 @@ class PackageWrapper:
         return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash_)
 
 
+def transform_char(char: str) -> str:
+    if char == "*":
+        return ".*"
+    if char == "?":
+        return ".{0,1}"
+    if char.isalpha():
+        return f"[{char.lower()}{char.capitalize()}]"
+    if char in '.+|{}[]()"\\#@&<>~':
+        return f"\\{char}"
+    return char
+
+
+def make_filter_re(filter: str):
+    if not filter: return {"match_all": {}}
+    if not re.match("[*?]", filter):
+        filter = f"*{filter}*"
+    value = "".join(transform_char(char) for char in filter)
+    return re.compile(f"^{value}$")
+
 class PackageListWrapper:
     def __init__(self, bucket: str, filter: T.Optional[str] = None):
         self.bucket = bucket
@@ -291,24 +310,12 @@ class PackageListWrapper:
             packages[name][pointer] = modified
         return packages
 
-    # TODO: proper filtering
-    # pipeThru(filter)(
-    #           R.unless(R.test(/[*?]/), (f) => `*${f}*`),
-    #           R.map(
-    #             R.cond([
-    #               [isLetter, bothCases],
-    #               [isReserved, escapeReserved],
-    #               [R.equals('*'), () => '.*'],
-    #               [R.equals('?'), () => '.{0,1}'],
-    #               [R.T, R.identity],
-    #             ]),
-    #           ),
-    #           R.join(''),
     @cached_property
     async def _filtered_package_list(self):
         packages = await self._package_list
         if self.filter:
-            packages = {name: v for name, v in packages if self.filter in name}
+            filter_re = make_filter_re(self.filter)
+            packages = {name: v for name, v in packages.items() if filter_re.match(name)}
         return packages
 
     @cached_property
