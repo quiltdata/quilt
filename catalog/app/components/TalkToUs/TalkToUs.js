@@ -75,8 +75,8 @@ export function TalkToUsProvider({ children }) {
       }
 
       calendlyP.then((C) => {
-        C.initPopupWidget({ url: cfg.calendlyLink })
         listen('message', handleCalendlyEvent)
+        C.initPopupWidget({ url: cfg.calendlyLink })
       })
     },
     [t, cfg.calendlyLink, calendlyP, listen],
