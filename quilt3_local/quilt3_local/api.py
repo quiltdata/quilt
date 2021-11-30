@@ -1,7 +1,7 @@
 import ariadne.asgi
-from botocore.exceptions import ClientError
 import boto3
 import fastapi
+from botocore.exceptions import ClientError
 
 from .graphql import schema as graphql_schema
 
