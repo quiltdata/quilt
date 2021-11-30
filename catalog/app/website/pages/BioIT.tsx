@@ -107,6 +107,80 @@ function BioIT() {
   const classes = useBioITStyles()
   return (
     <>
+      <Lede
+        variant="center"
+        heading="Quilt transforms data into discoveries"
+        detail={
+          <>
+            Quilt integrates data sources so that everyone is on the same page with the
+            latest and most accurate data. Teams choose Quilt as their SDMS to leverage
+            all of their organizational knowledge into credible decisions—bringing drugs
+            and therapies to market faster.
+          </>
+        }
+      />
+      <Section>
+        <M.Box pt={5} />
+        <Tabs
+          sections={[
+            {
+              title: 'Use cases',
+              bullets: [
+                <>
+                  Link large datasets to any notebook, ELN, or lab information management
+                  system (LIMS) with immutable URLs
+                </>,
+                <>Find, document, and understand all of your data in a central catalog</>,
+                <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
+                <>
+                  Confidently capture data, metadata, and documentation in immutable
+                  collections, known as Quilt packages
+                </>,
+                <>
+                  Automate pipelines to analyze data (e.g. FASTQs), produce charts, and
+                  notify collaborators as soon as the results are ready (reducing the need
+                  for tedious meetings and slide presentations)
+                </>,
+                <>
+                  Share charts and visualizations on the web—no backend coding required
+                </>,
+                <>Collaboratively create, tag, and document datasets for FAIR reuse</>,
+                <>
+                  Longitudinally query all experiments with natural language, SQL, or
+                  Python
+                </>,
+              ],
+            },
+            {
+              title: 'Benefits',
+              bullets: [
+                <>
+                  Know the lineage and provenance of every datum your company creates
+                  (who, when, where, why, and how)
+                </>,
+                <>
+                  Make informed decisions faster from a single, trusted source of truth
+                </>,
+                <>Ensure that your data are FAIR for decades to come</>,
+                <>
+                  Trust immutable data versions to preserve data and knowledge over
+                  decades
+                </>,
+              ],
+            },
+            {
+              title: 'Security and scale',
+              bullets: [
+                <>Quilt runs in your Virtual Private Cloud (VPC)</>,
+                <>Integrate with Single Sign-On (SSO)</>,
+                <>Integrate with your VPN</>,
+                <>Integrate with Amazon S3</>,
+                <>Customize security policies with Amazon IAM</>,
+              ],
+            },
+          ]}
+        />
+      </Section>
       <MetaTitle />
       <Dots />
       <Lede
@@ -188,82 +262,6 @@ function BioIT() {
       </M.Box>
       <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" />
       <CaseStudies />
-      <Lede
-        variant="center"
-        heading="Quilt transforms data into discoveries"
-        detail={
-          <>
-            Quilt integrates data sources so that everyone is on the same page with the
-            latest and most accurate data. Teams choose Quilt as their SDMS to leverage
-            all of their organizational knowledge into credible decisions—bringing drugs
-            and therapies to market faster.
-          </>
-        }
-      />
-      <Section>
-        <M.Box pt={5} />
-        <Tabs
-          sections={[
-            {
-              title: 'Use cases',
-              bullets: [
-                <>
-                  Link large datasets to any notebook, ELN, or lab information management
-                  system (LIMS) with immutable URLs
-                </>,
-                <>Find, document, and understand all of your data in a central catalog</>,
-                <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
-                <>
-                  Confidently capture data, metadata, and documentation in immutable
-                  collections, known as Quilt packages
-                </>,
-                <>
-                  Automate pipelines to analyze data (e.g. FASTQs), produce charts, and
-                  notify collaborators as soon as the results are ready (reducing the need
-                  for tedious meetings and slide presentations)
-                </>,
-                <>
-                  Share charts and visualizations on the web—no backend coding required
-                </>,
-                <>Collaboratively create, tag, and document datasets for FAIR reuse</>,
-                <>
-                  Longitudinally query all experiments with natural language, SQL, or
-                  Python
-                </>,
-              ],
-            },
-
-            {
-              title: 'Benefits',
-              bullets: [
-                <>
-                  Know the lineage and provenance of every datum your company creates
-                  (who, when, where, why, and how)
-                </>,
-                <>
-                  Make informed decisions faster from a single, trusted source of truth
-                </>,
-                <>Ensure that your data are FAIR for decades to come</>,
-                <>
-                  Trust immutable data versions to preserve data and knowledge over
-                  decades
-                </>,
-              ],
-            },
-            {
-              title: 'Security and scale',
-              bullets: [
-                <>Quilt runs in your Virtual Private Cloud (VPC)</>,
-                <>Integrate with Single Sign-On (SSO)</>,
-                <>Integrate with your VPN</>,
-                <>Integrate with Amazon S3</>,
-                <>Customize security policies with Amazon IAM</>,
-              ],
-            },
-          ]}
-        />
-      </Section>
-
       <M.Box pt={2} />
       <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
