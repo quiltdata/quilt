@@ -111,31 +111,28 @@ function BioIT() {
       <Dots />
       <Lede
         variant="flying"
-        heading={<>Your data are growing wildly</>}
-        detail={
-          <>
-            Your company rapidly accumulates data from instruments, CROs, scientists, and
-            computational pipelines. But simply storing data brings cost without benefit.
-            Data without context (labels, documentation, links, and charts) quickly
-            becomes meaningless. Decision quality suffers, experiments are needlessly
-            repeated, and teams waste months doing "data archaeology" to reconstruct past
-            results.
-          </>
-        }
-      />
-      <Lede
         heading={
           <>
-            Gain confident control
+            Transform data into discoveries
             <br />
-            with cloud data management
+            with Quilt + Amazon S3
           </>
         }
         detail={
           <>
-            Quilt is a <strong>scientific data management system (SDMS)</strong> that
-            stores, tags, manages, and integrates data sources so that all of your data
-            are findable, accessible, interoperable, and reusable (FAIR).
+            Quilt stores, tags, manages, and integrates your data sources so that all of
+            your data are findable, accessible, interoperable, and reusable (FAIR).
+            Publicly traded companies in life sciences choose Quilt as their{' '}
+            <strong>scientific data management system (SDMS) </strong>to leverage all of
+            their organizational knowledge into credible decisions that bring drugs and
+            therapies to market faster.
+            <M.Box pt={4} />
+            Quilt runs privately and securely in your AWS account, as a CloudFormation
+            stack.&nbsp;
+            <strong>
+              Quilt is powered by scalable and secure services like Amazon S3, Amazon
+              OpenSearch, and Amazon Athena.
+            </strong>
             <M.Box display="flex" flexDirection="column" pt={6}>
               <M.Button variant="contained" color="primary" onClick={talk}>
                 See Quilt at re:Invent 2021
@@ -145,63 +142,11 @@ function BioIT() {
             <ChevronLink href={DECK_URL}>
               Learn more about Quilt for life sciences (PDF)
             </ChevronLink>
-            <M.Box pt={6} />
-            Quilt runs privately and securely in your AWS account, as a CloudFormation
-            stack.&nbsp;
-            <strong>
-              Quilt is powered by scalable and secure services like Amazon S3, Amazon
-              OpenSearch, and Amazon Athena.
-            </strong>
-            &nbsp;Quilt stores your data in open file formats, in your Amazon S3 buckets,
-            under IAM policies that you control.
-            <M.Box pt={4} />
-            Watch Alex Bangs, CIO of Vir Biotechnology, explain how he deployed Vir's
-            scientific data management system on Quilt and AWS. Vir Bio is a
-            commercial-stage immunology company focused on combining immunologic insights
-            with cutting-edge technologies to treat and prevent serious infectious
-            diseases.
           </>
         }
       />
+      <M.Box pb={{ xs: 0, md: 10 }} />
       <Section>
-        <Video />
-      </Section>
-      <Lede
-        heading={<>Run with a proven AWS partner</>}
-        detail={
-          <>
-            <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
-            As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
-            demonstrate deep knowledge, experience, and customer success with Amazon Web
-            Services. Below are a few of Quilt's life science customers, followed by case
-            studies.
-            <M.Box pt={2} />
-            Quilt is an AWS-native application that invokes Amazon services like S3,
-            OpenSearch, Athena, Lambda, RDS, and more. See the following diagram for
-            details on the Quilt solution architecture.
-          </>
-        }
-        maxWidth="55rem"
-      />
-      <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
-        <img src={imageArch} width="80%" />
-      </M.Box>
-      <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" />
-      <CaseStudies />
-      <Lede
-        variant="center"
-        heading="Quilt transforms data into discoveries"
-        detail={
-          <>
-            Quilt integrates data sources so that everyone is on the same page with the
-            latest and most accurate data. Teams choose Quilt as their SDMS to leverage
-            all of their organizational knowledge into credible decisions—bringing drugs
-            and therapies to market faster.
-          </>
-        }
-      />
-      <Section>
-        <M.Box pt={5} />
         <Tabs
           sections={[
             {
@@ -232,7 +177,6 @@ function BioIT() {
                 </>,
               ],
             },
-
             {
               title: 'Benefits',
               bullets: [
@@ -263,7 +207,60 @@ function BioIT() {
           ]}
         />
       </Section>
-
+      <Lede
+        heading={<>Your data grow wildly</>}
+        variant="center"
+        detail={
+          <>
+            Your company rapidly accumulates data from instruments, CROs, scientists, and
+            computational pipelines. But simply storing data brings cost without benefit.
+            Data without context (labels, documentation, links, and charts) quickly
+            becomes meaningless. Decision quality suffers, experiments are needlessly
+            repeated, and teams waste months doing "data archaeology" to reconstruct past
+            results.
+          </>
+        }
+      />
+      <Lede
+        heading={<>Gain confident control with cloud data management</>}
+        detail={
+          <>
+            Quilt stores your data in open file formats, in your Amazon S3 buckets, under
+            IAM policies that you control.
+            <M.Box pt={4} />
+            Watch Alex Bangs, CIO of Vir Biotechnology, explain how he deployed Vir's
+            scientific data management system on Quilt and AWS. Vir Bio is a
+            commercial-stage immunology company focused on combining immunologic insights
+            with cutting-edge technologies to treat and prevent serious infectious
+            diseases.
+          </>
+        }
+      />
+      <Section>
+        <Video />
+      </Section>
+      <Lede
+        heading={<>Your proven AWS partner</>}
+        detail={
+          <>
+            <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
+            As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
+            demonstrate deep knowledge, experience, and customer success with Amazon Web
+            Services. Below are a few of Quilt's life science customers, followed by case
+            studies.
+            <M.Box pt={2} />
+            Quilt is an AWS-native application that invokes Amazon services like S3,
+            OpenSearch, Athena, Lambda, RDS, and more. See the following diagram for
+            details on the Quilt solution architecture.
+          </>
+        }
+        maxWidth="55rem"
+      />
+      <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
+        <img src={imageArch} width="80%" />
+      </M.Box>
+      <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" />
+      <CaseStudies />
       <M.Box pt={2} />
       <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
