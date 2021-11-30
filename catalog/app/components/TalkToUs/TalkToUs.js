@@ -91,7 +91,6 @@ export function useTalkToUs(extra) {
   })
   ref.current.show = React.useContext(Ctx)
   ref.current.extra = extra
-
   return ref.current.bound
 }
 
