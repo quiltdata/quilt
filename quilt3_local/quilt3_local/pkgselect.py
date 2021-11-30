@@ -2,10 +2,8 @@
 Provide a virtual-file-system view of a package's logical keys.
 """
 
-import asyncio
 import functools
 import json
-import os
 import typing as T
 
 import boto3

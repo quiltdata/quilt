@@ -3,7 +3,6 @@ import os
 
 import fastapi
 import starlette.staticfiles
-import quilt3
 
 
 from .api import api

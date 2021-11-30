@@ -8,7 +8,6 @@ import boto3
 import graphql
 from cached_property import cached_property
 import importlib_resources
-import quilt3
 
 from . import pkgselect
 from .run_async import run_async
@@ -16,14 +15,15 @@ from .run_async import run_async
 
 NAMED_PACKAGES_PREFIX = ".quilt/named_packages/"
 MANIFESTS_PREFIX = ".quilt/packages/"
-
+HASH_RE = re.compile("^[0-9a-f]{64}$")
 POINTER_RE = re.compile("^1[0-9]{9}$")
 
 
 def is_pointer(hash_or_tag: str):
-    if hash_or_tag == "latest": return True
-    if POINTER_RE.match(hash_or_tag): return True
-    return False
+    return hash_or_tag == "latest" or bool(POINTER_RE.match(hash_or_tag))
+
+def is_hash(hash_or_tag: str):
+    return bool(HASH_RE.match(hash_or_tag))
 
 
 def append_path(base: str, child: str):
@@ -32,6 +32,17 @@ def append_path(base: str, child: str):
 
 
 s3 = boto3.client("s3")
+
+
+def get_hash_sync(bucket: str, package: str, pointer: str):
+    return s3.get_object(
+        Bucket=bucket,
+        Key=f"{NAMED_PACKAGES_PREFIX}{package}/{pointer}",
+    )["Body"].read().decode()
+
+
+async def get_hash(*args, **kwargs):
+    return await run_async(partial(get_hash_sync, *args, **kwargs))
 
 
 datetime_scalar = ariadne.ScalarType(
@@ -143,17 +154,9 @@ class RevisionListWrapper:
         self.name = name
         self._revision_map = revision_map
 
-    async def _get_hash(self, pointer: str):
-        registry = quilt3.backends.get_package_registry(f"s3://{self.bucket}")
-        hash_bytes = await run_async(partial(
-            quilt3.data_transfer.get_bytes,
-            registry.pointer_pk(self.name, pointer),
-        ))
-        return hash_bytes.decode()
-
     @cached_property
     async def _revisions_by_hash(self):
-        hashes_futures = {pointer: self._get_hash(pointer)
+        hashes_futures = {pointer: get_hash(self.bucket, self.name, pointer)
             for pointer in self._revision_map}
         by_hash = {}
         for pointer, modified in self._revision_map.items():
@@ -226,15 +229,11 @@ class PackageWrapper:
         return RevisionListWrapper(self.bucket, self.name, await self.revision_map)
 
     async def revision(self, *_, hashOrTag: str):
-        registry = quilt3.backends.get_package_registry(f"s3://{self.bucket}")
-        hash_ = (
-            (await run_async(partial(
-                quilt3.data_transfer.get_bytes,
-                registry.pointer_pk(self.name, hashOrTag),
-            ))).decode()
-            if is_pointer(hashOrTag) else
-            await run_async(partial(registry.resolve_top_hash, self.name, hashOrTag))
-        )
+        if is_hash(hashOrTag):
+            hash_ = hashOrTag
+        elif is_pointer(hashOrTag):
+            hash_ = await get_hash(self.bucket, self.name, hashOrTag)
+        else: return None
         return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash_)
 
 
