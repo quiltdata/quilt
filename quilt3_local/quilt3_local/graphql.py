@@ -21,12 +21,14 @@ POINTER_RE = re.compile("^1[0-9]{9}$")
 def is_pointer(hash_or_tag: str):
     return hash_or_tag == "latest" or bool(POINTER_RE.match(hash_or_tag))
 
+
 def is_hash(hash_or_tag: str):
     return bool(HASH_RE.match(hash_or_tag))
 
 
 def append_path(base: str, child: str):
-    if not base: return child
+    if not base:
+        return child
     return f"{base}/{child}"
 
 
@@ -53,15 +55,14 @@ datetime_scalar = ariadne.ScalarType(
 query_type = ariadne.QueryType()
 
 
-# Buckets
 @query_type.field("bucketConfigs")
 def query_bucket_configs(*_):
     return []
 
+
 @query_type.field("bucketConfig")
 def query_bucket_config(*_, name: str):
     return None
-
 
 
 class RevisionWrapper:
@@ -111,7 +112,8 @@ class RevisionWrapper:
             path=path,
             limit=20_000,
         )
-        if res is None: return None
+        if res is None:
+            return None
 
         dirs = [{
             "__typename": "PackageDir",
@@ -138,7 +140,8 @@ class RevisionWrapper:
             manifest=f"{MANIFESTS_PREFIX}{self.hash}",
             path=path,
         )
-        if res is None: return None
+        if res is None:
+            return None
         return {
             "path": path,
             "size": res["size"],
@@ -155,8 +158,10 @@ class RevisionListWrapper:
 
     @cached_property
     async def _revisions_by_hash(self):
-        hashes_futures = {pointer: get_hash(self.bucket, self.name, pointer)
-            for pointer in self._revision_map}
+        hashes_futures = {
+            pointer: get_hash(self.bucket, self.name, pointer)
+            for pointer in self._revision_map
+        }
         by_hash = {}
         for pointer, modified in self._revision_map.items():
             hash_ = await hashes_futures[pointer]
@@ -167,8 +172,10 @@ class RevisionListWrapper:
         return by_hash
 
     def _get_modified(self, pointers: T.List[str]):
-        return max(m for pointer, m in self._revision_map.items()
-            if pointer in pointers)
+        return max(
+            m for pointer, m in self._revision_map.items()
+            if pointer in pointers
+        )
 
     @cached_property
     async def _revision_wrappers(self):
@@ -188,7 +195,7 @@ class RevisionListWrapper:
 
     @property
     def total(self):
-        return len(self._revision_map) - 1 # minus "latest"
+        return len(self._revision_map) - 1  # minus "latest"
 
     async def page(self, *_, number: int, perPage: int):
         offset = (number - 1) * perPage
@@ -206,7 +213,7 @@ class PackageWrapper:
         if self._revision_map:
             return self._revision_map
 
-        #TODO: drain past 1k
+        # TODO: drain past 1k
         resp = await run_async(partial(
             s3.list_objects_v2,
             Bucket=self.bucket,
@@ -232,7 +239,8 @@ class PackageWrapper:
             hash_ = hashOrTag
         elif is_pointer(hashOrTag):
             hash_ = await get_hash(self.bucket, self.name, hashOrTag)
-        else: return None
+        else:
+            return None
         return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash_)
 
 
@@ -249,7 +257,8 @@ def transform_char(char: str) -> str:
 
 
 def make_filter_re(filter: str):
-    if not filter: return {"match_all": {}}
+    if not filter:
+        return {"match_all": {}}
     if not re.match("[*?]", filter):
         filter = f"*{filter}*"
     value = "".join(transform_char(char) for char in filter)
@@ -269,7 +278,7 @@ class PackageListWrapper:
             Prefix=NAMED_PACKAGES_PREFIX,
         ))
         packages = {}
-        #XXX: consider draining pointers past 1k
+        # XXX: consider draining pointers past 1k
         for obj in resp["Contents"]:
             name, _, pointer = obj["Key"][len(NAMED_PACKAGES_PREFIX):].rpartition("/")
             modified = obj["LastModified"]
@@ -289,8 +298,10 @@ class PackageListWrapper:
     @cached_property
     async def _package_wrappers(self):
         packages = await self._filtered_package_list
-        return [PackageWrapper(self.bucket, name, revisions)
-            for name, revisions in packages.items()]
+        return [
+            PackageWrapper(self.bucket, name, revisions)
+            for name, revisions in packages.items()
+        ]
 
     async def total(self, *_):
         return len(await self._filtered_package_list)
@@ -298,12 +309,12 @@ class PackageListWrapper:
     # TODO: ensure perPage is converted to per_page
     # order is actually an enum 'NAME' | 'MODIFIED'
     async def page(self, *_, number: int, perPage: int, order: str):
-        key = lambda p: p.name
+        key = lambda p: p.name # noqa
         reverse = False
         package_wrappers = await self._package_wrappers
         if order == 'MODIFIED':
             modified_awaited = {p.modified: await p.modified for p in package_wrappers}
-            key = lambda p: modified_awaited[p.modified]
+            key = lambda p: modified_awaited[p.modified] # noqa
             reverse = True
         sorted_packages = sorted(package_wrappers, key=key, reverse=reverse)
         offset = (number - 1) * perPage
@@ -313,6 +324,7 @@ class PackageListWrapper:
 @query_type.field("packages")
 def query_packages(_query, _info, bucket: str, filter: T.Optional[str] = None):
     return PackageListWrapper(bucket, filter)
+
 
 @query_type.field("package")
 def package(_query, _info, bucket: str, name: str):

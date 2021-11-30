@@ -15,6 +15,7 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
+
 sts_client = boto3.client("sts")
 
 api = fastapi.FastAPI()
