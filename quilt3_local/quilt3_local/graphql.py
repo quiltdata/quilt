@@ -1,17 +1,16 @@
 import datetime
-from functools import partial
 import re
 import typing as T
+from functools import partial
 
 import ariadne
 import boto3
 import graphql
-from cached_property import cached_property
 import importlib_resources
+from cached_property import cached_property
 
 from . import pkgselect
 from .run_async import run_async
-
 
 NAMED_PACKAGES_PREFIX = ".quilt/named_packages/"
 MANIFESTS_PREFIX = ".quilt/packages/"

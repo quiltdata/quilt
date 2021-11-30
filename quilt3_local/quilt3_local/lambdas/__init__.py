@@ -1,10 +1,10 @@
-from base64 import b64decode, b64encode
 import importlib
 import sys
+from base64 import b64decode, b64encode
 
 from fastapi import FastAPI, HTTPException, Request, Response
 
-from . import thumbnail, preview, s3select
+from . import preview, s3select, thumbnail
 
 LAMBDAS = {
     "thumbnail": thumbnail,

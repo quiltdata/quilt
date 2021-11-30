@@ -9,9 +9,8 @@ import typing as T
 import boto3
 import pandas as pd
 
-from .run_async import run_async
 from .lambdas.shared.utils import query_manifest_content, sql_escape
-
+from .run_async import run_async
 
 s3 = boto3.client("s3")
 
