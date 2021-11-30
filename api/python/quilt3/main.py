@@ -282,7 +282,7 @@ def create_parser():
     install_p.add_argument(
         "name",
         help=(
-            "Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)"
+            "Name of package, in the USER/PKG format"
         ),
         type=str,
     )

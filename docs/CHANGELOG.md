@@ -10,11 +10,17 @@
 # unreleased - YYYY-MM-DD
 ## Python API
 * [Added] Declared compatibility with `jsonschema==4.*`.
+* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install quilt3[catalog]`).
+* [Changed] Dependencies on `flask` and `dnspython` are dropped.
+* [Removed] Deprecated passing subpackage as part of package name for `Package.install()`, use `path` parameter instead.
+* [Removed] Deprecated calling of `Package.resolve_hash` without specifying `name` parameter.
+* [Removed] Deprecated `PackageEntry.physical_keys`, use `PackageEntry.physical_key` instead.
 
 ## Catalog, Lambdas
 * [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
 
 ## CLI
+* [Removed] Deprecated passing subpackage as part of package name for `quilt3 install`, use `--path` parameter instead.
 
 ## Catalog, Lambdas
 * [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))

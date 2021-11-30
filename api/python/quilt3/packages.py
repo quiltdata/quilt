@@ -450,10 +450,7 @@ class Package:
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install. It also can be passed as NAME/PATH
-                (/PATH is deprecated, use the `path` parameter instead),
-                in this case only the sub-package or the entry specified by PATH will
-                be downloaded.
+            name(str): Name of package to install.
             registry(str): Registry where package is located.
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
