@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import re
 import typing as T
@@ -309,12 +310,15 @@ class PackageListWrapper:
     # TODO: ensure perPage is converted to per_page
     # order is actually an enum 'NAME' | 'MODIFIED'
     async def page(self, *_, number: int, perPage: int, order: str):
-        key = lambda p: p.name # noqa
+        key = lambda p: p.name
         reverse = False
         package_wrappers = await self._package_wrappers
         if order == 'MODIFIED':
-            modified_awaited = {p.modified: await p.modified for p in package_wrappers}
-            key = lambda p: modified_awaited[p.modified] # noqa
+            modified_awaited = dict(zip(
+                [p.name for p in package_wrappers],
+                await asyncio.gather(*[p.modified for p in package_wrappers]),
+            ))
+            key = lambda p: modified_awaited[p.name]
             reverse = True
         sorted_packages = sorted(package_wrappers, key=key, reverse=reverse)
         offset = (number - 1) * perPage
