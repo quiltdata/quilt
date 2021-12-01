@@ -18,7 +18,7 @@ app = fastapi.FastAPI()
 
 
 class SPA(starlette.staticfiles.StaticFiles):
-    def __init__(self, directory: T.Optional[os.PathLike] = None, index = 'index.html') -> None:
+    def __init__(self, directory: T.Optional[os.PathLike] = None, index='index.html') -> None:
         self.index = index
         if not directory:
             directory = os.path.join(os.path.dirname(__file__), "catalog_bundle")
