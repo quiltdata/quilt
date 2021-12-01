@@ -119,7 +119,7 @@ def _launch_local_catalog(*, host: str, port: int):
     _thread.start_new_thread(functools.partial(uvicorn.run, host=host, port=port, log_level="info"), (app,))
 
 
-def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port: int):
+def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port: int, no_browser: bool):
     """
     Run the Quilt catalog locally. If navigation_targets starts with 's3://', open file view. Otherwise assume it
     refers to a package, following the pattern: BUCKET:USER/PKG
@@ -171,7 +171,8 @@ def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port:
         else:
             time.sleep(poll_interval_secs)  # The containers can take a moment to launch
 
-    open_url(catalog_url)
+    if not no_browser:
+        open_url(catalog_url)
 
     while True:
         try:
@@ -289,6 +290,11 @@ def create_parser():
         type=int,
         default=3000,
         help="Bind to a socket with this port",
+    )
+    catalog_p.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Don't open catalog in a browser after startup",
     )
     catalog_p.set_defaults(func=cmd_catalog)
 
