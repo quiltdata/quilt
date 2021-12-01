@@ -282,7 +282,7 @@ def create_parser():
     catalog_p.add_argument(
         "--host",
         type=str,
-        default='127.0.0.1',
+        default="127.0.0.1",
         help="Bind socket to this host",
     )
     catalog_p.add_argument(
