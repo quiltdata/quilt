@@ -2,7 +2,9 @@
 
 ## `catalog`
 ```
-usage: quilt3 catalog [-h] [--detailed_help] [navigation_target]
+usage: quilt3 catalog [-h] [--detailed_help] [--host HOST] [--port PORT]
+                      [--no-browser]
+                      [navigation_target]
 
 Run Quilt catalog locally
 
@@ -17,6 +19,9 @@ optional arguments:
   -h, --help         show this help message and exit
   --detailed_help    Display detailed information about this command and then
                      exit
+  --host HOST        Bind socket to this host
+  --port PORT        Bind to a socket with this port
+  --no-browser       Don't open catalog in a browser after startup
 ```
 
 Run the Quilt catalog on your machine (requires Docker). Running
