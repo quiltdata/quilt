@@ -4,6 +4,7 @@ Parses the command-line arguments and runs a command.
 
 import _thread
 import argparse
+import functools
 import json
 import sys
 import time
@@ -104,12 +105,21 @@ https://quiltdata.com for more information.
 """
 
 
-def _launch_local_catalog():
-    import uvicorn
-    uvicorn.run("quilt3_local.main:app", host="127.0.0.1", port=3000, log_level="info")
+def _launch_local_catalog(*, host: str, port: int):
+    try:
+        import uvicorn
+        from quilt3_local.main import app
+    except ModuleNotFoundError as e:
+        if e.name in (
+            'uvicorn',
+            'quilt3_local',
+        ):
+            raise QuiltException('To run `quilt3 catalog` install `quilt3[catalog]`') from e
+        raise
+    _thread.start_new_thread(functools.partial(uvicorn.run, host=host, port=port, log_level="info"), (app,))
 
 
-def cmd_catalog(navigation_target=None, detailed_help=False):
+def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port: int):
     """
     Run the Quilt catalog locally. If navigation_targets starts with 's3://', open file view. Otherwise assume it
     refers to a package, following the pattern: BUCKET:USER/PKG
@@ -120,7 +130,7 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
         print(catalog_cmd_detailed_help)
         return
 
-    local_catalog_url = "http://localhost:3000"
+    local_catalog_url = f"http://{host}:{port}"
 
     # Build the catalog URL - we do this at the beginning so simple syntax errors return immediately
     if navigation_target is None:
@@ -138,7 +148,7 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
         catalog_url = catalog_package_url(local_catalog_url, bucket, package_name)
 
     if not _test_url(local_catalog_url):
-        _thread.start_new_thread(_launch_local_catalog, ())
+        _launch_local_catalog(host=host, port=port)
 
     # Make sure the containers are running and available before opening the browser window
     print("Waiting for containers to launch...")
@@ -267,6 +277,18 @@ def create_parser():
             "--detailed_help",
             help="Display detailed information about this command and then exit",
             action="store_true",
+    )
+    catalog_p.add_argument(
+        "--host",
+        type=str,
+        default='127.0.0.1',
+        help="Bind socket to this host",
+    )
+    catalog_p.add_argument(
+        "--port",
+        type=int,
+        default=3000,
+        help="Bind to a socket with this port",
     )
     catalog_p.set_defaults(func=cmd_catalog)
 
