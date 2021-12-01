@@ -151,19 +151,16 @@ def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port:
         _launch_local_catalog(host=host, port=port)
 
     # Make sure the containers are running and available before opening the browser window
-    print("Waiting for containers to launch...")
+    print("Waiting for local catalog app to launch...")
     failure_timeout_secs = 15
     poll_interval_secs = 0.5
     start_time = time.time()
     while True:
         if time.time() - start_time > failure_timeout_secs:
-            catalog_failed = _test_url(local_catalog_url)
-            if not catalog_failed:
-                # Succeeded at the last second, let it proceed
+            # Succeeded at the last second, let it proceed.
+            if _test_url(local_catalog_url):
                 break
-            raise QuiltException(f"The backend containers needed to run the catalog did not both successfully launch. "
-                                 f"Status:\n"
-                                 f"\tCATALOG: {'FAILED' if catalog_failed else 'SUCCEEDED'}")
+            raise QuiltException("The local catalog app did not successfully launch.")
 
         if _test_url(local_catalog_url):
             # Everything is working, proceed
