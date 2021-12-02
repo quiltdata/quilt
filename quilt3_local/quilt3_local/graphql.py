@@ -310,8 +310,7 @@ class PackageListWrapper:
     # TODO: ensure perPage is converted to per_page
     # order is actually an enum 'NAME' | 'MODIFIED'
     async def page(self, *_, number: int, perPage: int, order: str):
-        def key(p):
-            return p.name
+        key = lambda p: p.name  # noqa: E731
         reverse = False
         package_wrappers = await self._package_wrappers
         if order == 'MODIFIED':
@@ -319,8 +318,7 @@ class PackageListWrapper:
                 [p.name for p in package_wrappers],
                 await asyncio.gather(*[p.modified for p in package_wrappers]),
             ))
-            def key(p):
-                return modified_awaited[p.name]
+            key = lambda p: modified_awaited[p.name]  # noqa: E731
             reverse = True
         sorted_packages = sorted(package_wrappers, key=key, reverse=reverse)
         offset = (number - 1) * perPage
