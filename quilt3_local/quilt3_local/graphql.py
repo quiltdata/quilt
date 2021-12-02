@@ -313,16 +313,20 @@ class PackageListWrapper:
         package_wrappers = await self._package_wrappers
         if order == "NAME":
             reverse = False
+
             def key(p):
                 return p.name
+
         elif order == "MODIFIED":
             reverse = True
             modified_awaited = dict(zip(
                 [p.name for p in package_wrappers],
                 await asyncio.gather(*[p.modified for p in package_wrappers]),
             ))
+
             def key(p):
                 return modified_awaited[p.name]
+
         else:
             raise ValueError(f"Unsupported 'order': '{order}'")
 
