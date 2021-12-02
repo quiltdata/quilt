@@ -232,9 +232,10 @@ def extract_ipynb(file_, exclude_output: bool):
     if exclude_output:
         info['warnings'] = "Omitted cell outputs to reduce notebook size"
 
-    html_exporter = HTMLExporter()
-    html_exporter.template_file = 'basic'
-    html_exporter.exclude_output = exclude_output
+    html_exporter = HTMLExporter(
+        template_name="basic",
+        exclude_output=exclude_output,
+    )
 
     notebook = nbformat.read(file_, 4)
     html, _ = html_exporter.from_notebook_node(notebook)
