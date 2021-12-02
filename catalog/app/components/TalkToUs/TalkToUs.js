@@ -68,10 +68,9 @@ export function TalkToUsProvider({ children }) {
         //   window.removeEventListener('message', handleCalendlyEvent)
         // }
         // window.addEventListener('message', handleCalendlyEvent)
-        const urlData = new URL(cfg.calendlyLink)
+        const urlData = new window.URL(cfg.calendlyLink)
         urlData.searchParams.append('hide_gdpr_banner', '1')
-        const url = urlData.toString()
-        C.initPopupWidget({ url })
+        C.initPopupWidget({ url: urlData.toString() })
       })
     },
     [t, cfg.calendlyLink, calendlyP],
