@@ -36,6 +36,13 @@ def append_path(base: str, child: str):
 s3 = boto3.client("s3")
 
 
+def get_all_objects(**kw):
+    return [
+        obj for page in s3.get_paginator("list_objects_v2").paginate(**kw)
+        for obj in page["Contents"]
+    ]
+
+
 def get_hash_sync(bucket: str, package: str, pointer: str):
     return s3.get_object(
         Bucket=bucket,
@@ -214,14 +221,12 @@ class PackageWrapper:
         if self._revision_map:
             return self._revision_map
 
-        # TODO: drain past 1k
-        resp = await run_async(partial(
-            s3.list_objects_v2,
+        revisions = {}
+        for obj in await run_async(partial(
+            get_all_objects,
             Bucket=self.bucket,
             Prefix=f"{NAMED_PACKAGES_PREFIX}{self.name}/",
-        ))
-        revisions = {}
-        for obj in resp["Contents"]:
+        )):
             name, _, pointer = obj["Key"][len(NAMED_PACKAGES_PREFIX):].rpartition("/")
             modified = obj["LastModified"]
             revisions[pointer] = modified
@@ -273,14 +278,12 @@ class PackageListWrapper:
 
     @cached_property
     async def _package_list(self):
-        resp = await run_async(partial(
-            s3.list_objects_v2,
+        packages = {}
+        for obj in await run_async(partial(
+            get_all_objects,
             Bucket=self.bucket,
             Prefix=NAMED_PACKAGES_PREFIX,
-        ))
-        packages = {}
-        # XXX: consider draining pointers past 1k
-        for obj in resp["Contents"]:
+        )):
             name, _, pointer = obj["Key"][len(NAMED_PACKAGES_PREFIX):].rpartition("/")
             modified = obj["LastModified"]
             if name not in packages:
