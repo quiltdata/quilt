@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quilt3_local"
-version = "1.0.0-beta.9"
+version = "1.0.0-beta.10"
 description = ""
 authors = ["Alexei Mochalov <alexei@quiltdata.io>"]
 include = ["quilt3_local/catalog_bundle/*"]
