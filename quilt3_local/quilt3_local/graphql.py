@@ -218,7 +218,7 @@ class PackageWrapper:
         resp = await run_async(partial(
             s3.list_objects_v2,
             Bucket=self.bucket,
-            Prefix=f"{NAMED_PACKAGES_PREFIX}{self.name}",
+            Prefix=f"{NAMED_PACKAGES_PREFIX}{self.name}/",
         ))
         revisions = {}
         for obj in resp["Contents"]:
