@@ -192,6 +192,7 @@ jobs:
             twine upload dist/*
 
   test-catalog:
+    resource_class: medium+
     executor:
       name: node/default
       tag: "16.11"
@@ -265,6 +266,5 @@ workflows:
             branches:
               ignore: /.*/
   js-ci:
-    resource_class: medium+
     jobs:
       - test-catalog
