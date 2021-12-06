@@ -38,14 +38,14 @@ function getCalendlyPromise() {
 
 function useSingletonListener() {
   const ref = React.useRef(null)
-  return (eventName, callback) => {
+  return React.useCallback((eventName, callback) => {
     if (ref.current === callback) return
     if (ref.current) {
       window.removeEventListener(eventName, ref.current)
     }
     ref.current = callback
     window.addEventListener(eventName, callback)
-  }
+  }, [])
 }
 
 const getCalendlyEvent = (e) =>
