@@ -24,6 +24,7 @@ PreviewStatus: {
 */
 
 export const PreviewData = tagged([
+  'Audio', // { src: string }
   'DataFrame', // { preview: string, ...PreviewStatus }
   'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
@@ -34,11 +35,11 @@ export const PreviewData = tagged([
   'Notebook', // { preview: string, ...PreviewStatus }
   'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
   'Pdf', // { handle: object, pages: number, firstPageBlob: Blob }
+  'Perspective', // { preview: string, ...PreviewStatus }
   'Text', // { head: string, tail: string, lang: string, highlighted: { head: string, tail: string }, ...PreviewStatus }
   'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }
   'Vega', // { spec: Object }
   'Video', // { src: string }
-  'Audio', // { src: string }
   'Voila', // { src: string }
 ])
 

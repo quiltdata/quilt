@@ -36,7 +36,7 @@ export const Loader = function CsvLoader({ handle, children }) {
     asyncData.result,
     ({ info: { data, note, warnings } }) => {
       const csv = data.head.join('\n')
-      return PreviewData.DataFrame({
+      return PreviewData.Perspective({
         data: makeHeadedTable(Papa.parse(csv).data),
         note,
         warnings,
