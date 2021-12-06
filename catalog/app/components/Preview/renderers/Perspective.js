@@ -15,7 +15,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function DataFrame({ children, className, data, note, warnings, ...props } = {}) {
+function Perspective({ children, className, data, note, warnings, ...props } = {}) {
   const classes = useStyles()
 
   const [root, setRoot] = React.useState(null)
@@ -31,5 +31,5 @@ function DataFrame({ children, className, data, note, warnings, ...props } = {})
 }
 
 export default ({ data, note, warnings }, props) => (
-  <DataFrame {...{ data, note, warnings }} {...props} />
+  <Perspective {...{ data, note, warnings }} {...props} />
 )
