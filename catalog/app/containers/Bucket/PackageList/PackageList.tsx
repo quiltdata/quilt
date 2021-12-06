@@ -490,8 +490,8 @@ export default function PackageList({
           </M.Box>
         ),
         error: displayError(),
-        data: (d) => {
-          const totalCount = d.packages?.total
+        data: (totalCountData) => {
+          const totalCount = totalCountData.packages?.total
           if (!totalCount) {
             return (
               <M.Box pt={5} textAlign="center">
@@ -576,8 +576,8 @@ export default function PackageList({
               {filteredCountQuery.case({
                 fetching: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
                 error: displayError(),
-                data: (dd) => {
-                  const filteredCount = dd.packages?.total
+                data: (filteredCountData) => {
+                  const filteredCount = filteredCountData.packages?.total
                   if (!filteredCount) {
                     return (
                       <M.Box
@@ -608,8 +608,8 @@ export default function PackageList({
                           return R.range(0, items).map((i) => <PackageSkel key={i} />)
                         },
                         error: displayError(),
-                        data: (ddd) =>
-                          (ddd.packages?.page || []).map((pkg) => (
+                        data: (packagesData) =>
+                          (packagesData.packages?.page || []).map((pkg) => (
                             <Package key={pkg.name} {...pkg} />
                           )),
                       })}
