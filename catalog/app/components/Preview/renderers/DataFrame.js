@@ -1,13 +1,10 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import perspective from '@finos/perspective'
 
-import 'utils/perspective-pollution'
+import * as perspective from 'utils/perspective'
 
 import { renderWarnings } from './util'
-
-const worker = perspective.worker()
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -18,40 +15,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function renderPerspectiveViewer(parentNode, className) {
-  const element = document.createElement('perspective-viewer')
-  element.className = className
-  parentNode.appendChild(element)
-  return element
-}
-
-async function renderTable(data, viewer) {
-  const table = await worker.table(data)
-  viewer.load(table)
-  return table
-}
-
 function DataFrame({ children, className, data, note, warnings, ...props } = {}) {
   const classes = useStyles()
 
   const [root, setRoot] = React.useState(null)
 
-  React.useEffect(() => {
-    let table, viewer
-
-    async function fetchData() {
-      if (!root) return
-
-      viewer = renderPerspectiveViewer(root, classes.viewer)
-      table = await renderTable(data, viewer)
-    }
-    fetchData()
-
-    return () => {
-      table?.delete()
-      viewer?.parentNode?.removeChild(viewer)
-    }
-  }, [classes.viewer, data, root])
+  const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
+  perspective.use(root, data, attrs)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} title={note} {...props}>
