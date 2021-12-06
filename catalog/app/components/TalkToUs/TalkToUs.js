@@ -76,7 +76,9 @@ export function TalkToUsProvider({ children }) {
 
       calendlyP.then((C) => {
         listen('message', handleCalendlyEvent)
-        C.initPopupWidget({ url: cfg.calendlyLink })
+        const urlData = new window.URL(cfg.calendlyLink)
+        urlData.searchParams.append('hide_gdpr_banner', '1')
+        C.initPopupWidget({ url: urlData.toString() })
       })
     },
     [t, cfg.calendlyLink, calendlyP, listen],
