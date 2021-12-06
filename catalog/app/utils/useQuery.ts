@@ -3,34 +3,42 @@ import * as urql from 'urql'
 
 import useMemoEq from 'utils/useMemoEq'
 
-interface OpCases<D, DR, ER, FR> {
-  data: (data: D, error: urql.CombinedError | undefined) => DR
-  error: (error: urql.CombinedError | undefined) => ER
-  fetching: () => FR
+interface OpCases<Data, OnData, OnError, OnFecthing> {
+  data: (data: Data, error: urql.CombinedError | undefined) => OnData
+  error: (error: urql.CombinedError | undefined) => OnError
+  fetching: () => OnFecthing
 }
 
 const opCase =
-  <D>(result: urql.UseQueryState<D, any>) =>
-  <DR, ER, FR>({ data, error, fetching }: OpCases<D, DR, ER, FR>) => {
+  <Data>(result: urql.UseQueryState<Data, any>) =>
+  <OnData, OnError, OnFecthing>({
+    data,
+    error,
+    fetching,
+  }: OpCases<Data, OnData, OnError, OnFecthing>) => {
     if (result.fetching) return fetching()
     if (result.data) return data(result.data, result.error)
     return error(result.error)
   }
 
-interface UseQueryArgs<V, D> extends urql.UseQueryArgs<V, D> {
+interface UseQueryArgs<Variables, Data> extends urql.UseQueryArgs<Variables, Data> {
   suspend?: boolean
 }
 
-export interface UseQueryResult<D, V = any> extends urql.UseQueryState<D, V> {
-  case: <DR, ER, FR>(cases: OpCases<D, DR, ER, FR>) => DR | ER | FR
+export interface UseQueryResult<Data, Variables = any>
+  extends urql.UseQueryState<Data, Variables> {
+  case: <OnData, OnError, OnFecthing>(
+    cases: OpCases<Data, OnData, OnError, OnFecthing>,
+  ) => OnData | OnError | OnFecthing
   run: (opts?: Partial<urql.OperationContext>) => void
 }
 
-export function useQuery<V, D>({
+export function useQuery<Variables, Data>({
   context,
   suspend = false,
+  // XXX: add staleAsFetching option?
   ...args
-}: UseQueryArgs<V, D>): UseQueryResult<D, V> {
+}: UseQueryArgs<Variables, Data>): UseQueryResult<Data, Variables> {
   const ctxMemo = useMemoEq({ suspense: suspend, ...context }, R.identity)
   const [result, run] = urql.useQuery({ ...args, context: ctxMemo })
   return useMemoEq({ ...result, run, case: useMemoEq(result, opCase) }, R.identity)
