@@ -24,6 +24,7 @@
 * [Added] Add object-level metadata editor and move package metadata editor to popup ([#2510](https://github.com/quiltdata/quilt/pull/2510/))
 * [Added] Video previews ([#2540](https://github.com/quiltdata/quilt/pull/2540))
 * [Added] Audio previews ([#2547](https://github.com/quiltdata/quilt/pull/2547))
+* [Changed] Use Perspective library for .csv and .tsv files ([#2576](https://github.com/quiltdata/quilt/pull/2576))
 
 # 3.6.0 - 2021-10-15
 ## Python API
