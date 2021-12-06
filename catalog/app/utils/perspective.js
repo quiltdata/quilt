@@ -16,6 +16,7 @@ export function renderViewer(parentNode, { className }) {
 export async function renderTable(data, viewer) {
   const table = await worker.table(data)
   viewer.load(table)
+  await viewer.restore({ settings: true })
   return table
 }
 
@@ -26,8 +27,8 @@ function usePerspective(container, data, attrs) {
     async function fetchData() {
       if (!container) return
 
-      viewer = perspective.renderViewer(container, attrs)
-      table = await perspective.renderTable(data, viewer)
+      viewer = renderViewer(container, attrs)
+      table = await renderTable(data, viewer)
     }
     fetchData()
 
