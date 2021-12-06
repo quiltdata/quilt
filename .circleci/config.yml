@@ -192,6 +192,7 @@ jobs:
             twine upload dist/*
 
   test-catalog:
+    resource_class: medium+
     executor:
       name: node/default
       tag: "16.11"
