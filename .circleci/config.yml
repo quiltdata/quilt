@@ -265,5 +265,6 @@ workflows:
             branches:
               ignore: /.*/
   js-ci:
+    resource_class: medium+
     jobs:
       - test-catalog
