@@ -384,7 +384,7 @@ function Revision({
           <M.Typography component="span" variant="body2">
             {readableQuantity(totalEntries)}
             &nbsp;
-            <Format.Plural value={totalEntries} one="file" other="files" />
+            <Format.Plural value={totalEntries ?? 0} one="file" other="files" />
           </M.Typography>
         </>
       }
