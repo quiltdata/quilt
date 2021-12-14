@@ -310,8 +310,8 @@ export interface PackageRevision {
   readonly message: Maybe<Scalars['String']>
   readonly metadata: Scalars['JsonRecord']
   readonly userMeta: Maybe<Scalars['JsonRecord']>
-  readonly totalEntries: Scalars['Int']
-  readonly totalBytes: Scalars['Int']
+  readonly totalEntries: Maybe<Scalars['Int']>
+  readonly totalBytes: Maybe<Scalars['Int']>
   readonly dir: Maybe<PackageDir>
   readonly file: Maybe<PackageFile>
   readonly accessCounts: Maybe<AccessCounts>

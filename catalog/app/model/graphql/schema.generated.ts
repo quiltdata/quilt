@@ -1290,24 +1290,18 @@ export default {
           {
             name: 'totalEntries',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
             },
             args: [],
           },
           {
             name: 'totalBytes',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
             },
             args: [],
           },
