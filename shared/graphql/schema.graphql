@@ -93,8 +93,8 @@ type PackageRevision {
   message: String
   metadata: JsonRecord!
   userMeta: JsonRecord
-  totalEntries: Int!
-  totalBytes: Int!
+  totalEntries: Int
+  totalBytes: Int
   dir(path: String!): PackageDir
   file(path: String!): PackageFile
   accessCounts(window: Int = 30): AccessCounts
