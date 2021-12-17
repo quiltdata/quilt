@@ -239,10 +239,11 @@ and passes them to the Voila kernel:
 
 You can access these variables in Python and browse the package:
 ```python
+import io
+import os
+
 import pandas as pd
 import quilt3 as q3
-
-import os
 
 bucket = os.environ.get("QUILT_PKG_BUCKET")
 handle = os.environ.get("QUILT_PKG_NAME")
@@ -250,7 +251,7 @@ top_hash = os.environ.get("QUILT_PKG_TOP_HASH")
 
 pkg = q3.browse(handle, bucket, top_hash=top_hash)
 # Read data.csv from the current package from Voila
-df = pd.read_csv(pkg["data.csv"].get_bytes())
+df = pd.read_csv(io.BytesIO(pkg["data.csv"].get_bytes()))
 ```
 
 
