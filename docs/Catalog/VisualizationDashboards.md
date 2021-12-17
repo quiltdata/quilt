@@ -251,7 +251,7 @@ top_hash = os.environ.get("QUILT_PKG_TOP_HASH")
 
 pkg = q3.browse(handle, bucket, top_hash=top_hash)
 # Read data.csv from the current package from Voila
-df = pd.read_csv(io.BytesIO(pkg["data.csv"].get_bytes()))
+df = pkg["data.csv"]()
 ```
 
 
