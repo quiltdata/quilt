@@ -479,7 +479,7 @@ function HistoryHeader({ bucket, className, queryExecutionId }: HistoryHeaderPro
         {rootTitle}
       </Link>
       <M.Typography className={classes.breadcrumb} color="textPrimary">
-        Results for <Code>{queryExecutionId}</Code>
+        Results for <Code>{queryExecutionId}</Code>
       </M.Typography>
     </M.Breadcrumbs>
   )
