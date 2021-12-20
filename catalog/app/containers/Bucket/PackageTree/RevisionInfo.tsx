@@ -113,7 +113,7 @@ export default function RevisionInfo({
               d.package ? (
                 d.package.revisions.page.map((r) => (
                   <M.ListItem
-                    key={r.hash}
+                    key={`${r.hash}:${r.modified.valueOf()}`}
                     button
                     onClick={close}
                     selected={r.hash === hash}

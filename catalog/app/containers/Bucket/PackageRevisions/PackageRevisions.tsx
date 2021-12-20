@@ -506,7 +506,10 @@ export default function PackageRevisions({
                 },
                 data: (dd) =>
                   (dd.package?.revisions.page || []).map((r) => (
-                    <Revision key={r.hash} {...{ bucket, name, ...r }} />
+                    <Revision
+                      key={`${r.hash}:${r.modified.valueOf()}`}
+                      {...{ bucket, name, ...r }}
+                    />
                   )),
               })}
               {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}

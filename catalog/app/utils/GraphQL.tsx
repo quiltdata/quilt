@@ -51,7 +51,15 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           PackageDir: () => null,
           PackageFile: () => null,
           PackageList: () => null,
-          PackageRevision: (r) => (r.hash ? (r.hash as string) : null),
+          PackageRevision: (r) => {
+            if (r.hash) {
+              if (r.modified) {
+                return `${r.hash}:${r.modified.valueOf()}`
+              }
+              return r.hash as string
+            }
+            return null
+          },
           PackageRevisionList: () => null,
           RoleBucketPermission: () => null,
         },
