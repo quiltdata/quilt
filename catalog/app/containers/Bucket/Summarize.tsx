@@ -16,7 +16,7 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { PackageHandle } from 'utils/packageHandle'
-import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
 import * as errors from './errors'
@@ -35,7 +35,7 @@ interface S3Handle {
   key: string
   logicalKey?: string
   size?: number
-  version?: number
+  version?: string
 }
 
 interface SummarizeFile {
@@ -234,7 +234,7 @@ interface CrumbsProps {
 function Crumbs({ handle }: CrumbsProps) {
   const { urls } = NamedRoutes.use()
   const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
+    const all = s3paths.getBreadCrumbs(handle.key)
     const dirs = R.init(all).map(({ label, path }) => ({
       to: urls.bucketFile(handle.bucket, path),
       children: label,
@@ -340,7 +340,7 @@ interface TitleCustomProps {
 function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
   const { urls } = NamedRoutes.use()
 
-  const filepath = withoutPrefix(getPrefix(handle.key), handle.key)
+  const filepath = s3paths.withoutPrefix(s3paths.getPrefix(handle.key), handle.key)
   const route = React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
     [handle, mkUrl, urls],
@@ -362,7 +362,7 @@ function TitleFilename({ handle, mkUrl }: TitleFilenameProps) {
   const { urls } = NamedRoutes.use()
 
   // TODO: (@nl_0) make a reusable function to compute relative s3 paths or smth
-  const title = withoutPrefix(getPrefix(handle.key), handle.key)
+  const title = s3paths.withoutPrefix(s3paths.getPrefix(handle.key), handle.key)
   const route = React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
     [handle, mkUrl, urls],
@@ -399,7 +399,11 @@ interface FileHandleProps {
 
 function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   if (file.handle.error)
-    return <Section heading={file.handle.key}>Couldn&apos;t resolve file</Section>
+    return (
+      <Section heading={file.handle.key}>
+        Unable to resolve path: "{s3paths.handleToS3Url(file.handle)}"
+      </Section>
+    )
 
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
