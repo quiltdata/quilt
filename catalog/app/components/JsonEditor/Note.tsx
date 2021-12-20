@@ -27,16 +27,18 @@ const useStyles = M.makeStyles((t) => ({
 
 interface TypeHelpProps {
   humanReadableSchema: string
+  mismatch: boolean
   schema?: JsonSchema
 }
 
-function TypeHelp({ humanReadableSchema, schema }: TypeHelpProps) {
+function TypeHelp({ humanReadableSchema, mismatch, schema }: TypeHelpProps) {
   if (humanReadableSchema === 'undefined')
     return <>Key/value is not restricted by schema</>
 
   return (
     <div>
-      Type: {humanReadableSchema}
+      {mismatch ? 'Required type: ' : 'Type: '}
+      {humanReadableSchema}
       {!!schema?.description && <p>Description: {schema.description}</p>}
     </div>
   )
@@ -56,7 +58,7 @@ function NoteValue({ schema, value }: NoteValueProps) {
   if (!humanReadableSchema || humanReadableSchema === 'undefined') return null
 
   return (
-    <M.Tooltip title={<TypeHelp {...{ humanReadableSchema, schema }} />}>
+    <M.Tooltip title={<TypeHelp {...{ humanReadableSchema, mismatch, schema }} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
