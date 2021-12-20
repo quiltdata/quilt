@@ -15,6 +15,7 @@ import { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
+import { PackageHandle } from 'utils/packageHandle'
 import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 
 import * as requests from './requests'
@@ -263,6 +264,7 @@ interface FilePreviewProps {
   file?: SummarizeFile
   handle: S3Handle
   headingOverride: React.ReactNode
+  packageHandle?: PackageHandle
 }
 
 export function FilePreview({
@@ -270,6 +272,7 @@ export function FilePreview({
   file,
   handle,
   headingOverride,
+  packageHandle,
 }: FilePreviewProps) {
   const description = file ? <Markdown data={file.description} /> : null
   const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
@@ -281,7 +284,7 @@ export function FilePreview({
   return (
     <Section description={description} heading={heading} handle={handle}>
       {Preview.load(
-        handle,
+        { ...handle, packageHandle }, // FIXME: memoize
         Preview.display({
           renderContents: (contents: React.ReactNode) => (
             <PreviewBox {...{ contents, expanded }} />
@@ -391,9 +394,10 @@ interface FileHandleProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
+function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
   if (file.handle.error)
     return <Section heading={file.handle.key}>Couldn&apos;t resolve file</Section>
 
@@ -404,6 +408,7 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
           handle={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
           file={file}
+          packageHandle={packageHandle}
         />
       )}
     </EnsureAvailability>
@@ -423,13 +428,14 @@ interface ColumnProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function Column({ className, file, mkUrl, s3 }: ColumnProps) {
+function Column({ className, file, mkUrl, packageHandle, s3 }: ColumnProps) {
   const style = React.useMemo(() => getColumnStyles(file.width), [file.width])
   return (
     <div className={className} style={style}>
-      <FileHandle file={file} mkUrl={mkUrl} s3={s3} />
+      <FileHandle file={file} mkUrl={mkUrl} packageHandle={packageHandle} s3={s3} />
     </div>
   )
 }
@@ -452,12 +458,14 @@ interface RowProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function Row({ file, mkUrl, s3 }: RowProps) {
+function Row({ file, mkUrl, packageHandle, s3 }: RowProps) {
   const classes = useRowStyles()
 
-  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} mkUrl={mkUrl} />
+  if (!Array.isArray(file))
+    return <FileHandle file={file} s3={s3} mkUrl={mkUrl} packageHandle={packageHandle} />
 
   return (
     <div className={classes.row}>
@@ -478,9 +486,10 @@ interface SummaryEntriesProps {
   entries: SummarizeFile[]
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
+function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesProps) {
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
@@ -496,6 +505,7 @@ function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
           }
           file={file}
           mkUrl={mkUrl}
+          packageHandle={packageHandle}
           s3={s3}
         />
       ))}
@@ -547,9 +557,10 @@ interface SummaryNestedProps {
     version: string
     etag: string
   }
+  packageHandle: PackageHandle
 }
 
-export function SummaryNested({ handle, mkUrl }: SummaryNestedProps) {
+export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedProps) {
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
@@ -564,7 +575,12 @@ export function SummaryNested({ handle, mkUrl }: SummaryNestedProps) {
           return null
         },
         Ok: (entries: SummarizeFile[]) => (
-          <SummaryEntries entries={entries} s3={s3} mkUrl={mkUrl} />
+          <SummaryEntries
+            entries={entries}
+            s3={s3}
+            mkUrl={mkUrl}
+            packageHandle={packageHandle}
+          />
         ),
         Pending: () => <FilePreviewSkel />,
         _: () => null,
