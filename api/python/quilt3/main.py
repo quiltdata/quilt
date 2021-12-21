@@ -31,6 +31,13 @@ def parse_arg_json(value):
         raise argparse.ArgumentTypeError(f'{value!r} is not a valid json string.')
 
 
+def parse_positive_int(value):
+    value = int(value)
+    if value <= 0:
+        raise argparse.ArgumentTypeError(f'{value!r} is not a positive integer.')
+    return value
+
+
 def cmd_config(catalog_url, **kwargs):
     """
     Configure quilt3 to a Quilt stack
@@ -284,7 +291,7 @@ def create_parser():
     )
     catalog_p.add_argument(
         "--port",
-        type=int,
+        type=parse_positive_int,
         default=3000,
         help="Bind to a socket with this port",
     )
