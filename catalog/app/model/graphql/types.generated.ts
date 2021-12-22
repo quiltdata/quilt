@@ -272,7 +272,7 @@ export interface PackageDir {
   readonly __typename: 'PackageDir'
   readonly path: Scalars['String']
   readonly metadata: Maybe<Scalars['JsonRecord']>
-  readonly size: Scalars['Int']
+  readonly size: Scalars['Float']
   readonly children: ReadonlyArray<PackageEntry>
 }
 
@@ -282,7 +282,7 @@ export interface PackageFile {
   readonly __typename: 'PackageFile'
   readonly path: Scalars['String']
   readonly metadata: Maybe<Scalars['JsonRecord']>
-  readonly size: Scalars['Int']
+  readonly size: Scalars['Float']
   readonly physicalKey: Scalars['String']
 }
 
@@ -311,7 +311,7 @@ export interface PackageRevision {
   readonly metadata: Scalars['JsonRecord']
   readonly userMeta: Maybe<Scalars['JsonRecord']>
   readonly totalEntries: Maybe<Scalars['Int']>
-  readonly totalBytes: Maybe<Scalars['Int']>
+  readonly totalBytes: Maybe<Scalars['Float']>
   readonly dir: Maybe<PackageDir>
   readonly file: Maybe<PackageFile>
   readonly accessCounts: Maybe<AccessCounts>

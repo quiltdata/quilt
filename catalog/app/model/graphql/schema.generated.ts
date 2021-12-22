@@ -1075,7 +1075,7 @@ export default {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Int',
+                name: 'Float',
                 ofType: null,
               },
             },
@@ -1101,6 +1101,10 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Float',
       },
       {
         kind: 'UNION',
@@ -1147,7 +1151,7 @@ export default {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Int',
+                name: 'Float',
                 ofType: null,
               },
             },
@@ -1300,7 +1304,7 @@ export default {
             name: 'totalBytes',
             type: {
               kind: 'SCALAR',
-              name: 'Int',
+              name: 'Float',
               ofType: null,
             },
             args: [],
