@@ -154,35 +154,37 @@ def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port:
         bucket, package_name = navigation_target.split(":")
         catalog_url = catalog_package_url(local_catalog_url, bucket, package_name)
 
-    if not _test_url(local_catalog_url):
+    should_launch_local_catalog = not _test_url(local_catalog_url)
+    if should_launch_local_catalog:
         _launch_local_catalog(host=host, port=port)
 
-    # Make sure the containers are running and available before opening the browser window
-    print("Waiting for local catalog app to launch...")
-    failure_timeout_secs = 15
-    poll_interval_secs = 0.5
-    start_time = time.time()
-    while True:
-        if time.time() - start_time > failure_timeout_secs:
-            # Succeeded at the last second, let it proceed.
-            if _test_url(local_catalog_url):
-                break
-            raise QuiltException("The local catalog app did not successfully launch.")
+        # Make sure the containers are running and available before opening the browser window
+        print("Waiting for local catalog app to launch...")
+        failure_timeout_secs = 15
+        poll_interval_secs = 0.5
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > failure_timeout_secs:
+                # Succeeded at the last second, let it proceed.
+                if _test_url(local_catalog_url):
+                    break
+                raise QuiltException("The local catalog app did not successfully launch.")
 
-        if _test_url(local_catalog_url):
-            # Everything is working, proceed
-            break
-        else:
-            time.sleep(poll_interval_secs)  # The containers can take a moment to launch
+            if _test_url(local_catalog_url):
+                # Everything is working, proceed
+                break
+            else:
+                time.sleep(poll_interval_secs)  # The containers can take a moment to launch
 
     if not no_browser:
         open_url(catalog_url)
 
-    while True:
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            sys.exit(0)
+    if should_launch_local_catalog:
+        while True:
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                sys.exit(0)
 
 
 def cmd_disable_telemetry():
