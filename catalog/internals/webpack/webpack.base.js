@@ -19,6 +19,7 @@ module.exports = (options) => ({
     // Merge with env dependent settings
     ...options.output,
   },
+  devServer: options.devServer,
   optimization: options.optimization,
   module: {
     rules: [
