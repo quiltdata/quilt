@@ -9,7 +9,7 @@ module.exports = require('./webpack.base')({
   devServer: {
     compress: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
-    hot: true,
+    // hot: true, // https://github.com/webpack-contrib/webpack-hot-middleware/issues/390
     historyApiFallback: true,
     port: process.env.PORT || 3000,
     static: {
