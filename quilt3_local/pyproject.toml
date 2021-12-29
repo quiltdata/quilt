@@ -2,7 +2,11 @@
 name = "quilt3_local"
 version = "1.0.0-beta.11"
 description = ""
-authors = ["Alexei Mochalov <alexei@quiltdata.io>"]
+license = "Apache-2.0"
+authors = ["quiltdata <contact@quiltdata.io>"]
+homepage = "https://quiltdata.com"
+repository = "https://github.com/quiltdata/quilt"
+documentation = "https://docs.quiltdata.com"
 include = ["quilt3_local/catalog_bundle/*"]
 
 [tool.poetry.dependencies]
