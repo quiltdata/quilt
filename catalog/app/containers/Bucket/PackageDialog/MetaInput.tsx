@@ -356,6 +356,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
                 value={value}
                 onChange={onChangeInline}
                 schema={schema}
+                errors={error}
               />
             </div>
 

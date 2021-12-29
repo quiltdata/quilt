@@ -7,8 +7,9 @@ import {
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
+import { Nullable } from 'utils/types'
 
-import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
+import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData, ValidationError } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
@@ -26,30 +27,33 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface TypeHelpProps {
+  error: Nullable<ValidationError>
   humanReadableSchema: string
   mismatch: boolean
   schema?: JsonSchema
 }
 
-function TypeHelp({ humanReadableSchema, mismatch, schema }: TypeHelpProps) {
+function TypeHelp({ error, humanReadableSchema, mismatch, schema }: TypeHelpProps) {
   if (humanReadableSchema === 'undefined')
     return <>Key/value is not restricted by schema</>
 
+  const type = `${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`
+
   return (
     <div>
-      {mismatch ? 'Required type: ' : 'Type: '}
-      {humanReadableSchema}
+      {error?.message || type}
       {!!schema?.description && <p>Description: {schema.description}</p>}
     </div>
   )
 }
 
 interface NoteValueProps {
+  error: Nullable<ValidationError>
   schema?: JsonSchema
   value: JsonValue
 }
 
-function NoteValue({ schema, value }: NoteValueProps) {
+function NoteValue({ error, schema, value }: NoteValueProps) {
   const classes = useStyles()
 
   const humanReadableSchema = schemaTypeToHumanString(schema)
@@ -58,7 +62,7 @@ function NoteValue({ schema, value }: NoteValueProps) {
   if (!humanReadableSchema || humanReadableSchema === 'undefined') return null
 
   return (
-    <M.Tooltip title={<TypeHelp {...{ humanReadableSchema, mismatch, schema }} />}>
+    <M.Tooltip title={<TypeHelp {...{ error, humanReadableSchema, mismatch, schema }} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
@@ -78,7 +82,7 @@ interface NoteProps {
 
 export default function Note({ columnId, data, value }: NoteProps) {
   if (columnId === COLUMN_IDS.VALUE) {
-    return <NoteValue value={value} schema={data.valueSchema} />
+    return <NoteValue error={data.error} schema={data.valueSchema} value={value} />
   }
 
   return null

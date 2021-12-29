@@ -79,10 +79,11 @@ export default function MetadataEditor({
         />
       ) : (
         <JsonEditor
+          errors={errors}
           multiColumned={multiColumned}
-          value={value}
           onChange={handleChange}
           schema={schema}
+          value={value}
         />
       )}
 
