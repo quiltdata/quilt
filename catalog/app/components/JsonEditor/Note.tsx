@@ -7,9 +7,14 @@ import {
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
-import { Nullable } from 'utils/types'
 
-import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData, ValidationError } from './constants'
+import {
+  JsonValue,
+  COLUMN_IDS,
+  EMPTY_VALUE,
+  RowData,
+  ValidationErrors,
+} from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
@@ -27,33 +32,34 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface TypeHelpProps {
-  error: Nullable<ValidationError>
+  errors: ValidationErrors
   humanReadableSchema: string
   mismatch: boolean
   schema?: JsonSchema
 }
 
-function TypeHelp({ error, humanReadableSchema, mismatch, schema }: TypeHelpProps) {
+function TypeHelp({ errors, humanReadableSchema, mismatch, schema }: TypeHelpProps) {
   if (humanReadableSchema === 'undefined')
     return <>Key/value is not restricted by schema</>
 
   const type = `${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`
+  const validationError = errors.map((error) => error.message).join('\n')
 
   return (
     <div>
-      {error?.message || type}
+      {validationError || type}
       {!!schema?.description && <p>Description: {schema.description}</p>}
     </div>
   )
 }
 
 interface NoteValueProps {
-  error: Nullable<ValidationError>
+  errors: ValidationErrors
   schema?: JsonSchema
   value: JsonValue
 }
 
-function NoteValue({ error, schema, value }: NoteValueProps) {
+function NoteValue({ errors, schema, value }: NoteValueProps) {
   const classes = useStyles()
 
   const humanReadableSchema = schemaTypeToHumanString(schema)
@@ -62,7 +68,9 @@ function NoteValue({ error, schema, value }: NoteValueProps) {
   if (!humanReadableSchema || humanReadableSchema === 'undefined') return null
 
   return (
-    <M.Tooltip title={<TypeHelp {...{ error, humanReadableSchema, mismatch, schema }} />}>
+    <M.Tooltip
+      title={<TypeHelp {...{ errors, humanReadableSchema, mismatch, schema }} />}
+    >
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
@@ -82,7 +90,7 @@ interface NoteProps {
 
 export default function Note({ columnId, data, value }: NoteProps) {
   if (columnId === COLUMN_IDS.VALUE) {
-    return <NoteValue error={data.error} schema={data.valueSchema} value={value} />
+    return <NoteValue errors={data.errors} schema={data.valueSchema} value={value} />
   }
 
   return null

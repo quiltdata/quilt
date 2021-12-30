@@ -123,10 +123,14 @@ function getDefaultValue(jsonDictItem) {
   return EMPTY_VALUE
 }
 
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, errors) {
+const NO_ERRORS = []
+
+function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
-  const error = errors ? errors.find((e) => e.instancePath === itemAddress) : null
+  const errors = allErrors
+    ? allErrors.filter((error) => error.instancePath === itemAddress)
+    : NO_ERRORS
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
@@ -134,7 +138,7 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, errors) {
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
-    error,
+    errors,
     reactId: calcReactId(valuePath, storedValue),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
     ...(item || {}),

@@ -4,11 +4,10 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
-import { Nullable } from 'utils/types'
 
 import Column from './Column'
 import State from './State'
-import { JsonValue, RowData, ValidationError } from './constants'
+import { JsonValue, RowData, ValidationErrors } from './constants'
 
 interface ColumnData {
   items: RowData[]
@@ -195,7 +194,7 @@ interface StateRenderProps {
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
-  errors: Nullable<ValidationError[] | ValidationError>
+  errors: ValidationErrors
   multiColumned?: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
