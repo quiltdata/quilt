@@ -88,8 +88,8 @@ export const columns2 = [
   },
 ]
 
-export const sortOrder1 = { a: 1, 123: 2, b: 3 }
+export const sortOrder1 = { '/a': 1, '/123': 2, '/b': 3 }
 
-export const sortOrder2 = { 123: 1, 'a, b, c': 3, 'a, b, d': 2 }
+export const sortOrder2 = { '/123': 1, '/a/b/c': 3, '/a/b/d': 2 }
 
 export const object = { a: { b: { c: 'ccc', d: 'ddd', 123: 123 } }, b: 'bbb', 123: 123 }
