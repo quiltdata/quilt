@@ -19,7 +19,7 @@ class RegistryCredentials extends AWS.Credentials {
     if (!this.refreshing) {
       this.refreshing = this.req({ endpoint: '/auth/get_credentials', ...this.reqOpts })
         .then((data) => {
-          this.expireTime = new Date(data.Expiration)
+          this.expireTime = data.Expiration ? new Date(data.Expiration) : null
           this.accessKeyId = data.AccessKeyId
           this.secretAccessKey = data.SecretAccessKey
           this.sessionToken = data.SessionToken

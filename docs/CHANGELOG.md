@@ -17,6 +17,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Changed] Move package listing / querying to GraphQL ([#2552](https://github.com/quiltdata/quilt/pull/2552))
 * [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))

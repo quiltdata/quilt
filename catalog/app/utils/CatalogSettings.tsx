@@ -23,7 +23,7 @@ async function fetchSettings({
   serviceBucket: string
   mode: string
 }) {
-  if (mode === 'MARKETING') return null
+  if (mode === 'MARKETING' || mode === 'LOCAL') return null
 
   const location = `s3://${serviceBucket}/${CONFIG_KEY}`
   try {
