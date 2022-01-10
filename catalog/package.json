@@ -140,7 +140,7 @@
     "vega-lite": "^5.1.1",
     "warning": "^4.0.3",
     "wonka": "^4.0.15",
-    "xlsx": "^0.17.3"
+    "xlsx": "^0.17.5"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^1.21.6",
