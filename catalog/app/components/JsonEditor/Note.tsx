@@ -7,6 +7,7 @@ import {
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
+import * as RT from 'utils/reactTools'
 
 import {
   JsonValue,
@@ -39,11 +40,19 @@ interface TypeHelpProps {
 }
 
 function TypeHelp({ errors, humanReadableSchema, mismatch, schema }: TypeHelpProps) {
+  const validationError = React.useMemo(
+    () =>
+      RT.join(
+        errors.map((error) => error.message),
+        <br />,
+      ),
+    [errors],
+  )
+
   if (humanReadableSchema === 'undefined')
     return <>Key/value is not restricted by schema</>
 
   const type = `${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`
-  const validationError = errors.map((error) => error.message).join('\n')
 
   return (
     <div>
