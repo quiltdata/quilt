@@ -1,5 +1,5 @@
 FROM amazon/aws-lambda-python:3.8
-ARG LIBREOFFICE_VERSION=7.2.4.1
+ARG LIBREOFFICE_VERSION=7.2.5.2
 
     # Install hand-picked Microsoft fonts.
 RUN curl -o /quilt_fonts.zip https://quilt-web-public.s3.amazonaws.com/build/quilt-poppler-utils-0.26.5-42.20.amzn1.x86_64_fonts.zip && \
