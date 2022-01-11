@@ -10,10 +10,16 @@ module.exports = require('./webpack.base')({
     compress: true,
     headers: { 'Access-Control-Allow-Origin': '*' },
     // hot: true, // https://github.com/webpack-contrib/webpack-hot-middleware/issues/390
-    historyApiFallback: true,
     port: process.env.PORT || 3000,
     static: {
       directory: 'static-dev/',
+    },
+    historyApiFallback: {
+      rewrites: [
+        { from: /^\/__embed$/, to: '/embed.html' },
+        { from: /^\/__embed-debug$/, to: '/embed-debug-harness.html' },
+        { from: /^\/oauth-callback$/, to: '/oauth-callback.html' },
+      ],
     },
     watchFiles: ['app/**/*', 'static-dev/*'],
   },
