@@ -61,6 +61,8 @@ const AUTH_MAP = {
   SIGN_IN_ONLY: 'SIGN_IN_ONLY',
 }
 
+const startWithOrigin = (s) => (s.startsWith('/') ? window.origin + s : s)
+
 const transformConfig = (cfg) => ({
   ...cfg,
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
@@ -68,6 +70,9 @@ const transformConfig = (cfg) => ({
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
   enableMarketingPages: cfg.mode === 'PRODUCT' || cfg.mode === 'MARKETING',
   disableNavigator: cfg.mode === 'MARKETING',
+  s3Proxy: startWithOrigin(cfg.s3Proxy),
+  apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
+  binaryApiGatewayEndpoint: startWithOrigin(cfg.binaryApiGatewayEndpoint),
 })
 
 const ConfigResource = Cache.createResource({

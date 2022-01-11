@@ -42,9 +42,25 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
       GraphCache.cacheExchange({
         schema,
         keys: {
+          AccessCountForDate: () => null,
+          AccessCounts: () => null,
           BucketConfig: (b) => b.name as string,
           Config: () => null,
           ContentIndexingSettings: () => null,
+          Package: (p) => (p.bucket && p.name ? `${p.bucket}/${p.name}` : null),
+          PackageDir: () => null,
+          PackageFile: () => null,
+          PackageList: () => null,
+          PackageRevision: (r) => {
+            if (r.hash) {
+              if (r.modified) {
+                return `${r.hash}:${r.modified.valueOf()}`
+              }
+              return r.hash as string
+            }
+            return null
+          },
+          PackageRevisionList: () => null,
           RoleBucketPermission: () => null,
         },
         updates: {

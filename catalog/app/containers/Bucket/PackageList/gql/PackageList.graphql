@@ -1,0 +1,25 @@
+query (
+  $bucket: String!
+  $filter: String
+  $page: Int!
+  $perPage: Int!
+  $order: PackageListOrder!
+) {
+  packages(bucket: $bucket, filter: $filter) {
+    page(number: $page, perPage: $perPage, order: $order) {
+      bucket
+      name
+      modified
+      revisions {
+        total
+      }
+      accessCounts {
+        total
+        counts {
+          date
+          value
+        }
+      }
+    }
+  }
+}
