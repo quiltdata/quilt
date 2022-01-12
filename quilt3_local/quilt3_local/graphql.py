@@ -16,11 +16,11 @@ from .run_async import run_async
 NAMED_PACKAGES_PREFIX = ".quilt/named_packages/"
 MANIFESTS_PREFIX = ".quilt/packages/"
 HASH_RE = re.compile("^[0-9a-f]{64}$")
-POINTER_RE = re.compile("^1[0-9]{9}$")
+TIMESTAMP_RE = re.compile("^1[0-9]{9}$")
 
 
 def is_pointer(hash_or_tag: str):
-    return hash_or_tag == "latest" or bool(POINTER_RE.match(hash_or_tag))
+    return hash_or_tag == "latest" or bool(TIMESTAMP_RE.match(hash_or_tag))
 
 
 def is_hash(hash_or_tag: str):
@@ -30,7 +30,8 @@ def is_hash(hash_or_tag: str):
 def append_path(base: str, child: str):
     if not base:
         return child
-    return f"{base}/{child}"
+    base_norm = base if base.endswith("/") else base + "/"
+    return base_norm + child
 
 
 s3 = boto3.client("s3")
@@ -52,6 +53,25 @@ def get_hash_sync(bucket: str, package: str, pointer: str):
 
 async def get_hash(*args, **kwargs):
     return await run_async(partial(get_hash_sync, *args, **kwargs))
+
+
+def transform_char(char: str) -> str:
+    if char == "*":
+        return ".*"
+    if char == "?":
+        return ".{0,1}"
+    if char.isalpha():
+        return f"[{char.lower()}{char.capitalize()}]"
+    if char in '.+|{}[]()"\\#@&<>~':
+        return f"\\{char}"
+    return char
+
+
+def make_filter_re(filter: str):
+    if not re.match("[*?]", filter):
+        filter = f"*{filter}*"
+    value = "".join(transform_char(char) for char in filter)
+    return re.compile(f"^{value}$")
 
 
 datetime_scalar = ariadne.ScalarType(
@@ -250,27 +270,6 @@ class PackageWrapper:
         return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash_)
 
 
-def transform_char(char: str) -> str:
-    if char == "*":
-        return ".*"
-    if char == "?":
-        return ".{0,1}"
-    if char.isalpha():
-        return f"[{char.lower()}{char.capitalize()}]"
-    if char in '.+|{}[]()"\\#@&<>~':
-        return f"\\{char}"
-    return char
-
-
-def make_filter_re(filter: str):
-    if not filter:
-        return {"match_all": {}}
-    if not re.match("[*?]", filter):
-        filter = f"*{filter}*"
-    value = "".join(transform_char(char) for char in filter)
-    return re.compile(f"^{value}$")
-
-
 class PackageListWrapper:
     def __init__(self, bucket: str, filter: T.Optional[str] = None):
         self.bucket = bucket
@@ -344,7 +343,15 @@ def query_packages(_query, _info, bucket: str, filter: T.Optional[str] = None):
 
 
 @query_type.field("package")
-def package(_query, _info, bucket: str, name: str):
+async def package(_query, _info, bucket: str, name: str):
+    result = await run_async(partial(
+        s3.list_objects_v2,
+        Bucket=bucket,
+        Prefix=f"{NAMED_PACKAGES_PREFIX}{name}/",
+        MaxKeys=1,
+    ))
+    if result["KeyCount"] == 0:
+        return None # no such package
     return PackageWrapper(bucket, name)
 
 
