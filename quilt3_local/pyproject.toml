@@ -32,6 +32,8 @@ jsonschema = "^3.0.1"
 numpy = "^1.21.4"
 Pillow = "^8.4.0"
 aiohttp = "^3.8.1"
+aiobotocore = "^2.1.0"
+cachetools = "^5.0.0"
 
 [tool.poetry.dev-dependencies]
 asgiproxy = "^0.0"
