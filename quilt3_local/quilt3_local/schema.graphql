@@ -74,14 +74,16 @@ type AccessCounts {
 type PackageDir {
   path: String!
   metadata: JsonRecord
-  size: Int!
+  # 32-bit Int is too small to represent dir size which quite often exceeds several GB
+  size: Float!
   children: [PackageEntry!]!
 }
 
 type PackageFile {
   path: String!
   metadata: JsonRecord
-  size: Int!
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
   physicalKey: String!
 }
 
@@ -93,8 +95,9 @@ type PackageRevision {
   message: String
   metadata: JsonRecord!
   userMeta: JsonRecord
-  totalEntries: Int!
-  totalBytes: Int!
+  totalEntries: Int
+  # 32-bit Int is too small to represent package size which quite often exceeds several GB
+  totalBytes: Float
   dir(path: String!): PackageDir
   file(path: String!): PackageFile
   accessCounts(window: Int = 30): AccessCounts
