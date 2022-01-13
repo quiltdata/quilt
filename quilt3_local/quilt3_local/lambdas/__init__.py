@@ -1,8 +1,8 @@
+import base64
 import importlib
 import sys
-from base64 import b64decode, b64encode
 
-from fastapi import FastAPI, HTTPException, Request, Response
+import fastapi
 
 from . import preview, s3select, thumbnail
 
@@ -12,15 +12,14 @@ LAMBDAS = {
     "s3select": s3select,
 }
 
-
-lambdas = FastAPI()
+lambdas = fastapi.FastAPI()
 
 
 @lambdas.api_route("/{name}", methods=['GET', 'POST', 'OPTIONS'])
 @lambdas.api_route("/{name}/{path:path}", methods=['GET', 'POST', 'OPTIONS'])
-async def lambda_request(request: Request, name: str, path: str = ''):
+async def lambda_request(request: fastapi.Request, name: str, path: str = ''):
     if name not in LAMBDAS:
-        raise HTTPException(404, "No such lambda")
+        raise fastapi.HTTPException(404, "No such lambda")
 
     req_body = await request.body()
 
@@ -32,16 +31,17 @@ async def lambda_request(request: Request, name: str, path: str = ''):
         },
         'queryStringParameters': dict(request.query_params) or None,
         'headers': request.headers or None,  # FastAPI makes headers lower-case, just like AWS.
-        'body': b64encode(req_body),
+        'body': base64.b64encode(req_body),
         'isBase64Encoded': True
     }
 
+    # TODO: run this in executor to avoid blocking the main thread
     result = LAMBDAS[name].lambda_handler(args, None)
 
     code = result['statusCode']
     headers = result['headers']
     body = result['body']
     encoded = result.get("isBase64Encoded", False)
-    content = b64decode(body) if encoded else body.encode()
+    content = base64.b64decode(body) if encoded else body.encode()
 
-    return Response(content=content, status_code=code, headers=headers)
+    return fastapi.Response(content=content, status_code=code, headers=headers)
