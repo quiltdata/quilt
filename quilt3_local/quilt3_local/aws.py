@@ -1,23 +1,23 @@
-import functools
+import contextlib
 import io
 import json
 
 import aiobotocore.session
 import botocore
 
-from . import context
+from .async_cache import cached
 
-# only applicable to aiobotocore clients
-# BOTO_MAX_POOL_CONNECTIONS = 200
-BOTO_MAX_POOL_CONNECTIONS = 10
+BOTO_MAX_POOL_CONNECTIONS = 100
 
-# XXX: use signle session/cache for all clients?
-get_aio_boto_session = context.cached(aiobotocore.session.get_session)
+get_aio_boto_session = cached()(aiobotocore.session.get_session)
+
+# XXX: do we need to close this stack at some point? await global_context_stack.aclose()
+global_context_stack = contextlib.AsyncExitStack()
 
 
-@context.cached
+@cached()
 async def get_aio_s3():
-    return await context.enter_async_context(
+    return await global_context_stack.enter_async_context(
         get_aio_boto_session().create_client("s3", config=botocore.config.Config(
             max_pool_connections=BOTO_MAX_POOL_CONNECTIONS,
         )),

@@ -315,6 +315,7 @@ async def get_dir(bucket: str, hash: str, path: str) -> T.Optional[PackageDir]:
     else:
         df = pd.DataFrame()
 
+    # XXX: consider executing this in a thread, since it looks quite CPU-heavy
     if {"physical_key", "logical_key", "size"}.issubset(df.columns):
         groups = df.groupby(df.logical_key.str.extract("([^/]+/?).*")[0], dropna=True)
         folder = groups.agg(

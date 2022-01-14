@@ -16,7 +16,7 @@ api = fastapi.FastAPI()
 
 @api.middleware("http")
 async def add_quilt_context(request: fastapi.Request, call_next):
-    async with QuiltContext():
+    with QuiltContext():
         return await call_next(request)
 
 
