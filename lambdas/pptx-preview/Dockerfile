@@ -20,7 +20,7 @@ RUN curl -o /quilt_fonts.zip https://quilt-web-public.s3.amazonaws.com/build/qui
                     dbus-libs cups-libs cairo libSM && \
     rm -r /libreoffice-dist && \
     yum clean all
-
+ENV FONTCONFIG_FILE=$LAMBDA_TASK_ROOT/quilt_binaries/fonts/fonts.conf
 
 # Required for building tifffile.
 RUN yum install -y gcc

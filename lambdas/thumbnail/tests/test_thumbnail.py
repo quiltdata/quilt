@@ -1,9 +1,7 @@
 import base64
 import json
-import os
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -121,74 +119,40 @@ def test_generate_thumbnail(
         num_pages,
         status
 ):
-    # don't actually modify the environment in tests
-    with patch.object(index, 'set_pdf_env', return_value=None) as set_env:
-        # Resolve the input file path
-        input_file = data_dir / input_file
-        # Mock the request
-        url = f"https://example.com/{input_file}"
-        responses.add(
-            responses.GET,
-            url=url,
-            body=input_file.read_bytes(),
-            status=200
-        )
-        # Create the lambda request event
-        event = _make_event({"url": url, **params})
-        # Get the response
-        response = index.lambda_handler(event, None)
-        # Assert the request was handled with no errors
-        assert response["statusCode"] == 200, f"response: {response}"
-        # only check the body and expected image if it's a successful call
-        # Parse the body / the returned thumbnail
-        body = json.loads(read_body(response))
-        # Assert basic metadata was filled properly
-        assert body["info"]["thumbnail_size"] == expected_thumb_size
-        if expected_original_size:  # PDFs don't have an expected size
-            assert body["info"]["original_size"] == expected_original_size
-        if "countPages" in params:
-            assert body["info"]["page_count"] == num_pages
-        # Assert the produced image is the same as the expected
-        if params.get('input') == 'pdf':
-            actual = Image.open(BytesIO(base64.b64decode(body['thumbnail'])))
-            expected = Image.open(data_dir / expected_thumb)
-            actual_array = np.array(actual)
-            expected_array = np.array(expected)
-            assert set_env.call_count == 1
-            assert actual_array.shape == expected_array.shape
-            assert np.allclose(expected_array, actual_array, atol=15, rtol=0.1)
-        else:
-            actual = AICSImage(base64.b64decode(body['thumbnail'])).reader.data
-            expected = AICSImage(data_dir / expected_thumb).reader.data
-            assert np.array_equal(actual, expected)
-
-
-@patch.dict(os.environ, {
-    'LAMBDA_TASK_ROOT': str(Path('/var/task')),
-    'PATH': str(Path('/one/two')) + os.pathsep + str(Path('/three')),
-    'LD_LIBRARY_PATH': str(Path('/lib64')) + os.pathsep + str(Path('/usr/lib64')),
-    # set_pdf_env() will blow this away
-    # it's only here to prevent side-effects on the test host
-    'FONTCONFIG_FILE': ''
-})
-def test_pdf_env():
-    """test that env vars are set so that poppler, pdf2image work properly"""
-    index.set_pdf_env()
-    assert os.environ.get('FONTCONFIG_FILE') == os.path.join(
-        os.environ.get('LAMBDA_TASK_ROOT'),
-        'quilt_binaries',
-        'fonts',
-        'fonts.conf',
+    # Resolve the input file path
+    input_file = data_dir / input_file
+    # Mock the request
+    url = f"https://example.com/{input_file}"
+    responses.add(
+        responses.GET,
+        url=url,
+        body=input_file.read_bytes(),
+        status=200
     )
-    assert os.environ.get('PATH') == os.pathsep.join([
-        str(Path('/one/two')),
-        str(Path('/three')),
-        str(Path('/var/task/quilt_binaries/usr/bin'))
-    ])
-    assert os.environ.get('LD_LIBRARY_PATH') == os.pathsep.join([
-        str(Path('/lib64')),
-        str(Path('/usr/lib64')),
-        str(Path('/var/task/quilt_binaries/usr/lib64'))
-    ])
-    # we should never mod this:
-    assert os.environ.get('LAMBDA_TASK_ROOT') == str(Path('/var/task'))
+    # Create the lambda request event
+    event = _make_event({"url": url, **params})
+    # Get the response
+    response = index.lambda_handler(event, None)
+    # Assert the request was handled with no errors
+    assert response["statusCode"] == 200, f"response: {response}"
+    # only check the body and expected image if it's a successful call
+    # Parse the body / the returned thumbnail
+    body = json.loads(read_body(response))
+    # Assert basic metadata was filled properly
+    assert body["info"]["thumbnail_size"] == expected_thumb_size
+    if expected_original_size:  # PDFs don't have an expected size
+        assert body["info"]["original_size"] == expected_original_size
+    if "countPages" in params:
+        assert body["info"]["page_count"] == num_pages
+    # Assert the produced image is the same as the expected
+    if params.get('input') == 'pdf':
+        actual = Image.open(BytesIO(base64.b64decode(body['thumbnail'])))
+        expected = Image.open(data_dir / expected_thumb)
+        actual_array = np.array(actual)
+        expected_array = np.array(expected)
+        assert actual_array.shape == expected_array.shape
+        assert np.allclose(expected_array, actual_array, atol=15, rtol=0.1)
+    else:
+        actual = AICSImage(base64.b64decode(body['thumbnail'])).reader.data
+        expected = AICSImage(data_dir / expected_thumb).reader.data
+        assert np.array_equal(actual, expected)
