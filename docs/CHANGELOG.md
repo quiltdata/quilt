@@ -10,6 +10,7 @@
 # unreleased - YYYY-MM-DD
 ## Python API
 * [Added] Declared compatibility with `jsonschema==4.*`.
+* [Changed] Local-mode-specific adjustments to landing page and catalog UI ([#2611](https://github.com/quiltdata/quilt/pull/2611))
 
 ## Catalog, Lambdas
 * [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
