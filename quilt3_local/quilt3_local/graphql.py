@@ -8,7 +8,6 @@ import importlib_resources
 
 from . import buckets, packages
 
-
 DatetimeScalar = ariadne.ScalarType(
     "Datetime",
     serializer=lambda value: value if value is None else value.isoformat(),
