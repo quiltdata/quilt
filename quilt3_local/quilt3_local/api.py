@@ -1,3 +1,5 @@
+import sys
+
 import ariadne.asgi
 import boto3
 import fastapi
@@ -6,9 +8,13 @@ from botocore.exceptions import ClientError
 from .context import QuiltContext
 from .graphql import schema as graphql_schema
 
-
 sts_client = boto3.client("sts")
 session_cred = boto3._get_default_session().get_credentials()
+
+if session_cred is None:
+    print("AWS credentials required. See boto3 docs for details:")
+    print("https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials")
+    sys.exit(1)
 
 
 api = fastapi.FastAPI()
