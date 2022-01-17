@@ -8,7 +8,10 @@ Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
 import base64
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
@@ -63,7 +66,7 @@ SCHEMA = {
             'enum': list(SIZE_PARAMETER_MAP)
         },
         'input': {
-            'enum': ['pdf']
+            'enum': ['pdf', 'pptx']
         },
         'output': {
             'enum': ['json', 'raw']
@@ -228,6 +231,28 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     return img.reader.data
 
 
+def pptx_to_pdf(src: bytes) -> bytes:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        file_name_base = "file"
+        output_ext = "pdf"
+        src_file_path = os.path.join(tmp_dir, f"{file_name_base}.pptx")
+        with open(src_file_path, "xb") as src_file:
+            src_file.write(src)
+
+        subprocess.run(
+            ("/opt/libreoffice7.2/program/simpress", "--convert-to", output_ext, "--outdir", tmp_dir, src_file_path),
+            check=True,
+            env={
+                **os.environ,
+                # This is needed because LibreOffice writes some stuff to $HOME/.config.
+                'HOME': tmp_dir,
+            },
+        )
+
+        with open(os.path.join(tmp_dir, f"{file_name_base}.{output_ext}"), "rb") as out_file:
+            return out_file.read()
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -252,9 +277,14 @@ def lambda_handler(request):
         }
         return make_json_response(resp.status_code, ret_val)
 
+    src_bytes = resp.content
+    if input_ == "pptx":
+        src_bytes = pptx_to_pdf(src_bytes)
+        input_ = "pdf"
+
     try:
         thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-            imageio.get_reader(resp.content),
+            imageio.get_reader(src_bytes),
             "PNG"
         )
     except ValueError:
@@ -271,7 +301,7 @@ def lambda_handler(request):
                 kwargs["last_page"] = page
 
             pages = convert_from_bytes(
-                resp.content,
+                src_bytes,
                 **kwargs,
             )
             num_pages = len(pages)
@@ -300,7 +330,7 @@ def lambda_handler(request):
         data = thumbnail_bytes.getvalue()
     else:
         # Read image data
-        img = AICSImage(resp.content)
+        img = AICSImage(src_bytes)
         orig_size = list(img.reader.data.shape)
         # Generate a formatted ndarray using the image data
         # Makes some assumptions for n-dim data

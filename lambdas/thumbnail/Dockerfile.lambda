@@ -1,5 +1,5 @@
 FROM amazon/aws-lambda-python:3.8
-ARG LIBREOFFICE_VERSION=7.2.5.2
+ARG LIBREOFFICE_VERSION=7.2.5.1
 
     # Install hand-picked Microsoft fonts.
 RUN curl -o /quilt_fonts.zip https://quilt-web-public.s3.amazonaws.com/build/quilt-poppler-utils-0.26.5-42.20.amzn1.x86_64_fonts.zip && \
@@ -13,7 +13,7 @@ RUN curl -o /quilt_fonts.zip https://quilt-web-public.s3.amazonaws.com/build/qui
     mkdir /libreoffice-dist && \
     curl -L https://downloadarchive.documentfoundation.org/libreoffice/old/${LIBREOFFICE_VERSION}/rpm/x86_64/LibreOffice_${LIBREOFFICE_VERSION}_Linux_x86-64_rpm.tar.gz | tar -C /libreoffice-dist -z -x && \
     cd /libreoffice-dist/LibreOffice_${LIBREOFFICE_VERSION}_Linux_x86-64_rpm/RPMS/ && \
-    yum install -y  libobasis7.2-{core,en-US,graphicfilter,images,impress,ooofonts}-${LIBREOFFICE_VERSION}-*.x86_64.rpm \
+    yum install -y  libobasis7.2-{core,en-US,images,impress,ooofonts}-${LIBREOFFICE_VERSION}-*.x86_64.rpm \
                     libreoffice7.2-${LIBREOFFICE_VERSION}-*.x86_64.rpm \
                     libreoffice7.2-{en-US,impress,ure}-${LIBREOFFICE_VERSION}-*.x86_64.rpm \
                     poppler-utils \
