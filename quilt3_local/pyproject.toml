@@ -1,7 +1,8 @@
 [tool.poetry]
 name = "quilt3_local"
 version = "1.0.0-beta.12"
-description = ""
+description = "Quilt3 catalog: local development mode"
+readme = "README.md"
 license = "Apache-2.0"
 authors = ["quiltdata <contact@quiltdata.io>"]
 homepage = "https://quiltdata.com"
