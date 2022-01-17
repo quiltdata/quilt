@@ -82,3 +82,18 @@ if CATALOG_URL:
 
 else:
     app.mount("/", SPA(directory=CATALOG_BUNDLE), "SPA")
+
+
+def run():
+    try:
+        import uvicorn
+    except ImportError:
+        print("Please install uvicorn to run a development server.")
+        import sys
+        sys.exit(0)
+
+    uvicorn.run(
+        "quilt3_local.main:app",
+        port=int(os.getenv("PORT", 3000)),
+        reload=True,
+    )

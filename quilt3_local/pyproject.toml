@@ -39,6 +39,9 @@ asgiproxy = "^0.0"
 black = "^21.9b0"
 uvicorn = {version = "^0.15.0", extras = ["standard"]}
 
+[tool.poetry.scripts]
+quilt3-local = "quilt3_local.main:run"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
