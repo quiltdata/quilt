@@ -234,10 +234,11 @@ def set_pdf_env():
     see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html"""
     prefix = 'quilt_binaries'
     lambda_root = os.environ["LAMBDA_TASK_ROOT"]
-    # binaries
-    os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
-    # libs
-    os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
+    # TODO: remove
+    # # binaries
+    # os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
+    # # libs
+    # os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
     # fonts
     os.environ["FONTCONFIG_FILE"] = os.path.join(lambda_root, prefix, 'fonts', 'fonts.conf')
 
