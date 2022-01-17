@@ -1,3 +1,4 @@
+import logging
 import sys
 
 import ariadne.asgi
@@ -7,6 +8,8 @@ from botocore.exceptions import ClientError
 
 from .context import QuiltContext
 from .graphql import schema as graphql_schema
+
+logger = logging.getLogger(__name__)
 
 sts_client = boto3.client("sts")
 session_cred = boto3._get_default_session().get_credentials()
@@ -45,8 +48,8 @@ def get_credentials():
                 "Expiration": getattr(session_cred, "expiry_time", None),
             }
         return sts_client.get_session_token()["Credentials"]
-    except ClientError as ex:
-        print(ex)
+    except ClientError:
+        logger.exception("Failed to get credentials for your AWS Account")
         raise fastapi.HTTPException(500, "Failed to get credentials for your AWS Account.")
 
 
