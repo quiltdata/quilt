@@ -94,6 +94,6 @@ def run():
 
     uvicorn.run(
         "quilt3_local.main:app",
-        port=int(os.getenv("PORT", 3000)),
+        port=int(os.getenv("PORT", "3000")),
         reload=True,
     )
