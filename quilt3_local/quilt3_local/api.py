@@ -23,9 +23,8 @@ async def add_quilt_context(request: fastapi.Request, call_next):
 @api.get("/api/auth/get_credentials")
 def get_credentials():
     """
-    Obtains credentials corresponding to your role.
-
-    Returns a JSON object with three keys:
+    Obtain credentials corresponding to your role.
+    Returns a JSON object with the following keys:
         AccessKeyId(string): access key ID
         SecretAccessKey(string): secret key
         SessionToken(string): session token
