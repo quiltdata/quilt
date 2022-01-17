@@ -84,7 +84,7 @@ SCHEMA = {
 }
 
 
-def generate_factor_pairs(x: int) -> List[Tuple[int]]:
+def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
     """
     Generate tuples of integer pairs that are factors for the provided x integer value.
     """
@@ -99,7 +99,7 @@ def generate_factor_pairs(x: int) -> List[Tuple[int]]:
     return pairs
 
 
-def choose_min_grid(x: int) -> Tuple[int]:
+def choose_min_grid(x: int) -> Tuple[int, int]:
     """
     Choose a minimum grid size based off the distance between two values that form
     a factor pair of the provided x amount of objects to create a grid off.
