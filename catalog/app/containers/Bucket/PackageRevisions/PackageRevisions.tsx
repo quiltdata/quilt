@@ -9,6 +9,7 @@ import { fade } from '@material-ui/core/styles'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -403,6 +404,7 @@ export default function PackageRevisions({
   },
   location,
 }: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+  const preferences = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const { p } = parseSearch(location.search, true)
@@ -471,14 +473,16 @@ export default function PackageRevisions({
           revisions
         </M.Typography>
         <M.Box flexGrow={1} />
-        <M.Button
-          variant="contained"
-          color="primary"
-          style={{ marginTop: -3, marginBottom: -3 }}
-          onClick={updateDialog.open}
-        >
-          Revise package
-        </M.Button>
+        {preferences?.ui?.actions?.revisePackage && (
+          <M.Button
+            variant="contained"
+            color="primary"
+            style={{ marginTop: -3, marginBottom: -3 }}
+            onClick={updateDialog.open}
+          >
+            Revise package
+          </M.Button>
+        )}
       </M.Box>
 
       {revisionCountQuery.case({

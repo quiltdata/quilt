@@ -4,6 +4,7 @@ import * as React from 'react'
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as Sentry from 'utils/Sentry'
 import { makeSchemaValidator } from 'utils/json-schema'
@@ -66,6 +67,23 @@ const defaultPreferences: BucketPreferences = {
   },
 }
 
+const localModePreferences: BucketPreferences = {
+  ui: {
+    ...defaultPreferences.ui,
+    actions: {
+      copyPackage: false,
+      createPackage: false,
+      deleteRevision: false,
+      revisePackage: false,
+    },
+    nav: {
+      files: true,
+      packages: true,
+      queries: false,
+    },
+  },
+}
+
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
 function validate(data: unknown): asserts data is BucketPreferencesYaml {
@@ -123,13 +141,16 @@ interface FetchBucketPreferencesArgs {
   s3: $TSFixMe
   bucket: string
   sentry: SentryInstance
+  local: boolean
 }
 
-const fetchBucketPreferences = async ({
+async function fetchBucketPreferences({
   s3,
   sentry,
   bucket,
-}: FetchBucketPreferencesArgs) => {
+  local,
+}: FetchBucketPreferencesArgs) {
+  if (local) return localModePreferences
   try {
     const response = await requests.fetchFile({
       s3,
@@ -157,9 +178,11 @@ const Ctx = React.createContext<BucketPreferences | null>(null)
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
 export function Provider({ bucket, children }: ProviderProps) {
+  const cfg = Config.use()
+  const local = cfg.mode === 'LOCAL'
   const sentry = Sentry.use()
   const s3 = AWS.S3.use()
-  const data = useData(fetchBucketPreferences, { s3, sentry, bucket })
+  const data = useData(fetchBucketPreferences, { s3, sentry, bucket, local })
 
   // XXX: consider returning AsyncResult or using Suspense
   const preferences = data.case({
