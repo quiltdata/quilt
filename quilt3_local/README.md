@@ -1,7 +1,7 @@
 # Quilt3 catalog: Local development mode
 
 Open source implementation of the Quilt3 registry that works in the local
-environment (not requiring AWS cloud services).
+environment (not requiring AWS cloud services aside from S3 / S3 Select).
 
 This package is not intended to be installed/used directly by end users.
 Instead, install `quilt3[catalog]` and use `quilt3 catalog` CLI command.
