@@ -34,6 +34,7 @@ Pillow = "^8.4.0"
 aiohttp = "^3.8.1"
 aiobotocore = "^2.1.0"
 cachetools = "^5.0.0"
+openpyxl = "^3.0.9"
 
 [tool.poetry.dev-dependencies]
 asgiproxy = "^0.0"
