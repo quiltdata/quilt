@@ -8,7 +8,6 @@ Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
 import base64
 import json
-import os
 import sys
 from io import BytesIO
 from math import sqrt
@@ -18,13 +17,6 @@ import imageio
 import numpy as np
 import requests
 from aicsimageio import AICSImage, readers
-from pdf2image import convert_from_bytes
-from pdf2image.exceptions import (
-    PDFInfoNotInstalledError,
-    PDFPageCountError,
-    PDFSyntaxError,
-    PopplerNotInstalledError,
-)
 from PIL import Image
 
 from .shared.decorator import QUILT_INFO_HEADER, api, validate
@@ -63,21 +55,9 @@ SCHEMA = {
         'size': {
             'enum': list(SIZE_PARAMETER_MAP)
         },
-        'input': {
-            'enum': ['pdf']
-        },
         'output': {
             'enum': ['json', 'raw']
         },
-        'page': {
-            'type': 'string',
-            'pattern': r'^\d+$',
-        },
-        # not boolean because URL params like "true" always get converted to strings
-        # clients should do this ONCE per document because it incurs latency and memory
-        'countPages': {
-            'enum': ['true', 'false']
-        }
     },
     'required': ['url', 'size'],
     'additionalProperties': False
@@ -229,19 +209,6 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     return img.reader.data
 
 
-def set_pdf_env():
-    """set env vars to support PDF binary, library, font discovery
-    see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html"""
-    prefix = 'quilt_binaries'
-    lambda_root = os.environ["LAMBDA_TASK_ROOT"]
-    # binaries
-    os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
-    # libs
-    os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
-    # fonts
-    os.environ["FONTCONFIG_FILE"] = os.path.join(lambda_root, prefix, 'fonts', 'fonts.conf')
-
-
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -251,10 +218,7 @@ def lambda_handler(request):
     # Parse request info
     url = request.args['url']
     size = SIZE_PARAMETER_MAP[request.args['size']]
-    input_ = request.args.get('input', 'image')
     output = request.args.get('output', 'json')
-    page = int(request.args.get('page', '1'))
-    count_pages = request.args.get('countPages') == 'true'
 
     # Handle request
     resp = requests.get(url)
@@ -265,70 +229,30 @@ def lambda_handler(request):
                 "PNG"
             )
         except ValueError:
-            thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
-        if input_ == "pdf":
-            set_pdf_env()
-            try:
-                kwargs = {
-                    # respect width but not necessarily height to preserve aspect ratio
-                    "size": (size[0], None),
-                    "fmt": "JPEG",
-                }
-                if not count_pages:
-                    kwargs["first_page"] = page
-                    kwargs["last_page"] = page
+            thumbnail_format = "PNG"
 
-                pages = convert_from_bytes(
-                    resp.content,
-                    **kwargs,
-                )
-                num_pages = len(pages)
-                preview = pages[0]
-                if count_pages:
-                    # shift 1-index to 0-index
-                    preview = pages[page - 1]
-            except (
-                    IndexError,
-                    PDFInfoNotInstalledError,
-                    PDFPageCountError,
-                    PDFSyntaxError,
-                    PopplerNotInstalledError
-            ) as exc:
-                return make_json_response(500, {'error': str(exc)})
-
-            info = {
-                'thumbnail_format': 'JPEG',
-                'thumbnail_size': preview.size,
-            }
-            if count_pages:
-                info['page_count'] = num_pages
-
-            thumbnail_bytes = BytesIO()
-            preview.save(thumbnail_bytes, thumbnail_format)
-            data = thumbnail_bytes.getvalue()
-        else:
-            # Read image data
-            img = AICSImage(resp.content)
-            orig_size = list(img.reader.data.shape)
-            # Generate a formatted ndarray using the image data
-            # Makes some assumptions for n-dim data
-            img = format_aicsimage_to_prepped(img)
-            # Send to Image object for thumbnail generation and saving to bytes
-            img = Image.fromarray(img)
-            # Generate thumbnail
-            img.thumbnail(size)
-            thumbnail_size = img.size
-            # Store the bytes
-            thumbnail_bytes = BytesIO()
-            img.save(thumbnail_bytes, thumbnail_format)
-            # Get bytes data
-            data = thumbnail_bytes.getvalue()
-            # Create metadata object
-            info = {
-                'original_size': orig_size,
-                'thumbnail_format': thumbnail_format,
-                'thumbnail_size': thumbnail_size,
-            }
+        # Read image data
+        img = AICSImage(resp.content)
+        orig_size = list(img.reader.data.shape)
+        # Generate a formatted ndarray using the image data
+        # Makes some assumptions for n-dim data
+        img = format_aicsimage_to_prepped(img)
+        # Send to Image object for thumbnail generation and saving to bytes
+        img = Image.fromarray(img)
+        # Generate thumbnail
+        img.thumbnail(size)
+        thumbnail_size = img.size
+        # Store the bytes
+        thumbnail_bytes = BytesIO()
+        img.save(thumbnail_bytes, thumbnail_format)
+        # Get bytes data
+        data = thumbnail_bytes.getvalue()
+        # Create metadata object
+        info = {
+            'original_size': orig_size,
+            'thumbnail_format': thumbnail_format,
+            'thumbnail_size': thumbnail_size,
+        }
 
         if output == 'json':
             ret_val = {
