@@ -725,17 +725,6 @@ optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 
 [[package]]
-name = "pdf2image"
-version = "1.16.0"
-description = "A wrapper around the pdftoppm and pdftocairo command line tools to convert PDF to a PIL Image list."
-category = "main"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-pillow = "*"
-
-[[package]]
 name = "pillow"
 version = "8.4.0"
 description = "Python Imaging Library (Fork)"
@@ -1163,7 +1152,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.11"
-content-hash = "ebfe78328e245d444167dfeb3d020fa482e6e31b6c4d1e5ed2ebfad7ef366b2c"
+content-hash = "aa7b8cdc1509964b9051881dbf7879f4e180d4f5ff606da8933a4368db866c86"
 
 [metadata.files]
 aicsimageio = [
@@ -1760,10 +1749,6 @@ pandocfilters = [
 pathspec = [
     {file = "pathspec-0.9.0-py2.py3-none-any.whl", hash = "sha256:7d15c4ddb0b5c802d161efc417ec1a2558ea2653c2e8ad9c19098201dc1c993a"},
     {file = "pathspec-0.9.0.tar.gz", hash = "sha256:e564499435a2673d586f6b2130bb5b95f04a3ba06f81b8f895b651a3c76aabb1"},
-]
-pdf2image = [
-    {file = "pdf2image-1.16.0-py3-none-any.whl", hash = "sha256:84f79f2b8fad943e36323ea4e937fcb05f26ded0caa0a01181df66049e42fb65"},
-    {file = "pdf2image-1.16.0.tar.gz", hash = "sha256:d58ed94d978a70c73c2bb7fdf8acbaf2a7089c29ff8141be5f45433c0c4293bb"},
 ]
 pillow = [
     {file = "Pillow-8.4.0-cp310-cp310-macosx_10_10_universal2.whl", hash = "sha256:81f8d5c81e483a9442d72d182e1fb6dcb9723f289a57e8030811bac9ea3fef8d"},
