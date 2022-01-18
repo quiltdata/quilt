@@ -16,6 +16,7 @@ from typing import List, Tuple
 
 import imageio
 import numpy as np
+import pdf2image
 import requests
 from aicsimageio import AICSImage, readers
 from pdf2image import convert_from_bytes
@@ -276,24 +277,15 @@ def lambda_handler(request):
     if input_ == "pdf":
         set_pdf_env()
         try:
-            kwargs = {
-                # respect width but not necessarily height to preserve aspect ratio
-                "size": (size[0], None),
-                "fmt": "JPEG",
-            }
-            if not count_pages:
-                kwargs["first_page"] = page
-                kwargs["last_page"] = page
-
             pages = convert_from_bytes(
                 resp.content,
-                **kwargs,
+                # respect width but not necessarily height to preserve aspect ratio
+                size=(size[0], None),
+                fmt="JPEG",
+                first_page=page,
+                last_page=page,
             )
-            num_pages = len(pages)
             preview = pages[0]
-            if count_pages:
-                # shift 1-index to 0-index
-                preview = pages[page - 1]
         except (
                 IndexError,
                 PDFInfoNotInstalledError,
@@ -308,7 +300,7 @@ def lambda_handler(request):
             'thumbnail_size': preview.size,
         }
         if count_pages:
-            info['page_count'] = num_pages
+            info['page_count'] = pdf2image.pdfinfo_from_bytes(resp.content)["Pages"]
 
         thumbnail_bytes = BytesIO()
         preview.save(thumbnail_bytes, thumbnail_format)
