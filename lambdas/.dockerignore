@@ -5,3 +5,5 @@
 **/.pytest_cache/
 **/*.egg-info/
 **/build/
+**/*Dockerfile
+.dockerignore
