@@ -83,8 +83,9 @@ export const columnsSchemaOnly = [
     parent: {},
     items: [
       {
+        errors: [],
         key: 'a',
-        reactId: 'a+undefined',
+        reactId: '/a+undefined',
         address: ['a'],
         required: true,
         valueSchema: { default: 1e10, type: 'number' },
@@ -93,8 +94,9 @@ export const columnsSchemaOnly = [
         value: 10000000000,
       },
       {
+        errors: [],
         key: 'b',
-        reactId: 'b+undefined',
+        reactId: '/b+undefined',
         address: ['b'],
         required: true,
         valueSchema: { default: 'Barcelona', type: 'string' },
@@ -103,8 +105,9 @@ export const columnsSchemaOnly = [
         value: 'Barcelona',
       },
       {
+        errors: [],
         key: 'optList',
-        reactId: 'optList+undefined',
+        reactId: '/optList+undefined',
         address: ['optList'],
         required: false,
         valueSchema: {
@@ -119,8 +122,9 @@ export const columnsSchemaOnly = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'optEnum',
-        reactId: 'optEnum+undefined',
+        reactId: '/optEnum+undefined',
         address: ['optEnum'],
         required: false,
         valueSchema: { type: 'string', enum: ['one', 'two', 'three'] },
@@ -129,8 +133,9 @@ export const columnsSchemaOnly = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'enumObjects',
-        reactId: 'enumObjects+undefined',
+        reactId: '/enumObjects+undefined',
         address: ['enumObjects'],
         required: false,
         valueSchema: { type: 'object', enum: [{ id: 1 }, { id: 2 }, { id: 3 }] },
@@ -139,8 +144,9 @@ export const columnsSchemaOnly = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'enumArrays',
-        reactId: 'enumArrays+undefined',
+        reactId: '/enumArrays+undefined',
         address: ['enumArrays'],
         required: false,
         valueSchema: {
@@ -156,8 +162,9 @@ export const columnsSchemaOnly = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'enumArraysAndObjects',
-        reactId: 'enumArraysAndObjects+undefined',
+        reactId: '/enumArraysAndObjects+undefined',
         address: ['enumArraysAndObjects'],
         required: false,
         valueSchema: {
@@ -183,9 +190,10 @@ export const columnsSchemaAndObject1 = [
     parent: object1,
     items: [
       {
+        errors: [],
         key: 'a',
         value: 1,
-        reactId: 'a+1',
+        reactId: '/a+1',
         address: ['a'],
         required: true,
         valueSchema: { default: 1e10, type: 'number' },
@@ -193,8 +201,9 @@ export const columnsSchemaAndObject1 = [
         type: 'number',
       },
       {
+        errors: [],
         key: 'b',
-        reactId: 'b+undefined',
+        reactId: '/b+undefined',
         address: ['b'],
         required: true,
         valueSchema: { default: 'Barcelona', type: 'string' },
@@ -203,8 +212,9 @@ export const columnsSchemaAndObject1 = [
         value: 'Barcelona',
       },
       {
+        errors: [],
         key: 'optList',
-        reactId: 'optList+undefined',
+        reactId: '/optList+undefined',
         address: ['optList'],
         required: false,
         valueSchema: {
@@ -219,8 +229,9 @@ export const columnsSchemaAndObject1 = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'optEnum',
-        reactId: 'optEnum+undefined',
+        reactId: '/optEnum+undefined',
         address: ['optEnum'],
         required: false,
         valueSchema: { type: 'string', enum: ['one', 'two', 'three'] },
@@ -229,8 +240,9 @@ export const columnsSchemaAndObject1 = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'enumObjects',
-        reactId: 'enumObjects+undefined',
+        reactId: '/enumObjects+undefined',
         address: ['enumObjects'],
         required: false,
         valueSchema: { type: 'object', enum: [{ id: 1 }, { id: 2 }, { id: 3 }] },
@@ -239,8 +251,9 @@ export const columnsSchemaAndObject1 = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'enumArrays',
-        reactId: 'enumArrays+undefined',
+        reactId: '/enumArrays+undefined',
         address: ['enumArrays'],
         required: false,
         valueSchema: {
@@ -256,8 +269,9 @@ export const columnsSchemaAndObject1 = [
         value: EMPTY_VALUE,
       },
       {
+        errors: [],
         key: 'enumArraysAndObjects',
-        reactId: 'enumArraysAndObjects+undefined',
+        reactId: '/enumArraysAndObjects+undefined',
         address: ['enumArraysAndObjects'],
         required: false,
         valueSchema: {
@@ -272,9 +286,9 @@ export const columnsSchemaAndObject1 = [
         type: 'array',
         value: EMPTY_VALUE,
       },
-      { key: '111', value: 'aaa', reactId: '111+"aaa"', sortIndex: 0 },
-      { key: 'd', value: { e: 'f' }, reactId: 'd+{"e":"f"}', sortIndex: 0 },
-      { key: 'c', value: [1, 2, 3], reactId: 'c+[1,2,3]', sortIndex: 15 },
+      { errors: [], key: '111', value: 'aaa', reactId: '/111+"aaa"', sortIndex: 0 },
+      { errors: [], key: 'd', value: { e: 'f' }, reactId: '/d+{"e":"f"}', sortIndex: 0 },
+      { errors: [], key: 'c', value: [1, 2, 3], reactId: '/c+[1,2,3]', sortIndex: 15 },
     ],
   },
 ]

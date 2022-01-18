@@ -7,7 +7,7 @@ import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
 import Column from './Column'
 import State from './State'
-import { JsonValue, RowData } from './constants'
+import { JsonValue, RowData, ValidationErrors } from './constants'
 
 interface ColumnData {
   items: RowData[]
@@ -194,6 +194,7 @@ interface StateRenderProps {
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
+  errors: ValidationErrors
   multiColumned?: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
@@ -202,13 +203,13 @@ interface JsonEditorWrapperProps {
 
 export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
   function JsonEditorWrapper(
-    { className, disabled, multiColumned, onChange, schema: optSchema, value },
+    { className, disabled, errors, multiColumned, onChange, schema: optSchema, value },
     ref,
   ) {
     const schema = optSchema || EMPTY_SCHEMA
 
     return (
-      <State jsonObject={value} schema={schema}>
+      <State errors={errors} jsonObject={value} schema={schema}>
         {(stateProps: StateRenderProps) => (
           <JsonEditor
             {...{

@@ -1,12 +1,11 @@
 import * as dateFns from 'date-fns'
+import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import pipeThru from 'utils/pipeThru'
-
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
-const serializeAddress = (addressPath) => addressPath.join(', ')
+const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
 
 const getAddressPath = (key, parentPath) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
@@ -124,9 +123,14 @@ function getDefaultValue(jsonDictItem) {
   return EMPTY_VALUE
 }
 
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {
+const NO_ERRORS = []
+
+function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
+  const errors = allErrors
+    ? allErrors.filter((error) => error.instancePath === itemAddress)
+    : NO_ERRORS
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
@@ -134,6 +138,7 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
+    errors,
     reactId: calcReactId(valuePath, storedValue),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
     ...(item || {}),
@@ -186,11 +191,13 @@ function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
   ])
 }
 
-export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder) {
+// TODO: refactor data, decrease number of arguments to three
+export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, errors) {
   if (!fieldPath.length)
     return [
-      pipeThru(rootKeys)(
-        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder)),
+      FP.function.pipe(
+        rootKeys,
+        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder, errors)),
         R.sortBy(R.prop('sortIndex')),
         (items) => ({
           parent: obj,
@@ -203,8 +210,9 @@ export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder) {
     const pathPart = R.slice(0, index, fieldPath)
 
     const keys = getSchemaAndObjKeys(obj, jsonDict, pathPart, rootKeys)
-    return pipeThru(keys)(
-      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder)),
+    return FP.function.pipe(
+      keys,
+      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder, errors)),
       R.sortBy(R.prop('sortIndex')),
       (items) => ({
         parent: R.path(pathPart, obj),
@@ -220,7 +228,7 @@ export function mergeSchemaAndObjRootKeys(schema, obj) {
   return R.uniq([...schemaKeys, ...objKeys])
 }
 
-export default function JsonEditorState({ children, jsonObject, schema }) {
+export default function JsonEditorState({ children, errors, jsonObject, schema }) {
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
   const [fieldPath, setFieldPath] = React.useState([])
@@ -248,8 +256,8 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
   const columns = React.useMemo(
-    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys, sortOrder),
-    [jsonObject, jsonDict, fieldPath, rootKeys],
+    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys, sortOrder, errors),
+    [errors, jsonObject, jsonDict, fieldPath, rootKeys],
   )
 
   // TODO: Use `sortIndex: -1` to "remove" fields that cannot be removed,
