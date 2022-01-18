@@ -40,7 +40,7 @@ You can either serve a static catalog bundle (produced by `npm run build`) or
 proxy static files from a running catalog instance.
 
 **NOTE**: you need valid AWS credentials available, see
-[boto3 docs](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials") for details.
+[boto3 docs](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html#configuring-credentials) for details.
 
 #### Serving a static catalog bundle
 
