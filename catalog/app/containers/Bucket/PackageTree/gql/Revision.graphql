@@ -1,0 +1,9 @@
+query ($bucket: String!, $name: String!, $hashOrTag: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    revision(hashOrTag: $hashOrTag) {
+      hash
+    }
+  }
+}

@@ -14,6 +14,7 @@ interface LedeProps {
   detail: React.ReactNode
   cta?: React.ReactNode
   link?: React.ReactNode
+  maxWidth?: string
   variant?: 'left' | 'center' | 'flying'
 }
 
@@ -54,6 +55,7 @@ export default function Lede({
   link,
   variant = 'left',
   children,
+  maxWidth = '35rem',
 }: React.PropsWithChildren<LedeProps>) {
   const classes = useStyles()
   const align = variant === 'center' ? 'center' : undefined
@@ -78,7 +80,7 @@ export default function Lede({
             {heading}
           </M.Typography>
         </M.Box>
-        <M.Box pt={3} pb={3} textAlign={{ sm: align }} maxWidth="35rem">
+        <M.Box pt={3} pb={3} textAlign={{ sm: align }} maxWidth={maxWidth}>
           <M.Typography variant="body1" color="textSecondary">
             {detail}
           </M.Typography>

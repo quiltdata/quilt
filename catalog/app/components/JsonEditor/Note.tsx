@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -13,50 +12,33 @@ import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
-    color: t.palette.text.secondary,
+    color: t.palette.divider,
     fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,
+    display: 'flex',
+    '&:hover': {
+      color: t.palette.text.disabled,
+    },
   },
   mismatch: {
     color: t.palette.error.main,
   },
-  notInSchema: {
-    color: t.palette.text.secondary,
-  },
 }))
-
-function getTypeAnnotationFromValue(value: JsonValue, schema?: JsonSchema): string {
-  return R.cond<JsonValue, string>([
-    [Array.isArray, () => 'array'],
-    [
-      R.is(String),
-      () => (schema?.enum && schema.enum.includes(value) ? 'enum' : 'string'),
-    ],
-    [R.is(Number), () => 'number'],
-    [R.is(Boolean), () => 'boolean'],
-    [R.equals(null), () => 'null'],
-    [R.is(Object), () => 'object'],
-    [R.T, () => 'undefined'],
-  ])(value)
-}
-
-const getTypeAnnotation = (value: JsonValue, schema?: JsonSchema): string =>
-  value === EMPTY_VALUE
-    ? schemaTypeToHumanString(schema)
-    : getTypeAnnotationFromValue(value, schema)
 
 interface TypeHelpProps {
   humanReadableSchema: string
+  mismatch: boolean
   schema?: JsonSchema
 }
 
-function TypeHelp({ humanReadableSchema, schema }: TypeHelpProps) {
+function TypeHelp({ humanReadableSchema, mismatch, schema }: TypeHelpProps) {
   if (humanReadableSchema === 'undefined')
     return <>Key/value is not restricted by schema</>
 
   return (
     <div>
-      Type: {humanReadableSchema}
+      {mismatch ? 'Required type: ' : 'Type: '}
+      {humanReadableSchema}
       {!!schema?.description && <p>Description: {schema.description}</p>}
     </div>
   )
@@ -73,15 +55,16 @@ function NoteValue({ schema, value }: NoteValueProps) {
   const humanReadableSchema = schemaTypeToHumanString(schema)
   const mismatch = value !== EMPTY_VALUE && !doesTypeMatchSchema(value, schema)
 
+  if (!humanReadableSchema || humanReadableSchema === 'undefined') return null
+
   return (
-    <M.Tooltip title={<TypeHelp {...{ humanReadableSchema, schema }} />}>
+    <M.Tooltip title={<TypeHelp {...{ humanReadableSchema, mismatch, schema }} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
-          [classes.notInSchema]: humanReadableSchema === 'undefined',
         })}
       >
-        {getTypeAnnotation(value, schema)}
+        {mismatch ? <M.Icon>error_outlined</M.Icon> : <M.Icon>info_outlined</M.Icon>}
       </span>
     </M.Tooltip>
   )

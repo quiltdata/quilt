@@ -2,13 +2,12 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
+import AwsPartner from 'website/components/AwsPartner'
 import Bar from 'website/components/Bar'
 
 import art from './art.png'
 import art2x from './art@2x.png'
 import backlight from './backlight.png'
-import partner from './partner.png'
-import partner2x from './partner@2x.png'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -92,11 +91,7 @@ export default function Platform() {
             team&apos;s needs.
           </M.Typography>
         </M.Box>
-        <img
-          className={classes.partner}
-          src={img2x(partner, partner2x)}
-          alt="AWS Advanced Technology Partner"
-        />
+        <AwsPartner className={classes.partner} />
       </div>
       <div className={classes.art}>
         <img src={img2x(art, art2x)} alt="" />

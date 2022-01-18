@@ -112,6 +112,7 @@ export default function App() {
           <Route path={paths.product} component={MProduct} exact />
         )}
         {cfg.mode === 'MARKETING' && <Route path="/bioit" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
 
         {!cfg.disableNavigator && (
           <Route path={paths.activate} component={Activate} exact />
