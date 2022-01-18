@@ -14,6 +14,7 @@
 
 ## Catalog, Lambdas
 * [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
+* [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
 
 ## CLI
 
