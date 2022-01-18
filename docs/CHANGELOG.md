@@ -15,6 +15,7 @@
 * [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
 * [Changed] Local-mode-specific adjustments to landing page and catalog UI ([#2611](https://github.com/quiltdata/quilt/pull/2611))
 * [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
+* [Added] Support for .pptx in thumbnail lambda ([#2598](https://github.com/quiltdata/quilt/pull/2598))
 
 ## CLI
 
