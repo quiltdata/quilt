@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quilt3_local"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 description = "Quilt3 catalog: local development mode"
 readme = "README.md"
 license = "Apache-2.0"
