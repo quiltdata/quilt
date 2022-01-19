@@ -9,9 +9,10 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
 
+// TODO: use webpack-merge, it's already in node_modules
 module.exports = (options) => ({
   mode: options.mode,
-  entry: options.entry || { // TODO: use webpack-merge, it's already in node_modules
+  entry: options.entry || {
     app: path.join(process.cwd(), 'app/app'), // Start with app/app.js
     embed: path.join(process.cwd(), 'app/embed'),
     'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
