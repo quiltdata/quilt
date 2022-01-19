@@ -11,7 +11,11 @@ const webpack = require('webpack')
 
 module.exports = (options) => ({
   mode: options.mode,
-  entry: options.entry,
+  entry: options.entry || { // TODO: use webpack-merge, it's already in node_modules
+    app: path.join(process.cwd(), 'app/app'), // Start with app/app.js
+    embed: path.join(process.cwd(), 'app/embed'),
+    'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
+  },
   output: {
     // Compile into js/build.js
     path: path.resolve(process.cwd(), 'build'),

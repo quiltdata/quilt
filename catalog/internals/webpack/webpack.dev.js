@@ -24,12 +24,6 @@ module.exports = require('./webpack.base')({
     watchFiles: ['app/**/*', 'static-dev/*'],
   },
 
-  entry: {
-    app: path.join(process.cwd(), 'app/app'), // Start with app/app.js
-    embed: path.join(process.cwd(), 'app/embed'),
-    'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
-  },
-
   optimization: {
     emitOnErrors: false,
     splitChunks: { chunks: 'all' },
