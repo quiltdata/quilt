@@ -325,7 +325,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           <M.Button
             className={classes.jsonTrigger}
             onClick={openEditor}
-            title="Edit meta"
+            title="Expand JSON editor"
             size="small"
             variant="outlined"
             endIcon={
@@ -334,7 +334,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
               </M.Icon>
             }
           >
-            Edit
+            Expand
           </M.Button>
         </div>
 

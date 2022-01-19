@@ -19,19 +19,6 @@ export class CORSError extends BucketError {}
 
 export class NoSuchBucket extends BucketError {}
 
-interface NoSuchPackageProps {
-  bucket: string
-  handle: string
-}
-
-export class NoSuchPackage extends BucketError {
-  static displayName = 'NoSuchPackage'
-
-  constructor(props: NoSuchPackageProps) {
-    super(`no package named '${props.handle}' in bucket '${props.bucket}'`, props)
-  }
-}
-
 export class ESNoIndex extends BucketError {}
 
 export class ESTimeout extends BucketError {}
@@ -96,23 +83,6 @@ export class ManifestTooLarge extends BucketError {
   }
 }
 
-export interface BadRevisionProps {
-  bucket: string
-  handle: string
-  revision: string
-}
-
-export class BadRevision extends BucketError {
-  static displayName = 'BadRevision'
-
-  constructor(props: BadRevisionProps) {
-    super(
-      `Could not resolve revision "${props.revision}" for package "${props.handle}" in s3://${props.bucket}`,
-      props,
-    )
-  }
-}
-
 interface WhenAuthCases {
   true: () => React.ReactElement
   false: () => React.ReactElement
@@ -168,16 +138,6 @@ const defaultHandlers: ErrorHandler[] = [
     R.is(NoSuchBucket),
     () => (
       <Message headline="No Such Bucket">The specified bucket does not exist.</Message>
-    ),
-  ],
-  [
-    R.is(NoSuchPackage),
-    (e: NoSuchPackage) => (
-      <Message headline="No Such Package">
-        Package named{' '}
-        <M.Box component="span" fontWeight="fontWeightMedium">{`"${e.handle}"`}</M.Box>{' '}
-        could not be found in this bucket.
-      </Message>
     ),
   ],
   [

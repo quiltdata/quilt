@@ -36,6 +36,7 @@ export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null 
 export function useViewModes(
   path: string,
   modeInput: string | null | undefined,
+  // XXX: consider using a plain boolean here since the contents of this object are unused
   packageHandle?: PackageHandle,
 ) {
   const voilaAvailable = useVoila()

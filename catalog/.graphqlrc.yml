@@ -19,3 +19,4 @@ extensions:
           scalars:
             Datetime: Date
             Json: utils/types#Json
+            JsonRecord: utils/types#JsonRecord
