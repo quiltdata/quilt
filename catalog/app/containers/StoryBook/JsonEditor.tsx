@@ -1,9 +1,11 @@
+import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
-import { ValidationErrors } from 'components/JsonEditor/constants'
 import * as jsonSchema from 'utils/json-schema'
+
+type ValidationErrors = (Error | ErrorObject)[]
 
 const schema = {
   type: 'object',
@@ -19,6 +21,7 @@ export default function JsonEditorBook() {
     a: '123',
     b: 123,
   })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errors, setErrors] = React.useState<ValidationErrors>(() => validate(value))
   const onChange = React.useCallback((json) => {
     setErrors(validate(json))
@@ -27,7 +30,7 @@ export default function JsonEditorBook() {
   return (
     <M.Container maxWidth="lg">
       <M.Box bgcolor="common.white" py={2}>
-        <JsonEditor errors={errors} value={value} onChange={onChange} schema={schema} />
+        <JsonEditor value={value} onChange={onChange} schema={schema} />
       </M.Box>
     </M.Container>
   )
