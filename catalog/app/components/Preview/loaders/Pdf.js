@@ -17,17 +17,19 @@ async function loadPdf({ endpoint, sign, handle }) {
       input: 'pdf',
       output: 'raw',
       size: 'w1024h768',
+      countPages: true,
     })
     const r = await fetch(`${endpoint}/thumbnail${search}`)
     if (r.status >= 400) {
       const text = await r.text()
       throw new HTTPError(r, text)
     }
+    const { page_count: pages } = JSON.parse(r.headers.get('X-Quilt-Info') || '{}')
     const firstPageBlob = await r.blob()
-    return PreviewData.Pdf({ handle, firstPageBlob })
+    return PreviewData.Pdf({ handle, pages, firstPageBlob })
   } catch (e) {
-    if (e instanceof HTTPError && e.json?.error === 'Forbidden') {
-      if (e.json.text?.match(utils.GLACIER_ERROR_RE)) {
+    if (e instanceof HTTPError && e.json && e.json.error === 'Forbidden') {
+      if (e.json.text && e.json.text.match(utils.GLACIER_ERROR_RE)) {
         throw PreviewError.Archived({ handle })
       }
       throw PreviewError.Forbidden({ handle })

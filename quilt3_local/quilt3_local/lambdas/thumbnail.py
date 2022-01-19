@@ -16,7 +16,6 @@ from typing import List, Tuple
 
 import imageio
 import numpy as np
-import pdf2image
 import requests
 from aicsimageio import AICSImage, readers
 from pdf2image import convert_from_bytes
@@ -28,8 +27,8 @@ from pdf2image.exceptions import (
 )
 from PIL import Image
 
-from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
-from t4_lambda_shared.utils import get_default_origins, make_json_response
+from .shared.decorator import QUILT_INFO_HEADER, api, validate
+from .shared.utils import get_default_origins, make_json_response
 
 # Eventually we'll want to precompute/cache thumbnails, so we won't be able to support
 # arbitrary sizes. Might as well copy Dropbox' API:
@@ -85,7 +84,7 @@ SCHEMA = {
 }
 
 
-def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
+def generate_factor_pairs(x: int) -> List[Tuple[int]]:
     """
     Generate tuples of integer pairs that are factors for the provided x integer value.
     """
@@ -100,7 +99,7 @@ def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
     return pairs
 
 
-def choose_min_grid(x: int) -> Tuple[int, int]:
+def choose_min_grid(x: int) -> Tuple[int]:
     """
     Choose a minimum grid size based off the distance between two values that form
     a factor pair of the provided x amount of objects to create a grid off.
@@ -259,85 +258,94 @@ def lambda_handler(request):
 
     # Handle request
     resp = requests.get(url)
-    if not resp.ok:
-        # Errored, return error code
-        ret_val = {
-            'error': resp.reason,
-            'text': resp.text,
-        }
-        return make_json_response(resp.status_code, ret_val)
-
-    try:
-        thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-            imageio.get_reader(resp.content),
-            "PNG"
-        )
-    except ValueError:
-        thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
-    if input_ == "pdf":
-        set_pdf_env()
+    if resp.ok:
         try:
-            pages = convert_from_bytes(
-                resp.content,
-                # respect width but not necessarily height to preserve aspect ratio
-                size=(size[0], None),
-                fmt="JPEG",
-                first_page=page,
-                last_page=page,
+            thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
+                imageio.get_reader(resp.content),
+                "PNG"
             )
-            preview = pages[0]
-        except (
-                IndexError,
-                PDFInfoNotInstalledError,
-                PDFPageCountError,
-                PDFSyntaxError,
-                PopplerNotInstalledError
-        ) as exc:
-            return make_json_response(500, {'error': str(exc)})
+        except ValueError:
+            thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
+        if input_ == "pdf":
+            set_pdf_env()
+            try:
+                kwargs = {
+                    # respect width but not necessarily height to preserve aspect ratio
+                    "size": (size[0], None),
+                    "fmt": "JPEG",
+                }
+                if not count_pages:
+                    kwargs["first_page"] = page
+                    kwargs["last_page"] = page
 
-        info = {
-            'thumbnail_format': 'JPEG',
-            'thumbnail_size': preview.size,
-        }
-        if count_pages:
-            info['page_count'] = pdf2image.pdfinfo_from_bytes(resp.content)["Pages"]
+                pages = convert_from_bytes(
+                    resp.content,
+                    **kwargs,
+                )
+                num_pages = len(pages)
+                preview = pages[0]
+                if count_pages:
+                    # shift 1-index to 0-index
+                    preview = pages[page - 1]
+            except (
+                    IndexError,
+                    PDFInfoNotInstalledError,
+                    PDFPageCountError,
+                    PDFSyntaxError,
+                    PopplerNotInstalledError
+            ) as exc:
+                return make_json_response(500, {'error': str(exc)})
 
-        thumbnail_bytes = BytesIO()
-        preview.save(thumbnail_bytes, thumbnail_format)
-        data = thumbnail_bytes.getvalue()
-    else:
-        # Read image data
-        img = AICSImage(resp.content)
-        orig_size = list(img.reader.data.shape)
-        # Generate a formatted ndarray using the image data
-        # Makes some assumptions for n-dim data
-        img = format_aicsimage_to_prepped(img)
-        # Send to Image object for thumbnail generation and saving to bytes
-        img = Image.fromarray(img)
-        # Generate thumbnail
-        img.thumbnail(size)
-        thumbnail_size = img.size
-        # Store the bytes
-        thumbnail_bytes = BytesIO()
-        img.save(thumbnail_bytes, thumbnail_format)
-        # Get bytes data
-        data = thumbnail_bytes.getvalue()
-        # Create metadata object
-        info = {
-            'original_size': orig_size,
-            'thumbnail_format': thumbnail_format,
-            'thumbnail_size': thumbnail_size,
-        }
+            info = {
+                'thumbnail_format': 'JPEG',
+                'thumbnail_size': preview.size,
+            }
+            if count_pages:
+                info['page_count'] = num_pages
 
-    if output == 'json':
-        ret_val = {
-            'info': info,
-            'thumbnail': base64.b64encode(data).decode(),
+            thumbnail_bytes = BytesIO()
+            preview.save(thumbnail_bytes, thumbnail_format)
+            data = thumbnail_bytes.getvalue()
+        else:
+            # Read image data
+            img = AICSImage(resp.content)
+            orig_size = list(img.reader.data.shape)
+            # Generate a formatted ndarray using the image data
+            # Makes some assumptions for n-dim data
+            img = format_aicsimage_to_prepped(img)
+            # Send to Image object for thumbnail generation and saving to bytes
+            img = Image.fromarray(img)
+            # Generate thumbnail
+            img.thumbnail(size)
+            thumbnail_size = img.size
+            # Store the bytes
+            thumbnail_bytes = BytesIO()
+            img.save(thumbnail_bytes, thumbnail_format)
+            # Get bytes data
+            data = thumbnail_bytes.getvalue()
+            # Create metadata object
+            info = {
+                'original_size': orig_size,
+                'thumbnail_format': thumbnail_format,
+                'thumbnail_size': thumbnail_size,
+            }
+
+        if output == 'json':
+            ret_val = {
+                'info': info,
+                'thumbnail': base64.b64encode(data).decode(),
+            }
+            return make_json_response(200, ret_val)
+        # Not JSON response ('raw')
+        headers = {
+            'Content-Type': Image.MIME[thumbnail_format],
+            QUILT_INFO_HEADER: json.dumps(info)
         }
-        return make_json_response(200, ret_val)
-    # Not JSON response ('raw')
-    headers = {
-        'Content-Type': Image.MIME[thumbnail_format],
-        QUILT_INFO_HEADER: json.dumps(info)
+        return 200, data, headers
+
+    # Errored, return error code
+    ret_val = {
+        'error': resp.reason,
+        'text': resp.text,
     }
-    return 200, data, headers
+    return make_json_response(resp.status_code, ret_val)
