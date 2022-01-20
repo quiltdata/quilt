@@ -249,7 +249,7 @@ bucket = os.environ.get("QUILT_PKG_BUCKET")
 handle = os.environ.get("QUILT_PKG_NAME")
 top_hash = os.environ.get("QUILT_PKG_TOP_HASH")
 
-pkg = q3.browse(handle, bucket, top_hash=top_hash)
+pkg = q3.browse(handle, registry=f"s3://{bucket}", top_hash=top_hash)
 # Read data.csv from the current package from Voila
 df = pkg["data.csv"].deserialize()
 ```
