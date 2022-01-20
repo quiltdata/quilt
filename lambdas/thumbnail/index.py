@@ -293,7 +293,7 @@ def lambda_handler(request):
     if input_ == "pdf":
         try:
             pages = convert_from_bytes(
-                resp.content,
+                src_bytes,
                 # respect width but not necessarily height to preserve aspect ratio
                 size=(size[0], None),
                 fmt="JPEG",
@@ -315,7 +315,7 @@ def lambda_handler(request):
             'thumbnail_size': preview.size,
         }
         if count_pages:
-            info['page_count'] = pdf2image.pdfinfo_from_bytes(resp.content)["Pages"]
+            info['page_count'] = pdf2image.pdfinfo_from_bytes(src_bytes)["Pages"]
 
         thumbnail_bytes = BytesIO()
         preview.save(thumbnail_bytes, thumbnail_format)
