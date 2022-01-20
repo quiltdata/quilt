@@ -177,3 +177,9 @@ export const adminSettings = {
   path: '/admin/settings',
   url: () => '/admin/settings',
 }
+
+// storybook
+export const storyBook = {
+  path: '/storybook',
+  url: () => '/storybook',
+}
