@@ -12,6 +12,9 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 import { useLocation } from 'utils/router'
 
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
+const StoryBook = RT.mkLazy(() => import('containers/StoryBook'), SuspensePlaceholder)
+
 const redirectTo =
   (path) =>
   ({ location: { search } }) =>
@@ -158,6 +161,10 @@ export default function App() {
 
         {!cfg.disableNavigator && (
           <Route path={paths.bucketRoot} component={protect(Bucket)} />
+        )}
+
+        {process.env.NODE_ENV !== 'production' && (
+          <Route path={paths.storyBook} component={StoryBook} exact />
         )}
 
         <Route component={protect(ThrowNotFound)} />
