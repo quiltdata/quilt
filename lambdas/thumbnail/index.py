@@ -246,7 +246,7 @@ def pptx_to_pdf(src: bytes) -> bytes:
             env={
                 **os.environ,
                 # This is needed because LibreOffice writes some stuff to $HOME/.config.
-                'HOME': tmp_dir,
+                "HOME": tmp_dir,
             },
         )
 
