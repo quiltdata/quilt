@@ -241,7 +241,7 @@ def pptx_to_pdf(src: bytes) -> bytes:
             src_file.write(src)
 
         subprocess.run(
-            ("/opt/libreoffice7.2/program/simpress", "--convert-to", output_ext, "--outdir", tmp_dir, src_file_path),
+            ("soffice", "--convert-to", output_ext, "--outdir", tmp_dir, src_file_path),
             check=True,
             env={
                 **os.environ,

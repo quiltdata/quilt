@@ -22,6 +22,10 @@ RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
 FROM base
 ARG LIBREOFFICE_VERSION=7.2.5.1
 
+# Install fonts.
+COPY --from=fonts_builder /fonts ${LAMBDA_TASK_ROOT}/quilt_binaries/
+ENV FONTCONFIG_FILE=$LAMBDA_TASK_ROOT/quilt_binaries/fonts/fonts.conf
+
 # Install LibreOffice.
 RUN yum -y install tar gzip && \
     mkdir /libreoffice-dist && \
@@ -32,12 +36,9 @@ RUN yum -y install tar gzip && \
                     libreoffice7.2-{en-US,impress,ure}-${LIBREOFFICE_VERSION}-*.x86_64.rpm \
                     poppler-utils \
                     dbus-libs cups-libs cairo libSM && \
+    ln -s /opt/libreoffice7.2/program/soffice /usr/bin/ && \
     rm -r /libreoffice-dist && \
     yum clean all
-
-# Install fonts.
-COPY --from=fonts_builder /fonts ${LAMBDA_TASK_ROOT}/quilt_binaries/
-ENV FONTCONFIG_FILE=$LAMBDA_TASK_ROOT/quilt_binaries/fonts/fonts.conf
 
 # Install Python environment.
 COPY --from=pyenv_builder /deps/ $LAMBDA_TASK_ROOT
