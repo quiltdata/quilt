@@ -9,10 +9,15 @@ RUN unzip -d /fonts /quilt_fonts.zip 'fonts/*' -x '*/.DS_Store'
 
 FROM base as pyenv_builder
 RUN yum -y install gcc
+COPY shared/requirements.txt /requirements/shared.txt
+COPY thumbnail/requirements.txt /requirements/thumbnail.txt
+
+RUN pip install -U pip setuptools
+RUN pip install --target /deps -r /requirements/shared.txt -r /requirements/thumbnail.txt
+
 COPY shared/ /src/shared/
 COPY thumbnail/ /src/thumbnail/
-RUN pip install -U pip setuptools
-RUN pip install --target /env -r /src/shared/requirements.txt /src/shared/ -r /src/thumbnail/requirements.txt /src/thumbnail/
+RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
 
 FROM base
 ARG LIBREOFFICE_VERSION=7.2.5.1
@@ -30,11 +35,12 @@ RUN yum -y install tar gzip && \
     rm -r /libreoffice-dist && \
     yum clean all
 
-# Install Python environment.
-COPY --from=pyenv_builder /env/ $LAMBDA_TASK_ROOT
-
 # Install fonts.
 COPY --from=fonts_builder /fonts ${LAMBDA_TASK_ROOT}/quilt_binaries/
 ENV FONTCONFIG_FILE=$LAMBDA_TASK_ROOT/quilt_binaries/fonts/fonts.conf
+
+# Install Python environment.
+COPY --from=pyenv_builder /deps/ $LAMBDA_TASK_ROOT
+COPY --from=pyenv_builder /lambda/ $LAMBDA_TASK_ROOT
 
 CMD ["index.lambda_handler"]
