@@ -107,6 +107,18 @@ def test_403():
             "pdf-page4-1024w.jpeg", None, [1024, 1450], 8, 200,
             marks=pytest.mark.poppler
         ),
+        pytest.param(
+            "pptx/in.pptx",
+            {"size": "w1024h768", "input": "pptx", "page": "1", "countPages": "true"},
+            "pptx/out-page1-1024w.jpeg", None, [1024, 1449], 2, 200,
+            marks=(pytest.mark.poppler, pytest.mark.loffice),
+        ),
+        pytest.param(
+            "pptx/in.pptx",
+            {"size": "w1024h768", "input": "pptx", "page": "2", "countPages": "true"},
+            "pptx/out-page2-1024w.jpeg", None, [1024, 1449], 2, 200,
+            marks=(pytest.mark.poppler, pytest.mark.loffice),
+        ),
     ]
 )
 def test_generate_thumbnail(
@@ -145,7 +157,7 @@ def test_generate_thumbnail(
     if "countPages" in params:
         assert body["info"]["page_count"] == num_pages
     # Assert the produced image is the same as the expected
-    if params.get('input') == 'pdf':
+    if params.get('input') in ('pdf', "pptx"):
         actual = Image.open(BytesIO(base64.b64decode(body['thumbnail'])))
         expected = Image.open(data_dir / expected_thumb)
         actual_array = np.array(actual)
