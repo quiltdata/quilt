@@ -9,6 +9,20 @@ import Column from './Column'
 import State from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
 
+interface EmptyStateProps {
+  className: string
+}
+function EmptyState({ className }: EmptyStateProps) {
+  return (
+    <M.Card className={className}>
+      <M.CardContent>
+        <M.Typography variant="h5">JSON editor is empty</M.Typography>
+        <M.Typography variant="body1">Start filling empty rows as in Excel</M.Typography>
+      </M.CardContent>
+    </M.Card>
+  )
+}
+
 interface ColumnData {
   items: RowData[]
   parent: JsonValue
@@ -51,6 +65,7 @@ function Squeeze({ columnPath, onClick }: SqueezeProps) {
 
 const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   root: {
+    position: 'relative',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
   disabled: {
@@ -71,11 +86,19 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
     display: 'flex',
     overflow: 'auto',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+    zIndex: 20,
+    position: 'relative',
   },
   column: {
     maxWidth: t.spacing(76),
     overflowY: 'auto',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+  },
+  help: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 10,
   },
 }))
 
@@ -170,6 +193,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
           )
         })}
       </div>
+      {multiColumned && columnsView.length < 2 && <EmptyState className={classes.help} />}
     </div>
   )
 })

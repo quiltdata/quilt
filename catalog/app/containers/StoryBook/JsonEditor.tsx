@@ -18,6 +18,7 @@ export default function JsonEditorBook() {
   const [value, setValue] = React.useState<JsonValue>({
     a: 123,
     b: 345,
+    objectA: { propertyA: true, propertyB: false },
   })
   const [errors, setErrors] = React.useState<ValidationErrors>(() => validate(value))
   const onChange = React.useCallback((json) => {
@@ -28,6 +29,15 @@ export default function JsonEditorBook() {
     <M.Container maxWidth="lg">
       <M.Box bgcolor="common.white" py={2}>
         <JsonEditor errors={errors} value={value} onChange={onChange} schema={schema} />
+      </M.Box>
+      <M.Box bgcolor="common.white" py={2}>
+        <JsonEditor
+          errors={errors}
+          value={value}
+          onChange={onChange}
+          schema={schema}
+          multiColumned
+        />
       </M.Box>
     </M.Container>
   )
