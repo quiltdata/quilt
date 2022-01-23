@@ -30,3 +30,26 @@ export const mkLazy = (
     </React.Suspense>
   )
 }
+
+/**
+ * TODO: add keys, add tests, remove extra fragments
+ * Acts similar to Array#join:
+ * `RT.join([<A1 />, <A2 />, <A3 />], <S />) -> <A1 /><S /><A2 /><S /><A3 />`
+ */
+export const join = (
+  list: React.ReactNode[],
+  separator: React.ReactNode,
+): React.ReactNode => {
+  if (list.length < 2) return <>{list}</>
+  return (
+    <>
+      {list.reduce((acc, item) => (
+        <>
+          {item}
+          {separator}
+          {acc}
+        </>
+      ))}
+    </>
+  )
+}

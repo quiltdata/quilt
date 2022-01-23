@@ -10,6 +10,9 @@ const useStyles = M.makeStyles((t) => ({
     border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
   },
+  error: {
+    borderColor: t.palette.error.main,
+  },
   key: {
     width: '50%',
     [t.breakpoints.up('lg')]: {
@@ -41,6 +44,7 @@ export default function Row({ cells, columnPath, fresh, onExpand, onRemove }: Ro
         <M.TableCell
           {...cell.getCellProps()}
           className={cx(classes.cell, {
+            [classes.error]: cell.row.original.errors.length,
             [classes.key]: cell.column.id === COLUMN_IDS.KEY,
             [classes.value]: cell.column.id === COLUMN_IDS.VALUE,
           })}

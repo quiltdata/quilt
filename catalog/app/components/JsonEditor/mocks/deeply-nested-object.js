@@ -72,7 +72,7 @@ export const schema = {
 }
 
 export const jsonDict = {
-  a: {
+  '/a': {
     address: ['a'],
     required: false,
     valueSchema: {
@@ -111,7 +111,10 @@ export const jsonDict = {
                                                 testMaxItems: {
                                                   type: 'array',
                                                   items: [
-                                                    { type: 'number', maxItems: 3 },
+                                                    {
+                                                      type: 'number',
+                                                      maxItems: 3,
+                                                    },
                                                   ],
                                                 },
                                               },
@@ -139,7 +142,7 @@ export const jsonDict = {
     sortIndex: 1,
     type: 'object',
   },
-  'a, b': {
+  '/a/b': {
     address: ['a', 'b'],
     required: false,
     valueSchema: {
@@ -174,7 +177,12 @@ export const jsonDict = {
                                           properties: {
                                             testMaxItems: {
                                               type: 'array',
-                                              items: [{ type: 'number', maxItems: 3 }],
+                                              items: [
+                                                {
+                                                  type: 'number',
+                                                  maxItems: 3,
+                                                },
+                                              ],
                                             },
                                           },
                                         },
@@ -199,7 +207,7 @@ export const jsonDict = {
     sortIndex: 3,
     type: 'object',
   },
-  'a, b, c': {
+  '/a/b/c': {
     address: ['a', 'b', 'c'],
     required: false,
     valueSchema: {
@@ -231,7 +239,12 @@ export const jsonDict = {
                                       properties: {
                                         testMaxItems: {
                                           type: 'array',
-                                          items: [{ type: 'number', maxItems: 3 }],
+                                          items: [
+                                            {
+                                              type: 'number',
+                                              maxItems: 3,
+                                            },
+                                          ],
                                         },
                                       },
                                     },
@@ -254,7 +267,7 @@ export const jsonDict = {
     sortIndex: 5,
     type: 'object',
   },
-  'a, b, c, d': {
+  '/a/b/c/d': {
     address: ['a', 'b', 'c', 'd'],
     required: false,
     valueSchema: {
@@ -283,7 +296,12 @@ export const jsonDict = {
                                   properties: {
                                     testMaxItems: {
                                       type: 'array',
-                                      items: [{ type: 'number', maxItems: 3 }],
+                                      items: [
+                                        {
+                                          type: 'number',
+                                          maxItems: 3,
+                                        },
+                                      ],
                                     },
                                   },
                                 },
@@ -304,7 +322,7 @@ export const jsonDict = {
     sortIndex: 7,
     type: 'object',
   },
-  'a, b, c, d, e': {
+  '/a/b/c/d/e': {
     address: ['a', 'b', 'c', 'd', 'e'],
     required: false,
     valueSchema: {
@@ -330,7 +348,12 @@ export const jsonDict = {
                               properties: {
                                 testMaxItems: {
                                   type: 'array',
-                                  items: [{ type: 'number', maxItems: 3 }],
+                                  items: [
+                                    {
+                                      type: 'number',
+                                      maxItems: 3,
+                                    },
+                                  ],
                                 },
                               },
                             },
@@ -349,7 +372,7 @@ export const jsonDict = {
     sortIndex: 9,
     type: 'object',
   },
-  'a, b, c, d, e, f': {
+  '/a/b/c/d/e/f': {
     address: ['a', 'b', 'c', 'd', 'e', 'f'],
     required: false,
     valueSchema: {
@@ -372,7 +395,12 @@ export const jsonDict = {
                           properties: {
                             testMaxItems: {
                               type: 'array',
-                              items: [{ type: 'number', maxItems: 3 }],
+                              items: [
+                                {
+                                  type: 'number',
+                                  maxItems: 3,
+                                },
+                              ],
                             },
                           },
                         },
@@ -389,7 +417,7 @@ export const jsonDict = {
     sortIndex: 11,
     type: 'object',
   },
-  'a, b, c, d, e, f, g': {
+  '/a/b/c/d/e/f/g': {
     address: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
     required: false,
     valueSchema: {
@@ -409,7 +437,12 @@ export const jsonDict = {
                       properties: {
                         testMaxItems: {
                           type: 'array',
-                          items: [{ type: 'number', maxItems: 3 }],
+                          items: [
+                            {
+                              type: 'number',
+                              maxItems: 3,
+                            },
+                          ],
                         },
                       },
                     },
@@ -424,7 +457,7 @@ export const jsonDict = {
     sortIndex: 13,
     type: 'object',
   },
-  'a, b, c, d, e, f, g, h': {
+  '/a/b/c/d/e/f/g/h': {
     address: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'],
     required: false,
     valueSchema: {
@@ -441,7 +474,12 @@ export const jsonDict = {
                   properties: {
                     testMaxItems: {
                       type: 'array',
-                      items: [{ type: 'number', maxItems: 3 }],
+                      items: [
+                        {
+                          type: 'number',
+                          maxItems: 3,
+                        },
+                      ],
                     },
                   },
                 },
@@ -454,7 +492,7 @@ export const jsonDict = {
     sortIndex: 15,
     type: 'object',
   },
-  'a, b, c, d, e, f, g, h, i': {
+  '/a/b/c/d/e/f/g/h/i': {
     address: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
     required: false,
     valueSchema: {
@@ -466,7 +504,15 @@ export const jsonDict = {
             k: {
               type: 'object',
               properties: {
-                testMaxItems: { type: 'array', items: [{ type: 'number', maxItems: 3 }] },
+                testMaxItems: {
+                  type: 'array',
+                  items: [
+                    {
+                      type: 'number',
+                      maxItems: 3,
+                    },
+                  ],
+                },
               },
             },
           },
@@ -476,7 +522,7 @@ export const jsonDict = {
     sortIndex: 17,
     type: 'object',
   },
-  'a, b, c, d, e, f, g, h, i, j': {
+  '/a/b/c/d/e/f/g/h/i/j': {
     address: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'],
     required: false,
     valueSchema: {
@@ -485,7 +531,15 @@ export const jsonDict = {
         k: {
           type: 'object',
           properties: {
-            testMaxItems: { type: 'array', items: [{ type: 'number', maxItems: 3 }] },
+            testMaxItems: {
+              type: 'array',
+              items: [
+                {
+                  type: 'number',
+                  maxItems: 3,
+                },
+              ],
+            },
           },
         },
       },
@@ -493,22 +547,38 @@ export const jsonDict = {
     sortIndex: 19,
     type: 'object',
   },
-  'a, b, c, d, e, f, g, h, i, j, k': {
+  '/a/b/c/d/e/f/g/h/i/j/k': {
     address: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k'],
     required: false,
     valueSchema: {
       type: 'object',
       properties: {
-        testMaxItems: { type: 'array', items: [{ type: 'number', maxItems: 3 }] },
+        testMaxItems: {
+          type: 'array',
+          items: [
+            {
+              type: 'number',
+              maxItems: 3,
+            },
+          ],
+        },
       },
     },
     sortIndex: 21,
     type: 'object',
   },
-  'a, b, c, d, e, f, g, h, i, j, k, testMaxItems': {
+  '/a/b/c/d/e/f/g/h/i/j/k/testMaxItems': {
     address: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'testMaxItems'],
     required: false,
-    valueSchema: { type: 'array', items: [{ type: 'number', maxItems: 3 }] },
+    valueSchema: {
+      type: 'array',
+      items: [
+        {
+          type: 'number',
+          maxItems: 3,
+        },
+      ],
+    },
     sortIndex: 23,
     type: 'array',
   },
@@ -521,8 +591,9 @@ export const columnsNested = [
     parent: {},
     items: [
       {
+        errors: [],
         key: 'a',
-        reactId: 'a+undefined',
+        reactId: '/a+undefined',
         address: ['a'],
         required: false,
         valueSchema: schema.properties.a,
@@ -536,8 +607,9 @@ export const columnsNested = [
     parent: undefined,
     items: [
       {
+        errors: [],
         key: 'b',
-        reactId: 'a, b+undefined',
+        reactId: '/a/b+undefined',
         address: ['a', 'b'],
         required: false,
         valueSchema: schema.properties.a.properties.b,
@@ -551,8 +623,9 @@ export const columnsNested = [
     parent: undefined,
     items: [
       {
+        errors: [],
         key: 'c',
-        reactId: 'a, b, c+undefined',
+        reactId: '/a/b/c+undefined',
         valueSchema: schema.properties.a.properties.b.properties.c,
         address: ['a', 'b', 'c'],
         required: false,
@@ -566,8 +639,9 @@ export const columnsNested = [
     parent: undefined,
     items: [
       {
+        errors: [],
         key: 'd',
-        reactId: 'a, b, c, d+undefined',
+        reactId: '/a/b/c/d+undefined',
         address: ['a', 'b', 'c', 'd'],
         required: false,
         valueSchema: schema.properties.a.properties.b.properties.c.properties.d,
@@ -604,9 +678,10 @@ export const columns1 = [
     parent: { a: { b: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }] } },
     items: [
       {
+        errors: [],
         key: 'a',
         value: { b: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }] },
-        reactId: 'a+{"b":[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]}',
+        reactId: '/a+{"b":[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]}',
         sortIndex: 0,
       },
     ],
@@ -615,9 +690,10 @@ export const columns1 = [
     parent: { b: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }] },
     items: [
       {
+        errors: [],
         key: 'b',
         value: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }],
-        reactId: 'a, b+[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]',
+        reactId: '/a/b+[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]',
         sortIndex: 0,
       },
     ],
@@ -625,12 +701,13 @@ export const columns1 = [
   {
     parent: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }],
     items: [
-      { key: 0, value: 1, reactId: 'a, b, 0+1', sortIndex: 0 },
-      { key: 1, value: 2, reactId: 'a, b, 1+2', sortIndex: 0 },
+      { errors: [], key: 0, value: 1, reactId: '/a/b/0+1', sortIndex: 0 },
+      { errors: [], key: 1, value: 2, reactId: '/a/b/1+2', sortIndex: 0 },
       {
+        errors: [],
         key: 2,
         value: { c: [{ d: { e: [1, 2, 3] } }] },
-        reactId: 'a, b, 2+{"c":[{"d":{"e":[1,2,3]}}]}',
+        reactId: '/a/b/2+{"c":[{"d":{"e":[1,2,3]}}]}',
         sortIndex: 0,
       },
     ],
@@ -638,8 +715,9 @@ export const columns1 = [
   {
     items: [
       {
+        errors: [],
         key: 'c',
-        reactId: 'a, b, 2, c+[{"d":{"e":[1,2,3]}}]',
+        reactId: '/a/b/2/c+[{"d":{"e":[1,2,3]}}]',
         sortIndex: 0,
         value: [
           {
@@ -664,8 +742,9 @@ export const columns1 = [
   {
     items: [
       {
+        errors: [],
         key: 0,
-        reactId: 'a, b, 2, c, 0+{"d":{"e":[1,2,3]}}',
+        reactId: '/a/b/2/c/0+{"d":{"e":[1,2,3]}}',
         sortIndex: 0,
         value: {
           d: {
@@ -685,8 +764,9 @@ export const columns1 = [
   {
     items: [
       {
+        errors: [],
         key: 'd',
-        reactId: 'a, b, 2, c, 0, d+{"e":[1,2,3]}',
+        reactId: '/a/b/2/c/0/d+{"e":[1,2,3]}',
         sortIndex: 0,
         value: {
           e: [1, 2, 3],
@@ -702,8 +782,9 @@ export const columns1 = [
   {
     items: [
       {
+        errors: [],
         key: 'e',
-        reactId: 'a, b, 2, c, 0, d, e+[1,2,3]',
+        reactId: '/a/b/2/c/0/d/e+[1,2,3]',
         sortIndex: 0,
         value: [1, 2, 3],
       },
@@ -715,20 +796,23 @@ export const columns1 = [
   {
     items: [
       {
+        errors: [],
         key: 0,
-        reactId: 'a, b, 2, c, 0, d, e, 0+1',
+        reactId: '/a/b/2/c/0/d/e/0+1',
         sortIndex: 0,
         value: 1,
       },
       {
+        errors: [],
         key: 1,
-        reactId: 'a, b, 2, c, 0, d, e, 1+2',
+        reactId: '/a/b/2/c/0/d/e/1+2',
         sortIndex: 0,
         value: 2,
       },
       {
+        errors: [],
         key: 2,
-        reactId: 'a, b, 2, c, 0, d, e, 2+3',
+        reactId: '/a/b/2/c/0/d/e/2+3',
         sortIndex: 0,
         value: 3,
       },

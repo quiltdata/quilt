@@ -1,6 +1,6 @@
 import Ajv from 'ajv'
 import brace from 'brace'
-import { JsonEditor } from 'jsoneditor-react'
+import { JsonEditor as ReactJsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -100,7 +100,7 @@ export default function QueryViewer({
         Query body
       </M.Typography>
       <M.Paper className={classes.editor}>
-        <JsonEditor
+        <ReactJsonEditor
           ace={brace}
           ajv={ajv}
           htmlElementProps={editorHtmlProps}
