@@ -32,6 +32,7 @@ export const mkLazy = (
 }
 
 /**
+ * TODO: add keys, add tests, remove extra fragments
  * Acts similar to Array#join:
  * `RT.join([<A1 />, <A2 />, <A3 />], <S />) -> <A1 /><S /><A2 /><S /><A3 />`
  */
