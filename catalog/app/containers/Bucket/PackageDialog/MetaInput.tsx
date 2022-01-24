@@ -79,7 +79,7 @@ function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
         <M.FormControlLabel
           className={classes.switch}
           control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
-          label="Edit raw data"
+          label="Edit as JSON"
         />
         <M.Button onClick={handleCancel}>Discard</M.Button>
         <M.Button onClick={handleSubmit} variant="contained" color="primary">
