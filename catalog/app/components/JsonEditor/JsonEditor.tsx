@@ -3,24 +3,51 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
+import illustrationEnterValues from './enter-values.webm'
+import illustrationObjectExpand from './object-expand.webm'
 import Column from './Column'
 import State from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
 
 interface EmptyStateProps {
   className: string
+  noValue: boolean
+  notExpanded: boolean
 }
-function EmptyState({ className }: EmptyStateProps) {
-  return (
-    <M.Card className={className}>
-      <M.CardContent>
-        <M.Typography variant="h5">JSON editor is empty</M.Typography>
-        <M.Typography variant="body1">Start filling empty rows as in Excel</M.Typography>
-      </M.CardContent>
-    </M.Card>
-  )
+
+function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
+  if (noValue) {
+    return (
+      <M.Card className={className}>
+        <M.CardContent>
+          <M.Typography variant="h5">JSON editor is empty</M.Typography>
+          <M.Typography variant="body1">
+            Start filling empty rows as in Excel. You can enter values by hand. Type{' '}
+            <Code>{`{}`}</Code> to create objects, or <Code>{`[]`}</Code> to create
+            arrays, and then traverse it to enter properties.
+          </M.Typography>
+          <video src={illustrationEnterValues} width="100%" autoPlay loop />
+        </M.CardContent>
+      </M.Card>
+    )
+  }
+
+  if (notExpanded) {
+    return (
+      <M.Card className={className}>
+        <M.CardContent>
+          <M.Typography variant="h5">There is more data here</M.Typography>
+          <M.Typography variant="body1">Try to expand object values</M.Typography>
+          <video src={illustrationObjectExpand} width="100%" autoPlay loop />
+        </M.CardContent>
+      </M.Card>
+    )
+  }
+
+  return null
 }
 
 interface ColumnData {
@@ -95,6 +122,7 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
   help: {
+    width: t.spacing(60),
     position: 'absolute',
     right: 0,
     top: 0,
@@ -193,7 +221,13 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
           )
         })}
       </div>
-      {multiColumned && columnsView.length < 2 && <EmptyState className={classes.help} />}
+      {multiColumned && (
+        <EmptyState
+          className={classes.help}
+          noValue={R.isEmpty(columns[0].parent)}
+          notExpanded={columnsView.length < 2}
+        />
+      )}
     </div>
   )
 })
