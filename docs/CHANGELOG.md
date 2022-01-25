@@ -25,7 +25,7 @@
 * [Added] Add object-level metadata editor and move package metadata editor to popup ([#2510](https://github.com/quiltdata/quilt/pull/2510/))
 * [Added] Video previews ([#2540](https://github.com/quiltdata/quilt/pull/2540))
 * [Added] Audio previews ([#2547](https://github.com/quiltdata/quilt/pull/2547))
-* [Added] Powerpoint (`.pptx`) preview ([#2626](https://github.com/quiltdata/quilt/pull/2626))
+* [Added] Powerpoint (`.pptx`) preview ([#2598](https://github.com/quiltdata/quilt/pull/2598), [#2626](https://github.com/quiltdata/quilt/pull/2626))
 
 # 3.6.0 - 2021-10-15
 ## Python API
