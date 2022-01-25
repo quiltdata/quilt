@@ -110,13 +110,13 @@ def test_403():
         pytest.param(
             "pptx/in.pptx",
             {"size": "w1024h768", "input": "pptx", "page": "1", "countPages": "true"},
-            "pptx/out-page1-1024w.jpeg", None, [1024, 1449], 2, 200,
+            "pptx/out-page1-1024w.jpeg", None, [1024, 1450], 2, 200,
             marks=(pytest.mark.poppler, pytest.mark.loffice),
         ),
         pytest.param(
             "pptx/in.pptx",
             {"size": "w1024h768", "input": "pptx", "page": "2", "countPages": "true"},
-            "pptx/out-page2-1024w.jpeg", None, [1024, 1449], 2, 200,
+            "pptx/out-page2-1024w.jpeg", None, [1024, 1450], 2, 200,
             marks=(pytest.mark.poppler, pytest.mark.loffice),
         ),
     ]
