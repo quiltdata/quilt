@@ -31,7 +31,7 @@ export const traverseUrls = (fn, spec) =>
 
 // NOTE: downloads content from urls embeded in `{ data: url-here-becomes-json }`
 function useVegaSpecSigner(handle) {
-  const sign = AWS.Signer.useS3Signer()
+  const sign = AWS.Signer.useS3Signer({ forceProxy: true })
   const resolveLogicalKey = useLogicalKeyResolver()
 
   const resolvePath = React.useMemo(
