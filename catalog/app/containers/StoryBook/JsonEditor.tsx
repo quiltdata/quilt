@@ -8,16 +8,17 @@ import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
 const schema = {
   type: 'object',
   properties: {
-    a: { type: 'number' },
-    b: { type: 'number' },
+    // a: { type: 'number' },
+    // b: { type: 'number' },
+    // c: { type: 'string', enum: ['AAAAA', 'BBBBB', 'CCCCC'] },
   },
 }
 const validate = jsonSchema.makeSchemaValidator(schema)
 
 export default function JsonEditorBook() {
   const [value, setValue] = React.useState<JsonValue>({
-    a: '123',
-    b: 123,
+    // a: '123',
+    // b: 123,
   })
   const [errors, setErrors] = React.useState<ValidationErrors>(() => validate(value))
   const onChange = React.useCallback((json) => {

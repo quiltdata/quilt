@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
 
+import ContextMenu from './ContextMenu'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
@@ -127,13 +128,22 @@ export default function Cell({
     return Preview
   }, [editing, isEnumCell])
 
+  const [menuOpened, setMenuOpened] = React.useState(false)
+  const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
+  const onContextMenu = React.useCallback((event) => {
+    event.preventDefault()
+    setMenuOpened(true)
+  }, [])
+
   return (
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
-      role="textbox"
-      tabIndex={isEditable ? 0 : undefined}
+      onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
+      ref={setAnchorEl}
+      role="textbox"
+      tabIndex={isEditable ? 0 : undefined}
     >
       <ValueComponent
         {...{
@@ -147,6 +157,16 @@ export default function Cell({
           value,
         }}
       />
+
+      {anchorEl && isValueCell && (
+        <ContextMenu
+          onChange={onChange}
+          anchorEl={anchorEl}
+          open={menuOpened}
+          onClose={() => setMenuOpened(false)}
+          value={value}
+        />
+      )}
     </div>
   )
 }
