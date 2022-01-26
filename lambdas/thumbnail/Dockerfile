@@ -25,4 +25,4 @@ RUN yum -y install amazon-linux-extras && \
 COPY --from=pyenv_builder /deps/ $LAMBDA_TASK_ROOT
 COPY --from=pyenv_builder /lambda/ $LAMBDA_TASK_ROOT
 
-CMD ["index.lambda_handler"]
+CMD ["t4_lambda_thumbnail.lambda_handler"]

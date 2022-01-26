@@ -11,7 +11,7 @@ from PIL import Image
 
 from t4_lambda_shared.utils import read_body
 
-from .. import index
+from t4_lambda_thumbnail import lambda_handler
 
 HEADER_403 = {
     'x-amz-request-id': 'guid123',
@@ -55,7 +55,7 @@ def test_403():
     }
     event = _make_event({"url": url, **params})
     # Get the response
-    response = index.lambda_handler(event, None)
+    response = lambda_handler(event, None)
     assert response["statusCode"] == 403
     body = json.loads(response["body"])
     assert "text" in body
@@ -144,7 +144,7 @@ def test_generate_thumbnail(
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
-    response = index.lambda_handler(event, None)
+    response = lambda_handler(event, None)
     # Assert the request was handled with no errors
     assert response["statusCode"] == 200, f"response: {response}"
     # only check the body and expected image if it's a successful call
