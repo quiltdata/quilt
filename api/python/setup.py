@@ -9,16 +9,15 @@ VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 
 def readme():
-    readme_short = """
-    Quilt manages data like code (with packages, repositories, browsing and
-    revision history) so that teams can experiment faster in machine learning,
-    biotech, and other data-driven domains.
+    return """\
+Quilt manages data like code (with packages, repositories, browsing and
+revision history) so that teams can experiment faster in machine learning,
+biotech, and other data-driven domains.
 
-    The `quilt3` PyPi package allows you to build, push, and install data packages.
-    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
-    to learn more.
-    """
-    return readme_short
+The `quilt3` PyPI package allows you to build, push, and install data packages.
+Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+to learn more.
+"""
 
 
 class VerifyVersionCommand(install):
