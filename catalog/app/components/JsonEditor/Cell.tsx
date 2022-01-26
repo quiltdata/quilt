@@ -139,7 +139,6 @@ export default function Cell({
   return (
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
-      onContextMenu={onContextMenu}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
       ref={setAnchorEl}
@@ -151,6 +150,7 @@ export default function Cell({
           columnId: column.id as 'key' | 'value',
           data: row.original,
           onChange,
+          onContextMenu,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
           placeholder: cellPlaceholders[column.id!],

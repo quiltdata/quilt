@@ -86,6 +86,7 @@ interface InputProps {
   columnId: 'key' | 'value'
   data: RowData
   onChange: OnChange
+  onContextMenu: React.MouseEventHandler<HTMLElement>
   placeholder: string
   value: JsonValue
 }
@@ -94,6 +95,7 @@ export default function Input({
   columnId,
   data,
   onChange,
+  onContextMenu,
   placeholder,
   value: originalValue,
 }: InputProps) {
@@ -154,6 +156,7 @@ export default function Input({
       className={classes.root}
       value={valueStr}
       onChange={onChangeInternal}
+      onContextMenu={onContextMenu}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
       placeholder={placeholder}
