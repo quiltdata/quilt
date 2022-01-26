@@ -18,6 +18,7 @@
 * [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
 * [Changed] Local-mode-specific adjustments to landing page and catalog UI ([#2611](https://github.com/quiltdata/quilt/pull/2611))
 * [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
+* [Changed] Make Vega download data files from S3 via proxy to avoid CORS issues ([#2631](https://github.com/quiltdata/quilt/pull/2631))
 * [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
