@@ -10,7 +10,6 @@ from aicsimageio import AICSImage
 from PIL import Image
 
 from t4_lambda_shared.utils import read_body
-
 from t4_lambda_thumbnail import lambda_handler
 
 HEADER_403 = {
