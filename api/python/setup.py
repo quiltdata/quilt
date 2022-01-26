@@ -9,16 +9,15 @@ VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 
 def readme():
-    readme_short = """
-    Quilt manages data like code (with packages, repositories, browsing and
-    revision history) so that teams can experiment faster in machine learning,
-    biotech, and other data-driven domains.
+    return """\
+Quilt manages data like code (with packages, repositories, browsing and
+revision history) so that teams can experiment faster in machine learning,
+biotech, and other data-driven domains.
 
-    The `quilt3` PyPi package allows you to build, push, and install data packages.
-    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
-    to learn more.
-    """
-    return readme_short
+The `quilt3` PyPI package allows you to build, push, and install data packages.
+Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+to learn more.
+"""
 
 
 class VerifyVersionCommand(install):
@@ -38,7 +37,7 @@ class VerifyVersionCommand(install):
 setup(
     name="quilt3",
     version=VERSION,
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
     python_requires='>=3.6',
@@ -85,6 +84,7 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest==6.*',
             'pytest-cov',
+            'coverage==6.2',
             'pytest-env',
             'pytest-subtests',
             'responses',

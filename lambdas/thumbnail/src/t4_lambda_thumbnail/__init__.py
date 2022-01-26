@@ -9,7 +9,9 @@ Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 import base64
 import json
 import os
+import subprocess
 import sys
+import tempfile
 from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
@@ -65,7 +67,7 @@ SCHEMA = {
             'enum': list(SIZE_PARAMETER_MAP)
         },
         'input': {
-            'enum': ['pdf']
+            'enum': ['pdf', 'pptx']
         },
         'output': {
             'enum': ['json', 'raw']
@@ -230,17 +232,26 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     return img.reader.data
 
 
-def set_pdf_env():
-    """set env vars to support PDF binary, library, font discovery
-    see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html"""
-    prefix = 'quilt_binaries'
-    lambda_root = os.environ["LAMBDA_TASK_ROOT"]
-    # binaries
-    os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
-    # libs
-    os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
-    # fonts
-    os.environ["FONTCONFIG_FILE"] = os.path.join(lambda_root, prefix, 'fonts', 'fonts.conf')
+def pptx_to_pdf(src: bytes) -> bytes:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        file_name_base = "file"
+        output_ext = "pdf"
+        src_file_path = os.path.join(tmp_dir, f"{file_name_base}.pptx")
+        with open(src_file_path, "xb") as src_file:
+            src_file.write(src)
+
+        subprocess.run(
+            ("soffice", "--convert-to", output_ext, "--outdir", tmp_dir, src_file_path),
+            check=True,
+            env={
+                **os.environ,
+                # This is needed because LibreOffice writes some stuff to $HOME/.config.
+                "HOME": tmp_dir,
+            },
+        )
+
+        with open(os.path.join(tmp_dir, f"{file_name_base}.{output_ext}"), "rb") as out_file:
+            return out_file.read()
 
 
 @api(cors_origins=get_default_origins())
@@ -267,18 +278,22 @@ def lambda_handler(request):
         }
         return make_json_response(resp.status_code, ret_val)
 
+    src_bytes = resp.content
+    if input_ == "pptx":
+        src_bytes = pptx_to_pdf(src_bytes)
+        input_ = "pdf"
+
     try:
         thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
-            imageio.get_reader(resp.content),
+            imageio.get_reader(src_bytes),
             "PNG"
         )
     except ValueError:
         thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
     if input_ == "pdf":
-        set_pdf_env()
         try:
             pages = convert_from_bytes(
-                resp.content,
+                src_bytes,
                 # respect width but not necessarily height to preserve aspect ratio
                 size=(size[0], None),
                 fmt="JPEG",
@@ -300,14 +315,14 @@ def lambda_handler(request):
             'thumbnail_size': preview.size,
         }
         if count_pages:
-            info['page_count'] = pdf2image.pdfinfo_from_bytes(resp.content)["Pages"]
+            info['page_count'] = pdf2image.pdfinfo_from_bytes(src_bytes)["Pages"]
 
         thumbnail_bytes = BytesIO()
         preview.save(thumbnail_bytes, thumbnail_format)
         data = thumbnail_bytes.getvalue()
     else:
         # Read image data
-        img = AICSImage(resp.content)
+        img = AICSImage(src_bytes)
         orig_size = list(img.reader.data.shape)
         # Generate a formatted ndarray using the image data
         # Makes some assumptions for n-dim data
