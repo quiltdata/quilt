@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -7,6 +8,7 @@ import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
+import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
 import { COLUMN_IDS, JsonValue, RowData } from './constants'
@@ -75,6 +77,8 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
     </M.TableRow>
   )
 }
+
+const MIN_ROWS_NUMBER = 10
 
 interface ColumnProps {
   adjacent: boolean
@@ -148,6 +152,11 @@ export default function Column({
     [onAddRow],
   )
 
+  const emptyRows = React.useMemo(() => {
+    if (!adjacent || rows.length >= MIN_ROWS_NUMBER) return []
+    return R.range(0, MIN_ROWS_NUMBER - rows.length)
+  }, [adjacent, rows])
+
   return (
     <div className={cx(classes.root, { [classes.adjacent]: adjacent }, className)}>
       {!!columnPath.length && (
@@ -202,6 +211,10 @@ export default function Column({
                 }}
               />
             )}
+
+            {emptyRows.map(() => (
+              <EmptyRow />
+            ))}
           </M.TableBody>
         </M.Table>
       </M.TableContainer>
