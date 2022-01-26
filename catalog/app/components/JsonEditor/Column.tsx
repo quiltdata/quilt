@@ -20,14 +20,14 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
-  adjacent: {
+  sibling: {
     flex: 1,
 
     '& + &': {
       marginLeft: '-1px',
     },
   },
-  adjacentButton: {
+  siblingButton: {
     paddingLeft: t.spacing(1),
   },
   scroll: {
@@ -101,7 +101,7 @@ function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps)
 }
 
 interface ColumnProps {
-  adjacent: boolean
+  hasSiblingColumn: boolean
   className: string
   columnPath: string[]
   data: {
@@ -117,7 +117,7 @@ interface ColumnProps {
 }
 
 export default function Column({
-  adjacent, // NOTE: name is confusing; it means Column may have sibling Column
+  hasSiblingColumn,
   className,
   columnPath,
   data,
@@ -173,12 +173,16 @@ export default function Column({
   )
 
   return (
-    <div className={cx(classes.root, { [classes.adjacent]: adjacent }, className)}>
+    <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
       {!!columnPath.length && (
-        <Breadcrumbs tailOnly={adjacent} items={columnPath} onSelect={onBreadcrumb} />
+        <Breadcrumbs
+          tailOnly={hasSiblingColumn}
+          items={columnPath}
+          onSelect={onBreadcrumb}
+        />
       )}
 
-      <M.TableContainer className={cx({ [classes.scroll]: adjacent })}>
+      <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
@@ -207,7 +211,7 @@ export default function Column({
             {columnType === 'array' && (
               <AddArrayItem
                 {...{
-                  className: adjacent ? classes.adjacentButton : undefined,
+                  className: hasSiblingColumn ? classes.siblingButton : undefined,
                   columnPath,
                   index: rows.length,
                   onAdd: onAddRowInternal,
@@ -227,7 +231,10 @@ export default function Column({
               />
             )}
 
-            <ColumnFiller hasSiblingColumn={adjacent} filledRowsNumber={rows.length} />
+            <ColumnFiller
+              hasSiblingColumn={hasSiblingColumn}
+              filledRowsNumber={rows.length}
+            />
           </M.TableBody>
         </M.Table>
       </M.TableContainer>
