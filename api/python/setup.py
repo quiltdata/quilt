@@ -37,7 +37,7 @@ class VerifyVersionCommand(install):
 setup(
     name="quilt3",
     version=VERSION,
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
     python_requires='>=3.6',
