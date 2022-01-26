@@ -3,7 +3,6 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
-    // border: `1px solid ${t.palette.divider}`,
     border: `1px solid ${t.palette.grey[300]}`,
     padding: 0,
     width: '50%',
@@ -12,7 +11,6 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   emptyCell: {
-    // border: `1px solid ${t.palette.divider}`,
     border: `1px solid ${t.palette.grey[300]}`,
     padding: 0,
     width: '50%',
