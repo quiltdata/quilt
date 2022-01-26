@@ -80,6 +80,26 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
 
 const MIN_ROWS_NUMBER = 10
 
+interface ColumnFillerProps {
+  hasSiblingColumn: boolean
+  filledRowsNumber: number
+}
+
+function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps) {
+  const emptyRows = React.useMemo(() => {
+    if (!hasSiblingColumn || filledRowsNumber >= MIN_ROWS_NUMBER) return []
+    return R.range(0, MIN_ROWS_NUMBER - filledRowsNumber)
+  }, [hasSiblingColumn, filledRowsNumber])
+
+  return (
+    <>
+      {emptyRows.map((index) => (
+        <EmptyRow key={`empty_row_${index}`} />
+      ))}
+    </>
+  )
+}
+
 interface ColumnProps {
   adjacent: boolean
   className: string
@@ -97,7 +117,7 @@ interface ColumnProps {
 }
 
 export default function Column({
-  adjacent,
+  adjacent, // NOTE: name is confusing; it means Column may have sibling Column
   className,
   columnPath,
   data,
@@ -151,11 +171,6 @@ export default function Column({
     },
     [onAddRow],
   )
-
-  const emptyRows = React.useMemo(() => {
-    if (!adjacent || rows.length >= MIN_ROWS_NUMBER) return []
-    return R.range(0, MIN_ROWS_NUMBER - rows.length)
-  }, [adjacent, rows])
 
   return (
     <div className={cx(classes.root, { [classes.adjacent]: adjacent }, className)}>
@@ -212,9 +227,7 @@ export default function Column({
               />
             )}
 
-            {emptyRows.map(() => (
-              <EmptyRow />
-            ))}
+            <ColumnFiller hasSiblingColumn={adjacent} filledRowsNumber={rows.length} />
           </M.TableBody>
         </M.Table>
       </M.TableContainer>
