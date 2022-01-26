@@ -125,11 +125,8 @@ function useSmartS3() {
           params = null
         }
 
-        let forceProxy = false
-        if (params && 'forceProxy' in params) {
-          forceProxy = params.forceProxy
-          delete params.forceProxy
-        }
+        const forceProxy = params?.forceProxy ?? false
+        delete params?.forceProxy
         const req = super.makeRequest(operation, params)
         if (forceProxy) {
           req.httpRequest[FORCE_PROXY] = true
