@@ -9,7 +9,7 @@ import ContextMenu from './ContextMenu'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { COLUMN_IDS, JsonValue, RowData } from './constants'
+import { COLUMN_IDS, JsonValue, RowData, EMPTY_VALUE } from './constants'
 import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
@@ -57,6 +57,7 @@ export default function Cell({
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
+  const hasKey = React.useMemo(() => key !== EMPTY_VALUE, [key])
 
   const onChange = React.useCallback(
     (newValue) => {
@@ -158,7 +159,7 @@ export default function Cell({
         }}
       />
 
-      {anchorEl && isValueCell && (
+      {anchorEl && isValueCell && hasKey && (
         <ContextMenu
           onChange={onChange}
           anchorEl={anchorEl}
