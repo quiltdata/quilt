@@ -85,6 +85,7 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest==6.*',
             'pytest-cov',
+            'coverage==6.2',
             'pytest-env',
             'pytest-subtests',
             'responses',
