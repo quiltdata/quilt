@@ -15,7 +15,7 @@ const LAG = POLL_INTERVAL * 3
 
 const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
 
-export function useS3Signer({ urlExpiration: exp } = {}) {
+export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
@@ -31,10 +31,11 @@ export function useS3Signer({ urlExpiration: exp } = {}) {
             Key: key,
             VersionId: version,
             Expires: urlExpiration,
+            forceProxy,
             ...opts,
           })
         : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
-    [mode, isInStack, authenticated, s3, urlExpiration],
+    [mode, isInStack, authenticated, s3, urlExpiration, forceProxy],
   )
 }
 
