@@ -11,9 +11,8 @@ from unittest.mock import ANY, patch
 import pyarrow.parquet as pq
 import responses
 
+import t4_lambda_preview
 from t4_lambda_shared.utils import read_body
-
-from .. import index
 
 MOCK_ORIGIN = 'http://localhost:3000'
 
@@ -26,7 +25,7 @@ class TestIndex():
     """Class to test various inputs to the main indexing function"""
     FILE_URL = 'https://quilt-example.s3.amazonaws.com/file.ext'
     # pylint: disable=too-many-function-args
-    # pylint hates on index.lambda_handler(event, None), even though, without the
+    # pylint hates on t4_lambda_preview.lambda_handler(event, None), even though, without the
     # second arg we would get TypeError: wrapper() missing 1 required positional argument: '_'
 
     @classmethod
@@ -51,7 +50,7 @@ class TestIndex():
             status=403,
         )
         event = self._make_event({'url': url, 'input': 'txt'})
-        response = index.lambda_handler(event, None)
+        response = t4_lambda_preview.lambda_handler(event, None)
         assert response["statusCode"] == 403
         body = json.loads(response["body"])
         assert "text" in body
@@ -93,7 +92,7 @@ class TestIndex():
                 )
 
             event = self._make_event({'url': self.FILE_URL, 'input': 'fcs'})
-            resp = index.lambda_handler(event, None)
+            resp = t4_lambda_preview.lambda_handler(event, None)
             assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
             body = json.loads(read_body(resp))
             assert 'info' in body
@@ -116,7 +115,7 @@ class TestIndex():
     def test_bad(self):
         """send a known bad event (no input query parameter)"""
         event = self._make_event({'url': self.FILE_URL}, {'origin': MOCK_ORIGIN})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 400, 'Expected 400 on event without "input" query param'
         assert resp['body'], 'Expected explanation for 400'
         assert resp['headers']['access-control-allow-origin'] == '*'
@@ -124,7 +123,7 @@ class TestIndex():
     def test_bad_hostname(self):
         bad_url = 'https://example.com/foo'
         event = self._make_event({'url': bad_url, 'input': 'txt'}, {'origin': MOCK_ORIGIN})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 400, 'Expected 400 on event with a non-S3 URL'
         body = json.loads(read_body(resp))
         assert 'S3' in body['title'], 'Expected 400 explanation'
@@ -136,7 +135,7 @@ class TestIndex():
             'url': self.FILE_URL,
             'input': 'txt',
             'line_count': garbage}, {'origin': MOCK_ORIGIN})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 400, f'Expected 400 on event with line_count of {garbage}'
         body = json.loads(read_body(resp))
         assert 'Unexpected line_count=' in body['title'], 'Expected 400 explanation'
@@ -147,7 +146,7 @@ class TestIndex():
             'url': self.FILE_URL,
             'input': 'txt',
             'line_count': garbage}, {'origin': MOCK_ORIGIN})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 400, 'Expected 400 on event with line_count of 123notint'
         body = json.loads(read_body(resp))
         assert 'Unexpected line_count=' in body['title'], 'Expected 400 explanation'
@@ -160,7 +159,7 @@ class TestIndex():
             'url': self.FILE_URL,
             'input': 'txt',
             'max_bytes': garbage}, {'origin': MOCK_ORIGIN})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 400, f'Expected 400 on event with line_count of {garbage}'
         body = json.loads(read_body(resp))
         assert 'Unexpected max_bytes=' in body['title'], 'Expected 400 explanation'
@@ -175,7 +174,7 @@ class TestIndex():
             body=csv.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on sample.csv'
         body_html = body['html']
@@ -198,7 +197,7 @@ class TestIndex():
             body=workbook.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'excel'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on sample.xlsx'
         body_html = body['html']
@@ -217,7 +216,7 @@ class TestIndex():
             body=notebook.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
@@ -242,7 +241,7 @@ class TestIndex():
             '<span class="p">'
         ) in body_html, 'Last cell output missing'
 
-    @patch(__name__ + '.index.LAMBDA_MAX_OUT', 89_322)
+    @patch('t4_lambda_preview.LAMBDA_MAX_OUT', 89_322)
     @responses.activate
     def test_ipynb_chop(self):
         """test that we eliminate output cells when we're in danger of breaking
@@ -254,7 +253,7 @@ class TestIndex():
             body=notebook.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
@@ -271,7 +270,7 @@ class TestIndex():
             body=notebook.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb', 'exclude_output': 'true'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
@@ -307,7 +306,7 @@ class TestIndex():
             body=parquet.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
         body = json.loads(read_body(resp))
         # open file and check body return against parquet metadata
@@ -330,7 +329,7 @@ class TestIndex():
             body=parquet.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
         body = json.loads(read_body(resp))
         assert '<th>column_a</th>' in body['html'], 'Missing column_a'
@@ -347,7 +346,7 @@ class TestIndex():
             body=parquet.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
         body = json.loads(read_body(resp))
         # open file and check body return against parquet metadata
@@ -370,7 +369,7 @@ class TestIndex():
             body=csv.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
         body_html = body['html']
@@ -397,7 +396,7 @@ class TestIndex():
             body=csv.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
 
@@ -421,7 +420,7 @@ class TestIndex():
             body=csv.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
         body_html = body['html']
@@ -448,12 +447,12 @@ class TestIndex():
             body=no_meta_parquet.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
 
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
 
     @responses.activate
-    @patch(__name__ + '.index.get_preview_lines')
+    @patch('t4_lambda_preview.get_preview_lines')
     def test_txt_max_count(self, get_preview_lines):
         """test truncation to line_count"""
         responses.add(
@@ -465,12 +464,12 @@ class TestIndex():
             get_preview_lines.reset_mock()
             get_preview_lines.return_value = []
             event = self._make_event({'url': self.FILE_URL, 'input': 'txt', 'line_count': str(count)})
-            resp = index.lambda_handler(event, None)
+            resp = t4_lambda_preview.lambda_handler(event, None)
             assert resp['statusCode'] == 200, 'preview lambda failed'
-            get_preview_lines.assert_called_with(ANY, None, count, index.CATALOG_LIMIT_BYTES)
+            get_preview_lines.assert_called_with(ANY, None, count, t4_lambda_preview.CATALOG_LIMIT_BYTES)
 
     @responses.activate
-    @patch(__name__ + '.index.get_preview_lines')
+    @patch('t4_lambda_preview.get_preview_lines')
     def test_txt_count_gz(self, get_preview_lines):
         """test truncation to line_count for a zipped file"""
         responses.add(
@@ -485,9 +484,9 @@ class TestIndex():
                 'url': self.FILE_URL,
                 'input': 'txt', 'line_count': str(count),
                 'compression': 'gz'})
-            resp = index.lambda_handler(event, None)
+            resp = t4_lambda_preview.lambda_handler(event, None)
             assert resp['statusCode'] == 200, 'preview lambda failed'
-            get_preview_lines.assert_called_with(ANY, 'gz', count, index.CATALOG_LIMIT_BYTES)
+            get_preview_lines.assert_called_with(ANY, 'gz', count, t4_lambda_preview.CATALOG_LIMIT_BYTES)
 
     @responses.activate
     def test_txt_short(self):
@@ -499,7 +498,7 @@ class TestIndex():
             body=txt.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview lambda failed on short.txt'
         headlist = body['info']['data']['head']
@@ -509,7 +508,7 @@ class TestIndex():
         taillist = body['info']['data']['tail']
         assert not taillist, 'expected empty tail'
 
-    @patch(__name__ + '.index.CHUNK', 4)
+    @patch('t4_lambda_preview.CHUNK', 4)
     @responses.activate
     def test_max_bytes(self):
         """test max bytes"""
@@ -520,7 +519,7 @@ class TestIndex():
             body=txt.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'txt', 'max_bytes': '3'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview lambda failed on short.txt'
         headlist = body['info']['data']['head']
@@ -537,7 +536,7 @@ class TestIndex():
             body=vcf.read_bytes(),
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'vcf'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 200, 'preview failed on example.vcf'
         _check_vcf(read_body(resp))
 
@@ -552,13 +551,13 @@ class TestIndex():
             status=200)
         event = self._make_event(
             {'url': self.FILE_URL, 'input': 'vcf', 'compression': 'gz'})
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         assert resp['statusCode'] == 200, 'preview failed on example.vcf.gz'
         _check_vcf(read_body(resp))
 
     # 513 = 128*4 + 1 => ensure there's a partial chunk in play
-    @patch(__name__ + '.index.CATALOG_LIMIT_BYTES', 513)
-    @patch(__name__ + '.index.CHUNK', 128)
+    @patch('t4_lambda_preview.CATALOG_LIMIT_BYTES', 513)
+    @patch('t4_lambda_preview.CHUNK', 128)
     @responses.activate
     def test_vcf_gz_partial(self):
         """test previewing part of a gzipped file
@@ -575,7 +574,7 @@ class TestIndex():
         event = self._make_event(
             {'url': self.FILE_URL, 'input': 'vcf', 'compression': 'gz'})
         # test partial decode
-        resp = index.lambda_handler(event, None)
+        resp = t4_lambda_preview.lambda_handler(event, None)
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on example.vcf.gz, partial decode'
         data = body['info']['data']
@@ -601,10 +600,10 @@ def _check_vcf(resp):
         'unexpected meta fifth line'
     assert data['header'] == ['#CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT'], \
         'unexpected header'
-    assert len(data['header']) == index.MIN_VCF_COLS + 1, 'unexpected number of columns'
+    assert len(data['header']) == t4_lambda_preview.MIN_VCF_COLS + 1, 'unexpected number of columns'
     assert body['info']['metadata']['variants'] == ['NA00001', 'NA00002', 'NA00003'], \
         'unexpected variants'
-    assert len(data['data'][0]) == index.MIN_VCF_COLS + 1, 'unexpected number of columns'
+    assert len(data['data'][0]) == t4_lambda_preview.MIN_VCF_COLS + 1, 'unexpected number of columns'
     assert data['data'][0] == [
         '20', '14370', 'rs6054257', 'G', 'A', '29', 'PASS', 'NS=3;DP=14;AF=0.5;DB;H2', 'GT:GQ:DP:HQ'
     ], 'unexpected first data line'
