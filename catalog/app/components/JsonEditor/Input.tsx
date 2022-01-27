@@ -149,6 +149,11 @@ export default function Input({
     [onBlur],
   )
 
+  const handleContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    onContextMenu(event)
+  }
+
   return (
     <M.InputBase
       autoFocus
@@ -156,7 +161,7 @@ export default function Input({
       className={classes.root}
       value={valueStr}
       onChange={onChangeInternal}
-      onContextMenu={onContextMenu}
+      onContextMenu={handleContextMenu}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
       placeholder={placeholder}

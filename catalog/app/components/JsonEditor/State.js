@@ -106,6 +106,7 @@ function calcReactId(valuePath, value) {
   const pathPrefix = serializeAddress(valuePath)
   // TODO: store preview for value, and reuse it for Preview
   return `${pathPrefix}+${JSON.stringify(value)}`
+  // return pathPrefix
 }
 
 function getDefaultValue(jsonDictItem) {
@@ -141,6 +142,7 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
     errors,
     reactId: calcReactId(valuePath, storedValue),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
+    // menuOpened: false,
     ...(item || {}),
   }
 }
@@ -233,6 +235,9 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
   const [fieldPath, setFieldPath] = React.useState([])
 
+  // NOTE: similar to fieldPath, shows where to open ContextMenu
+  const [menuFieldPath, setMenuFieldPath] = React.useState([])
+
   // NOTE: incremented sortIndex counter,
   //       and cache for sortIndexes: { [keyA]: sortIndexA, [keyB]: sortIndexB }
   //       it's required to place new fields below existing ones
@@ -305,7 +310,9 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
     columns,
     fieldPath,
     jsonDict,
+    menuFieldPath,
     removeField,
     setFieldPath,
+    setMenuFieldPath,
   })
 }

@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -31,7 +32,9 @@ const cellPlaceholders = {
 interface CellProps {
   column: RTable.Column<{ id: 'key' | 'value' }>
   columnPath: string[]
+  contextMenuPath: string[]
   editing: boolean
+  onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
   row: Pick<RTable.Row<RowData>, 'original' | 'values'>
@@ -42,7 +45,9 @@ interface CellProps {
 export default function Cell({
   column,
   columnPath,
+  contextMenuPath,
   editing: editingInitial,
+  onContextMenu,
   onExpand,
   onRemove,
   row,
@@ -129,12 +134,15 @@ export default function Cell({
     return Preview
   }, [editing, isEnumCell])
 
-  const [menuOpened, setMenuOpened] = React.useState(false)
+  const addressPath = React.useMemo(() => [...columnPath, key], [columnPath, key])
   const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
-  const onContextMenu = React.useCallback((event) => {
-    event.preventDefault()
-    setMenuOpened(true)
-  }, [])
+  const handleContextMenu = React.useCallback(
+    (event) => {
+      event.preventDefault()
+      onContextMenu(addressPath)
+    },
+    [onContextMenu, addressPath],
+  )
 
   return (
     <div
@@ -150,7 +158,7 @@ export default function Cell({
           columnId: column.id as 'key' | 'value',
           data: row.original,
           onChange,
-          onContextMenu,
+          onContextMenu: handleContextMenu,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
           placeholder: cellPlaceholders[column.id!],
@@ -163,8 +171,8 @@ export default function Cell({
         <ContextMenu
           onChange={onChange}
           anchorEl={anchorEl}
-          open={menuOpened}
-          onClose={() => setMenuOpened(false)}
+          open={R.equals(contextMenuPath, addressPath)}
+          onClose={() => onContextMenu([])}
           value={value}
         />
       )}
