@@ -23,6 +23,7 @@ import useQuery from 'utils/useQuery'
 
 import { usePackageUpdateDialog } from '../PackageUpdateDialog'
 import Pagination from '../Pagination'
+import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
 
 import REVISION_COUNT_QUERY from './gql/RevisionCount.generated'
@@ -398,17 +399,16 @@ function Revision({
 
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
-export default function PackageRevisions({
-  match: {
-    params: { bucket, name },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+interface PackageRevisionsProps {
+  bucket: string
+  name: string
+  page?: number
+}
+
+export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const preferences = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
-  const { p } = parseSearch(location.search, true)
-  const page = p ? parseInt(p, 10) : undefined
   const actualPage = page || 1
 
   const makePageUrl = React.useCallback(
@@ -458,8 +458,6 @@ export default function PackageRevisions({
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <MetaTitle>{[name, bucket]}</MetaTitle>
-
       {updateDialog.element}
 
       <M.Box
@@ -522,6 +520,24 @@ export default function PackageRevisions({
         },
       })}
     </M.Box>
+  )
+}
+
+export default function PackageRevisionsWrapper({
+  match: {
+    params: { bucket, name },
+  },
+  location,
+}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+  const { p } = parseSearch(location.search, true)
+  const page = p ? parseInt(p, 10) : undefined
+  return (
+    <>
+      <MetaTitle>{[name, bucket]}</MetaTitle>
+      <WithPackagesSupport bucket={bucket}>
+        <PackageRevisions {...{ bucket, name, page }} />
+      </WithPackagesSupport>
+    </>
   )
 }
 

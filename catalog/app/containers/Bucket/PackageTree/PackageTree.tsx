@@ -40,6 +40,7 @@ import * as PD from '../PackageDialog'
 import { usePackageUpdateDialog } from '../PackageUpdateDialog'
 import Section from '../Section'
 import Summary from '../Summary'
+import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
@@ -692,7 +693,6 @@ function PackageTree({
 
   return (
     <FileView.Root>
-      <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       {/* TODO: bring back linked data after re-implementing it using graphql
       {!!bucketCfg &&
         revisionData.case({
@@ -777,21 +777,23 @@ function PackageTree({
   )
 }
 
-interface PackageTreeRouteParams {
+interface PackageTreeQueriesProps {
   bucket: string
   name: string
-  revision?: string
-  path?: string
+  hashOrTag: string
+  path: string
+  resolvedFrom?: string
+  mode?: string
 }
 
-export default function PackageTreeWrapper({
-  match: {
-    params: { bucket, name, revision: hashOrTag = 'latest', path: encodedPath = '' },
-  },
-  location,
-}: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
-  const path = s3paths.decode(encodedPath)
-  const { resolvedFrom, mode } = parseSearch(location.search, true)
+function PackageTreeQueries({
+  bucket,
+  name,
+  hashOrTag,
+  path,
+  resolvedFrom,
+  mode,
+}: PackageTreeQueriesProps) {
   const revisionQuery = useQuery({
     query: REVISION_QUERY,
     variables: { bucket, name, hashOrTag },
@@ -845,5 +847,30 @@ export default function PackageTreeWrapper({
         refreshRevisionListData,
       }}
     />
+  )
+}
+
+interface PackageTreeRouteParams {
+  bucket: string
+  name: string
+  revision?: string
+  path?: string
+}
+
+export default function PackageTreeWrapper({
+  match: {
+    params: { bucket, name, revision: hashOrTag = 'latest', path: encodedPath = '' },
+  },
+  location,
+}: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
+  const path = s3paths.decode(encodedPath)
+  const { resolvedFrom, mode } = parseSearch(location.search, true)
+  return (
+    <>
+      <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
+      <WithPackagesSupport bucket={bucket}>
+        <PackageTreeQueries {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }} />
+      </WithPackagesSupport>
+    </>
   )
 }
