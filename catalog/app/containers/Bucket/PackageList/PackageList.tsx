@@ -24,6 +24,7 @@ import useQuery from 'utils/useQuery'
 
 import { usePackageCreateDialog } from '../PackageCreateDialog'
 import Pagination from '../Pagination'
+import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
 
 import PACKAGE_COUNT_QUERY from './gql/PackageCount.generated'
@@ -345,20 +346,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function PackageList({
-  match: {
-    params: { bucket },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string }>) {
+interface PackageListProps {
+  bucket: string
+  sort?: string
+  filter?: string
+  page?: number
+}
+
+function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
 
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
 
-  const { sort, filter, p } = parseSearch(location.search, true)
-  const page = p ? parseInt(p, 10) : undefined
   const computedPage = page || 1
   const computedSort = getSort(sort)
   const computedFilter = filter || ''
@@ -450,8 +451,6 @@ export default function PackageList({
 
   return (
     <>
-      <MetaTitle>{['Packages', bucket]}</MetaTitle>
-
       {createDialog.element}
 
       {totalCountQuery.case({
@@ -491,8 +490,7 @@ export default function PackageList({
         ),
         error: displayError(),
         data: (totalCountData) => {
-          const totalCount = totalCountData.packages?.total
-          if (!totalCount) {
+          if (!totalCountData.packages?.total) {
             return (
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
@@ -624,6 +622,24 @@ export default function PackageList({
           )
         },
       })}
+    </>
+  )
+}
+
+export default function PackageListWrapper({
+  match: {
+    params: { bucket },
+  },
+  location,
+}: RRDom.RouteComponentProps<{ bucket: string }>) {
+  const { sort, filter, p } = parseSearch(location.search, true)
+  const page = p ? parseInt(p, 10) : undefined
+  return (
+    <>
+      <MetaTitle>{['Packages', bucket]}</MetaTitle>
+      <WithPackagesSupport bucket={bucket}>
+        <PackageList {...{ bucket, sort, filter, page }} />
+      </WithPackagesSupport>
     </>
   )
 }
