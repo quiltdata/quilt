@@ -1,11 +1,12 @@
 import * as React from 'react'
 
 import Message from 'components/Message'
+import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import StyledLink from 'utils/StyledLink'
 
-const ADD_BUCKET_DOCS = 'https://docs.quiltdata.com/catalog/admin#buckets'
+const ADD_BUCKET_DOCS = `${docs}/catalog/admin#buckets`
 
 interface WithPackagesSupportProps {
   bucket: string
