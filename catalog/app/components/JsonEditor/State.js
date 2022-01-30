@@ -106,7 +106,6 @@ function calcReactId(valuePath, value) {
   const pathPrefix = serializeAddress(valuePath)
   // TODO: store preview for value, and reuse it for Preview
   return `${pathPrefix}+${JSON.stringify(value)}`
-  // return pathPrefix
 }
 
 function getDefaultValue(jsonDictItem) {
@@ -142,7 +141,6 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
     errors,
     reactId: calcReactId(valuePath, storedValue),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
-    // menuOpened: false,
     ...(item || {}),
   }
 }
