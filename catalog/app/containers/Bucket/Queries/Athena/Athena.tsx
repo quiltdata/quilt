@@ -437,6 +437,54 @@ function State({ children, queryExecutionId }: StateProps) {
   )
 }
 
+const useOverrideStyles = M.makeStyles({
+  li: {
+    '&::before': {
+      position: 'absolute', // Workaround for sanitize.css a11y styles
+    },
+  },
+  separator: {
+    alignItems: 'center',
+  },
+})
+
+const useHistoryHeaderStyles = M.makeStyles({
+  breadcrumb: {
+    display: 'flex',
+  },
+})
+
+interface HistoryHeaderProps {
+  queryExecutionId?: string
+  bucket: string
+  className: string
+}
+
+function HistoryHeader({ bucket, className, queryExecutionId }: HistoryHeaderProps) {
+  const classes = useHistoryHeaderStyles()
+  const overrideClasses = useOverrideStyles()
+  const { urls } = NamedRoutes.use()
+  const rootTitle = 'Query Executions'
+  if (!queryExecutionId) {
+    return (
+      <M.Typography className={className} color="textPrimary">
+        {rootTitle}
+      </M.Typography>
+    )
+  }
+
+  return (
+    <M.Breadcrumbs className={className} classes={overrideClasses}>
+      <Link className={classes.breadcrumb} to={urls.bucketAthenaQueries(bucket)}>
+        {rootTitle}
+      </Link>
+      <M.Typography className={classes.breadcrumb} color="textPrimary">
+        Results for <Code>{queryExecutionId}</Code>
+      </M.Typography>
+    </M.Breadcrumbs>
+  )
+}
+
 const isButtonDisabled = (
   queryContent: string,
   queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>,
@@ -578,18 +626,11 @@ export default function Athena({
               </div>
 
               <div>
-                {queryExecutionId ? (
-                  <M.Breadcrumbs className={classes.sectionHeader}>
-                    <Link to={urls.bucketAthenaQueries(bucket)}>Query Executions</Link>
-                    <M.Typography color="textPrimary">
-                      Results for <Code>{queryExecutionId}</Code>
-                    </M.Typography>
-                  </M.Breadcrumbs>
-                ) : (
-                  <M.Typography className={classes.sectionHeader} color="textPrimary">
-                    Query Executions
-                  </M.Typography>
-                )}
+                <HistoryHeader
+                  bucket={bucket}
+                  className={classes.sectionHeader}
+                  queryExecutionId={queryExecutionId}
+                />
 
                 {!queryExecutionId &&
                   executionsData.case({

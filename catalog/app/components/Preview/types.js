@@ -34,7 +34,7 @@ export const PreviewData = tagged([
   'Markdown', // { rendered: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
-  'Pdf', // { handle: object, pages: number, firstPageBlob: Blob }
+  'Pdf', // { handle: object, pages: number, firstPageBlob: Blob, type: 'pdf' | 'pptx' }
   'Perspective', // { preview: string, ...PreviewStatus }
   'Text', // { head: string, tail: string, lang: string, highlighted: { head: string, tail: string }, ...PreviewStatus }
   'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }

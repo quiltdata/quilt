@@ -12,11 +12,15 @@
 * [Added] Declared compatibility with `jsonschema==4.*`.
 
 ## Catalog, Lambdas
+* [Changed] pkgselect: make directly invocable, always use execution role ([#2560](https://github.com/quiltdata/quilt/pull/2560))
+* [Changed] Move package listing / querying to GraphQL ([#2552](https://github.com/quiltdata/quilt/pull/2552))
+* [Changed] Fix performance of `countPages` in thumbnail lambda ([#2616](https://github.com/quiltdata/quilt/pull/2616)).
 * [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
-
-## CLI
-
-## Catalog, Lambdas
+* [Changed] Local-mode-specific adjustments to landing page and catalog UI ([#2611](https://github.com/quiltdata/quilt/pull/2611))
+* [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
+* [Changed] Make Vega download data files from S3 via proxy to avoid CORS issues ([#2631](https://github.com/quiltdata/quilt/pull/2631))
+* [Changed] Don't support packages in out-of-stack-buckets ([#2641](https://github.com/quiltdata/quilt/pull/2641))
+* [Changed] Use Perspective library for .csv and .tsv files ([#2576](https://github.com/quiltdata/quilt/pull/2576))
 * [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
@@ -24,7 +28,7 @@
 * [Added] Add object-level metadata editor and move package metadata editor to popup ([#2510](https://github.com/quiltdata/quilt/pull/2510/))
 * [Added] Video previews ([#2540](https://github.com/quiltdata/quilt/pull/2540))
 * [Added] Audio previews ([#2547](https://github.com/quiltdata/quilt/pull/2547))
-* [Changed] Use Perspective library for .csv and .tsv files ([#2576](https://github.com/quiltdata/quilt/pull/2576))
+* [Added] Powerpoint (`.pptx`) preview ([#2598](https://github.com/quiltdata/quilt/pull/2598), [#2626](https://github.com/quiltdata/quilt/pull/2626))
 
 # 3.6.0 - 2021-10-15
 ## Python API

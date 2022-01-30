@@ -228,6 +228,33 @@ in Linux containers that have network access but do not have access to persisten
 storage. The catalog users's AWS credentials are passed to Jupyter kernel as
 [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list).
 
+## Environment variables
+When you have a Voila dashboard inside of a Quilt package, you may wish to reference files
+*in the current package revision*. The Quilt catalog sets the following environment variables
+and passes them to the Voila kernel:
+
+* `QUILT_PKG_BUCKET`
+* `QUILT_PKG_NAME`
+* `QUILT_PKG_TOP_HASH`
+
+You can access these variables in Python and browse the package:
+```python
+import io
+import os
+
+import pandas as pd
+import quilt3 as q3
+
+bucket = os.environ.get("QUILT_PKG_BUCKET")
+handle = os.environ.get("QUILT_PKG_NAME")
+top_hash = os.environ.get("QUILT_PKG_TOP_HASH")
+
+pkg = q3.browse(handle, registry=f"s3://{bucket}", top_hash=top_hash)
+# Read data.csv from the current package from Voila
+df = pkg["data.csv"].deserialize()
+```
+
+
 ### Included Python packages
 By default, Quilt Voila containers provide the following modules:
 ```

@@ -1,20 +1,15 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
+import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
-import AsyncResult from 'utils/AsyncResult'
-import * as AWS from 'utils/AWS'
-import * as APIConnector from 'utils/APIConnector'
-// import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
-import * as Data from 'utils/Data'
-// import * as LinkedData from 'utils/LinkedData'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -24,15 +19,32 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
+import useQuery from 'utils/useQuery'
 
-import { usePackageUpdateDialog } from './PackageUpdateDialog'
-import Pagination from './Pagination'
-import { displayError } from './errors'
-import * as requests from './requests'
+import { usePackageUpdateDialog } from '../PackageUpdateDialog'
+import Pagination from '../Pagination'
+import WithPackagesSupport from '../WithPackagesSupport'
+import { displayError } from '../errors'
+
+import REVISION_COUNT_QUERY from './gql/RevisionCount.generated'
+import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
 const PER_PAGE = 30
 
-function SparklineSkel({ width, height }) {
+type RevisionFields = NonNullable<
+  NonNullable<
+    ResultOf<typeof REVISION_LIST_QUERY>['package']
+  >['revisions']['page'][number]
+>
+
+type AccessCounts = NonNullable<RevisionFields['accessCounts']>
+
+interface SparklineSkelProps {
+  width: number
+  height: number
+}
+
+function SparklineSkel({ width, height }: SparklineSkelProps) {
   const [data] = React.useState(() => R.times((i) => i + Math.random() * i, 30))
   const t = M.useTheme()
   const c0 = fade(t.palette.action.hover, 0)
@@ -74,8 +86,13 @@ function SparklineSkel({ width, height }) {
   )
 }
 
-function Counts({ counts, total, sparklineW, sparklineH }) {
-  const [cursor, setCursor] = React.useState(null)
+interface CountsProps {
+  sparklineW: number
+  sparklineH: number
+}
+
+function Counts({ counts, total, sparklineW, sparklineH }: CountsProps & AccessCounts) {
+  const [cursor, setCursor] = React.useState<number | null>(null)
   return (
     <>
       <M.Box position="absolute" right={16} top={0}>
@@ -153,7 +170,16 @@ const useRevisionLayoutStyles = M.makeStyles((t) => ({
   },
 }))
 
-function RevisionLayout({ link, msg, meta, hash, stats, counts }) {
+interface RevisionLayoutProps {
+  link: React.ReactNode
+  msg: React.ReactNode
+  meta?: React.ReactNode
+  hash: React.ReactNode
+  stats: React.ReactNode
+  counts: (props: CountsProps) => React.ReactNode
+}
+
+function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayoutProps) {
   const classes = useRevisionLayoutStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -266,6 +292,7 @@ function RevisionSkel() {
 
 const useRevisionStyles = M.makeStyles((t) => ({
   mono: {
+    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
   },
   time: {
@@ -275,7 +302,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
   msg: {
-    ...t.mixins.lineClamp(2),
+    ...(t.mixins as $TSFixMe).lineClamp(2),
     overflowWrap: 'break-word',
     [t.breakpoints.up('sm')]: {
       minHeight: 40,
@@ -283,6 +310,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
   hash: {
     color: t.palette.text.secondary,
+    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     maxWidth: 'calc(100% - 48px)',
@@ -291,7 +319,22 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Revision({ bucket, name, hash, stats, message, modified, metadata, counts }) {
+interface RevisionProps extends RevisionFields {
+  bucket: string
+  name: string
+}
+
+function Revision({
+  bucket,
+  name,
+  hash,
+  modified,
+  message,
+  userMeta,
+  totalEntries,
+  totalBytes,
+  accessCounts,
+}: RevisionProps) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -301,9 +344,12 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
   return (
     <RevisionLayout
       link={
-        <Link className={classes.time} to={urls.bucketPackageTree(bucket, name, hash)}>
+        <RRDom.Link
+          className={classes.time}
+          to={urls.bucketPackageTree(bucket, name, hash)}
+        >
           {dateFns.format(modified, dateFmt)}
-        </Link>
+        </RRDom.Link>
       }
       msg={
         <M.Typography variant="body2" className={classes.msg}>
@@ -311,9 +357,10 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
         </M.Typography>
       }
       meta={
-        !!metadata &&
-        !R.isEmpty(metadata) && (
-          <JsonDisplay name="Metadata" value={metadata} pl={1.5} py={1.75} pr={2} />
+        !!userMeta &&
+        !R.isEmpty(userMeta) && (
+          // @ts-expect-error
+          <JsonDisplay name="Metadata" value={userMeta} pl={1.5} py={1.75} pr={2} />
         )
       }
       hash={
@@ -331,92 +378,46 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
           <M.Icon color="disabled">storage</M.Icon>
           &nbsp;&nbsp;
           <M.Typography component="span" variant="body2">
-            {readableBytes(stats.bytes)}
+            {readableBytes(totalBytes)}
           </M.Typography>
           <M.Box pr={2} />
           <M.Icon color="disabled">insert_drive_file</M.Icon>
           &nbsp;
           <M.Typography component="span" variant="body2">
-            {readableQuantity(stats.files)}
+            {readableQuantity(totalEntries)}
             &nbsp;
-            <Format.Plural value={stats.files} one="file" other="files" />
+            <Format.Plural value={totalEntries ?? 0} one="file" other="files" />
           </M.Typography>
         </>
       }
       counts={({ sparklineW, sparklineH }) =>
-        AsyncResult.case(
-          {
-            Ok: (data) => !!data && <Counts {...{ sparklineW, sparklineH, ...data }} />,
-            _: () => (
-              <>
-                <M.Box
-                  position="absolute"
-                  right={16}
-                  top={0}
-                  display="flex"
-                  alignItems="center"
-                  height={20}
-                  width={120}
-                >
-                  <Skeleton height={16} width="100%" borderRadius="borderRadius" />
-                </M.Box>
-                <SparklineSkel width={sparklineW} height={sparklineH} />
-              </>
-            ),
-          },
-          counts,
-        )
+        !!accessCounts && <Counts {...{ sparklineW, sparklineH, ...accessCounts }} />
       }
     />
   )
 }
 
-function useRevisionCountData({ bucket, name, key }) {
-  const req = APIConnector.use()
-  return Data.use(requests.countPackageRevisions, { req, bucket, name, key })
-}
-
-function useRevisionsData({ bucket, name, page, perPage, key }) {
-  const req = APIConnector.use()
-  return Data.use(requests.getPackageRevisions, { req, bucket, name, page, perPage, key })
-}
-
-function useCountsData({ bucket, name, key }) {
-  const s3 = AWS.S3.use()
-  const { analyticsBucket } = Config.useConfig()
-  const today = React.useMemo(() => new Date(), [])
-  return Data.use(requests.fetchRevisionsAccessCounts, {
-    s3,
-    analyticsBucket,
-    today,
-    window: 30,
-    bucket,
-    name,
-    key,
-  })
-}
-
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
-export default function PackageRevisions({
-  match: {
-    params: { bucket, name },
-  },
-  location,
-}) {
+interface PackageRevisionsProps {
+  bucket: string
+  name: string
+  page?: number
+}
+
+export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
+  const preferences = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
-  const { p } = parseSearch(location.search)
-  const page = p && parseInt(p, 10)
   const actualPage = page || 1
 
   const makePageUrl = React.useCallback(
-    (newP) =>
+    (newP: number) =>
       urls.bucketPackageRevisions(bucket, name, { p: newP !== 1 ? newP : undefined }),
     [urls, bucket, name],
   )
 
-  const scrollRef = React.useRef()
+  const scrollRef = React.useRef<HTMLSpanElement>(null)
 
   // scroll to top on page change
   usePrevious(actualPage, (prev) => {
@@ -425,36 +426,38 @@ export default function PackageRevisions({
     }
   })
 
-  const [key, setKey] = React.useState(1)
-
-  const revisionCountData = useRevisionCountData({ bucket, name, key })
-  const revisionsData = useRevisionsData({
-    bucket,
-    name,
-    page: actualPage,
-    perPage: PER_PAGE,
-    key,
+  const revisionCountQuery = useQuery({
+    query: REVISION_COUNT_QUERY,
+    variables: { bucket, name },
+    requestPolicy: 'cache-and-network',
   })
-  const countsData = useCountsData({ bucket, name, key })
+  const revisionListQuery = useQuery({
+    query: REVISION_LIST_QUERY,
+    variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
+    requestPolicy: 'cache-and-network',
+  })
+
+  const refreshData = React.useCallback(() => {
+    revisionCountQuery.run({ requestPolicy: 'cache-and-network' })
+    revisionListQuery.run({ requestPolicy: 'cache-and-network' })
+  }, [revisionCountQuery, revisionListQuery])
 
   const onExited = React.useCallback(
     (res) => {
       // refresh data if new revision of current package was pushed
-      if (res && res.pushed && res.pushed.name === name) {
-        setKey(R.inc)
+      if (res?.pushed?.name === name) {
+        refreshData()
         return true
       }
       return false
     },
-    [name, setKey],
+    [name, refreshData],
   )
 
   const updateDialog = usePackageUpdateDialog({ bucket, name, onExited })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <MetaTitle>{[name, bucket]}</MetaTitle>
-
       {updateDialog.element}
 
       <M.Box
@@ -468,20 +471,23 @@ export default function PackageRevisions({
           revisions
         </M.Typography>
         <M.Box flexGrow={1} />
-        <M.Button
-          variant="contained"
-          color="primary"
-          style={{ marginTop: -3, marginBottom: -3 }}
-          onClick={updateDialog.open}
-        >
-          Revise package
-        </M.Button>
+        {preferences?.ui?.actions?.revisePackage && (
+          <M.Button
+            variant="contained"
+            color="primary"
+            style={{ marginTop: -3, marginBottom: -3 }}
+            onClick={updateDialog.open}
+          >
+            Revise package
+          </M.Button>
+        )}
       </M.Box>
 
-      {revisionCountData.case({
-        Err: displayError(),
-        _: () => renderRevisionSkeletons(10),
-        Ok: (revisionCount) => {
+      {revisionCountQuery.case({
+        error: displayError(),
+        fetching: () => renderRevisionSkeletons(10),
+        data: (d) => {
+          const revisionCount = d.package?.revisions.total
           if (!revisionCount) {
             return (
               <M.Box py={5} textAlign="center">
@@ -494,22 +500,19 @@ export default function PackageRevisions({
 
           return (
             <>
-              {revisionsData.case({
-                Err: displayError(),
-                _: () => {
+              {revisionListQuery.case({
+                error: displayError(),
+                fetching: () => {
                   const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE
                   return renderRevisionSkeletons(items)
                 },
-                Ok: R.map((r) => (
-                  <Revision
-                    key={r.pointer}
-                    {...{ bucket, name, ...r }}
-                    counts={AsyncResult.mapCase(
-                      { Ok: R.prop(r.hash) },
-                      countsData.result,
-                    )}
-                  />
-                )),
+                data: (dd) =>
+                  (dd.package?.revisions.page || []).map((r) => (
+                    <Revision
+                      key={`${r.hash}:${r.modified.valueOf()}`}
+                      {...{ bucket, name, ...r }}
+                    />
+                  )),
               })}
               {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
             </>
@@ -517,6 +520,24 @@ export default function PackageRevisions({
         },
       })}
     </M.Box>
+  )
+}
+
+export default function PackageRevisionsWrapper({
+  match: {
+    params: { bucket, name },
+  },
+  location,
+}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+  const { p } = parseSearch(location.search, true)
+  const page = p ? parseInt(p, 10) : undefined
+  return (
+    <>
+      <MetaTitle>{[name, bucket]}</MetaTitle>
+      <WithPackagesSupport bucket={bucket}>
+        <PackageRevisions {...{ bucket, name, page }} />
+      </WithPackagesSupport>
+    </>
   )
 }
 

@@ -22,13 +22,13 @@ function useBlob(blob) {
   return url
 }
 
-async function loadBlob({ endpoint, sign, handle, page, firstPageBlob }) {
+async function loadBlob({ endpoint, sign, handle, page, firstPageBlob, type }) {
   if (page === 1) return firstPageBlob
   try {
     const url = sign(handle)
     const search = mkSearch({
       url,
-      input: 'pdf',
+      input: type,
       output: 'raw',
       size: 'w1024h768',
       page,
@@ -104,7 +104,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Pdf({ handle, firstPageBlob }, { className, ...props }) {
+function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const classes = useStyles()
@@ -112,7 +112,7 @@ function Pdf({ handle, firstPageBlob }, { className, ...props }) {
   const [page, setPage] = React.useState(1)
   const [pageValue, setPageValue] = React.useState(page)
 
-  const data = Data.use(loadBlob, { endpoint, sign, handle, page, firstPageBlob })
+  const data = Data.use(loadBlob, { endpoint, sign, handle, page, firstPageBlob, type })
 
   const [blob, setBlob] = React.useState(firstPageBlob)
 
@@ -130,9 +130,10 @@ function Pdf({ handle, firstPageBlob }, { className, ...props }) {
   const src = useBlob(blob)
 
   const next = React.useCallback(() => {
+    if (page >= pages) return
     setPage(page + 1)
     setPageValue(page + 1)
-  }, [setPage, setPageValue, page])
+  }, [setPage, setPageValue, page, pages])
 
   const prev = React.useCallback(() => {
     if (page <= 1) return
@@ -152,12 +153,15 @@ function Pdf({ handle, firstPageBlob }, { className, ...props }) {
       const parsed = parseInt(val, 10)
       if (Number.isNaN(parsed) || parsed < 1) {
         setPageValue(page)
+      } else if (parsed > pages) {
+        setPage(pages)
+        setPageValue(pages)
       } else {
         setPage(parsed)
         setPageValue(parsed)
       }
     },
-    [setPage, setPageValue, page],
+    [setPage, setPageValue, page, pages],
   )
 
   const handleBlur = React.useCallback(
@@ -213,9 +217,14 @@ function Pdf({ handle, firstPageBlob }, { className, ...props }) {
             onChange={handlePageChange}
             onBlur={handleBlur}
             onKeyDown={handleKey}
-          />
+          />{' '}
+          / {pages}
         </M.Typography>
-        <M.IconButton onClick={next} className={cx(classes.btn, classes.next)}>
+        <M.IconButton
+          onClick={next}
+          disabled={page >= pages}
+          className={cx(classes.btn, classes.next)}
+        >
           <M.Icon fontSize="inherit">chevron_right</M.Icon>
         </M.IconButton>
       </div>

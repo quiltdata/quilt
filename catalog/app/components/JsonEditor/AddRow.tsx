@@ -30,6 +30,7 @@ const emptyKeyProps = {
   row: {
     original: {
       address: [],
+      errors: [],
       required: false,
       sortIndex: -1,
       type: 'undefined',
@@ -51,6 +52,7 @@ const emptyValueProps = {
   row: {
     original: {
       address: [],
+      errors: [],
       required: false,
       sortIndex: -1,
       type: 'undefined',
