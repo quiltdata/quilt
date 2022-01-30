@@ -239,10 +239,12 @@ export default function Column({
               />
             )}
 
-            <ColumnFiller
-              hasSiblingColumn={hasSiblingColumn}
-              filledRowsNumber={rows.length}
-            />
+            {columnType !== 'array' && (
+              <ColumnFiller
+                hasSiblingColumn={hasSiblingColumn}
+                filledRowsNumber={rows.length}
+              />
+            )}
           </M.TableBody>
         </M.Table>
       </M.TableContainer>
