@@ -86,7 +86,7 @@ setup(
             'git-pylint-commit-hook',
         ],
         'catalog': [
-            'quilt3_local>=1rc2,<2',
+            'quilt3_local>=1,<2',
             'uvicorn>=0.15,<0.17'
         ],
     },
