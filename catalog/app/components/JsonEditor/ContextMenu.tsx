@@ -5,6 +5,19 @@ import { JsonValue, EMPTY_VALUE } from './constants'
 
 const isNumber = (v: any) => typeof v === 'number' && !Number.isNaN(v)
 
+const useContextMenuStyles = M.makeStyles((t) => ({
+  group: {
+    padding: t.spacing(1, 2, 2),
+    '& + &': {
+      borderTop: `1px solid ${t.palette.divider}`,
+      paddingTop: t.spacing(2),
+    },
+  },
+  title: {
+    marginBottom: t.spacing(1),
+  },
+}))
+
 interface ContextMenuProps {
   anchorEl: HTMLElement
   open: boolean
@@ -20,6 +33,8 @@ export default function ContextMenu({
   onClose,
   value,
 }: ContextMenuProps) {
+  const classes = useContextMenuStyles()
+
   const bootstrapObject = React.useCallback(() => {
     onChange({})
     onClose()
@@ -52,8 +67,8 @@ export default function ContextMenu({
 
   return (
     <M.Menu anchorEl={anchorEl} open={open} onClose={onClose}>
-      <M.Box px={2} pb={1}>
-        <M.Typography variant="subtitle1" style={{ marginBottom: '8px' }}>
+      <div className={classes.group}>
+        <M.Typography className={classes.title} variant="subtitle1">
           Bootstrap value as:
         </M.Typography>
         <M.ButtonGroup variant="outlined" size="small">
@@ -64,13 +79,11 @@ export default function ContextMenu({
             Array
           </M.Button>
         </M.ButtonGroup>
-      </M.Box>
+      </div>
 
       {isConvertible && (
-        <M.Box px={2} pt={2} pb={1}>
-          <M.Divider />
-
-          <M.Typography variant="subtitle1" style={{ marginBottom: '8px' }}>
+        <div className={classes.group}>
+          <M.Typography className={classes.title} variant="subtitle1">
             Convert to:
           </M.Typography>
           <M.ButtonGroup variant="outlined" size="small">
@@ -85,7 +98,7 @@ export default function ContextMenu({
               </M.Button>
             )}
           </M.ButtonGroup>
-        </M.Box>
+        </div>
       )}
     </M.Menu>
   )
