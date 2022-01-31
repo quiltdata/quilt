@@ -7,9 +7,19 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 4.0.0 - 2022-01-31
 ## Python API
 * [Added] Declared compatibility with `jsonschema==4.*`.
+* [Added] `--host` and `--port` parameters for `quilt3 catalog`.
+* [Added] `--no-browser` parameter for `quilt3 catalog`.
+* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install quilt3[catalog]`).
+* [Changed] Dependencies on `flask` and `dnspython` are dropped.
+* [Removed] Deprecated passing subpackage as part of package name for `Package.install()`, use `path` parameter instead.
+* [Removed] Deprecated calling of `Package.resolve_hash()` without specifying `name` parameter.
+* [Removed] Deprecated `PackageEntry.physical_keys`, use `PackageEntry.physical_key` instead.
+
+## CLI
+* [Removed] Deprecated passing subpackage as part of package name for `quilt3 install`, use `--path` parameter instead.
 
 ## Catalog, Lambdas
 * [Changed] pkgselect: make directly invocable, always use execution role ([#2560](https://github.com/quiltdata/quilt/pull/2560))

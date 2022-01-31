@@ -2,7 +2,9 @@
 
 ## `catalog`
 ```
-usage: quilt3 catalog [-h] [--detailed_help] [navigation_target]
+usage: quilt3 catalog [-h] [--detailed_help] [--host HOST] [--port PORT]
+                      [--no-browser]
+                      [navigation_target]
 
 Run Quilt catalog locally
 
@@ -17,28 +19,25 @@ optional arguments:
   -h, --help         show this help message and exit
   --detailed_help    Display detailed information about this command and then
                      exit
+  --host HOST        Bind socket to this host
+  --port PORT        Bind to a socket with this port
+  --no-browser       Don't open catalog in a browser after startup
 ```
 
-Run the Quilt catalog on your machine (requires Docker). Running
-`quilt3 catalog` launches a webserver on your local machine using
-Docker and a Python microservice that supplies temporary AWS
-credentials to the catalog. Temporary credentials are derived from
-your default AWS credentials (or active `AWS_PROFILE`) using
-`boto3.sts.get_session_token`. For more details about configuring and
-using AWS credentials in `boto3`, see the AWS documentation:
+Run the Quilt catalog on your machine. Running `quilt3 catalog` launches a
+Python webserver on your local machine that serves a catalog web app and
+provides required backend services using temporary AWS credentials.
+Temporary credentials are derived from your default AWS credentials
+(or active `AWS_PROFILE`) using `boto3.sts.get_session_token`.
+For more details about configuring and using AWS credentials in `boto3`,
+see the AWS documentation:
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
 
 #### Previewing files in S3
-The Quilt catalog allows users to preview files in S3 without
-downloading. It relies on a API Gateway and AWS Lambda to generate
-certain previews in the cloud. The catalog launched by `quilt3
-catalog` sends preview requests to https://open.quiltdata.com. Preview
-requests contain short-lived signed URLs generated using your AWS
-credentials. Data is encrypted in transit and no data is retained by Quilt.
-Nevertheless, it is recommended that you use `quilt3 catalog` only for public data.
-We strongly encourage users with
-sensitive data in S3 to run a private Quilt deployment. Visit
-https://quiltdata.com for more information.
+The Quilt catalog allows users to preview files in S3 by downloading and
+processing/converting them inside the Python webserver running on local machine.
+Neither your AWS credentials nor data requested goes through any third-party
+cloud services aside of S3.
 
 ## `config`
 ```
@@ -91,8 +90,7 @@ usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
 Install a package
 
 positional arguments:
-  name                  Name of package, in the USER/PKG[/PATH] format
-                        ([/PATH] is deprecated, use --path parameter instead)
+  name                  Name of package, in the USER/PKG format
 
 optional arguments:
   -h, --help            show this help message and exit

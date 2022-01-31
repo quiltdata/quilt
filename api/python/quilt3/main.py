@@ -2,13 +2,13 @@
 Parses the command-line arguments and runs a command.
 """
 
+import _thread
 import argparse
+import functools
 import json
-import subprocess
 import sys
 import time
 
-import dns.resolver
 import requests
 
 from . import Package
@@ -29,6 +29,13 @@ def parse_arg_json(value):
         return json.loads(value)
     except json.JSONDecodeError:
         raise argparse.ArgumentTypeError(f'{value!r} is not a valid json string.')
+
+
+def parse_positive_int(value):
+    value = int(value)
+    if value <= 0:
+        raise argparse.ArgumentTypeError(f'{value!r} is not a positive integer.')
+    return value
 
 
 def cmd_config(catalog_url, **kwargs):
@@ -81,88 +88,51 @@ def _test_url(url):
         return False
 
 
-def _launch_local_catalog():
-    """"
-    Launches a docker container to run nginx hosting
-    the Quilt catalog on localhost:3000
-    """
-    open_config = api._config()
-    command = ["docker", "run", "--rm"]
-    env = dict(REGISTRY_URL="http://localhost:5000",
-               S3_PROXY_URL=open_config["s3Proxy"],
-               ALWAYS_REQUIRE_AUTH="false",
-               NO_DOWNLOAD="false",
-               CATALOG_MODE="LOCAL",
-               SSO_AUTH="DISABLED",
-               PASSWORD_AUTH="ENABLED",
-               API_GATEWAY=open_config["apiGatewayEndpoint"],
-               BINARY_API_GATEWAY=open_config["binaryApiGatewayEndpoint"])
-    for var in [f"{key}={value}" for key, value in env.items()]:
-        command += ["-e", var]
-    command += ["-p", "3000:80", "quiltdata/catalog"]
-    subprocess.run(command, check=True)
-
-
-def _launch_local_s3proxy():
-    """"
-    Launches an s3 proxy (via docker)
-    on localhost:5002
-    """
-    dns_resolver = dns.resolver.Resolver()
-    command = ["docker", "run", "--rm"]
-
-    # Workaround for a Docker-for-Mac bug in which the container
-    # ends up with a different DNS server than the host.
-    # Workaround #2: use only IPv4 addresses.
-    # Note: leaving this code in though it isn't called so that it
-    # can be reintroduced once Docker-for-Mac DNS works reliably.
-    # TODO: switch back to this local s3proxy or remove this function
-    if sys.platform == 'darwin':
-        nameservers = [ip for ip in dns_resolver.nameservers if ip.count('.') == 3]
-        command += ["--dns", nameservers[0]]
-
-    command += ["-p", "5002:80", "quiltdata/s3proxy"]
-    subprocess.run(command, check=True)
-
-
 catalog_cmd_detailed_help = """
-Run the Quilt catalog on your machine (requires Docker). Running
-`quilt3 catalog` launches a webserver on your local machine using
-Docker and a Python microservice that supplies temporary AWS
-credentials to the catalog. Temporary credentials are derived from
-your default AWS credentials (or active `AWS_PROFILE`) using
-`boto3.sts.get_session_token`. For more details about configuring and
-using AWS credentials in `boto3`, see the AWS documentation:
+Run the Quilt catalog on your machine. Running `quilt3 catalog` launches a
+Python webserver on your local machine that serves a catalog web app and
+provides required backend services using temporary AWS credentials.
+Temporary credentials are derived from your default AWS credentials
+(or active `AWS_PROFILE`) using `boto3.sts.get_session_token`.
+For more details about configuring and using AWS credentials in `boto3`,
+see the AWS documentation:
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
 
 #### Previewing files in S3
-The Quilt catalog allows users to preview files in S3 without
-downloading. It relies on a API Gateway and AWS Lambda to generate
-certain previews in the cloud. The catalog launched by `quilt3
-catalog` sends preview requests to https://open.quiltdata.com. Preview
-requests contain short-lived signed URLs generated using your AWS
-credentials. Data is encrypted in transit and no data is retained by Quilt.
-Nevertheless, it is recommended that you use `quilt3 catalog` only for public data.
-We strongly encourage users with
-sensitive data in S3 to run a private Quilt deployment. Visit
-https://quiltdata.com for more information.
+The Quilt catalog allows users to preview files in S3 by downloading and
+processing/converting them inside the Python webserver running on local machine.
+Neither your AWS credentials nor data requested goes through any third-party
+cloud services aside of S3.
 """
 
 
-def cmd_catalog(navigation_target=None, detailed_help=False):
+def _launch_local_catalog(*, host: str, port: int):
+    try:
+        import uvicorn
+
+        from quilt3_local.main import app
+    except ModuleNotFoundError as e:
+        if e.name in (
+            'uvicorn',
+            'quilt3_local',
+        ):
+            raise QuiltException('To run `quilt3 catalog` install `quilt3[catalog]`') from e
+        raise
+    _thread.start_new_thread(functools.partial(uvicorn.run, host=host, port=port, log_level="info"), (app,))
+
+
+def cmd_catalog(*, navigation_target=None, detailed_help=False, host: str, port: int, no_browser: bool):
     """
     Run the Quilt catalog locally. If navigation_targets starts with 's3://', open file view. Otherwise assume it
     refers to a package, following the pattern: BUCKET:USER/PKG
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
-    from .registry import app  # Delay importing it cause it's expensive.
-
     if detailed_help:
         print(catalog_cmd_detailed_help)
         return
 
-    local_catalog_url = "http://localhost:3000"
+    local_catalog_url = f"http://{host}:{port}"
 
     # Build the catalog URL - we do this at the beginning so simple syntax errors return immediately
     if navigation_target is None:
@@ -179,32 +149,37 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
         bucket, package_name = navigation_target.split(":")
         catalog_url = catalog_package_url(local_catalog_url, bucket, package_name)
 
-    if not _test_url(local_catalog_url):
-        _launch_local_catalog()
+    should_launch_local_catalog = not _test_url(local_catalog_url)
+    if should_launch_local_catalog:
+        _launch_local_catalog(host=host, port=port)
 
-    # Make sure the containers are running and available before opening the browser window
-    print("Waiting for containers to launch...")
-    failure_timeout_secs = 15
-    poll_interval_secs = 0.5
-    start_time = time.time()
-    while True:
-        if time.time() - start_time > failure_timeout_secs:
-            catalog_failed = _test_url(local_catalog_url)
-            if not catalog_failed:
-                # Succeeded at the last second, let it proceed
+        # Make sure the containers are running and available before opening the browser window
+        print("Waiting for local catalog app to launch...")
+        failure_timeout_secs = 15
+        poll_interval_secs = 0.5
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > failure_timeout_secs:
+                # Succeeded at the last second, let it proceed.
+                if _test_url(local_catalog_url):
+                    break
+                raise QuiltException("The local catalog app did not successfully launch.")
+
+            if _test_url(local_catalog_url):
+                # Everything is working, proceed
                 break
-            raise QuiltException(f"The backend containers needed to run the catalog did not both successfully launch. "
-                                 f"Status:\n"
-                                 f"\tCATALOG: {'FAILED' if catalog_failed else 'SUCCEEDED'}")
+            else:
+                time.sleep(poll_interval_secs)  # The containers can take a moment to launch
 
-        if _test_url(local_catalog_url):
-            # Everything is working, proceed
-            break
-        else:
-            time.sleep(poll_interval_secs)  # The containers can take a moment to launch
+    if not no_browser:
+        open_url(catalog_url)
 
-    open_url(catalog_url)
-    app.run()
+    if should_launch_local_catalog:
+        while True:
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                sys.exit(0)
 
 
 def cmd_disable_telemetry():
@@ -305,6 +280,23 @@ def create_parser():
             help="Display detailed information about this command and then exit",
             action="store_true",
     )
+    catalog_p.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Bind socket to this host",
+    )
+    catalog_p.add_argument(
+        "--port",
+        type=parse_positive_int,
+        default=3000,
+        help="Bind to a socket with this port",
+    )
+    catalog_p.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Don't open catalog in a browser after startup",
+    )
     catalog_p.set_defaults(func=cmd_catalog)
 
     # disable-telemetry
@@ -319,7 +311,7 @@ def create_parser():
     install_p.add_argument(
         "name",
         help=(
-            "Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)"
+            "Name of package, in the USER/PKG format"
         ),
         type=str,
     )

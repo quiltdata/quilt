@@ -30,10 +30,7 @@ Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH
-    (/PATH is deprecated, use the `path` parameter instead),
-    in this case only the sub-package or the entry specified by PATH will
-    be downloaded.
+* __name(str)__:  Name of package to install.
 * __registry(str)__:  Registry where package is located.
     Defaults to the default remote registry.
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.
@@ -416,15 +413,12 @@ __Returns__
 a PackageEntry
 
 ## __slots__
-tuple() -> empty tuple
-tuple(iterable) -> tuple initialized from iterable's items
+Built-in immutable sequence.
+
+If no argument is given, the constructor returns an empty tuple.
+If iterable is specified the tuple is initialized from iterable's items.
 
 If the argument is a tuple, the return value is the same object.
-
-## physical_keys
-
-Deprecated
-
 
 ## PackageEntry.as\_dict(self)  {#PackageEntry.as\_dict}
 
