@@ -7,7 +7,7 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 4.0.0 - 2022-01-31
 ## Python API
 * [Added] Declared compatibility with `jsonschema==4.*`.
 * [Added] `--host` and `--port` parameters for `quilt3 catalog`.
