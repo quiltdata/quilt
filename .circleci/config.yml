@@ -11,9 +11,6 @@ release-tags: &release-tags
     only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
 
 executors:
-  python-36:
-    docker:
-      - image: cimg/python:3.6
   python-37:
     docker:
       - image: cimg/python:3.7
@@ -26,7 +23,7 @@ executors:
   python-310:
     docker:
       - image: cimg/python:3.10
-  python: python-36
+  python: python-37
 
 commands:
   setup-venv:
@@ -223,7 +220,6 @@ workflows:
           matrix:
             parameters:
               executor:
-                - python-36
                 - python-37
                 - python-38
                 - python-39

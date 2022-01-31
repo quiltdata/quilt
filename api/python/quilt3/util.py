@@ -34,7 +34,7 @@ TEMPFILE_DIR_PATH = BASE_PATH / "tempfiles"
 CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
-PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
+PACKAGE_NAME_FORMAT = r"^[\w-]+/[\w-]+$"
 DISABLE_TQDM = get_bool_from_env('QUILT_MINIMIZE_STDOUT')
 PACKAGE_UPDATE_POLICY = {'incoming', 'existing'}
 IS_CACHE_ENABLED = not get_bool_from_env('QUILT_DISABLE_CACHE')
@@ -357,19 +357,9 @@ class QuiltConfig(OrderedDict):
         return "<{} at {!r} {}>".format(type(self).__name__, str(self.filepath), json.dumps(self, indent=4))
 
 
-def parse_sub_package_name(name):
-    """
-    Extract package name and optional sub-package path as tuple.
-    """
-    m = re.match(PACKAGE_NAME_FORMAT, name)
-    if m:
-        return tuple(m.groups())
-
-
 def validate_package_name(name):
     """ Verify that a package name is two alphanumeric strings separated by a slash."""
-    parts = parse_sub_package_name(name)
-    if not parts or parts[1]:
+    if not re.match(PACKAGE_NAME_FORMAT, name):
         raise QuiltException(f"Invalid package name: {name}.")
 
 

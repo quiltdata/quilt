@@ -24,12 +24,7 @@ from quilt3.backends.local import (
     LocalPackageRegistryV2,
 )
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
-from quilt3.util import (
-    PhysicalKey,
-    QuiltException,
-    RemovedInQuilt4Warning,
-    validate_package_name,
-)
+from quilt3.util import PhysicalKey, QuiltException, validate_package_name
 
 from ..utils import QuiltTestCase
 
@@ -504,14 +499,6 @@ class PackageTest(QuiltTestCase):
 
         with pytest.raises(QuiltException):
             pkg['bar'].deserialize()
-
-    def test_package_entry_physical_keys(self):
-        pkg = Package().set('foo', DATA_DIR / 'foo.txt')
-        entry = pkg['foo']
-        physical_key = entry.physical_key
-        with pytest.warns(RemovedInQuilt4Warning, match='PackageEntry.physical_keys is deprecated'):
-            physical_keys = entry.physical_keys
-        assert [physical_key] == physical_keys
 
     def test_local_set_dir(self):
         """ Verify building a package from a local directory. """
@@ -1427,70 +1414,6 @@ class PackageTest(QuiltTestCase):
             assert entry.get_cached_path() is None
             object_path_cache_mock.get.assert_not_called()
 
-    def test_install_subpackage_deprecated_and_new(self):
-        pkg_name = 'Quilt/Foo'
-        bucket = 'my-test-bucket'
-        path = 'baz'
-        dest = 'package'
-
-        with pytest.warns(RemovedInQuilt4Warning):
-            with pytest.raises(ValueError):
-                Package.install(f'{pkg_name}/{path}', registry=f's3://{bucket}', dest=dest, path=path)
-
-    @pytest.mark.usefixtures('isolate_packages_cache')
-    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
-    @patch('quilt3.packages.ObjectPathCache.set')
-    def test_install_subpackage_deprecated(self, mocked_cache_set):
-        registry = 's3://my-test-bucket'
-        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
-        pkg_name = 'Quilt/Foo'
-        subpackage_path = 'baz'
-        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
-        entry_content = b'42'
-        entries = (
-            (entry_url, entry_content),
-        )
-        dest = 'package'
-        self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
-
-        with pytest.warns(RemovedInQuilt4Warning):
-            Package.install(f'{pkg_name}/{subpackage_path}', registry=registry, dest=dest)
-
-        path = pathlib.Path.cwd() / dest / 'bat'
-        mocked_cache_set.assert_called_once_with(
-            entry_url,
-            PhysicalKey.from_path(path).path,
-        )
-        assert path.read_bytes() == entry_content
-
-    @pytest.mark.usefixtures('isolate_packages_cache')
-    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
-    @patch('quilt3.packages.ObjectPathCache.set')
-    def test_install_entry_deprecated(self, mocked_cache_set):
-        registry = 's3://my-test-bucket'
-        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
-        pkg_name = 'Quilt/Foo'
-        subpackage_path = 'baz/bat'
-        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
-        entry_content = b'42'
-        entries = (
-            (entry_url, entry_content),
-        )
-        dest = 'package'
-        self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
-
-        with pytest.warns(RemovedInQuilt4Warning):
-            Package.install(f'{pkg_name}/{subpackage_path}', registry=registry, dest=dest)
-
-        path = pathlib.Path.cwd() / dest / 'bat'
-        mocked_cache_set.assert_called_once_with(
-            entry_url,
-            PhysicalKey.from_path(path).path,
-        )
-        assert path.read_bytes() == entry_content
-
     @pytest.mark.usefixtures('isolate_packages_cache')
     @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
@@ -1629,11 +1552,6 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException, match='Invalid package name'):
             Package.resolve_hash('?', Mock(), Mock())
 
-    def _test_resolve_hash_without_pkg_name(self, hash_prefix, top_hash1):
-        msg = r"Calling resolve_hash\(\) without the 'name' parameter is deprecated."
-        with pytest.warns(RemovedInQuilt4Warning, match=msg):
-            assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
-
     def test_resolve_hash(self):
         pkg_name = 'Quilt/Test'
         top_hash1 = 'top_hash11'
@@ -1653,7 +1571,6 @@ class PackageTest(QuiltTestCase):
             Package().build(pkg_name)
 
         assert Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix) == top_hash1
-        self._test_resolve_hash_without_pkg_name(hash_prefix, top_hash1)
 
         with patch('quilt3.Package.top_hash', top_hash3), \
              patch('time.time', return_value=3):
@@ -1831,10 +1748,6 @@ class PackageTestV2(PackageTest):
     default_registry_version = 2
     S3PackageRegistryDefault = S3PackageRegistryV2
     LocalPackageRegistryDefault = LocalPackageRegistryV2
-
-    def _test_resolve_hash_without_pkg_name(self, hash_prefix, top_hash1):
-        with pytest.raises(TypeError, match='Package name is required'):
-            assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
 
     def local_manifest_timestamp_fixer(self, timestamp):
         wrapped = self.LocalPackageRegistryDefault.push_manifest
