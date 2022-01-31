@@ -1,11 +1,11 @@
-import Ajv, { ErrorObject } from 'ajv'
+import Ajv from 'ajv'
 import brace from 'brace'
 import { JsonEditor as ReactJsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
-import { JsonValue } from 'components/JsonEditor/constants'
+import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 
@@ -47,7 +47,7 @@ export default function MetadataEditor({
 }: MetadataEditorProps) {
   const classes = useStyles()
   const schemaValidator = React.useMemo(() => makeSchemaValidator(schema), [schema])
-  const [errors, setErrors] = React.useState<(Error | ErrorObject)[]>(() =>
+  const [errors, setErrors] = React.useState<ValidationErrors>(() =>
     schemaValidator(value),
   )
 
@@ -79,10 +79,11 @@ export default function MetadataEditor({
         />
       ) : (
         <JsonEditor
+          errors={errors}
           multiColumned={multiColumned}
-          value={value}
           onChange={handleChange}
           schema={schema}
+          value={value}
         />
       )}
 

@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -7,6 +8,7 @@ import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
+import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
 import { COLUMN_IDS, JsonValue, RowData } from './constants'
@@ -18,14 +20,14 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
-  adjacent: {
+  sibling: {
     flex: 1,
 
     '& + &': {
       marginLeft: '-1px',
     },
   },
-  adjacentButton: {
+  siblingButton: {
     paddingLeft: t.spacing(1),
   },
   scroll: {
@@ -76,8 +78,30 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
   )
 }
 
+const MIN_ROWS_NUMBER = 10
+
+interface ColumnFillerProps {
+  hasSiblingColumn: boolean
+  filledRowsNumber: number
+}
+
+function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps) {
+  const emptyRows = React.useMemo(() => {
+    if (!hasSiblingColumn || filledRowsNumber >= MIN_ROWS_NUMBER) return []
+    return R.range(0, MIN_ROWS_NUMBER - filledRowsNumber)
+  }, [hasSiblingColumn, filledRowsNumber])
+
+  return (
+    <>
+      {emptyRows.map((index) => (
+        <EmptyRow key={`empty_row_${index}`} />
+      ))}
+    </>
+  )
+}
+
 interface ColumnProps {
-  adjacent: boolean
+  hasSiblingColumn: boolean
   className: string
   columnPath: string[]
   data: {
@@ -93,7 +117,7 @@ interface ColumnProps {
 }
 
 export default function Column({
-  adjacent,
+  hasSiblingColumn,
   className,
   columnPath,
   data,
@@ -149,12 +173,16 @@ export default function Column({
   )
 
   return (
-    <div className={cx(classes.root, { [classes.adjacent]: adjacent }, className)}>
+    <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
       {!!columnPath.length && (
-        <Breadcrumbs tailOnly={adjacent} items={columnPath} onSelect={onBreadcrumb} />
+        <Breadcrumbs
+          tailOnly={hasSiblingColumn}
+          items={columnPath}
+          onSelect={onBreadcrumb}
+        />
       )}
 
-      <M.TableContainer className={cx({ [classes.scroll]: adjacent })}>
+      <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
@@ -183,7 +211,7 @@ export default function Column({
             {columnType === 'array' && (
               <AddArrayItem
                 {...{
-                  className: adjacent ? classes.adjacentButton : undefined,
+                  className: hasSiblingColumn ? classes.siblingButton : undefined,
                   columnPath,
                   index: rows.length,
                   onAdd: onAddRowInternal,
@@ -202,6 +230,11 @@ export default function Column({
                 }}
               />
             )}
+
+            <ColumnFiller
+              hasSiblingColumn={hasSiblingColumn}
+              filledRowsNumber={rows.length}
+            />
           </M.TableBody>
         </M.Table>
       </M.TableContainer>

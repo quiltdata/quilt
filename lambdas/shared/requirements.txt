@@ -1,5 +1,5 @@
 fcsparser==0.2.1
-numpy==1.19.5
+numpy==1.21.5
 openpyxl==3.0.7
 pandas==1.1.5
 psutil==5.7.0

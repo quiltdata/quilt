@@ -1,27 +1,28 @@
-# The bare minimum Dockerfile to install aicsimageio==3.0.* and all its dependencies
+FROM amazon/aws-lambda-python:3.8 as base
 
-# Must start from this image for lambda support
-FROM amazonlinux:2018.03
+FROM base as pyenv_builder
+RUN yum -y install gcc
+COPY shared/requirements.txt /requirements/shared.txt
+COPY thumbnail/requirements.txt /requirements/thumbnail.txt
 
-# Install python
-RUN yum install python36-devel.x86_64 -y
-RUN yum install python36-pip.noarch -y
+RUN pip install -U pip setuptools
+RUN pip install --target /deps -r /requirements/shared.txt -r /requirements/thumbnail.txt
 
-# Get gcc for Cython
-RUN yum install gcc.noarch -y
+COPY shared/ /src/shared/
+COPY thumbnail/ /src/thumbnail/
+RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
 
-# Set python3.6 to default python3
-RUN ln -sf /usr/bin/python3.6 /usr/bin/python3
-RUN ln -sf /usr/bin/pip-3.6 /usr/bin/pip3
 
-# Get requirements file
-COPY requirements.txt requirements.txt
+FROM base
+RUN yum -y install amazon-linux-extras && \
+    # amazon-linux-extras command is broken by the base image.
+    python2 -m amazon_linux_extras enable libreoffice && \
+    yum -y install libreoffice-impress poppler-utils && \
+    yum -y remove amazon-linux-extras && \
+    yum clean all
 
-# Update pip
-RUN pip3 install --upgrade pip
+# Install Python environment.
+COPY --from=pyenv_builder /deps/ $LAMBDA_TASK_ROOT
+COPY --from=pyenv_builder /lambda/ $LAMBDA_TASK_ROOT
 
-# Get Cython for numpy
-RUN pip3 install Cython
-
-# Install package
-RUN pip3 install -r requirements.txt
+CMD ["t4_lambda_thumbnail.lambda_handler"]

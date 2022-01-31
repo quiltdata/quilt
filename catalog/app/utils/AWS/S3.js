@@ -19,6 +19,7 @@ const DEFAULT_OPTS = {
 
 const PROXIED = Symbol('proxied')
 const PRESIGN = Symbol('presign')
+const FORCE_PROXY = Symbol('forceProxy')
 
 const Ctx = React.createContext()
 
@@ -113,7 +114,7 @@ function useSmartS3() {
 
       prepareSignedUrl(req) {
         super.prepareSignedUrl(req)
-        req.httpRequest[PRESIGN] = true
+        if (!req.httpRequest[FORCE_PROXY]) req.httpRequest[PRESIGN] = true
       }
 
       makeRequest(operation, params, callback) {
@@ -124,7 +125,12 @@ function useSmartS3() {
           params = null
         }
 
+        const forceProxy = params?.forceProxy ?? false
+        delete params?.forceProxy
         const req = super.makeRequest(operation, params)
+        if (forceProxy) {
+          req.httpRequest[FORCE_PROXY] = true
+        }
         const type = this.getReqType(req)
 
         if (type !== 'signed') {
