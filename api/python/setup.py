@@ -87,7 +87,7 @@ setup(
         ],
         'catalog': [
             'quilt3_local>=1,<2',
-            'uvicorn>=0.15,<0.17'
+            'uvicorn>=0.15,<0.18',
         ],
     },
     include_package_data=True,
