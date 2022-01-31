@@ -56,7 +56,7 @@ function TypeHelp({ errors, humanReadableSchema, mismatch, schema }: TypeHelpPro
 
   return (
     <div>
-      {validationError || type}
+      {errors.length ? validationError : type}
       {!!schema?.description && <p>Description: {schema.description}</p>}
     </div>
   )

@@ -87,10 +87,12 @@ interface JsonEditorProps {
   disabled?: boolean
   fieldPath: string[]
   jsonDict: Record<string, JsonValue>
+  menuFieldPath: string[]
   multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
   removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
+  setMenuFieldPath: (path: string[]) => void
 }
 
 const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function JsonEditor(
@@ -102,10 +104,12 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     disabled,
     fieldPath,
     jsonDict,
+    menuFieldPath,
     multiColumned,
     onChange,
     removeField,
     setFieldPath,
+    setMenuFieldPath,
   },
   ref,
 ) {
@@ -157,6 +161,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
             <Column
               className={classes.column}
               columnPath={columnPath}
+              contextMenuPath={menuFieldPath}
               data={columnData}
               hasSiblingColumn={multiColumned}
               jsonDict={jsonDict}
@@ -164,6 +169,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               onAddRow={handleRowAdd}
               onBreadcrumb={setFieldPath}
               onChange={handleValueChange}
+              onContextMenu={setMenuFieldPath}
               onExpand={setFieldPath}
               onRemove={handleRowRemove}
             />
@@ -189,6 +195,8 @@ interface StateRenderProps {
   jsonDict: Record<string, JsonValue>
   removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
+  menuFieldPath: string[]
+  setMenuFieldPath: (path: string[]) => void
 }
 
 interface JsonEditorWrapperProps {

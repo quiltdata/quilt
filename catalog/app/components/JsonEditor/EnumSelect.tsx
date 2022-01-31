@@ -20,11 +20,17 @@ const useStyles = M.makeStyles((t) => ({
 
 interface EnumSelectProps {
   data: RowData
-  value: JsonValue
   onChange: (value: JsonValue) => void
+  onContextMenu: React.MouseEventHandler<HTMLElement>
+  value: JsonValue
 }
 
-export default function EnumSelect({ data, value, onChange }: EnumSelectProps) {
+export default function EnumSelect({
+  data,
+  onChange,
+  onContextMenu,
+  value,
+}: EnumSelectProps) {
   const classes = useStyles()
 
   if (!data?.valueSchema?.enum) throw new Error('This is not enum')
@@ -36,7 +42,7 @@ export default function EnumSelect({ data, value, onChange }: EnumSelectProps) {
   )
 
   return (
-    <div className={classes.root}>
+    <div className={classes.root} onContextMenu={onContextMenu}>
       <Lab.Autocomplete
         className={classes.select}
         freeSolo

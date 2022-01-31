@@ -104,6 +104,7 @@ interface ColumnProps {
   hasSiblingColumn: boolean
   className: string
   columnPath: string[]
+  contextMenuPath: string[]
   data: {
     items: RowData[]
     parent: JsonValue
@@ -112,19 +113,22 @@ interface ColumnProps {
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: string[]) => void
   onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
 }
 
 export default function Column({
-  hasSiblingColumn,
   className,
   columnPath,
+  contextMenuPath,
   data,
+  hasSiblingColumn,
   jsonDict,
   onAddRow,
   onBreadcrumb,
   onChange,
+  onContextMenu,
   onExpand,
   onRemove,
 }: ColumnProps) {
@@ -192,8 +196,10 @@ export default function Column({
 
               const props = {
                 cells: row.cells,
-                fresh: isLastRow && hasNewRow,
                 columnPath,
+                contextMenuPath,
+                fresh: isLastRow && hasNewRow,
+                onContextMenu,
                 onExpand,
                 onRemove,
                 key: '',
@@ -224,17 +230,21 @@ export default function Column({
               <AddRow
                 {...{
                   columnPath,
-                  onExpand,
-                  onAdd: onAddRowInternal,
+                  contextMenuPath,
                   key: `add_row_${rows.length}`,
+                  onAdd: onAddRowInternal,
+                  onContextMenu,
+                  onExpand,
                 }}
               />
             )}
 
-            <ColumnFiller
-              hasSiblingColumn={hasSiblingColumn}
-              filledRowsNumber={rows.length}
-            />
+            {columnType !== 'array' && (
+              <ColumnFiller
+                hasSiblingColumn={hasSiblingColumn}
+                filledRowsNumber={rows.length}
+              />
+            )}
           </M.TableBody>
         </M.Table>
       </M.TableContainer>
