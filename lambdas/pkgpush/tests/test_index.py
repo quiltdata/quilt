@@ -131,7 +131,10 @@ class PackagePromoteTestBase(unittest.TestCase):
 
         user_session_mock = mock.NonCallableMagicMock(spec_set=boto3.session.Session)
         user_session_mock.client.return_value = self.s3_stubber.client
-        get_user_boto_session_patcher = mock.patch('t4_lambda_pkgpush.get_user_boto_session', return_value=user_session_mock)
+        get_user_boto_session_patcher = mock.patch(
+            't4_lambda_pkgpush.get_user_boto_session',
+            return_value=user_session_mock,
+        )
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
@@ -964,7 +967,7 @@ class HashCalculationTest(unittest.TestCase):
     def test_calculate_pkg_entry_hash(self):
         s3_client_mock = mock.MagicMock()
         s3_client_mock.generate_presigned_url.return_value = 'https://example.com'
-        with mock.patch.object(t4_lambda_pkgpush, 'invoke_hash_lambda', return_value='0' * 64) as invoke_hash_lambda_mock:
+        with mock.patch("t4_lambda_pkgpush.invoke_hash_lambda", return_value='0' * 64) as invoke_hash_lambda_mock:
             t4_lambda_pkgpush.calculate_pkg_entry_hash(s3_client_mock, self.entry_without_hash)
 
         invoke_hash_lambda_mock.assert_called_once_with(s3_client_mock.generate_presigned_url.return_value)
