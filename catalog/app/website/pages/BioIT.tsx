@@ -135,7 +135,7 @@ function BioIT() {
             </strong>
             <M.Box display="flex" flexDirection="column" pt={6}>
               <M.Button variant="contained" color="primary" onClick={talk}>
-                See Quilt at re:Invent 2021
+                Book a demo
               </M.Button>
             </M.Box>
             <M.Box pt={2} />
