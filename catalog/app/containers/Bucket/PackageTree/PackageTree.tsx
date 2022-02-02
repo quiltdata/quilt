@@ -187,7 +187,7 @@ function DirDisplay({
   crumbs,
   onRevisionPush,
 }: DirDisplayProps) {
-  const { noDownload } = Config.use()
+  const { desktop, noDownload } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -366,7 +366,7 @@ function DirDisplay({
       {updateDialog.element}
 
       <TopBar crumbs={crumbs}>
-        {preferences?.ui?.actions?.revisePackage && (
+        {preferences?.ui?.actions?.revisePackage && !desktop && (
           <M.Button
             className={classes.button}
             variant="contained"
