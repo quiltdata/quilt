@@ -15,6 +15,7 @@ $ pip install quilt3[catalog]
 ```
 
 ## Invocation
+
 ```bash
 quilt3 catalog
 ```
