@@ -223,7 +223,6 @@ interface MetaInputProps {
   schema?: JsonSchema
 }
 
-// FIXME: disabled state
 export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
   function MetaInput(
     { className, schemaError, input: { value, onChange }, meta, schema },
@@ -324,9 +323,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           </M.Typography>
           <M.Button
             className={classes.jsonTrigger}
+            disabled={disabled}
             onClick={openEditor}
-            title="Expand JSON editor"
             size="small"
+            title="Expand JSON editor"
             variant="outlined"
             endIcon={
               <M.Icon fontSize="inherit" color="primary">
@@ -353,11 +353,12 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
             <div className={classes.json}>
               <JsonEditor
+                disabled={disabled}
+                errors={errors}
                 key={jsonInlineEditorKey}
-                value={value}
                 onChange={onChangeInline}
                 schema={schema}
-                errors={errors}
+                value={value}
               />
             </div>
 
