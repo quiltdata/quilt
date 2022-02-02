@@ -29,6 +29,7 @@
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
 * [Visualization & dashboards](Catalog/VisualizationDashboards.md)
+* [Local Development Mode](Catalog/LocalMode.md)
 
 ### Examples
 * [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
