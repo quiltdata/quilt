@@ -71,7 +71,7 @@ export default function Showcase() {
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
-              <ChevronLink href="https://docs.quiltdata.com/api-reference/cli#catalog">
+              <ChevronLink href="https://docs.quiltdata.com/v/master/catalog/localmode">
                 Read more about local mode
               </ChevronLink>
             </M.Box>
