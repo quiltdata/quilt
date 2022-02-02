@@ -21,8 +21,8 @@ export default function WithPackagesSupport({
     <>{children}</>
   ) : (
     <Message headline="Packages temporarily hidden">
-      Ask an admin to add <strong>{bucket}</strong> to Quilt so that you can browse
-      packages.
+      Ask an admin to add the bucket <strong>{bucket}</strong> to Quilt so that you can
+      browse packages.
     </Message>
   )
 }
