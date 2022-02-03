@@ -265,6 +265,9 @@ function DirDisplay({
     [bucket, name, hash],
   )
 
+  const [expandedLocalFolder, setExpandedLocalFolder] = React.useState(false)
+  const [localFolder, setLocalFolder] = Download.useLocalFolder()
+
   // XXX: use different "strategy" (e.g. network-only)?
   if (dirQuery.fetching || dirQuery.stale) {
     // TODO: skeleton placeholder
@@ -366,6 +369,13 @@ function DirDisplay({
 
       {updateDialog.element}
 
+      <Download.ConfirmDialog
+        localPath={localFolder}
+        onClose={() => setExpandedLocalFolder(false)}
+        open={!!localFolder && !!expandedLocalFolder}
+        packageHandle={packageHandle}
+      />
+
       <TopBar crumbs={crumbs}>
         {preferences?.ui?.actions?.revisePackage && !desktop && (
           <M.Button
@@ -388,6 +398,7 @@ function DirDisplay({
           bucket={bucket}
           className={classes.button}
           label={path ? 'Download sub-package' : 'Download package'}
+          onClick={() => setExpandedLocalFolder(true)}
           path={downloadPath}
         />
         {preferences?.ui?.actions?.deleteRevision && (
@@ -395,6 +406,13 @@ function DirDisplay({
         )}
       </TopBar>
       <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+      {desktop && (
+        <Download.LocalFolderInput
+          onChange={setLocalFolder}
+          open={expandedLocalFolder}
+          value={localFolder}
+        />
+      )}
       <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
       <M.Box mt={2}>
         <Listing items={items} />
