@@ -177,7 +177,7 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const { noDownload } = Config.use()
+  const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
   const preferences = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
@@ -256,7 +256,7 @@ export default function Dir({
             Create package from directory
           </CopyButton>
         )}
-        {!noDownload && (
+        {!noDownload && !desktop && (
           <FileView.ZipDownloadForm
             className={classes.button}
             suffix={`dir/${bucket}/${path}`}
