@@ -1,0 +1,13 @@
+export const CLI_OUTPUT = 'cli_output'
+export const CONFIG_GET = 'config_get'
+export const CONFIRM_REQUEST = 'confirm_request'
+export const CONFIRM_RESPONSE = 'confirm_response'
+export const LOCALPATH_REQUEST = 'localpath_request' // TODO: OPEN_IN_EXPLORER
+export const LOCK_SET = 'lock'
+export const LOCK_UNSET = 'unlock'
+export const OPEN_IN_BROWSER = 'open_in_browser'
+export const OPEN_IN_EXPLORER = 'open_in_explorer'
+export const QUIT = 'quit'
+export const READY = 'ready'
+export const DOWNLOAD_PACKAGE = 'download_package'
+export const UPLOAD_PACKAGE = 'upload_package'
