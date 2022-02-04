@@ -16,21 +16,6 @@ import {
   ValidationErrors,
 } from './constants'
 
-const useStyles = M.makeStyles((t) => ({
-  default: {
-    color: t.palette.divider,
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
-    fontSize: t.typography.caption.fontSize,
-    display: 'flex',
-    '&:hover': {
-      color: t.palette.text.disabled,
-    },
-  },
-  mismatch: {
-    color: t.palette.error.main,
-  },
-}))
-
 interface TypeHelpArgs {
   errors: ValidationErrors
   humanReadableSchema: string
@@ -60,16 +45,26 @@ function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHel
   return output
 }
 
+const useTypeHelpStyles = M.makeStyles((t) => ({
+  group: {
+    '& + &': {
+      borderTop: `1px solid ${t.palette.common.white}`,
+      marginTop: t.spacing(1),
+      paddingTop: t.spacing(1),
+    },
+  },
+}))
+
 interface TypeHelpProps {
   typeHelps: string[][]
 }
 
 function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
+  const classes = useTypeHelpStyles()
   return (
     <div>
       {groups.map((group, i) => (
-        <div key={`typeHelp_group_${i}`}>
-          {i > 0 && <hr key={`typeHelp_group_${i}`} />}
+        <div className={classes.group} key={`typeHelp_group_${i}`}>
           {group.map((typeHelp, j) => (
             <p key={`typeHelp_${i}_${j}`}>{typeHelp}</p>
           ))}
@@ -85,8 +80,23 @@ interface NoteValueProps {
   value: JsonValue
 }
 
+const useNoteValueStyles = M.makeStyles((t) => ({
+  default: {
+    color: t.palette.divider,
+    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+    fontSize: t.typography.caption.fontSize,
+    display: 'flex',
+    '&:hover': {
+      color: t.palette.text.disabled,
+    },
+  },
+  mismatch: {
+    color: t.palette.error.main,
+  },
+}))
+
 function NoteValue({ errors, schema, value }: NoteValueProps) {
-  const classes = useStyles()
+  const classes = useNoteValueStyles()
 
   const humanReadableSchema = schemaTypeToHumanString(schema)
   const mismatch = value !== EMPTY_VALUE && !doesTypeMatchSchema(value, schema)
