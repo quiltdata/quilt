@@ -77,7 +77,7 @@ def lambda_handler(request):
     try:
         width = _parse_param('width', 320, 10, 640)
         height = _parse_param('height', 240, 10, 480)
-        duration = _parse_param('duration', 5.0, 0.1, 10)
+        duration = _parse_param('duration', 5.0, 0.1, 30)
         audio_bitrate = _parse_param('audio_bitrate', 128, 64, 320)
         file_size = _parse_param('file_size', MAX_FILE_SIZE, 1024, MAX_FILE_SIZE)
     except ValueError as ex:
