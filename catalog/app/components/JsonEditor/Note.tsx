@@ -7,7 +7,6 @@ import {
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
-import * as RT from 'utils/reactTools'
 
 import {
   JsonValue,
@@ -32,32 +31,51 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TypeHelpProps {
+interface TypeHelpArgs {
   errors: ValidationErrors
   humanReadableSchema: string
   mismatch: boolean
   schema?: JsonSchema
 }
 
-function TypeHelp({ errors, humanReadableSchema, mismatch, schema }: TypeHelpProps) {
-  const validationError = React.useMemo(
-    () =>
-      RT.join(
-        errors.map((error) => error.message),
-        <br />,
-      ),
-    [errors],
-  )
+function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
+  const output: string[] = []
 
-  if (humanReadableSchema === 'undefined')
-    return <>Key/value is not restricted by schema</>
+  if (errors.length) {
+    errors.forEach(({ message }) => {
+      if (!message) return
+      output.push(message)
+    })
+  }
 
-  const type = `${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`
+  if (humanReadableSchema) {
+    if (output.length) output.push('—')
+    if (humanReadableSchema === 'undefined') {
+      output.push('Key/value is not restricted by schema')
+    } else {
+      output.push(`${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`)
+    }
+  }
 
+  if (schema?.description) {
+    if (output.length) output.push('—')
+    output.push(`Description: ${schema.description}`)
+  }
+
+  return output
+}
+
+interface TypeHelpProps {
+  typeHelps: string[]
+}
+
+function TypeHelp({ typeHelps }: TypeHelpProps) {
   return (
     <div>
-      {errors.length ? validationError : type}
-      {!!schema?.description && <p>Description: {schema.description}</p>}
+      {typeHelps.map((typeHelp, index) => {
+        if (typeHelp === '—') return <hr key={`typeHelp_${index}`} />
+        return <p key={`typeHelp_${index}`}>{typeHelp}</p>
+      })}
     </div>
   )
 }
@@ -74,12 +92,14 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
   const humanReadableSchema = schemaTypeToHumanString(schema)
   const mismatch = value !== EMPTY_VALUE && !doesTypeMatchSchema(value, schema)
 
-  if (!humanReadableSchema || humanReadableSchema === 'undefined') return null
+  const typeHelps = React.useMemo(
+    () => getTypeHelps({ errors, humanReadableSchema, mismatch, schema }),
+    [errors, humanReadableSchema, mismatch, schema],
+  )
+  if (!typeHelps.length) return null
 
   return (
-    <M.Tooltip
-      title={<TypeHelp {...{ errors, humanReadableSchema, mismatch, schema }} />}
-    >
+    <M.Tooltip title={<TypeHelp typeHelps={typeHelps} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
