@@ -39,43 +39,42 @@ interface TypeHelpArgs {
 }
 
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
-  const output: string[] = []
+  const output: string[][] = []
 
   if (errors.length) {
-    errors.forEach(({ message }) => {
-      if (!message) return
-      output.push(message)
-    })
+    output.push(errors.filter(Boolean).map(({ message }) => message) as string[])
   }
 
   if (humanReadableSchema) {
-    if (output.length) output.push('—')
     if (humanReadableSchema === 'undefined') {
-      output.push('Key/value is not restricted by schema')
+      output.push(['Key/value is not restricted by schema'])
     } else {
-      output.push(`${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`)
+      output.push([`${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`])
     }
   }
 
   if (schema?.description) {
-    if (output.length) output.push('—')
-    output.push(`Description: ${schema.description}`)
+    output.push([`Description: ${schema.description}`])
   }
 
   return output
 }
 
 interface TypeHelpProps {
-  typeHelps: string[]
+  typeHelps: string[][]
 }
 
-function TypeHelp({ typeHelps }: TypeHelpProps) {
+function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
   return (
     <div>
-      {typeHelps.map((typeHelp, index) => {
-        if (typeHelp === '—') return <hr key={`typeHelp_${index}`} />
-        return <p key={`typeHelp_${index}`}>{typeHelp}</p>
-      })}
+      {groups.map((group, i) => (
+        <div key={`typeHelp_group_${i}`}>
+          {i > 0 && <hr key={`typeHelp_group_${i}`} />}
+          {group.map((typeHelp, j) => (
+            <p key={`typeHelp_${i}_${j}`}>{typeHelp}</p>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
