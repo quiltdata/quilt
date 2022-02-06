@@ -15,6 +15,7 @@ from .api import (
     copy,
     delete_package,
     disable_telemetry,
+    lineage,
     list_package_versions,
     list_packages,
     search,
