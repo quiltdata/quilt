@@ -6,6 +6,8 @@ import urllib.request
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
+import fsspec
+
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
@@ -155,8 +157,7 @@ def lambda_handler(request):
 
     src = urllib.request.urlopen(url)
     if compression == "gz":
-        # FIXME: we also should close "plain" src.
-        src = gzip.open(src)
+        src = pyarrow.CompressedInputStream(src, "gzip")
     with src:
         # reader = pyarrow.csv.open_csv(src)
         # batch = next(iter(reader))
@@ -167,7 +168,8 @@ def lambda_handler(request):
                 pyarrow.csv.write_csv(
                     batch,
                     out,
-                    write_options=pyarrow.csv.WriteOptions(batch_size=1),
+                    # FIXME: comment re batch_size
+                    write_options=pyarrow.csv.WriteOptions(batch_size=64),
                 )
             except out.Overflow:
                 pass
