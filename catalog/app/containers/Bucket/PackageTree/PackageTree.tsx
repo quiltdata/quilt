@@ -342,7 +342,9 @@ function DirDisplay({
     )
     .filter(Boolean)
 
-  const downloadPath = path ? `${name}/${hash}/${path}` : `${name}/${hash}`
+  const downloadPath = path
+    ? `package/${bucket}/${name}/${hash}/${path}`
+    : `package/${bucket}/${name}/${hash}`
 
   return (
     <>
@@ -393,7 +395,6 @@ function DirDisplay({
           </CopyButton>
         )}
         <Download.DownloadButton
-          bucket={bucket}
           className={classes.button}
           label={path ? 'Download sub-package' : 'Download package'}
           onClick={() => setExpandedLocalFolder(true)}
