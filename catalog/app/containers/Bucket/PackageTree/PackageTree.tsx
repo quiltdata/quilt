@@ -342,9 +342,7 @@ function DirDisplay({
     )
     .filter(Boolean)
 
-  const downloadPath = path
-    ? `package/${bucket}/${name}/${hash}/${path}`
-    : `package/${bucket}/${name}/${hash}`
+  const downloadPath = path ? `${name}/${hash}/${path}` : `${name}/${hash}`
 
   return (
     <>
