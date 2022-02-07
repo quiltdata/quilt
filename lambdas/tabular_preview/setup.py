@@ -6,7 +6,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "pyarrow>=6.0.1,<7",
-        "fsspec[http]>=2022.1.0",
+        "pyarrow>=6.0.1,<7",  # TODO: 7 is released
+        "fsspec[http]>=2022.1.0",  # TODO: remove if unneeded
     ],
 )

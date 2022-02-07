@@ -6,8 +6,6 @@ import urllib.request
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
-import fsspec
-
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
