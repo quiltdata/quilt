@@ -11,11 +11,14 @@ import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Config from 'utils/Config'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
+import * as Download from '../Download'
+import * as Upload from '../Upload'
 import * as requests from '../requests'
 
 import DialogError from './DialogError'
@@ -123,6 +126,7 @@ function PackageCreationForm({
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
+  const { desktop }: { desktop: boolean } = Config.use()
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
@@ -271,6 +275,8 @@ function PackageCreationForm({
     }
   }
 
+  // const uploadPackage = Upload.useUploadPackage()
+
   const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
     setSubmitting(true)
     try {
@@ -334,6 +340,8 @@ function PackageCreationForm({
 
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
+
+  const [defaultLocalFolder] = Download.useLocalFolder()
 
   return (
     <RF.Form
@@ -422,7 +430,14 @@ function PackageCreationForm({
                     }}
                   />
 
-                  {schemaLoading || hideMeta ? (
+                  {/* eslint-disable-next-line no-nested-ternary */}
+                  {desktop ? (
+                    <RF.Field
+                      name="localFolder"
+                      component={Upload.LocalFolderInput}
+                      initialValue={defaultLocalFolder}
+                    />
+                  ) : schemaLoading || hideMeta ? (
                     <MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
                   ) : (
                     <RF.Field

@@ -108,7 +108,9 @@ export function ConfirmDialog({
 
   return (
     <M.Dialog maxWidth={maxWidth} open={open}>
-      <M.DialogTitle>Confirm download</M.DialogTitle>
+      <M.DialogTitle>
+        {syncing ? 'Package is downloading' : 'Confirm download'}
+      </M.DialogTitle>
       <M.DialogContent>
         {syncing && (
           <M.LinearProgress
