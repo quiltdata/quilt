@@ -41,7 +41,7 @@ const serializeCredentials = (credentials: Credentials) => ({
   sessionToken: credentials.sessionToken,
 })
 
-export const Provider = function SentryProvider({
+export const Provider = function IpcProvider({
   children,
   value: { off, on, invoke, send },
 }: SentryProviderProps) {

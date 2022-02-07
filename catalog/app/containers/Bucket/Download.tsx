@@ -30,8 +30,6 @@ export function DownloadButton({
 
   if (noDownload) return null
 
-  if (noDownload) return null
-
   if (desktop) {
     return (
       <FileView.DownloadButtonLayout
