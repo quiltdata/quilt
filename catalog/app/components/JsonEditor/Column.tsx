@@ -4,6 +4,8 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import * as Config from 'utils/Config'
+
 import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
@@ -86,10 +88,17 @@ interface ColumnFillerProps {
 }
 
 function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps) {
+  const { desktop } = Config.use()
+  const fillerEnabled = React.useMemo(
+    () => hasSiblingColumn || desktop,
+    [desktop, hasSiblingColumn],
+  )
   const emptyRows = React.useMemo(() => {
-    if (!hasSiblingColumn || filledRowsNumber >= MIN_ROWS_NUMBER) return []
+    if (filledRowsNumber >= MIN_ROWS_NUMBER) return []
     return R.range(0, MIN_ROWS_NUMBER - filledRowsNumber)
-  }, [hasSiblingColumn, filledRowsNumber])
+  }, [filledRowsNumber])
+
+  if (!fillerEnabled) return null
 
   return (
     <>
