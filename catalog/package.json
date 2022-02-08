@@ -50,10 +50,10 @@
     }
   },
   "dependencies": {
-    "@finos/perspective": "^1.0.4",
-    "@finos/perspective-viewer": "^1.0.4",
-    "@finos/perspective-viewer-d3fc": "^1.0.4",
-    "@finos/perspective-viewer-datagrid": "^1.0.4",
+    "@finos/perspective": "^1.2.0",
+    "@finos/perspective-viewer": "^1.2.0",
+    "@finos/perspective-viewer-d3fc": "^1.2.0",
+    "@finos/perspective-viewer-datagrid": "^1.2.0",
     "@material-ui/core": "^4.11.4",
     "@material-ui/data-grid": "^4.0.0-alpha.27",
     "@material-ui/lab": "^4.0.0-alpha.58",
@@ -139,7 +139,7 @@
     "xlsx": "^0.17.5"
   },
   "devDependencies": {
-    "@finos/perspective-webpack-plugin": "^1.0.4",
+    "@finos/perspective-webpack-plugin": "^1.2.0",
     "@graphql-codegen/cli": "^1.21.6",
     "@graphql-codegen/near-operation-file-preset": "^1.18.4",
     "@graphql-codegen/typed-document-node": "^1.18.9",
