@@ -132,6 +132,46 @@ def write_csv(rows):
     return buf.getvalue()
 
 
+PYARROW_WRITE_OPTIONS = pyarrow.csv.WriteOptions(batch_size=100)
+
+
+def preview_csv(src, out):
+    with src:
+        t = pyarrow.csv.read_csv(src)
+    with out:
+        try:
+            pyarrow.csv.write_csv(t, out, write_options=PYARROW_WRITE_OPTIONS)
+        except out.Overflow:
+            pass
+
+
+def preview_excel(src, out):
+    with src:
+        df = pandas.read_excel(io.BytesIO(src.read()), sheet_name=0)
+    with out:
+        try:
+            df.to_csv(out)
+        except out.Overflow:
+            pass
+
+
+def preview_parquet(src, out):
+    with src:
+        t = pyarrow.parquet.read_table(src)
+    with out:
+        try:
+            pyarrow.csv.write_csv(t, out, write_options=PYARROW_WRITE_OPTIONS)
+        except out.Overflow:
+            pass
+
+
+handlers = {
+    "csv": preview_csv,
+    "excel": preview_excel,
+    "parquet": preview_parquet,
+}
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -156,35 +196,15 @@ def lambda_handler(request):
             "title": "Invalid url=. Expected S3 virtual-host URL."
         })
 
+    handler = handlers[input_type]
     # TODO: urllib.request.urlopen() seems to be faster for per-line reading for CSV.
     # src = urllib.request.urlopen(url)
     src = fsspec.open(url).open()
     if compression == "gz":
         src = pyarrow.CompressedInputStream(src, "gzip")
-    with src:
-        if input_type == "csv":
-            # reader = pyarrow.csv.open_csv(src)
-            # batch = next(iter(reader))
-            batch = pyarrow.csv.read_csv(src)
-        elif input_type == "excel":
-            batch = pyarrow.Table.from_pandas(
-                pandas.read_excel(io.BytesIO(src.read()), sheet_name=0)
-            )
-        elif input_type == "parquet":
-            batch = pyarrow.parquet.read_table(src)
-        else:
-            assert False
-        buf = io.BytesIO()
-        with GzipOutputBuffer(max_size=LAMBDA_MAX_OUT_BINARY, fileobj=buf, mode="wb") as out:
-            try:
-                pyarrow.csv.write_csv(
-                    batch,
-                    out,
-                    # FIXME: comment re batch_size
-                    write_options=pyarrow.csv.WriteOptions(batch_size=64),
-                )
-            except out.Overflow:
-                pass
+    buf = io.BytesIO()
+    out = GzipOutputBuffer(max_size=LAMBDA_MAX_OUT_BINARY, fileobj=buf, mode="wb")
+    handler(src, out)
 
     return 200, buf.getvalue(), {
         "Content-Type": "text/csv",
