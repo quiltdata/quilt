@@ -6,6 +6,12 @@ import urllib.request
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
+import pandas
+import pyarrow
+import pyarrow.csv
+import pyarrow.json
+import pyarrow.parquet
+
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
@@ -19,12 +25,6 @@ from t4_lambda_shared.preview import (
     remove_pandas_footer,
 )
 from t4_lambda_shared.utils import get_default_origins, make_json_response
-
-import pyarrow
-import pyarrow.json
-import pyarrow.csv
-import pyarrow.parquet
-
 
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
@@ -80,6 +80,7 @@ SCHEMA = {
 LAMBDA_MAX_OUT_BINARY = 4_000_000
 
 
+# TODO: remove
 class CSVFormatter:
     """
     `csv` module doesn't provide anything like that ¯\_(ツ)_/¯.
@@ -115,6 +116,7 @@ class GzipOutputBuffer(gzip.GzipFile):
         return super().write(data)
 
 
+# TODO: remove
 def write_csv(rows):
     # TODO: fmt paramste
     formatter = CSVFormatter()
@@ -139,27 +141,32 @@ def lambda_handler(request):
     Returns:
         JSON response
     """
-    url = request.args['url']
-    input_type = request.args.get('input')
-    compression = request.args.get('compression')
-    separator = request.args.get('sep') or ','
+    url = request.args["url"]
+    input_type = request.args.get("input")
+    compression = request.args.get("compression")
+    separator = request.args.get("sep") or ","
 
     parsed_url = urlparse(url, allow_fragments=False)
-    if not (parsed_url.scheme == 'https' and
+    if not (parsed_url.scheme == "https" and
             parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
             parsed_url.username is None and
             parsed_url.password is None):
         return make_json_response(400, {
-            'title': 'Invalid url=. Expected S3 virtual-host URL.'
+            "title": "Invalid url=. Expected S3 virtual-host URL."
         })
 
     src = urllib.request.urlopen(url)
     if compression == "gz":
         src = pyarrow.CompressedInputStream(src, "gzip")
     with src:
-        # reader = pyarrow.csv.open_csv(src)
-        # batch = next(iter(reader))
-        batch = pyarrow.csv.read_csv(src)
+        if input_type == "csv":
+            # reader = pyarrow.csv.open_csv(src)
+            # batch = next(iter(reader))
+            batch = pyarrow.csv.read_csv(src)
+        elif input_type == "excel":
+            batch = pyarrow.Table.from_pandas(
+                pandas.read_excel(io.BytesIO(src.read()), sheet_name=0)
+            )
         buf = io.BytesIO()
         with GzipOutputBuffer(max_size=LAMBDA_MAX_OUT_BINARY, fileobj=buf, mode="wb") as out:
             try:

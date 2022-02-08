@@ -1,5 +1,6 @@
+pandas==1.3.5
+xlrd==2.0.1
+openpyxl==3.0.9
 
 # TODO
 fcsparser==0.2.1
-pandas==1.1.5
-xlrd==2.0.1
