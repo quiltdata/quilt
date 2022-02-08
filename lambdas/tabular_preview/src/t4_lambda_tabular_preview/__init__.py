@@ -6,6 +6,7 @@ import urllib.request
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
+import fsspec
 import pandas
 import pyarrow
 import pyarrow.csv
@@ -155,7 +156,9 @@ def lambda_handler(request):
             "title": "Invalid url=. Expected S3 virtual-host URL."
         })
 
-    src = urllib.request.urlopen(url)
+    # TODO: urllib.request.urlopen() seems to be faster for per-line reading for CSV.
+    # src = urllib.request.urlopen(url)
+    src = fsspec.open(url).open()
     if compression == "gz":
         src = pyarrow.CompressedInputStream(src, "gzip")
     with src:
@@ -167,6 +170,10 @@ def lambda_handler(request):
             batch = pyarrow.Table.from_pandas(
                 pandas.read_excel(io.BytesIO(src.read()), sheet_name=0)
             )
+        elif input_type == "parquet":
+            batch = pyarrow.parquet.read_table(src)
+        else:
+            assert False
         buf = io.BytesIO()
         with GzipOutputBuffer(max_size=LAMBDA_MAX_OUT_BINARY, fileobj=buf, mode="wb") as out:
             try:
