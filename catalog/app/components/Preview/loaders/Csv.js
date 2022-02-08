@@ -1,6 +1,11 @@
 import * as Papa from 'papaparse'
 import * as R from 'ramda'
 
+import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
+import * as Data from 'utils/Data'
+import { mkSearch } from 'utils/NamedRoutes'
+
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
@@ -26,22 +31,32 @@ function makeHeadedTable(parsed) {
   }, {})
 }
 
+const loadTabularData = async ({ endpoint, handle, sign, type }) => {
+  const url = sign(handle)
+  const r = await fetch(`${endpoint}/tabular-preview${mkSearch({ url, input: type })}`)
+  try {
+    const text = await r.text()
+    if (r.status >= 400) {
+      throw new HTTPError(r, text)
+    }
+    return text
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Error loading tabular preview', { ...e })
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
+}
+
 export const Loader = function CsvLoader({ handle, children }) {
-  const asyncData = utils.usePreview({
-    type: 'txt',
-    handle,
-    query: { max_bytes: MAX_BYTES },
-  })
-  const processed = utils.useProcessing(
-    asyncData.result,
-    ({ info: { data, note, warnings } }) => {
-      const csv = data.head.join('\n')
-      return PreviewData.Perspective({
-        data: makeHeadedTable(Papa.parse(csv).data),
-        note,
-        warnings,
-      })
-    },
+  const endpoint = Config.use().binaryApiGatewayEndpoint
+  const sign = AWS.Signer.useS3Signer()
+  const data = Data.use(loadTabularData, { endpoint, handle, sign, type: 'csv' })
+  const processed = utils.useProcessing(data.result, (csv) =>
+    PreviewData.Perspective({
+      data: makeHeadedTable(Papa.parse(csv).data),
+    }),
   )
-  return children(utils.useErrorHandling(processed, { handle, retry: asyncData.fetch }))
+  return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
