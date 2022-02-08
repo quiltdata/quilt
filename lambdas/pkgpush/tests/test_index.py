@@ -8,11 +8,11 @@ from http import HTTPStatus
 from unittest import mock
 
 import boto3
-import index
 import pytest
 from botocore.stub import Stubber
 from flask import Response
 
+import t4_lambda_pkgpush
 from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
@@ -32,7 +32,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         'secret_key': mock.sentinel.TEST_SECRET_KEY,
         'session_token': mock.sentinel.TEST_SESSION_TOKEN,
     }
-    handler = staticmethod(index.promote_package)
+    handler = staticmethod(t4_lambda_pkgpush.promote_package)
     parent_bucket = 'parent-bucket'
     src_registry = f's3://{parent_bucket}'
     parent_pkg_name = 'parent/pkg-name'
@@ -111,7 +111,7 @@ class PackagePromoteTestBase(unittest.TestCase):
 
     @staticmethod
     def make_lambda_s3_stubber():
-        return Stubber(index.s3)
+        return Stubber(t4_lambda_pkgpush.s3)
 
     def setUp(self):
         super().setUp()
@@ -131,7 +131,10 @@ class PackagePromoteTestBase(unittest.TestCase):
 
         user_session_mock = mock.NonCallableMagicMock(spec_set=boto3.session.Session)
         user_session_mock.client.return_value = self.s3_stubber.client
-        get_user_boto_session_patcher = mock.patch('index.get_user_boto_session', return_value=user_session_mock)
+        get_user_boto_session_patcher = mock.patch(
+            't4_lambda_pkgpush.get_user_boto_session',
+            return_value=user_session_mock,
+        )
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
@@ -144,7 +147,7 @@ class PackagePromoteTestBase(unittest.TestCase):
                     }
 
         calculate_pkg_hashes_patcher = mock.patch.object(
-            index,
+            t4_lambda_pkgpush,
             'calculate_pkg_hashes',
             side_effect=calculate_pkg_hashes_side_effect,
         )
@@ -165,7 +168,7 @@ class PackagePromoteTestBase(unittest.TestCase):
             return mock.DEFAULT
 
         with mock.patch.object(src_registry, 'get_workflow_config', return_value=workflow_config_mock), \
-             mock.patch('index.get_package_registry', side_effect=side_effect, wraps=get_package_registry):
+             mock.patch('t4_lambda_pkgpush.get_package_registry', side_effect=side_effect, wraps=get_package_registry):
             yield
 
     @classmethod
@@ -415,7 +418,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
         self.setup_s3(expected_pkg=expected_pkg, copy_data=True)
 
         with self.mock_successors({self.dst_registry: {'copy_data': True}}), \
-             mock.patch(f'index.{self.max_files_const}', 1):
+             mock.patch(f't4_lambda_pkgpush.{self.max_files_const}', 1):
             response = self.make_request(params)
             msg = (
                 f"Package has {self.files_number} files, "
@@ -428,7 +431,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                 },
             )
 
-    @mock.patch('index.PROMOTE_PKG_MAX_MANIFEST_SIZE', 1)
+    @mock.patch('t4_lambda_pkgpush.PROMOTE_PKG_MAX_MANIFEST_SIZE', 1)
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_manifest_max_size(self):
         params = {
@@ -459,7 +462,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
                 )
 
 
-@mock.patch('index.PROMOTE_PKG_MAX_PKG_SIZE', 1)
+@mock.patch('t4_lambda_pkgpush.PROMOTE_PKG_MAX_PKG_SIZE', 1)
 class PackagePromoteTestSizeExceeded(PackagePromoteTestBase):
     file_size = 2
     files_number = 1
@@ -508,7 +511,7 @@ class PackagePromoteTestSizeExceeded(PackagePromoteTestBase):
 
 
 class PackageFromFolderTest(PackagePromoteTest):
-    handler = staticmethod(index.package_from_folder)
+    handler = staticmethod(t4_lambda_pkgpush.package_from_folder)
     max_files_const = 'PKG_FROM_FOLDER_MAX_FILES'
 
     # Not relevant.
@@ -599,7 +602,7 @@ class PackageFromFolderTest(PackagePromoteTest):
 
 
 class PackageCreateTestCaseBase(PackagePromoteTestBase):
-    handler = staticmethod(index.create_package)
+    handler = staticmethod(t4_lambda_pkgpush.create_package)
     path = 'data/sample.csv'
     version_id = '1234'
     physical_key = PhysicalKey(
@@ -950,27 +953,27 @@ class HashCalculationTest(unittest.TestCase):
 
     def test_calculate_pkg_hashes(self):
         s3_client = mock.MagicMock()
-        with mock.patch.object(index, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
-            index.calculate_pkg_hashes(s3_client, self.pkg)
+        with mock.patch.object(t4_lambda_pkgpush, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
+            t4_lambda_pkgpush.calculate_pkg_hashes(s3_client, self.pkg)
 
         calculate_pkg_entry_hash_mock.assert_called_once_with(s3_client, self.entry_without_hash)
 
-    @mock.patch.object(index, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
+    @mock.patch.object(t4_lambda_pkgpush, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
     def test_calculate_pkg_hashes_too_large_file_error(self):
         s3_client = mock.MagicMock()
-        with pytest.raises(index.FileTooLargeForHashing):
-            index.calculate_pkg_hashes(s3_client, self.pkg)
+        with pytest.raises(t4_lambda_pkgpush.FileTooLargeForHashing):
+            t4_lambda_pkgpush.calculate_pkg_hashes(s3_client, self.pkg)
 
     def test_calculate_pkg_entry_hash(self):
         s3_client_mock = mock.MagicMock()
         s3_client_mock.generate_presigned_url.return_value = 'https://example.com'
-        with mock.patch.object(index, 'invoke_hash_lambda', return_value='0' * 64) as invoke_hash_lambda_mock:
-            index.calculate_pkg_entry_hash(s3_client_mock, self.entry_without_hash)
+        with mock.patch("t4_lambda_pkgpush.invoke_hash_lambda", return_value='0' * 64) as invoke_hash_lambda_mock:
+            t4_lambda_pkgpush.calculate_pkg_entry_hash(s3_client_mock, self.entry_without_hash)
 
         invoke_hash_lambda_mock.assert_called_once_with(s3_client_mock.generate_presigned_url.return_value)
         s3_client_mock.generate_presigned_url.assert_called_once_with(
             ClientMethod='get_object',
-            ExpiresIn=index.S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
+            ExpiresIn=t4_lambda_pkgpush.S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
             Params={
                 'Bucket': self.entry_without_hash.physical_key.bucket,
                 'Key': self.entry_without_hash.physical_key.path,
@@ -984,7 +987,7 @@ class HashCalculationTest(unittest.TestCase):
         }
 
     def test_invoke_hash_lambda(self):
-        lambda_client_stubber = Stubber(index.lambda_)
+        lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
         lambda_client_stubber.activate()
         self.addCleanup(lambda_client_stubber.deactivate)
         test_hash = '0' * 64
@@ -996,16 +999,16 @@ class HashCalculationTest(unittest.TestCase):
                 'Payload': io.BytesIO(b'"%s"' % test_hash.encode()),
             },
             expected_params={
-                'FunctionName': index.S3_HASH_LAMBDA,
+                'FunctionName': t4_lambda_pkgpush.S3_HASH_LAMBDA,
                 'Payload': '"%s"' % test_url,
             },
         )
 
-        assert index.invoke_hash_lambda(test_url) == test_hash
+        assert t4_lambda_pkgpush.invoke_hash_lambda(test_url) == test_hash
         lambda_client_stubber.assert_no_pending_responses()
 
     def test_invoke_hash_lambda_error(self):
-        lambda_client_stubber = Stubber(index.lambda_)
+        lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
         lambda_client_stubber.activate()
         self.addCleanup(lambda_client_stubber.deactivate)
         test_url = 'https://example.com'
@@ -1017,11 +1020,11 @@ class HashCalculationTest(unittest.TestCase):
                 'Payload': io.BytesIO(b'some error info'),
             },
             expected_params={
-                'FunctionName': index.S3_HASH_LAMBDA,
+                'FunctionName': t4_lambda_pkgpush.S3_HASH_LAMBDA,
                 'Payload': '"%s"' % test_url,
             },
         )
 
-        with pytest.raises(index.S3HashLambdaUnhandledError):
-            index.invoke_hash_lambda(test_url)
+        with pytest.raises(t4_lambda_pkgpush.S3HashLambdaUnhandledError):
+            t4_lambda_pkgpush.invoke_hash_lambda(test_url)
         lambda_client_stubber.assert_no_pending_responses()

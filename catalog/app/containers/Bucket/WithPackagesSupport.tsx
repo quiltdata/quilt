@@ -1,12 +1,8 @@
 import * as React from 'react'
 
 import Message from 'components/Message'
-import { docs } from 'constants/urls'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import StyledLink from 'utils/StyledLink'
-
-const ADD_BUCKET_DOCS = `${docs}/catalog/admin#buckets`
 
 interface WithPackagesSupportProps {
   bucket: string
@@ -24,13 +20,9 @@ export default function WithPackagesSupport({
   return inStack || localMode ? (
     <>{children}</>
   ) : (
-    <Message headline="Packages not supported">
-      Catalog does not support listing packages in out-of-stack buckets.
-      <br />
-      <StyledLink href={ADD_BUCKET_DOCS} target="_blank">
-        Learn how to add this bucket to Quilt
-      </StyledLink>{' '}
-      to see the packages in it.
+    <Message headline="Packages temporarily hidden">
+      Ask an admin to add the bucket <strong>{bucket}</strong> to Quilt so that you can
+      browse packages.
     </Message>
   )
 }
