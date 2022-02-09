@@ -9,15 +9,17 @@ import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import type { S3HandleBase } from 'utils/s3paths'
 
+import { PreviewData } from '../types'
+
 import * as Csv from './Csv'
 import * as Excel from './Excel'
 import * as Fcs from './Fcs'
 import * as Parquet from './Parquet'
 import * as Vcf from './Vcf'
-import { PreviewData } from '../types'
 import * as utils from './utils'
 
-export const MAX_BYTES = 10 * 1024
+// TODO
+// const isBed = R.pipe(utils.stripCompression, utils.extIs('.bed'))
 
 export const detect = R.anyPass([
   Csv.detect,
@@ -25,6 +27,7 @@ export const detect = R.anyPass([
   Fcs.detect,
   Parquet.detect,
   Vcf.detect,
+  // isBed, // TODO
 ])
 
 type TabularType = 'csv' | 'excel' | 'fcs' | 'parquet' | 'vcf' | 'txt'
@@ -35,6 +38,7 @@ const detectTabularType: (type: string) => TabularType = R.cond([
   [Fcs.detect, R.always('fcs')],
   [Parquet.detect, R.always('parquet')],
   [Vcf.detect, R.always('vcf')],
+  // [isBed, R.always('bed')], // TODO
   [R.T, R.always('txt')],
 ])
 
