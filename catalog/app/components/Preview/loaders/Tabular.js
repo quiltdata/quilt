@@ -11,6 +11,7 @@ import { mkSearch } from 'utils/NamedRoutes'
 import * as Excel from './Excel'
 import * as Fcs from './Fcs'
 import * as Parquet from './Parquet'
+import * as Tabular from './Tabular'
 import * as Vcf from './Vcf'
 import { PreviewData } from '../types'
 import * as utils from './utils'
@@ -18,20 +19,20 @@ import * as utils from './utils'
 export const MAX_BYTES = 10 * 1024
 
 export const detect = R.anyPass([
+  Csv.detect,
   Excel.detect,
   Fcs.detect,
   Parquet.detect,
   Vcf.detect,
-  R.pipe(utils.stripCompression, utils.extIn(['.csv', '.tsv'])),
 ])
 
 // TODO: ['ipynb', 'bed']
 const detectTabularType = R.cond([
+  [Csv.detect, R.always('csv')],
   [Excel.detect, R.always('excel')],
   [Fcs.detect, R.always('fcs')],
   [Parquet.detect, R.always('parquet')],
   [Vcf.detect, R.always('vcf')],
-  [R.pipe(utils.stripCompression, utils.extIn(['.csv', '.tsv'])), R.always('csv')],
   [R.T, R.always('txt')],
 ])
 
