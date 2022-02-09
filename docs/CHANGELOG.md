@@ -30,7 +30,7 @@
 * [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
 * [Changed] Make Vega download data files from S3 via proxy to avoid CORS issues ([#2631](https://github.com/quiltdata/quilt/pull/2631))
 * [Changed] Don't support packages in out-of-stack-buckets ([#2641](https://github.com/quiltdata/quilt/pull/2641))
-* [Changed] Use Perspective library for .csv and .tsv files ([#2576](https://github.com/quiltdata/quilt/pull/2576))
+* [Changed] Use Perspective library for tabular data files (.csv, .tsv, .xlsx, .parquet, .fcs, .vcf) ([#2576](https://github.com/quiltdata/quilt/pull/2576))
 * [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
