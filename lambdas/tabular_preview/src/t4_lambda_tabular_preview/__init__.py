@@ -98,6 +98,10 @@ class CSVFormatter:
         return formatted
 
 
+def urlopen_seekable(url):
+    return fsspec.open(url).open()
+
+
 class GzipOutputBuffer(gzip.GzipFile):
     class Overflow(Exception):
         pass
@@ -166,9 +170,9 @@ def preview_parquet(src, out):
 
 
 handlers = {
-    "csv": preview_csv,
-    "excel": preview_excel,
-    "parquet": preview_parquet,
+    "csv": (urllib.request.urlopen, preview_csv),
+    "excel": (urllib.request.urlopen, preview_excel),
+    "parquet": (urlopen_seekable, preview_parquet),
 }
 
 
@@ -196,10 +200,10 @@ def lambda_handler(request):
             "title": "Invalid url=. Expected S3 virtual-host URL."
         })
 
-    handler = handlers[input_type]
+    urlopener, handler = handlers[input_type]
     # TODO: urllib.request.urlopen() seems to be faster for per-line reading for CSV.
     # src = urllib.request.urlopen(url)
-    src = fsspec.open(url).open()
+    src = urlopener(url)
     if compression == "gz":
         src = pyarrow.CompressedInputStream(src, "gzip")
     buf = io.BytesIO()
