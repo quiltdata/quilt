@@ -33,7 +33,7 @@ from .data_transfer import (
     put_bytes,
 )
 from .exceptions import PackageException
-from .formats import FormatRegistry
+from .formats import CompressionRegistry, FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import CACHE_PATH, DISABLE_TQDM, PACKAGE_UPDATE_POLICY
 from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
@@ -291,13 +291,22 @@ class PackageEntry:
         if func is not None:
             return func(data)
 
-        pkey_ext = pathlib.PurePosixPath(self.physical_key.path).suffix
+        suffixes = pathlib.PurePosixPath(self.physical_key.path).suffixes
+
+        pkey_ext = suffixes.pop() if suffixes else ''
+        compression_handler = CompressionRegistry.search(pkey_ext)
+
+        if compression_handler is not None:
+            pkey_ext = suffixes.pop() if suffixes else ''
 
         # Verify format can be handled before checking hash.  Raises if none found.
         formats = FormatRegistry.search(None, self._meta, pkey_ext)
 
         # Verify hash before deserializing..
         self._verify_hash(data)
+
+        if compression_handler is not None:
+            data = compression_handler.decompress(data)
 
         return formats[0].deserialize(data, self._meta, pkey_ext, **format_opts)
 

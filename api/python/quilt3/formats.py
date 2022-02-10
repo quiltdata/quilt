@@ -68,6 +68,7 @@ Format metadata has the following form:
 
 import copy
 import csv
+import gzip
 import io
 import json
 import sys
@@ -1021,3 +1022,66 @@ class ParquetFormatHandler(BaseFormatHandler):
 # compat -- also handle 'pyarrow' in meta['target'] and meta['format']['name'].
 ParquetFormatHandler('pyarrow').register()
 ParquetFormatHandler().register()  # latest is preferred
+
+
+class CompressionRegistry:
+    """A collection for organizing `CompressionHandler` objects."""
+    registered_handlers = []
+
+    def __init__(self):
+        raise TypeError("The {!r} class is organizational, and cannot be instantiated."
+                        .format(type(self).__name__))
+
+    @classmethod
+    def register(cls, handler):
+        """Register a CompressionHandler instance"""
+        handlers = cls.registered_handlers
+
+        # no duplicates, just reprioritize.
+        if handler in handlers:
+            handlers.pop(handlers.index(handler))
+
+        handlers.insert(0, handler)
+
+    @classmethod
+    def search(cls, ext=None):
+        """Get a handler for the given extension"""
+        ext = ext.lower().strip('. ')
+
+        for handler in cls.registered_handlers:
+            if handler.handles_ext(ext):
+                return handler
+
+        return None
+
+
+class BaseCompressionHandler(ABC):
+    name = None
+    handled_extensions = ()
+
+    @abstractmethod
+    def compress(self, data):
+        pass
+
+    @abstractmethod
+    def decompress(self, data):
+        pass
+
+    def register(self):
+        CompressionRegistry.register(self)
+
+    def handles_ext(self, ext):
+        return ext.lstrip('.').lower() in self.handled_extensions
+
+
+class GzipCompressionHandler(BaseCompressionHandler):
+    handled_extensions = ['gz']
+
+    def compress(self, data):
+        return gzip.compress(data)
+
+    def decompress(self, data):
+        return gzip.decompress(data)
+
+
+GzipCompressionHandler().register()
