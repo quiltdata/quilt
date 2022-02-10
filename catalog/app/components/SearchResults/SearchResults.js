@@ -326,7 +326,8 @@ function PreviewBox({ children, title }) {
 
 const renderContents = (children) => <PreviewBox {...{ children }} />
 
-const previewOptions = { context: Preview.CONTEXT.SEARCH }
+const previewOptions = { context: Preview.CONTEXT.LISTING }
+
 function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
   const withData = (callback) =>
     bucketExistenceData.case({

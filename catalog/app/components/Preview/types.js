@@ -60,6 +60,4 @@ export const PreviewError = tagged([
 export const CONTEXT = {
   FILE: 'file',
   LISTING: 'listing',
-  SEARCH: 'search', // TODO: use LISTING
-  SUMMARY: 'summary', // TODO: use LISTING
 }

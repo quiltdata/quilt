@@ -56,7 +56,8 @@ function HandleResolver({ handle, children }) {
 
 const renderContents = (contents) => <M.Box mx="auto">{contents}</M.Box>
 
-const previewOptions = { context: Preview.CONTEXT.SUMMARY }
+const previewOptions = { context: Preview.CONTEXT.LISTING }
+
 function SummaryItemFile({ handle, name, mkUrl }) {
   const withData = (callback) => (
     <HandleResolver handle={handle}>
