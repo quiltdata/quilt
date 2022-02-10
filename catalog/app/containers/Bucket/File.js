@@ -319,6 +319,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const previewOptions = { context: Preview.CONTEXT.FILE }
+
 export default function File({
   match: {
     params: { bucket, path: encodedPath },
@@ -402,7 +404,8 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load({ ...handle, mode: viewModes.mode }, callback)
+        // TODO: move `mode` to third optional argument
+        return Preview.load({ ...handle, mode: viewModes.mode }, callback, previewOptions)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),

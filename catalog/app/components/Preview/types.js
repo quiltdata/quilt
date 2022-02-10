@@ -56,3 +56,10 @@ export const PreviewError = tagged([
   'MalformedJson', // { handle, message }
   'Unexpected', // { handle, retry, originalError: any }
 ])
+
+export const CONTEXT = {
+  FILE: 'file',
+  LISTING: 'listing',
+  SEARCH: 'search', // TODO: use LISTING
+  SUMMARY: 'summary', // TODO: use LISTING
+}

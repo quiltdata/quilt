@@ -421,6 +421,7 @@ function DirDisplay({
   )
 }
 
+const previewOptions = { context: Preview.CONTEXT.LISTING }
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
   handle: PackageEntryHandle,
@@ -434,7 +435,7 @@ const withPreview = (
   if (archived) {
     return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
   }
-  return Preview.load({ ...handle, mode, packageHandle }, callback)
+  return Preview.load({ ...handle, mode, packageHandle }, callback, previewOptions)
 }
 
 interface ObjectAttrs {

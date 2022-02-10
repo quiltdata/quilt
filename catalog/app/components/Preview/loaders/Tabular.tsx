@@ -69,9 +69,14 @@ const loadTabularData = async ({ endpoint, handle, sign, type }: LoadTabularData
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: S3HandleBase
+  // options: { context: typeof CONTEXT }
 }
 
-export const Loader = function TabularLoader({ handle, children }: TabularLoaderProps) {
+export const Loader = function TabularLoader({
+  handle,
+  children,
+}: // options,
+TabularLoaderProps) {
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const type = React.useMemo(() => detectTabularType(handle.key), [handle.key])

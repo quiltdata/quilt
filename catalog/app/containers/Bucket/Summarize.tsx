@@ -280,6 +280,13 @@ export function FilePreview({
   const key = handle.logicalKey || handle.key
   const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
 
+  const previewOptions = React.useMemo(
+    () => ({
+      ...file,
+      context: Preview.CONTEXT.LISTING,
+    }),
+    [file],
+  )
   // TODO: check for glacier and hide items
   return (
     <Section description={description} heading={heading} handle={handle}>
@@ -292,7 +299,7 @@ export function FilePreview({
           renderProgress: () => <ContentSkel />,
           props,
         }),
-        file,
+        previewOptions,
       )}
     </Section>
   )
