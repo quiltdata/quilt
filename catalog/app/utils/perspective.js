@@ -16,7 +16,6 @@ export function renderViewer(parentNode, { className }) {
 export async function renderTable(data, viewer) {
   const table = await worker.table(data)
   viewer.load(table)
-  await viewer.restore({ settings: true })
   return table
 }
 
