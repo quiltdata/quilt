@@ -6,6 +6,29 @@ import * as perspective from 'utils/perspective'
 
 import { renderWarnings } from './util'
 
+const useAlertStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    color: t.palette.text.secondary,
+    display: 'flex',
+  },
+  title: {
+    marginLeft: t.spacing(1),
+  },
+}))
+
+function Alert({ className, title }) {
+  const classes = useAlertStyles()
+  return (
+    <span className={cx(classes.root, className)}>
+      <M.Icon fontSize="small" color="inherit">
+        info_outlined
+      </M.Icon>
+      <span className={classes.title}>{title}</span>
+    </span>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
@@ -43,19 +66,28 @@ function Perspective({
   return (
     <div className={cx(className, classes.root)} ref={setRoot} title={note} {...props}>
       {renderWarnings(warnings)}
-      {!!(truncated || onLoadMore) && (
+      {truncated && (
         <div className={classes.truncatedWrapper}>
-          {truncated && (
-            <M.Typography variant="caption" className={classes.truncatedMessage}>
-              Data is partially loaded to reduce bandwidth
-            </M.Typography>
-          )}
-          {onLoadMore && (
-            <div>
-              <M.Button variant="outlined" size="small" onClick={onLoadMore}>
+          {onLoadMore ? (
+            <>
+              <Alert
+                className={classes.truncatedMessage}
+                title="Data is partially loaded to reduce bandwidth"
+              />
+              <M.Button
+                startIcon={<M.Icon>refresh</M.Icon>}
+                variant="outlined"
+                size="small"
+                onClick={onLoadMore}
+              >
                 Load more data
               </M.Button>
-            </div>
+            </>
+          ) : (
+            <Alert
+              className={classes.truncatedMessage}
+              title="Data is partially loaded, file is too big to load"
+            />
           )}
         </div>
       )}
