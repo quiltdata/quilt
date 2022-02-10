@@ -86,7 +86,6 @@ const loadTabularData = async ({
 }
 
 function getNeededSize(context: string, gated: boolean) {
-  console.log('ge needed size', context, gated)
   switch (context) {
     case CONTEXT.FILE:
       return gated ? 'medium' : 'large'
@@ -122,7 +121,8 @@ export const Loader = function TabularLoader({
     ({ csv, truncated }: { csv: string; truncated: boolean }) =>
       PreviewData.Perspective({
         data: csv,
-        onLoadMore: truncated ? onLoadMore : null,
+        truncated,
+        onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))

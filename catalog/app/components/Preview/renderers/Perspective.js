@@ -28,6 +28,7 @@ function Perspective({
   className,
   data,
   note,
+  truncated,
   warnings,
   onLoadMore,
   ...props
@@ -42,16 +43,20 @@ function Perspective({
   return (
     <div className={cx(className, classes.root)} ref={setRoot} title={note} {...props}>
       {renderWarnings(warnings)}
-      {onLoadMore && (
+      {!!(truncated || onLoadMore) && (
         <div className={classes.truncatedWrapper}>
-          <M.Typography variant="caption" className={classes.truncatedMessage}>
-            Data is partially loaded to reduce bandwidth
-          </M.Typography>
-          <div>
-            <M.Button variant="outlined" size="small" onClick={onLoadMore}>
-              Load more data
-            </M.Button>
-          </div>
+          {truncated && (
+            <M.Typography variant="caption" className={classes.truncatedMessage}>
+              Data is partially loaded to reduce bandwidth
+            </M.Typography>
+          )}
+          {onLoadMore && (
+            <div>
+              <M.Button variant="outlined" size="small" onClick={onLoadMore}>
+                Load more data
+              </M.Button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -59,6 +64,6 @@ function Perspective({
 }
 
 // FIXME: `note` and `warnings` are unused
-export default ({ data, note, warnings, onLoadMore }, props) => (
-  <Perspective {...{ data, note, warnings, onLoadMore }} {...props} />
+export default ({ data, note, warnings, onLoadMore, truncated }, props) => (
+  <Perspective {...{ data, note, warnings, onLoadMore, truncated }} {...props} />
 )
