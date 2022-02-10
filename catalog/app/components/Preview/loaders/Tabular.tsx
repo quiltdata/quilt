@@ -46,17 +46,36 @@ interface LoadTabularDataArgs {
   handle: S3HandleBase
   sign: (h: S3HandleBase) => string
   type: TabularType
+  gated: boolean
 }
 
-const loadTabularData = async ({ endpoint, handle, sign, type }: LoadTabularDataArgs) => {
+const loadTabularData = async ({
+  endpoint,
+  gated,
+  handle,
+  sign,
+  type,
+}: LoadTabularDataArgs) => {
   const url = sign(handle)
-  const r = await fetch(`${endpoint}/tabular-preview${mkSearch({ url, input: type })}`)
+  const r = await fetch(
+    `${endpoint}/tabular-preview${mkSearch({
+      url,
+      input: type,
+      size: gated ? 'small' : 'large',
+    })}`,
+  )
   try {
     const text = await r.text()
+
+    const quiltInfo = JSON.parse(r.headers.get('x-quilt-info') || '{}')
+
     if (r.status >= 400) {
       throw new HTTPError(r, text)
     }
-    return text
+    return {
+      csv: text,
+      truncated: quiltInfo.truncated,
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn('Error loading tabular preview', e)
@@ -69,7 +88,7 @@ const loadTabularData = async ({ endpoint, handle, sign, type }: LoadTabularData
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: S3HandleBase
-  // options: { context: typeof CONTEXT }
+  // options: { context: string } // TODO: restrict type
 }
 
 export const Loader = function TabularLoader({
@@ -77,14 +96,20 @@ export const Loader = function TabularLoader({
   children,
 }: // options,
 TabularLoaderProps) {
+  // TODO: load 'small' on listing, and 'medium' on file
+  const [gated, setGated] = React.useState(true)
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const type = React.useMemo(() => detectTabularType(handle.key), [handle.key])
-  const data = Data.use(loadTabularData, { endpoint, handle, sign, type })
-  const processed = utils.useProcessing(data.result, (csv: string) =>
-    PreviewData.Perspective({
-      data: csv,
-    }),
+  const onLoadMore = React.useCallback(() => setGated(false), [setGated])
+  const data = Data.use(loadTabularData, { endpoint, gated, handle, sign, type })
+  const processed = utils.useProcessing(
+    data.result,
+    ({ csv, truncated }: { csv: string; truncated: boolean }) =>
+      PreviewData.Perspective({
+        data: csv,
+        onLoadMore: truncated ? onLoadMore : null,
+      }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
