@@ -49,7 +49,7 @@ function Perspective({
           </M.Typography>
           <div>
             <M.Button variant="outlined" size="small" onClick={onLoadMore}>
-              Load full data
+              Load more data
             </M.Button>
           </div>
         </div>

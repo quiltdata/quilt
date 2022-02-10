@@ -8,7 +8,7 @@ import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import type { S3HandleBase } from 'utils/s3paths'
 
-import { PreviewData } from '../types'
+import { CONTEXT, PreviewData } from '../types'
 
 import * as Csv from './Csv'
 import * as Excel from './Excel'
@@ -46,12 +46,12 @@ interface LoadTabularDataArgs {
   handle: S3HandleBase
   sign: (h: S3HandleBase) => string
   type: TabularType
-  gated: boolean
+  size: 'small' | 'medium' | 'large'
 }
 
 const loadTabularData = async ({
   endpoint,
-  gated,
+  size,
   handle,
   sign,
   type,
@@ -61,7 +61,7 @@ const loadTabularData = async ({
     `${endpoint}/tabular-preview${mkSearch({
       url,
       input: type,
-      size: gated ? 'small' : 'large',
+      size,
     })}`,
   )
   try {
@@ -85,24 +85,38 @@ const loadTabularData = async ({
   }
 }
 
+function getNeededSize(context: string, gated: boolean) {
+  console.log('ge needed size', context, gated)
+  switch (context) {
+    case CONTEXT.FILE:
+      return gated ? 'medium' : 'large'
+    case CONTEXT.LISTING:
+      return gated ? 'small' : 'large'
+    // no default
+  }
+}
+
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: S3HandleBase
-  // options: { context: string } // TODO: restrict type
+  options: { context: string } // TODO: restrict type
 }
 
 export const Loader = function TabularLoader({
   handle,
   children,
-}: // options,
-TabularLoaderProps) {
-  // TODO: load 'small' on listing, and 'medium' on file
+  options,
+}: TabularLoaderProps) {
   const [gated, setGated] = React.useState(true)
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const type = React.useMemo(() => detectTabularType(handle.key), [handle.key])
   const onLoadMore = React.useCallback(() => setGated(false), [setGated])
-  const data = Data.use(loadTabularData, { endpoint, gated, handle, sign, type })
+  const size = React.useMemo(
+    () => getNeededSize(options.context, gated),
+    [options.context, gated],
+  )
+  const data = Data.use(loadTabularData, { endpoint, size, handle, sign, type })
   const processed = utils.useProcessing(
     data.result,
     ({ csv, truncated }: { csv: string; truncated: boolean }) =>
