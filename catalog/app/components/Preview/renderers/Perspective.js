@@ -30,6 +30,7 @@ function Perspective({ children, className, data, note, warnings, ...props } = {
   )
 }
 
+// FIXME: `note` and `warnings` are unused
 export default ({ data, note, warnings }, props) => (
   <Perspective {...{ data, note, warnings }} {...props} />
 )

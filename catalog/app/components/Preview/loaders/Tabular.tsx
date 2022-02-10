@@ -1,4 +1,3 @@
-// import * as Papa from 'papaparse'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -42,27 +41,6 @@ const detectTabularType: (type: string) => TabularType = R.cond([
   [R.T, R.always('txt')],
 ])
 
-type CellType = string | number
-
-// [[...row1], [...row2]] → { a: [...rowA], b: [...rowB]}
-// function makeHeadedTable(parsed: CellType[][]) {
-//   const perpectiveInput: Record<string, CellType[]> = {}
-//   return parsed.reduce((memo, row, index) => {
-//     if (index === 0) {
-//       return row.reduce((memoHead, title) => {
-//         memoHead[title] = []
-//         return memoHead
-//       }, memo)
-//     }
-
-//     return row.reduce((memoCells, value, cellIndex) => {
-//       const title = parsed[0][cellIndex]
-//       memoCells[title].push(value)
-//       return memoCells
-//     }, memo)
-//   }, perpectiveInput)
-// }
-
 interface LoadTabularDataArgs {
   endpoint: string
   handle: S3HandleBase
@@ -100,7 +78,6 @@ export const Loader = function TabularLoader({ handle, children }: TabularLoader
   const data = Data.use(loadTabularData, { endpoint, handle, sign, type })
   const processed = utils.useProcessing(data.result, (csv: string) =>
     PreviewData.Perspective({
-      // data: makeHeadedTable(Papa.parse<CellType[]>(csv).data),
       data: csv,
     }),
   )
