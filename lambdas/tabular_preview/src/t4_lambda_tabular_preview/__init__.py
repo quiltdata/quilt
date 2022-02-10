@@ -1,6 +1,7 @@
 import csv
 import gzip
 import io
+import json
 import os
 import urllib.request
 from contextlib import redirect_stderr
@@ -13,7 +14,7 @@ import pyarrow.csv
 import pyarrow.json
 import pyarrow.parquet
 
-from t4_lambda_shared.decorator import api, validate
+from t4_lambda_shared.decorator import api, validate, QUILT_INFO_HEADER
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
     CATALOG_LIMIT_LINES,
@@ -148,37 +149,67 @@ PYARROW_WRITE_OPTIONS = pyarrow.csv.WriteOptions(batch_size=100)
 
 
 def preview_csv(src, out):
+    truncated = False
     with src:
         # TODO: comment about max_size.
-        reader = pyarrow.csv.open_csv(src, read_options=pyarrow.csv.ReadOptions(block_size=out.max_size))
+        reader = pyarrow.csv.open_csv(
+            src,
+            # TODO: rework this `+ 1_000_000` hack needed for `truncated` flag.
+            read_options=pyarrow.csv.ReadOptions(block_size=out.max_size + 1_000_000)
+        )
         batch = next(iter(reader), None)
     with out:
         if batch:
             try:
                 pyarrow.csv.write_csv(batch, out, write_options=PYARROW_WRITE_OPTIONS)
             except out.Full:
-                pass
+                truncated = True
+
+    return {
+        "truncated": truncated,
+    }
 
 
 def preview_excel(src, out):
+    truncated = False
     with src:
         df = pandas.read_excel(io.BytesIO(src.read()), sheet_name=0)
     with out:
         try:
             df.to_csv(out)
         except out.Full:
-            pass
+            truncated = True
+
+    return {
+        "truncated": truncated,
+    }
 
 
 def preview_parquet(src, out):
+    truncated = False
     with src:
         parquet_file = pyarrow.parquet.ParquetFile(src)
+        meta = parquet_file.metadata
         with out:
             for batch in parquet_file.iter_batches():
                 try:
                     pyarrow.csv.write_csv(batch, out, write_options=PYARROW_WRITE_OPTIONS)
                 except out.Full:
-                    pass
+                    truncated = True
+
+    return {
+        "truncated": truncated,
+        "meta": {
+            "created_by": meta.created_by,
+            "format_version": meta.format_version,
+            "num_row_groups": meta.num_row_groups,
+            "schema": {
+                "names": meta.schema.names
+            },
+            "serialized_size": meta.serialized_size,
+            "shape": (meta.num_rows, meta.num_columns),
+        }
+    }
 
 
 handlers = {
@@ -226,11 +257,12 @@ def lambda_handler(request):
         fileobj=buf,
         mode="wb",
     )
-    handler(src, out)
+    info = handler(src, out)
 
     return 200, buf.getvalue(), {
         "Content-Type": "text/csv",
         "Content-Encoding": "gzip",
+        QUILT_INFO_HEADER: json.dumps(info),
     }
 
 
