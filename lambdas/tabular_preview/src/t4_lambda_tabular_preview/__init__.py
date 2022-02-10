@@ -43,6 +43,13 @@ FILE_EXTENSIONS.extend(TEXT_TYPES)
 
 EXTRACT_PARQUET_MAX_BYTES = 10_000
 
+LAMBDA_MAX_OUT_BINARY = 4_000_000
+OUTPUT_SIZES = {
+    "small": 1_000_000,
+    "medium": 5_000_000,
+    "large": 150_000_000,
+}
+
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -66,19 +73,16 @@ SCHEMA = {
         'input': {
             'enum': FILE_EXTENSIONS
         },
-        'exclude_output': {
-            'enum': ['true', 'false']
-        },
         'compression': {
             'enum': ['gz']
-        }
+        },
+        "size": {
+            "enum": list(OUTPUT_SIZES),
+        },
     },
     'required': ['url', 'input'],
     'additionalProperties': False
 }
-
-
-LAMBDA_MAX_OUT_BINARY = 4_000_000
 
 
 # TODO: remove
@@ -103,21 +107,25 @@ def urlopen_seekable(url):
 
 
 class GzipOutputBuffer(gzip.GzipFile):
-    class Overflow(Exception):
+    class Full(Exception):
         pass
 
-    def __init__(self, max_size: int, *args, **kwargs):
+    def __init__(self, compressed_max_size: int, max_size:int, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.compressed_max_size = compressed_max_size
         self.max_size = max_size
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.max_size = None
+        self.compressed_max_size = None
         super().__exit__(exc_type, exc_val, exc_tb)
 
     def write(self, data):
         # TODO: left a comment
-        if self.max_size is not None and self.fileobj.tell() + len(data) > self.max_size:
-            raise self.Overflow
+        if (
+            (self.max_size is not None and self.size + len(data) > self.max_size) or
+            (self.compressed_max_size is not None and self.fileobj.tell() + len(data) > self.compressed_max_size)
+        ):
+            raise self.Full
         return super().write(data)
 
 
@@ -141,12 +149,15 @@ PYARROW_WRITE_OPTIONS = pyarrow.csv.WriteOptions(batch_size=100)
 
 def preview_csv(src, out):
     with src:
-        t = pyarrow.csv.read_csv(src)
+        # TODO: comment about max_size.
+        reader = pyarrow.csv.open_csv(src, read_options=pyarrow.csv.ReadOptions(block_size=out.max_size))
+        batch = next(iter(reader), None)
     with out:
-        try:
-            pyarrow.csv.write_csv(t, out, write_options=PYARROW_WRITE_OPTIONS)
-        except out.Overflow:
-            pass
+        if batch:
+            try:
+                pyarrow.csv.write_csv(batch, out, write_options=PYARROW_WRITE_OPTIONS)
+            except out.Full:
+                pass
 
 
 def preview_excel(src, out):
@@ -155,18 +166,19 @@ def preview_excel(src, out):
     with out:
         try:
             df.to_csv(out)
-        except out.Overflow:
+        except out.Full:
             pass
 
 
 def preview_parquet(src, out):
     with src:
-        t = pyarrow.parquet.read_table(src)
-    with out:
-        try:
-            pyarrow.csv.write_csv(t, out, write_options=PYARROW_WRITE_OPTIONS)
-        except out.Overflow:
-            pass
+        parquet_file = pyarrow.parquet.ParquetFile(src)
+        with out:
+            for batch in parquet_file.iter_batches():
+                try:
+                    pyarrow.csv.write_csv(batch, out, write_options=PYARROW_WRITE_OPTIONS)
+                except out.Full:
+                    pass
 
 
 handlers = {
@@ -188,6 +200,7 @@ def lambda_handler(request):
     """
     url = request.args["url"]
     input_type = request.args.get("input")
+    output_size = request.args.get("size", "small")
     compression = request.args.get("compression")
     separator = request.args.get("sep") or ","
 
@@ -207,48 +220,17 @@ def lambda_handler(request):
     if compression == "gz":
         src = pyarrow.CompressedInputStream(src, "gzip")
     buf = io.BytesIO()
-    out = GzipOutputBuffer(max_size=LAMBDA_MAX_OUT_BINARY, fileobj=buf, mode="wb")
+    out = GzipOutputBuffer(
+        compressed_max_size=LAMBDA_MAX_OUT_BINARY,
+        max_size=OUTPUT_SIZES[output_size],
+        fileobj=buf,
+        mode="wb",
+    )
     handler(src, out)
 
     return 200, buf.getvalue(), {
         "Content-Type": "text/csv",
         "Content-Encoding": "gzip",
-    }
-
-
-def extract_csv(head, separator):
-    """
-    csv file => data frame => html
-    Args:
-        file_ - file-like object opened in binary mode, pointing to .csv
-    Returns:
-        html - html version of *first sheet only* in workbook
-        info - metadata
-    """
-    warnings_ = io.StringIO()
-    # this shouldn't balloon memory because head is limited in size by get_preview_lines
-    try:
-        data = pandas.read_csv(
-            io.StringIO('\n'.join(head)),
-            sep=separator
-        )
-
-    except pandas.errors.ParserError:
-        # temporarily redirect stderr to capture warnings (usually errors)
-        with redirect_stderr(warnings_):
-            data = pandas.read_csv(
-                io.StringIO('\n'.join(head)),
-                error_bad_lines=False,
-                warn_bad_lines=True,
-                # sep=None is slower (doesn't use C), deduces the separator
-                sep=None
-            )
-
-    html = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
-
-    return html, {
-        'note': TRUNCATED,
-        'warnings': warnings_.getvalue()
     }
 
 
