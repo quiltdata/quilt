@@ -20,8 +20,8 @@ function NotebookLoader({ handle, children }) {
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
 
-export const Loader = function WrappedNotebookLoader({ handle, children }) {
-  switch (handle.mode) {
+export const Loader = function WrappedNotebookLoader({ handle, children, options }) {
+  switch (options.mode) {
     case 'voila':
       return <Voila.Loader {...{ handle, children }} />
     case 'json':

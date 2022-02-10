@@ -287,11 +287,15 @@ export function FilePreview({
     }),
     [file],
   )
+  const previewHandle = React.useMemo(
+    () => ({ ...handle, packageHandle }),
+    [handle, packageHandle],
+  )
   // TODO: check for glacier and hide items
   return (
     <Section description={description} heading={heading} handle={handle}>
       {Preview.load(
-        { ...handle, packageHandle }, // FIXME: memoize
+        previewHandle,
         Preview.display({
           renderContents: (contents: React.ReactNode) => (
             <PreviewBox {...{ contents, expanded }} />

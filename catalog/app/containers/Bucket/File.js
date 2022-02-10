@@ -319,8 +319,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const previewOptions = { context: Preview.CONTEXT.FILE }
-
 export default function File({
   match: {
     params: { bucket, path: encodedPath },
@@ -395,6 +393,11 @@ export default function File({
 
   const handle = { bucket, key: path, version }
 
+  const previewOptions = React.useMemo(
+    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
+    [viewModes.mode],
+  )
+
   const withPreview = (callback) =>
     requests.ObjectExistence.case({
       Exists: (h) => {
@@ -404,8 +407,7 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        // TODO: move `mode` to third optional argument
-        return Preview.load({ ...handle, mode: viewModes.mode }, callback, previewOptions)
+        return Preview.load(handle, callback, previewOptions)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
