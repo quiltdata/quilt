@@ -31,9 +31,10 @@ function usePerspective(container, data, attrs) {
     }
     fetchData()
 
-    return () => {
-      table?.delete()
+    return async () => {
       viewer?.parentNode?.removeChild(viewer)
+      await viewer?.delete()
+      await table?.delete()
     }
   }, [attrs, container, data])
 }
