@@ -40,7 +40,7 @@ function TruncatedWarning({ className, handle, onLoadMore, size }) {
         Partial preview{' '}
         {size.current && size.full && (
           <>
-            ({readableBytes(size.current)} of {readableBytes(size.full)})
+            (est. {readableBytes(size.current)} of {readableBytes(size.full)})
           </>
         )}
       </span>
