@@ -121,8 +121,9 @@ export const Loader = function TabularLoader({
     ({ csv, truncated }: { csv: string; truncated: boolean }) =>
       PreviewData.Perspective({
         data: csv,
-        truncated,
+        handle,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
+        truncated,
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
