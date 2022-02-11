@@ -168,8 +168,8 @@ export const Loader = function TabularLoader({
   const fullSize = useContentLength(handle)
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, truncated, size: currentSize }: TabularDataOutput) => {
-      return PreviewData.Perspective({
+    ({ csv, truncated, size: currentSize }: TabularDataOutput) =>
+      PreviewData.Perspective({
         context: options.context,
         data: csv,
         handle,
@@ -179,8 +179,7 @@ export const Loader = function TabularLoader({
           full: fullSize,
           current: currentSize,
         },
-      })
-    },
+      }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
