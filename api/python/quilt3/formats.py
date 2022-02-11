@@ -1056,25 +1056,31 @@ class CompressionRegistry:
 
 
 class BaseCompressionHandler(ABC):
+    """Base class for compression handlers"""
     name = None
     handled_extensions = ()
 
     @abstractmethod
     def compress(self, data):
+        "Compress the given bytes object"
         pass
 
     @abstractmethod
     def decompress(self, data):
+        "Decompress the given bytes object"
         pass
 
     def register(self):
+        """Register this format with CompressionRegistry"""
         CompressionRegistry.register(self)
 
     def handles_ext(self, ext):
+        """Check if this format handles the filetype indicated by an extension"""
         return ext.lstrip('.').lower() in self.handled_extensions
 
 
 class GzipCompressionHandler(BaseCompressionHandler):
+    """Compression handler for gzip"""
     handled_extensions = ['gz']
 
     def compress(self, data):
