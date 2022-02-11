@@ -62,7 +62,9 @@ const useStyles = M.makeStyles((t) => ({
   },
   viewer: {
     height: ({ context }) =>
-      context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(60),
+      context === CONTEXT.LISTING ? t.spacing(20) : t.spacing(50),
+    overflow: 'auto',
+    resize: 'vertical',
   },
   warning: {
     marginBottom: t.spacing(1),
