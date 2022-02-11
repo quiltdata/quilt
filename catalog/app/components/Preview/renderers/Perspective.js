@@ -7,6 +7,8 @@ import * as Config from 'utils/Config'
 import * as perspective from 'utils/perspective'
 import { readableBytes } from 'utils/string'
 
+import { CONTEXT } from '../types'
+
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -59,7 +61,8 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   viewer: {
-    height: t.spacing(40),
+    height: ({ context }) =>
+      context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(60),
   },
   warning: {
     marginBottom: t.spacing(1),
@@ -69,14 +72,15 @@ const useStyles = M.makeStyles((t) => ({
 function Perspective({
   children,
   className,
+  context,
   data,
   handle,
   onLoadMore,
-  truncated,
   size,
+  truncated,
   ...props
 } = {}) {
-  const classes = useStyles()
+  const classes = useStyles({ context })
 
   const [root, setRoot] = React.useState(null)
 
@@ -97,6 +101,4 @@ function Perspective({
   )
 }
 
-export default ({ data, handle, onLoadMore, size, truncated }, props) => (
-  <Perspective {...{ data, handle, onLoadMore, size, truncated }} {...props} />
-)
+export default (data, props) => <Perspective {...data} {...props} />

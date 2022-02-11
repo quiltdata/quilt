@@ -170,6 +170,7 @@ export const Loader = function TabularLoader({
     data.result,
     ({ csv, truncated, size: currentSize }: TabularDataOutput) => {
       return PreviewData.Perspective({
+        context: options.context,
         data: csv,
         handle,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
