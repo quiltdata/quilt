@@ -5,12 +5,16 @@ import * as M from '@material-ui/core'
 import * as FileView from 'containers/Bucket/FileView'
 import * as Config from 'utils/Config'
 import * as perspective from 'utils/perspective'
+import { readableBytes } from 'utils/string'
 
-import { renderWarnings } from './util'
-
-const useAlertStyles = M.makeStyles((t) => ({
+const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  message: {
     color: t.palette.text.secondary,
+    marginRight: t.spacing(2),
   },
   icon: {
     display: 'inline-block',
@@ -20,54 +24,32 @@ const useAlertStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Alert({ className, title }) {
-  const classes = useAlertStyles()
-  return (
-    <span className={cx(classes.root, className)}>
-      <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-        info_outlined
-      </M.Icon>
-      {title}
-    </span>
-  )
-}
-
-const useTruncatedWarningStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-  },
-  message: {
-    marginRight: t.spacing(2),
-  },
-}))
-
-function TruncatedWarning({ className, handle, onLoadMore }) {
+function TruncatedWarning({ className, handle, onLoadMore, size }) {
   const classes = useTruncatedWarningStyles()
   const cfg = Config.use()
+  const isLoadableMore = !!onLoadMore
+  const isDownloadable = !onLoadMore && !cfg.noDownload
   return (
     <div className={cx(classes.root, className)}>
-      {onLoadMore ? (
-        <>
-          <Alert className={classes.message} title="Partial preview" />
-          <M.Button
-            startIcon={<M.Icon>refresh</M.Icon>}
-            variant="outlined"
-            size="small"
-            onClick={onLoadMore}
-          >
-            Preview more data
-          </M.Button>
-        </>
-      ) : (
-        <>
-          <Alert
-            className={classes.message}
-            title="Data is partially loaded, file is too big to load"
-          />
-          {!cfg.noDownload && <FileView.DownloadButton handle={handle} />}
-        </>
+      <span className={classes.message}>
+        <M.Icon fontSize="small" color="inherit" className={classes.icon}>
+          info_outlined
+        </M.Icon>
+        Partial preview{' '}
+        {size.current && size.full && (
+          <>
+            ({readableBytes(size.current)} of {readableBytes(size.full)})
+          </>
+        )}
+      </span>
+
+      {isLoadableMore && (
+        <M.Button startIcon={<M.Icon>refresh</M.Icon>} size="small" onClick={onLoadMore}>
+          Preview more data
+        </M.Button>
       )}
+
+      {isDownloadable && <FileView.DownloadButton handle={handle} />}
     </div>
   )
 }
@@ -89,10 +71,9 @@ function Perspective({
   className,
   data,
   handle,
-  note,
   onLoadMore,
   truncated,
-  warnings,
+  size,
   ...props
 } = {}) {
   const classes = useStyles()
@@ -103,12 +84,12 @@ function Perspective({
   perspective.use(root, data, attrs)
 
   return (
-    <div className={cx(className, classes.root)} ref={setRoot} title={note} {...props}>
-      {renderWarnings(warnings)}
+    <div className={cx(className, classes.root)} ref={setRoot} {...props}>
       {truncated && (
         <TruncatedWarning
           className={classes.warning}
           handle={handle}
+          size={size}
           onLoadMore={onLoadMore}
         />
       )}
@@ -116,7 +97,6 @@ function Perspective({
   )
 }
 
-// FIXME: `note` and `warnings` are unused
-export default ({ data, handle, note, warnings, onLoadMore, truncated }, props) => (
-  <Perspective {...{ data, handle, note, warnings, onLoadMore, truncated }} {...props} />
+export default ({ data, handle, onLoadMore, size, truncated }, props) => (
+  <Perspective {...{ data, handle, onLoadMore, size, truncated }} {...props} />
 )

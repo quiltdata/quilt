@@ -8,6 +8,8 @@ import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import type { S3HandleBase } from 'utils/s3paths'
 
+import * as requests from 'containers/Bucket/requests/requestsUntyped'
+
 import { CONTEXT, PreviewData } from '../types'
 
 import * as Csv from './Csv'
@@ -41,6 +43,28 @@ const detectTabularType: (type: string) => TabularType = R.cond([
   [R.T, R.always('txt')],
 ])
 
+function getQuiltInfo(r: Response): { truncated: boolean } | null {
+  try {
+    const header = r.headers.get('x-quilt-info')
+    return header ? JSON.parse(header) : null
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error)
+    return null
+  }
+}
+
+function getContentLength(r: Response): number | null {
+  try {
+    const header = r.headers.get('content-length')
+    return header ? Number(header) : null
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error)
+    return null
+  }
+}
+
 interface LoadTabularDataArgs {
   endpoint: string
   handle: S3HandleBase
@@ -49,13 +73,19 @@ interface LoadTabularDataArgs {
   size: 'small' | 'medium' | 'large'
 }
 
+interface TabularDataOutput {
+  csv: string
+  truncated: boolean
+  size: number | null
+}
+
 const loadTabularData = async ({
   endpoint,
   size,
   handle,
   sign,
   type,
-}: LoadTabularDataArgs) => {
+}: LoadTabularDataArgs): Promise<TabularDataOutput> => {
   const url = sign(handle)
   const r = await fetch(
     `${endpoint}/tabular-preview${mkSearch({
@@ -67,14 +97,17 @@ const loadTabularData = async ({
   try {
     const text = await r.text()
 
-    const quiltInfo = JSON.parse(r.headers.get('x-quilt-info') || '{}')
-
     if (r.status >= 400) {
       throw new HTTPError(r, text)
     }
+
+    const quiltInfo = getQuiltInfo(r)
+    const contentLength = getContentLength(r)
+
     return {
       csv: text,
-      truncated: quiltInfo.truncated,
+      size: contentLength,
+      truncated: !!quiltInfo?.truncated,
     }
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -93,6 +126,22 @@ function getNeededSize(context: string, gated: boolean) {
       return gated ? 'small' : 'large'
     // no default
   }
+}
+
+function useContentLength(handle: S3HandleBase): number | null {
+  const s3 = AWS.S3.use()
+  const objExistsData = Data.use(requests.getObjectExistence, { s3, ...handle })
+  return React.useMemo(
+    () =>
+      objExistsData.case({
+        _: () => null,
+        Ok: requests.ObjectExistence.case({
+          Exists: (r: $TSFixMe) => r.size,
+          _: () => null,
+        }),
+      }),
+    [objExistsData],
+  )
 }
 
 interface TabularLoaderProps {
@@ -116,15 +165,21 @@ export const Loader = function TabularLoader({
     [options.context, gated],
   )
   const data = Data.use(loadTabularData, { endpoint, size, handle, sign, type })
+  const fullSize = useContentLength(handle)
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, truncated }: { csv: string; truncated: boolean }) =>
-      PreviewData.Perspective({
+    ({ csv, truncated, size: currentSize }: TabularDataOutput) => {
+      return PreviewData.Perspective({
         data: csv,
         handle,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
-      }),
+        size: {
+          full: fullSize,
+          current: currentSize,
+        },
+      })
+    },
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
