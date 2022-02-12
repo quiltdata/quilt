@@ -135,7 +135,7 @@
     "xlsx": "^0.17.5"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^1.21.6",
+    "@graphql-codegen/cli": "^2.0.0",
     "@graphql-codegen/near-operation-file-preset": "^1.18.4",
     "@graphql-codegen/typed-document-node": "^1.18.9",
     "@graphql-codegen/typescript": "^1.22.4",
