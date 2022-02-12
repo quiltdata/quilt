@@ -1081,7 +1081,7 @@ class BaseCompressionHandler(ABC):
 
 class GzipCompressionHandler(BaseCompressionHandler):
     """Compression handler for gzip"""
-    handled_extensions = ['gz']
+    handled_extensions = ['gz', 'gzip']
 
     def compress(self, data):
         return gzip.compress(data)
