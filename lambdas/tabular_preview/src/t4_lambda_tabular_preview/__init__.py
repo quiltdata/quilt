@@ -29,35 +29,6 @@ OUTPUT_SIZES = {
     "large": None,
 }
 
-SCHEMA = {
-    "type": "object",
-    "properties": {
-        "url": {
-            "type": "string"
-        },
-        # # separator for CSV files
-        # 'sep': {
-        #     'minLength': 1,
-        #     'maxLength': 1
-        # },
-        # 'max_bytes': {
-        #     'type': 'string',
-        # },
-        "input": {
-            "enum": ["csv", "excel", "parquet"]
-        },
-        "compression": {
-            "enum": ["gz"]
-        },
-        "size": {
-            "enum": list(OUTPUT_SIZES),
-        },
-    },
-    "required": ["url", "input"],
-    "additionalProperties": False
-}
-
-
 def urlopen_seekable(url):
     return fsspec.open(url).open()
 
@@ -156,10 +127,55 @@ def preview_parquet(src, out):
     }
 
 
+def preview_jsonl(src, out):
+    truncated = False
+    with src:
+        # TODO: limit input size
+        t = pyarrow.json.read_json(src)
+    with out:
+        try:
+            pyarrow.csv.write_csv(t, out, write_options=PYARROW_CSV_WRITE_OPTIONS)
+        except out.Full:
+            truncated = True
+    return {
+        "truncated": truncated,
+    }
+
+
 handlers = {
     "csv": (urllib.request.urlopen, preview_csv),
     "excel": (urllib.request.urlopen, preview_excel),
     "parquet": (urlopen_seekable, preview_parquet),
+    "jsonl": (urllib.request.urlopen, preview_jsonl),
+}
+
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "url": {
+            "type": "string"
+        },
+        # # separator for CSV files
+        # 'sep': {
+        #     'minLength': 1,
+        #     'maxLength': 1
+        # },
+        # 'max_bytes': {
+        #     'type': 'string',
+        # },
+        "input": {
+            "enum": list(handlers),
+        },
+        "compression": {
+            "enum": ["gz"]
+        },
+        "size": {
+            "enum": list(OUTPUT_SIZES),
+        },
+    },
+    "required": ["url", "input"],
+    "additionalProperties": False
 }
 
 
@@ -189,8 +205,6 @@ def lambda_handler(request):
         })
 
     urlopener, handler = handlers[input_type]
-    # TODO: urllib.request.urlopen() seems to be faster for per-line reading for CSV.
-    # src = urllib.request.urlopen(url)
     src = urlopener(url)
     if compression == "gz":
         src = pyarrow.CompressedInputStream(src, "gzip")
