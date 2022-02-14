@@ -98,17 +98,11 @@ def preview_excel(src, out):
 
 
 def preview_parquet(src, out):
-    truncated = False
     with src:
         parquet_file = pyarrow.parquet.ParquetFile(src)
         meta = parquet_file.metadata
         with out:
-            with pyarrow.csv.CSVWriter(out, parquet_file.schema_arrow, write_options=PYARROW_CSV_WRITE_OPTIONS) as w:
-                for batch in parquet_file.iter_batches():
-                    try:
-                        w.write_batch(batch)
-                    except out.Full:
-                        truncated = True
+            data, truncated = write_data_as_arrow(parquet_file.iter_batches(OUT_BATCH_SIZE), parquet_file.schema_arrow)
 
     return {
         "truncated": truncated,
@@ -132,7 +126,7 @@ def write_data_as_arrow(data, schema, max_size):
     truncated = False
     buf = pyarrow.BufferOutputStream()
     with pyarrow.CompressedOutputStream(buf, "gzip") as sink:
-        with pyarrow.ipc.new_stream(sink, schema) as writer:
+        with pyarrow.ipc.new_file(sink, schema) as writer:
             for batch in data:
                 batch_size = pyarrow.ipc.get_record_batch_size(batch)
                 if (
@@ -233,7 +227,7 @@ def lambda_handler(request):
     data, info = handler(src, out)
 
     return 200, data, {
-        "Content-Type": "application/vnd.apache.arrow.stream",
+        "Content-Type": "application/vnd.apache.arrow.file",
         "Content-Encoding": "gzip",
         QUILT_INFO_HEADER: json.dumps(info),
     }
