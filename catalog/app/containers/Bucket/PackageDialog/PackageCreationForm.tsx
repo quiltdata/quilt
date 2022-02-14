@@ -163,20 +163,37 @@ function PackageCreationForm({
   const createPackage = requests.useCreatePackage()
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
-  const onSubmit = async ({
-    name,
-    msg,
-    files,
-    meta,
-    workflow,
-  }: {
+  const uploadPackage = Upload.useUploadPackage()
+
+  interface SumbmitArgs {
     name: string
     msg: string
-    files: FI.FilesState
     meta: {}
     workflow: workflows.Workflow
-    // eslint-disable-next-line consistent-return
-  }) => {
+  }
+  interface SumbmitWebArgs extends SumbmitArgs {
+    files: FI.FilesState
+  }
+  interface SumbmitElectronArgs extends SumbmitArgs {
+    localFolder: string
+  }
+
+  const onSubmitElectron = React.useCallback(
+    async ({ name, msg, localFolder, meta, workflow }: SumbmitElectronArgs) => {
+      const payload = {
+        entry: localFolder || '',
+        message: msg,
+        meta,
+        workflow,
+      }
+      const uploadResult = await uploadPackage(payload, { name, bucket }, schema)
+      setSuccess({ name, hash: uploadResult?.hash })
+      return null
+    },
+    [bucket, schema, setSuccess, uploadPackage],
+  )
+
+  const onSubmitWeb = async ({ name, msg, files, meta, workflow }: SumbmitWebArgs) => {
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
@@ -277,13 +294,16 @@ function PackageCreationForm({
       return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
-
   // const uploadPackage = Upload.useUploadPackage()
 
-  const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
+  const onSubmitWrapped = async (args: SumbmitWebArgs | SumbmitElectronArgs) => {
     setSubmitting(true)
     try {
-      return await onSubmit(...args)
+      if (desktop) {
+        return await onSubmitElectron(args as SumbmitElectronArgs)
+      } else {
+        return await onSubmitWeb(args as SumbmitWebArgs)
+      }
     } finally {
       setSubmitting(false)
     }
