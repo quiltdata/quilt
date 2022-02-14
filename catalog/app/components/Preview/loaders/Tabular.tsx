@@ -79,7 +79,7 @@ interface LoadTabularDataArgs {
 }
 
 interface TabularDataOutput {
-  csv: string
+  csv: ArrayBuffer
   size: number | null
   truncated: boolean
 }
@@ -102,7 +102,7 @@ const loadTabularData = async ({
     })}`,
   )
   try {
-    const text = await r.text()
+    const text = await r.arrayBuffer()
 
     if (r.status >= 400) {
       throw new HTTPError(r, text)
