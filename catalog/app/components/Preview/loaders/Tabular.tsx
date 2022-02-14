@@ -66,6 +66,7 @@ function getContentLength(r: Response): number | null {
 }
 
 interface LoadTabularDataArgs {
+  compression?: '.gz' | '.bz2'
   endpoint: string
   handle: S3HandleBase
   sign: (h: S3HandleBase) => string
@@ -75,11 +76,12 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: string
-  truncated: boolean
   size: number | null
+  truncated: boolean
 }
 
 const loadTabularData = async ({
+  compression,
   endpoint,
   size,
   handle,
@@ -89,9 +91,10 @@ const loadTabularData = async ({
   const url = sign(handle)
   const r = await fetch(
     `${endpoint}/tabular-preview${mkSearch({
-      url,
+      compression,
       input: type,
       size,
+      url,
     })}`,
   )
   try {
@@ -164,7 +167,15 @@ export const Loader = function TabularLoader({
     () => getNeededSize(options.context, gated),
     [options.context, gated],
   )
-  const data = Data.use(loadTabularData, { endpoint, size, handle, sign, type })
+  const compression = utils.getCompression(handle.key)
+  const data = Data.use(loadTabularData, {
+    compression,
+    endpoint,
+    size,
+    handle,
+    sign,
+    type,
+  })
   const fullSize = useContentLength(handle)
   const processed = utils.useProcessing(
     data.result,
