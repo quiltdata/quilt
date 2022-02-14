@@ -22,12 +22,15 @@ import * as utils from './utils'
 // TODO
 // const isBed = R.pipe(utils.stripCompression, utils.extIs('.bed'))
 
+const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
+
 export const detect = R.anyPass([
   Csv.detect,
   Excel.detect,
   Fcs.detect,
   Parquet.detect,
   Vcf.detect,
+  isJsonl,
   // isBed, // TODO
 ])
 
@@ -39,6 +42,7 @@ const detectTabularType: (type: string) => TabularType = R.cond([
   [Fcs.detect, R.always('fcs')],
   [Parquet.detect, R.always('parquet')],
   [Vcf.detect, R.always('vcf')],
+  [isJsonl, R.always('jsonl')],
   // [isBed, R.always('bed')], // TODO
   [R.T, R.always('txt')],
 ])
