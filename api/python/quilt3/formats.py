@@ -1061,11 +1061,6 @@ class BaseCompressionHandler(ABC):
     handled_extensions = ()
 
     @abstractmethod
-    def compress(self, data):
-        "Compress the given bytes object"
-        pass
-
-    @abstractmethod
     def decompress(self, data):
         "Decompress the given bytes object"
         pass
@@ -1082,9 +1077,6 @@ class BaseCompressionHandler(ABC):
 class GzipCompressionHandler(BaseCompressionHandler):
     """Compression handler for gzip"""
     handled_extensions = ['gz', 'gzip']
-
-    def compress(self, data):
-        return gzip.compress(data)
 
     def decompress(self, data):
         return gzip.decompress(data)
