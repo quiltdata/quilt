@@ -47,9 +47,9 @@ const detectTabularType: (type: string) => TabularType = R.cond([
   [R.T, R.always('txt')],
 ])
 
-function getQuiltInfo(r: Response): { truncated: boolean } | null {
+function getQuiltInfo(headers: Headers): { truncated: boolean } | null {
   try {
-    const header = r.headers.get('x-quilt-info')
+    const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -58,15 +58,22 @@ function getQuiltInfo(r: Response): { truncated: boolean } | null {
   }
 }
 
-function getContentLength(r: Response): number | null {
+function getContentLength(headers: Headers): number | null {
   try {
-    const header = r.headers.get('content-length')
+    const header = headers.get('content-length')
     return header ? Number(header) : null
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error)
     return null
   }
+}
+
+async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
+  const buffer = await r.arrayBuffer()
+  const decoder = new TextDecoder('utf-8')
+  const text = decoder.decode(buffer)
+  return text.startsWith('ARROW') ? buffer : text
 }
 
 interface LoadTabularDataArgs {
@@ -79,7 +86,7 @@ interface LoadTabularDataArgs {
 }
 
 interface TabularDataOutput {
-  csv: ArrayBuffer
+  csv: ArrayBuffer | string
   size: number | null
   truncated: boolean
 }
@@ -102,17 +109,17 @@ const loadTabularData = async ({
     })}`,
   )
   try {
-    const text = await r.arrayBuffer()
-
     if (r.status >= 400) {
-      throw new HTTPError(r, text)
+      throw new HTTPError(r)
     }
 
-    const quiltInfo = getQuiltInfo(r)
-    const contentLength = getContentLength(r)
+    const csv = await getCsvFromResponse(r)
+
+    const quiltInfo = getQuiltInfo(r.headers)
+    const contentLength = getContentLength(r.headers)
 
     return {
-      csv: text,
+      csv,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
