@@ -12,20 +12,13 @@ import * as FileView from './FileView'
 import Section from './Section'
 
 interface DownloadButtonProps {
-  bucket: string
   className: string
   label?: string
   onClick: () => void
   path?: string
 }
 
-export function DownloadButton({
-  bucket,
-  className,
-  label,
-  onClick,
-  path,
-}: DownloadButtonProps) {
+export function DownloadButton({ className, label, onClick, path }: DownloadButtonProps) {
   const { desktop, noDownload }: { desktop: boolean; noDownload: boolean } = Config.use()
 
   if (noDownload) return null
@@ -42,13 +35,7 @@ export function DownloadButton({
     )
   }
 
-  return (
-    <FileView.ZipDownloadForm
-      className={className}
-      suffix={`dir/${bucket}/${path}`}
-      label={label}
-    />
-  )
+  return <FileView.ZipDownloadForm className={className} label={label} suffix={path} />
 }
 
 const useConfirmDownloadDialogStyles = M.makeStyles({

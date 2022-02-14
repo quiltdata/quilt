@@ -358,7 +358,7 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
         }),
     })
 
-  return withData(Preview.display({ renderContents }))
+  return withData(Preview.display({ renderContents, renderProgress: Progress }))
 }
 
 function Meta({ meta }) {
