@@ -18,6 +18,7 @@ LAMBDA_MAX_OUT = 6_000_000
 LAMBDA_MAX_OUT_BINARY = 4_000_000
 
 # TODO: comment about batch_size.
+OUT_BATCH_SIZE = 100
 CSV_OUT_BATCH_SIZE = 100
 PYARROW_CSV_WRITE_OPTIONS = pyarrow.csv.WriteOptions(batch_size=CSV_OUT_BATCH_SIZE)
 
@@ -67,14 +68,11 @@ def preview_csv(src, out):
             read_options=pyarrow.csv.ReadOptions(block_size=max_input_size)
         )
         batch = next(iter(reader), None)
-    with out:
-        if batch:
-            try:
-                pyarrow.csv.write_csv(batch, out, write_options=PYARROW_CSV_WRITE_OPTIONS)
-            except out.Full:
-                truncated = True
 
-    return {
+    t = pyarrow.Table.from_batches((batch,))
+    data, truncated = write_data_as_arrow(t, t.schema, 10_000_000)
+
+    return data, {
         "truncated": truncated,
     }
 
@@ -127,17 +125,34 @@ def preview_parquet(src, out):
     }
 
 
-def preview_jsonl(src, out):
+def write_data_as_arrow(data, schema, max_size):
+    if isinstance(data, pyarrow.Table):
+        data = data.to_batches(OUT_BATCH_SIZE)
+
     truncated = False
+    buf = pyarrow.BufferOutputStream()
+    with pyarrow.CompressedOutputStream(buf, "gzip") as sink:
+        with pyarrow.ipc.new_stream(sink, schema) as writer:
+            for batch in data:
+                batch_size = pyarrow.ipc.get_record_batch_size(batch)
+                if (
+                    (max_size is not None and sink.tell() + batch_size > max_size) or
+                    # TODO: comment
+                    buf.tell() + batch_size > LAMBDA_MAX_OUT_BINARY
+                ):
+                    truncated = True
+                    break
+                writer.write(batch)
+
+    return memoryview(buf.getvalue()), truncated
+
+
+def preview_jsonl(src, out):
     with src:
         # TODO: limit input size
         t = pyarrow.json.read_json(src)
-    with out:
-        try:
-            pyarrow.csv.write_csv(t, out, write_options=PYARROW_CSV_WRITE_OPTIONS)
-        except out.Full:
-            truncated = True
-    return {
+    data, truncated = write_data_as_arrow(t, t.schema, 10_000_000)
+    return data, {
         "truncated": truncated,
     }
 
@@ -215,10 +230,10 @@ def lambda_handler(request):
         fileobj=buf,
         mode="wb",
     )
-    info = handler(src, out)
+    data, info = handler(src, out)
 
-    return 200, buf.getvalue(), {
-        "Content-Type": "text/csv",
+    return 200, data, {
+        "Content-Type": "application/vnd.apache.arrow.stream",
         "Content-Encoding": "gzip",
         QUILT_INFO_HEADER: json.dumps(info),
     }
