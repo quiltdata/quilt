@@ -490,12 +490,14 @@ class PackageTest(QuiltTestCase):
             .set('foo', DATA_DIR / 'foo.txt', {'user_meta_foo': 'blah'})
             .set('bar', DATA_DIR / 'foo.unrecognized.ext')
             .set('baz', DATA_DIR / 'foo.txt')
+            .set('blah', DATA_DIR / 'blah.txt.gz')
         )
         pkg.build('foo/bar')
 
         pkg['foo'].meta['target'] = 'unicode'
         assert pkg['foo'].deserialize() == '123\n'
         assert pkg['baz'].deserialize() == '123\n'
+        assert pkg['blah'].deserialize() == '456\n'
 
         with pytest.raises(QuiltException):
             pkg['bar'].deserialize()
