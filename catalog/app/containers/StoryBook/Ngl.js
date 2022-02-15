@@ -41,7 +41,8 @@ async function renderNgl(s3, url, wrapperEl) {
   const resizeObserver = new window.ResizeObserver(() => stage.handleResize())
   resizeObserver.observe(wrapperEl)
 
-  await stage.loadFile(new Blob(r.Body), {
+  await stage.loadFile(new Blob([r.Body]), {
+    defaultRepresentation: true,
     ext: 'pdb',
   })
   return stage
@@ -64,7 +65,11 @@ export default ({ url }) => {
   const img = React.useRef()
 
   React.useEffect(() => {
-    renderNgl(s3, url, viewport.current).then((stage) => renderThumb(stage, img.current))
+    renderNgl(s3, url, viewport.current).then((stage) => {
+      setTimeout(() => {
+        renderThumb(stage, img.current)
+      }, 3000)
+    })
     return () => {
       // TODO: stage.dispose()
     }
