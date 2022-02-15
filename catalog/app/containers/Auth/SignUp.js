@@ -15,6 +15,7 @@ import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
 import validate, * as validators from 'utils/validators'
 
+import PasswordStrength from './PasswordStrength'
 import * as Layout from './Layout'
 import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
@@ -27,6 +28,16 @@ import * as selectors from './selectors'
 const Container = Layout.mkLayout('Complete sign-up')
 
 const MUTEX_ID = 'password'
+
+function PasswordField({ input, ...rest }) {
+  const { value } = input
+  return (
+    <>
+      <Layout.Field type="password" floatingLabelText="Password" {...input} {...rest} />
+      {value && <PasswordStrength value={value} />}
+    </>
+  )
+}
 
 function PasswordSignUp({ mutex, next, onSuccess }) {
   const sentry = Sentry.use()
@@ -143,12 +154,10 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={PasswordField}
             name="password"
-            type="password"
             validate={validators.required}
             disabled={!!mutex.current || submitting}
-            floatingLabelText="Password"
             errors={{
               required: 'Enter a password',
               invalid: 'Password must be at least 8 characters long',
