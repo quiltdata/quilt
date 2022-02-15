@@ -49,7 +49,7 @@ function WeakPasswordIcon() {
 function PasswordField({ input, ...rest }) {
   const { value } = input
   const score = PasswordStrength.useScore(value)
-  const isWeak = !!value && score < 3
+  const isWeak = score >= 0 && score <= 2
   return (
     <>
       <Layout.Field
