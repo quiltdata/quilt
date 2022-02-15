@@ -29,21 +29,36 @@ const Container = Layout.mkLayout('Complete sign-up')
 
 const MUTEX_ID = 'password'
 
+const useWeakPasswordIconStyles = M.makeStyles((t) => ({
+  icon: {
+    color: t.palette.warning.dark,
+  },
+}))
+
+function WeakPasswordIcon() {
+  const classes = useWeakPasswordIconStyles()
+  return (
+    <M.Tooltip title="Password is too weak">
+      <M.Icon className={classes.icon} fontSize="small" color="inherit">
+        error_outline
+      </M.Icon>
+    </M.Tooltip>
+  )
+}
+
 function PasswordField({ input, ...rest }) {
   const { value } = input
   const score = PasswordStrength.useScore(value)
+  const isWeak = !!value && score < 3
   return (
     <>
       <Layout.Field
         InputProps={{
-          endAdornment:
-            score < 3 && !!value ? (
-              <M.InputAdornment position="end">
-                <M.Tooltip title="Password is too weak">
-                  <M.Icon color="error">error_outline</M.Icon>
-                </M.Tooltip>
-              </M.InputAdornment>
-            ) : null,
+          endAdornment: isWeak && (
+            <M.InputAdornment position="end">
+              <WeakPasswordIcon />
+            </M.InputAdornment>
+          ),
         }}
         type="password"
         floatingLabelText="Password"
