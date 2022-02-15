@@ -33,7 +33,21 @@ function PasswordField({ input, ...rest }) {
   const { value } = input
   return (
     <>
-      <Layout.Field type="password" floatingLabelText="Password" {...input} {...rest} />
+      <Layout.Field
+        InputProps={{
+          endAdornment: (
+            <M.InputAdornment position="end">
+              <M.Tooltip title="Password is too weak">
+                <M.Icon>error_outline</M.Icon>
+              </M.Tooltip>
+            </M.InputAdornment>
+          ),
+        }}
+        type="password"
+        floatingLabelText="Password"
+        {...input}
+        {...rest}
+      />
       {value && <PasswordStrength value={value} />}
     </>
   )

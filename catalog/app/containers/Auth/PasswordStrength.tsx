@@ -6,54 +6,12 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    backgroundColor: fade(t.palette.error.main, 0.3),
-    '&$tooGuessable': {
-      backgroundColor: fade(t.palette.error.dark, 0.3),
-    },
-    '&$veryGuessable': {
-      backgroundColor: fade(t.palette.error.main, 0.3),
-    },
-    '&$somewhatGuessable': {
-      backgroundColor: fade(t.palette.warning.dark, 0.3),
-    },
-    '&$safelyUnguessable': {
-      backgroundColor: fade(t.palette.success.light, 0.3),
-    },
-    '&$veryUnguessable': {
-      backgroundColor: fade(t.palette.success.dark, 0.3),
-    },
+    transition: '.3s ease background-color',
   },
   inner: {
-    backgroundColor: t.palette.error.main,
-    transition: '.3s ease width, .3s ease background-color, .3s ease height',
+    transition: '.3s ease width, .3s ease background-color',
     height: t.spacing(0.5),
-    width: 0,
-    '&$tooGuessable': {
-      backgroundColor: t.palette.error.dark,
-      width: '10%',
-    },
-    '&$veryGuessable': {
-      backgroundColor: t.palette.error.main,
-      width: '33%',
-    },
-    '&$somewhatGuessable': {
-      backgroundColor: t.palette.warning.dark,
-      width: '55%',
-    },
-    '&$safelyUnguessable': {
-      backgroundColor: t.palette.success.light,
-      width: '78%',
-    },
-    '&$veryUnguessable': {
-      backgroundColor: t.palette.success.dark,
-      width: '100%',
-    },
   },
-  tooGuessable: {},
-  veryGuessable: {},
-  somewhatGuessable: {},
-  safelyUnguessable: {},
-  veryUnguessable: {},
 }))
 
 interface PasswordStrengthProps {
@@ -61,28 +19,58 @@ interface PasswordStrengthProps {
   value: string
 }
 
-type Strength =
-  | 'tooGuessable'
-  | 'veryGuessable'
-  | 'somewhatGuessable'
-  | 'safelyUnguessable'
-  | 'veryUnguessable'
-
-const ScoreMap: Strength[] = [
-  'tooGuessable',
-  'veryGuessable',
-  'somewhatGuessable',
-  'safelyUnguessable',
-  'veryUnguessable',
-]
+function getStyles(
+  t: M.Theme,
+  score: zxcvbn.ZXCVBNScore,
+): { color: string; width: number } {
+  switch (score) {
+    case 4:
+      return {
+        color: t.palette.success.dark,
+        width: 100,
+      }
+    case 3:
+      return {
+        color: t.palette.success.light,
+        width: 78,
+      }
+    case 2:
+      return {
+        color: t.palette.warning.dark,
+        width: 55,
+      }
+    case 1:
+      return {
+        color: t.palette.error.main,
+        width: 33,
+      }
+    case 0:
+      return {
+        color: t.palette.error.dark,
+        width: 10,
+      }
+    default:
+      return {
+        color: 'transparent',
+        width: 0,
+      }
+  }
+}
 
 export default function PasswordStrength({ className, value }: PasswordStrengthProps) {
+  const t = M.useTheme()
   const classes = useStyles()
-  const result: zxcvbn.ZXCVBNResult = zxcvbn(value)
-  const stateClassName = classes[ScoreMap[result.score]]
+  const { score }: zxcvbn.ZXCVBNResult = zxcvbn(value)
+  const { color, width } = React.useMemo(() => getStyles(t, score), [t, score])
   return (
-    <div className={cx(classes.root, stateClassName, className)}>
-      <div className={cx(classes.inner, stateClassName)} />
+    <div
+      className={cx(classes.root, className)}
+      style={{ backgroundColor: fade(color, 0.3) }}
+    >
+      <div
+        className={cx(classes.inner)}
+        style={{ backgroundColor: color, width: `${width}%` }}
+      />
     </div>
   )
 }
