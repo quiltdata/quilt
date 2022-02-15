@@ -14,11 +14,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface PasswordStrengthProps {
-  className?: string
-  value: string
-}
-
 function getStyles(
   t: M.Theme,
   score: zxcvbn.ZXCVBNScore,
@@ -57,10 +52,21 @@ function getStyles(
   }
 }
 
-export default function PasswordStrength({ className, value }: PasswordStrengthProps) {
+export function useScore(value: string): zxcvbn.ZXCVBNScore {
+  return React.useMemo(() => {
+    const { score }: zxcvbn.ZXCVBNResult = zxcvbn(value)
+    return score
+  }, [value])
+}
+
+interface PasswordStrengthProps {
+  className?: string
+  score: zxcvbn.ZXCVBNScore
+}
+
+export function Indicator({ className, score }: PasswordStrengthProps) {
   const t = M.useTheme()
   const classes = useStyles()
-  const { score }: zxcvbn.ZXCVBNResult = zxcvbn(value)
   const { color, width } = React.useMemo(() => getStyles(t, score), [t, score])
   return (
     <div

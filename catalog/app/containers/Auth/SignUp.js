@@ -15,7 +15,7 @@ import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
 import validate, * as validators from 'utils/validators'
 
-import PasswordStrength from './PasswordStrength'
+import * as PasswordStrength from './PasswordStrength'
 import * as Layout from './Layout'
 import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
@@ -31,24 +31,26 @@ const MUTEX_ID = 'password'
 
 function PasswordField({ input, ...rest }) {
   const { value } = input
+  const score = PasswordStrength.useScore(value)
   return (
     <>
       <Layout.Field
         InputProps={{
-          endAdornment: (
-            <M.InputAdornment position="end">
-              <M.Tooltip title="Password is too weak">
-                <M.Icon>error_outline</M.Icon>
-              </M.Tooltip>
-            </M.InputAdornment>
-          ),
+          endAdornment:
+            score < 3 && !!value ? (
+              <M.InputAdornment position="end">
+                <M.Tooltip title="Password is too weak">
+                  <M.Icon color="error">error_outline</M.Icon>
+                </M.Tooltip>
+              </M.InputAdornment>
+            ) : null,
         }}
         type="password"
         floatingLabelText="Password"
         {...input}
         {...rest}
       />
-      {value && <PasswordStrength value={value} />}
+      {value && <PasswordStrength.Indicator score={score} />}
     </>
   )
 }
