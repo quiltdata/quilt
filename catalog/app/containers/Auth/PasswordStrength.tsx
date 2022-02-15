@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   root: {
     animation: '$appear .3s',
+    backgroundColor: t.palette.divider,
     height: t.spacing(0.5),
     position: 'relative',
     transition: '.3s ease background-color',
@@ -54,14 +55,6 @@ const useStyles = M.makeStyles((t) => ({
       width: '100%',
     },
   },
-  '@keyframes appear': {
-    '0%': {
-      height: 0,
-    },
-    '100%': {
-      height: t.spacing(0.5),
-    },
-  },
   tooGuessable: {},
   veryGuessable: {},
   somewhatGuessable: {},
@@ -69,8 +62,11 @@ const useStyles = M.makeStyles((t) => ({
   veryUnguessable: {},
 }))
 
-export function useScore(value: string): zxcvbn.ZXCVBNScore {
+type PasswordScore = zxcvbn.ZXCVBNScore | -1
+
+export function useScore(value: string): PasswordScore {
   return React.useMemo(() => {
+    if (!value) return -1
     const { score }: zxcvbn.ZXCVBNResult = zxcvbn(value)
     return score
   }, [value])
@@ -78,7 +74,7 @@ export function useScore(value: string): zxcvbn.ZXCVBNScore {
 
 interface PasswordStrengthProps {
   className?: string
-  score: zxcvbn.ZXCVBNScore
+  score: PasswordScore
 }
 
 type ScoreState =
@@ -98,5 +94,6 @@ const ScoreMap: ScoreState[] = [
 
 export function Indicator({ className, score }: PasswordStrengthProps) {
   const classes = useStyles()
-  return <div className={cx(classes.root, classes[ScoreMap[score]], className)} />
+  const stateClassName = score >= 0 ? classes[ScoreMap[score]] : ''
+  return <div className={cx(classes.root, stateClassName, className)} />
 }

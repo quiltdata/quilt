@@ -60,12 +60,13 @@ function PasswordField({ input, ...rest }) {
             </M.InputAdornment>
           ),
         }}
+        helperText="Hint: use combination of two-three words, mix uppercase with lowercase letters, and use special characters"
         type="password"
         floatingLabelText="Password"
         {...input}
         {...rest}
       />
-      {value && <PasswordStrength.Indicator score={score} />}
+      <PasswordStrength.Indicator score={score} />
     </>
   )
 }
