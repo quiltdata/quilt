@@ -1,17 +1,19 @@
 Once your package is ready it's time to save and distribute it.
 
-## Authenticating to a remote registry
+## Authentication
 
 To push a Quilt package you need to either
 [configure your local AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-config)
 with read/write access to the bucket you wish to push to,
 or if your company runs a Quilt stack you must log in:
 
+*Registries* are simply S3 buckets where pacakge data and metadata are stored.
+
 ```python
 # only need to run this once
 quilt3.config('https://your-catalog-homepage/')
 
-# follow the instructions to finish login
+# if and only if your company runs a Quilt stack and you don't have local AWS credentials:
 quilt3.login()
 ```
 
