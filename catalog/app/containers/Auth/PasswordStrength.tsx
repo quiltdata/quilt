@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    animation: '$appear .3s',
     backgroundColor: t.palette.divider,
     height: t.spacing(0.5),
     position: 'relative',
@@ -73,7 +72,6 @@ export function useScore(value: string): PasswordScore {
 }
 
 interface PasswordStrengthProps {
-  className?: string
   score: PasswordScore
 }
 
@@ -92,8 +90,8 @@ const ScoreMap: ScoreState[] = [
   'veryUnguessable',
 ]
 
-export function Indicator({ className, score }: PasswordStrengthProps) {
+export function Indicator({ score }: PasswordStrengthProps) {
   const classes = useStyles()
   const stateClassName = score >= 0 ? classes[ScoreMap[score]] : ''
-  return <div className={cx(classes.root, stateClassName, className)} />
+  return <div className={cx(classes.root, stateClassName)} />
 }
