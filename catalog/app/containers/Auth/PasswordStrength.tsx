@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    animation: '$appear .3s',
     height: t.spacing(0.5),
     position: 'relative',
     transition: '.3s ease background-color',
@@ -51,6 +52,14 @@ const useStyles = M.makeStyles((t) => ({
     '&$veryUnguessable:after': {
       backgroundColor: t.palette.success.dark,
       width: '100%',
+    },
+  },
+  '@keyframes appear': {
+    '0%': {
+      height: 0,
+    },
+    '100%': {
+      height: t.spacing(0.5),
     },
   },
   tooGuessable: {},
