@@ -132,7 +132,8 @@
     "vega-lite": "^5.1.1",
     "warning": "^4.0.3",
     "wonka": "^4.0.15",
-    "xlsx": "^0.17.5"
+    "xlsx": "^0.17.5",
+    "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^1.21.6",
@@ -167,6 +168,7 @@
     "@types/react-test-renderer": "^17.0.1",
     "@types/remarkable": "^2.0.3",
     "@types/semver": "^7.3.9",
+    "@types/zxcvbn": "^4.4.1",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "bundlewatch": "^0.3.2",
