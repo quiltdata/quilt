@@ -57,7 +57,7 @@ export interface S3Entry {
 
 export interface PackageCreationSuccess {
   name: string
-  hash: string
+  hash?: string
 }
 
 const useStyles = M.makeStyles((t) => ({
