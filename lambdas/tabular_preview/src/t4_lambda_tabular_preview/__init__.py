@@ -57,6 +57,40 @@ class GzipOutputBuffer(gzip.GzipFile):
         return super().write(data)
 
 
+def write_data_as_arrow(data, schema, max_size):
+    if isinstance(data, pyarrow.Table):
+        data = data.to_batches(OUT_BATCH_SIZE)
+
+    truncated = False
+    buf = pyarrow.BufferOutputStream()
+    with pyarrow.CompressedOutputStream(buf, "gzip") as sink:
+        with pyarrow.ipc.new_file(sink, schema) as writer:
+            for batch in data:
+                batch_size = pyarrow.ipc.get_record_batch_size(batch)
+                if (
+                    (max_size is not None and sink.tell() + batch_size > max_size) or
+                    # TODO: comment
+                    buf.tell() + batch_size > LAMBDA_MAX_OUT_BINARY
+                ):
+                    truncated = True
+                    break
+                writer.write(batch)
+
+    return memoryview(buf.getvalue()), truncated
+
+
+def write_pandas_as_csv(df, out):
+    with out:
+        try:
+            # pyarrow.csv.write_csv(pyarrow.Table.from_pandas(df), ...) works faster,
+            # but conversion to pyarrow.Table fails for some files.
+            df.to_csv(out, chunksize=CSV_OUT_BATCH_SIZE, index=False)
+        except out.Full:
+            truncated = True
+
+    return truncated
+
+
 def preview_csv(src, out):
     truncated = False
     # TODO: rework this `+ 1_000_000` hack needed for `truncated` flag.
@@ -81,16 +115,10 @@ def preview_excel(src, out):
     # Importing pandas here, because it's quite slow (150-200 msec when benchmarked locally).
     import pandas
 
-    truncated = False
     with src:
-        df = pandas.read_excel(io.BytesIO(src.read()), sheet_name=0)
-    with out:
-        try:
-            # pyarrow.csv.write_csv(pyarrow.Table.from_pandas(df), ...) works faster,
-            # but conversion to pyarrow.Table fails for some files.
-            df.to_csv(out, chunksize=CSV_OUT_BATCH_SIZE)
-        except out.Full:
-            truncated = True
+        data = src.read()
+    df = pandas.read_excel(data)
+    truncated = write_pandas_as_csv(df, out)
 
     return {
         "truncated": truncated,
@@ -119,33 +147,23 @@ def preview_parquet(src, out):
     }
 
 
-def write_data_as_arrow(data, schema, max_size):
-    if isinstance(data, pyarrow.Table):
-        data = data.to_batches(OUT_BATCH_SIZE)
-
-    truncated = False
-    buf = pyarrow.BufferOutputStream()
-    with pyarrow.CompressedOutputStream(buf, "gzip") as sink:
-        with pyarrow.ipc.new_file(sink, schema) as writer:
-            for batch in data:
-                batch_size = pyarrow.ipc.get_record_batch_size(batch)
-                if (
-                    (max_size is not None and sink.tell() + batch_size > max_size) or
-                    # TODO: comment
-                    buf.tell() + batch_size > LAMBDA_MAX_OUT_BINARY
-                ):
-                    truncated = True
-                    break
-                writer.write(batch)
-
-    return memoryview(buf.getvalue()), truncated
+def read_lines(src, max_bytes):
+    data = src.read(max_bytes)
+    next_byte = src.read(1)
+    if not next_byte:
+        return data, False
+    data = data.rpartition(b'\n')[0]
+    return data, True
 
 
 def preview_jsonl(src, out):
+    import pandas
+
     with src:
-        # TODO: limit input size
-        t = pyarrow.json.read_json(src)
-    data, truncated = write_data_as_arrow(t, t.schema, 10_000_000)
+        # TODO:
+        data, truncated = read_lines(src, out.max_size + out.max_size // 2)
+    df = pandas.read_json(io.BytesIO(data), lines=True)
+    truncated = truncated or write_pandas_as_csv(df, out)
     return data, {
         "truncated": truncated,
     }
@@ -159,20 +177,19 @@ handlers = {
 }
 
 
+# handlers = {
+#     "csv": preview_csv,
+#     "excel": preview_excel,
+#     "parquet": preview_parquet,
+#     "jsonl": preview_jsonl,
+# }
+
 SCHEMA = {
     "type": "object",
     "properties": {
         "url": {
             "type": "string"
         },
-        # # separator for CSV files
-        # 'sep': {
-        #     'minLength': 1,
-        #     'maxLength': 1
-        # },
-        # 'max_bytes': {
-        #     'type': 'string',
-        # },
         "input": {
             "enum": list(handlers),
         },
@@ -191,18 +208,10 @@ SCHEMA = {
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
-    """
-    dynamically handle preview requests for bytes in S3
-    caller must specify input_type (since there may be no file extension)
-
-    Returns:
-        JSON response
-    """
     url = request.args["url"]
     input_type = request.args.get("input")
     output_size = request.args.get("size", "small")
     compression = request.args.get("compression")
-    separator = request.args.get("sep") or ","
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == "https" and
