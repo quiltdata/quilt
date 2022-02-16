@@ -466,7 +466,7 @@ export function calcDialogHeight(
   metaFullHeight?: boolean,
 ): number {
   const neededSpace =
-    (metaFullHeight ? 125 : 345) /* space to fit other inputs */ + metaHeight
+    (metaFullHeight ? 80 : 345) /* space to fit other inputs */ + metaHeight
   const availableSpace = windowHeight - 200 /* free space for headers */
   const minimalSpace = 420 /* minimal height */
   if (availableSpace < minimalSpace) return minimalSpace
