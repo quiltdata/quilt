@@ -364,6 +364,7 @@ function PackageCreationForm({
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
 
+  // TODO: move useLocalFolder to its own component shared by Download and Upload
   const [defaultLocalFolder] = Download.useLocalFolder()
 
   const commitMessageInput = (
