@@ -70,10 +70,8 @@ function getContentLength(headers: Headers): number | null {
 }
 
 async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
-  const buffer = await r.arrayBuffer()
-  const decoder = new TextDecoder('utf-8')
-  const text = decoder.decode(buffer)
-  return text.startsWith('ARROW') ? buffer : text
+  const isArrow = r.headers.get('content-type') === 'application/vnd.apache.arrow.file'
+  return isArrow ? r.arrayBuffer() : r.text()
 }
 
 interface LoadTabularDataArgs {
