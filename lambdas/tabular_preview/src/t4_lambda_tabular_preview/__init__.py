@@ -19,7 +19,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # and non-flushed gzip buffers.
 MAX_OUT = 4_000_000
 
-MAX_INPUT_CSV = 150_000_000
+MAX_CSV_INPUT = 150_000_000
 
 # How many output rows are written at time, greater numbers are better for
 # performance, but if batch can't fully fit into output, we stop writing.
@@ -73,9 +73,10 @@ class GzipOutputBuffer(gzip.GzipFile):
         super().__exit__(exc_type, exc_val, exc_tb)
 
     def write(self, data):
-        # TODO: left a comment
         if (
             (self.max_size is not None and self.size + len(data) > self.max_size) or
+            # We don't know exact size of compressed data before real compression occurs,
+            # so this assumes we can fit compressed data if there is enough space for uncompressed data.
             (self.compressed_max_size is not None and self.fileobj.tell() + len(data) > self.compressed_max_size)
         ):
             raise self.Full
@@ -94,7 +95,7 @@ def write_data_as_arrow(data, schema, max_size):
                 batch_size = pyarrow.ipc.get_record_batch_size(batch)
                 if (
                     (max_size is not None and sink.tell() + batch_size > max_size) or
-                    # TODO: comment
+                    # See a similar comment in GzipOutputBuffer.write().
                     buf.tell() + batch_size > MAX_OUT
                 ):
                     truncated = True
@@ -124,8 +125,19 @@ def write_pandas_as_csv(df, max_size):
 
 
 def preview_csv(url, compression, max_out_size):
+    # This function reads the same amount of data as expected for output, parses this
+    # data as Arrow table and serializes it in Arrow IPC format.
+    # Other approaches were tried:
+    # * use streaming CSV reader see (pyarrow.csv.open_csv()) -- this approach was rejected
+    #   because ArrowInvalid is raised if types inferred from the following chunks differ
+    #   from types inferred from the first chunk.
+    # * read/write data line by line -- iterating through file line by line in Python is slower
+    #   than parsing the same file with pyarrow, writing to output without batching also seems
+    #   to cause slowdown.
+    # TODO: Possible optimization: output smaller data that fits into response without compression
+    #       as is (without parsing).
     with urlopen(url, compression=compression) as src:
-        max_input_size = max_out_size or MAX_INPUT_CSV
+        max_input_size = max_out_size or MAX_CSV_INPUT
         input_data, input_truncated = read_lines(src, max_input_size)
 
     t = pyarrow.csv.read_csv(pyarrow.BufferReader(input_data))
@@ -143,9 +155,10 @@ def preview_csv(url, compression, max_out_size):
 
 
 def preview_jsonl(url, compression, max_out_size):
+    # This mostly works the same as preview_csv() but tries to take into
+    # account that JSONL is more verbose than CSV.
     with urlopen(url, compression=compression) as src:
-        # TODO: comment
-        max_input_size = int((max_out_size or MAX_INPUT_CSV) * 1.5)
+        max_input_size = int((max_out_size or MAX_CSV_INPUT) * 1.5)
         input_data, input_truncated = read_lines(src, max_input_size)
     df = pandas.read_json(io.BytesIO(input_data), lines=True)
     output_data, output_truncated = write_pandas_as_csv(df, max_out_size)
