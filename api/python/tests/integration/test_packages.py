@@ -1,5 +1,4 @@
 """ Integration tests for Quilt Packages. """
-from functools import partial
 import io
 import locale
 import os
@@ -9,6 +8,7 @@ import tempfile
 from collections import Counter
 from contextlib import redirect_stderr
 from datetime import datetime
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from unittest import mock
@@ -1677,7 +1677,10 @@ class PackageTest(QuiltTestCase):
     def test_push_dest_fn_s3_uri_with_version_id(self):
         pkg = Package().set('foo', DATA_DIR / 'foo.txt')
         with pytest.raises(ValueError) as excinfo:
-            pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v', force=True)
+            pkg.push(
+                'foo/bar', registry='s3://test-bucket',
+                dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v', force=True
+            )
         assert 'URI must not include versionId' in str(excinfo.value)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
