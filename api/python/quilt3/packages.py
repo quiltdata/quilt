@@ -17,6 +17,7 @@ import warnings
 from collections import deque
 from multiprocessing import Pool
 
+import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
@@ -375,11 +376,10 @@ class ManifestJSONDecoder(json.JSONDecoder):
 class Package:
     """ In-memory representation of a package """
 
-    _origin = None
-
     def __init__(self):
         self._children = {}
         self._meta = {'version': 'v0'}
+        self._origin = None
 
     @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):
@@ -604,7 +604,9 @@ class Package:
                     stack.callback(os.unlink, local_pkg_manifest)
                 download_manifest(local_pkg_manifest)
 
-            return cls._from_path(local_pkg_manifest)
+            pkg = cls._from_path(local_pkg_manifest)
+            pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+            return pkg
 
     @classmethod
     def _from_path(cls, path):
@@ -1039,8 +1041,7 @@ class Package:
     def _push_manifest(self, name, registry, top_hash):
         manifest = io.BytesIO()
         self._dump(manifest)
-        self._timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
-        self._origin = PackageRevInfo(str(registry.base), name, top_hash)
+        registry.push_manifest(name, top_hash, manifest.getvalue())
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
@@ -1290,7 +1291,7 @@ class Package:
 
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=...):
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=..., force=False):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1330,9 +1331,9 @@ class Package:
         Returns:
             A new package that points to the copied objects.
         """
-        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True)
+        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force)
 
-    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info):
+    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info, force):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
@@ -1391,12 +1392,34 @@ class Package:
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
+        def check_latest_hash():
+            if force:
+                return
+
+            try:
+                latest_hash = get_bytes(registry.pointer_latest_pk(name)).decode()
+            except botocore.exceptions.ClientError as ex:
+                if ex.response['Error']['Code'] == 'NoSuchKey':
+                    # Expected
+                    return
+                raise
+
+            if self._origin is None or latest_hash != self._origin.top_hash:
+                raise QuiltException(
+                    f"Package with an unexpected hash {latest_hash} already exists at the destination; "
+                    "use force=True to overwrite"
+                )
+
+        # Check the top hash and fail early if it's unexpected.
+        check_latest_hash()
+
         self._fix_sha256()
 
         pkg = self.__class__()
         pkg._meta = self._meta
         pkg._set_commit_message(message)
         top_hash = self._calculate_top_hash(pkg._meta, self.walk())
+        pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
@@ -1445,6 +1468,9 @@ class Package:
             # Update old package to point to the materialized location of the file since the tempfile no longest exists
             for lk in temp_file_logical_keys:
                 self._set(lk, pkg[lk])
+
+        # Check top hash again just before pushing, to minimize the race condition.
+        check_latest_hash()
 
         pkg._push_manifest(name, registry, top_hash)
 
