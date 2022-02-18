@@ -36,7 +36,7 @@ OUTPUT_SIZES = {
 
 def urlopen(url: str, *, compression: str, seekable: bool = False):
     # urllib's urlopen() works faster than fsspec, but is not seekable.
-    raw = fsspec.open(url).open() if seekable else urllib.request.urlopen(url)
+    raw = fsspec.open(url).open() if seekable else urllib.request.urlopen(url)  # pylint: disable=consider-using-with
     if compression is None:
         uncompressed = raw
     else:
@@ -47,7 +47,10 @@ def urlopen(url: str, *, compression: str, seekable: bool = False):
     return uncompressed
 
 
-def read_lines(src, max_bytes):
+def read_lines(src, max_bytes: int):
+    """
+    Read full lines that not exceeds `max_bytes`.
+    """
     data = src.read(max_bytes)
     next_byte = src.read(1)
     if not next_byte:
@@ -81,10 +84,7 @@ class GzipOutputBuffer(gzip.GzipFile):
 
 def write_data_as_arrow(data, schema, max_size):
     if isinstance(data, pyarrow.Table):
-        print(data.num_rows)
         data = data.to_batches(OUT_BATCH_SIZE)
-
-    print([pyarrow.ipc.get_record_batch_size(batch) for batch in data])
 
     truncated = False
     buf = pyarrow.BufferOutputStream()
@@ -92,8 +92,6 @@ def write_data_as_arrow(data, schema, max_size):
         with pyarrow.ipc.new_file(sink, schema) as writer:
             for batch in data:
                 batch_size = pyarrow.ipc.get_record_batch_size(batch)
-                print(batch_size)
-                print(sink.tell())
                 if (
                     (max_size is not None and sink.tell() + batch_size > max_size) or
                     # TODO: comment
