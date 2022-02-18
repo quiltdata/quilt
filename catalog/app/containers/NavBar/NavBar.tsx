@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
+import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
 
 import Logo from 'components/Logo'
@@ -370,7 +371,7 @@ function useLinks(): LinkDescriptor[] {
       label: 'Example',
     },
     settings?.customNavLink && {
-      href: settings.customNavLink.url,
+      href: sanitizeUrl(settings.customNavLink.url),
       label: settings.customNavLink.label,
     },
     cfg.mode !== 'MARKETING' && {
