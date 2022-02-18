@@ -36,10 +36,10 @@ def urlopen(url: str, *, compression: str, seekable: bool = False):
     raw = fsspec.open(url).open() if seekable else urllib.request.urlopen(url)
     if compression is None:
         uncompressed = raw
-    elif compression == "gz":
-        uncompressed = pyarrow.CompressedInputStream(raw, "gzip")
     else:
-        assert False
+        if compression == "gz":
+            compression = "gzip"
+        uncompressed = pyarrow.CompressedInputStream(raw, compression)
 
     return uncompressed
 
@@ -223,7 +223,7 @@ SCHEMA = {
             "enum": list(handlers),
         },
         "compression": {
-            "enum": ["gz"]
+            "enum": ["gz", "bz2"]
         },
         "size": {
             "enum": list(OUTPUT_SIZES),
