@@ -35,16 +35,15 @@ OUTPUT_SIZES = {
 
 
 def urlopen(url: str, *, compression: str, seekable: bool = False):
+    if compression == "gz":
+        compression = "gzip"
     # urllib's urlopen() works faster than fsspec, but is not seekable.
-    raw = fsspec.open(url).open() if seekable else urllib.request.urlopen(url)  # pylint: disable=consider-using-with
-    if compression is None:
-        uncompressed = raw
-    else:
-        if compression == "gz":
-            compression = "gzip"
-        uncompressed = pyarrow.CompressedInputStream(raw, compression)
-
-    return uncompressed
+    if seekable:
+        return fsspec.open(url, compression=compression).open()
+    fileobj = urllib.request.urlopen(url)  # pylint: disable=consider-using-with
+    if compression is not None:
+        fileobj = pyarrow.CompressedInputStream(fileobj, compression)
+    return fileobj
 
 
 def read_lines(src, max_bytes: int):
