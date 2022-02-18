@@ -192,7 +192,7 @@ def preview_excel(url, compression, max_out_size):
 
 def preview_parquet(url, compression, max_out_size):
     with urlopen(url, compression=compression, seekable=True) as src:
-        parquet_file = pyarrow.parquet.ParquetFile(src)
+        parquet_file = pyarrow.parquet.ParquetFile(src, pre_buffer=True)
         meta = parquet_file.metadata
         df = parquet_file.read().to_pandas()
 
