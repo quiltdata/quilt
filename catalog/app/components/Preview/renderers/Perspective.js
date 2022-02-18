@@ -2,8 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as FileView from 'containers/Bucket/FileView'
-import * as Config from 'utils/Config'
 import * as perspective from 'utils/perspective'
 import { readableBytes } from 'utils/string'
 
@@ -26,11 +24,8 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
 }))
 
-function TruncatedWarning({ className, handle, onLoadMore, size }) {
+function TruncatedWarning({ className, onLoadMore, size }) {
   const classes = useTruncatedWarningStyles()
-  const cfg = Config.use()
-  const isLoadableMore = !!onLoadMore
-  const isDownloadable = !onLoadMore && !cfg.noDownload
   return (
     <div className={cx(classes.root, className)}>
       <span className={classes.message}>
@@ -45,13 +40,11 @@ function TruncatedWarning({ className, handle, onLoadMore, size }) {
         )}
       </span>
 
-      {isLoadableMore && (
+      {!!onLoadMore && (
         <M.Button startIcon={<M.Icon>refresh</M.Icon>} size="small" onClick={onLoadMore}>
-          Preview more data
+          Load more
         </M.Button>
       )}
-
-      {isDownloadable && <FileView.DownloadButton handle={handle} />}
     </div>
   )
 }
@@ -94,7 +87,6 @@ function Perspective({
       {truncated && (
         <TruncatedWarning
           className={classes.warning}
-          handle={handle}
           size={size}
           onLoadMore={onLoadMore}
         />
