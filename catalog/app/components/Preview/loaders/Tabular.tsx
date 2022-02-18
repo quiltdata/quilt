@@ -185,20 +185,22 @@ export const Loader = function TabularLoader({
     sign,
     type,
   })
-  const fullSize = useContentLength(handle)
+  // TODO: get correct sises from API
+  // const fullSize = useContentLength(handle)
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, truncated, size: currentSize }: TabularDataOutput) =>
+    ({ csv, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         context: options.context,
         data: csv,
         handle,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
-        size: {
-          full: fullSize,
-          current: currentSize,
-        },
+        // TODO: get correct sises from API
+        // size: {
+        //   full: fullSize,
+        //   current: currentSize,
+        // },
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
