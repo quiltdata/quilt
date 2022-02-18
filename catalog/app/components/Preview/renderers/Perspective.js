@@ -7,6 +7,15 @@ import { readableBytes } from 'utils/string'
 
 import { CONTEXT } from '../types'
 
+function SizeEstimation({ current, full }) {
+  if (!current || !full) return null
+  return (
+    <span>
+      (est. {readableBytes(size.current)} of {readableBytes(size.full)})
+    </span>
+  )
+}
+
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -32,12 +41,7 @@ function TruncatedWarning({ className, onLoadMore, size }) {
         <M.Icon fontSize="small" color="inherit" className={classes.icon}>
           info_outlined
         </M.Icon>
-        Partial preview{' '}
-        {size.current && size.full && (
-          <>
-            (est. {readableBytes(size.current)} of {readableBytes(size.full)})
-          </>
-        )}
+        Partial preview <SizeEstimation />
       </span>
 
       {!!onLoadMore && (
