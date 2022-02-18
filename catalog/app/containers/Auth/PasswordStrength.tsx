@@ -61,18 +61,17 @@ const useStyles = M.makeStyles((t) => ({
   veryUnguessable: {},
 }))
 
-type PasswordScore = zxcvbn.ZXCVBNScore | -1
+type PasswordStrength = zxcvbn.ZXCVBNResult | null
 
-export function useScore(value: string): PasswordScore {
+export function useStrength(value: string): PasswordStrength {
   return React.useMemo(() => {
-    if (!value) return -1
-    const { score }: zxcvbn.ZXCVBNResult = zxcvbn(value)
-    return score
+    if (!value) return null
+    return zxcvbn(value)
   }, [value])
 }
 
-interface PasswordStrengthProps {
-  score: PasswordScore
+interface IndicatorProps {
+  strength: PasswordStrength
 }
 
 type ScoreState =
@@ -90,8 +89,8 @@ const ScoreMap: ScoreState[] = [
   'veryUnguessable',
 ]
 
-export function Indicator({ score }: PasswordStrengthProps) {
+export function Indicator({ strength }: IndicatorProps) {
   const classes = useStyles()
-  const stateClassName = score >= 0 ? classes[ScoreMap[score]] : ''
+  const stateClassName = strength ? classes[ScoreMap[strength.score]] : ''
   return <div className={cx(classes.root, stateClassName)} />
 }

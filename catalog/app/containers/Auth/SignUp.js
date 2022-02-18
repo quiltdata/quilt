@@ -48,8 +48,11 @@ function WeakPasswordIcon() {
 
 function PasswordField({ input, ...rest }) {
   const { value } = input
-  const score = PasswordStrength.useScore(value)
-  const isWeak = score >= 0 && score <= 2
+  const strength = PasswordStrength.useStrength(value)
+  const isWeak = strength?.score <= 2
+  const helperText = strength?.feedback.suggestions.length
+    ? `Hint: ${strength?.feedback.suggestions.join(' ')}`
+    : ''
   return (
     <>
       <Layout.Field
@@ -60,13 +63,13 @@ function PasswordField({ input, ...rest }) {
             </M.InputAdornment>
           ),
         }}
-        helperText="Hint: use combination of two-three words, mix uppercase with lowercase letters, and use special characters"
+        helperText={helperText}
         type="password"
         floatingLabelText="Password"
         {...input}
         {...rest}
       />
-      <PasswordStrength.Indicator score={score} />
+      <PasswordStrength.Indicator strength={strength} />
     </>
   )
 }
