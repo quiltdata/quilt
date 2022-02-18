@@ -19,9 +19,6 @@ import * as Parquet from './Parquet'
 import * as Vcf from './Vcf'
 import * as utils from './utils'
 
-// TODO
-// const isBed = R.pipe(utils.stripCompression, utils.extIs('.bed'))
-
 const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
 
 export const detect = R.anyPass([
@@ -31,11 +28,11 @@ export const detect = R.anyPass([
   Parquet.detect,
   Vcf.detect,
   isJsonl,
-  // isBed, // TODO
 ])
 
-type TabularType = 'csv' | 'excel' | 'fcs' | 'parquet' | 'vcf' | 'txt'
 // TODO: ['ipynb', 'bed']
+type TabularType = 'csv' | 'excel' | 'fcs' | 'parquet' | 'vcf' | 'txt'
+
 const detectTabularType: (type: string) => TabularType = R.cond([
   [Csv.detect, R.always('csv')],
   [Excel.detect, R.always('excel')],
@@ -43,7 +40,6 @@ const detectTabularType: (type: string) => TabularType = R.cond([
   [Parquet.detect, R.always('parquet')],
   [Vcf.detect, R.always('vcf')],
   [isJsonl, R.always('jsonl')],
-  // [isBed, R.always('bed')], // TODO
   [R.T, R.always('txt')],
 ])
 
