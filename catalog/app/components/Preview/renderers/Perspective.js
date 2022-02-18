@@ -27,9 +27,9 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
   icon: {
     display: 'inline-block',
+    fontSize: '1.25rem',
     marginRight: t.spacing(0.5),
-    verticalAlign: '-6px',
-    fontSize: '1.25rem !important', // FIXME: google css re-define styles, wtf
+    verticalAlign: '-5px',
   },
 }))
 
