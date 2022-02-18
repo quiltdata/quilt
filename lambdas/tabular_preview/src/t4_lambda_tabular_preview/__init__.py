@@ -14,12 +14,15 @@ import pyarrow.parquet
 from t4_lambda_shared.decorator import api, validate, QUILT_INFO_HEADER
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-
-LAMBDA_MAX_OUT_BINARY = 4_000_000
+# Lambda's response must fit into 6 MiB, binary data must be encoded
+# with base64 (4.5 MiB limit). It's rounded down to leave some space for headers
+# and non-flushed gzip buffers.
+MAX_OUT = 4_000_000
 
 MAX_INPUT_CSV = 150_000_000
 
-# TODO: comment about batch_size.
+# How many output rows are written at time, greater numbers are better for
+# performance, but if batch can't fully fit into output, we stop writing.
 OUT_BATCH_SIZE = 100
 
 S3_DOMAIN_SUFFIX = ".amazonaws.com"
@@ -94,7 +97,7 @@ def write_data_as_arrow(data, schema, max_size):
                 if (
                     (max_size is not None and sink.tell() + batch_size > max_size) or
                     # TODO: comment
-                    buf.tell() + batch_size > LAMBDA_MAX_OUT_BINARY
+                    buf.tell() + batch_size > MAX_OUT
                 ):
                     truncated = True
                     break
@@ -107,7 +110,7 @@ def write_pandas_as_csv(df, max_size):
     truncated = False
     buf = io.BytesIO()
     with GzipOutputBuffer(
-        compressed_max_size=LAMBDA_MAX_OUT_BINARY,
+        compressed_max_size=MAX_OUT,
         max_size=max_size,
         fileobj=buf,
         mode="wb",
