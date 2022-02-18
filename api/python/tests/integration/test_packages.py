@@ -1,4 +1,5 @@
 """ Integration tests for Quilt Packages. """
+from functools import partial
 import io
 import locale
 import os
@@ -1186,7 +1187,7 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value='workflow data'))
     def test_manifest_workflow(self):
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        for method in (Package.build, Package.push):
+        for method in (Package.build, partial(Package.push, force=True)):
             with self.subTest(method=method):
                 pkg = Package()
                 method(pkg, 'foo/bar', registry='s3://test-bucket')
@@ -1610,7 +1611,7 @@ class PackageTest(QuiltTestCase):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
 
-        for method in (Package.build, Package.push):
+        for method in (Package.build, partial(Package.push, force=True)):
             with self.subTest(method=method):
                 with patch('quilt3.Package._push_manifest') as push_manifest_mock:
                     pkg = Package().set('foo', DATA_DIR / 'foo.txt')
@@ -1625,7 +1626,7 @@ class PackageTest(QuiltTestCase):
                     assert pkg._workflow is mock.sentinel.returned_workflow
                     push_manifest_mock.assert_called_once()
                     workflow_validate_mock.reset_mock()
-                    if method is Package.push:
+                    if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
 
@@ -1649,7 +1650,7 @@ class PackageTest(QuiltTestCase):
                     assert pkg._workflow is mock.sentinel.returned_workflow
                     push_manifest_mock.assert_called_once()
                     workflow_validate_mock.reset_mock()
-                    if method is Package.push:
+                    if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
 
