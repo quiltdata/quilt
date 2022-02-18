@@ -7,7 +7,6 @@ import {
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
-import * as RT from 'utils/reactTools'
 
 import {
   JsonValue,
@@ -17,7 +16,71 @@ import {
   ValidationErrors,
 } from './constants'
 
-const useStyles = M.makeStyles((t) => ({
+interface TypeHelpArgs {
+  errors: ValidationErrors
+  humanReadableSchema: string
+  mismatch: boolean
+  schema?: JsonSchema
+}
+
+function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
+  const output: string[][] = []
+
+  if (errors.length) {
+    output.push(errors.filter(Boolean).map(({ message }) => message) as string[])
+  }
+
+  if (humanReadableSchema) {
+    if (humanReadableSchema === 'undefined') {
+      output.push(['Key/value is not restricted by schema'])
+    } else {
+      output.push([`${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`])
+    }
+  }
+
+  if (schema?.description) {
+    output.push([`Description: ${schema.description}`])
+  }
+
+  return output
+}
+
+const useTypeHelpStyles = M.makeStyles((t) => ({
+  group: {
+    '& + &': {
+      borderTop: `1px solid ${t.palette.common.white}`,
+      marginTop: t.spacing(1),
+      paddingTop: t.spacing(1),
+    },
+  },
+}))
+
+interface TypeHelpProps {
+  typeHelps: string[][]
+}
+
+function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
+  const classes = useTypeHelpStyles()
+  return (
+    <div>
+      {groups.map((group, i) => (
+        <div className={classes.group} key={`typeHelp_group_${i}`}>
+          {group.map((typeHelp, j) => (
+            <p key={`typeHelp_${i}_${j}`}>{typeHelp}</p>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+interface NoteValueProps {
+  errors: ValidationErrors
+  schema?: JsonSchema
+  value: JsonValue
+}
+
+const useNoteValueStyles = M.makeStyles((t) => ({
   default: {
     color: t.palette.divider,
     fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
@@ -32,54 +95,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TypeHelpProps {
-  errors: ValidationErrors
-  humanReadableSchema: string
-  mismatch: boolean
-  schema?: JsonSchema
-}
-
-function TypeHelp({ errors, humanReadableSchema, mismatch, schema }: TypeHelpProps) {
-  const validationError = React.useMemo(
-    () =>
-      RT.join(
-        errors.map((error) => error.message),
-        <br />,
-      ),
-    [errors],
-  )
-
-  if (humanReadableSchema === 'undefined')
-    return <>Key/value is not restricted by schema</>
-
-  const type = `${mismatch ? 'Required type' : 'Type'}: ${humanReadableSchema}`
-
-  return (
-    <div>
-      {errors.length ? validationError : type}
-      {!!schema?.description && <p>Description: {schema.description}</p>}
-    </div>
-  )
-}
-
-interface NoteValueProps {
-  errors: ValidationErrors
-  schema?: JsonSchema
-  value: JsonValue
-}
-
 function NoteValue({ errors, schema, value }: NoteValueProps) {
-  const classes = useStyles()
+  const classes = useNoteValueStyles()
 
   const humanReadableSchema = schemaTypeToHumanString(schema)
   const mismatch = value !== EMPTY_VALUE && !doesTypeMatchSchema(value, schema)
 
-  if (!humanReadableSchema || humanReadableSchema === 'undefined') return null
+  const typeHelps = React.useMemo(
+    () => getTypeHelps({ errors, humanReadableSchema, mismatch, schema }),
+    [errors, humanReadableSchema, mismatch, schema],
+  )
+  if (!typeHelps.length) return null
 
   return (
-    <M.Tooltip
-      title={<TypeHelp {...{ errors, humanReadableSchema, mismatch, schema }} />}
-    >
+    <M.Tooltip title={<TypeHelp typeHelps={typeHelps} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,

@@ -7,6 +7,10 @@
 ## Catalog, Lambdas
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+* [Added] Automatically decompress gzip'ed package entries when deserializing ([#2677](https://github.com/quiltdata/quilt/pull/2677))
+
 # 4.0.0 - 2022-01-31
 ## Python API
 * [Added] Declared compatibility with `jsonschema==4.*`.

@@ -47,7 +47,7 @@ def test_403():
         {"height": "500"},
         {"height": "5"},
         {"duration": "zzz"},
-        {"duration": "20"},
+        {"duration": "50"},
         {"duration": "-1"},
         {"file_size": ""},
         {"file_size": "0"},

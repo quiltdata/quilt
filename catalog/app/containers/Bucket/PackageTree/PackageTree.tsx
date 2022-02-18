@@ -32,6 +32,7 @@ import { UseQueryResult, useQuery } from 'utils/useQuery'
 
 import Code from '../Code'
 import CopyButton from '../CopyButton'
+import * as Download from '../Download'
 import * as FileView from '../FileView'
 import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
@@ -187,7 +188,7 @@ function DirDisplay({
   crumbs,
   onRevisionPush,
 }: DirDisplayProps) {
-  const { desktop, noDownload } = Config.use()
+  const { desktop } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -263,6 +264,9 @@ function DirDisplay({
     () => ({ bucket, name, hash }),
     [bucket, name, hash],
   )
+
+  const [expandedLocalFolder, setExpandedLocalFolder] = React.useState(false)
+  const [localFolder, setLocalFolder] = Download.useLocalFolder()
 
   // XXX: use different "strategy" (e.g. network-only)?
   if (dirQuery.fetching || dirQuery.stale) {
@@ -365,6 +369,13 @@ function DirDisplay({
 
       {updateDialog.element}
 
+      <Download.ConfirmDialog
+        localPath={localFolder}
+        onClose={() => setExpandedLocalFolder(false)}
+        open={!!localFolder && !!expandedLocalFolder}
+        packageHandle={packageHandle}
+      />
+
       <TopBar crumbs={crumbs}>
         {preferences?.ui?.actions?.revisePackage && !desktop && (
           <M.Button
@@ -383,18 +394,24 @@ function DirDisplay({
             Push to bucket
           </CopyButton>
         )}
-        {!noDownload && (
-          <FileView.ZipDownloadForm
-            className={classes.button}
-            label={path ? 'Download sub-package' : 'Download package'}
-            suffix={downloadPath}
-          />
-        )}
+        <Download.DownloadButton
+          className={classes.button}
+          label={path ? 'Download sub-package' : 'Download package'}
+          onClick={() => setExpandedLocalFolder(true)}
+          path={downloadPath}
+        />
         {preferences?.ui?.actions?.deleteRevision && (
           <RevisionMenu className={classes.button} onDelete={onPackageDeleteDialogOpen} />
         )}
       </TopBar>
       <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+      {desktop && (
+        <Download.LocalFolderInput
+          onChange={setLocalFolder}
+          open={expandedLocalFolder}
+          value={localFolder}
+        />
+      )}
       <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
       <M.Box mt={2}>
         <Listing items={items} />
