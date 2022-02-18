@@ -11,7 +11,7 @@ import pyarrow.csv
 import pyarrow.json
 import pyarrow.parquet
 
-from t4_lambda_shared.decorator import api, validate, QUILT_INFO_HEADER
+from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Lambda's response must fit into 6 MiB, binary data must be encoded
