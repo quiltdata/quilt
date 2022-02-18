@@ -10,6 +10,6 @@ setup(
         "pandas>=1.3,<1.4",
         "xlrd>=2,<3",
         "openpyxl>=3,<4",
-        "fsspec[http]>=2022.1.0",  # TODO: remove if unneeded
+        "fsspec[http]>=2022.1.0",
     ],
 )
