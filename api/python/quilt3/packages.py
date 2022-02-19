@@ -1314,6 +1314,9 @@ class Package:
         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
+        By default, push will not overwrite an existing package if its top hash does not match
+        the parent hash of the package being pushed. Use `force=True` to skip the check.
+
         Args:
             name: name for package in registry
             dest: where to copy the objects in the package
@@ -1327,6 +1330,7 @@ class Package:
                 are spread over multiple buckets and you add a single local file, you can use selector_fn to
                 only push the local file to s3 (instead of pushing all data to the destination bucket).
             %(workflow)s
+            force: skip the top hash check and overwrite any existing package
 
         Returns:
             A new package that points to the copied objects.
