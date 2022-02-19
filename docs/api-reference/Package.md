@@ -311,9 +311,9 @@ __Arguments__
     only push the local file to s3 (instead of pushing all data to the destination bucket).
 * __workflow__:  workflow ID or `None` to skip workflow validation.
     If not specified, the default workflow will be used.
-* __force__:  skip the top hash check and overwrite any existing package
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
 
+* __force__:  skip the top hash check and overwrite any existing package
 
 __Returns__
 
