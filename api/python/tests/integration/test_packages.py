@@ -90,6 +90,17 @@ class PackageTest(QuiltTestCase):
             }
         )
 
+    def setup_s3_stubber_resolve_pointer_not_found(self, pkg_registry, pkg_name, *, pointer):
+        self.s3_stubber.add_client_error(
+            method='get_object',
+            service_error_code='NoSuchKey',
+            http_status_code=404,
+            expected_params={
+                'Bucket': pkg_registry.root.bucket,
+                'Key': pkg_registry.pointer_pk(pkg_name, pointer).path,
+            }
+        )
+
     def setup_s3_stubber_delete_pointer(self, pkg_registry, pkg_name, *, pointer):
         self.s3_stubber.add_response(
             method='delete_object',
@@ -1073,6 +1084,48 @@ class PackageTest(QuiltTestCase):
         # disallow pushing the pacakge manifest to remote but package data to a different remote
         with pytest.raises(QuiltException):
             p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket', force=True)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_conflicts(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+
+        pkg = Package()
+
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+
+        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
+             patch('quilt3.Package._push_manifest'):
+            # Remote package does not yet exist: push succeeds.
+
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer_not_found(
+                    pkg_registry, pkg_name, pointer='latest'
+                )
+
+            pkg2 = pkg.push('Quilt/test', 's3://test-bucket')
+
+            # Remote package exists, but has the parent hash: push succeeds.
+
+            pkg2.set('foo', b'123')
+            pkg2.build('Quilt/test')
+
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer(
+                    pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash
+                )
+
+            pkg2.push('Quilt/test', 's3://test-bucket')
+
+            # Remote package exists and the hash does not match: push fails.
+
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
+            )
+
+            with self.assertRaisesRegex(QuiltException, 'Package with an unexpected hash'):
+                pkg2.push('Quilt/test', 's3://test-bucket')
 
     @patch('quilt3.workflows.validate', return_value=None)
     def test_commit_message_on_push(self, mocked_workflow_validate):
