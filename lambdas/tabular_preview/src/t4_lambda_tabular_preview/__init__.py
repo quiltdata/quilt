@@ -13,7 +13,13 @@ import pyarrow.json
 import pyarrow.parquet
 
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
-from t4_lambda_shared.utils import get_default_origins, make_json_response
+from t4_lambda_shared.utils import (
+    get_default_origins,
+    get_quilt_logger,
+    make_json_response,
+)
+
+logger = get_quilt_logger()
 
 # Lambda's response must fit into 6 MiB, binary data must be encoded
 # with base64 (4.5 MiB limit). It's rounded down to leave some space for headers
@@ -141,6 +147,7 @@ def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
 
     def invalid_row_handler(row: pyarrow.csv.InvalidRow) -> str:
         nonlocal rows_skipped
+        logger.debug("Skip invalid CSV row: %s", row)
         rows_skipped += 1
         return "skip"
 
