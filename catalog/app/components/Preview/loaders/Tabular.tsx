@@ -5,7 +5,6 @@ import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
-import { mkSearch } from 'utils/NamedRoutes'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
@@ -59,7 +58,7 @@ async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
 }
 
 interface LoadTabularDataArgs {
-  compression?: '.gz' | '.bz2'
+  compression?: 'gz' | 'bz2'
   endpoint: string
   handle: S3HandleBase
   sign: (h: S3HandleBase) => string
@@ -83,7 +82,7 @@ const loadTabularData = async ({
 }: LoadTabularDataArgs): Promise<TabularDataOutput> => {
   const url = sign(handle)
   const r = await fetch(
-    `${endpoint}/tabular-preview${mkSearch({
+    `${endpoint}/tabular-preview${utils.mkSearch({
       compression,
       input: type,
       size,
