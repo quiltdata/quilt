@@ -35,7 +35,7 @@ export const PreviewData = tagged([
   'Notebook', // { preview: string, ...PreviewStatus }
   'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
   'Pdf', // { handle: object, pages: number, firstPageBlob: Blob, type: 'pdf' | 'pptx' }
-  'Perspective', // { preview: string, ...PreviewStatus }
+  'Perspective', // { context: CONTEXT, data: string | ArrayBuffer, handle: S3Handle, onLoadMore: () => void, truncated: boolean }
   'Text', // { head: string, tail: string, lang: string, highlighted: { head: string, tail: string }, ...PreviewStatus }
   'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }
   'Vega', // { spec: Object }
