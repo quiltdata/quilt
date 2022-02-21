@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import * as Audio from './loaders/Audio'
 import * as Echarts from './loaders/Echarts'
+import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
 import * as Image from './loaders/Image'
 import * as Json from './loaders/Json'
@@ -10,17 +11,20 @@ import * as Notebook from './loaders/Notebook'
 import * as Pdf from './loaders/Pdf'
 import * as Tabular from './loaders/Tabular'
 import * as Text from './loaders/Text'
+import * as Vcf from './loaders/Vcf'
 import * as Video from './loaders/Video'
 import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
 
 const loaderChain = [
+  Fcs,
   Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
   Json,
   Markdown,
   Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
   Notebook,
   Pdf,
+  Vcf,
   Html,
   Image,
   Video,

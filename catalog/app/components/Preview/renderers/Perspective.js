@@ -11,7 +11,7 @@ function SizeEstimation({ current, full }) {
   if (!current || !full) return null
   return (
     <span>
-      (est. {readableBytes(size.current)} of {readableBytes(size.full)})
+      (est. {readableBytes(current)} of {readableBytes(full)})
     </span>
   )
 }
@@ -33,7 +33,7 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
 }))
 
-function TruncatedWarning({ className, onLoadMore, size }) {
+function TruncatedWarning({ className, onLoadMore }) {
   const classes = useTruncatedWarningStyles()
   return (
     <div className={cx(classes.root, className)}>

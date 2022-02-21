@@ -8,38 +8,25 @@ import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import type { S3HandleBase } from 'utils/s3paths'
 
-import * as requests from 'containers/Bucket/requests/requestsUntyped'
-
 import { CONTEXT, PreviewData } from '../types'
 
 import * as Csv from './Csv'
 import * as Excel from './Excel'
-import * as Fcs from './Fcs'
 import * as Parquet from './Parquet'
-import * as Vcf from './Vcf'
 import * as utils from './utils'
 
 const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
 
-export const detect = R.anyPass([
-  Csv.detect,
-  Excel.detect,
-  Fcs.detect,
-  Parquet.detect,
-  Vcf.detect,
-  isJsonl,
-])
+export const detect = R.anyPass([Csv.detect, Excel.detect, Parquet.detect, isJsonl])
 
-// TODO: ['ipynb', 'bed']
-type TabularType = 'csv' | 'tsv' | 'excel' | 'fcs' | 'parquet' | 'vcf' | 'txt'
+// TODO: ['bed', 'fcs', 'ipynb', 'vcf']
+type TabularType = 'csv' | 'tsv' | 'excel' | 'parquet' | 'txt'
 
 const detectTabularType: (type: string) => TabularType = R.cond([
   [Csv.isCsv, R.always('csv')],
   [Csv.isTsv, R.always('tsv')],
   [Excel.detect, R.always('excel')],
-  [Fcs.detect, R.always('fcs')],
   [Parquet.detect, R.always('parquet')],
-  [Vcf.detect, R.always('vcf')],
   [isJsonl, R.always('jsonl')],
   [R.T, R.always('txt')],
 ])
@@ -137,21 +124,21 @@ function getNeededSize(context: string, gated: boolean) {
   }
 }
 
-function useContentLength(handle: S3HandleBase): number | null {
-  const s3 = AWS.S3.use()
-  const objExistsData = Data.use(requests.getObjectExistence, { s3, ...handle })
-  return React.useMemo(
-    () =>
-      objExistsData.case({
-        _: () => null,
-        Ok: requests.ObjectExistence.case({
-          Exists: (r: $TSFixMe) => r.size,
-          _: () => null,
-        }),
-      }),
-    [objExistsData],
-  )
-}
+// function useContentLength(handle: S3HandleBase): number | null {
+//   const s3 = AWS.S3.use()
+//   const objExistsData = Data.use(requests.getObjectExistence, { s3, ...handle })
+//   return React.useMemo(
+//     () =>
+//       objExistsData.case({
+//         _: () => null,
+//         Ok: requests.ObjectExistence.case({
+//           Exists: (r: $TSFixMe) => r.size,
+//           _: () => null,
+//         }),
+//       }),
+//     [objExistsData],
+//   )
+// }
 
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
