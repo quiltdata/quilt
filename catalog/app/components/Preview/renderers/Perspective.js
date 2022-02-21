@@ -3,18 +3,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as perspective from 'utils/perspective'
-import { readableBytes } from 'utils/string'
 
 import { CONTEXT } from '../types'
-
-function SizeEstimation({ current, full }) {
-  if (!current || !full) return null
-  return (
-    <span>
-      (est. {readableBytes(current)} of {readableBytes(full)})
-    </span>
-  )
-}
 
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
@@ -41,7 +31,7 @@ function TruncatedWarning({ className, onLoadMore }) {
         <M.Icon fontSize="small" color="inherit" className={classes.icon}>
           info_outlined
         </M.Icon>
-        Partial preview <SizeEstimation />
+        Partial preview
       </span>
 
       {!!onLoadMore && (
