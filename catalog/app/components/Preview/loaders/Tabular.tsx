@@ -5,6 +5,7 @@ import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
+import mkSearch from 'utils/mkSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
@@ -81,7 +82,7 @@ const loadTabularData = async ({
 }: LoadTabularDataArgs): Promise<TabularDataOutput> => {
   const url = sign(handle)
   const r = await fetch(
-    `${endpoint}/tabular-preview${utils.mkSearch({
+    `${endpoint}/tabular-preview${mkSearch({
       compression,
       input: type,
       size,
