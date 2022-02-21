@@ -326,6 +326,8 @@ function PreviewBox({ children, title }) {
 
 const renderContents = (children) => <PreviewBox {...{ children }} />
 
+const previewOptions = { context: Preview.CONTEXT.LISTING }
+
 function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
   const withData = (callback) =>
     bucketExistenceData.case({
@@ -350,7 +352,7 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
                   AsyncResult.Err(Preview.PreviewError.Archived({ handle })),
                 )
               }
-              return Preview.load(handle, callback)
+              return Preview.load(handle, callback, previewOptions)
             },
             DoesNotExist: () =>
               callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
