@@ -162,6 +162,7 @@ def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
         "Content-Encoding": "gzip",
         QUILT_INFO_HEADER: json.dumps({
             "truncated": input_truncated or output_truncated,
+            "rows_skipped": rows_skipped,
         }),
     }
 
