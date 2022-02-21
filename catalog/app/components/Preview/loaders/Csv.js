@@ -5,7 +5,9 @@ import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIn(['.csv', '.tsv']))
 
-const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
+export const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
+
+export const isCsv = R.pipe(utils.stripCompression, utils.extIs('.csv'))
 
 export const Loader = function CsvLoader({ handle, children }) {
   const data = utils.usePreview({

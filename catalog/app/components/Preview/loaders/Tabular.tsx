@@ -31,10 +31,11 @@ export const detect = R.anyPass([
 ])
 
 // TODO: ['ipynb', 'bed']
-type TabularType = 'csv' | 'excel' | 'fcs' | 'parquet' | 'vcf' | 'txt'
+type TabularType = 'csv' | 'tsv' | 'excel' | 'fcs' | 'parquet' | 'vcf' | 'txt'
 
 const detectTabularType: (type: string) => TabularType = R.cond([
-  [Csv.detect, R.always('csv')],
+  [Csv.isCsv, R.always('csv')],
+  [Csv.isTsv, R.always('tsv')],
   [Excel.detect, R.always('excel')],
   [Fcs.detect, R.always('fcs')],
   [Parquet.detect, R.always('parquet')],
