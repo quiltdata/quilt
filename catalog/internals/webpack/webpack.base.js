@@ -4,7 +4,7 @@
 
 const path = require('path')
 
-const PerspectivePlugin = require("@finos/perspective-webpack-plugin");
+const PerspectivePlugin = require('@finos/perspective-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
