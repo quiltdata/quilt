@@ -18,7 +18,6 @@ const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
 
 export const detect = R.anyPass([Csv.detect, Excel.detect, Parquet.detect, isJsonl])
 
-// TODO: ['bed', 'fcs', 'ipynb', 'vcf']
 type TabularType = 'csv' | 'tsv' | 'excel' | 'parquet' | 'txt'
 
 const detectTabularType: (type: string) => TabularType = R.cond([
@@ -123,22 +122,6 @@ function getNeededSize(context: string, gated: boolean) {
   }
 }
 
-// function useContentLength(handle: S3HandleBase): number | null {
-//   const s3 = AWS.S3.use()
-//   const objExistsData = Data.use(requests.getObjectExistence, { s3, ...handle })
-//   return React.useMemo(
-//     () =>
-//       objExistsData.case({
-//         _: () => null,
-//         Ok: requests.ObjectExistence.case({
-//           Exists: (r: $TSFixMe) => r.size,
-//           _: () => null,
-//         }),
-//       }),
-//     [objExistsData],
-//   )
-// }
-
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: S3HandleBase
@@ -169,7 +152,6 @@ export const Loader = function TabularLoader({
     type,
   })
   // TODO: get correct sises from API
-  // const fullSize = useContentLength(handle)
   const processed = utils.useProcessing(
     data.result,
     ({ csv, truncated }: TabularDataOutput) =>
@@ -179,11 +161,6 @@ export const Loader = function TabularLoader({
         handle,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
-        // TODO: get correct sises from API
-        // size: {
-        //   full: fullSize,
-        //   current: currentSize,
-        // },
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
