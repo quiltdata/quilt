@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as perspective from 'utils/perspective'
+import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT } from '../types'
 
@@ -23,7 +24,12 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
 }))
 
-function TruncatedWarning({ className, onLoadMore }) {
+interface TruncatedWarningProps {
+  className: string
+  onLoadMore: () => void
+}
+
+function TruncatedWarning({ className, onLoadMore }: TruncatedWarningProps) {
   const classes = useTruncatedWarningStyles()
   return (
     <div className={cx(classes.root, className)}>
@@ -48,7 +54,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   viewer: {
-    height: ({ context }) =>
+    height: ({ context }: { context: 'file' | 'listing' }) =>
       context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
     overflow: 'auto',
     resize: 'vertical',
@@ -58,6 +64,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
+  context: 'file' | 'listing'
+  data: string | ArrayBuffer
+  handle: S3HandleBase
+  onLoadMore: () => void
+  truncated: boolean
+}
+
 function Perspective({
   children,
   className,
@@ -65,13 +79,12 @@ function Perspective({
   data,
   handle,
   onLoadMore,
-  size,
   truncated,
   ...props
-} = {}) {
+}: PerspectiveProps) {
   const classes = useStyles({ context })
 
-  const [root, setRoot] = React.useState(null)
+  const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
   perspective.use(root, data, attrs)
@@ -79,14 +92,12 @@ function Perspective({
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
       {truncated && (
-        <TruncatedWarning
-          className={classes.warning}
-          size={size}
-          onLoadMore={onLoadMore}
-        />
+        <TruncatedWarning className={classes.warning} onLoadMore={onLoadMore} />
       )}
     </div>
   )
 }
 
-export default (data, props) => <Perspective {...data} {...props} />
+export default (data: PerspectiveProps, props: PerspectiveProps) => (
+  <Perspective {...data} {...props} />
+)
