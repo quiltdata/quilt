@@ -79,7 +79,7 @@ def api(cors_origins=(), *, request_class=Request):
                         'Content-Encoding': 'gzip'
                     })
 
-                if isinstance(body, bytes):
+                if isinstance(body, (bytes, bytearray, memoryview)):
                     body = b64encode(body).decode()
                     encoded = True
                 else:

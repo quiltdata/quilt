@@ -15,6 +15,7 @@ import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
 import validate, * as validators from 'utils/validators'
 
+import * as PasswordStrength from './PasswordStrength'
 import * as Layout from './Layout'
 import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
@@ -27,6 +28,51 @@ import * as selectors from './selectors'
 const Container = Layout.mkLayout('Complete sign-up')
 
 const MUTEX_ID = 'password'
+
+const useWeakPasswordIconStyles = M.makeStyles((t) => ({
+  icon: {
+    color: t.palette.warning.dark,
+  },
+}))
+
+function WeakPasswordIcon() {
+  const classes = useWeakPasswordIconStyles()
+  return (
+    <M.Tooltip title="Password is too weak">
+      <M.Icon className={classes.icon} fontSize="small" color="inherit">
+        error_outline
+      </M.Icon>
+    </M.Tooltip>
+  )
+}
+
+function PasswordField({ input, ...rest }) {
+  const { value } = input
+  const strength = PasswordStrength.useStrength(value)
+  const isWeak = strength?.score <= 2
+  const helperText = strength?.feedback.suggestions.length
+    ? `Hint: ${strength?.feedback.suggestions.join(' ')}`
+    : ''
+  return (
+    <>
+      <Layout.Field
+        InputProps={{
+          endAdornment: isWeak && (
+            <M.InputAdornment position="end">
+              <WeakPasswordIcon />
+            </M.InputAdornment>
+          ),
+        }}
+        helperText={helperText}
+        type="password"
+        floatingLabelText="Password"
+        {...input}
+        {...rest}
+      />
+      <PasswordStrength.Indicator strength={strength} />
+    </>
+  )
+}
 
 function PasswordSignUp({ mutex, next, onSuccess }) {
   const sentry = Sentry.use()
@@ -143,12 +189,10 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={PasswordField}
             name="password"
-            type="password"
             validate={validators.required}
             disabled={!!mutex.current || submitting}
-            floatingLabelText="Password"
             errors={{
               required: 'Enter a password',
               invalid: 'Password must be at least 8 characters long',
