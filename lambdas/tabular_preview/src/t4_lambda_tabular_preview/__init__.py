@@ -136,13 +136,24 @@ def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
     #   to cause slowdown.
     # TODO: Possible optimization: output smaller data that fits into response without compression
     #       as is (without parsing).
+
+    rows_skipped = 0
+
+    def invalid_row_handler(row: pyarrow.csv.InvalidRow) -> str:
+        nonlocal rows_skipped
+        rows_skipped += 1
+        return "skip"
+
     with urlopen(url, compression=compression) as src:
         max_input_size = max_out_size or MAX_CSV_INPUT
         input_data, input_truncated = read_lines(src, max_input_size)
 
     t = pyarrow.csv.read_csv(
         pyarrow.BufferReader(input_data),
-        parse_options=pyarrow.csv.ParseOptions(delimiter=delimiter),
+        parse_options=pyarrow.csv.ParseOptions(
+            delimiter=delimiter,
+            invalid_row_handler=invalid_row_handler,
+        ),
     )
     output_data, output_truncated = write_data_as_arrow(t, t.schema, max_out_size)
 
