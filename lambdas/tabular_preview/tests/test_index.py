@@ -6,8 +6,8 @@ from unittest import mock
 
 import pyarrow
 import pytest
-import t4_lambda_tabular_preview
 
+import t4_lambda_tabular_preview
 from t4_lambda_shared.decorator import QUILT_INFO_HEADER
 
 
