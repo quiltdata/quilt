@@ -2,6 +2,7 @@ import { FORM_ERROR } from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -162,6 +163,8 @@ function Success() {
   )
 }
 
+const LINK_PLACEHOLDER = '_'
+
 interface PassChangeProps {
   match: { params: { link: string } }
 }
@@ -171,11 +174,21 @@ export default function PassChange({
     params: { link },
   },
 }: PassChangeProps) {
+  const { urls } = NamedRoutes.use()
+
   const authenticated = redux.useSelector(selectors.authenticated)
   const [done, setDone] = React.useState(false)
   const onSuccess = React.useCallback(() => setDone(true), [setDone])
 
+  const [storedLink] = React.useState(link)
+  const history = useHistory()
+  const cleanUrl = urls.passChange(LINK_PLACEHOLDER)
+
+  React.useEffect(() => {
+    if (link !== LINK_PLACEHOLDER) history.replace(cleanUrl)
+  }, [link, history, cleanUrl])
+
   if (authenticated) return <SignOut />
   if (done) return <Success />
-  return <Form {...{ onSuccess, link }} />
+  return <Form {...{ onSuccess, link: storedLink }} />
 }
