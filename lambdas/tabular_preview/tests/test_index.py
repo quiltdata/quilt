@@ -130,4 +130,3 @@ def test_preview_simple_parquet():
             b"1,2\n"
             b"x,y\n"
         )
-
