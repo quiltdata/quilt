@@ -1,3 +1,4 @@
+import functools
 import gzip
 import io
 import json
@@ -123,7 +124,7 @@ def write_pandas_as_csv(df, max_size):
     return buf.getvalue(), truncated
 
 
-def preview_csv(url, compression, max_out_size):
+def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
     # This function reads the same amount of data as expected for output, parses this
     # data as Arrow table and serializes it in Arrow IPC format.
     # Other approaches were tried:
@@ -139,7 +140,10 @@ def preview_csv(url, compression, max_out_size):
         max_input_size = max_out_size or MAX_CSV_INPUT
         input_data, input_truncated = read_lines(src, max_input_size)
 
-    t = pyarrow.csv.read_csv(pyarrow.BufferReader(input_data))
+    t = pyarrow.csv.read_csv(
+        pyarrow.BufferReader(input_data),
+        parse_options=pyarrow.csv.ParseOptions(delimiter=delimiter),
+    )
     output_data, output_truncated = write_data_as_arrow(t, t.schema, max_out_size)
 
     return 200, output_data, {
@@ -220,7 +224,8 @@ def preview_parquet(url, compression, max_out_size):
 
 
 handlers = {
-    "csv": preview_csv,
+    "csv": functools.partial(preview_csv, delimiter=","),
+    "tsv": functools.partial(preview_csv, delimiter="\t"),
     "excel": preview_excel,
     "parquet": preview_parquet,
     "jsonl": preview_jsonl,
