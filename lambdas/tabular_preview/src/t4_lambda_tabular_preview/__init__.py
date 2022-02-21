@@ -160,11 +160,9 @@ def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
     return 200, output_data, {
         "Content-Type": "application/vnd.apache.arrow.file",
         "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps(
-            {
-                "truncated": input_truncated or output_truncated,
-            }
-        ),
+        QUILT_INFO_HEADER: json.dumps({
+            "truncated": input_truncated or output_truncated,
+        }),
     }
 
 
@@ -180,11 +178,9 @@ def preview_jsonl(url, compression, max_out_size):
     return 200, output_data, {
         "Content-Type": "text/csv",
         "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps(
-            {
-                "truncated": input_truncated or output_truncated,
-            }
-        ),
+        QUILT_INFO_HEADER: json.dumps({
+            "truncated": input_truncated or output_truncated,
+        }),
     }
 
 
@@ -197,11 +193,9 @@ def preview_excel(url, compression, max_out_size):
     return 200, output_data, {
         "Content-Type": "text/csv",
         "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps(
-            {
-                "truncated": output_truncated,
-            }
-        ),
+        QUILT_INFO_HEADER: json.dumps({
+            "truncated": output_truncated,
+        }),
     }
 
 
@@ -216,21 +210,19 @@ def preview_parquet(url, compression, max_out_size):
     return 200, output_data, {
         "Content-Type": "text/csv",
         "Content-Encoding": "gzip",
-        QUILT_INFO_HEADER: json.dumps(
-            {
-                "truncated": output_truncated,
-                "meta": {
-                    "created_by": meta.created_by,
-                    "format_version": meta.format_version,
-                    "num_row_groups": meta.num_row_groups,
-                    "schema": {
-                        "names": meta.schema.names
-                    },
-                    "serialized_size": meta.serialized_size,
-                    "shape": (meta.num_rows, meta.num_columns),
-                }
-            }
-        ),
+        QUILT_INFO_HEADER: json.dumps({
+            "truncated": output_truncated,
+            "meta": {
+                "created_by": meta.created_by,
+                "format_version": meta.format_version,
+                "num_row_groups": meta.num_row_groups,
+                "schema": {
+                    "names": meta.schema.names
+                },
+                "serialized_size": meta.serialized_size,
+                "shape": (meta.num_rows, meta.num_columns),
+            },
+        }),
     }
 
 
