@@ -19,7 +19,7 @@ const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
 
 export const detect = R.anyPass([Csv.detect, Excel.detect, Parquet.detect, isJsonl])
 
-type TabularType = 'csv' | 'tsv' | 'excel' | 'parquet' | 'txt'
+type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
 
 const detectTabularType: (type: string) => TabularType = R.cond([
   [Csv.isCsv, R.always('csv')],
