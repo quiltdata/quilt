@@ -10,23 +10,35 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
 
-import * as Csv from './Csv'
-import * as Excel from './Excel'
-import * as Parquet from './Parquet'
 import * as utils from './utils'
+
+const isCsv = R.pipe(utils.stripCompression, utils.extIs('.csv'))
+
+const isExcel = R.pipe(utils.stripCompression, utils.extIn(['.xls', '.xlsx']))
 
 const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
 
-export const detect = R.anyPass([Csv.detect, Excel.detect, Parquet.detect, isJsonl])
+const isParquet = R.pipe(
+  utils.stripCompression,
+  R.anyPass([
+    utils.extIn(['.parquet', '.pq']),
+    R.test(/.+_0$/),
+    R.test(/[.-]c\d{3,5}$/gi),
+  ]),
+)
+
+const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
+
+export const detect = R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv])
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
 
 const detectTabularType: (type: string) => TabularType = R.cond([
-  [Csv.isCsv, R.always('csv')],
-  [Csv.isTsv, R.always('tsv')],
-  [Excel.detect, R.always('excel')],
-  [Parquet.detect, R.always('parquet')],
+  [isCsv, R.always('csv')],
+  [isExcel, R.always('excel')],
   [isJsonl, R.always('jsonl')],
+  [isParquet, R.always('parquet')],
+  [isTsv, R.always('tsv')],
   [R.T, R.always('txt')],
 ])
 
