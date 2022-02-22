@@ -25,7 +25,7 @@ from quilt3.backends.local import (
     LocalPackageRegistryV2,
 )
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name
+from quilt3.util import PhysicalKey, QuiltException, QuiltConflictException, validate_package_name
 
 from ..utils import QuiltTestCase
 
@@ -1124,7 +1124,7 @@ class PackageTest(QuiltTestCase):
                 pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
             )
 
-            with self.assertRaisesRegex(QuiltException, 'Package with an unexpected hash'):
+            with self.assertRaisesRegex(QuiltConflictException, 'already exists'):
                 pkg2.push('Quilt/test', 's3://test-bucket')
 
     @patch('quilt3.workflows.validate', return_value=None)

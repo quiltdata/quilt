@@ -41,6 +41,7 @@ from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 from .util import (
     PhysicalKey,
     QuiltException,
+    QuiltConflictException,
     catalog_package_url,
     extract_file_extension,
     fix_url,
@@ -1409,9 +1410,10 @@ class Package:
                 raise
 
             if self._origin is None or latest_hash != self._origin.top_hash:
-                raise QuiltException(
-                    f"Package with an unexpected hash {latest_hash} already exists at the destination; "
-                    "use force=True to overwrite"
+                raise QuiltConflictException(
+                    f"Package with hash {latest_hash} already exists at the destination; "
+                    f"expected {None if self._origin is None else self._origin.top_hash}. "
+                    "Use force=True to overwrite."
                 )
 
         # Check the top hash and fail early if it's unexpected.
