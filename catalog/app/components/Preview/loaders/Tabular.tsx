@@ -12,35 +12,38 @@ import { CONTEXT, PreviewData } from '../types'
 
 import * as utils from './utils'
 
-const isCsv = R.pipe(utils.stripCompression, utils.extIs('.csv'))
+const isCsv = utils.extIs('.csv')
 
-const isExcel = R.pipe(utils.stripCompression, utils.extIn(['.xls', '.xlsx']))
+const isExcel = utils.extIn(['.xls', '.xlsx'])
 
-const isJsonl = R.pipe(utils.stripCompression, utils.extIs('.jsonl'))
+const isJsonl = utils.extIs('.jsonl')
 
-const isParquet = R.pipe(
+const isParquet = R.anyPass([
+  utils.extIn(['.parquet', '.pq']),
+  R.test(/.+_0$/),
+  R.test(/[.-]c\d{3,5}$/gi),
+])
+
+const isTsv = utils.extIs('.tsv')
+
+export const detect: (key: string) => boolean = R.pipe(
   utils.stripCompression,
-  R.anyPass([
-    utils.extIn(['.parquet', '.pq']),
-    R.test(/.+_0$/),
-    R.test(/[.-]c\d{3,5}$/gi),
-  ]),
+  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
 )
-
-const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
-
-export const detect = R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv])
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
 
-const detectTabularType: (type: string) => TabularType = R.cond([
-  [isCsv, R.always('csv')],
-  [isExcel, R.always('excel')],
-  [isJsonl, R.always('jsonl')],
-  [isParquet, R.always('parquet')],
-  [isTsv, R.always('tsv')],
-  [R.T, R.always('txt')],
-])
+const detectTabularType: (type: string) => TabularType = R.pipe(
+  utils.stripCompression,
+  R.cond([
+    [isCsv, R.always('csv')],
+    [isExcel, R.always('excel')],
+    [isJsonl, R.always('jsonl')],
+    [isParquet, R.always('parquet')],
+    [isTsv, R.always('tsv')],
+    [R.T, R.always('txt')],
+  ]),
+)
 
 function getQuiltInfo(headers: Headers): { truncated: boolean } | null {
   try {
