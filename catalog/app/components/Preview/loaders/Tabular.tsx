@@ -18,6 +18,7 @@ const isExcel = utils.extIn(['.xls', '.xlsx'])
 
 const isJsonl = utils.extIs('.jsonl')
 
+// FIXME: show ParquetMeta
 const isParquet = R.anyPass([
   utils.extIn(['.parquet', '.pq']),
   R.test(/.+_0$/),

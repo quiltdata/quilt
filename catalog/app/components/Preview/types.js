@@ -1,5 +1,12 @@
 import tagged from 'utils/tagged'
 
+/*
+PreviewStatus: {
+  note: string?,
+  warnings: string?,
+}
+*/
+
 export const PreviewData = tagged([
   'Audio', // { src: string }
   'DataFrame', // { preview: string, ...PreviewStatus }
