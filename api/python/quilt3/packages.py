@@ -40,8 +40,8 @@ from .util import CACHE_PATH, DISABLE_TQDM, PACKAGE_UPDATE_POLICY
 from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 from .util import (
     PhysicalKey,
-    QuiltException,
     QuiltConflictException,
+    QuiltException,
     catalog_package_url,
     extract_file_extension,
     fix_url,
