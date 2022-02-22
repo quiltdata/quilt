@@ -7,9 +7,10 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 4.1.0 - 2022-02-22
 ## Python API
 * [Added] Automatically decompress gzip'ed package entries when deserializing ([#2677](https://github.com/quiltdata/quilt/pull/2677))
+* [Added] Semi-atomic push ([#2689](https://github.com/quiltdata/quilt/pull/2689))
 
 # 4.0.0 - 2022-01-31
 ## Python API
