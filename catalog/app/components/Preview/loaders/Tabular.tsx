@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
@@ -10,6 +11,7 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
 
+import * as Parquet from './Parquet'
 import * as utils from './utils'
 
 const isCsv = utils.extIs('.csv')
@@ -139,6 +141,28 @@ function getNeededSize(context: string, gated: boolean) {
   }
 }
 
+function useParquetMeta(handle: S3HandleBase) {
+  const parquetData = utils.usePreview(
+    {
+      type: 'parquet',
+      handle,
+      query: { max_bytes: 0, line_count: '1' },
+    },
+    { noAutoFetch: !isParquet(handle.key) },
+  )
+  const parquetProcessed = utils.useProcessing(
+    parquetData.result,
+    Parquet.parseParquetData,
+  )
+  return AsyncResult.case(
+    {
+      _: () => null,
+      Ok: R.identity,
+    },
+    parquetProcessed,
+  )
+}
+
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: S3HandleBase
@@ -159,6 +183,9 @@ export const Loader = function TabularLoader({
     () => getNeededSize(options.context, gated),
     [options.context, gated],
   )
+
+  const parquetMeta = useParquetMeta(handle)
+
   const compression = utils.getCompression(handle.key)
   const data = Data.use(loadTabularData, {
     compression,
@@ -178,6 +205,7 @@ export const Loader = function TabularLoader({
         handle,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
+        meta: parquetMeta,
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))

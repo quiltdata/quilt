@@ -12,21 +12,29 @@ export const detect = R.pipe(
   ]),
 )
 
+export const parseParquetData = ({ html, info }) => ({
+  preview: html,
+  createdBy: info.created_by,
+  formatVersion: info.format_version,
+  metadata: info.metadata,
+  numRowGroups: info.num_row_groups,
+  schema: info.schema,
+  serializedSize: info.serialized_size,
+  shape: { rows: info.shape[0], columns: info.shape[1] },
+  note: info.note,
+  warnings: info.warnings,
+})
+
+export function useParquet({ handle }) {
+  const data = utils.usePreview({ type: 'parquet', handle })
+  return utils.useProcessing(data.result, parseParquetData)
+}
+
 export const Loader = function ParquetLoader({ handle, children }) {
   const data = utils.usePreview({ type: 'parquet', handle })
-  const processed = utils.useProcessing(data.result, ({ html, info }) =>
-    PreviewData.Parquet({
-      preview: html,
-      createdBy: info.created_by,
-      formatVersion: info.format_version,
-      metadata: info.metadata,
-      numRowGroups: info.num_row_groups,
-      schema: info.schema,
-      serializedSize: info.serialized_size,
-      shape: { rows: info.shape[0], columns: info.shape[1] },
-      note: info.note,
-      warnings: info.warnings,
-    }),
+  const processed = utils.useProcessing(
+    data.result,
+    R.pipe(parseParquetData, PreviewData.Parquet),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }

@@ -49,7 +49,6 @@ const useStyles = M.makeStyles((t) => ({
 
 function Parquet({
   className,
-  preview,
   createdBy,
   formatVersion,
   metadata,
@@ -57,7 +56,6 @@ function Parquet({
   schema, // { path, logicalType, physicalType, maxDefinitionLevel, maxRepetitionLevel }
   serializedSize,
   shape, // { rows, columns }
-  note,
   warnings,
   ...props
 }) {
@@ -71,7 +69,7 @@ function Parquet({
     )
 
   return (
-    <div className={cx(className, classes.root)} {...props}>
+    <div className={cx(classes.root, className)} {...props}>
       {renderWarnings(warnings)}
       <table className={classes.meta}>
         <tbody>
@@ -96,12 +94,6 @@ function Parquet({
           ))}
         </tbody>
       </table>
-      <div
-        title={note}
-        className={classes.dataframe}
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: preview }}
-      />
     </div>
   )
 }

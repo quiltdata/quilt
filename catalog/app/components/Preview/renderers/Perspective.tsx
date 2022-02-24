@@ -6,6 +6,7 @@ import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT } from '../types'
+import Parquet from './Parquet'
 
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
@@ -54,6 +55,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
+  meta: {
+    marginBottom: t.spacing(1),
+  },
   viewer: {
     height: ({ context }: { context: 'file' | 'listing' }) =>
       context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
@@ -71,6 +75,7 @@ interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   handle: S3HandleBase
   onLoadMore: () => void
   truncated: boolean
+  meta: $TSFixMe
 }
 
 function Perspective({
@@ -78,6 +83,7 @@ function Perspective({
   className,
   context,
   data,
+  meta,
   handle,
   onLoadMore,
   truncated,
@@ -99,6 +105,7 @@ function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
+      {meta && <Parquet className={classes.meta} {...meta} />}
     </div>
   )
 }
