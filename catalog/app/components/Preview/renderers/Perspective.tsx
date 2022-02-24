@@ -27,9 +27,10 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface TruncatedWarningProps {
   className: string
   onLoadMore: () => void
+  table: perspective.TableData | null
 }
 
-function TruncatedWarning({ className, onLoadMore }: TruncatedWarningProps) {
+function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProps) {
   const classes = useTruncatedWarningStyles()
   return (
     <div className={cx(classes.root, className)}>
@@ -37,7 +38,7 @@ function TruncatedWarning({ className, onLoadMore }: TruncatedWarningProps) {
         <M.Icon fontSize="small" color="inherit" className={classes.icon}>
           info_outlined
         </M.Icon>
-        Partial preview
+        {table?.size ? `Showing only ${table?.size} rows` : `Partial preview`}
       </span>
 
       {!!onLoadMore && (
@@ -87,12 +88,16 @@ function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  perspective.use(root, data, attrs)
+  const tableData = perspective.use(root, data, attrs)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
       {truncated && (
-        <TruncatedWarning className={classes.warning} onLoadMore={onLoadMore} />
+        <TruncatedWarning
+          className={classes.warning}
+          table={tableData}
+          onLoadMore={onLoadMore}
+        />
       )}
     </div>
   )

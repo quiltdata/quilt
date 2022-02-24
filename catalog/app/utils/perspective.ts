@@ -6,6 +6,10 @@ import perspective from '@finos/perspective'
 import type { Table } from '@finos/perspective'
 import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
+export interface TableData {
+  size: number | null
+}
+
 const worker = perspective.worker()
 
 export function renderViewer(
@@ -34,6 +38,8 @@ function usePerspective(
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
 ) {
+  const [tableData, setTableData] = React.useState<TableData | null>(null)
+
   React.useEffect(() => {
     let table: Table, viewer: HTMLPerspectiveViewerElement
 
@@ -42,6 +48,11 @@ function usePerspective(
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
+
+      const size = await table.size()
+      setTableData({
+        size,
+      })
     }
     fetchData()
 
@@ -55,6 +66,8 @@ function usePerspective(
       disposeTable()
     }
   }, [attrs, container, data])
+
+  return tableData
 }
 
 export const use = usePerspective
