@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import AsyncResult from 'utils/AsyncResult'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
@@ -74,8 +75,8 @@ interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   data: string | ArrayBuffer
   handle: S3HandleBase
   onLoadMore: () => void
+  parquetMeta: $TSFixMe
   truncated: boolean
-  meta: $TSFixMe
 }
 
 function Perspective({
@@ -83,9 +84,9 @@ function Perspective({
   className,
   context,
   data,
-  meta,
   handle,
   onLoadMore,
+  parquetMeta,
   truncated,
   ...props
 }: PerspectiveProps) {
@@ -105,7 +106,15 @@ function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
-      {meta && <Parquet className={classes.meta} {...meta} />}
+      {AsyncResult.case(
+        {
+          _: () => null,
+          Pending: () => <M.CircularProgress size={24} />,
+          Ok: (m: $TSFixMe) => <Parquet className={classes.meta} {...m} />,
+          // TODO: Err: re-use Preview/Display handlers
+        },
+        parquetMeta,
+      )}
     </div>
   )
 }

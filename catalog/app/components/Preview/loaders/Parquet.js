@@ -25,9 +25,10 @@ export const parseParquetData = ({ html, info }) => ({
   warnings: info.warnings,
 })
 
-export function useParquet({ handle }) {
-  const data = utils.usePreview({ type: 'parquet', handle })
-  return utils.useProcessing(data.result, parseParquetData)
+export function useParquet({ handle, query }, options) {
+  const data = utils.usePreview({ type: 'parquet', handle, query }, options)
+  const processed = utils.useProcessing(data.result, parseParquetData)
+  return utils.useErrorHandling(processed, { handle, retry: data.fetch })
 }
 
 export const Loader = function ParquetLoader({ handle, children }) {
