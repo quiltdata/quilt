@@ -48,7 +48,7 @@ function WeakPasswordIcon() {
 
 function PasswordField({ input, email, username, ...rest }) {
   const { value } = input
-  const strength = PasswordStrength.useStrength(value, [email, username])
+  const strength = PasswordStrength.useStrength(value, { email, username })
   const isWeak = strength?.score <= 2
   const helperText = strength?.feedback.suggestions.length
     ? `Hint: ${strength?.feedback.suggestions.join(' ')}`
