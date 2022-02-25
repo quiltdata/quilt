@@ -63,10 +63,17 @@ const useStyles = M.makeStyles((t) => ({
 
 type PasswordStrength = zxcvbn.ZXCVBNResult | null
 
-export function useStrength(value: string): PasswordStrength {
+export function useStrength(value: string, inputs: string[]): PasswordStrength {
   return React.useMemo(() => {
     if (!value) return null
-    return zxcvbn(value)
+    const result = zxcvbn(value, inputs.concat(['quilt', 'quiltdata', 'quiltdata.io']))
+    if (value.includes('quilt')) {
+      result.feedback.suggestions.push('Avoid using website name in password')
+    }
+    if (inputs.some((v) => value.includes(v))) {
+      result.feedback.suggestions.push('Avoid re-using email and username in password')
+    }
+    return result
   }, [value])
 }
 
