@@ -7,6 +7,14 @@
 ## Catalog, Lambdas
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] Respect prefix filtering when packaging a folder ([#2706](https://github.com/quiltdata/quilt/pull/2706))
+
 # 4.1.0 - 2022-02-22
 ## Python API
 * [Added] Automatically decompress gzip'ed package entries when deserializing ([#2677](https://github.com/quiltdata/quilt/pull/2677))
