@@ -18,7 +18,6 @@ const isExcel = utils.extIn(['.xls', '.xlsx'])
 
 const isJsonl = utils.extIs('.jsonl')
 
-// FIXME: show ParquetMeta
 const isParquet = R.anyPass([
   utils.extIn(['.parquet', '.pq']),
   R.test(/.+_0$/),
@@ -46,7 +45,31 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
   ]),
 )
 
-function getQuiltInfo(headers: Headers): { truncated: boolean } | null {
+interface ParquetMetadataBackend {
+  created_by: string
+  format_version: string
+  num_row_groups: number
+  schema: {
+    names: string[]
+  }
+  serialized_size: number
+  shape: [number, number] // rows, columns
+}
+
+export interface ParquetMetadata {
+  createdBy: string
+  formatVersion: string
+  numRowGroups: number
+  schema: {
+    names: string[]
+  }
+  serializedSize: number
+  shape: { rows: number; columns: number }
+}
+
+function getQuiltInfo(
+  headers: Headers,
+): { meta?: ParquetMetadataBackend; truncated: boolean } | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
@@ -73,6 +96,15 @@ async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
   return isArrow ? r.arrayBuffer() : r.text()
 }
 
+export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata => ({
+  createdBy: data.created_by,
+  formatVersion: data.format_version,
+  numRowGroups: data.num_row_groups,
+  schema: data.schema,
+  serializedSize: data.serialized_size,
+  shape: { rows: data.shape[0], columns: data.shape[1] },
+})
+
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
   endpoint: string
@@ -84,6 +116,7 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: ArrayBuffer | string
+  meta: ParquetMetadata | null
   size: number | null
   truncated: boolean
 }
@@ -117,6 +150,7 @@ const loadTabularData = async ({
 
     return {
       csv,
+      meta: quiltInfo?.meta ? parseParquetData(quiltInfo?.meta) : null,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -159,6 +193,7 @@ export const Loader = function TabularLoader({
     () => getNeededSize(options.context, gated),
     [options.context, gated],
   )
+
   const compression = utils.getCompression(handle.key)
   const data = Data.use(loadTabularData, {
     compression,
@@ -171,11 +206,12 @@ export const Loader = function TabularLoader({
   // TODO: get correct sises from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, truncated }: TabularDataOutput) =>
+    ({ csv, meta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         context: options.context,
         data: csv,
         handle,
+        meta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
       }),

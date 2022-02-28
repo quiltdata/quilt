@@ -1,11 +1,87 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
+import { ParquetMetadata } from '../loaders/Tabular'
+
 import { CONTEXT } from '../types'
+
+const useParquetMetaStyles = M.makeStyles((t) => ({
+  root: {
+    width: '100%',
+  },
+  meta: {},
+  mono: {
+    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+  },
+  metaName: {
+    paddingRight: t.spacing(1),
+    textAlign: 'left',
+    verticalAlign: 'top',
+  },
+  metaValue: {
+    paddingLeft: t.spacing(1),
+  },
+}))
+
+interface ParquetMetaProps extends ParquetMetadata {
+  className: string
+}
+
+function ParquetMeta({
+  className,
+  createdBy,
+  formatVersion,
+  numRowGroups,
+  schema, // { names }
+  serializedSize,
+  shape, // { rows, columns }
+  ...props
+}: ParquetMetaProps) {
+  const classes = useParquetMetaStyles()
+  const renderMeta = (
+    name: string,
+    value: ParquetMetadata[keyof ParquetMetadata],
+    render: (v: $TSFixMe) => JSX.Element = R.identity,
+  ) =>
+    !!value && (
+      <tr>
+        <th className={classes.metaName}>{name}</th>
+        <td className={classes.metaValue}>{render(value)}</td>
+      </tr>
+    )
+
+  return (
+    <div className={cx(classes.root, className)} {...props}>
+      <table className={classes.meta}>
+        <tbody>
+          {renderMeta('Created by:', createdBy, (c: string) => (
+            <span className={classes.mono}>{c}</span>
+          ))}
+          {renderMeta('Format version:', formatVersion, (v: string) => (
+            <span className={classes.mono}>{v}</span>
+          ))}
+          {renderMeta('# row groups:', numRowGroups)}
+          {renderMeta('Serialized size:', serializedSize)}
+          {renderMeta('Shape:', shape, ({ rows, columns }) => (
+            <span>
+              {rows} rows &times; {columns} columns
+            </span>
+          ))}
+          {renderMeta('Schema:', schema, (s: { names: string[] }) => (
+            /* @ts-expect-error */
+            <JsonDisplay value={s} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
@@ -54,6 +130,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
+  meta: {
+    marginBottom: t.spacing(1),
+  },
   viewer: {
     height: ({ context }: { context: 'file' | 'listing' }) =>
       context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
@@ -68,6 +147,7 @@ const useStyles = M.makeStyles((t) => ({
 interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   context: 'file' | 'listing'
   data: string | ArrayBuffer
+  meta: ParquetMetadata
   handle: S3HandleBase
   onLoadMore: () => void
   truncated: boolean
@@ -78,6 +158,7 @@ function Perspective({
   className,
   context,
   data,
+  meta,
   handle,
   onLoadMore,
   truncated,
@@ -99,6 +180,7 @@ function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
+      {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
     </div>
   )
 }
