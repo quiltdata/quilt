@@ -46,9 +46,9 @@ function WeakPasswordIcon() {
   )
 }
 
-function PasswordField({ input, ...rest }) {
+function PasswordField({ input, email, username, ...rest }) {
   const { value } = input
-  const strength = PasswordStrength.useStrength(value)
+  const strength = PasswordStrength.useStrength(value, { email, username })
   const isWeak = strength?.score <= 2
   const helperText = strength?.feedback.suggestions.length
     ? `Hint: ${strength?.feedback.suggestions.join(' ')}`
@@ -78,6 +78,16 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
+
+  const [email, setEmail] = React.useState('')
+  const [username, setName] = React.useState('')
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      if (email !== values.email) setEmail(values.email)
+      if (username !== values.username) setName(values.username)
+    },
+    [email, username],
+  )
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -150,6 +160,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
         submitting,
       }) => (
         <form onSubmit={handleSubmit}>
+          <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
           <RF.Field
             component={Layout.Field}
             name="username"
@@ -192,6 +203,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             component={PasswordField}
             name="password"
             validate={validators.required}
+            username={username}
+            email={email}
             disabled={!!mutex.current || submitting}
             errors={{
               required: 'Enter a password',
