@@ -107,7 +107,7 @@ function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
-      <ParquetMeta className={classes.meta} {...meta} />
+      {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
     </div>
   )
 }

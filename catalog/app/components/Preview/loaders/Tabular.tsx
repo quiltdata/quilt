@@ -69,7 +69,7 @@ export interface ParquetMetadata {
 
 function getQuiltInfo(
   headers: Headers,
-): { meta: ParquetMetadataBackend; truncated: boolean } | null {
+): { meta?: ParquetMetadataBackend; truncated: boolean } | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
