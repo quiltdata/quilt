@@ -208,8 +208,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             disabled={!!mutex.current || submitting}
             errors={{
               required: 'Enter a password',
-              invalid:
-                'Password must be at least 8 characters long and no longer than 64 characters',
+              invalid: 'Password must be between 8 and 64 characters long',
             }}
           />
           <RF.Field
