@@ -5,10 +5,10 @@ import * as M from '@material-ui/core'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
-import { ParquetMeta } from '../loaders/Tabular'
+import { ParquetMetadata } from '../loaders/Tabular'
 
 import { CONTEXT } from '../types'
-import Parquet from './Parquet'
+import ParquetMeta from './ParquetMeta'
 
 const useTruncatedWarningStyles = M.makeStyles((t) => ({
   root: {
@@ -74,10 +74,9 @@ const useStyles = M.makeStyles((t) => ({
 interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   context: 'file' | 'listing'
   data: string | ArrayBuffer
-  meta: ParquetMeta
+  meta: ParquetMetadata
   handle: S3HandleBase
   onLoadMore: () => void
-  parquetMeta: $TSFixMe
   truncated: boolean
 }
 
@@ -89,7 +88,6 @@ function Perspective({
   meta,
   handle,
   onLoadMore,
-  parquetMeta,
   truncated,
   ...props
 }: PerspectiveProps) {
@@ -109,7 +107,7 @@ function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
-      <Parquet className={classes.meta} {...meta} />
+      <ParquetMeta className={classes.meta} {...meta} />
     </div>
   )
 }
