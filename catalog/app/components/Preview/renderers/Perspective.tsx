@@ -2,9 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import AsyncResult from 'utils/AsyncResult'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
+
+import { ParquetMeta } from '../loaders/Tabular'
 
 import { CONTEXT } from '../types'
 import Parquet from './Parquet'
@@ -73,6 +74,7 @@ const useStyles = M.makeStyles((t) => ({
 interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   context: 'file' | 'listing'
   data: string | ArrayBuffer
+  meta: ParquetMeta
   handle: S3HandleBase
   onLoadMore: () => void
   parquetMeta: $TSFixMe
@@ -84,6 +86,7 @@ function Perspective({
   className,
   context,
   data,
+  meta,
   handle,
   onLoadMore,
   parquetMeta,
@@ -106,15 +109,7 @@ function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
-      {AsyncResult.case(
-        {
-          _: () => null,
-          Pending: () => <M.CircularProgress size={24} />,
-          Ok: (m: $TSFixMe) => <Parquet className={classes.meta} {...m} />,
-          // TODO: Err: re-use Preview/Display handlers
-        },
-        parquetMeta,
-      )}
+      <Parquet className={classes.meta} {...meta} />
     </div>
   )
 }

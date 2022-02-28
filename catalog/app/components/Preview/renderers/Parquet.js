@@ -5,8 +5,6 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 
-import { renderWarnings } from './util'
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
@@ -20,30 +18,8 @@ const useStyles = M.makeStyles((t) => ({
     textAlign: 'left',
     verticalAlign: 'top',
   },
-  dataframe: {
-    overflow: 'auto',
-    paddingTop: t.spacing(2),
-
-    '& table.dataframe': {
-      border: 'none',
-      width: 'auto',
-
-      '& tr:nth-child(even)': {
-        backgroundColor: t.palette.grey[100],
-      },
-
-      '& th, & td': {
-        border: 'none',
-        fontSize: 'small',
-        height: t.spacing(3),
-        paddingLeft: t.spacing(1),
-        paddingRight: t.spacing(1),
-      },
-
-      '& td': {
-        whiteSpace: 'nowrap',
-      },
-    },
+  metaValue: {
+    paddingLeft: t.spacing(1),
   },
 }))
 
@@ -53,10 +29,9 @@ function Parquet({
   formatVersion,
   metadata,
   numRowGroups,
-  schema, // { path, logicalType, physicalType, maxDefinitionLevel, maxRepetitionLevel }
+  schema, // FIXME: { path, logicalType, physicalType, maxDefinitionLevel, maxRepetitionLevel }
   serializedSize,
   shape, // { rows, columns }
-  warnings,
   ...props
 }) {
   const classes = useStyles()
@@ -64,13 +39,12 @@ function Parquet({
     !!value && (
       <tr>
         <th className={classes.metaName}>{name}</th>
-        <td>{render(value)}</td>
+        <td className={classes.metaValue}>{render(value)}</td>
       </tr>
     )
 
   return (
     <div className={cx(classes.root, className)} {...props}>
-      {renderWarnings(warnings)}
       <table className={classes.meta}>
         <tbody>
           {renderMeta('Created by:', createdBy, (c) => (

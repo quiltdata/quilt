@@ -10,7 +10,6 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
 
-import * as Parquet from './Parquet'
 import * as utils from './utils'
 
 const isCsv = utils.extIs('.csv')
@@ -46,7 +45,31 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
   ]),
 )
 
-function getQuiltInfo(headers: Headers): { truncated: boolean } | null {
+export interface ParquetMetaBackend {
+  created_by: string
+  format_version: string
+  num_row_groups: number
+  schema: {
+    names: string[]
+  }
+  serialized_size: number
+  shape: [number, number] // rows, columns
+}
+
+export interface ParquetMeta {
+  createdBy: string
+  formatVersion: string
+  numRowGroups: number
+  schema: {
+    names: string[]
+  }
+  serializedSize: number
+  shape: { rows: number; columns: number }
+}
+
+function getQuiltInfo(
+  headers: Headers,
+): { meta: ParquetMetaBackend; truncated: boolean } | null {
   try {
     const header = headers.get('x-quilt-info')
     return header ? JSON.parse(header) : null
@@ -73,6 +96,15 @@ async function getCsvFromResponse(r: Response): Promise<ArrayBuffer | string> {
   return isArrow ? r.arrayBuffer() : r.text()
 }
 
+export const parseParquetData = (data: ParquetMetaBackend): ParquetMeta => ({
+  createdBy: data.created_by,
+  formatVersion: data.format_version,
+  numRowGroups: data.num_row_groups,
+  schema: data.schema,
+  serializedSize: data.serialized_size,
+  shape: { rows: data.shape[0], columns: data.shape[1] },
+})
+
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
   endpoint: string
@@ -84,6 +116,7 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: ArrayBuffer | string
+  meta: ParquetMeta | null
   size: number | null
   truncated: boolean
 }
@@ -117,6 +150,7 @@ const loadTabularData = async ({
 
     return {
       csv,
+      meta: quiltInfo?.meta ? parseParquetData(quiltInfo?.meta) : null,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -160,11 +194,6 @@ export const Loader = function TabularLoader({
     [options.context, gated],
   )
 
-  const parquetMeta = Parquet.useParquet(
-    { handle, query: { max_bytes: 0 } },
-    { noAutoFetch: !isParquet(handle.key) },
-  )
-
   const compression = utils.getCompression(handle.key)
   const data = Data.use(loadTabularData, {
     compression,
@@ -177,14 +206,14 @@ export const Loader = function TabularLoader({
   // TODO: get correct sises from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, truncated }: TabularDataOutput) =>
+    ({ csv, meta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         context: options.context,
         data: csv,
         handle,
+        meta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
-        parquetMeta,
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
