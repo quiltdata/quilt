@@ -29,7 +29,7 @@ function ParquetMeta({
   formatVersion,
   metadata,
   numRowGroups,
-  schema, // FIXME: { path, logicalType, physicalType, maxDefinitionLevel, maxRepetitionLevel }
+  schema, // { names }
   serializedSize,
   shape, // { rows, columns }
   ...props
