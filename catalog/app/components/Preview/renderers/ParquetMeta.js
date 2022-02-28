@@ -23,7 +23,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Parquet({
+function ParquetMeta({
   className,
   createdBy,
   formatVersion,
@@ -72,4 +72,4 @@ function Parquet({
   )
 }
 
-export default (data, props) => <Parquet {...data} {...props} />
+export default (data, props) => <ParquetMeta {...data} {...props} />
