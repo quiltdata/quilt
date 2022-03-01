@@ -56,13 +56,15 @@ function HandleResolver({ handle, children }) {
 
 const renderContents = (contents) => <M.Box mx="auto">{contents}</M.Box>
 
+const previewOptions = { context: Preview.CONTEXT.LISTING }
+
 function SummaryItemFile({ handle, name, mkUrl }) {
   const withData = (callback) => (
     <HandleResolver handle={handle}>
       {AsyncResult.case({
         Err: (e, { fetch }) =>
           Preview.PreviewError.Unexpected({ handle, retry: fetch, originalError: e }),
-        Ok: (resolved) => Preview.load(resolved, callback),
+        Ok: (resolved) => Preview.load(resolved, callback, previewOptions),
         _: callback,
       })}
     </HandleResolver>

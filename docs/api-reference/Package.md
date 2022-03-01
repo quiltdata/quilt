@@ -270,7 +270,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force=False)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -293,6 +293,9 @@ If `selector_fn('entry_1', pkg["entry_1"]) == False`,
 If `selector_fn('entry_1', pkg["entry_1"]) == True`,
 `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
+By default, push will not overwrite an existing package if its top hash does not match
+the parent hash of the package being pushed. Use `force=True` to skip the check.
+
 __Arguments__
 
 * __name__:  name for package in registry
@@ -310,6 +313,7 @@ __Arguments__
     If not specified, the default workflow will be used.
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
 
+* __force__:  skip the top hash check and overwrite any existing package
 
 __Returns__
 

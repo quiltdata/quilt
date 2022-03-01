@@ -1,9 +1,11 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { matchPath } from 'react-router-dom'
 
 import { useExperiments } from 'components/Experiments'
 import * as Config from 'utils/Config'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
 
 const NAV_TIMEOUT = 500
@@ -21,7 +23,22 @@ const consoleTracker = Promise.resolve({
   track: (evt, opts) => console.log(`track: ${evt}`, opts),
 })
 
-const mkLocation = (l) => `${l.pathname}${l.search}${l.hash}`
+function useMkLocation() {
+  const {
+    paths: { passChange: passChangePath },
+    urls: { passChange: passChangeUrl },
+  } = NamedRoutes.use()
+  return React.useCallback(
+    (l) => {
+      const pathname = matchPath(l.pathname, { path: passChangePath, exact: true })
+        ? passChangeUrl('REDACTED')
+        : l.pathname
+
+      return `${pathname}${l.search}${l.hash}`
+    },
+    [passChangePath, passChangeUrl],
+  )
+}
 
 const delayNav = (e) => {
   const el = e.currentTarget
@@ -47,6 +64,7 @@ const withTimeout = (p, timeout) =>
 export function TrackingProvider({ locationSelector, userSelector, children }) {
   const { getSelectedVariants } = useExperiments()
   const cfg = Config.useConfig()
+  const mkLocation = useMkLocation()
   // workaround to avoid changing client configs
   const token = cfg.mixpanelToken || cfg.mixPanelToken
 

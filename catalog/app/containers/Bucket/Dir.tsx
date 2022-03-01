@@ -124,6 +124,7 @@ function DirContents({
         files={response.files}
         dirs={response.dirs}
         truncated={response.truncated}
+        filtered={!!response.prefix}
         open={!!successor}
         successor={successor}
         onExited={onPackageDirectoryDialogExited}

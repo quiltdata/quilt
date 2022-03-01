@@ -324,6 +324,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       bucket,
       key,
       version: h.VersionId,
+      size: h.ContentLength,
       deleted: !!h.DeleteMarker,
       archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
     })

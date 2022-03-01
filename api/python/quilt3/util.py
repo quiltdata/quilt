@@ -108,6 +108,10 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
+class QuiltConflictException(QuiltException):
+    pass
+
+
 class RemovedInQuilt4Warning(FutureWarning):
     pass
 

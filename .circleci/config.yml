@@ -248,6 +248,7 @@ workflows:
                 - s3hash
                 - pkgevents
                 - pkgpush
+                - tabular_preview
       - test-lambda:
           name: test-lambda-indexer
           path: es/indexer
