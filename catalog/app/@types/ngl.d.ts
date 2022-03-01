@@ -8,8 +8,6 @@ interface IDecompressorRegistry {
 }
 
 declare module 'ngl' {
-  export function gzipDecompress(input: string): string
-
   export class Stage {
     constructor(wrapper: HTMLDivElement)
     handleResize(): void
