@@ -9,7 +9,16 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] Respect prefix filtering when packaging a folder ([#2706](https://github.com/quiltdata/quilt/pull/2706))
+
+# 4.1.0 - 2022-02-22
+## Python API
 * [Added] Automatically decompress gzip'ed package entries when deserializing ([#2677](https://github.com/quiltdata/quilt/pull/2677))
+* [Added] Semi-atomic push ([#2689](https://github.com/quiltdata/quilt/pull/2689))
 
 # 4.0.0 - 2022-01-31
 ## Python API
@@ -34,6 +43,7 @@
 * [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
 * [Changed] Make Vega download data files from S3 via proxy to avoid CORS issues ([#2631](https://github.com/quiltdata/quilt/pull/2631))
 * [Changed] Don't support packages in out-of-stack-buckets ([#2641](https://github.com/quiltdata/quilt/pull/2641))
+* [Changed] Use Perspective library for tabular data files (.csv, .tsv, .xls, .xlsx, .parquet, .jsonl) ([#2576](https://github.com/quiltdata/quilt/pull/2576), [#2691](https://github.com/quiltdata/quilt/pull/2691))
 * [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))

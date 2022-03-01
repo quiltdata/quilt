@@ -4,19 +4,13 @@ import tagged from 'utils/tagged'
 ParquetMeta: {
   createdBy: string,
   formatVersion: string,
-  metadata: object,
   numRowGroups: number,
-  schema: Array({
-    path: string,
-    logicalType: string,
-    physicalType: string,
-    maxDefinitionLevel: string,
-    maxRepetitionLevel: string,
-  }),
+  schema: {
+    names: Array(string),
+  },
   serializedSize: number,
   shape: { rows: number, columns: number },
 }
-
 PreviewStatus: {
   note: string?,
   warnings: string?,
@@ -24,6 +18,7 @@ PreviewStatus: {
 */
 
 export const PreviewData = tagged([
+  'Audio', // { src: string }
   'DataFrame', // { preview: string, ...PreviewStatus }
   'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
@@ -32,13 +27,12 @@ export const PreviewData = tagged([
   'Json', // { rendered: object }
   'Markdown', // { rendered: string }
   'Notebook', // { preview: string, ...PreviewStatus }
-  'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
   'Pdf', // { handle: object, pages: number, firstPageBlob: Blob, type: 'pdf' | 'pptx' }
+  'Perspective', // { context: CONTEXT, data: string | ArrayBuffer, handle: S3Handle, meta: ParquetMeta, onLoadMore: () => void, truncated: boolean }
   'Text', // { head: string, tail: string, lang: string, highlighted: { head: string, tail: string }, ...PreviewStatus }
   'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }
   'Vega', // { spec: Object }
   'Video', // { src: string }
-  'Audio', // { src: string }
   'Voila', // { src: string }
 ])
 
@@ -55,3 +49,8 @@ export const PreviewError = tagged([
   'MalformedJson', // { handle, message }
   'Unexpected', // { handle, retry, originalError: any }
 ])
+
+export const CONTEXT = {
+  FILE: 'file',
+  LISTING: 'listing',
+}

@@ -15,6 +15,7 @@ import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
 import validate, * as validators from 'utils/validators'
 
+import * as PasswordStrength from './PasswordStrength'
 import * as Layout from './Layout'
 import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
@@ -28,10 +29,65 @@ const Container = Layout.mkLayout('Complete sign-up')
 
 const MUTEX_ID = 'password'
 
+const useWeakPasswordIconStyles = M.makeStyles((t) => ({
+  icon: {
+    color: t.palette.warning.dark,
+  },
+}))
+
+function WeakPasswordIcon() {
+  const classes = useWeakPasswordIconStyles()
+  return (
+    <M.Tooltip title="Password is too weak">
+      <M.Icon className={classes.icon} fontSize="small" color="inherit">
+        error_outline
+      </M.Icon>
+    </M.Tooltip>
+  )
+}
+
+function PasswordField({ input, email, username, ...rest }) {
+  const { value } = input
+  const strength = PasswordStrength.useStrength(value, { email, username })
+  const isWeak = strength?.score <= 2
+  const helperText = strength?.feedback.suggestions.length
+    ? `Hint: ${strength?.feedback.suggestions.join(' ')}`
+    : ''
+  return (
+    <>
+      <Layout.Field
+        InputProps={{
+          endAdornment: isWeak && (
+            <M.InputAdornment position="end">
+              <WeakPasswordIcon />
+            </M.InputAdornment>
+          ),
+        }}
+        helperText={helperText}
+        type="password"
+        floatingLabelText="Password"
+        {...input}
+        {...rest}
+      />
+      <PasswordStrength.Indicator strength={strength} />
+    </>
+  )
+}
+
 function PasswordSignUp({ mutex, next, onSuccess }) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
+
+  const [email, setEmail] = React.useState('')
+  const [username, setName] = React.useState('')
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      if (email !== values.email) setEmail(values.email)
+      if (username !== values.username) setName(values.username)
+    },
+    [email, username],
+  )
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -104,6 +160,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
         submitting,
       }) => (
         <form onSubmit={handleSubmit}>
+          <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
           <RF.Field
             component={Layout.Field}
             name="username"
@@ -143,15 +200,15 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={PasswordField}
             name="password"
-            type="password"
             validate={validators.required}
+            username={username}
+            email={email}
             disabled={!!mutex.current || submitting}
-            floatingLabelText="Password"
             errors={{
               required: 'Enter a password',
-              invalid: 'Password must be at least 8 characters long',
+              invalid: 'Password must be between 8 and 64 characters long',
             }}
           />
           <RF.Field

@@ -16,15 +16,19 @@ import type * as workflows from 'utils/workflows'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
+const prepareEntries = (
+  entries: PD.FilesSelectorState,
+  path: string,
+  filtered: boolean,
+) => {
   const selected = entries.filter(R.propEq('selected', true))
-  if (selected.length === entries.length)
-    return [{ logical_key: '.', path, is_dir: true }]
-  return selected.map(({ type, name }) => ({
-    logical_key: name,
-    path: path + name,
-    is_dir: type === 'dir',
-  }))
+  return !filtered && selected.length === entries.length
+    ? [{ logical_key: '.', path, is_dir: true }]
+    : selected.map(({ type, name }) => ({
+        logical_key: name,
+        path: path + name,
+        is_dir: type === 'dir',
+      }))
 }
 
 interface DialogTitleProps {
@@ -69,6 +73,7 @@ interface DialogFormProps {
   truncated?: boolean
   dirs: string[]
   files: { key: string; size: number }[]
+  filtered: boolean
   close: () => void
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: { name: string; hash: string }) => void
@@ -83,6 +88,7 @@ function DialogForm({
   truncated,
   dirs,
   files,
+  filtered,
   close,
   responseError,
   schema,
@@ -123,7 +129,7 @@ function DialogForm({
         const res = await createPackage(
           {
             ...values,
-            entries: prepareEntries(filesValue, path),
+            entries: prepareEntries(filesValue, path, filtered),
             message,
             source: bucket,
             target: {
@@ -141,7 +147,7 @@ function DialogForm({
         return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
-    [bucket, successor, createPackage, setSuccess, schema, path],
+    [bucket, successor, createPackage, setSuccess, schema, path, filtered],
   )
 
   const initialFiles: PD.FilesSelectorState = React.useMemo(
@@ -419,6 +425,7 @@ interface PackageDirectoryDialogProps {
   truncated?: boolean
   dirs: string[]
   files: { key: string; size: number }[]
+  filtered: boolean
   open: boolean
   successor: workflows.Successor | null
   onClose?: () => void
@@ -431,6 +438,7 @@ export default function PackageDirectoryDialog({
   truncated,
   dirs,
   files,
+  filtered,
   onClose,
   onExited,
   open,
@@ -511,6 +519,7 @@ export default function PackageDirectoryDialog({
                       truncated,
                       dirs,
                       files,
+                      filtered,
                       close: handleClose,
                       setSubmitting,
                       setSuccess,

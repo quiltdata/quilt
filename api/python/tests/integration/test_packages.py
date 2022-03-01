@@ -8,6 +8,7 @@ import tempfile
 from collections import Counter
 from contextlib import redirect_stderr
 from datetime import datetime
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from unittest import mock
@@ -24,7 +25,12 @@ from quilt3.backends.local import (
     LocalPackageRegistryV2,
 )
 from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name
+from quilt3.util import (
+    PhysicalKey,
+    QuiltConflictException,
+    QuiltException,
+    validate_package_name,
+)
 
 from ..utils import QuiltTestCase
 
@@ -83,6 +89,17 @@ class PackageTest(QuiltTestCase):
                 'VersionId': 'v1',
                 'Body': BytesIO(top_hash.encode()),
             },
+            expected_params={
+                'Bucket': pkg_registry.root.bucket,
+                'Key': pkg_registry.pointer_pk(pkg_name, pointer).path,
+            }
+        )
+
+    def setup_s3_stubber_resolve_pointer_not_found(self, pkg_registry, pkg_name, *, pointer):
+        self.s3_stubber.add_client_error(
+            method='get_object',
+            service_error_code='NoSuchKey',
+            http_status_code=404,
             expected_params={
                 'Bucket': pkg_registry.root.bucket,
                 'Key': pkg_registry.pointer_pk(pkg_name, pointer).path,
@@ -462,7 +479,7 @@ class PackageTest(QuiltTestCase):
         )
         with patch('time.time', return_value=timestamp1), \
              patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
-            remote_pkg = new_pkg.push(pkg_name, registry)
+            remote_pkg = new_pkg.push(pkg_name, registry, force=True)
 
         # Modify one file, and check that only that file gets uploaded.
         add_pkg_file(remote_pkg, 'foo2', 'bar3', '!!!', version='v2')
@@ -480,7 +497,7 @@ class PackageTest(QuiltTestCase):
             stderr = io.StringIO()
 
             with redirect_stderr(stderr), patch('quilt3.packages.DISABLE_TQDM', True):
-                remote_pkg.push(pkg_name, registry)
+                remote_pkg.push(pkg_name, registry, force=True)
             assert not stderr.getvalue()
 
     def test_package_deserialize(self):
@@ -717,7 +734,7 @@ class PackageTest(QuiltTestCase):
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
         with patch('quilt3.Package._push_manifest'), \
              patch('quilt3.packages.copy_file_list', _mock_copy_file_list):
-            pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', force=True)
 
         for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
             file_path = pkg[lk].physical_key.path
@@ -1059,19 +1076,61 @@ class PackageTest(QuiltTestCase):
 
         # disallow pushing not to the top level of a remote S3 registry
         with pytest.raises(QuiltException):
-            p.push('Quilt/Test', 's3://test-bucket/foo/bar')
+            p.push('Quilt/Test', 's3://test-bucket/foo/bar', force=True)
 
         # disallow pushing to the local filesystem (use install instead)
         with pytest.raises(QuiltException):
-            p.push('Quilt/Test', './')
+            p.push('Quilt/Test', './', force=True)
 
         # disallow pushing the package manifest to remote but package data to local
         with pytest.raises(QuiltException):
-            p.push('Quilt/Test', 's3://test-bucket', dest='./')
+            p.push('Quilt/Test', 's3://test-bucket', dest='./', force=True)
 
         # disallow pushing the pacakge manifest to remote but package data to a different remote
         with pytest.raises(QuiltException):
-            p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
+            p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket', force=True)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_conflicts(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+
+        pkg = Package()
+
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+
+        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
+             patch('quilt3.Package._push_manifest'):
+            # Remote package does not yet exist: push succeeds.
+
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer_not_found(
+                    pkg_registry, pkg_name, pointer='latest'
+                )
+
+            pkg2 = pkg.push('Quilt/test', 's3://test-bucket')
+
+            # Remote package exists, but has the parent hash: push succeeds.
+
+            pkg2.set('foo', b'123')
+            pkg2.build('Quilt/test')
+
+            for _ in range(2):
+                self.setup_s3_stubber_resolve_pointer(
+                    pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash
+                )
+
+            pkg2.push('Quilt/test', 's3://test-bucket')
+
+            # Remote package exists and the hash does not match: push fails.
+
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
+            )
+
+            with self.assertRaisesRegex(QuiltConflictException, 'already exists'):
+                pkg2.push('Quilt/test', 's3://test-bucket')
 
     @patch('quilt3.workflows.validate', return_value=None)
     def test_commit_message_on_push(self, mocked_workflow_validate):
@@ -1083,7 +1142,7 @@ class PackageTest(QuiltTestCase):
             with open(REMOTE_MANIFEST, encoding='utf-8') as fd:
                 pkg = Package.load(fd)
 
-            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message', force=True)
             registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
             message = 'test_message'
             push_manifest_mock.assert_called_once_with(
@@ -1186,7 +1245,7 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value='workflow data'))
     def test_manifest_workflow(self):
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        for method in (Package.build, Package.push):
+        for method in (Package.build, partial(Package.push, force=True)):
             with self.subTest(method=method):
                 pkg = Package()
                 method(pkg, 'foo/bar', registry='s3://test-bucket')
@@ -1610,7 +1669,7 @@ class PackageTest(QuiltTestCase):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
 
-        for method in (Package.build, Package.push):
+        for method in (Package.build, partial(Package.push, force=True)):
             with self.subTest(method=method):
                 with patch('quilt3.Package._push_manifest') as push_manifest_mock:
                     pkg = Package().set('foo', DATA_DIR / 'foo.txt')
@@ -1625,7 +1684,7 @@ class PackageTest(QuiltTestCase):
                     assert pkg._workflow is mock.sentinel.returned_workflow
                     push_manifest_mock.assert_called_once()
                     workflow_validate_mock.reset_mock()
-                    if method is Package.push:
+                    if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
 
@@ -1649,7 +1708,7 @@ class PackageTest(QuiltTestCase):
                     assert pkg._workflow is mock.sentinel.returned_workflow
                     push_manifest_mock.assert_called_once()
                     workflow_validate_mock.reset_mock()
-                    if method is Package.push:
+                    if method is not Package.build:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
 
@@ -1660,7 +1719,7 @@ class PackageTest(QuiltTestCase):
             with self.subTest(value=val):
                 with pytest.raises(TypeError) as excinfo:
                     pkg.push('foo/bar', registry='s3://test-bucket',
-                             dest=(lambda v: lambda *args, **kwargs: v)(val))
+                             dest=(lambda v: lambda *args, **kwargs: v)(val), force=True)
                 assert 'str is expected' in str(excinfo.value)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
@@ -1670,13 +1729,16 @@ class PackageTest(QuiltTestCase):
             with self.subTest(value=val):
                 with pytest.raises(quilt3.util.URLParseError):
                     pkg.push('foo/bar', registry='s3://test-bucket',
-                             dest=(lambda v: lambda *args, **kwargs: v)(val))
+                             dest=(lambda v: lambda *args, **kwargs: v)(val), force=True)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
     def test_push_dest_fn_s3_uri_with_version_id(self):
         pkg = Package().set('foo', DATA_DIR / 'foo.txt')
         with pytest.raises(ValueError) as excinfo:
-            pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v')
+            pkg.push(
+                'foo/bar', registry='s3://test-bucket',
+                dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v', force=True
+            )
         assert 'URI must not include versionId' in str(excinfo.value)
 
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
@@ -1703,7 +1765,7 @@ class PackageTest(QuiltTestCase):
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn)
+        pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn, force=True)
 
         dest_fn.assert_called_once_with(lk, pkg[lk], mock.sentinel.top_hash)
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
