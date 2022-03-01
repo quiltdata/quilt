@@ -24,8 +24,10 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(2),
   },
   ngl: {
-    width: t.spacing(60),
     height: t.spacing(50),
+    overflow: 'auto',
+    resize: 'vertical',
+    width: '100%',
   },
 }))
 
