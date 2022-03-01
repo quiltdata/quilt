@@ -1,4 +1,6 @@
+import * as R from 'ramda'
 import * as React from 'react'
+import { DecompressorRegistry } from 'ngl'
 
 import type { S3HandleBase } from 'utils/s3paths'
 
@@ -6,7 +8,9 @@ import { PreviewData, PreviewError } from '../types'
 
 import * as utils from './utils'
 
-export const detect = utils.extIn(['.pdb', '.cif'])
+export const detect = R.pipe(utils.stripCompression, utils.extIs('.pdb'))
+
+const gzipDecompress = DecompressorRegistry?.get('gz')
 
 interface NglLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
@@ -19,7 +23,9 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
     data.result,
     async (r: $TSFixMe) => {
       try {
-        const blob = new Blob([r.Body])
+        const compression = utils.getCompression(handle.key)
+        const blob =
+          compression === 'gz' ? new Blob([gzipDecompress(r.Body)]) : new Blob([r.Body])
         return PreviewData.Ngl({ blob })
       } catch (e) {
         if (e instanceof SyntaxError) {
