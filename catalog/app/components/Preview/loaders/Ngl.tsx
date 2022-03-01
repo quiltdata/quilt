@@ -5,7 +5,7 @@ import { DecompressorRegistry } from 'ngl'
 
 import type { S3HandleBase } from 'utils/s3paths'
 
-import { PreviewData, PreviewError } from '../types'
+import { PreviewData } from '../types'
 
 import * as utils from './utils'
 
