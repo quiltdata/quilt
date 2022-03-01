@@ -1,3 +1,4 @@
+import type { PromiseResult } from 'aws-sdk/lib/request'
 import * as R from 'ramda'
 import * as React from 'react'
 import { DecompressorRegistry } from 'ngl'
@@ -10,7 +11,7 @@ import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.pdb'))
 
-const gzipDecompress = DecompressorRegistry?.get('gz')
+const gzipDecompress = DecompressorRegistry.get('gz')
 
 interface NglLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
@@ -19,23 +20,14 @@ interface NglLoaderProps {
 
 export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
   const data = utils.useObjectGetter(handle)
-  const processed = utils.useAsyncProcessing(
+  const processed = utils.useProcessing(
     data.result,
-    async (r: $TSFixMe) => {
-      try {
-        const compression = utils.getCompression(handle.key)
-        const blob =
-          compression === 'gz' ? new Blob([gzipDecompress(r.Body)]) : new Blob([r.Body])
-        return PreviewData.Ngl({ blob })
-      } catch (e) {
-        if (e instanceof SyntaxError) {
-          throw PreviewError.MalformedJson({ handle, message: e.message })
-        }
-        throw e
-      }
+    (r: PromiseResult<{ Body: Uint8Array | string }, null>) => {
+      const compression = utils.getCompression(handle.key)
+      const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
+      return PreviewData.Ngl({ blob: new Blob([body]) })
     },
-    [],
   )
-  const handled = utils.useErrorHandling(processed, { handle, retry: fetch })
+  const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
   return children(handled)
 }
