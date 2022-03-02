@@ -186,7 +186,7 @@ quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: us
 logger = get_quilt_logger()
 
 
-def calculate_pkg_hashes(s3_client, pkg):
+def calculate_pkg_hashes(boto_session, pkg):
     entries = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
@@ -196,16 +196,31 @@ def calculate_pkg_hashes(s3_client, pkg):
 
         entries.append(entry)
 
+    user_s3 = boto_session.client("s3")
+
+    @functools.lru_cache(maxsize=None)
+    def get_region_for_bucket(bucket: str) -> str:
+        return user_s3.get_bucket_location(
+            Bucket=bucket
+        )["LocationConstraint"] or "us-east-1"
+
+    @functools.lru_cache(maxsize=None)
+    def get_s3_client_for_region(region: str):
+        return boto_session.client("s3", region_name=region)
+
+    def get_client_for_bucket(bucket: str):
+        return get_s3_client_for_region(get_region_for_bucket(bucket))
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as pool:
         fs = [
-            pool.submit(calculate_pkg_entry_hash, s3_client, entry)
+            pool.submit(calculate_pkg_entry_hash, get_client_for_bucket, entry)
             for entry in entries
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
 
 
-def calculate_pkg_entry_hash(s3_client, pkg_entry):
+def calculate_pkg_entry_hash(get_client_for_bucket, pkg_entry):
     pk = pkg_entry.physical_key
     params = {
         'Bucket': pk.bucket,
@@ -213,7 +228,7 @@ def calculate_pkg_entry_hash(s3_client, pkg_entry):
     }
     if pk.version_id is not None:
         params['VersionId'] = pk.version_id
-    url = s3_client.generate_presigned_url(
+    url = get_client_for_bucket(pk.bucket).generate_presigned_url(
         ClientMethod='get_object',
         ExpiresIn=S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
         Params=params,
@@ -479,7 +494,7 @@ def package_from_folder(request):
         for entry in data['entries']:
             set_entry = p.set_dir if entry['is_dir'] else p.set
             set_entry(entry['logical_key'], str(src_registry.base.join(entry['path'])))
-        calculate_pkg_hashes(user_boto_session.client('s3'), p)
+        calculate_pkg_hashes(user_boto_session, p)
         return p
 
     return _push_pkg_to_successor(
@@ -611,7 +626,7 @@ def create_package(request):
     except quilt3.util.QuiltException as qe:
         raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
 
-    calculate_pkg_hashes(user_boto_session.client('s3'), pkg)
+    calculate_pkg_hashes(user_boto_session, pkg)
     try:
         top_hash = pkg._build(
             name=handle,

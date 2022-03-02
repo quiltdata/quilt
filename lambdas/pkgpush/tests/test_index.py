@@ -952,11 +952,11 @@ class HashCalculationTest(unittest.TestCase):
         self.pkg.set('without-hash', self.entry_without_hash)
 
     def test_calculate_pkg_hashes(self):
-        s3_client = mock.MagicMock()
+        boto_session = mock.MagicMock()
         with mock.patch.object(t4_lambda_pkgpush, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
-            t4_lambda_pkgpush.calculate_pkg_hashes(s3_client, self.pkg)
+            t4_lambda_pkgpush.calculate_pkg_hashes(boto_session, self.pkg)
 
-        calculate_pkg_entry_hash_mock.assert_called_once_with(s3_client, self.entry_without_hash)
+        calculate_pkg_entry_hash_mock.assert_called_once_with(mock.ANY, self.entry_without_hash)
 
     @mock.patch.object(t4_lambda_pkgpush, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
     def test_calculate_pkg_hashes_too_large_file_error(self):
@@ -965,11 +965,13 @@ class HashCalculationTest(unittest.TestCase):
             t4_lambda_pkgpush.calculate_pkg_hashes(s3_client, self.pkg)
 
     def test_calculate_pkg_entry_hash(self):
-        s3_client_mock = mock.MagicMock()
+        get_s3_client_mock = mock.MagicMock()
+        s3_client_mock = get_s3_client_mock.return_value
         s3_client_mock.generate_presigned_url.return_value = 'https://example.com'
         with mock.patch("t4_lambda_pkgpush.invoke_hash_lambda", return_value='0' * 64) as invoke_hash_lambda_mock:
-            t4_lambda_pkgpush.calculate_pkg_entry_hash(s3_client_mock, self.entry_without_hash)
+            t4_lambda_pkgpush.calculate_pkg_entry_hash(get_s3_client_mock, self.entry_without_hash)
 
+        get_s3_client_mock.assert_called_once_with(self.entry_without_hash.physical_key.bucket)
         invoke_hash_lambda_mock.assert_called_once_with(s3_client_mock.generate_presigned_url.return_value)
         s3_client_mock.generate_presigned_url.assert_called_once_with(
             ClientMethod='get_object',
