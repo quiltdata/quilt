@@ -359,21 +359,30 @@ interface LinkDescriptor {
   label: string
   to?: string
   href?: string
+  target?: '_blank'
 }
 
 function useLinks(): LinkDescriptor[] {
   const { paths, urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
+  const customNavLink: LinkDescriptor | null = React.useMemo(() => {
+    if (!settings?.customNavLink) return null
+    const href = sanitizeUrl(settings.customNavLink.url)
+    if (href === 'about:blank') return null
+    return {
+      href,
+      label: settings.customNavLink.label,
+      target: '_blank',
+    }
+  }, [settings?.customNavLink])
+
   return [
     process.env.NODE_ENV === 'development' && {
       to: urls.example(),
       label: 'Example',
     },
-    settings?.customNavLink && {
-      href: sanitizeUrl(settings.customNavLink.url),
-      label: settings.customNavLink.label,
-    },
+    customNavLink,
     cfg.mode !== 'MARKETING' && {
       to: urls.uriResolver(),
       label: 'URI',
