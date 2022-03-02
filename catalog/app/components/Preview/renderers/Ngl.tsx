@@ -2,8 +2,9 @@ import * as NGL from 'ngl'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-async function renderNgl(blob: Blob, wrapperEl: HTMLDivElement) {
-  const stage = new NGL.Stage(wrapperEl)
+async function renderNgl(blob: Blob, wrapperEl: HTMLDivElement, t: M.Theme) {
+  console.log('render ngl')
+  const stage = new NGL.Stage(wrapperEl, { backgroundColor: t.palette.common.white })
 
   const resizeObserver = new window.ResizeObserver(() => stage.handleResize())
   resizeObserver.observe(wrapperEl)
@@ -17,13 +18,6 @@ async function renderNgl(blob: Blob, wrapperEl: HTMLDivElement) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: t.spacing(2),
-    paddingBottom: t.spacing(2),
-  },
-  ngl: {
     height: t.spacing(50),
     overflow: 'auto',
     resize: 'vertical',
@@ -32,26 +26,25 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface NglProps extends React.HTMLAttributes<HTMLDivElement> {
-  className?: string
   blob: Blob
 }
 
-function Ngl({ blob, className, ...props }: NglProps) {
+function Ngl({ blob, ...props }: NglProps) {
   const classes = useStyles()
 
+  const t = M.useTheme()
   const viewport = React.useRef<HTMLDivElement | null>(null)
 
   React.useEffect(() => {
-    if (viewport.current) renderNgl(blob, viewport.current)
+    if (viewport.current) {
+      renderNgl(blob, viewport.current, t)
+    }
     return () => {
       // TODO: stage.dispose()
     }
   }, [viewport, blob])
-  return (
-    <div className={classes.root} {...props}>
-      <div ref={viewport} className={classes.ngl} />
-    </div>
-  )
+
+  return <div ref={viewport} className={classes.root} {...props} />
 }
 
 export default (img: NglProps, props: NglProps) => <Ngl {...img} {...props} />
