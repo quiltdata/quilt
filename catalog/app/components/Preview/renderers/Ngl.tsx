@@ -34,14 +34,13 @@ function Ngl({ blob, ...props }: NglProps) {
 
   const t = M.useTheme()
   const viewport = React.useRef<HTMLDivElement | null>(null)
+  const stageRef = React.useRef<NGL.Stage | null>(null)
 
   React.useEffect(() => {
     if (viewport.current) {
-      renderNgl(blob, viewport.current, t)
+      renderNgl(blob, viewport.current, t).then((stage) => (stageRef.current = stage))
     }
-    return () => {
-      // TODO: stage.dispose()
-    }
+    return () => stageRef.current?.dispose()
   }, [viewport, blob])
 
   return <div ref={viewport} className={classes.root} {...props} />
