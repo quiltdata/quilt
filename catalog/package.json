@@ -96,6 +96,7 @@
     "mixpanel-browser": "^2.41.0",
     "monocle-ts": "^2.3.11",
     "newtype-ts": "^0.3.4",
+    "ngl": "^2.0.0-dev.39",
     "p-limit": "^3.1.0",
     "papaparse": "^5.3.1",
     "path-browserify": "^1.0.1",
