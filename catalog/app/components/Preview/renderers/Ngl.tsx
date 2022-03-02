@@ -3,7 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 async function renderNgl(blob: Blob, wrapperEl: HTMLDivElement, t: M.Theme) {
-  console.log('render ngl')
   const stage = new NGL.Stage(wrapperEl, { backgroundColor: t.palette.common.white })
 
   const resizeObserver = new window.ResizeObserver(() => stage.handleResize())
@@ -36,12 +35,25 @@ function Ngl({ blob, ...props }: NglProps) {
   const viewport = React.useRef<HTMLDivElement | null>(null)
   const stageRef = React.useRef<NGL.Stage | null>(null)
 
+  const handleWheel = React.useCallback(
+    (event) => {
+      if (viewport.current?.contains(event.target)) {
+        event.preventDefault()
+      }
+    },
+    [viewport],
+  )
+
   React.useEffect(() => {
     if (viewport.current) {
       renderNgl(blob, viewport.current, t).then((stage) => (stageRef.current = stage))
+      window.addEventListener('wheel', handleWheel, { passive: false })
     }
-    return () => stageRef.current?.dispose()
-  }, [viewport, blob])
+    return () => {
+      stageRef.current?.dispose()
+      window.removeEventListener('wheel', handleWheel)
+    }
+  }, [viewport, blob, handleWheel, t])
 
   return <div ref={viewport} className={classes.root} {...props} />
 }
