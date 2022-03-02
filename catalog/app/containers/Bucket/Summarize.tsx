@@ -497,6 +497,18 @@ function Row({ file, mkUrl, packageHandle, s3 }: RowProps) {
   )
 }
 
+const useSummaryEntriesStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  more: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginTop: t.spacing(2),
+  },
+}))
+
 interface SummaryEntriesProps {
   entries: SummarizeFile[]
   mkUrl?: MakeURL
@@ -505,6 +517,7 @@ interface SummaryEntriesProps {
 }
 
 function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesProps) {
+  const classes = useSummaryEntriesStyles()
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
@@ -512,7 +525,7 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
 
   const shownEntries = R.take(shown, entries)
   return (
-    <>
+    <div className={classes.root}>
       {shownEntries.map((file) => (
         <Row
           key={
@@ -525,13 +538,13 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
         />
       ))}
       {shown < entries.length && (
-        <M.Box mt={2} display="flex" justifyContent="center">
+        <div className={classes.more}>
           <M.Button variant="contained" color="primary" onClick={showMore}>
             Show more
           </M.Button>
-        </M.Box>
+        </div>
       )}
-    </>
+    </div>
   )
 }
 
