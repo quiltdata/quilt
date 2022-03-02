@@ -14,6 +14,7 @@
 
 ## Catalog, Lambdas
 * [Fixed] Respect prefix filtering when packaging a folder ([#2706](https://github.com/quiltdata/quilt/pull/2706))
+* [Fixed] Fix package creation failing for some regions ([#2718](https://github.com/quiltdata/quilt/pull/2718))
 * [Added] NGL renderer for .pdb files ([#2711](https://github.com/quiltdata/quilt/pull/2711))
 
 # 4.1.0 - 2022-02-22
