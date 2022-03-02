@@ -33,7 +33,6 @@ function Ngl({ blob, ...props }: NglProps) {
 
   const t = M.useTheme()
   const viewport = React.useRef<HTMLDivElement | null>(null)
-  const stageRef = React.useRef<NGL.Stage | null>(null)
 
   const handleWheel = React.useCallback(
     (event) => {
@@ -45,12 +44,13 @@ function Ngl({ blob, ...props }: NglProps) {
   )
 
   React.useEffect(() => {
+    let stage: NGL.Stage
     if (viewport.current) {
-      renderNgl(blob, viewport.current, t).then((stage) => (stageRef.current = stage))
+      renderNgl(blob, viewport.current, t).then((s) => (stage = s))
       window.addEventListener('wheel', handleWheel, { passive: false })
     }
     return () => {
-      stageRef.current?.dispose()
+      stage?.dispose()
       window.removeEventListener('wheel', handleWheel)
     }
   }, [viewport, blob, handleWheel, t])
