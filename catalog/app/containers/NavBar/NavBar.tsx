@@ -28,12 +28,17 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
 }))
 
 function LogoLink() {
+  const settings = CatalogSettings.use()
   const classes = useLogoLinkStyles()
   const cfg = Config.useConfig()
   const { urls } = NamedRoutes.use()
   return (
     <Link className={classes.root} to={urls.home()}>
-      <Logo responsive forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'} />
+      <Logo
+        responsive
+        forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'}
+        src={settings?.logo?.url}
+      />
     </Link>
   )
 }
@@ -292,10 +297,25 @@ function SignIn({ error, waiting }: SignInProps) {
   )
 }
 
-const AppBar = M.styled(M.AppBar)(({ theme: t }) => ({
-  background: `left / 64px url(${bg})`,
-  zIndex: t.zIndex.appBar + 1,
+const useAppBarStyles = M.makeStyles((t) => ({
+  root: {
+    background: ({ backgroundColor }: { backgroundColor?: string }) =>
+      backgroundColor || `left / 64px url(${bg})`,
+    zIndex: t.zIndex.appBar + 1,
+  },
 }))
+
+interface AppBarProps {
+  children: React.ReactNode
+}
+
+function AppBar({ children }: AppBarProps) {
+  const settings = CatalogSettings.use()
+  const classes = useAppBarStyles({
+    backgroundColor: settings?.theme?.palette?.primary?.main,
+  })
+  return <M.AppBar className={classes.root}>{children}</M.AppBar>
+}
 
 interface ContainerProps {
   children?: React.ReactNode
