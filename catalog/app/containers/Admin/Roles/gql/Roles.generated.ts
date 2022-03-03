@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
 import {
   RoleSelection_UnmanagedRole_Fragment,
@@ -8,24 +8,24 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_RolesRolesQueryVariables = Types.Exact<{
+export type containers_Admin_Roles_gql_RolesQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_RolesRolesQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_Roles_gql_RolesQuery = { readonly __typename: 'Query' } & {
   readonly roles: ReadonlyArray<
     | ({ readonly __typename: 'UnmanagedRole' } & RoleSelection_UnmanagedRole_Fragment)
     | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
   >
 }
 
-export const containers_Admin_RolesRolesDocument = {
+export const containers_Admin_Roles_gql_RolesDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_RolesRoles' },
+      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_Roles' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -48,8 +48,8 @@ export const containers_Admin_RolesRolesDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesRolesQuery,
-  containers_Admin_RolesRolesQueryVariables
+  containers_Admin_Roles_gql_RolesQuery,
+  containers_Admin_Roles_gql_RolesQueryVariables
 >
 
-export { containers_Admin_RolesRolesDocument as default }
+export { containers_Admin_Roles_gql_RolesDocument as default }

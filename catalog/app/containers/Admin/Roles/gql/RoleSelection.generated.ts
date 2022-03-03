@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
 export type RoleSelection_UnmanagedRole_Fragment = {
   readonly __typename: 'UnmanagedRole'

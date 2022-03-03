@@ -14,11 +14,11 @@ import * as Cache from 'utils/ResourceCache'
 import * as Format from 'utils/format'
 import * as validators from 'utils/validators'
 
-import * as Form from './Form'
-import * as Table from './Table'
-import * as data from './data'
+import * as Form from '../Form'
+import * as Table from '../Table'
+import * as data from '../data'
 
-import ROLES_QUERY from './UsersRoles.generated'
+import ROLES_QUERY from './gql/Roles.generated'
 
 const useMonoStyles = M.makeStyles((t) => ({
   root: {
