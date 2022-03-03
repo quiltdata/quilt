@@ -12,6 +12,16 @@ export interface CatalogSettings {
     url: string
     label: string
   }
+  logo?: {
+    url: string
+  }
+  theme?: {
+    palette: {
+      primary: {
+        main: string
+      }
+    }
+  }
 }
 
 async function fetchSettings({

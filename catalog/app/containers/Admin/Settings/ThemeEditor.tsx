@@ -5,14 +5,13 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
-import * as Notifications from 'containers/Notifications'
+// import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as validators from 'utils/validators'
 
-import * as Form from './Form'
-import ThemeEditor from './Settings/ThemeEditor'
+import * as Form from '../Form'
 
-const useNavLinkEditorStyles = M.makeStyles((t) => ({
+const useThemeEditorStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
@@ -25,7 +24,7 @@ const useNavLinkEditorStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
     flexShrink: 0,
     fontWeight: t.typography.fontWeightMedium,
-    width: 50,
+    width: 100,
   },
   fieldValue: {
     ...t.typography.body2,
@@ -42,17 +41,17 @@ const useNavLinkEditorStyles = M.makeStyles((t) => ({
   },
 }))
 
-function NavLinkEditor() {
+export default function ThemeEditor() {
   const settings = CatalogSettings.use()
   const writeSettings = CatalogSettings.useWriteSettings()
 
-  const { push } = Notifications.use()
+  //   const { push } = Notifications.use()
 
-  const classes = useNavLinkEditorStyles()
+  const classes = useThemeEditorStyles()
 
   const [editing, setEditing] = React.useState(false)
   const [formKey, setFormKey] = React.useState(1)
-  const [removing, setRemoving] = React.useState(false)
+  const [removing] = React.useState(false)
 
   const edit = React.useCallback(() => {
     if (removing) return
@@ -68,31 +67,48 @@ function NavLinkEditor() {
     setFormKey(R.inc)
   }, [])
 
-  const remove = React.useCallback(async () => {
-    if (editing || removing || !settings?.customNavLink) return
-    // XXX: implement custom MUI Dialog-based confirm?
-    // eslint-disable-next-line no-restricted-globals, no-alert
-    if (!confirm('You are about to remove custom link')) return
-    setRemoving(true)
-    try {
-      await writeSettings(R.dissoc('customNavLink', settings))
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Error saving settings:')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      push("Couldn't save settings, see console for details")
-    } finally {
-      setRemoving(false)
-    }
-  }, [editing, removing, settings, writeSettings, push])
+  //   const remove = React.useCallback(async () => {
+  //     if (editing || removing || !settings?.customNavLink) return
+  //     // XXX: implement custom MUI Dialog-based confirm?
+  //     // eslint-disable-next-line no-restricted-globals, no-alert
+  //     if (!confirm('You are about to remove custom link')) return
+  //     setRemoving(true)
+  //     try {
+  //       await writeSettings(R.dissoc('customNavLink', settings))
+  //     } catch (e) {
+  //       // eslint-disable-next-line no-console
+  //       console.warn('Error saving settings:')
+  //       // eslint-disable-next-line no-console
+  //       console.error(e)
+  //       push("Couldn't save settings, see console for details")
+  //     } finally {
+  //       setRemoving(false)
+  //     }
+  //   }, [editing, removing, settings, writeSettings, push])
 
   const onSubmit = React.useCallback(
-    async (values: { url: string; label: string }) => {
+    async (values: { logoUrl: string; primaryColor: string }) => {
       try {
         await writeSettings({
           ...settings,
-          customNavLink: { url: values.url, label: values.label },
+          ...(values.logoUrl
+            ? {
+                logo: {
+                  url: values.logoUrl,
+                },
+              }
+            : null),
+          ...(values.primaryColor
+            ? {
+                theme: {
+                  palette: {
+                    primary: {
+                      main: values.primaryColor,
+                    },
+                  },
+                },
+              }
+            : null),
         })
         setEditing(false)
         return undefined
@@ -112,12 +128,14 @@ function NavLinkEditor() {
       {settings?.customNavLink ? (
         <>
           <div className={classes.field}>
-            <div className={classes.fieldName}>URL:</div>
-            <div className={classes.fieldValue}>{settings.customNavLink.url}</div>
+            <div className={classes.fieldName}>Logo URL:</div>
+            <div className={classes.fieldValue}>{settings.logo?.url}</div>
           </div>
           <div className={classes.field}>
-            <div className={classes.fieldName}>Label:</div>
-            <div className={classes.fieldValue}>{settings.customNavLink.label}</div>
+            <div className={classes.fieldName}>Primary color:</div>
+            <div className={classes.fieldValue}>
+              {settings.theme?.palette?.primary?.main}
+            </div>
           </div>
           <div className={classes.actions}>
             <M.Button
@@ -130,9 +148,9 @@ function NavLinkEditor() {
               Edit
             </M.Button>
             <M.Box pl={1} />
-            <M.Button color="primary" size="small" onClick={remove} disabled={removing}>
+            {/* <M.Button color="primary" size="small" onClick={remove} disabled={removing}>
               Remove
-            </M.Button>
+            </M.Button> */}
             {removing && <M.CircularProgress size={24} className={classes.progress} />}
           </div>
         </>
@@ -157,15 +175,15 @@ function NavLinkEditor() {
             hasValidationErrors,
           }) => (
             <>
-              <M.DialogTitle>Configure custom link</M.DialogTitle>
+              <M.DialogTitle>Configure theme</M.DialogTitle>
               <M.DialogContent>
                 <form onSubmit={handleSubmit}>
                   <RF.Field
                     component={Form.Field}
-                    initialValue={settings?.customNavLink?.url || ''}
-                    name="url"
-                    label="URL"
-                    placeholder="e.g. https://example.com/path"
+                    initialValue={settings?.logo?.url || ''}
+                    name="logoUrl"
+                    label="Logo URL"
+                    placeholder="e.g. https://example.com/path.jpg"
                     validate={validators.required as FF.FieldValidator<string>}
                     errors={{
                       required: 'Enter URL to link to',
@@ -177,13 +195,13 @@ function NavLinkEditor() {
                   <M.Box pt={2} />
                   <RF.Field
                     component={Form.Field}
-                    initialValue={settings?.customNavLink?.label || ''}
-                    name="label"
-                    label="Label"
-                    placeholder="Enter link label"
+                    initialValue={settings?.theme?.palette?.primary?.main || ''}
+                    name="primaryColor"
+                    label="Background color"
+                    placeholder="#282b50"
                     validate={validators.required as FF.FieldValidator<string>}
                     errors={{
-                      required: 'Enter link label',
+                      required: 'Enter background color',
                     }}
                     disabled={submitting}
                     fullWidth
@@ -225,58 +243,5 @@ function NavLinkEditor() {
         </RF.Form>
       </M.Dialog>
     </>
-  )
-}
-
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(2, 0, 0),
-  },
-  cards: {
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
-  sectionHeading: {
-    marginBottom: t.spacing(1),
-  },
-  group: {
-    flex: '50%',
-    padding: t.spacing(2),
-    '& + &': {
-      margin: '0 0 0 16px',
-    },
-  },
-  title: {
-    margin: t.spacing(0, 0, 2),
-    padding: t.spacing(0, 2),
-  },
-}))
-
-export default function Settings() {
-  const classes = useStyles()
-  return (
-    <div className={classes.root}>
-      <M.Typography variant="h4" className={classes.title}>
-        Catalog Customization
-      </M.Typography>
-      <div className={classes.cards}>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Navbar link
-          </M.Typography>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <NavLinkEditor />
-          </React.Suspense>
-        </M.Paper>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Theme
-          </M.Typography>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <ThemeEditor />
-          </React.Suspense>
-        </M.Paper>
-      </div>
-    </div>
   )
 }
