@@ -17,6 +17,10 @@ export type containers_Admin_Roles_gql_RolesQuery = { readonly __typename: 'Quer
     | ({ readonly __typename: 'UnmanagedRole' } & RoleSelection_UnmanagedRole_Fragment)
     | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
   >
+  readonly defaultRole: Types.Maybe<
+    | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
+    | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
+  >
 }
 
 export const containers_Admin_Roles_gql_RolesDocument = {
@@ -38,6 +42,38 @@ export const containers_Admin_Roles_gql_RolesDocument = {
                 {
                   kind: 'FragmentSpread',
                   name: { kind: 'Name', value: 'RoleSelection' },
+                },
+              ],
+            },
+          },
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'defaultRole' },
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'UnmanagedRole' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'ManagedRole' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
+                  },
                 },
               ],
             },

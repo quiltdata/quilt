@@ -15,6 +15,7 @@ const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExch
 
 const BUCKET_CONFIGS_QUERY = urql.gql`{ bucketConfigs { name } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
+const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
 export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
   const { registryUrl } = Config.use()
@@ -110,6 +111,18 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
                   { query: ROLES_QUERY },
                   R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
                 )
+                cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
+                  data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
+                )
+              }
+            },
+            roleSetDefault: (result, _vars, cache) => {
+              const typename = (result.roleSetDefault as any)?.__typename
+              if (typename === 'RoleSetDefaultSuccess') {
+                const { role } = result.roleSetDefault as any
+                cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, () => ({
+                  defaultRole: { __typename: role.__typename, id: role.id },
+                }))
               }
             },
           },
@@ -117,6 +130,10 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
         optimistic: {
           bucketRemove: () => ({ __typename: 'BucketRemoveSuccess' }),
           roleDelete: () => ({ __typename: 'RoleDeleteSuccess' }),
+          roleSetDefault: ({ id }) => ({
+            __typename: 'RoleSetDefaultSuccess',
+            role: { __typename: 'ManagedRole', id },
+          }),
         },
       }),
     [sessionId], // eslint-disable-line react-hooks/exhaustive-deps
