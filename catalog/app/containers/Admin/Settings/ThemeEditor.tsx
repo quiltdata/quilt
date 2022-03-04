@@ -81,8 +81,11 @@ const useInputFileStyles = M.makeStyles((t) => ({
     textAlign: 'center',
   },
   placeholder: {
-    background: `1px solid ${t.palette.action.disabled}`,
+    alignItems: 'center',
+    border: `1px solid ${t.palette.action.disabled}`,
+    display: 'flex',
     height: '50px',
+    justifyContent: 'center',
     width: '50px',
   },
   preview: {
@@ -117,9 +120,15 @@ function InputFile({ input: { value, onChange } }: InputFileProps) {
   return (
     <div className={classes.root} {...getRootProps()}>
       <input {...getInputProps()} />
-      {typeof value === 'string' && <img className={classes.preview} src={value} />}
+      {!!value && typeof value === 'string' && (
+        <img className={classes.preview} src={value} />
+      )}
       {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
-      {!value && <div className={classes.placeholder} />}
+      {!value && (
+        <div className={classes.placeholder}>
+          <M.Icon>hide_image</M.Icon>
+        </div>
+      )}
       <p className={classes.note}>Drop logo here</p>
     </div>
   )
@@ -156,11 +165,17 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
     height: '46px',
     width: '100px',
   },
-  logo: {
+  logoWrapper: {
     padding: t.spacing(1),
     backgroundColor: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || '#282b50',
+    alignItems: 'center',
+    display: 'flex',
     height: '46px',
+    justifyContent: 'center',
+  },
+  logo: {
+    color: '#fff',
   },
   progress: {
     marginLeft: t.spacing(1),
@@ -259,19 +274,21 @@ export default function ThemeEditor() {
 
   return (
     <>
-      {settings?.customNavLink ? (
+      {settings?.theme || settings?.logo ? (
         <>
           <div className={classes.field}>
             <div className={classes.fieldName}>Logo:</div>
-            <div className={cx(classes.fieldValue, classes.logo)}>
-              <img src={settings?.logo?.url} />
+            <div className={cx(classes.fieldValue, classes.logoWrapper)}>
+              {settings?.logo?.url ? (
+                <img className={classes.logo} src={settings?.logo?.url} />
+              ) : (
+                <M.Icon className={classes.logo}>hide_image</M.Icon>
+              )}
             </div>
           </div>
           <div className={classes.field}>
             <div className={classes.fieldName}>Primary color:</div>
-            <div className={cx(classes.fieldValue, classes.color)}>
-              {settings.theme?.palette?.primary?.main}
-            </div>
+            <div className={cx(classes.fieldValue, classes.color)} />
           </div>
           <div className={classes.actions}>
             <M.Button
@@ -295,7 +312,7 @@ export default function ThemeEditor() {
           <div className={classes.notConfigured}>Not configured</div>
           <div className={classes.actions}>
             <M.Button variant="outlined" color="primary" size="small" onClick={edit}>
-              Configure link
+              Configure theme
             </M.Button>
           </div>
         </>
@@ -320,7 +337,7 @@ export default function ThemeEditor() {
                     name="logoUrl"
                     label="Logo URL"
                     placeholder="e.g. https://example.com/path.jpg"
-                    validate={validators.required as FF.FieldValidator<string>}
+                    // validate={validators.required as FF.FieldValidator<string>}
                     errors={{
                       required: 'Enter URL to link to',
                     }}
