@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -10,7 +11,62 @@ import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as validators from 'utils/validators'
 
-import * as Form from '../Form'
+const useInputColorStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    padding: '2px',
+  },
+  input: {
+    flexGrow: 1,
+    textAlign: 'center',
+    marginLeft: t.spacing(2),
+  },
+  picker: {
+    outlined: `1px solid ${t.palette.action.disabled}`,
+    height: '40px',
+    width: '50px',
+  },
+  pickerBlank: {
+    opacity: 0.3,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+}))
+
+type InputColorProps = M.TextFieldProps & {
+  input: {
+    value: string
+    onChange: (value: string) => void
+  }
+}
+
+function InputColor({ input: { value, onChange }, ...props }: InputColorProps) {
+  const classes = useInputColorStyles()
+  const handleChange = React.useCallback(
+    (event) => onChange(event.target.value),
+    [onChange],
+  )
+  return (
+    <div className={classes.root}>
+      <input
+        className={cx(classes.picker, { [classes.pickerBlank]: !value })}
+        onChange={handleChange}
+        type="color"
+        value={value && value.length === 7 ? value : props.placeholder}
+      />
+      <M.TextField
+        className={classes.input}
+        onChange={handleChange}
+        size="small"
+        value={value}
+        variant="outlined"
+        {...props}
+      />
+    </div>
+  )
+}
 
 const useInputFileStyles = M.makeStyles((t) => ({
   root: {
@@ -63,7 +119,7 @@ function InputFile({ input: { value, onChange } }: InputFileProps) {
       {typeof value === 'string' && <img className={classes.preview} src={value} />}
       {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
       {!value && <div className={classes.placeholder} />}
-      <p className={classes.note}>Drop file here</p>
+      <p className={classes.note}>Drop logo here</p>
     </div>
   )
 }
@@ -253,7 +309,7 @@ export default function ThemeEditor() {
                   />
                   <M.Box pt={2} />
                   <RF.Field
-                    component={Form.Field}
+                    component={InputColor}
                     initialValue={settings?.theme?.palette?.primary?.main || ''}
                     name="primaryColor"
                     label="Background color"
