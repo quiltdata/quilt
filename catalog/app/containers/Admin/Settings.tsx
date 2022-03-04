@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
@@ -256,6 +257,7 @@ export default function Settings() {
   const classes = useStyles()
   return (
     <div className={classes.root}>
+      <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
       <M.Typography variant="h4" className={classes.title}>
         Catalog Customization
       </M.Typography>
