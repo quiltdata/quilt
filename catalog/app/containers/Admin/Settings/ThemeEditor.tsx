@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as FF from 'final-form'
+import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
@@ -7,7 +8,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
-// import * as Notifications from 'containers/Notifications'
+import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as validators from 'utils/validators'
 
@@ -159,13 +160,13 @@ export default function ThemeEditor() {
   const writeSettings = CatalogSettings.useWriteSettings()
   const uploadFile = CatalogSettings.useUploadFile()
 
-  //   const { push } = Notifications.use()
+  const { push } = Notifications.use()
 
   const classes = useThemeEditorStyles()
 
   const [editing, setEditing] = React.useState(false)
   const [formKey, setFormKey] = React.useState(1)
-  const [removing] = React.useState(false)
+  const [removing, setRemoving] = React.useState(false)
 
   const edit = React.useCallback(() => {
     if (removing) return
@@ -181,24 +182,24 @@ export default function ThemeEditor() {
     setFormKey(R.inc)
   }, [])
 
-  //   const remove = React.useCallback(async () => {
-  //     if (editing || removing || !settings?.customNavLink) return
-  //     // XXX: implement custom MUI Dialog-based confirm?
-  //     // eslint-disable-next-line no-restricted-globals, no-alert
-  //     if (!confirm('You are about to remove custom link')) return
-  //     setRemoving(true)
-  //     try {
-  //       await writeSettings(R.dissoc('customNavLink', settings))
-  //     } catch (e) {
-  //       // eslint-disable-next-line no-console
-  //       console.warn('Error saving settings:')
-  //       // eslint-disable-next-line no-console
-  //       console.error(e)
-  //       push("Couldn't save settings, see console for details")
-  //     } finally {
-  //       setRemoving(false)
-  //     }
-  //   }, [editing, removing, settings, writeSettings, push])
+  const remove = React.useCallback(async () => {
+    if (editing || removing || (!settings?.theme && !settings?.logo)) return
+    // XXX: implement custom MUI Dialog-based confirm?
+    // eslint-disable-next-line no-restricted-globals, no-alert
+    if (!confirm('You are about to remove custom theme')) return
+    setRemoving(true)
+    try {
+      await writeSettings(FP.function.pipe(settings, R.dissoc('theme'), R.dissoc('logo')))
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('Error saving settings:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      push("Couldn't save settings, see console for details")
+    } finally {
+      setRemoving(false)
+    }
+  }, [editing, removing, settings, writeSettings, push])
 
   const onSubmit = React.useCallback(
     async (values: { logoUrl: string; primaryColor: string }) => {
@@ -263,9 +264,9 @@ export default function ThemeEditor() {
               Edit
             </M.Button>
             <M.Box pl={1} />
-            {/* <M.Button color="primary" size="small" onClick={remove} disabled={removing}>
+            <M.Button color="primary" size="small" onClick={remove} disabled={removing}>
               Remove
-            </M.Button> */}
+            </M.Button>
             {removing && <M.CircularProgress size={24} className={classes.progress} />}
           </div>
         </>
