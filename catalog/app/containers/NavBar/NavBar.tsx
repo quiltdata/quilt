@@ -309,13 +309,20 @@ interface AppBarProps {
   children: React.ReactNode
 }
 
-function AppBar({ children }: AppBarProps) {
+const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
+  { children },
+  ref,
+) {
   const settings = CatalogSettings.use()
   const classes = useAppBarStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
   })
-  return <M.AppBar className={classes.root}>{children}</M.AppBar>
-}
+  return (
+    <M.AppBar className={classes.root} ref={ref}>
+      {children}
+    </M.AppBar>
+  )
+})
 
 interface ContainerProps {
   children?: React.ReactNode
