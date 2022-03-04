@@ -107,7 +107,9 @@ def test_push_with_meta_data(
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
-        mocked_package.push.assert_called_once_with(name, dest=None, message=None, registry=None, workflow=..., force=False)
+        mocked_package.push.assert_called_once_with(
+            name, dest=None, message=None, registry=None, workflow=..., force=False
+        )
 
 
 @pytest.mark.parametrize(

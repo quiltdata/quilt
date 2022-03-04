@@ -137,6 +137,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
+                   [--force]
                    name
 
 Pushes the new package to the remote registry
@@ -158,6 +159,8 @@ optional arguments:
   --workflow WORKFLOW  Workflow ID or empty string to skip workflow
                        validation. If not specified, the default workflow will
                        be used.
+  --force              Skip the top hash check and overwrite any existing
+                       package.
 ```
 ## `verify`
 ```
