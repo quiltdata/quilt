@@ -15,13 +15,14 @@ interface LogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 export default function Logo({
   responsive = false,
   forcedShort = false,
+  src,
   ...props
 }: LogoProps) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const short = forcedShort || (responsive && xs)
   const imgProps = short
-    ? { height: HEIGHT_Q, src: q }
-    : { height: HEIGHT_QUILT, src: quilt }
+    ? { height: HEIGHT_Q, src: src || q }
+    : { height: HEIGHT_QUILT, src: src || quilt }
   return <img alt="Quilt" {...imgProps} {...props} />
 }
