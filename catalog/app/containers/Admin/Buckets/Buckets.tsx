@@ -28,15 +28,15 @@ import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 
-import * as Form from './Form'
-import * as Table from './Table'
+import * as Form from '../Form'
+import * as Table from '../Table'
 
-import BUCKET_CONFIGS_QUERY from './BucketConfigs.generated'
-import ADD_MUTATION from './BucketsAdd.generated'
-import UPDATE_MUTATION from './BucketsUpdate.generated'
-import REMOVE_MUTATION from './BucketsRemove.generated'
-import { BucketConfigSelectionFragment as BucketConfig } from './BucketConfigSelection.generated'
-import CONTENT_INDEXING_SETTINGS_QUERY from './ContentIndexingSettings.generated'
+import BUCKET_CONFIGS_QUERY from './gql/BucketConfigs.generated'
+import ADD_MUTATION from './gql/BucketsAdd.generated'
+import UPDATE_MUTATION from './gql/BucketsUpdate.generated'
+import REMOVE_MUTATION from './gql/BucketsRemove.generated'
+import { BucketConfigSelectionFragment as BucketConfig } from './gql/BucketConfigSelection.generated'
+import CONTENT_INDEXING_SETTINGS_QUERY from './gql/ContentIndexingSettings.generated'
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 

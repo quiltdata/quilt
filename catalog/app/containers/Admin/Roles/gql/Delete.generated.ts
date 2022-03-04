@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_RolesDeleteMutationVariables = Types.Exact<{
+export type containers_Admin_Roles_gql_DeleteMutationVariables = Types.Exact<{
   id: Types.Scalars['ID']
 }>
 
-export type containers_Admin_RolesDeleteMutation = { readonly __typename: 'Mutation' } & {
+export type containers_Admin_Roles_gql_DeleteMutation = {
+  readonly __typename: 'Mutation'
+} & {
   readonly roleDelete:
     | { readonly __typename: 'RoleDeleteSuccess' }
     | { readonly __typename: 'RoleDoesNotExist' }
@@ -14,13 +16,13 @@ export type containers_Admin_RolesDeleteMutation = { readonly __typename: 'Mutat
     | { readonly __typename: 'RoleAssigned' }
 }
 
-export const containers_Admin_RolesDeleteDocument = {
+export const containers_Admin_Roles_gql_DeleteDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_RolesDelete' },
+      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_Delete' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -56,8 +58,8 @@ export const containers_Admin_RolesDeleteDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesDeleteMutation,
-  containers_Admin_RolesDeleteMutationVariables
+  containers_Admin_Roles_gql_DeleteMutation,
+  containers_Admin_Roles_gql_DeleteMutationVariables
 >
 
-export { containers_Admin_RolesDeleteDocument as default }
+export { containers_Admin_Roles_gql_DeleteDocument as default }

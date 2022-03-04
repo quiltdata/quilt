@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
 import {
   BucketConfigSelectionFragment,
   BucketConfigSelectionFragmentDoc,
 } from './BucketConfigSelection.generated'
 
-export type containers_Admin_BucketsAddMutationVariables = Types.Exact<{
+export type containers_Admin_Buckets_gql_BucketsAddMutationVariables = Types.Exact<{
   input: Types.BucketAddInput
 }>
 
-export type containers_Admin_BucketsAddMutation = { readonly __typename: 'Mutation' } & {
+export type containers_Admin_Buckets_gql_BucketsAddMutation = {
+  readonly __typename: 'Mutation'
+} & {
   readonly bucketAdd:
     | ({ readonly __typename: 'BucketAddSuccess' } & {
         readonly bucketConfig: {
@@ -28,13 +30,13 @@ export type containers_Admin_BucketsAddMutation = { readonly __typename: 'Mutati
     | { readonly __typename: 'SnsInvalid' }
 }
 
-export const containers_Admin_BucketsAddDocument = {
+export const containers_Admin_Buckets_gql_BucketsAddDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_BucketsAdd' },
+      name: { kind: 'Name', value: 'containers_Admin_Buckets_gql_BucketsAdd' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -95,8 +97,8 @@ export const containers_Admin_BucketsAddDocument = {
     ...BucketConfigSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_BucketsAddMutation,
-  containers_Admin_BucketsAddMutationVariables
+  containers_Admin_Buckets_gql_BucketsAddMutation,
+  containers_Admin_Buckets_gql_BucketsAddMutationVariables
 >
 
-export { containers_Admin_BucketsAddDocument as default }
+export { containers_Admin_Buckets_gql_BucketsAddDocument as default }

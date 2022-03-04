@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_UsersRolesQueryVariables = Types.Exact<{
+export type containers_Admin_Users_gql_RolesQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_UsersRolesQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_Users_gql_RolesQuery = { readonly __typename: 'Query' } & {
   readonly roles: ReadonlyArray<
     | ({ readonly __typename: 'UnmanagedRole' } & Pick<
         Types.UnmanagedRole,
@@ -16,13 +16,13 @@ export type containers_Admin_UsersRolesQuery = { readonly __typename: 'Query' } 
   >
 }
 
-export const containers_Admin_UsersRolesDocument = {
+export const containers_Admin_Users_gql_RolesDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_UsersRoles' },
+      name: { kind: 'Name', value: 'containers_Admin_Users_gql_Roles' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -68,8 +68,8 @@ export const containers_Admin_UsersRolesDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_UsersRolesQuery,
-  containers_Admin_UsersRolesQueryVariables
+  containers_Admin_Users_gql_RolesQuery,
+  containers_Admin_Users_gql_RolesQueryVariables
 >
 
-export { containers_Admin_UsersRolesDocument as default }
+export { containers_Admin_Users_gql_RolesDocument as default }

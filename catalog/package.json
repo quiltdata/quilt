@@ -50,7 +50,7 @@
     }
   },
   "dependencies": {
-    "@braintree/sanitize-url": "^5.0.2",
+    "@braintree/sanitize-url": "^6.0.0",
     "@finos/perspective": "^1.2.0",
     "@finos/perspective-viewer": "^1.2.0",
     "@finos/perspective-viewer-d3fc": "^1.2.0",
