@@ -7,6 +7,7 @@ import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import Logo from 'components/Logo'
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
@@ -146,6 +147,11 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  logoWrapper: {
+    padding: t.spacing(1),
+    backgroundColor: ({ backgroundColor }: { backgroundColor?: string }) =>
+      backgroundColor || '#282b50',
+  },
   progress: {
     marginLeft: t.spacing(1),
   },
@@ -162,7 +168,9 @@ export default function ThemeEditor() {
 
   const { push } = Notifications.use()
 
-  const classes = useThemeEditorStyles()
+  const classes = useThemeEditorStyles({
+    backgroundColor: settings?.theme?.palette?.primary?.main,
+  })
 
   const [editing, setEditing] = React.useState(false)
   const [formKey, setFormKey] = React.useState(1)
@@ -244,8 +252,15 @@ export default function ThemeEditor() {
       {settings?.customNavLink ? (
         <>
           <div className={classes.field}>
-            <div className={classes.fieldName}>Logo URL:</div>
-            <div className={classes.fieldValue}>{settings.logo?.url}</div>
+            <div className={classes.fieldName}>Logo:</div>
+            <div
+              className={cx(classes.fieldValue, classes.logoWrapper)}
+              style={{
+                backgroundColor: settings.theme?.palette?.primary?.main || '#282b50',
+              }}
+            >
+              <Logo responsive src={settings?.logo?.url} />
+            </div>
           </div>
           <div className={classes.field}>
             <div className={classes.fieldName}>Primary color:</div>
