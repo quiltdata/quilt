@@ -1,6 +1,7 @@
 import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
+import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
@@ -10,6 +11,62 @@ import * as CatalogSettings from 'utils/CatalogSettings'
 import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
+
+const useInputFileStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    outline: `2px dashed ${t.palette.primary.light}`,
+    padding: '2px',
+  },
+  note: {
+    flexGrow: 1,
+    textAlign: 'center',
+  },
+  placeholder: {
+    background: `1px solid ${t.palette.action.disabled}`,
+    height: '50px',
+    width: '50px',
+  },
+  preview: {
+    height: '50px',
+    width: '50px',
+  },
+}))
+
+interface InputFileProps {
+  input: {
+    value: FileWithPath | string
+    onChange: (value: FileWithPath) => void
+  }
+}
+
+function InputFile({ input: { value, onChange } }: InputFileProps) {
+  const classes = useInputFileStyles()
+  const onDrop = React.useCallback(
+    (files: FileWithPath[]) => {
+      onChange(files[0])
+    },
+    [onChange],
+  )
+  const { getInputProps, getRootProps } = useDropzone({
+    maxFiles: 1,
+    onDrop,
+  })
+  const previewUrl = React.useMemo(() => {
+    if (!value || typeof value === 'string') return null
+    return URL.createObjectURL(value)
+  }, [value])
+  return (
+    <div className={classes.root} {...getRootProps()}>
+      <input {...getInputProps()} />
+      {typeof value === 'string' && <img className={classes.preview} src={value} />}
+      {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
+      {!value && <div className={classes.placeholder} />}
+      <p className={classes.note}>Drop file here</p>
+    </div>
+  )
+}
 
 const useThemeEditorStyles = M.makeStyles((t) => ({
   actions: {
@@ -44,6 +101,7 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
 export default function ThemeEditor() {
   const settings = CatalogSettings.use()
   const writeSettings = CatalogSettings.useWriteSettings()
+  const uploadFile = CatalogSettings.useUploadFile()
 
   //   const { push } = Notifications.use()
 
@@ -89,27 +147,28 @@ export default function ThemeEditor() {
   const onSubmit = React.useCallback(
     async (values: { logoUrl: string; primaryColor: string }) => {
       try {
-        await writeSettings({
-          ...settings,
-          ...(values.logoUrl
-            ? {
-                logo: {
-                  url: values.logoUrl,
-                },
-              }
-            : null),
-          ...(values.primaryColor
-            ? {
-                theme: {
-                  palette: {
-                    primary: {
-                      main: values.primaryColor,
-                    },
-                  },
-                },
-              }
-            : null),
-        })
+        let logoUrl
+        if (values?.logoUrl && typeof values?.logoUrl !== 'string') {
+          logoUrl = await uploadFile(values.logoUrl)
+        }
+        const updatedSettings = settings || {}
+        if (logoUrl) {
+          updatedSettings.logo = {
+            url: logoUrl,
+          }
+        }
+        if (values.primaryColor) {
+          updatedSettings.theme = {
+            palette: {
+              primary: {
+                main: values.primaryColor,
+              },
+            },
+          }
+        } else {
+          delete updatedSettings.theme
+        }
+        await writeSettings(updatedSettings)
         setEditing(false)
         return undefined
       } catch (e) {
@@ -179,7 +238,7 @@ export default function ThemeEditor() {
               <M.DialogContent>
                 <form onSubmit={handleSubmit}>
                   <RF.Field
-                    component={Form.Field}
+                    component={InputFile}
                     initialValue={settings?.logo?.url || ''}
                     name="logoUrl"
                     label="Logo URL"
@@ -199,7 +258,7 @@ export default function ThemeEditor() {
                     name="primaryColor"
                     label="Background color"
                     placeholder="#282b50"
-                    validate={validators.required as FF.FieldValidator<string>}
+                    // validate={validators.required as FF.FieldValidator<string>}
                     errors={{
                       required: 'Enter background color',
                     }}
