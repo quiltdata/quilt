@@ -60,6 +60,31 @@ function format(settings: CatalogSettings) {
   return JSON.stringify(settings, null, 2)
 }
 
+export function useUploadFile() {
+  const credentials = AWS.Credentials.use()
+  const { serviceBucket } = Config.use()
+  const s3 = AWS.S3.use()
+
+  return React.useCallback(
+    async (file: File) => {
+      await credentials.getPromise()
+      console.log('UPLOAD FILE', { file })
+      // FIXME: use png
+      // const location = `s3://${serviceBucket}/catalog/logo.jpg`
+      const location = 'https://placekitten.com/g/200/200'
+      return Promise.resolve(location)
+      // return s3
+      //   .upload({
+      //     Bucket: serviceBucket,
+      //     Key: `catalog/logo.jpg`,
+      //     Body: file,
+      //   })
+      //   .promise()
+    },
+    [serviceBucket, s3],
+  )
+}
+
 export function useWriteSettings() {
   const { serviceBucket } = Config.use()
   const s3 = AWS.S3.use()
