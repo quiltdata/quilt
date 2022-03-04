@@ -453,7 +453,7 @@ def create_parser():
         "--force",
         action="store_true",
         help="""
-            Skip the top hash check and overwrite any existing package.
+            Skip the parent top hash check and create a new revision even if your local state is behind the remote registry.
             """,
     )
     push_p.set_defaults(func=cmd_push)
