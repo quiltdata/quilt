@@ -20,6 +20,8 @@ import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
+const FooterLogo = () => <Logo height="29px" width="76.5px" />
+
 const NavLink = (props) => (
   <M.Link
     variant="button"
@@ -97,6 +99,7 @@ export default function Footer() {
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const year = React.useMemo(() => new Date().getFullYear(), [])
+
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer
@@ -108,9 +111,15 @@ export default function Footer() {
             display="flex"
             justifyContent={{ xs: 'center', sm: 'flex-start' }}
           >
-            <M.Box component={Link} to={urls.home()} display="block">
-              <Logo />
-            </M.Box>
+            {settings?.logo?.url ? (
+              <a href="https://quiltdata.com">
+                <FooterLogo />
+              </a>
+            ) : (
+              <M.Box component={Link} to={urls.home()} display="block">
+                <FooterLogo />
+              </M.Box>
+            )}
           </M.Box>
 
           <M.Box

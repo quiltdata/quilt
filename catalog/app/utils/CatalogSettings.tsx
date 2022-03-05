@@ -69,9 +69,11 @@ export function useUploadFile() {
     async (file: File) => {
       await credentials.getPromise()
       console.log('UPLOAD FILE', { file })
-      // FIXME: use png
+      // FIXME: use file's ext
       // const location = `s3://${serviceBucket}/catalog/logo.jpg`
-      const location = 'https://placekitten.com/g/200/200'
+      // const location = 'https://www.vir.bio/themes/default/images/logo_white.png'
+      const location =
+        'https://assets-global.website-files.com/594bf24620923a5a84fc2c8f/5dcd88f3137dcb0ed62c3142_nauto-sign-mono.svg'
       return Promise.resolve(location)
       // return s3
       //   .upload({

@@ -25,21 +25,43 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
   root: {
     margin: t.spacing(2),
   },
+  logo: {},
 }))
 
 function LogoLink() {
   const settings = CatalogSettings.use()
-  const classes = useLogoLinkStyles()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const cfg = Config.useConfig()
+  const wide = cfg.mode === 'MARKETING' && xs
+  const classes = useLogoLinkStyles()
   const { urls } = NamedRoutes.use()
   return (
     <Link className={classes.root} to={urls.home()}>
       <Logo
-        responsive
-        forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'}
+        className={classes.logo}
+        width={wide ? '76.5px' : '27px'}
+        height={wide ? '29px' : '27px'}
         src={settings?.logo?.url}
       />
     </Link>
+  )
+}
+
+interface QuiltLinkProps {
+  className?: string
+}
+
+function QuiltLink({ className }: QuiltLinkProps) {
+  return (
+    <a
+      className={className}
+      href="https://quiltdata.com"
+      target="_blank"
+      title="Where data comes together"
+    >
+      <Logo width="18px" height="18px" />
+    </a>
   )
 }
 
@@ -430,8 +452,16 @@ const selector = createStructuredSelector(
   R.pick(['error', 'waiting', 'authenticated'], authSelectors),
 )
 
+const useNavBarStyles = M.makeStyles({
+  quiltLogo: {
+    margin: '0 0 3px 8px',
+  },
+})
+
 export function NavBar() {
+  const classes = useNavBarStyles()
   const cfg = Config.use()
+  const settings = CatalogSettings.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRoute(paths.signIn, { exact: true }).match
@@ -471,6 +501,8 @@ export function NavBar() {
         ) : (
           <AuthHamburger {...{ authenticated, error, waiting }} />
         ))}
+
+      {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
     </Container>
   )
 }
