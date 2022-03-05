@@ -272,7 +272,7 @@ export default function Settings() {
         </M.Paper>
         <M.Paper className={classes.group}>
           <M.Typography variant="h5" className={classes.sectionHeading}>
-            Theme
+            Theme (logo and color)
           </M.Typography>
           <React.Suspense fallback={<M.CircularProgress />}>
             <ThemeEditor />

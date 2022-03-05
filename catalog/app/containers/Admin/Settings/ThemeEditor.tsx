@@ -143,7 +143,7 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
   color: {
     backgroundColor: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || 'transparent',
-    height: '46px',
+    height: '24px',
     outline: `1px solid ${t.palette.action.disabled}`,
   },
   field: {
@@ -162,7 +162,6 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    height: '46px',
     width: '100px',
   },
   logoWrapper: {
@@ -176,6 +175,8 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
   },
   logo: {
     color: '#fff',
+    maxHeight: '100%',
+    maxWidth: '100%',
   },
   progress: {
     marginLeft: t.spacing(1),
@@ -277,7 +278,6 @@ export default function ThemeEditor() {
       {settings?.theme || settings?.logo ? (
         <>
           <div className={classes.field}>
-            <div className={classes.fieldName}>Logo:</div>
             <div className={cx(classes.fieldValue, classes.logoWrapper)}>
               {settings?.logo?.url ? (
                 <img className={classes.logo} src={settings?.logo?.url} />
@@ -285,10 +285,6 @@ export default function ThemeEditor() {
                 <M.Icon className={classes.logo}>hide_image</M.Icon>
               )}
             </div>
-          </div>
-          <div className={classes.field}>
-            <div className={classes.fieldName}>Primary color:</div>
-            <div className={cx(classes.fieldValue, classes.color)} />
           </div>
           <div className={classes.actions}>
             <M.Button
