@@ -134,30 +134,13 @@ function InputFile({ input: { value, onChange } }: InputFileProps) {
   )
 }
 
-const useThemeEditorStyles = M.makeStyles((t) => ({
-  actions: {
-    alignItems: 'center',
-    display: 'flex',
-    marginTop: t.spacing(1),
-  },
-  color: {
-    backgroundColor: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || 'transparent',
-    height: '24px',
-    outline: `1px solid ${t.palette.action.disabled}`,
-  },
-  field: {
+const useThemePreviewStyles = M.makeStyles((t) => ({
+  root: {
     alignItems: 'center',
     display: 'flex',
     margin: t.spacing(1, 0, 0),
   },
-  fieldName: {
-    ...t.typography.body2,
-    flexShrink: 0,
-    fontWeight: t.typography.fontWeightMedium,
-    width: 100,
-  },
-  fieldValue: {
+  inner: {
     ...t.typography.body2,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -177,6 +160,34 @@ const useThemeEditorStyles = M.makeStyles((t) => ({
     color: '#fff',
     maxHeight: '100%',
     maxWidth: '100%',
+  },
+}))
+
+interface ThemePreviewProps {}
+
+function ThemePreview({}: ThemePreviewProps) {
+  const settings = CatalogSettings.use()
+  const classes = useThemePreviewStyles({
+    backgroundColor: settings?.theme?.palette?.primary?.main,
+  })
+  return (
+    <div className={classes.root}>
+      <div className={cx(classes.inner, classes.logoWrapper)}>
+        {settings?.logo?.url ? (
+          <img className={classes.logo} src={settings?.logo?.url} />
+        ) : (
+          <M.Icon className={classes.logo}>hide_image</M.Icon>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const useThemeEditorStyles = M.makeStyles((t) => ({
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    marginTop: t.spacing(1),
   },
   progress: {
     marginLeft: t.spacing(1),
@@ -277,15 +288,8 @@ export default function ThemeEditor() {
     <>
       {settings?.theme || settings?.logo ? (
         <>
-          <div className={classes.field}>
-            <div className={cx(classes.fieldValue, classes.logoWrapper)}>
-              {settings?.logo?.url ? (
-                <img className={classes.logo} src={settings?.logo?.url} />
-              ) : (
-                <M.Icon className={classes.logo}>hide_image</M.Icon>
-              )}
-            </div>
-          </div>
+          <ThemePreview />
+
           <div className={classes.actions}>
             <M.Button
               variant="outlined"
