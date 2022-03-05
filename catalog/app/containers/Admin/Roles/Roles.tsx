@@ -51,17 +51,14 @@ const columns = [
       value: string,
       r: Role,
       { defaultRoleId }: { defaultRoleId: string | null },
-    ) => (
-      <>
-        {value}
-        {r.id === defaultRoleId && (
-          <M.Box color="text.secondary" component="span">
-            {' '}
-            (default)
-          </M.Box>
-        )}
-      </>
-    ),
+    ) =>
+      r.id === defaultRoleId ? (
+        <M.Tooltip title="This is the default role. It is automatically assigned to new users.">
+          <strong>{value}*</strong>
+        </M.Tooltip>
+      ) : (
+        value
+      ),
   },
   {
     id: 'source',
@@ -355,6 +352,58 @@ function Delete({ role, close }: DeleteProps) {
   )
 }
 
+interface SetDefaultProps {
+  role: Role
+  close: (reason?: string) => void
+}
+
+function SetDefault({ role, close }: SetDefaultProps) {
+  const { push } = Notifications.use()
+  const [, setDefault] = urql.useMutation(ROLE_SET_DEFAULT_MUTATION)
+
+  const doSetDefault = React.useCallback(async () => {
+    close()
+    try {
+      const res = await setDefault({ id: role.id })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data')
+      const r = res.data.roleSetDefault
+      switch (r.__typename) {
+        case 'RoleDoesNotExist':
+          throw new Error(r.__typename)
+        case 'RoleSetDefaultSuccess':
+          return
+        default:
+          assertNever(r)
+      }
+    } catch (e) {
+      push(`Error setting default role "${role.name}"`)
+      // eslint-disable-next-line no-console
+      console.error('Error setting default role')
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }, [close, push, setDefault, role.id, role.name])
+
+  return (
+    <>
+      <M.DialogTitle>Set default role</M.DialogTitle>
+      <M.DialogContent>
+        You are about to make &quot;{role.name}&quot; the default role. It will be
+        automatically assigned to new users. Select it carefully.
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={() => close('cancel')} color="primary">
+          Cancel
+        </M.Button>
+        <M.Button onClick={doSetDefault} color="primary">
+          Set default
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
+
 const unmanagedRoleFormSpec: FormSpec<Model.GQLTypes.UnmanagedRoleInput> = {
   name: R.pipe(
     R.prop('name'),
@@ -587,35 +636,17 @@ function Edit({ role, close }: EditProps) {
 
 interface SettingsMenuProps {
   role: Role
-  openDeleteDialog: (role: Role) => void
+  openDialog: (render: (props: DialogsOpenProps) => JSX.Element, props?: $TSFixMe) => void
 }
 
-function SettingsMenu({ role, openDeleteDialog }: SettingsMenuProps) {
-  const { push } = Notifications.use()
-  const [, setDefault] = urql.useMutation(ROLE_SET_DEFAULT_MUTATION)
+function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
+  const openDeleteDialog = React.useCallback(() => {
+    openDialog(({ close }) => <Delete {...{ role, close }} />)
+  }, [openDialog, role])
 
-  const doSetDefault = React.useCallback(async () => {
-    try {
-      const res = await setDefault({ id: role.id })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.roleSetDefault
-      switch (r.__typename) {
-        case 'RoleDoesNotExist':
-          throw new Error(r.__typename)
-        case 'RoleSetDefaultSuccess':
-          return
-        default:
-          assertNever(r)
-      }
-    } catch (e) {
-      push(`Error setting default role "${role.name}"`)
-      // eslint-disable-next-line no-console
-      console.error('Error setting default role')
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }, [push, setDefault, role.id, role.name])
+  const openSetDefaultDialog = React.useCallback(() => {
+    openDialog(({ close }) => <SetDefault {...{ role, close }} />)
+  }, [openDialog, role])
 
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
 
@@ -632,13 +663,13 @@ function SettingsMenu({ role, openDeleteDialog }: SettingsMenuProps) {
 
   const handleMakeDefault = React.useCallback(() => {
     handleClose()
-    doSetDefault()
-  }, [handleClose, doSetDefault])
+    openSetDefaultDialog()
+  }, [handleClose, openSetDefaultDialog])
 
   const handleDelete = React.useCallback(() => {
     handleClose()
-    openDeleteDialog(role)
-  }, [handleClose, openDeleteDialog, role])
+    openDeleteDialog()
+  }, [handleClose, openDeleteDialog])
 
   return (
     <>
@@ -702,14 +733,6 @@ export default function Roles() {
     },
   ]
 
-  const { open: openDialog } = dialogs
-  const openDeleteDialog = React.useCallback(
-    (role: Role) => {
-      openDialog(({ close }: DialogsOpenProps) => <Delete {...{ role, close }} />)
-    },
-    [openDialog],
-  )
-
   return (
     <React.Suspense
       fallback={
@@ -740,7 +763,7 @@ export default function Roles() {
                   <M.TableCell align="right" padding="none">
                     <Table.InlineActions actions={inlineActions(i)}>
                       {/* @ts-expect-error */}
-                      <SettingsMenu role={i} openDeleteDialog={openDeleteDialog} />
+                      <SettingsMenu role={i} openDialog={dialogs.open} />
                     </Table.InlineActions>
                   </M.TableCell>
                 </M.TableRow>
