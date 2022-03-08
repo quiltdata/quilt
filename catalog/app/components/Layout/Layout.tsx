@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 import Footer from 'components/Footer'
 import * as NavBar from 'containers/NavBar'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { useRoute } from 'utils/router'
 
 const useRootStyles = M.makeStyles({
   root: {

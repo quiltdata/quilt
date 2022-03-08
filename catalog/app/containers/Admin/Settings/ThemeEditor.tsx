@@ -9,12 +9,13 @@ import * as M from '@material-ui/core'
 
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
+import Logo from 'components/Logo'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as validators from 'utils/validators'
 
 const useInputColorStyles = M.makeStyles((t) => ({
   root: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     display: 'flex',
     padding: '2px',
   },
@@ -41,9 +42,17 @@ type InputColorProps = M.TextFieldProps & {
     value: string
     onChange: (value: string) => void
   }
+  errors: Record<string, React.ReactNode>
+  meta: RF.FieldMetaState<string>
 }
 
-function InputColor({ input: { value, onChange }, ...props }: InputColorProps) {
+function InputColor({
+  errors,
+  meta,
+  input: { value, onChange },
+  ...props
+}: InputColorProps) {
+  const error = meta.submitFailed && (meta.error || meta.submitError)
   const classes = useInputColorStyles()
   const handleChange = React.useCallback(
     (event) => onChange(event.target.value),
@@ -59,6 +68,8 @@ function InputColor({ input: { value, onChange }, ...props }: InputColorProps) {
       />
       <M.TextField
         className={classes.input}
+        error={!!error}
+        helperText={error ? errors[error] || error : null}
         onChange={handleChange}
         size="small"
         value={value}
@@ -121,7 +132,7 @@ function InputFile({ input: { value, onChange } }: InputFileProps) {
     <div className={classes.root} {...getRootProps()}>
       <input {...getInputProps()} />
       {!!value && typeof value === 'string' && (
-        <img className={classes.preview} src={value} />
+        <Logo src={value} height="50px" width="50px" />
       )}
       {!!previewUrl && <img className={classes.preview} src={previewUrl} />}
       {!value && (
@@ -174,7 +185,12 @@ function ThemePreview({}: ThemePreviewProps) {
     <div className={classes.root}>
       <div className={cx(classes.inner, classes.logoWrapper)}>
         {settings?.logo?.url ? (
-          <img className={classes.logo} src={settings?.logo?.url} />
+          <Logo
+            height="46px"
+            width="46px"
+            className={classes.logo}
+            src={settings?.logo?.url}
+          />
         ) : (
           <M.Icon className={classes.logo}>hide_image</M.Icon>
         )}
@@ -281,7 +297,7 @@ export default function ThemeEditor() {
         return { [FF.FORM_ERROR]: "Couldn't save settings, see console for details" }
       }
     },
-    [settings, writeSettings],
+    [settings, writeSettings, uploadFile],
   )
 
   return (
@@ -337,9 +353,15 @@ export default function ThemeEditor() {
                     name="logoUrl"
                     label="Logo URL"
                     placeholder="e.g. https://example.com/path.jpg"
-                    // validate={validators.required as FF.FieldValidator<string>}
+                    validate={
+                      validators.composeOr(
+                        validators.file,
+                        validators.url,
+                      ) as FF.FieldValidator<string>
+                    }
                     errors={{
-                      required: 'Enter URL to link to',
+                      url: 'Image should be valid url',
+                      file: 'Image should be file',
                     }}
                     disabled={submitting}
                     fullWidth
@@ -347,14 +369,15 @@ export default function ThemeEditor() {
                   />
                   <M.Box pt={2} />
                   <RF.Field
+                    // @ts-expect-error
                     component={InputColor}
                     initialValue={settings?.theme?.palette?.primary?.main || ''}
                     name="primaryColor"
                     label="Background color"
                     placeholder="#282b50"
-                    // validate={validators.required as FF.FieldValidator<string>}
+                    validate={validators.hexColor as FF.FieldValidator<string>}
                     errors={{
-                      required: 'Enter background color',
+                      hex: 'Enter 6-digit hex color, ex. #282b50',
                     }}
                     disabled={submitting}
                     fullWidth
