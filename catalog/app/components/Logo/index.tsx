@@ -1,7 +1,9 @@
 import cx from 'classnames'
 import * as React from 'react'
-
 import * as M from '@material-ui/core'
+
+import * as AWS from 'utils/AWS'
+import * as s3paths from 'utils/s3paths'
 
 import quilt from './quilt.png'
 
@@ -37,7 +39,12 @@ function QuiltLogo({ className, height, width }: LogoProps) {
 }
 
 function CustomLogo({ className, src, height, width }: LogoProps) {
-  const classes = useStyles({ height, src, width })
+  const sign = AWS.Signer.useS3Signer()
+  const parsedSrc = React.useMemo(() => {
+    if (!src || !s3paths.isS3Url(src)) return src
+    return sign(s3paths.parseS3Url(src))
+  }, [sign, src])
+  const classes = useStyles({ height, src: parsedSrc, width })
   return <div className={cx(classes.custom, className)} />
 }
 
