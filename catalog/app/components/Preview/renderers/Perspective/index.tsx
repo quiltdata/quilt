@@ -3,7 +3,7 @@ import * as React from 'react'
 import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
-import { PerspectiveProps } from './types'
+import type { PerspectiveProps } from './Perspective'
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 

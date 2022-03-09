@@ -5,11 +5,10 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
+import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import { CONTEXT } from '../../types'
-
-import { PerspectiveProps } from './types'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
   root: {
@@ -143,6 +142,15 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1),
   },
 }))
+
+export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
+  context: 'file' | 'listing'
+  data: string | ArrayBuffer
+  meta: ParquetMetadata
+  handle: S3HandleBase
+  onLoadMore: () => void
+  truncated: boolean
+}
 
 export default function Perspective({
   children,
