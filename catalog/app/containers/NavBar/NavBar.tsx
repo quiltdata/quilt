@@ -60,7 +60,7 @@ function QuiltLink({ className }: QuiltLinkProps) {
       target="_blank"
       title="Where data comes together"
     >
-      <Logo width="18px" height="18px" />
+      <Logo width="27px" height="27px" />
     </a>
   )
 }
