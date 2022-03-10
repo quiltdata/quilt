@@ -53,7 +53,7 @@ const columns = [
       { defaultRoleId }: { defaultRoleId: string | null },
     ) =>
       r.id === defaultRoleId ? (
-        <M.Tooltip title="This is the default role. It is automatically assigned to new users.">
+        <M.Tooltip title="Automatically assigned to new users.">
           <strong>{value}*</strong>
         </M.Tooltip>
       ) : (
@@ -389,8 +389,8 @@ function SetDefault({ role, close }: SetDefaultProps) {
     <>
       <M.DialogTitle>Set default role</M.DialogTitle>
       <M.DialogContent>
-        You are about to make &quot;{role.name}&quot; the default role. It will be
-        automatically assigned to new users. Select it carefully.
+        You are about to make &quot;{role.name}&quot; the default role for all new users.
+        Are you sure you want to do this?
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={() => close('cancel')} color="primary">
