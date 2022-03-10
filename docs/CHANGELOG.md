@@ -17,6 +17,7 @@
 * [Fixed] Fix package creation failing for some regions ([#2718](https://github.com/quiltdata/quilt/pull/2718))
 * [Added] NGL renderer for .pdb files ([#2711](https://github.com/quiltdata/quilt/pull/2711))
 * [Added] Admin: default role management ([#2721](https://github.com/quiltdata/quilt/pull/2721))
+* [Added] Preview CZI images ([#2727](https://github.com/quiltdata/quilt/pull/2727))
 
 # 4.1.0 - 2022-02-22
 ## Python API
