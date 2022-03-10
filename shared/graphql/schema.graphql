@@ -139,6 +139,7 @@ type Query {
   package(bucket: String!, name: String!): Package
   roles: [Role!]! @admin
   role(id: ID!): Role @admin
+  defaultRole: Role @admin
 }
 
 input BucketAddInput {
@@ -333,6 +334,12 @@ union RoleDeleteResult =
   | RoleNameReserved
   | RoleAssigned
 
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+
+type RoleSetDefaultSuccess {
+  role: Role!
+}
+
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
@@ -345,4 +352,5 @@ type Mutation {
   roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
     @admin
   roleDelete(id: ID!): RoleDeleteResult! @admin
+  roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
 }
