@@ -242,7 +242,7 @@ export interface MutationroleDeleteArgs {
 }
 
 export interface MutationroleSetDefaultArgs {
-  id: Maybe<Scalars['ID']>
+  id: Scalars['ID']
 }
 
 export interface NotificationConfigurationError {
@@ -451,7 +451,7 @@ export type RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
 
 export interface RoleSetDefaultSuccess {
   readonly __typename: 'RoleSetDefaultSuccess'
-  readonly role: Maybe<Role>
+  readonly role: Role
 }
 
 export type RoleUpdateResult =

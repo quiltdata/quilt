@@ -1,4 +1,4 @@
-mutation ($id: ID) {
+mutation ($id: ID!) {
   roleSetDefault(id: $id) {
     __typename
     ... on RoleSetDefaultSuccess {

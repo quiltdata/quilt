@@ -932,9 +932,12 @@ export default {
               {
                 name: 'id',
                 type: {
-                  kind: 'SCALAR',
-                  name: 'ID',
-                  ofType: null,
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
                 },
               },
             ],
@@ -1883,9 +1886,12 @@ export default {
           {
             name: 'role',
             type: {
-              kind: 'UNION',
-              name: 'Role',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
             },
             args: [],
           },

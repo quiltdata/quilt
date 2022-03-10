@@ -3,7 +3,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../../model/graphql/types.generated'
 
 export type containers_Admin_Roles_gql_SetDefaultMutationVariables = Types.Exact<{
-  id: Types.Maybe<Types.Scalars['ID']>
+  id: Types.Scalars['ID']
 }>
 
 export type containers_Admin_Roles_gql_SetDefaultMutation = {
@@ -11,10 +11,9 @@ export type containers_Admin_Roles_gql_SetDefaultMutation = {
 } & {
   readonly roleSetDefault:
     | ({ readonly __typename: 'RoleSetDefaultSuccess' } & {
-        readonly role: Types.Maybe<
+        readonly role:
           | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
           | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
-        >
       })
     | { readonly __typename: 'RoleDoesNotExist' }
 }
@@ -30,7 +29,10 @@ export const containers_Admin_Roles_gql_SetDefaultDocument = {
         {
           kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'id' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'ID' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'ID' } },
+          },
         },
       ],
       selectionSet: {

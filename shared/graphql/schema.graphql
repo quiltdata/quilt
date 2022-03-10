@@ -337,7 +337,7 @@ union RoleDeleteResult =
 union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
 
 type RoleSetDefaultSuccess {
-  role: Role
+  role: Role!
 }
 
 type Mutation {
@@ -352,5 +352,5 @@ type Mutation {
   roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
     @admin
   roleDelete(id: ID!): RoleDeleteResult! @admin
-  roleSetDefault(id: ID): RoleSetDefaultResult! @admin
+  roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
 }
