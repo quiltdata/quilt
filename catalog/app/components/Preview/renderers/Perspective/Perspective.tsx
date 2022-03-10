@@ -137,6 +137,7 @@ const useStyles = M.makeStyles((t) => ({
       context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
     overflow: 'auto',
     resize: 'vertical',
+    zIndex: 1,
   },
   warning: {
     marginBottom: t.spacing(1),
@@ -180,6 +181,7 @@ export default function Perspective({
         />
       )}
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
+      {children}
     </div>
   )
 }
