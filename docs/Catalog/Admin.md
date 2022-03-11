@@ -31,6 +31,11 @@ roles.
 
 ![](../imgs/admin-users-roles-create-managed.png)
 
+You may select the default role which will be assigned to all new users.
+Currently selected default role is displayed in bold with a `*` suffix.
+
+![](imgs/admin-set-default-role.png)
+
 ## Buckets
 
 Here you can add or remove buckets from Quilt and configure bucket indexing and
