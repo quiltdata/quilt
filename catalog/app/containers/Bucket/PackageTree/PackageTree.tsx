@@ -456,7 +456,9 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(2),
   },
   fileProperties: {
-    marginBottom: '3px',
+    [t.breakpoints.up('sm')]: {
+      marginBottom: '3px',
+    },
   },
 }))
 

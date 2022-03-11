@@ -345,9 +345,6 @@ const useStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(2),
   },
-  fileProperties: {
-    margin: 0,
-  },
 }))
 
 const previewOptions = { context: Preview.CONTEXT.FILE }
@@ -454,10 +451,7 @@ export default function File({
           )}
         </div>
         <div className={classes.actions}>
-          <FileProperties.Wrapper
-            className={classes.fileProperties}
-            data={versionExistsData}
-          />
+          <FileProperties.Wrapper data={versionExistsData} />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
