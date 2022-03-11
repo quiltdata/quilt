@@ -10,7 +10,8 @@ a common frame of reference that is lacking in BI applications that read from
 fast-moving databases and file systems.
 
 In addition to rendering a wide variety of images, binary files, and text 
-files, the Quilt catalog supports [Vega](https://vega.github.io/vega/),
+files, the Quilt catalog supports [Perspective](https://perspective.finos.org),
+[Vega](https://vega.github.io/vega/),
 [Vega-lite](https://vega.github.io/vega-lite/),
 [ECharts](https://echarts.apache.org/en/index.html),
 and [Voila](https://github.com/voila-dashboards/voila) (Developer preview).
@@ -269,3 +270,11 @@ PyYAML
 quilt3
 scipy
 ```
+
+## Perspective
+
+Most of tabular data can be rendered with Perspective library. Files rendered with Perspective by default are files with .csv, .xls, .xlsx, .jsonl, .parquet, .tsv extensions.
+
+We fetch only a part of file to render for performance reasons. You can deliberately choose to load more, but we sill restricted to load very large files.
+
+![](../imgs/perspective.png)
