@@ -55,6 +55,10 @@ export default function SSOAzure({ mutex, next, ...props }) {
           notify(
             'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
           )
+        } else if (e instanceof errors.NoDefaultRole) {
+          notify(
+            'Unable to assign role. Ask your Quilt administrator to set a default role.',
+          )
         } else {
           notify('Unable to sign in with Microsoft. Try again later or contact support.')
           sentry('captureException', e)

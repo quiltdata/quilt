@@ -33,7 +33,7 @@ const StrenghtenPasswordField = RT.mkLazy(
   SuspensePlaceholder,
 )
 
-const Container = Layout.mkLayout('Complete sign-up')
+const Container = Layout.mkLayout('Sign Up')
 
 const MUTEX_ID = 'password'
 
@@ -90,6 +90,12 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
           // eslint-disable-next-line consistent-return
           return {
             password: 'invalid',
+          }
+        }
+        if (e instanceof errors.NoDefaultRole) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'noDefaultRole',
           }
         }
         if (e instanceof errors.SMTPError) {
@@ -197,6 +203,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             errors={{
               unexpected: 'Something went wrong. Try again later.',
               smtp: 'SMTP error: contact your administrator',
+              noDefaultRole:
+                'Unable to assign role. Ask your Quilt administrator to set a default role.',
             }}
           />
           <Layout.Actions>
