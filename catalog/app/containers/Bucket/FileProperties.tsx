@@ -49,13 +49,13 @@ function FileProperty({ className, iconName, children }: FilePropertyProps) {
   )
 }
 
-function FilePropertiesSkeleton() {
+function FilePropertiesSkeleton({ className }: { className: string }) {
   const classes = useFilePropertiesStyles()
   return (
-    <>
+    <div className={cx(classes.root, className)}>
       <Skeleton animate className={classes.property} width="80px" height="14px" />
       <Skeleton animate className={classes.property} width="80px" height="14px" />
-    </>
+    </div>
   )
 }
 
@@ -74,6 +74,30 @@ const useFilePropertiesStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface FilePropertiesBareProps {
+  className?: string
+  lastModified?: Date
+  size?: number
+}
+export function FilePropertiesBare({
+  className,
+  lastModified,
+  size,
+}: FilePropertiesBareProps) {
+  const classes = useFilePropertiesStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <FileProperty className={classes.property} iconName="insert_drive_file_outlined">
+        {readableBytes(size)}
+      </FileProperty>
+      <FileProperty className={classes.property} iconName="date_range_outlined">
+        {formatDate(lastModified)}
+      </FileProperty>
+    </div>
+  )
+}
+
+// TODO: rename to wrapper
 export default function FileProperties({ className, data }: FilePropertiesProps) {
   const classes = useFilePropertiesStyles()
   return (
@@ -81,22 +105,12 @@ export default function FileProperties({ className, data }: FilePropertiesProps)
       {data.case({
         Ok: requests.ObjectExistence.case({
           Exists: ({ lastModified, size }: { lastModified?: Date; size?: number }) => (
-            <>
-              <FileProperty
-                className={classes.property}
-                iconName="insert_drive_file_outlined"
-              >
-                {readableBytes(size)}
-              </FileProperty>
-              <FileProperty className={classes.property} iconName="date_range_outlined">
-                {formatDate(lastModified)}
-              </FileProperty>
-            </>
+            <FilePropertiesBare {...{ className, lastModified, size }} />
           ),
-          _: () => <FilePropertiesSkeleton />,
+          _: () => <FilePropertiesSkeleton className={className} />,
         }),
         Err: (e: Error) => e.message,
-        _: () => <FilePropertiesSkeleton />,
+        _: () => <FilePropertiesSkeleton className={className} />,
       })}
     </div>
   )

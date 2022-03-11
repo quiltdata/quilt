@@ -292,9 +292,9 @@ function CenteredProgress() {
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
-    marginLeft: 'auto',
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
+    marginLeft: 'auto',
   },
   at: {
     color: t.palette.text.secondary,
