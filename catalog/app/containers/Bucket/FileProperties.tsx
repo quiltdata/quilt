@@ -9,20 +9,20 @@ import { readableBytes } from 'utils/string'
 import * as requests from './requests'
 
 interface FilePropertyProps {
+  children: React.ReactNode
   className: string
   iconName: string
-  children: React.ReactNode
 }
 
 const useFilePropertyStyles = M.makeStyles((t) => ({
   root: {
-    display: 'inline-flex',
     alignItems: 'center',
+    display: 'inline-flex',
   },
   icon: {
-    marginRight: '2px',
-    fontSize: 16,
     color: t.palette.text.hint,
+    fontSize: 16,
+    marginRight: '2px',
   },
 }))
 
@@ -30,9 +30,9 @@ function FileProperty({ className, iconName, children }: FilePropertyProps) {
   const classes = useFilePropertyStyles()
   return (
     <M.Typography
-      variant="body2"
-      component="span"
       className={cx(classes.root, className)}
+      component="span"
+      variant="body2"
     >
       <M.Icon className={classes.icon}>{iconName}</M.Icon>
       {children}
@@ -57,8 +57,8 @@ interface FilePropertiesProps {
 
 const useFilePropertiesStyles = M.makeStyles((t) => ({
   root: {
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
   },
   property: {
     marginLeft: t.spacing(1),
@@ -70,6 +70,7 @@ interface FilePropertiesBareProps {
   lastModified?: Date
   size?: number
 }
+
 function FileProperties({ className, lastModified, size }: FilePropertiesBareProps) {
   const classes = useFilePropertiesStyles()
 
@@ -102,7 +103,6 @@ function FileProperties({ className, lastModified, size }: FilePropertiesBarePro
 
 export const Container = FileProperties
 
-// TODO: rename to wrapper
 export function Wrapper({ className, data }: FilePropertiesProps) {
   const classes = useFilePropertiesStyles()
   return (
