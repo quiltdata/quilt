@@ -79,11 +79,7 @@ interface FilePropertiesBareProps {
   lastModified?: Date
   size?: number
 }
-export function FilePropertiesBare({
-  className,
-  lastModified,
-  size,
-}: FilePropertiesBareProps) {
+function FileProperties({ className, lastModified, size }: FilePropertiesBareProps) {
   const classes = useFilePropertiesStyles()
   return (
     <div className={cx(classes.root, className)}>
@@ -97,15 +93,17 @@ export function FilePropertiesBare({
   )
 }
 
+export const Container = FileProperties
+
 // TODO: rename to wrapper
-export default function FileProperties({ className, data }: FilePropertiesProps) {
+export function Wrapper({ className, data }: FilePropertiesProps) {
   const classes = useFilePropertiesStyles()
   return (
     <div className={cx(classes.root, className)}>
       {data.case({
         Ok: requests.ObjectExistence.case({
           Exists: ({ lastModified, size }: { lastModified?: Date; size?: number }) => (
-            <FilePropertiesBare {...{ className, lastModified, size }} />
+            <FileProperties {...{ className, lastModified, size }} />
           ),
           _: () => <FilePropertiesSkeleton className={className} />,
         }),
