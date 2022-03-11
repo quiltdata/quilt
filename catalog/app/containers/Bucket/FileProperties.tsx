@@ -8,15 +8,6 @@ import { readableBytes } from 'utils/string'
 
 import * as requests from './requests'
 
-const today = new Date()
-const formatDate = (date?: Date) =>
-  date
-    ? dateFns.format(
-        date,
-        today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
-      )
-    : null
-
 interface FilePropertyProps {
   className: string
   iconName: string
@@ -81,14 +72,30 @@ interface FilePropertiesBareProps {
 }
 function FileProperties({ className, lastModified, size }: FilePropertiesBareProps) {
   const classes = useFilePropertiesStyles()
+
+  const today = React.useMemo(() => new Date(), [])
+  const formattedDate = React.useMemo(
+    () =>
+      lastModified
+        ? dateFns.format(
+            lastModified,
+            today.getFullYear() === lastModified.getFullYear() ? 'd MMM' : 'd MMM yyyy',
+          )
+        : null,
+    [lastModified],
+  )
+  const formattedSize = React.useMemo(() => readableBytes(size), [size])
+
   return (
     <div className={cx(classes.root, className)}>
       <FileProperty className={classes.property} iconName="insert_drive_file_outlined">
-        {readableBytes(size)}
+        {formattedSize}
       </FileProperty>
-      <FileProperty className={classes.property} iconName="date_range_outlined">
-        {formatDate(lastModified)}
-      </FileProperty>
+      {lastModified && (
+        <FileProperty className={classes.property} iconName="date_range_outlined">
+          {formattedDate}
+        </FileProperty>
+      )}
     </div>
   )
 }
