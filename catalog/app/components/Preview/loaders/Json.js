@@ -159,7 +159,7 @@ function JsonLoader({ gated, handle, children }) {
   )
 }
 
-export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
+export const detect = utils.extIs('.json')
 
 export const Loader = function GatedJsonLoader({ handle, children, options }) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({

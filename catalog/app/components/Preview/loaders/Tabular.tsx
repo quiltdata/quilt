@@ -16,7 +16,7 @@ const isCsv = utils.extIs('.csv')
 
 const isExcel = utils.extIn(['.xls', '.xlsx'])
 
-const isJsonl = utils.extIs('.jsonl')
+const isJsonl = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
 const isParquet = R.anyPass([
   utils.extIn(['.parquet', '.pq']),
