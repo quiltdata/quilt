@@ -918,6 +918,30 @@ export default {
               },
             ],
           },
+          {
+            name: 'roleSetDefault',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleSetDefaultResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
         ],
         interfaces: [],
       },
@@ -1581,6 +1605,15 @@ export default {
               },
             ],
           },
+          {
+            name: 'defaultRole',
+            type: {
+              kind: 'UNION',
+              name: 'Role',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -1826,6 +1859,39 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RoleSetDefaultResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'RoleSetDefaultSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleDoesNotExist',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleSetDefaultSuccess',
+        fields: [
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
             },
             args: [],
           },

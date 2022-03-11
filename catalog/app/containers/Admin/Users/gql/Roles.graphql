@@ -9,4 +9,12 @@ query {
       name
     }
   }
+  defaultRole {
+    ... on UnmanagedRole {
+      id
+    }
+    ... on ManagedRole {
+      id
+    }
+  }
 }

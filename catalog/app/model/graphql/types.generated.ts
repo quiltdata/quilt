@@ -203,6 +203,7 @@ export interface Mutation {
   readonly roleUpdateManaged: RoleUpdateResult
   readonly roleUpdateUnmanaged: RoleUpdateResult
   readonly roleDelete: RoleDeleteResult
+  readonly roleSetDefault: RoleSetDefaultResult
 }
 
 export interface MutationbucketAddArgs {
@@ -237,6 +238,10 @@ export interface MutationroleUpdateUnmanagedArgs {
 }
 
 export interface MutationroleDeleteArgs {
+  id: Scalars['ID']
+}
+
+export interface MutationroleSetDefaultArgs {
   id: Scalars['ID']
 }
 
@@ -354,6 +359,7 @@ export interface Query {
   readonly package: Maybe<Package>
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
+  readonly defaultRole: Maybe<Role>
 }
 
 export interface QuerybucketConfigArgs {
@@ -439,6 +445,13 @@ export interface RoleNameInvalid {
 export interface RoleNameReserved {
   readonly __typename: 'RoleNameReserved'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export type RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+
+export interface RoleSetDefaultSuccess {
+  readonly __typename: 'RoleSetDefaultSuccess'
+  readonly role: Role
 }
 
 export type RoleUpdateResult =
