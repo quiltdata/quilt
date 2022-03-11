@@ -27,58 +27,12 @@ import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
+import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 import { useViewModes, viewModeToSelectOption } from './viewModes'
-
-const today = new Date()
-const formatDate = (date) =>
-  dateFns.format(
-    date,
-    today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
-  )
-
-const FileSizeSkeleton = () => <CenteredProgress />
-
-function FileSize({ className, data }) {
-  return data.case({
-    _: () => <FileSizeSkeleton />,
-    Err: (e) => {
-      throw e
-    },
-    Ok: requests.ObjectExistence.case({
-      Exists: ({ size }) => (
-        <M.Typography variant="body2" component="span" className={className}>
-          {readableBytes(size)}
-        </M.Typography>
-      ),
-      _: () => <FileSizeSkeleton />,
-    }),
-  })
-}
-
-const FileTimestampSkeleton = () => <CenteredProgress />
-
-function FileTimestamp({ className, data }) {
-  return data.case({
-    _: () => <FileTimestampSkeleton />,
-    Err: (e) => {
-      throw e
-    },
-    Ok: requests.ObjectExistence.case({
-      Exists: ({ lastModified }) => {
-        return (
-          <M.Typography variant="body2" component="span" className={className}>
-            {formatDate(lastModified)}
-          </M.Typography>
-        )
-      },
-      _: () => <FileTimestampSkeleton />,
-    }),
-  })
-}
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -262,6 +216,12 @@ function Meta({ bucket, path, version }) {
 function Analytics({ analyticsBucket, bucket, path }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
+  const today = React.useMemo(() => new Date(), [])
+  const formatDate = (date) =>
+    dateFns.format(
+      date,
+      today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
+    )
   const data = useData(requests.objectAccessCounts, {
     s3,
     analyticsBucket,
@@ -333,6 +293,8 @@ function CenteredProgress() {
 const useStyles = M.makeStyles((t) => ({
   actions: {
     marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
   },
   at: {
     color: t.palette.text.secondary,
@@ -345,10 +307,8 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
     overflowWrap: 'break-word',
   },
-  fileAttr: {
-    marginLeft: t.spacing(1),
-    verticalAlign: '-2px',
-    display: 'inline-block',
+  fileProperties: {
+    marginTop: '2px',
   },
   name: {
     ...t.typography.body1,
@@ -482,8 +442,7 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          <FileTimestamp className={classes.fileAttr} data={versionExistsData} />
-          <FileSize className={classes.fileAttr} data={versionExistsData} />
+          <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {!!viewModes.modes.length && (
             <FileView.ViewModeSelector
               className={classes.button}
