@@ -59,7 +59,7 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
               </M.Typography>
               <M.Typography>
                 <StyledLink
-                  href={`${docs}/advanced-usage/workflows#pushing-across-buckets-with-the-quilt-catalog`}
+                  href={`${docs}/advanced/workflows#cross-bucket-package-push-quilt-catalog`}
                   target="_blank"
                 >
                   Learn more
@@ -77,7 +77,7 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
             {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
               <M.Typography>
                 Please fix the workflows config according to{' '}
-                <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
+                <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
                   the documentation
                 </StyledLink>
               </M.Typography>

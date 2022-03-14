@@ -53,7 +53,7 @@ export default function SelectWorkflow({ disabled, error, items, onChange, value
       </M.Select>
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
-        <M.Link href={`${docs}/advanced-usage/workflows`} target="_blank">
+        <M.Link href={`${docs}/advanced/workflows`} target="_blank">
           Learn about quality workflows
         </M.Link>
       </M.FormHelperText>
