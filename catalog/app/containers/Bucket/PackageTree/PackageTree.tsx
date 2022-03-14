@@ -33,6 +33,7 @@ import { UseQueryResult, useQuery } from 'utils/useQuery'
 import Code from '../Code'
 import CopyButton from '../CopyButton'
 import * as Download from '../Download'
+import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
@@ -440,8 +441,10 @@ const withPreview = (
 }
 
 interface ObjectAttrs {
-  deleted: boolean
   archived: boolean
+  deleted: boolean
+  lastModified?: Date
+  size?: number
 }
 
 interface PackageEntryHandle extends s3paths.S3HandleBase {
@@ -451,6 +454,11 @@ interface PackageEntryHandle extends s3paths.S3HandleBase {
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(2),
+  },
+  fileProperties: {
+    [t.breakpoints.up('sm')]: {
+      marginBottom: '3px',
+    },
   },
 }))
 
@@ -557,9 +565,14 @@ function FileDisplay({
           return renderError('Error loading file', 'Something went wrong')
         },
         Ok: requests.ObjectExistence.case({
-          Exists: ({ archived, deleted }: ObjectAttrs) => (
+          Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
             <>
               <TopBar crumbs={crumbs}>
+                <FileProperties
+                  className={classes.fileProperties}
+                  lastModified={lastModified}
+                  size={size}
+                />
                 {!!viewModes.modes.length && (
                   <FileView.ViewModeSelector
                     className={classes.button}

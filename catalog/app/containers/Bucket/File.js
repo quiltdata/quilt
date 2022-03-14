@@ -27,6 +27,7 @@ import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
+import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
@@ -291,6 +292,8 @@ function CenteredProgress() {
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
+    alignItems: 'center',
+    display: 'flex',
     marginLeft: 'auto',
   },
   at: {
@@ -303,6 +306,9 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     maxWidth: '100%',
     overflowWrap: 'break-word',
+  },
+  fileProperties: {
+    marginTop: '2px',
   },
   name: {
     ...t.typography.body1,
@@ -436,6 +442,7 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
+          <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {!!viewModes.modes.length && (
             <FileView.ViewModeSelector
               className={classes.button}
