@@ -26,7 +26,7 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from 'containers/Bucket/Code'
-import * as FileProperties from 'containers/Bucket/FileProperties'
+import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
 import renderPreview from 'containers/Bucket/renderPreview'
@@ -451,7 +451,7 @@ export default function File({
           )}
         </div>
         <div className={classes.actions}>
-          <FileProperties.Wrapper data={versionExistsData} />
+          <FileProperties data={versionExistsData} />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}

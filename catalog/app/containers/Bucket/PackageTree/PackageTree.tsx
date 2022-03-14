@@ -33,7 +33,7 @@ import { UseQueryResult, useQuery } from 'utils/useQuery'
 import Code from '../Code'
 import CopyButton from '../CopyButton'
 import * as Download from '../Download'
-import * as FileProperties from '../FileProperties'
+import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
@@ -568,7 +568,7 @@ function FileDisplay({
           Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
             <>
               <TopBar crumbs={crumbs}>
-                <FileProperties.Container
+                <FileProperties
                   className={classes.fileProperties}
                   lastModified={lastModified}
                   size={size}

@@ -27,7 +27,7 @@ import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
-import * as FileProperties from './FileProperties'
+import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
@@ -442,10 +442,7 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          <FileProperties.Wrapper
-            className={classes.fileProperties}
-            data={versionExistsData}
-          />
+          <FileProperties className={classes.fileProperties} data={versionExistsData} />
           {!!viewModes.modes.length && (
             <FileView.ViewModeSelector
               className={classes.button}

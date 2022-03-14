@@ -70,7 +70,11 @@ interface FilePropertiesBareProps {
   size?: number
 }
 
-function FileProperties({ className, lastModified, size }: FilePropertiesBareProps) {
+export function FileProperties({
+  className,
+  lastModified,
+  size,
+}: FilePropertiesBareProps) {
   const classes = useFilePropertiesStyles()
 
   const today = React.useMemo(() => new Date(), [])
@@ -98,9 +102,7 @@ function FileProperties({ className, lastModified, size }: FilePropertiesBarePro
   )
 }
 
-export const Container = FileProperties
-
-export function Wrapper({ className, data }: FilePropertiesProps) {
+export default function Wrapper({ className, data }: FilePropertiesProps) {
   const classes = useFilePropertiesStyles()
   return (
     <div className={cx(classes.root, className)}>
