@@ -11,7 +11,6 @@ import * as requests from './requests'
 interface FilePropertyProps {
   children: React.ReactNode
   className: string
-  iconName: string
 }
 
 const useFilePropertyStyles = M.makeStyles((t) => ({
@@ -26,7 +25,7 @@ const useFilePropertyStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FileProperty({ className, iconName, children }: FilePropertyProps) {
+function FileProperty({ className, children }: FilePropertyProps) {
   const classes = useFilePropertyStyles()
   return (
     <M.Typography
@@ -34,7 +33,6 @@ function FileProperty({ className, iconName, children }: FilePropertyProps) {
       component="span"
       variant="body2"
     >
-      <M.Icon className={classes.icon}>{iconName}</M.Icon>
       {children}
     </M.Typography>
   )
@@ -83,19 +81,17 @@ function FileProperties({ className, lastModified, size }: FilePropertiesBarePro
             today.getFullYear() === lastModified.getFullYear() ? 'd MMM' : 'd MMM yyyy',
           )
         : null,
-    [lastModified],
+    [lastModified, today],
   )
-  const formattedSize = React.useMemo(() => readableBytes(size), [size])
+  const formattedSize = React.useMemo(() => (size ? readableBytes(size) : null), [size])
 
   return (
     <div className={cx(classes.root, className)}>
-      <FileProperty className={classes.property} iconName="insert_drive_file_outlined">
-        {formattedSize}
-      </FileProperty>
       {lastModified && (
-        <FileProperty className={classes.property} iconName="date_range_outlined">
-          {formattedDate}
-        </FileProperty>
+        <FileProperty className={classes.property}>{formattedDate}</FileProperty>
+      )}
+      {formattedSize && (
+        <FileProperty className={classes.property}>{formattedSize}</FileProperty>
       )}
     </div>
   )
