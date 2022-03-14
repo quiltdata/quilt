@@ -8,7 +8,7 @@ import { readableBytes } from 'utils/string'
 
 import * as requests from './requests'
 
-interface FilePropertyProps {
+interface FilePropertyProps extends M.TypographyProps {
   children: React.ReactNode
   className: string
 }
@@ -25,13 +25,14 @@ const useFilePropertyStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FileProperty({ className, children }: FilePropertyProps) {
+function FileProperty({ className, children, ...props }: FilePropertyProps) {
   const classes = useFilePropertyStyles()
   return (
     <M.Typography
       className={cx(classes.root, className)}
       component="span"
       variant="body2"
+      {...props}
     >
       {children}
     </M.Typography>
@@ -87,8 +88,10 @@ function FileProperties({ className, lastModified, size }: FilePropertiesBarePro
 
   return (
     <div className={cx(classes.root, className)}>
-      {lastModified && (
-        <FileProperty className={classes.property}>{formattedDate}</FileProperty>
+      {formattedDate && (
+        <FileProperty title={lastModified?.toLocaleString()} className={classes.property}>
+          {formattedDate}
+        </FileProperty>
       )}
       {formattedSize && (
         <FileProperty className={classes.property}>{formattedSize}</FileProperty>
