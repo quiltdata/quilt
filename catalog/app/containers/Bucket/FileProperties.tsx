@@ -113,7 +113,11 @@ export function Wrapper({ className, data }: FilePropertiesProps) {
           ),
           _: () => <FilePropertiesSkeleton className={className} />,
         }),
-        Err: (e: Error) => e.message,
+        Err: (e: Error) => (
+          <M.Icon title={`Fetching object info failed: ${e.message}`} color="error">
+            warning_outline
+          </M.Icon>
+        ),
         _: () => <FilePropertiesSkeleton className={className} />,
       })}
     </div>
