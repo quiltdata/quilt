@@ -84,7 +84,7 @@ function FileProperties({ className, lastModified, size }: FilePropertiesBarePro
         : null,
     [lastModified, today],
   )
-  const formattedSize = React.useMemo(() => (size ? readableBytes(size) : null), [size])
+  const formattedSize = React.useMemo(() => readableBytes(size), [size])
 
   return (
     <div className={cx(classes.root, className)}>
@@ -93,9 +93,7 @@ function FileProperties({ className, lastModified, size }: FilePropertiesBarePro
           {formattedDate}
         </FileProperty>
       )}
-      {formattedSize && (
-        <FileProperty className={classes.property}>{formattedSize}</FileProperty>
-      )}
+      <FileProperty className={classes.property}>{formattedSize}</FileProperty>
     </div>
   )
 }
