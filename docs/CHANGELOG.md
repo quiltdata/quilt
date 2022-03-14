@@ -7,9 +7,7 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
-## Python API
-
+# 5.0.0 - 2022-03-14
 ## CLI
 * [Added] `--force` flag for `quilt3 push` ([#2722](https://github.com/quiltdata/quilt/pull/2722))
 
