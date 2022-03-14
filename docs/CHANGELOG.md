@@ -11,6 +11,7 @@
 ## Python API
 
 ## CLI
+* [Added] `--force` flag for `quilt3 push` ([#2722](https://github.com/quiltdata/quilt/pull/2722))
 
 ## Catalog, Lambdas
 * [Fixed] Respect prefix filtering when packaging a folder ([#2706](https://github.com/quiltdata/quilt/pull/2706))
