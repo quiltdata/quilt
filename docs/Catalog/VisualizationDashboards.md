@@ -10,12 +10,15 @@ a common frame of reference that is lacking in BI applications that read from
 fast-moving databases and file systems.
 
 In addition to rendering a wide variety of images, binary files, and text 
-files, the Quilt catalog supports [Perspective](https://perspective.finos.org),
-[Vega](https://vega.github.io/vega/),
-[Vega-lite](https://vega.github.io/vega-lite/),
-[ECharts](https://echarts.apache.org/en/index.html),
-and [Voila](https://github.com/voila-dashboards/voila) (Developer preview).
-This gives you access to hundreds of charts out of the box.
+files, the Quilt catalog supports the following libraries for visualization and
+exploration:
+* [Vega](https://vega.github.io/vega/),
+* [Vega-lite](https://vega.github.io/vega-lite/),
+* [ECharts](https://echarts.apache.org/en/index.html),
+* [Voila](https://github.com/voila-dashboards/voila) (Developer preview).
+* [Perspective](https://perspective.finos.org),
+
+The above systems provide you with hundreds of charts out of the box.
 
 
 ## `quilt_summarize.json`
@@ -273,8 +276,15 @@ scipy
 
 ## Perspective
 
-Most of tabular data can be rendered with Perspective library. Files rendered with Perspective by default are files with .csv, .xls, .xlsx, .jsonl, .parquet, .tsv extensions.
+Quilt renders tabular data formats into a Perspective Datagrid, including the
+following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv. 
 
-We fetch only a part of file to render for performance reasons. You can deliberately choose to load more, but we sill restricted to load very large files.
+For speed, Quilt loads a small preview of the rows stored in S3. You can click
+Load More to fetch up to about 6MB of zipped data. Beyond this size, click Download
+to see the entire file contents.
+
+In order to open the analysis and visualization capabilities of Perspecitve,
+click the vertical ellipsis, upper left. Click, drag, and drop columns to explore
+the data.
 
 ![](../imgs/perspective.png)
