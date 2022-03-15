@@ -243,7 +243,7 @@ function QueryRunner({
         return null
       },
     })
-  }, [queryRunData])
+  }, [queryExecutionId, queryRunData])
   return children({ queryRunData })
 }
 interface QueryResultsFetcherRenderProps {
