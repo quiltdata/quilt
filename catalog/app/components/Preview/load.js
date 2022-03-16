@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 
 import * as Audio from './loaders/Audio'
@@ -43,9 +44,10 @@ function findLoader(key, options) {
 export function getRenderProps(key, options) {
   const { detect } = findLoader(key, options)
   const optionsSpecificToType = detect(key, options)
-  return optionsSpecificToType && optionsSpecificToType.style
+  return optionsSpecificToType && !R.isEmpty(optionsSpecificToType)
     ? {
         style: optionsSpecificToType.style,
+        perspective: optionsSpecificToType.perspective,
       }
     : null
 }

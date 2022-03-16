@@ -1,3 +1,4 @@
+import { StringNullableChain } from 'lodash'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -26,10 +27,22 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIs('.tsv')
 
-export const detect: (key: string) => boolean = R.pipe(
-  utils.stripCompression,
-  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
-)
+const FILE_TYPE = 'perspective'
+export const detect: (key: string, options: $TSFixMe) => boolean | object = (
+  key,
+  options,
+) => {
+  if (options?.types?.length) {
+    return options?.types?.find(
+      (type: $TSFixMe) => type === FILE_TYPE || type.name === FILE_TYPE,
+    )
+  }
+
+  return R.pipe<string, string, boolean>(
+    utils.stripCompression,
+    R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
+  )(key)
+}
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
 

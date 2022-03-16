@@ -40,7 +40,7 @@
 
     "typeShorthand": {
       "type": "string",
-      "enum": ["echarts", "json", "jupyter", "vega", "voila"]
+      "enum": ["echarts", "json", "jupyter", "perspective", "vega", "voila"]
     },
 
     "typeExtended": {
@@ -56,6 +56,17 @@
               "description": "Height as an absolute value (in `px`, `vh`, `em` etc.)",
               "examples": ["1000px", "500vh"],
               "type": "string"
+            }
+          }
+        },
+        "perspective": {
+          "type": "object",
+          "properties": {
+            "settings": {
+              "type": "boolean"
+            },
+            "rows": {
+              "type": "number"
             }
           }
         }
