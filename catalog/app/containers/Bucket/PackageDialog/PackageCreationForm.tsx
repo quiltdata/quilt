@@ -78,7 +78,7 @@ const useStyles = M.makeStyles((t) => ({
   meta: {
     display: 'flex',
     flexDirection: 'column',
-    paddingTop: ({ desktop }: { desktop: boolean }) => t.spacing(desktop ? 2 : 3),
+    paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
 }))
@@ -127,7 +127,7 @@ function PackageCreationForm({
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const { desktop }: { desktop: boolean } = Config.use()
-  const classes = useStyles({ desktop })
+  const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({
     metaHeight,
   })
