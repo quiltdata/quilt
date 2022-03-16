@@ -31,8 +31,9 @@ roles.
 
 ![](../imgs/admin-users-roles-create-managed.png)
 
-You may select the default role which will be assigned to all new users.
-Currently selected default role is displayed in bold with a `*` suffix.
+You must select the default role for all new users, else they will
+not be able to sign in to the Quilt catalog.
+The default role is shown in bold.
 
 ![](imgs/admin-set-default-role.png)
 
