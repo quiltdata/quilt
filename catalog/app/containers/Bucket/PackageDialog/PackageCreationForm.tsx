@@ -367,108 +367,6 @@ function PackageCreationForm({
   // TODO: move useLocalFolder to its own component shared by Download and Upload
   const [defaultLocalFolder] = Download.useLocalFolder()
 
-  const commitMessageInput = (
-    <RF.Field
-      component={PD.CommitMessageInput}
-      name="msg"
-      validate={validators.required as FF.FieldValidator<string>}
-      validateFields={['msg']}
-      errors={{
-        required: 'Enter a commit message',
-      }}
-    />
-  )
-
-  const filesInputWeb = (
-    <RF.Field
-      className={cx(classes.files, {
-        [classes.filesWithError]: !!entriesError,
-      })}
-      // @ts-expect-error
-      component={FI.FilesInput}
-      name="files"
-      validate={validateFiles as FF.FieldValidator<$TSFixMe>}
-      validateFields={['files']}
-      errors={{
-        nonEmpty: 'Add files to create a package',
-        schema: 'Files should match schema',
-        [FI.HASHING]: 'Please wait while we hash the files',
-        [FI.HASHING_ERROR]:
-          'Error hashing files, probably some of them are too large. Please try again or contact support.',
-      }}
-      totalProgress={uploads.progress}
-      title="Files"
-      onFilesAction={onFilesAction}
-      isEqual={R.equals}
-      initialValue={initialFiles}
-      bucket={selectedBucket}
-      buckets={sourceBuckets.list}
-      selectBucket={selectBucket}
-      delayHashing={delayHashing}
-      disableStateDisplay={disableStateDisplay}
-      ui={{ reset: ui.resetFiles }}
-    />
-  )
-
-  const filesInputElectron = (
-    <RF.Field
-      name="localFolder"
-      component={Upload.LocalFolderInput}
-      initialValue={defaultLocalFolder}
-    />
-  )
-
-  const meta =
-    schemaLoading || hideMeta ? (
-      <MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
-    ) : (
-      <RF.Field
-        className={classes.meta}
-        component={MI.MetaInput}
-        name="meta"
-        bucket={bucket}
-        schema={schema}
-        schemaError={responseError}
-        validate={validateMetaInput}
-        validateFields={['meta']}
-        isEqual={R.equals}
-        initialValue={initial?.manifest?.meta || MI.EMPTY_META_VALUE}
-        ref={setEditorElement}
-      />
-    )
-
-  const packageNameInput = (
-    <RF.Field
-      component={PD.PackageNameInput}
-      workflow={selectedWorkflow || workflowsConfig}
-      initialValue={initial?.name}
-      name="name"
-      validate={validators.composeAsync(validators.required, nameValidator.validate)}
-      validateFields={['name']}
-      errors={{
-        required: 'Enter a package name',
-        invalid: 'Invalid package name',
-        pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
-      }}
-      helperText={nameWarning}
-      validating={nameValidator.processing}
-    />
-  )
-
-  const workflowInput = (
-    <RF.Field
-      component={PD.WorkflowInput}
-      name="workflow"
-      workflowsConfig={workflowsConfig}
-      initialValue={selectedWorkflow}
-      validate={validateWorkflow}
-      validateFields={['meta', 'workflow']}
-      errors={{
-        required: 'Workflow is required for this bucket.',
-      }}
-    />
-  )
-
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -515,17 +413,103 @@ function PackageCreationForm({
 
               <Layout.Container>
                 <Layout.LeftColumn>
-                  {workflowInput}
+                  <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={selectedWorkflow}
+                    validate={validateWorkflow}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
+                  />
 
-                  {packageNameInput}
+                  <RF.Field
+                    component={PD.PackageNameInput}
+                    workflow={selectedWorkflow || workflowsConfig}
+                    initialValue={initial?.name}
+                    name="name"
+                    validate={validators.composeAsync(
+                      validators.required,
+                      nameValidator.validate,
+                    )}
+                    validateFields={['name']}
+                    errors={{
+                      required: 'Enter a package name',
+                      invalid: 'Invalid package name',
+                      pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
+                    }}
+                    helperText={nameWarning}
+                    validating={nameValidator.processing}
+                  />
 
-                  {commitMessageInput}
+                  <RF.Field
+                    component={PD.CommitMessageInput}
+                    name="msg"
+                    validate={validators.required as FF.FieldValidator<string>}
+                    validateFields={['msg']}
+                    errors={{
+                      required: 'Enter a commit message',
+                    }}
+                  />
 
-                  {meta}
+                  {schemaLoading || hideMeta ? (
+                    <MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
+                  ) : (
+                    <RF.Field
+                      className={classes.meta}
+                      component={MI.MetaInput}
+                      name="meta"
+                      bucket={bucket}
+                      schema={schema}
+                      schemaError={responseError}
+                      validate={validateMetaInput}
+                      validateFields={['meta']}
+                      isEqual={R.equals}
+                      initialValue={initial?.manifest?.meta || MI.EMPTY_META_VALUE}
+                      ref={setEditorElement}
+                    />
+                  )}
                 </Layout.LeftColumn>
 
                 <Layout.RightColumn>
-                  {desktop ? filesInputElectron : filesInputWeb}
+                  {desktop ? (
+                    <RF.Field
+                      name="localFolder"
+                      component={Upload.LocalFolderInput}
+                      initialValue={defaultLocalFolder}
+                    />
+                  ) : (
+                    <RF.Field
+                      className={cx(classes.files, {
+                        [classes.filesWithError]: !!entriesError,
+                      })}
+                      // @ts-expect-error
+                      component={FI.FilesInput}
+                      name="files"
+                      validate={validateFiles as FF.FieldValidator<$TSFixMe>}
+                      validateFields={['files']}
+                      errors={{
+                        nonEmpty: 'Add files to create a package',
+                        schema: 'Files should match schema',
+                        [FI.HASHING]: 'Please wait while we hash the files',
+                        [FI.HASHING_ERROR]:
+                          'Error hashing files, probably some of them are too large. Please try again or contact support.',
+                      }}
+                      totalProgress={uploads.progress}
+                      title="Files"
+                      onFilesAction={onFilesAction}
+                      isEqual={R.equals}
+                      initialValue={initialFiles}
+                      bucket={selectedBucket}
+                      buckets={sourceBuckets.list}
+                      selectBucket={selectBucket}
+                      delayHashing={delayHashing}
+                      disableStateDisplay={disableStateDisplay}
+                      ui={{ reset: ui.resetFiles }}
+                    />
+                  )}
 
                   <JsonValidationErrors
                     className={classes.filesError}
