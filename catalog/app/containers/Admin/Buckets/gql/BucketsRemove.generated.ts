@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_BucketsRemoveMutationVariables = Types.Exact<{
+export type containers_Admin_Buckets_gql_BucketsRemoveMutationVariables = Types.Exact<{
   name: Types.Scalars['String']
 }>
 
-export type containers_Admin_BucketsRemoveMutation = {
+export type containers_Admin_Buckets_gql_BucketsRemoveMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly bucketRemove:
@@ -15,13 +15,13 @@ export type containers_Admin_BucketsRemoveMutation = {
     | { readonly __typename: 'IndexingInProgress' }
 }
 
-export const containers_Admin_BucketsRemoveDocument = {
+export const containers_Admin_Buckets_gql_BucketsRemoveDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_BucketsRemove' },
+      name: { kind: 'Name', value: 'containers_Admin_Buckets_gql_BucketsRemove' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -57,8 +57,8 @@ export const containers_Admin_BucketsRemoveDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_BucketsRemoveMutation,
-  containers_Admin_BucketsRemoveMutationVariables
+  containers_Admin_Buckets_gql_BucketsRemoveMutation,
+  containers_Admin_Buckets_gql_BucketsRemoveMutationVariables
 >
 
-export { containers_Admin_BucketsRemoveDocument as default }
+export { containers_Admin_Buckets_gql_BucketsRemoveDocument as default }

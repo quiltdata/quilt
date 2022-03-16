@@ -6,6 +6,7 @@ import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Placeholder from 'components/Placeholder'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
@@ -13,9 +14,9 @@ import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
+import * as RT from 'utils/reactTools'
 import validate, * as validators from 'utils/validators'
 
-import * as PasswordStrength from './PasswordStrength'
 import * as Layout from './Layout'
 import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
@@ -25,54 +26,16 @@ import { signUp } from './actions'
 import * as errors from './errors'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout('Complete sign-up')
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
+
+const StrenghtenPasswordField = RT.mkLazy(
+  () => import('./StrenghtenPasswordField'),
+  SuspensePlaceholder,
+)
+
+const Container = Layout.mkLayout('Sign Up')
 
 const MUTEX_ID = 'password'
-
-const useWeakPasswordIconStyles = M.makeStyles((t) => ({
-  icon: {
-    color: t.palette.warning.dark,
-  },
-}))
-
-function WeakPasswordIcon() {
-  const classes = useWeakPasswordIconStyles()
-  return (
-    <M.Tooltip title="Password is too weak">
-      <M.Icon className={classes.icon} fontSize="small" color="inherit">
-        error_outline
-      </M.Icon>
-    </M.Tooltip>
-  )
-}
-
-function PasswordField({ input, email, username, ...rest }) {
-  const { value } = input
-  const strength = PasswordStrength.useStrength(value, { email, username })
-  const isWeak = strength?.score <= 2
-  const helperText = strength?.feedback.suggestions.length
-    ? `Hint: ${strength?.feedback.suggestions.join(' ')}`
-    : ''
-  return (
-    <>
-      <Layout.Field
-        InputProps={{
-          endAdornment: isWeak && (
-            <M.InputAdornment position="end">
-              <WeakPasswordIcon />
-            </M.InputAdornment>
-          ),
-        }}
-        helperText={helperText}
-        type="password"
-        floatingLabelText="Password"
-        {...input}
-        {...rest}
-      />
-      <PasswordStrength.Indicator strength={strength} />
-    </>
-  )
-}
 
 function PasswordSignUp({ mutex, next, onSuccess }) {
   const sentry = Sentry.use()
@@ -127,6 +90,12 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
           // eslint-disable-next-line consistent-return
           return {
             password: 'invalid',
+          }
+        }
+        if (e instanceof errors.NoDefaultRole) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'noDefaultRole',
           }
         }
         if (e instanceof errors.SMTPError) {
@@ -200,7 +169,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={PasswordField}
+            component={StrenghtenPasswordField}
             name="password"
             validate={validators.required}
             username={username}
@@ -234,6 +203,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             errors={{
               unexpected: 'Something went wrong. Try again later.',
               smtp: 'SMTP error: contact your administrator',
+              noDefaultRole:
+                'Unable to assign role. Ask your Quilt administrator to set a default role.',
             }}
           />
           <Layout.Actions>

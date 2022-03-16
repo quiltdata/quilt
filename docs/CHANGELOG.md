@@ -7,13 +7,16 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
-## Python API
-
+# 5.0.0 - 2022-03-14
 ## CLI
+* [Added] `--force` flag for `quilt3 push` ([#2722](https://github.com/quiltdata/quilt/pull/2722))
 
 ## Catalog, Lambdas
 * [Fixed] Respect prefix filtering when packaging a folder ([#2706](https://github.com/quiltdata/quilt/pull/2706))
+* [Fixed] Fix package creation failing for some regions ([#2718](https://github.com/quiltdata/quilt/pull/2718))
+* [Added] NGL renderer for .pdb files ([#2711](https://github.com/quiltdata/quilt/pull/2711))
+* [Added] Admin: default role management ([#2721](https://github.com/quiltdata/quilt/pull/2721))
+* [Added] Preview CZI images ([#2727](https://github.com/quiltdata/quilt/pull/2727))
 
 # 4.1.0 - 2022-02-22
 ## Python API

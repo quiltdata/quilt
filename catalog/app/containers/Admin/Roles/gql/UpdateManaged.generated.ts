@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
 import {
   RoleSelection_UnmanagedRole_Fragment,
@@ -8,12 +8,12 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_RolesUpdateManagedMutationVariables = Types.Exact<{
+export type containers_Admin_Roles_gql_UpdateManagedMutationVariables = Types.Exact<{
   id: Types.Scalars['ID']
   input: Types.ManagedRoleInput
 }>
 
-export type containers_Admin_RolesUpdateManagedMutation = {
+export type containers_Admin_Roles_gql_UpdateManagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleUpdate:
@@ -32,13 +32,13 @@ export type containers_Admin_RolesUpdateManagedMutation = {
     | { readonly __typename: 'BucketConfigDoesNotExist' }
 }
 
-export const containers_Admin_RolesUpdateManagedDocument = {
+export const containers_Admin_Roles_gql_UpdateManagedDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_RolesUpdateManaged' },
+      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_UpdateManaged' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -116,8 +116,8 @@ export const containers_Admin_RolesUpdateManagedDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesUpdateManagedMutation,
-  containers_Admin_RolesUpdateManagedMutationVariables
+  containers_Admin_Roles_gql_UpdateManagedMutation,
+  containers_Admin_Roles_gql_UpdateManagedMutationVariables
 >
 
-export { containers_Admin_RolesUpdateManagedDocument as default }
+export { containers_Admin_Roles_gql_UpdateManagedDocument as default }

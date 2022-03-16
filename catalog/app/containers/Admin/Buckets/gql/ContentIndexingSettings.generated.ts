@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_ContentIndexingSettingsQueryVariables = Types.Exact<{
-  [key: string]: never
-}>
+export type containers_Admin_Buckets_gql_ContentIndexingSettingsQueryVariables =
+  Types.Exact<{ [key: string]: never }>
 
-export type containers_Admin_ContentIndexingSettingsQuery = {
+export type containers_Admin_Buckets_gql_ContentIndexingSettingsQuery = {
   readonly __typename: 'Query'
 } & {
   readonly config: { readonly __typename: 'Config' } & {
@@ -19,13 +18,16 @@ export type containers_Admin_ContentIndexingSettingsQuery = {
   }
 }
 
-export const containers_Admin_ContentIndexingSettingsDocument = {
+export const containers_Admin_Buckets_gql_ContentIndexingSettingsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_ContentIndexingSettings' },
+      name: {
+        kind: 'Name',
+        value: 'containers_Admin_Buckets_gql_ContentIndexingSettings',
+      },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -56,8 +58,8 @@ export const containers_Admin_ContentIndexingSettingsDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_ContentIndexingSettingsQuery,
-  containers_Admin_ContentIndexingSettingsQueryVariables
+  containers_Admin_Buckets_gql_ContentIndexingSettingsQuery,
+  containers_Admin_Buckets_gql_ContentIndexingSettingsQueryVariables
 >
 
-export { containers_Admin_ContentIndexingSettingsDocument as default }
+export { containers_Admin_Buckets_gql_ContentIndexingSettingsDocument as default }

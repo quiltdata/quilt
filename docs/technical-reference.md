@@ -245,6 +245,15 @@ We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/u
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
+### Setting default role
+
+If your stack settings allow users signing up by themselves, you must set the
+default role which will be assigned to all new users.
+Users won't be able to sign up by themselves until the default role is set,
+though they still can be invited by an admin via user management UI.
+
+![](imgs/admin-set-default-role.png)
+
 ### Single sign-on (SSO)
 
 #### Google

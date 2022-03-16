@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
 import {
   RoleSelection_UnmanagedRole_Fragment,
@@ -8,11 +8,11 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_RolesCreateUnmanagedMutationVariables = Types.Exact<{
+export type containers_Admin_Roles_gql_CreateUnmanagedMutationVariables = Types.Exact<{
   input: Types.UnmanagedRoleInput
 }>
 
-export type containers_Admin_RolesCreateUnmanagedMutation = {
+export type containers_Admin_Roles_gql_CreateUnmanagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleCreate:
@@ -29,13 +29,13 @@ export type containers_Admin_RolesCreateUnmanagedMutation = {
     | { readonly __typename: 'BucketConfigDoesNotExist' }
 }
 
-export const containers_Admin_RolesCreateUnmanagedDocument = {
+export const containers_Admin_Roles_gql_CreateUnmanagedDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_RolesCreateUnmanaged' },
+      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_CreateUnmanaged' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -100,8 +100,8 @@ export const containers_Admin_RolesCreateUnmanagedDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_RolesCreateUnmanagedMutation,
-  containers_Admin_RolesCreateUnmanagedMutationVariables
+  containers_Admin_Roles_gql_CreateUnmanagedMutation,
+  containers_Admin_Roles_gql_CreateUnmanagedMutationVariables
 >
 
-export { containers_Admin_RolesCreateUnmanagedDocument as default }
+export { containers_Admin_Roles_gql_CreateUnmanagedDocument as default }

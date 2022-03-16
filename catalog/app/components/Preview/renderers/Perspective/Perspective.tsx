@@ -7,9 +7,8 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
-import { ParquetMetadata } from '../loaders/Tabular'
-
-import { CONTEXT } from '../types'
+import { ParquetMetadata } from '../../loaders/Tabular'
+import { CONTEXT } from '../../types'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
   root: {
@@ -138,13 +137,14 @@ const useStyles = M.makeStyles((t) => ({
       context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
     overflow: 'auto',
     resize: 'vertical',
+    zIndex: 1,
   },
   warning: {
     marginBottom: t.spacing(1),
   },
 }))
 
-interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   context: 'file' | 'listing'
   data: string | ArrayBuffer
   meta: ParquetMetadata
@@ -153,7 +153,7 @@ interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   truncated: boolean
 }
 
-function Perspective({
+export default function Perspective({
   children,
   className,
   context,
@@ -181,10 +181,7 @@ function Perspective({
         />
       )}
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
+      {children}
     </div>
   )
 }
-
-export default (data: PerspectiveProps, props: PerspectiveProps) => (
-  <Perspective {...data} {...props} />
-)

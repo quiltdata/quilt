@@ -1,7 +1,0 @@
-# import RoleSelection from "./RoleSelection.graphql"
-
-query {
-  roles {
-    ...RoleSelection
-  }
-}

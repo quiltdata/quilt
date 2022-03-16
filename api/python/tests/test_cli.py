@@ -33,12 +33,49 @@ class QuiltCLITestCase(CommandLineTestCase):
         dir_path = 'test/dir/path'
 
         with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
+
             main.main(('push', '--dir', dir_path, name))
 
+            mocked_package_class.browse.assert_called_once_with(name, None)
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
-            mocked_package.push.assert_called_once_with(name, registry=None, dest=None, message=None, workflow=...)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False
+            )
+
+    def test_push_force(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
+
+            main.main(('push', '--dir', dir_path, name, '--force'))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=True
+            )
+
+    def test_push_existing(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            main.main(('push', '--dir', dir_path, name))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_not_called()
+            mocked_package = mocked_package_class.browse.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False
+            )
 
 
 @pytest.mark.parametrize(
@@ -57,6 +94,7 @@ def test_push_with_meta_data(
 
     with patch_package_class as mocked_package_class, \
          mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
 
         # '--registry' defaults to configured remote registry hence optional.
         if meta_data:
@@ -65,10 +103,13 @@ def test_push_with_meta_data(
         else:
             main.main(('push', '--dir', dir_path, name))
             mocked_parse_json_arg.assert_not_called()
+        mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
-        mocked_package.push.assert_called_once_with(name, dest=None, message=None, registry=None, workflow=...)
+        mocked_package.push.assert_called_once_with(
+            name, dest=None, message=None, registry=None, workflow=..., force=False
+        )
 
 
 @pytest.mark.parametrize(
@@ -88,12 +129,15 @@ def test_push_with_meta_data_error(
     with patch_package_class as mocked_package_class, \
          mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
 
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+
         with pytest.raises(SystemExit):
             main.main(('push', '--dir', '.', name, '--meta', meta_data))
         # check for expected stderr exception message
         captured = capsys.readouterr()
         assert 'is not a valid json string' in captured.err
         mocked_parse_json_arg.assert_called_once_with(meta_data)
+        mocked_package_class.browse.assert_not_called()
         mocked_package_class.assert_not_called()
 
 
@@ -110,14 +154,16 @@ def test_push_workflow(workflow_input, expected_workflow):
     dir_path = 'test/dir/path'
 
     with patch_package_class as mocked_package_class:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
         workflow_args = () if workflow_input is None else ('--workflow', workflow_input)
         main.main(('push', '--dir', dir_path, *workflow_args, name))
 
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
+        mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
         mocked_package.push.assert_called_once_with(
-            name, dest=None, message=None, registry=None, workflow=expected_workflow,
+            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False
         )
 
 

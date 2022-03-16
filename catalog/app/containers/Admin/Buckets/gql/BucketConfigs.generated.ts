@@ -1,29 +1,31 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
 import {
   BucketConfigSelectionFragment,
   BucketConfigSelectionFragmentDoc,
 } from './BucketConfigSelection.generated'
 
-export type containers_Admin_BucketConfigsQueryVariables = Types.Exact<{
+export type containers_Admin_Buckets_gql_BucketConfigsQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_BucketConfigsQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_Buckets_gql_BucketConfigsQuery = {
+  readonly __typename: 'Query'
+} & {
   readonly bucketConfigs: ReadonlyArray<
     { readonly __typename: 'BucketConfig' } & BucketConfigSelectionFragment
   >
 }
 
-export const containers_Admin_BucketConfigsDocument = {
+export const containers_Admin_Buckets_gql_BucketConfigsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_BucketConfigs' },
+      name: { kind: 'Name', value: 'containers_Admin_Buckets_gql_BucketConfigs' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -46,8 +48,8 @@ export const containers_Admin_BucketConfigsDocument = {
     ...BucketConfigSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_BucketConfigsQuery,
-  containers_Admin_BucketConfigsQueryVariables
+  containers_Admin_Buckets_gql_BucketConfigsQuery,
+  containers_Admin_Buckets_gql_BucketConfigsQueryVariables
 >
 
-export { containers_Admin_BucketConfigsDocument as default }
+export { containers_Admin_Buckets_gql_BucketConfigsDocument as default }
