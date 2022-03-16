@@ -769,7 +769,7 @@ export function DropzoneMessage({
         )}
       </div>
     )
-  }, [error, warn.upload, warn.s3, warn.count])
+  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
 
   return (
     <div

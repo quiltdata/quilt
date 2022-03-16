@@ -3,7 +3,6 @@ import { basename } from 'path'
 import * as React from 'react'
 import { DropEvent, useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
-import * as M from '@material-ui/core'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import useDragging from 'utils/dragging'
@@ -54,27 +53,11 @@ function isDroppedDirectory(event: DropEvent) {
 
 function getFilesFromEvent(event: DropEvent) {
   if (isDroppedDirectory(event)) {
-    console.log('it IS directory')
     // @ts-expect-error DropEvent type is incorrect
     return Promise.resolve([event.dataTransfer.files[0]])
   }
   return Promise.resolve([])
 }
-
-const useLocalFolderInputStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    marginTop: t.spacing(2),
-    overflowY: 'auto',
-    position: 'relative',
-  },
-  outlined: {
-    outline: `2px dashed ${t.palette.primary.light}`,
-    outlineOffset: '-2px',
-  },
-}))
 
 interface LocalFolderInputProps {
   className?: string
@@ -90,8 +73,6 @@ export function LocalFolderInput({
   errors,
 }: LocalFolderInputProps) {
   const ipc = IPC.use()
-
-  const classes = useLocalFolderInputStyles()
 
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
