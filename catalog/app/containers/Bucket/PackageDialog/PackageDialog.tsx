@@ -460,13 +460,8 @@ export function useCryptoApiValidation() {
   }, [])
 }
 
-export function calcDialogHeight(
-  windowHeight: number,
-  metaHeight: number,
-  metaFullHeight?: boolean,
-): number {
-  const neededSpace =
-    (metaFullHeight ? 80 : 345) /* space to fit other inputs */ + metaHeight
+export function calcDialogHeight(windowHeight: number, metaHeight: number): number {
+  const neededSpace = 345 /* space to fit other inputs */ + metaHeight
   const availableSpace = windowHeight - 200 /* free space for headers */
   const minimalSpace = 420 /* minimal height */
   if (availableSpace < minimalSpace) return minimalSpace
@@ -475,13 +470,8 @@ export function calcDialogHeight(
 
 export const useContentStyles = M.makeStyles({
   root: {
-    height: ({
-      metaHeight,
-      metaFullHeight,
-    }: {
-      metaHeight: number
-      metaFullHeight?: boolean
-    }) => calcDialogHeight(window.innerHeight, metaHeight, metaFullHeight),
+    height: ({ metaHeight }: { metaHeight: number }) =>
+      calcDialogHeight(window.innerHeight, metaHeight),
     paddingTop: 0,
   },
 })
