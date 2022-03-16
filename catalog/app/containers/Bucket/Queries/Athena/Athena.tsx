@@ -243,7 +243,7 @@ function QueryRunner({
         return null
       },
     })
-  }, [queryExecutionId, queryRunData])
+  }, [notify, queryExecutionId, queryRunData])
   return children({ queryRunData })
 }
 interface QueryResultsFetcherRenderProps {
@@ -540,8 +540,8 @@ export default function Athena({
         queryRunData,
         workgroupsData,
         workgroup,
-      }) => {
-        return queryRunData.case({
+      }) =>
+        queryRunData.case({
           _: ({ value: executionData }: { value: { id: string } }) => {
             if (executionData?.id && executionData?.id !== queryExecutionId) {
               return (
@@ -713,7 +713,7 @@ export default function Athena({
             )
           },
         })
-      }}
+      }
     </State>
   )
 }
