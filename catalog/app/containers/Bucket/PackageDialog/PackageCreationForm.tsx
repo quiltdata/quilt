@@ -128,9 +128,7 @@ function PackageCreationForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const { desktop }: { desktop: boolean } = Config.use()
   const classes = useStyles()
-  const dialogContentClasses = PD.useContentStyles({
-    metaHeight,
-  })
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
   const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
