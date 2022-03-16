@@ -37,6 +37,7 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
+  perspectiveOptions?: { settings?: boolean },
 ) {
   const [tableData, setTableData] = React.useState<TableData | null>(null)
 
@@ -48,6 +49,10 @@ function usePerspective(
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
+
+      if (perspectiveOptions?.settings) {
+        await viewer.toggleConfig(true)
+      }
 
       const size = await table.size()
       setTableData({

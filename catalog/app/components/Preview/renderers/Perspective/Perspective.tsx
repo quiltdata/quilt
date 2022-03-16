@@ -151,6 +151,9 @@ export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
   handle: S3HandleBase
   onLoadMore: () => void
   truncated: boolean
+  perspective?: {
+    settings?: boolean
+  }
 }
 
 export default function Perspective({
@@ -162,6 +165,7 @@ export default function Perspective({
   handle,
   onLoadMore,
   truncated,
+  perspective: perspectiveOptions,
   ...props
 }: PerspectiveProps) {
   const classes = useStyles({ context })
@@ -169,7 +173,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const tableData = perspective.use(root, data, attrs)
+  const tableData = perspective.use(root, data, attrs, perspectiveOptions)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
