@@ -1,7 +1,7 @@
-import { StringNullableChain } from 'lodash'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import type * as Summarize from 'containers/Bucket/requests/summarize'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -28,20 +28,22 @@ const isParquet = R.anyPass([
 const isTsv = utils.extIs('.tsv')
 
 const FILE_TYPE = 'perspective'
-export const detect: (key: string, options: $TSFixMe) => boolean | object = (
-  key,
-  options,
-) => {
-  if (options?.types?.length) {
-    return options?.types?.find(
-      (type: $TSFixMe) => type === FILE_TYPE || type.name === FILE_TYPE,
-    )
-  }
+function detectBySummarizeType(options: Summarize.File): Summarize.Type | undefined {
+  return (options as Summarize.FileExtended)?.types?.find(
+    (type) => type === FILE_TYPE || (type as Summarize.TypeExtended).name === FILE_TYPE,
+  )
+}
 
-  return R.pipe<string, string, boolean>(
-    utils.stripCompression,
-    R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
-  )(key)
+const detectByExtension: (key: string) => boolean = R.pipe(
+  utils.stripCompression,
+  R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
+)
+
+export function detect(key: string, options: Summarize.File): boolean | Summarize.Type {
+  const optionsSpecificToType = detectBySummarizeType(options)
+  if (optionsSpecificToType) return optionsSpecificToType
+
+  return detectByExtension(key)
 }
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
