@@ -294,7 +294,6 @@ function PackageCreationForm({
       return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
-  // const uploadPackage = Upload.useUploadPackage()
 
   const onSubmitWrapped = async (args: SumbmitWebArgs | SumbmitElectronArgs) => {
     setSubmitting(true)
