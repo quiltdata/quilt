@@ -3,6 +3,7 @@ import { basename } from 'path'
 import * as React from 'react'
 import { DropEvent, useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
+import * as M from '@material-ui/core'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import useDragging from 'utils/dragging'
@@ -63,34 +64,38 @@ interface LocalFolderInputProps {
   className?: string
   input: RF.FieldInputProps<string>
   meta: RF.FieldMetaState<string>
-  errors: $TSFixMe
+  errors?: Record<string, React.ReactNode>
+  title: React.ReactNode
+  disabled?: boolean
 }
 
 export function LocalFolderInput({
   className,
+  disabled = false,
+  errors = {},
   input: { onChange, value },
   meta,
-  errors,
+  title,
 }: LocalFolderInputProps) {
   const ipc = IPC.use()
 
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 
-  const disabled = React.useMemo(() => meta.submitting || meta.submitSucceeded, [meta])
+  const disabledInternal = disabled || submitting
   const handleClick = React.useCallback(async () => {
-    if (disabled) return
+    if (disabledInternal) return
     const newLocalPath = await ipc.invoke(IPC.EVENTS.LOCALPATH_REQUEST)
     if (!newLocalPath) return
     onChange(newLocalPath)
-  }, [disabled, ipc, onChange])
+  }, [disabledInternal, ipc, onChange])
 
   const onDrop = React.useCallback((files) => onChange(files[0].path), [onChange])
 
   const isDragging = useDragging()
   const { getRootProps, isDragActive } = useDropzone({
     onDrop,
-    disabled,
+    disabled: disabledInternal,
     getFilesFromEvent,
     maxFiles: 1,
   })
@@ -98,7 +103,7 @@ export function LocalFolderInput({
   return (
     <FI.Root className={className}>
       <FI.Header>
-        <FI.HeaderTitle>Local directory</FI.HeaderTitle>
+        <FI.HeaderTitle>{title}</FI.HeaderTitle>
       </FI.Header>
       <FI.ContentsContainer className={className} outlined={isDragging}>
         <FI.Contents
@@ -117,6 +122,12 @@ export function LocalFolderInput({
           {submitting && <FI.Lock />}
         </FI.Contents>
       </FI.ContentsContainer>
+
+      {!!error && (
+        <M.FormHelperText error margin="dense">
+          {errors[error] || error}
+        </M.FormHelperText>
+      )}
     </FI.Root>
   )
 }

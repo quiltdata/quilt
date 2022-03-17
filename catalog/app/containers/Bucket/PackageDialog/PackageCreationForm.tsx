@@ -477,8 +477,9 @@ function PackageCreationForm({
                         [classes.filesWithError]: !!entriesError,
                       })}
                       component={Upload.LocalFolderInput}
-                      name="localFolder"
                       initialValue={defaultLocalFolder}
+                      name="localFolder"
+                      title="Local directory"
                     />
                   ) : (
                     <RF.Field
