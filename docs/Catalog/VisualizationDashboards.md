@@ -70,6 +70,7 @@ or an object with one or more of the following properties:
 - `width` - column width either in pixels or ratio (default is ratio `1`)
 - `types` - a list of rendering types; currently only singleton list values are supported:
     - `["echarts"]` to render JSON as an EChart
+    - `["perspective"]` to render tabular data (csv, xlsx etc.) with Perspective
     - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
 
 If you need to control the height of an element (useful for Voila dashboards),

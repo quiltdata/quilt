@@ -6,6 +6,8 @@
 
 ## Catalog, Lambdas
 !-->
+## Catalog, Lambdas
+* [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
 
 # 5.0.0 - 2022-03-14
 ## CLI
