@@ -6,8 +6,6 @@ import perspective from '@finos/perspective'
 import type { Table } from '@finos/perspective'
 import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
-import type { PerspectiveOptions } from 'containers/Bucket/requests/summarize'
-
 export interface TableData {
   size: number | null
 }
@@ -39,7 +37,7 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
-  perspectiveOptions?: PerspectiveOptions,
+  settings?: boolean,
 ) {
   const [tableData, setTableData] = React.useState<TableData | null>(null)
 
@@ -52,7 +50,7 @@ function usePerspective(
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
 
-      if (perspectiveOptions?.settings) {
+      if (settings) {
         await viewer.toggleConfig(true)
       }
 
@@ -72,7 +70,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, container, data, perspectiveOptions])
+  }, [attrs, container, data, settings])
 
   return tableData
 }

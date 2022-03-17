@@ -145,14 +145,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PerspectiveProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    PerspectiveOptions {
   context: 'file' | 'listing'
   data: string | ArrayBuffer
   meta: ParquetMetadata
   handle: S3HandleBase
   onLoadMore: () => void
   truncated: boolean
-  perspective?: PerspectiveOptions
 }
 
 export default function Perspective({
@@ -164,7 +165,7 @@ export default function Perspective({
   handle,
   onLoadMore,
   truncated,
-  perspective: perspectiveOptions,
+  settings,
   ...props
 }: PerspectiveProps) {
   const classes = useStyles({ context })
@@ -172,7 +173,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const tableData = perspective.use(root, data, attrs, perspectiveOptions)
+  const tableData = perspective.use(root, data, attrs, settings)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>

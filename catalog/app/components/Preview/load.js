@@ -45,7 +45,7 @@ export function getRenderProps(key, options) {
   const { detect } = findLoader(key, options)
   const optionsSpecificToType = detect(key, options)
   return optionsSpecificToType && R.type(optionsSpecificToType) === 'Object'
-    ? R.pick(['style', 'perspective'], optionsSpecificToType)
+    ? R.dissoc('name', optionsSpecificToType)
     : null
 }
 

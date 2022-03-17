@@ -16,10 +16,9 @@ export interface PerspectiveOptions {
   settings?: boolean
 }
 
-export interface TypeExtended {
+export interface TypeExtended extends PerspectiveOptions {
   name: TypeShorthand
   style?: StyleOptions
-  perspective?: PerspectiveOptions
 }
 
 export type Type = TypeShorthand | TypeExtended
