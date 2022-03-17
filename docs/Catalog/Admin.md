@@ -31,6 +31,12 @@ roles.
 
 ![](../imgs/admin-users-roles-create-managed.png)
 
+You must select the default role for all new users, else they will
+not be able to sign in to the Quilt catalog.
+The default role is shown in bold.
+
+![](imgs/admin-set-default-role.png)
+
 ## Buckets
 
 Here you can add or remove buckets from Quilt and configure bucket indexing and
