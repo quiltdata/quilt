@@ -4,11 +4,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
-import type { PerspectiveOptions } from 'containers/Bucket/requests/summarize'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
+import type { PerspectiveOptions } from '../../loaders/summarize'
 import { CONTEXT } from '../../types'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
