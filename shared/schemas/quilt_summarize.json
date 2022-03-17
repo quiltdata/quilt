@@ -59,16 +59,9 @@
             }
           }
         },
-        "perspective": {
-          "type": "object",
-          "properties": {
-            "settings": {
-              "type": "boolean"
-            },
-            "rows": {
-              "type": "number"
-            }
-          }
+        "settings": {
+          "description": "Perspctive specific option. Sets config opened",
+          "type": "boolean"
         }
       },
       "required": ["name"]
