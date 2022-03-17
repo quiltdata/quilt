@@ -480,6 +480,10 @@ function PackageCreationForm({
                       initialValue={defaultLocalFolder}
                       name="localFolder"
                       title="Local directory"
+                      errors={{
+                        required: 'Add directory to create a package',
+                      }}
+                      validate={validators.required as FF.FieldValidator<string>}
                     />
                   ) : (
                     <RF.Field

@@ -14,6 +14,8 @@ import { getMetaValue, getWorkflowApiParam } from 'containers/Bucket/requests/pa
 
 import * as FI from './PackageDialog/FilesInput'
 
+const fakeProgress = { loaded: 0, percent: 0, total: 0 }
+
 interface UploadPackagePayload {
   message: string
   meta: JsonValue
@@ -103,7 +105,17 @@ export function LocalFolderInput({
   return (
     <FI.Root className={className}>
       <FI.Header>
-        <FI.HeaderTitle>{title}</FI.HeaderTitle>
+        <FI.HeaderTitle
+          state={
+            disabledInternal // eslint-disable-line no-nested-ternary
+              ? 'disabled'
+              : error // eslint-disable-line no-nested-ternary
+              ? 'error'
+              : undefined
+          }
+        >
+          {title}
+        </FI.HeaderTitle>
       </FI.Header>
       <FI.ContentsContainer className={className} outlined={isDragging}>
         <FI.Contents
@@ -111,7 +123,7 @@ export function LocalFolderInput({
           active={isDragActive}
           error={!!error}
         >
-          <FI.FilesContainer error={error} noBorder>
+          <FI.FilesContainer error={!!error} noBorder>
             {value && <FI.Dir name={basename(value)} />}
           </FI.FilesContainer>
           <FI.DropzoneMessage
@@ -119,15 +131,9 @@ export function LocalFolderInput({
             error={error && (errors[error] || error)}
             warn={{ upload: false, s3: false, count: false }}
           />
-          {submitting && <FI.Lock />}
+          {submitting && <FI.Lock progress={fakeProgress} />}
         </FI.Contents>
       </FI.ContentsContainer>
-
-      {!!error && (
-        <M.FormHelperText error margin="dense">
-          {errors[error] || error}
-        </M.FormHelperText>
-      )}
     </FI.Root>
   )
 }
