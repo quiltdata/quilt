@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-import type * as Summarize from 'containers/Bucket/requests/summarize'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -10,6 +9,7 @@ import mkSearch from 'utils/mkSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
+import * as summarize from './summarize'
 
 import * as utils from './utils'
 
@@ -27,19 +27,14 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIs('.tsv')
 
-const FILE_TYPE = 'perspective'
-function detectBySummarizeType(options: Summarize.File): Summarize.Type | undefined {
-  return (options as Summarize.FileExtended)?.types?.find(
-    (type) => type === FILE_TYPE || (type as Summarize.TypeExtended).name === FILE_TYPE,
-  )
-}
+const detectBySummarizeType = summarize.detect('perspective')
 
 const detectByExtension: (key: string) => boolean = R.pipe(
   utils.stripCompression,
   R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
 )
 
-export function detect(key: string, options: Summarize.File): boolean | Summarize.Type {
+export function detect(key: string, options: summarize.File): boolean | summarize.Type {
   const optionsSpecificToType = detectBySummarizeType(options)
   if (optionsSpecificToType) return optionsSpecificToType
 
