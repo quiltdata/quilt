@@ -44,7 +44,7 @@ function usePerspective(
   React.useEffect(() => {
     let table: Table, viewer: HTMLPerspectiveViewerElement
 
-    async function fetchData() {
+    async function renderData() {
       if (!container) return
 
       viewer = renderViewer(container, attrs)
@@ -59,7 +59,7 @@ function usePerspective(
         size,
       })
     }
-    fetchData()
+    renderData()
 
     async function disposeTable() {
       viewer?.parentNode?.removeChild(viewer)
