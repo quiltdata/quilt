@@ -1,10 +1,40 @@
-import type * as Summarize from 'containers/Bucket/requests/summarize'
+export type TypeShorthand =
+  | 'echarts'
+  | 'json'
+  | 'jupyter'
+  | 'perspective'
+  | 'vega'
+  | 'voila'
 
-export * from 'containers/Bucket/requests/summarize'
+export type FileShortcut = string
 
-export function detect(fileType: Summarize.TypeShorthand) {
-  return (options: Summarize.File): Summarize.Type | undefined =>
-    (options as Summarize.FileExtended)?.types?.find(
-      (type) => type === fileType || (type as Summarize.TypeExtended).name === fileType,
+export interface StyleOptions {
+  height?: string
+}
+
+export interface PerspectiveOptions {
+  settings?: boolean
+}
+
+export interface TypeExtended extends PerspectiveOptions {
+  name: TypeShorthand
+  style?: StyleOptions
+}
+
+export type Type = TypeShorthand | TypeExtended
+
+export interface FileExtended {
+  path: FileShortcut
+  description?: string
+  title?: string
+  types?: Type[]
+}
+
+export type File = FileShortcut | FileExtended
+
+export function detect(fileType: TypeShorthand) {
+  return (options: File): Type | undefined =>
+    (options as FileExtended)?.types?.find(
+      (type) => type === fileType || (type as TypeExtended).name === fileType,
     )
 }
