@@ -96,22 +96,27 @@ export function LocalFolderInput({
   })
 
   return (
-    <FI.ContentsContainer className={className} outlined={isDragging}>
-      <FI.Contents
-        {...getRootProps({ onClick: handleClick })}
-        active={isDragActive}
-        error={!!error}
-      >
-        <FI.FilesContainer error={error}>
-          {value && <FI.Dir name={basename(value)} />}
-        </FI.FilesContainer>
-        <FI.DropzoneMessage
-          label="Drop directory or click to browse"
-          error={error && (errors[error] || error)}
-          warn={{ upload: false, s3: false, count: false }}
-        />
-        {submitting && <FI.Lock />}
-      </FI.Contents>
-    </FI.ContentsContainer>
+    <FI.Root className={className}>
+      <FI.Header>
+        <FI.HeaderTitle>Local directory</FI.HeaderTitle>
+      </FI.Header>
+      <FI.ContentsContainer className={className} outlined={isDragging}>
+        <FI.Contents
+          {...getRootProps({ onClick: handleClick })}
+          active={isDragActive}
+          error={!!error}
+        >
+          <FI.FilesContainer error={error} noBorder>
+            {value && <FI.Dir name={basename(value)} />}
+          </FI.FilesContainer>
+          <FI.DropzoneMessage
+            label="Drop directory or click to browse"
+            error={error && (errors[error] || error)}
+            warn={{ upload: false, s3: false, count: false }}
+          />
+          {submitting && <FI.Lock />}
+        </FI.Contents>
+      </FI.ContentsContainer>
+    </FI.Root>
   )
 }

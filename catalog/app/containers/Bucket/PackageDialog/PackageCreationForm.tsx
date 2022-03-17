@@ -473,8 +473,11 @@ function PackageCreationForm({
                 <Layout.RightColumn>
                   {desktop ? (
                     <RF.Field
-                      name="localFolder"
+                      className={cx(classes.files, {
+                        [classes.filesWithError]: !!entriesError,
+                      })}
                       component={Upload.LocalFolderInput}
+                      name="localFolder"
                       initialValue={defaultLocalFolder}
                     />
                   ) : (

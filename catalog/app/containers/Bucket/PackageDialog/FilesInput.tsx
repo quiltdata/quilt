@@ -790,7 +790,10 @@ const useRootStyles = M.makeStyles({
   },
 })
 
-function Root({ className, ...props }: React.PropsWithChildren<{ className?: string }>) {
+export function Root({
+  className,
+  ...props
+}: React.PropsWithChildren<{ className?: string }>) {
   const classes = useRootStyles()
   return <div className={cx(classes.root, className)} {...props} />
 }
@@ -802,7 +805,7 @@ const useHeaderStyles = M.makeStyles({
   },
 })
 
-function Header(props: React.PropsWithChildren<{}>) {
+export function Header(props: React.PropsWithChildren<{}>) {
   const classes = useHeaderStyles()
   return <div className={classes.root} {...props} />
 }
@@ -829,7 +832,7 @@ const useHeaderTitleStyles = M.makeStyles((t) => ({
 
 type HeaderTitleState = 'disabled' | 'error' | 'warn' | 'regular'
 
-function HeaderTitle({
+export function HeaderTitle({
   state = 'regular',
   ...props
 }: React.PropsWithChildren<{ state?: HeaderTitleState }>) {
