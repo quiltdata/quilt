@@ -298,9 +298,8 @@ function PackageCreationForm({
     try {
       if (desktop) {
         return await onSubmitElectron(args as SumbmitElectronArgs)
-      } else {
-        return await onSubmitWeb(args as SumbmitWebArgs)
       }
+      return await onSubmitWeb(args as SumbmitWebArgs)
     } finally {
       setSubmitting(false)
     }
