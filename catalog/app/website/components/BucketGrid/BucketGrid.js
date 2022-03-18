@@ -6,6 +6,81 @@ import { fade } from '@material-ui/core/styles'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 
+function Bucket({ bucket, onTagClick, shared, tagIsMatching }) {
+  const b = bucket
+  const [open, setOpen] = React.useState()
+  const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <div className={classes.bucket}>
+      {shared && (
+        <M.Dialog open={open} onClose={() => setOpen(false)}>
+          <M.DialogContent>
+            <M.List dense>
+              <M.ListItem>
+                <M.ListItemIcon>
+                  <M.Icon>account_circle</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary="fiskus@quiltdata.io"></M.ListItemText>
+              </M.ListItem>
+              <M.ListItem>
+                <M.ListItemIcon>
+                  <M.Icon>account_circle</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary="fiskus@quiltdata.io"></M.ListItemText>
+              </M.ListItem>
+              <M.ListItem>
+                <M.ListItemIcon>
+                  <M.Icon>account_circle</M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary="fiskus@quiltdata.io"></M.ListItemText>
+              </M.ListItem>
+            </M.List>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button onClick={() => setOpen(false)}>Close</M.Button>
+          </M.DialogActions>
+        </M.Dialog>
+      )}
+
+      <div className={classes.shared}>
+        {shared && (
+          <M.Tooltip title="Click to view list of collaborators">
+            <M.Icon onClick={() => setOpen(true)}>group</M.Icon>
+          </M.Tooltip>
+        )}
+      </div>
+
+      <Link className={classes.title} to={urls.bucketRoot(b.name)}>
+        {b.title}
+      </Link>
+      <Link className={classes.name} to={urls.bucketRoot(b.name)}>
+        s3://{b.name}
+      </Link>
+      {!!b.description && <p className={classes.desc}>{b.description}</p>}
+      <M.Box flexGrow={1} />
+      {!!b.tags && !!b.tags.length && (
+        <div className={classes.tags}>
+          {b.tags.map((t) => (
+            <button
+              key={t}
+              className={cx(
+                classes.tag,
+                tagIsMatching(t) && classes.matching,
+                !!onTagClick && classes.active,
+              )}
+              type="button"
+              onClick={() => onTagClick(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
@@ -44,6 +119,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     padding: t.spacing(4),
+    position: 'relative',
   },
   title: {
     ...t.typography.h6,
@@ -73,6 +149,13 @@ const useStyles = M.makeStyles((t) => ({
   },
   active: {},
   matching: {},
+  shared: {
+    color: t.palette.text.hint,
+    cursor: 'pointer',
+    position: 'absolute',
+    right: t.spacing(4),
+    top: t.spacing(4),
+  },
   tag: {
     ...t.typography.body2,
     background: fade(t.palette.secondary.main, 0.3),
@@ -105,35 +188,14 @@ export default React.forwardRef(function BucketGrid(
   const { urls } = NamedRoutes.use()
   return (
     <div className={classes.root} ref={ref}>
-      {buckets.map((b) => (
-        <div key={b.name} className={classes.bucket}>
-          <Link className={classes.title} to={urls.bucketRoot(b.name)}>
-            {b.title}
-          </Link>
-          <Link className={classes.name} to={urls.bucketRoot(b.name)}>
-            s3://{b.name}
-          </Link>
-          {!!b.description && <p className={classes.desc}>{b.description}</p>}
-          <M.Box flexGrow={1} />
-          {!!b.tags && !!b.tags.length && (
-            <div className={classes.tags}>
-              {b.tags.map((t) => (
-                <button
-                  key={t}
-                  className={cx(
-                    classes.tag,
-                    tagIsMatching(t) && classes.matching,
-                    !!onTagClick && classes.active,
-                  )}
-                  type="button"
-                  onClick={() => onTagClick(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {buckets.map((b, i) => (
+        <Bucket
+          bucket={b}
+          key={b.name}
+          onTagClick={onTagClick}
+          shared={i % 4 === 0}
+          tagIsMatching={tagIsMatching}
+        />
       ))}
       {showAddLink && (
         <Link className={classes.add} to={urls.adminBuckets()}>

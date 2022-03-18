@@ -5,6 +5,59 @@ import * as M from '@material-ui/core'
 import BucketSelect from './BucketSelect'
 import Search from './Search'
 
+const useSharedStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    marginLeft: t.spacing(2),
+    height: '24px',
+    position: 'relative',
+  },
+  userpic: {
+    height: '24px',
+    width: '24px',
+    fontSize: '13px',
+    position: 'absolute',
+    zIndex: 50,
+    '& + &': {
+      backgroundColor: t.palette.error.dark,
+      left: t.spacing(1.5),
+      zIndex: 40,
+    },
+    '& + & + &': {
+      backgroundColor: t.palette.success.dark,
+      left: t.spacing(3),
+      zIndex: 30,
+    },
+    '& + & + & + &': {
+      backgroundColor: t.palette.warning.dark,
+      left: t.spacing(4.5),
+      zIndex: 20,
+    },
+    '& + & + & + & + &': {
+      backgroundColor: t.palette.secondary.light,
+      left: t.spacing(6),
+      zIndex: 10,
+    },
+  },
+}))
+
+function Shared() {
+  const classes = useSharedStyles()
+  return (
+    <div className={classes.root}>
+      <M.Avatar className={classes.userpic} style={{ fontSize: '16px' }}>
+        <M.Icon color="action" fontSize="inherit">
+          visibility
+        </M.Icon>
+      </M.Avatar>
+      <M.Avatar className={classes.userpic}>FI</M.Avatar>
+      <M.Avatar className={classes.userpic}>NL</M.Avatar>
+      <M.Avatar className={classes.userpic}>SE</M.Avatar>
+      <M.Avatar className={classes.userpic}>AN</M.Avatar>
+    </div>
+  )
+}
+
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
     textTransform: 'none !important',
@@ -98,6 +151,7 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
+      <Shared />
       <Search
         bucket={bucket}
         onFocus={search}
