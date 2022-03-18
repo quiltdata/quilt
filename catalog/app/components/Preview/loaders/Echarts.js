@@ -10,11 +10,11 @@ import * as Resource from 'utils/Resource'
 import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
+
+import * as summarize from './summarize'
 import * as utils from './utils'
 
-const FILE_TYPE = 'echarts'
-export const detect = (key, options) =>
-  options?.types?.find((type) => type === FILE_TYPE || type.name === FILE_TYPE)
+export const detect = (key, options) => summarize.detect('echarts')(options)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 

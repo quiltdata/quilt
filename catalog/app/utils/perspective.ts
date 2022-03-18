@@ -37,24 +37,29 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
+  settings?: boolean,
 ) {
   const [tableData, setTableData] = React.useState<TableData | null>(null)
 
   React.useEffect(() => {
     let table: Table, viewer: HTMLPerspectiveViewerElement
 
-    async function fetchData() {
+    async function renderData() {
       if (!container) return
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
+
+      if (settings) {
+        await viewer.toggleConfig(true)
+      }
 
       const size = await table.size()
       setTableData({
         size,
       })
     }
-    fetchData()
+    renderData()
 
     async function disposeTable() {
       viewer?.parentNode?.removeChild(viewer)
@@ -65,7 +70,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, container, data])
+  }, [attrs, container, data, settings])
 
   return tableData
 }

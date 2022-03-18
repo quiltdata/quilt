@@ -526,11 +526,11 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
   const shownEntries = R.take(shown, entries)
   return (
     <div className={classes.root}>
-      {shownEntries.map((file) => (
+      {shownEntries.map((file, i) => (
         <Row
-          key={
+          key={`${
             Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
-          }
+          }_${i}`}
           file={file}
           mkUrl={mkUrl}
           packageHandle={packageHandle}
