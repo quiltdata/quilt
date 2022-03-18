@@ -285,7 +285,25 @@ Load More to fetch up to about 6MB of zipped data. Beyond this size, click Downl
 to see the entire file contents.
 
 In order to open the analysis and visualization capabilities of Perspecitve,
-click the vertical ellipsis, upper left. Click, drag, and drop columns to explore
-the data.
+click the vertical ellipsis, upper left. You can hold this settings UI opened
+on page load in files showed with `quilt_summarize.json` by providing additional
+configuration:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "file1.csv",
+    "types": [
+      {
+        "name": "perspective",
+        "settings": true
+      }
+    ]
+  }
+]
+```
+
+Click, drag, and drop columns to explore the data.
 
 ![](../imgs/perspective.png)
