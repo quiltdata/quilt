@@ -35,10 +35,7 @@ const detectByExtension: (key: string) => boolean = R.pipe(
 )
 
 export function detect(key: string, options: summarize.File): boolean | summarize.Type {
-  const optionsSpecificToType = detectBySummarizeType(options)
-  if (optionsSpecificToType) return optionsSpecificToType
-
-  return detectByExtension(key)
+  return detectBySummarizeType(options) || detectByExtension(key)
 }
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
