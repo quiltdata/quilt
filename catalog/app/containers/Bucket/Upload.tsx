@@ -64,11 +64,11 @@ function getFilesFromEvent(event: DropEvent) {
 
 interface LocalFolderInputProps {
   className?: string
+  disabled?: boolean
+  errors?: Record<string, React.ReactNode>
   input: RF.FieldInputProps<string>
   meta: RF.FieldMetaState<string>
-  errors?: Record<string, React.ReactNode>
   title: React.ReactNode
-  disabled?: boolean
 }
 
 export function LocalFolderInput({
