@@ -16,10 +16,14 @@ export interface PerspectiveOptions {
   settings?: boolean
 }
 
-export interface TypeExtended extends PerspectiveOptions {
+interface TypeExtendedEssentials {
   name: TypeShorthand
   style?: StyleOptions
 }
+
+// Add new specific options like this:
+// export type TypeExtended = TypeExtendedEssentials & (PerspectiveOptions | EchartsOptions)
+export type TypeExtended = TypeExtendedEssentials & PerspectiveOptions
 
 export type Type = TypeShorthand | TypeExtended
 
