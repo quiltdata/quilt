@@ -9,6 +9,7 @@ import mkSearch from 'utils/mkSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
+import * as summarize from './summarize'
 
 import * as utils from './utils'
 
@@ -26,10 +27,16 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIs('.tsv')
 
-export const detect: (key: string) => boolean = R.pipe(
+const detectBySummarizeType = summarize.detect('perspective')
+
+const detectByExtension: (key: string) => boolean = R.pipe(
   utils.stripCompression,
   R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
 )
+
+export function detect(key: string, options: summarize.File): boolean | summarize.Type {
+  return detectBySummarizeType(options) || detectByExtension(key)
+}
 
 type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
 

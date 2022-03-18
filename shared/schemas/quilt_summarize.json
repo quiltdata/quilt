@@ -40,7 +40,7 @@
 
     "typeShorthand": {
       "type": "string",
-      "enum": ["echarts", "json", "jupyter", "vega", "voila"]
+      "enum": ["echarts", "json", "jupyter", "perspective", "vega", "voila"]
     },
 
     "typeExtended": {
@@ -58,6 +58,10 @@
               "type": "string"
             }
           }
+        },
+        "settings": {
+          "description": "Perspctive specific option. Sets config opened",
+          "type": "boolean"
         }
       },
       "required": ["name"]

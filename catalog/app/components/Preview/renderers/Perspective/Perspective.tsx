@@ -8,6 +8,7 @@ import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
+import type { PerspectiveOptions } from '../../loaders/summarize'
 import { CONTEXT } from '../../types'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
@@ -144,7 +145,9 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PerspectiveProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    PerspectiveOptions {
   context: 'file' | 'listing'
   data: string | ArrayBuffer
   meta: ParquetMetadata
@@ -162,6 +165,7 @@ export default function Perspective({
   handle,
   onLoadMore,
   truncated,
+  settings,
   ...props
 }: PerspectiveProps) {
   const classes = useStyles({ context })
@@ -169,7 +173,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const tableData = perspective.use(root, data, attrs)
+  const tableData = perspective.use(root, data, attrs, settings)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
