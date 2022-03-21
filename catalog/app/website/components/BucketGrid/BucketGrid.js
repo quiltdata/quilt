@@ -15,7 +15,7 @@ function Collaborators({ collaborators }) {
           <M.List dense>
             {collaborators.map(
               ({ collaborator: { email, username }, permissionLevel }) => (
-                <M.ListItem key={email + level + username}>
+                <M.ListItem key={email + permissionLevel + username}>
                   <M.ListItemIcon>
                     <M.Icon>account_circle</M.Icon>
                   </M.ListItemIcon>
