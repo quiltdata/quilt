@@ -3,7 +3,6 @@ import { basename } from 'path'
 import * as React from 'react'
 import { DropEvent, useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
-import * as M from '@material-ui/core'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import useDragging from 'utils/dragging'
