@@ -236,9 +236,78 @@ async def dir_view(
     )
 
 
+@dataclasses.dataclass
+class FlatView:
+    entries: T.List[dict]  # {logical_key: str, physical_key: str, size: float, hash: str, meta: dict}
+    meta: dict
+
+
+async def flat_view(
+    bucket: str,
+    manifest: str,
+    limit: T.Optional[int] = None,
+    offset: T.Optional[int] = None,
+) -> FlatView:
+    validate(
+        isinstance(bucket, str) and bucket,
+        f"flat_view: bucket must be a non-empty string (given: {bucket!r})",
+    )
+    validate(
+        isinstance(manifest, str) and manifest,
+        f"flat_view: manifest must be a non-empty string (given: {manifest!r})",
+    )
+    validate(
+        limit is None or isinstance(limit, int) and limit > 0,
+        f"flat_view: limit must be a positive int if provided (given: {limit!r})",
+    )
+    validate(
+        offset is None or isinstance(offset, int) and offset >= 0,
+        f"flat_view: offset must be a non-negative int if provided (given: {offset!r})",
+    )
+
+    if limit is None:
+        limit = 1000
+    if offset is None:
+        offset = 0
+
+    meta = asyncio.create_task(select_meta(bucket, manifest))
+
+    # skip first row (header) by increasing offset by 1
+    sql_stmt = \
+        f"""
+        SELECT
+            s.logical_key,
+            s.physical_keys[0] as physical_key,
+            s."size",
+            s.hash."value" as hash,
+            s.meta
+        FROM s3object s
+        LIMIT {limit}
+        OFFSET {offset + 1}
+        """
+
+    result = await select(bucket, manifest, sql_stmt)
+
+    df = (
+        pd.read_json(
+            result,
+            lines=True,
+            dtype=dict(logical_key="string", physical_key="string"),
+        )
+        if result is not None
+        else pd.DataFrame()
+    )
+
+    return FlatView(
+        entries=df.to_dict(orient="records"),
+        meta=await meta,
+    )
+
+
 actions = {
     "file": file_view,
     "dir": dir_view,
+    "flat": flat_view,
 }
 
 
