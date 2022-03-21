@@ -210,7 +210,7 @@ const makeBackendRequest: BackendRequest = (
     body,
   })
 
-const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
+export const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
   value
     ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
@@ -221,7 +221,7 @@ const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
       )
     : undefined
 
-const getWorkflowApiParam = R.cond([
+export const getWorkflowApiParam = R.cond([
   [R.equals(workflows.notAvailable), R.always(undefined)],
   [R.equals(workflows.notSelected), R.always(null)],
   [R.T, R.identity],

@@ -657,7 +657,7 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   onHeadClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
+export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
     name,
     state = 'unchanged',
@@ -733,17 +733,22 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 }))
 
 interface DropzoneMessageProps {
+  label?: React.ReactNode
   error: React.ReactNode
   warn: { upload: boolean; s3: boolean; count: boolean }
 }
 
-function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
+export function DropzoneMessage({
+  label: defaultLabel,
+  error,
+  warn,
+}: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
     if (error) return <span>{error}</span>
     if (!warn.s3 && !warn.count && !warn.upload) {
-      return <span>Drop files here or click to browse</span>
+      return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
     }
     return (
       <div>
@@ -764,7 +769,7 @@ function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
         )}
       </div>
     )
-  }, [error, warn.upload, warn.s3, warn.count])
+  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
 
   return (
     <div
@@ -785,7 +790,10 @@ const useRootStyles = M.makeStyles({
   },
 })
 
-function Root({ className, ...props }: React.PropsWithChildren<{ className?: string }>) {
+export function Root({
+  className,
+  ...props
+}: React.PropsWithChildren<{ className?: string }>) {
   const classes = useRootStyles()
   return <div className={cx(classes.root, className)} {...props} />
 }
@@ -797,7 +805,7 @@ const useHeaderStyles = M.makeStyles({
   },
 })
 
-function Header(props: React.PropsWithChildren<{}>) {
+export function Header(props: React.PropsWithChildren<{}>) {
   const classes = useHeaderStyles()
   return <div className={classes.root} {...props} />
 }
@@ -824,7 +832,7 @@ const useHeaderTitleStyles = M.makeStyles((t) => ({
 
 type HeaderTitleState = 'disabled' | 'error' | 'warn' | 'regular'
 
-function HeaderTitle({
+export function HeaderTitle({
   state = 'regular',
   ...props
 }: React.PropsWithChildren<{ state?: HeaderTitleState }>) {
@@ -872,7 +880,7 @@ const useLockStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Lock({
+export function Lock({
   progress,
 }: {
   progress?: {
@@ -935,7 +943,7 @@ type FilesContainerProps = React.PropsWithChildren<{
   noBorder?: boolean
 }>
 
-function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
+export function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
   const classes = useFilesContainerStyles()
   return (
     <div
@@ -970,7 +978,11 @@ type ContentsContainerProps = {
   outlined?: boolean
 } & React.HTMLAttributes<HTMLDivElement>
 
-function ContentsContainer({ outlined, className, ...props }: ContentsContainerProps) {
+export function ContentsContainer({
+  outlined,
+  className,
+  ...props
+}: ContentsContainerProps) {
   const classes = useContentsContainerStyles()
   return (
     <div
@@ -1013,7 +1025,7 @@ interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
   warn?: boolean
 }
 
-const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
+export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
   { interactive, active, error, warn, className, ...props },
   ref,
 ) {

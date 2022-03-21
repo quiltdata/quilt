@@ -11,11 +11,14 @@ import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Config from 'utils/Config'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
+import * as Download from '../Download'
+import * as Upload from '../Upload'
 import * as requests from '../requests'
 
 import DialogError from './DialogError'
@@ -54,7 +57,7 @@ export interface S3Entry {
 
 export interface PackageCreationSuccess {
   name: string
-  hash: string
+  hash?: string
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -123,6 +126,7 @@ function PackageCreationForm({
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
+  const { desktop }: { desktop: boolean } = Config.use()
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
@@ -156,20 +160,38 @@ function PackageCreationForm({
   const createPackage = requests.useCreatePackage()
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
-  const onSubmit = async ({
-    name,
-    msg,
-    files,
-    meta,
-    workflow,
-  }: {
+  const uploadPackage = Upload.useUploadPackage()
+
+  interface SumbmitArgs {
     name: string
     msg: string
-    files: FI.FilesState
     meta: {}
+    localFolder?: string
     workflow: workflows.Workflow
-    // eslint-disable-next-line consistent-return
-  }) => {
+  }
+  interface SumbmitWebArgs extends SumbmitArgs {
+    files: FI.FilesState
+  }
+  interface SumbmitElectronArgs extends SumbmitArgs {
+    localFolder: string
+  }
+
+  const onSubmitElectron = React.useCallback(
+    async ({ name, msg, localFolder, meta, workflow }: SumbmitElectronArgs) => {
+      const payload = {
+        entry: localFolder || '',
+        message: msg,
+        meta,
+        workflow,
+      }
+      const uploadResult = await uploadPackage(payload, { name, bucket }, schema)
+      setSuccess({ name, hash: uploadResult?.hash })
+      return null
+    },
+    [bucket, schema, setSuccess, uploadPackage],
+  )
+
+  const onSubmitWeb = async ({ name, msg, files, meta, workflow }: SumbmitWebArgs) => {
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
@@ -271,10 +293,13 @@ function PackageCreationForm({
     }
   }
 
-  const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
+  const onSubmitWrapped = async (args: SumbmitWebArgs | SumbmitElectronArgs) => {
     setSubmitting(true)
     try {
-      return await onSubmit(...args)
+      if (desktop) {
+        return await onSubmitElectron(args as SumbmitElectronArgs)
+      }
+      return await onSubmitWeb(args as SumbmitWebArgs)
     } finally {
       setSubmitting(false)
     }
@@ -334,6 +359,9 @@ function PackageCreationForm({
 
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
+
+  // TODO: move useLocalFolder to its own component shared by Download and Upload
+  const [defaultLocalFolder] = Download.useLocalFolder()
 
   return (
     <RF.Form
@@ -442,34 +470,50 @@ function PackageCreationForm({
                 </Layout.LeftColumn>
 
                 <Layout.RightColumn>
-                  <RF.Field
-                    className={cx(classes.files, {
-                      [classes.filesWithError]: !!entriesError,
-                    })}
-                    // @ts-expect-error
-                    component={FI.FilesInput}
-                    name="files"
-                    validate={validateFiles as FF.FieldValidator<$TSFixMe>}
-                    validateFields={['files']}
-                    errors={{
-                      nonEmpty: 'Add files to create a package',
-                      schema: 'Files should match schema',
-                      [FI.HASHING]: 'Please wait while we hash the files',
-                      [FI.HASHING_ERROR]:
-                        'Error hashing files, probably some of them are too large. Please try again or contact support.',
-                    }}
-                    totalProgress={uploads.progress}
-                    title="Files"
-                    onFilesAction={onFilesAction}
-                    isEqual={R.equals}
-                    initialValue={initialFiles}
-                    bucket={selectedBucket}
-                    buckets={sourceBuckets.list}
-                    selectBucket={selectBucket}
-                    delayHashing={delayHashing}
-                    disableStateDisplay={disableStateDisplay}
-                    ui={{ reset: ui.resetFiles }}
-                  />
+                  {desktop ? (
+                    <RF.Field
+                      className={cx(classes.files, {
+                        [classes.filesWithError]: !!entriesError,
+                      })}
+                      component={Upload.LocalFolderInput}
+                      initialValue={defaultLocalFolder}
+                      name="localFolder"
+                      title="Local directory"
+                      errors={{
+                        required: 'Add directory to create a package',
+                      }}
+                      validate={validators.required as FF.FieldValidator<string>}
+                    />
+                  ) : (
+                    <RF.Field
+                      className={cx(classes.files, {
+                        [classes.filesWithError]: !!entriesError,
+                      })}
+                      // @ts-expect-error
+                      component={FI.FilesInput}
+                      name="files"
+                      validate={validateFiles as FF.FieldValidator<$TSFixMe>}
+                      validateFields={['files']}
+                      errors={{
+                        nonEmpty: 'Add files to create a package',
+                        schema: 'Files should match schema',
+                        [FI.HASHING]: 'Please wait while we hash the files',
+                        [FI.HASHING_ERROR]:
+                          'Error hashing files, probably some of them are too large. Please try again or contact support.',
+                      }}
+                      totalProgress={uploads.progress}
+                      title="Files"
+                      onFilesAction={onFilesAction}
+                      isEqual={R.equals}
+                      initialValue={initialFiles}
+                      bucket={selectedBucket}
+                      buckets={sourceBuckets.list}
+                      selectBucket={selectBucket}
+                      delayHashing={delayHashing}
+                      disableStateDisplay={disableStateDisplay}
+                      ui={{ reset: ui.resetFiles }}
+                    />
+                  )}
 
                   <JsonValidationErrors
                     className={classes.filesError}
