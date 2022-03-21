@@ -51,9 +51,9 @@ const useAvatarStyles = M.makeStyles((t) => ({
 function Avatar({ className, email, ...props }: AvatarProps) {
   const classes = useAvatarStyles({ email, ...props })
   return (
-    <M.Avatar title={email} className={cx(classes.root, className)}>
-      {email.substring(0, 2)}
-    </M.Avatar>
+    <M.Tooltip title={email}>
+      <M.Avatar className={cx(classes.root, className)}>{email.substring(0, 2)}</M.Avatar>
+    </M.Tooltip>
   )
 }
 
