@@ -38,7 +38,7 @@ export default function Collaborators({ collaborators }: CollaboratorsProps) {
       const preSorted = R.sortBy(getSortProperty(key))(collaborators)
       setSorted(direction ? preSorted.reverse() : preSorted)
     },
-    [setSort, setSorted],
+    [collaborators, setSort, setSorted],
   )
 
   return (
