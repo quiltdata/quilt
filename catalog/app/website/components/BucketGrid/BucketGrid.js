@@ -6,77 +6,17 @@ import { fade } from '@material-ui/core/styles'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-function Collaborators({ collaborators }) {
-  const [open, setOpen] = React.useState()
-  return (
-    <>
-      <M.Dialog open={open} onClose={() => setOpen(false)}>
-        <M.DialogContent>
-          <M.List dense>
-            {collaborators.map(
-              ({ collaborator: { email, username }, permissionLevel }) => (
-                <M.ListItem key={email + permissionLevel + username}>
-                  <M.ListItemIcon>
-                    <M.Icon>account_circle</M.Icon>
-                  </M.ListItemIcon>
-                  <M.ListItemText primary={username} secondary={email} />
-                </M.ListItem>
-              ),
-            )}
-          </M.List>
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={() => setOpen(false)}>Close</M.Button>
-        </M.DialogActions>
-      </M.Dialog>
-
-      <M.Tooltip title="Click to view list of collaborators">
-        <M.Icon onClick={() => setOpen(true)}>group</M.Icon>
-      </M.Tooltip>
-    </>
-  )
-}
-
-function mockCollaborators(bucket) {
-  Object.assign(bucket, {
-    collaborators: [
-      {
-        collaborator: {
-          email: 'sergey@quiltdata.io',
-          username: 'sergey',
-        },
-        permissionLevel: 'READ_WRITE',
-      },
-      {
-        collaborator: {
-          email: 'nl0@quiltdata.io',
-          username: 'nl0',
-        },
-        permissionLevel: 'READ',
-      },
-      {
-        collaborator: {
-          email: 'fiskus@quiltdata.io',
-          username: 'fiskus',
-        },
-        permissionLevel: 'READ',
-      },
-    ],
-  })
-  return bucket
-}
+import Collaborators from './Collaborators'
 
 function Bucket({ bucket, onTagClick, tagIsMatching }) {
   const b = bucket
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
-  mockCollaborators(b)
-
   return (
     <div className={classes.bucket}>
       <div className={classes.shared}>
-        {b.collaborators.length && <Collaborators collaborators={b.collaborators} />}
+        {b.collaborators?.length && <Collaborators collaborators={b.collaborators} />}
       </div>
 
       <Link className={classes.title} to={urls.bucketRoot(b.name)}>
