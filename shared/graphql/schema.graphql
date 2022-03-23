@@ -17,6 +17,18 @@ type Config {
   contentIndexingSettings: ContentIndexingSettings! @admin
 }
 
+type Collaborator {
+  email: String!
+  username: String!
+}
+
+type CollaboratorBucketConnection {
+  bucket: BucketConfig!
+  collaborator: Collaborator!
+  permissionLevel: BucketPermissionLevel!
+}
+
+
 type BucketConfig {
   name: String!
   title: String!
@@ -33,6 +45,7 @@ type BucketConfig {
   fileExtensionsToIndex: [String!] @admin
   indexContentBytes: Int @admin
   permissions: [RoleBucketPermission!]! @admin
+  collaborators: [CollaboratorBucketConnection!]!
 }
 
 type UnmanagedRole {

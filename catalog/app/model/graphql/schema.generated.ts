@@ -336,6 +336,24 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'collaborators',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'CollaboratorBucketConnection',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -502,6 +520,79 @@ export default {
                 kind: 'OBJECT',
                 name: 'BucketConfig',
                 ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Collaborator',
+        fields: [
+          {
+            name: 'email',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'username',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'CollaboratorBucketConnection',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'BucketConfig',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'collaborator',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Collaborator',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'permissionLevel',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
               },
             },
             args: [],

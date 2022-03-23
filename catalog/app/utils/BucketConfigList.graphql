@@ -8,5 +8,12 @@ query {
     overviewUrl
     tags
     relevanceScore
+    collaborators {
+      collaborator {
+        email
+        username
+      }
+      permissionLevel
+    }
   }
 }
