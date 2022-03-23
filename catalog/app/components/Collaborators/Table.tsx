@@ -18,11 +18,11 @@ function getSortProperty(key: SortKey) {
   }
 }
 
-interface CollaboratorsTableProps {
+interface TableProps {
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
 }
 
-function CollaboratorsTable({ collaborators }: CollaboratorsTableProps) {
+export default function Table({ collaborators }: TableProps) {
   const [sorted, setSorted] = React.useState(collaborators)
   const [sort, setSort] = React.useState<Sort | null>(null)
   const toggleSort = React.useCallback(
@@ -83,24 +83,5 @@ function CollaboratorsTable({ collaborators }: CollaboratorsTableProps) {
         ))}
       </M.TableBody>
     </M.Table>
-  )
-}
-
-interface PopupProps {
-  open: boolean
-  onClose: () => void
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-}
-
-export function Popup({ open, onClose, collaborators }: PopupProps) {
-  return (
-    <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-      <M.DialogContent>
-        <CollaboratorsTable collaborators={collaborators} />
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={onClose}>Close</M.Button>
-      </M.DialogActions>
-    </M.Dialog>
   )
 }

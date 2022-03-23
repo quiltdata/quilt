@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { Avatars, Popup } from 'components/Collaborators'
+import * as style from 'constants/style'
 import * as Model from 'model'
 
 function stringToColor(str: string): string {
@@ -66,71 +68,33 @@ function Avatar({ className, children, email, ...props }: AvatarProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
+  avatars: {
     marginLeft: t.spacing(2),
-    height: '24px',
-    position: 'relative',
+    transition: 'opacity 0.3s ease',
   },
-  more: {
-    position: 'relative',
-    color: t.palette.common.white,
-    lineHeight: '24px',
-    marginLeft: t.spacing(0.5),
-  },
-  userpic: {
-    height: '24px',
-    position: 'relative',
-    width: '24px',
-    textTransform: 'uppercase',
-  },
-  icon: {
-    backgroundColor: t.palette.secondary.main,
-    fontSize: '16px',
-    zIndex: ({ avatarsLength }: { avatarsLength: number }) => (avatarsLength + 1) * 10,
+  hidden: {
+    opacity: 0,
   },
 }))
 
 interface CollaboratorsProps {
+  hidden: boolean
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
 }
 
-export default function Collaborators({ collaborators }: CollaboratorsProps) {
-  const avatars = collaborators.slice(0, 5)
-  const avatarsLength = avatars.length
-
-  const classes = useStyles({ avatarsLength })
-  const [hover, setHover] = React.useState(false)
+export default function Collaborators({ collaborators, hidden }: CollaboratorsProps) {
+  const classes = useStyles()
+  const [open, setOpen] = React.useState(false)
+  const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
+  const handleClose = React.useCallback(() => setOpen(false), [setOpen])
   return (
-    <div
-      className={classes.root}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <M.Avatar className={cx(classes.userpic, classes.icon)}>
-        <M.Icon color="action" fontSize="inherit">
-          visibility
-        </M.Icon>
-      </M.Avatar>
-      {avatars.map(({ collaborator: { email } }, index) => (
-        <Avatar
-          className={classes.userpic}
-          avatarsLength={avatarsLength}
-          email={email}
-          index={index}
-          hover={hover}
-        />
-      ))}
-      {collaborators.length > avatarsLength && (
-        <Avatar
-          className={classes.more}
-          avatarsLength={avatarsLength}
-          index={avatarsLength - 1}
-          hover={hover}
-        >
-          {collaborators.length - avatarsLength} more
-        </Avatar>
-      )}
-    </div>
+    <M.MuiThemeProvider theme={style.appTheme}>
+      <Popup open={open} onClose={handleClose} collaborators={collaborators} />
+      <Avatars
+        onClick={handleOpen}
+        className={cx(classes.avatars, { [classes.hidden]: hidden })}
+        collaborators={collaborators}
+      />
+    </M.MuiThemeProvider>
   )
 }

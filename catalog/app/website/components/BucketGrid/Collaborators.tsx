@@ -1,7 +1,6 @@
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
-import { Popup } from 'components/Collaborators'
+import { Popup, Badge } from 'components/Collaborators'
 import * as Model from 'model'
 
 interface CollaboratorsProps {
@@ -16,17 +15,7 @@ export default function Collaborators({ collaborators }: CollaboratorsProps) {
   return (
     <>
       <Popup open={open} onClose={handleClose} collaborators={collaborators} />
-
-      <M.Tooltip title="Click to view list of collaborators">
-        <M.Badge
-          onClick={handleOpen}
-          badgeContent={collaborators.length}
-          color="secondary"
-          max={99}
-        >
-          <M.Icon>group</M.Icon>
-        </M.Badge>
-      </M.Tooltip>
+      <Badge onClick={handleOpen} collaborators={collaborators} />
     </>
   )
 }
