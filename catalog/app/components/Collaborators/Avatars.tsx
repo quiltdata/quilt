@@ -15,7 +15,7 @@ interface AvatarProps {
 
 const useAvatarStyles = M.makeStyles((t) => ({
   root: ({ email, hover, index, avatarsLength }: AvatarProps) => {
-    // estlint-disable-next-line no-nested-ternary
+    // eslint-disable-next-line no-nested-ternary
     const backgroundColor = !email
       ? undefined
       : index % 2
