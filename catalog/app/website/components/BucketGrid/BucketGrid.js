@@ -15,15 +15,16 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
 
   return (
     <div className={classes.bucket}>
-      <div className={classes.shared}>
-        {b.collaborators?.length && (
-          <Collaborators bucket={b.name} collaborators={b.collaborators} />
-        )}
+      <div>
+        <div className={classes.shared}>
+          {b.collaborators?.length && (
+            <Collaborators bucket={b.name} collaborators={b.collaborators} />
+          )}
+        </div>
+        <Link className={classes.title} to={urls.bucketRoot(b.name)}>
+          {b.title} 111111111
+        </Link>
       </div>
-
-      <Link className={classes.title} to={urls.bucketRoot(b.name)}>
-        {b.title}{b.title}{b.title}
-      </Link>
       <Link className={classes.name} to={urls.bucketRoot(b.name)}>
         s3://{b.name}
       </Link>
@@ -122,9 +123,7 @@ const useStyles = M.makeStyles((t) => ({
   shared: {
     color: t.palette.text.hint,
     cursor: 'pointer',
-    position: 'absolute',
-    right: t.spacing(4),
-    top: t.spacing(4),
+    float: 'right',
   },
   tag: {
     ...t.typography.body2,
