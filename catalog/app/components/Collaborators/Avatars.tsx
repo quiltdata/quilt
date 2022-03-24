@@ -4,26 +4,6 @@ import * as M from '@material-ui/core'
 
 import * as Model from 'model'
 
-function stringToColor(str: string): string {
-  let hash = 0
-  let i
-
-  /* eslint-disable no-bitwise */
-  for (i = 0; i < str.length; i += 1) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash)
-  }
-
-  let color = '#'
-
-  for (i = 0; i < 3; i += 1) {
-    const value = (hash >> (i * 8)) & 0xff
-    color += `00${value.toString(16)}`.substr(-2)
-  }
-  /* eslint-enable no-bitwise */
-
-  return color
-}
-
 interface AvatarProps {
   avatarsLength: number
   children?: React.ReactNode
@@ -35,6 +15,7 @@ interface AvatarProps {
 
 const useAvatarStyles = M.makeStyles((t) => ({
   root: ({ email, hover, index, avatarsLength }: AvatarProps) => {
+    // estlint-disable-next-line no-nested-ternary
     const backgroundColor = !email
       ? undefined
       : index % 2
