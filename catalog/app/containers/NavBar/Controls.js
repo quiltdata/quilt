@@ -103,9 +103,7 @@ function BucketControls({ bucket, iconized, disableSearch }) {
     query: BUCKET_COLLABORATORS,
     variables: { bucket },
   })
-  const {
-    bucketConfig: { collaborators },
-  } = data
+  const collaborators = data?.bucketConfig?.collaborators
 
   return (
     <Container>
