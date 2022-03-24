@@ -8,81 +8,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
 
-function Bucket({ bucket, onTagClick, tagIsMatching }) {
-  const b = bucket
-  const classes = useStyles()
-  const { urls } = NamedRoutes.use()
-
-  return (
-    <div className={classes.bucket}>
-      <div>
-        <div className={classes.shared}>
-          {b.collaborators?.length && (
-            <Collaborators bucket={b.name} collaborators={b.collaborators} />
-          )}
-        </div>
-        <Link className={classes.title} to={urls.bucketRoot(b.name)}>
-          {b.title} 111111111
-        </Link>
-      </div>
-      <Link className={classes.name} to={urls.bucketRoot(b.name)}>
-        s3://{b.name}
-      </Link>
-      {!!b.description && <p className={classes.desc}>{b.description}</p>}
-      <M.Box flexGrow={1} />
-      {!!b.tags && !!b.tags.length && (
-        <div className={classes.tags}>
-          {b.tags.map((t) => (
-            <button
-              key={t}
-              className={cx(
-                classes.tag,
-                tagIsMatching(t) && classes.matching,
-                !!onTagClick && classes.active,
-              )}
-              type="button"
-              onClick={() => onTagClick(t)}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'grid',
-    gridColumnGap: t.spacing(4),
-    gridRowGap: t.spacing(4),
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gridAutoRows: 'auto',
-    [t.breakpoints.down('sm')]: {
-      gridTemplateColumns: '1fr 1fr',
-    },
-    [t.breakpoints.down('xs')]: {
-      gridTemplateColumns: 'auto',
-    },
-  },
-  add: {
-    alignItems: 'center',
-    border: '2px dashed #2f306e',
-    borderRadius: t.spacing(2),
-    color: t.palette.tertiary.main,
-    cursor: 'pointer',
-    display: 'flex',
-    justifyContent: 'center',
-    paddingBottom: 'calc(50% - 2rem - 2px)',
-    paddingTop: 'calc(50% - 2rem - 2px)',
-    '&:hover': {
-      background: fade(t.palette.tertiary.main, 0.04),
-    },
-    '& > span': {
-      fontSize: '4rem',
-    },
-  },
+const useBucketStyles = M.makeStyles((t) => ({
   bucket: {
     background: 'linear-gradient(to top, #1f2151, #2f306e)',
     borderRadius: t.spacing(2),
@@ -145,6 +71,83 @@ const useStyles = M.makeStyles((t) => ({
     },
     '&$matching': {
       background: t.palette.secondary.main,
+    },
+  },
+}))
+
+function Bucket({ bucket, onTagClick, tagIsMatching }) {
+  const b = bucket
+  const classes = useBucketStyles()
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <div className={classes.bucket}>
+      <div>
+        <div className={classes.shared}>
+          {b.collaborators?.length && (
+            <Collaborators bucket={b.name} collaborators={b.collaborators} />
+          )}
+        </div>
+        <Link className={classes.title} to={urls.bucketRoot(b.name)}>
+          {b.title}
+        </Link>
+      </div>
+      <Link className={classes.name} to={urls.bucketRoot(b.name)}>
+        s3://{b.name}
+      </Link>
+      {!!b.description && <p className={classes.desc}>{b.description}</p>}
+      <M.Box flexGrow={1} />
+      {!!b.tags && !!b.tags.length && (
+        <div className={classes.tags}>
+          {b.tags.map((t) => (
+            <button
+              key={t}
+              className={cx(
+                classes.tag,
+                tagIsMatching(t) && classes.matching,
+                !!onTagClick && classes.active,
+              )}
+              type="button"
+              onClick={() => onTagClick(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gridColumnGap: t.spacing(4),
+    gridRowGap: t.spacing(4),
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gridAutoRows: 'auto',
+    [t.breakpoints.down('sm')]: {
+      gridTemplateColumns: '1fr 1fr',
+    },
+    [t.breakpoints.down('xs')]: {
+      gridTemplateColumns: 'auto',
+    },
+  },
+  add: {
+    alignItems: 'center',
+    border: '2px dashed #2f306e',
+    borderRadius: t.spacing(2),
+    color: t.palette.tertiary.main,
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'center',
+    paddingBottom: 'calc(50% - 2rem - 2px)',
+    paddingTop: 'calc(50% - 2rem - 2px)',
+    '&:hover': {
+      background: fade(t.palette.tertiary.main, 0.04),
+    },
+    '& > span': {
+      fontSize: '4rem',
     },
   },
 }))
