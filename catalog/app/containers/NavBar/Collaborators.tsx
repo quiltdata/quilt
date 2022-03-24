@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import { Avatars, Popup } from 'components/Collaborators'
 import * as style from 'constants/style'
 import * as Model from 'model'
+import useHasUnmanagedRole from 'utils/useHasUnmanagedRole'
 
 const useStyles = M.makeStyles((t) => ({
   avatars: {
@@ -17,12 +18,15 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CollaboratorsProps {
-  hidden: boolean
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
+  hidden: boolean
 }
 
 export default function Collaborators({ collaborators, hidden }: CollaboratorsProps) {
   const classes = useStyles()
+
+  const hasUnmanagedRole = useHasUnmanagedRole()
+
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
@@ -30,9 +34,10 @@ export default function Collaborators({ collaborators, hidden }: CollaboratorsPr
     <M.MuiThemeProvider theme={style.appTheme}>
       <Popup open={open} onClose={handleClose} collaborators={collaborators} />
       <Avatars
-        onClick={handleOpen}
         className={cx(classes.avatars, { [classes.hidden]: hidden })}
         collaborators={collaborators}
+        hasUnmanagedRole={hasUnmanagedRole}
+        onClick={handleOpen}
       />
     </M.MuiThemeProvider>
   )

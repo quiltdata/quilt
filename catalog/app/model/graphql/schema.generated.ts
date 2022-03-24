@@ -1597,6 +1597,18 @@ export default {
             ],
           },
           {
+            name: 'hasUnmanagedRole',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'packages',
             type: {
               kind: 'OBJECT',

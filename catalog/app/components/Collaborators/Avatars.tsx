@@ -79,15 +79,26 @@ const useStyles = M.makeStyles((t) => ({
 interface AvatarsProps {
   className?: string
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
+  hasUnmanagedRole: boolean
   onClick: () => void
 }
 
-export default function Avatars({ className, collaborators, onClick }: AvatarsProps) {
+export default function Avatars({
+  className,
+  collaborators,
+  hasUnmanagedRole,
+  onClick,
+}: AvatarsProps) {
   const avatars = collaborators.slice(0, 5)
   const avatarsLength = avatars.length
 
   const classes = useStyles()
   const [hover, setHover] = React.useState(false)
+  const more = React.useMemo(() => {
+    const num = collaborators.length - avatarsLength
+    return hasUnmanagedRole ? `${num}+ more` : `${num} more`
+  }, [avatarsLength, collaborators, hasUnmanagedRole])
+
   return (
     <div
       className={cx(classes.root, className)}
@@ -111,7 +122,7 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
           index={avatarsLength - 1}
           hover={hover}
         >
-          {collaborators.length - avatarsLength} more
+          {more}
         </Avatar>
       )}
     </div>
