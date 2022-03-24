@@ -72,29 +72,26 @@ function Avatar({ className, children, email, ...props }: AvatarProps) {
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
-    height: '24px',
+    height: '36px',
     position: 'relative',
     cursor: 'pointer',
   },
   more: {
     position: 'relative',
     color: t.palette.common.white,
-    lineHeight: '24px',
-    marginLeft: t.spacing(0.5),
-    background: '#2a2d69', // should be the same as NavBar bg
-    padding: t.spacing(0, 2, 0, 0),
+    lineHeight: '36px',
+    marginLeft: '4px',
+    // NOTE: base background color should be the same as NavBar bg
+    background:
+      'linear-gradient(to left, rgba(42,25,105, 0) 0, #2a2d69 32px, #2a2d69 100%)', // should be the same as NavBar bg
+    padding: '0 16px 0 0',
   },
   userpic: {
     height: '24px',
+    marginTop: '6px',
     position: 'relative',
     width: '24px',
     textTransform: 'uppercase',
-  },
-  icon: {
-    backgroundColor: t.palette.info.main,
-    fontSize: '16px',
-    color: t.palette.common.white,
-    zIndex: ({ avatarsLength }: { avatarsLength: number }) => (avatarsLength + 1) * 10,
   },
 }))
 
@@ -108,7 +105,7 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
   const avatars = collaborators.slice(0, 5)
   const avatarsLength = avatars.length
 
-  const classes = useStyles({ avatarsLength })
+  const classes = useStyles()
   const [hover, setHover] = React.useState(false)
   return (
     <div
@@ -117,11 +114,6 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <M.Avatar className={cx(classes.userpic, classes.icon)}>
-        <M.Icon color="inherit" fontSize="inherit">
-          visibility
-        </M.Icon>
-      </M.Avatar>
       {avatars.map(({ collaborator: { email } }, index) => (
         <Avatar
           className={classes.userpic}
