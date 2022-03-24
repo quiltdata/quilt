@@ -18,11 +18,16 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CollaboratorsProps {
+  bucket: string
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
   hidden: boolean
 }
 
-export default function Collaborators({ collaborators, hidden }: CollaboratorsProps) {
+export default function Collaborators({
+  bucket,
+  collaborators,
+  hidden,
+}: CollaboratorsProps) {
   const classes = useStyles()
 
   const hasUnmanagedRole = useHasUnmanagedRole()
@@ -32,7 +37,12 @@ export default function Collaborators({ collaborators, hidden }: CollaboratorsPr
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <Popup open={open} onClose={handleClose} collaborators={collaborators} />
+      <Popup
+        bucket={bucket}
+        open={open}
+        onClose={handleClose}
+        collaborators={collaborators}
+      />
       <Avatars
         className={cx(classes.avatars, { [classes.hidden]: hidden })}
         collaborators={collaborators}

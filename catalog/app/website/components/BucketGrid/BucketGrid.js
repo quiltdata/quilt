@@ -16,11 +16,13 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
   return (
     <div className={classes.bucket}>
       <div className={classes.shared}>
-        {b.collaborators?.length && <Collaborators collaborators={b.collaborators} />}
+        {b.collaborators?.length && (
+          <Collaborators bucket={b.name} collaborators={b.collaborators} />
+        )}
       </div>
 
       <Link className={classes.title} to={urls.bucketRoot(b.name)}>
-        {b.title}
+        {b.title}{b.title}{b.title}
       </Link>
       <Link className={classes.name} to={urls.bucketRoot(b.name)}>
         s3://{b.name}

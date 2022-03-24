@@ -6,10 +6,11 @@ import * as Model from 'model'
 import useHasUnmanagedRole from 'utils/useHasUnmanagedRole'
 
 interface CollaboratorsProps {
+  bucket: string
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
 }
 
-export default function Collaborators({ collaborators }: CollaboratorsProps) {
+export default function Collaborators({ bucket, collaborators }: CollaboratorsProps) {
   const hasUnmanagedRole = useHasUnmanagedRole()
 
   const [open, setOpen] = React.useState(false)
@@ -18,7 +19,12 @@ export default function Collaborators({ collaborators }: CollaboratorsProps) {
 
   return (
     <>
-      <Popup open={open} onClose={handleClose} collaborators={collaborators} />
+      <Popup
+        bucket={bucket}
+        open={open}
+        onClose={handleClose}
+        collaborators={collaborators}
+      />
       <Badge
         onClick={handleOpen}
         collaborators={collaborators}
