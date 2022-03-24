@@ -35,6 +35,9 @@ export default function Collaborators({
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
+
+  if (!collaborators?.length) return null
+
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <Popup
