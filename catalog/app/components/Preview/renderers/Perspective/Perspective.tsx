@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import { TransitionGroup } from 'react-transition-group'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
@@ -12,10 +13,9 @@ import type { PerspectiveOptions } from '../../loaders/summarize'
 import { CONTEXT } from '../../types'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
+  table: {
+    margin: t.spacing(1, 0, 1, 3),
   },
-  meta: {},
   mono: {
     fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
   },
@@ -26,6 +26,20 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
   },
   metaValue: {
     paddingLeft: t.spacing(1),
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  headerIcon: {
+    fontSize: '1.1rem',
+    transform: 'rotate(-90deg)',
+    marginRight: t.spacing(0.5),
+    transition: 'transform 0.3s ease',
+  },
+  headerIconExpanded: {
+    transform: 'rotate(0deg)',
   },
 }))
 
@@ -44,6 +58,8 @@ function ParquetMeta({
   ...props
 }: ParquetMetaProps) {
   const classes = useParquetMetaStyles()
+  const [show, setShow] = React.useState(false)
+  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
   const renderMeta = (
     name: string,
     value: ParquetMetadata[keyof ParquetMetadata],
@@ -57,28 +73,42 @@ function ParquetMeta({
     )
 
   return (
-    <div className={cx(classes.root, className)} {...props}>
-      <table className={classes.meta}>
-        <tbody>
-          {renderMeta('Created by:', createdBy, (c: string) => (
-            <span className={classes.mono}>{c}</span>
-          ))}
-          {renderMeta('Format version:', formatVersion, (v: string) => (
-            <span className={classes.mono}>{v}</span>
-          ))}
-          {renderMeta('# row groups:', numRowGroups)}
-          {renderMeta('Serialized size:', serializedSize)}
-          {renderMeta('Shape:', shape, ({ rows, columns }) => (
-            <span>
-              {rows} rows &times; {columns} columns
-            </span>
-          ))}
-          {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-            /* @ts-expect-error */
-            <JsonDisplay value={s} />
-          ))}
-        </tbody>
-      </table>
+    <div className={className} {...props}>
+      <M.Typography className={classes.header} onClick={toggleShow}>
+        <M.Icon
+          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
+        >
+          expand_more
+        </M.Icon>
+        Parquet metadata
+      </M.Typography>
+      <TransitionGroup>
+        {show && (
+          <M.Collapse in={show}>
+            <table className={classes.table}>
+              <tbody>
+                {renderMeta('Created by:', createdBy, (c: string) => (
+                  <span className={classes.mono}>{c}</span>
+                ))}
+                {renderMeta('Format version:', formatVersion, (v: string) => (
+                  <span className={classes.mono}>{v}</span>
+                ))}
+                {renderMeta('# row groups:', numRowGroups)}
+                {renderMeta('Serialized size:', serializedSize)}
+                {renderMeta('Shape:', shape, ({ rows, columns }) => (
+                  <span>
+                    {rows} rows &times; {columns} columns
+                  </span>
+                ))}
+                {renderMeta('Schema:', schema, (s: { names: string[] }) => (
+                  /* @ts-expect-error */
+                  <JsonDisplay value={s} />
+                ))}
+              </tbody>
+            </table>
+          </M.Collapse>
+        )}
+      </TransitionGroup>
     </div>
   )
 }
