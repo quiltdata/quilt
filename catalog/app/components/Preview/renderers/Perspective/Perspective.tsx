@@ -1,7 +1,6 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { TransitionGroup } from 'react-transition-group'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
@@ -82,33 +81,29 @@ function ParquetMeta({
         </M.Icon>
         Parquet metadata
       </M.Typography>
-      <TransitionGroup>
-        {show && (
-          <M.Collapse in={show}>
-            <table className={classes.table}>
-              <tbody>
-                {renderMeta('Created by:', createdBy, (c: string) => (
-                  <span className={classes.mono}>{c}</span>
-                ))}
-                {renderMeta('Format version:', formatVersion, (v: string) => (
-                  <span className={classes.mono}>{v}</span>
-                ))}
-                {renderMeta('# row groups:', numRowGroups)}
-                {renderMeta('Serialized size:', serializedSize)}
-                {renderMeta('Shape:', shape, ({ rows, columns }) => (
-                  <span>
-                    {rows} rows &times; {columns} columns
-                  </span>
-                ))}
-                {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-                  /* @ts-expect-error */
-                  <JsonDisplay value={s} />
-                ))}
-              </tbody>
-            </table>
-          </M.Collapse>
-        )}
-      </TransitionGroup>
+      <M.Collapse in={show}>
+        <table className={classes.table}>
+          <tbody>
+            {renderMeta('Created by:', createdBy, (c: string) => (
+              <span className={classes.mono}>{c}</span>
+            ))}
+            {renderMeta('Format version:', formatVersion, (v: string) => (
+              <span className={classes.mono}>{v}</span>
+            ))}
+            {renderMeta('# row groups:', numRowGroups)}
+            {renderMeta('Serialized size:', serializedSize)}
+            {renderMeta('Shape:', shape, ({ rows, columns }) => (
+              <span>
+                {rows} rows &times; {columns} columns
+              </span>
+            ))}
+            {renderMeta('Schema:', schema, (s: { names: string[] }) => (
+              /* @ts-expect-error */
+              <JsonDisplay value={s} />
+            ))}
+          </tbody>
+        </table>
+      </M.Collapse>
     </div>
   )
 }
