@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 import { Avatars, Popup } from 'components/Collaborators'
 import * as style from 'constants/style'
 import * as Model from 'model'
-import useHasUnmanagedRole from 'utils/useHasUnmanagedRole'
+import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 const useStyles = M.makeStyles((t) => ({
   avatars: {
@@ -30,7 +30,7 @@ export default function Collaborators({
 }: CollaboratorsProps) {
   const classes = useStyles()
 
-  const hasUnmanagedRoles = useHasUnmanagedRole()
+  const hasUnmanagedRoles = usePotentialCollaborators()
 
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])

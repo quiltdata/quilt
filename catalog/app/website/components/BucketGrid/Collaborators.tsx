@@ -3,7 +3,7 @@ import * as React from 'react'
 import { Popup, Badge } from 'components/Collaborators'
 import * as Model from 'model'
 
-import useHasUnmanagedRole from 'utils/useHasUnmanagedRole'
+import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 interface CollaboratorsProps {
   bucket: string
@@ -11,7 +11,7 @@ interface CollaboratorsProps {
 }
 
 export default function Collaborators({ bucket, collaborators }: CollaboratorsProps) {
-  const hasUnmanagedRoles = useHasUnmanagedRole()
+  const hasUnmanagedRoles = usePotentialCollaborators()
 
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
