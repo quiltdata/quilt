@@ -99,12 +99,19 @@ export default function Avatars({
     return !!potentialCollaborators ? `${num}+ more` : `${num} more`
   }, [avatarsLength, collaborators, potentialCollaborators])
 
+  const handleMouseEnter = React.useCallback(() => {
+    if (avatarsLength > 1) setHover(true)
+  }, [avatarsLength])
+  const handleMouseLeave = React.useCallback(() => {
+    if (avatarsLength > 1) setHover(false)
+  }, [avatarsLength])
+
   return (
     <div
       className={cx(classes.root, className)}
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {avatars.map(({ collaborator: { email } }, index) => (
         <Avatar
