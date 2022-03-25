@@ -21,7 +21,7 @@ interface PopupProps {
   bucket: string
   onClose: () => void
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  hasUnmanagedRole: boolean
+  hasUnmanagedRoles: boolean
 }
 
 export default function Popup({
@@ -29,7 +29,7 @@ export default function Popup({
   open,
   onClose,
   collaborators,
-  hasUnmanagedRole,
+  hasUnmanagedRoles,
 }: PopupProps) {
   const classes = useStyles()
   return (
@@ -43,7 +43,7 @@ export default function Popup({
         </div>
       </M.DialogTitle>
       <M.DialogContent>
-        <Table collaborators={collaborators} hasUnmanagedRole={hasUnmanagedRole} />
+        <Table collaborators={collaborators} hasUnmanagedRoles={hasUnmanagedRoles} />
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onClose}>Close</M.Button>

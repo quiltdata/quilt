@@ -1597,7 +1597,7 @@ export default {
             ],
           },
           {
-            name: 'hasUnmanagedRole',
+            name: 'hasUnmanagedRoles',
             type: {
               kind: 'NON_NULL',
               ofType: {

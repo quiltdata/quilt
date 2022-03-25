@@ -11,7 +11,7 @@ interface CollaboratorsProps {
 }
 
 export default function Collaborators({ bucket, collaborators }: CollaboratorsProps) {
-  const hasUnmanagedRole = useHasUnmanagedRole()
+  const hasUnmanagedRoles = useHasUnmanagedRole()
 
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
@@ -22,14 +22,14 @@ export default function Collaborators({ bucket, collaborators }: CollaboratorsPr
       <Popup
         bucket={bucket}
         collaborators={collaborators}
-        hasUnmanagedRole={hasUnmanagedRole}
+        hasUnmanagedRoles={hasUnmanagedRoles}
         onClose={handleClose}
         open={open}
       />
       <Badge
         onClick={handleOpen}
         collaborators={collaborators}
-        hasUnmanagedRole={hasUnmanagedRole}
+        hasUnmanagedRoles={hasUnmanagedRoles}
       />
     </>
   )

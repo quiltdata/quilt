@@ -5,12 +5,12 @@ import * as Model from 'model'
 
 interface BadgeProps {
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  hasUnmanagedRole: boolean
+  hasUnmanagedRoles: boolean
   onClick: () => void
 }
 
-export default function Badge({ collaborators, hasUnmanagedRole, onClick }: BadgeProps) {
-  const collaboratorsNum = hasUnmanagedRole
+export default function Badge({ collaborators, hasUnmanagedRoles, onClick }: BadgeProps) {
+  const collaboratorsNum = hasUnmanagedRoles
     ? `${collaborators.length}+`
     : collaborators.length
   return (

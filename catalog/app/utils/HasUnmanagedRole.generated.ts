@@ -6,7 +6,7 @@ export type utils_HasUnmanagedRoleQueryVariables = Types.Exact<{ [key: string]: 
 
 export type utils_HasUnmanagedRoleQuery = { readonly __typename: 'Query' } & Pick<
   Types.Query,
-  'hasUnmanagedRole'
+  'hasUnmanagedRoles'
 >
 
 export const utils_HasUnmanagedRoleDocument = {
@@ -19,7 +19,7 @@ export const utils_HasUnmanagedRoleDocument = {
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
-          { kind: 'Field', name: { kind: 'Name', value: 'hasUnmanagedRole' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'hasUnmanagedRoles' } },
         ],
       },
     },
