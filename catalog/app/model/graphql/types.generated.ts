@@ -369,7 +369,7 @@ export interface Query {
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
-  readonly hasUnmanagedRoles: Scalars['Boolean']
+  readonly potentialCollaborators: Scalars['Int']
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
   readonly roles: ReadonlyArray<Role>

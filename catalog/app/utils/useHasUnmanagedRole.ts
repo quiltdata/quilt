@@ -1,9 +1,9 @@
 import useQuery from './useQuery'
-import HAS_UNMANAGED_ROLE from './HasUnmanagedRole.generated'
+import POTENTIAL_COLLABORATORS from './PotentialCollaborators.generated'
 
-export default function useHasUnmanagedRole(): boolean {
-  const hasUnmanagedRolesQuery = useQuery({
-    query: HAS_UNMANAGED_ROLE,
+export default function usePotentialCollaborators(): boolean {
+  const potentialCollaboratorsQuery = useQuery({
+    query: POTENTIAL_COLLABORATORS,
   })
-  return !!hasUnmanagedRolesQuery.data?.hasUnmanagedRoles
+  return !!potentialCollaboratorsQuery.data?.potentialCollaborators
 }

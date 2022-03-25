@@ -1597,12 +1597,12 @@ export default {
             ],
           },
           {
-            name: 'hasUnmanagedRoles',
+            name: 'potentialCollaborators',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Boolean',
+                name: 'Int',
                 ofType: null,
               },
             },

@@ -23,7 +23,6 @@ type Collaborator {
 }
 
 type CollaboratorBucketConnection {
-  bucket: BucketConfig!
   collaborator: Collaborator!
   permissionLevel: BucketPermissionLevel!
 }
@@ -148,7 +147,7 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
-  hasUnmanagedRoles: Boolean!
+  potentialCollaborators: Int!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
   roles: [Role!]! @admin
