@@ -42,9 +42,10 @@ export default function Collaborators({
     <M.MuiThemeProvider theme={style.appTheme}>
       <Popup
         bucket={bucket}
-        open={open}
-        onClose={handleClose}
         collaborators={collaborators}
+        hasUnmanagedRole={hasUnmanagedRole}
+        onClose={handleClose}
+        open={open}
       />
       <Avatars
         className={cx(classes.avatars, { [classes.hidden]: hidden })}

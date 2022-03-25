@@ -21,9 +21,10 @@ export default function Collaborators({ bucket, collaborators }: CollaboratorsPr
     <>
       <Popup
         bucket={bucket}
-        open={open}
-        onClose={handleClose}
         collaborators={collaborators}
+        hasUnmanagedRole={hasUnmanagedRole}
+        onClose={handleClose}
+        open={open}
       />
       <Badge
         onClick={handleOpen}

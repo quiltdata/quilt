@@ -21,9 +21,16 @@ interface PopupProps {
   bucket: string
   onClose: () => void
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
+  hasUnmanagedRole: boolean
 }
 
-export default function Popup({ bucket, open, onClose, collaborators }: PopupProps) {
+export default function Popup({
+  bucket,
+  open,
+  onClose,
+  collaborators,
+  hasUnmanagedRole,
+}: PopupProps) {
   const classes = useStyles()
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
@@ -36,7 +43,7 @@ export default function Popup({ bucket, open, onClose, collaborators }: PopupPro
         </div>
       </M.DialogTitle>
       <M.DialogContent>
-        <Table collaborators={collaborators} />
+        <Table collaborators={collaborators} hasUnmanagedRole={hasUnmanagedRole} />
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onClose}>Close</M.Button>

@@ -20,9 +20,10 @@ function getSortProperty(key: SortKey) {
 
 interface TableProps {
   collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
+  hasUnmanagedRole: boolean
 }
 
-export default function Table({ collaborators }: TableProps) {
+export default function Table({ collaborators, hasUnmanagedRole }: TableProps) {
   const [sorted, setSorted] = React.useState(collaborators)
   const [sort, setSort] = React.useState<Sort | null>(null)
   const toggleSort = React.useCallback(
@@ -81,6 +82,12 @@ export default function Table({ collaborators }: TableProps) {
             <M.TableCell>{permissionLevel}</M.TableCell>
           </M.TableRow>
         ))}
+        {hasUnmanagedRole && (
+          <M.TableRow>
+            <M.TableCell />
+            <M.TableCell colSpan={3}>There is unmanaged roles in this stack</M.TableCell>
+          </M.TableRow>
+        )}
       </M.TableBody>
     </M.Table>
   )
