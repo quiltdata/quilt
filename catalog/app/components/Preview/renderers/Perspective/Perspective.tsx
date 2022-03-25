@@ -135,7 +135,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   viewer: {
     height: ({ context }: { context: 'file' | 'listing' }) =>
-      context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
+      context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(80),
     overflow: 'auto',
     resize: 'vertical',
     zIndex: 1,
