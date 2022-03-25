@@ -30,7 +30,7 @@ export default function Collaborators({
 }: CollaboratorsProps) {
   const classes = useStyles()
 
-  const hasUnmanagedRoles = usePotentialCollaborators()
+  const potentialCollaborators = usePotentialCollaborators()
 
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
@@ -43,14 +43,14 @@ export default function Collaborators({
       <Popup
         bucket={bucket}
         collaborators={collaborators}
-        hasUnmanagedRoles={hasUnmanagedRoles}
+        potentialCollaborators={potentialCollaborators}
         onClose={handleClose}
         open={open}
       />
       <Avatars
         className={cx(classes.avatars, { [classes.hidden]: hidden })}
         collaborators={collaborators}
-        hasUnmanagedRoles={hasUnmanagedRoles}
+        potentialCollaborators={potentialCollaborators}
         onClick={handleOpen}
       />
     </M.MuiThemeProvider>
