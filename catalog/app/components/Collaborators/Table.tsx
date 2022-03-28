@@ -85,7 +85,7 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
         {!!potentialCollaborators && (
           <M.TableRow>
             <M.TableCell />
-            <M.TableCell colSpan={3}>There is unmanaged roles in this stack</M.TableCell>
+            <M.TableCell colSpan={3}>There are users with roles not managed by Quilt who can potentially access this bucket</M.TableCell>
           </M.TableRow>
         )}
       </M.TableBody>

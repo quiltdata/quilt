@@ -84,7 +84,7 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
     <div className={classes.bucket}>
       <div>
         <div className={classes.shared}>
-          {b.collaborators?.length && (
+          {!!b.collaborators?.length && (
             <Collaborators bucket={b.name} collaborators={b.collaborators} />
           )}
         </div>
