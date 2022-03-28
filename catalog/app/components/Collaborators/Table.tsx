@@ -10,9 +10,9 @@ type Sort = Record<SortKey, boolean> // TODO: only one key at a time is allowed
 function getSortProperty(key: SortKey) {
   switch (key) {
     case 'email':
-      return R.view(R.lensPath(['collaborator', 'email']))
+      return R.pathOr('', ['collaborator', 'email'])
     case 'username':
-      return R.view(R.lensPath(['collaborator', 'username']))
+      return R.pathOr('', ['collaborator', 'username'])
     case 'permissionLevel':
       return R.prop('permissionLevel')
   }
@@ -85,7 +85,10 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
         {!!potentialCollaborators && (
           <M.TableRow>
             <M.TableCell />
-            <M.TableCell colSpan={3}>There are users with roles not managed by Quilt who can potentially access this bucket</M.TableCell>
+            <M.TableCell colSpan={3}>
+              There are users with roles not managed by Quilt who can potentially access
+              this bucket
+            </M.TableCell>
           </M.TableRow>
         )}
       </M.TableBody>
