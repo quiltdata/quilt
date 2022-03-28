@@ -113,6 +113,7 @@ function UserDropdown() {
       <M.Button variant="text" color="inherit" onClick={open}>
         {userDisplay(user)} <M.Icon>expand_more</M.Icon>
       </M.Button>
+
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
@@ -419,6 +420,7 @@ export function NavBar() {
       ) : (
         <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
       )}
+
       {!useHamburger && (
         <M.Box component="nav" display="flex" alignItems="center" ml={3}>
           {links.map(({ label, ...rest }) => (
