@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../model/graphql/types.generated'
+import * as Types from '../../model/graphql/types.generated'
 
-export type utils_BucketCollaboratorsQueryVariables = Types.Exact<{
+export type containers_NavBar_BucketCollaboratorsQueryVariables = Types.Exact<{
   bucket: Types.Scalars['String']
 }>
 
-export type utils_BucketCollaboratorsQuery = { readonly __typename: 'Query' } & {
+export type containers_NavBar_BucketCollaboratorsQuery = {
+  readonly __typename: 'Query'
+} & {
   readonly bucketConfig: Types.Maybe<
     { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'> & {
         readonly collaborators: ReadonlyArray<
@@ -24,13 +26,13 @@ export type utils_BucketCollaboratorsQuery = { readonly __typename: 'Query' } & 
   >
 }
 
-export const utils_BucketCollaboratorsDocument = {
+export const containers_NavBar_BucketCollaboratorsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'utils_BucketCollaborators' },
+      name: { kind: 'Name', value: 'containers_NavBar_BucketCollaborators' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -87,8 +89,8 @@ export const utils_BucketCollaboratorsDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  utils_BucketCollaboratorsQuery,
-  utils_BucketCollaboratorsQueryVariables
+  containers_NavBar_BucketCollaboratorsQuery,
+  containers_NavBar_BucketCollaboratorsQueryVariables
 >
 
-export { utils_BucketCollaboratorsDocument as default }
+export { containers_NavBar_BucketCollaboratorsDocument as default }
