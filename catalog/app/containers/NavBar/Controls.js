@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
-import BUCKET_COLLABORATORS from 'utils/BucketCollaborators.generated'
+import BUCKET_COLLABORATORS from './BucketCollaborators.generated'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
