@@ -1,3 +1,4 @@
+from . import lineage
 from .backends import get_package_registry
 from .data_transfer import copy_file
 from .search_util import search_api

@@ -66,6 +66,7 @@ setup(
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
+        'openlineage-python>=0.5.1,<1',
     ],
     extras_require={
         'pyarrow': [
