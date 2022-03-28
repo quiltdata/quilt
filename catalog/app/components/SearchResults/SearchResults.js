@@ -369,10 +369,12 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
 }
 
 function Meta({ meta }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata">
+    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
       <JsonDisplay defaultExpanded={1} value={meta} />
     </PreviewBox>
   )
