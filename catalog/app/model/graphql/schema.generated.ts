@@ -563,18 +563,6 @@ export default {
         name: 'CollaboratorBucketConnection',
         fields: [
           {
-            name: 'bucket',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'BucketConfig',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'collaborator',
             type: {
               kind: 'NON_NULL',

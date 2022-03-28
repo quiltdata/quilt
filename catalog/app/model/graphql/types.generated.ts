@@ -166,7 +166,6 @@ export interface Collaborator {
 
 export interface CollaboratorBucketConnection {
   readonly __typename: 'CollaboratorBucketConnection'
-  readonly bucket: BucketConfig
   readonly collaborator: Collaborator
   readonly permissionLevel: BucketPermissionLevel
 }
