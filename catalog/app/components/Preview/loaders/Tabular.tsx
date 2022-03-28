@@ -210,7 +210,7 @@ export const Loader = function TabularLoader({
     sign,
     type,
   })
-  // TODO: get correct sises from API
+  // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
     ({ csv, meta, truncated }: TabularDataOutput) =>
