@@ -76,7 +76,6 @@ const useBucketStyles = M.makeStyles((t) => ({
 }))
 
 function Bucket({ bucket, onTagClick, tagIsMatching }) {
-  const b = bucket
   const classes = useBucketStyles()
   const { urls } = NamedRoutes.use()
 
@@ -84,22 +83,22 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
     <div className={classes.bucket}>
       <div>
         <div className={classes.shared}>
-          {!!b.collaborators?.length && (
-            <Collaborators bucket={b.name} collaborators={b.collaborators} />
+          {!!bucket.collaborators?.length && (
+            <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
           )}
         </div>
-        <Link className={classes.title} to={urls.bucketRoot(b.name)}>
-          {b.title}
+        <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
+          {bucket.title}
         </Link>
       </div>
-      <Link className={classes.name} to={urls.bucketRoot(b.name)}>
-        s3://{b.name}
+      <Link className={classes.name} to={urls.bucketRoot(bucket.name)}>
+        s3://{bucket.name}
       </Link>
-      {!!b.description && <p className={classes.desc}>{b.description}</p>}
+      {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
       <M.Box flexGrow={1} />
-      {!!b.tags && !!b.tags.length && (
+      {!!bucket.tags && !!bucket.tags.length && (
         <div className={classes.tags}>
-          {b.tags.map((t) => (
+          {bucket.tags.map((t) => (
             <button
               key={t}
               className={cx(
