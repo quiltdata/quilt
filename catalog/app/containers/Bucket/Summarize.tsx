@@ -159,7 +159,7 @@ export function Section({
 }
 
 interface PreviewBoxProps {
-  contents: React.ReactNode
+  children: React.ReactNode
   expanded?: boolean
   onExpand: () => void
 }
@@ -206,11 +206,11 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ contents, expanded, onExpand }: PreviewBoxProps) {
+function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
+      {children}
       {!expanded && (
         <div className={classes.fade}>
           <M.Button variant="outlined" onClick={onExpand}>
@@ -291,6 +291,10 @@ export function FilePreview({
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
 
   // TODO: check for glacier and hide items
   return (
@@ -298,9 +302,7 @@ export function FilePreview({
       {Preview.load(
         previewHandle,
         Preview.display({
-          renderContents: (contents: React.ReactNode) => (
-            <PreviewBox {...{ contents, expanded, onExpand }} />
-          ),
+          renderContents,
           renderProgress: () => <ContentSkel />,
           props,
         }),
