@@ -49,10 +49,19 @@ export default function Badge({
   potentialCollaborators,
   onClick,
 }: BadgeProps) {
-  if (!collaborators.length) {
-    if (!potentialCollaborators) {
-      return <Component title="Only you can see this bucket" icon="visibility_off" />
-    }
+  const knownNumber = collaborators.length
+  if (knownNumber) {
+    return (
+      <Component
+        onClick={onClick}
+        badgeContent={potentialCollaborators ? `${knownNumber}+` : `${knownNumber}`}
+        title="Click to view list of collaborators"
+        icon="group"
+      />
+    )
+  }
+
+  if (potentialCollaborators) {
     return (
       <Component
         badgeContent="?"
@@ -62,15 +71,5 @@ export default function Badge({
     )
   }
 
-  const badgeContent = !!potentialCollaborators
-    ? `${collaborators.length}+`
-    : `${collaborators.length}`
-  return (
-    <Component
-      onClick={onClick}
-      badgeContent={badgeContent}
-      title="Click to view list of collaborators"
-      icon="group"
-    />
-  )
+  return <Component title="Only you can see this bucket" icon="visibility_off" />
 }
