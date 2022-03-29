@@ -5,6 +5,8 @@ import * as redux from 'react-redux'
 import * as Config from 'utils/Config'
 import usePrevious from 'utils/usePrevious'
 
+import { SELECTOR } from './Launcher'
+
 const canUseDOM = !!(
   typeof window !== 'undefined' &&
   window.document &&
@@ -37,7 +39,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 
   const cfg = Config.use()
   if (cfg.mode === 'PRODUCT') {
-    settings.custom_launcher_selector = '#intercom-mount-point'
+    settings.custom_launcher_selector = SELECTOR
     settings.hide_default_launcher = true
   }
 
