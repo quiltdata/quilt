@@ -159,8 +159,9 @@ export function Section({
 }
 
 interface PreviewBoxProps {
-  contents: React.ReactNode
+  children: React.ReactNode
   expanded?: boolean
+  onExpand: () => void
 }
 
 const usePreviewBoxStyles = M.makeStyles((t) => ({
@@ -205,18 +206,14 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxProps) {
+function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
+      {children}
       {!expanded && (
         <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={expand}>
+          <M.Button variant="outlined" onClick={onExpand}>
             Expand
           </M.Button>
         </div>
@@ -268,7 +265,7 @@ interface FilePreviewProps {
 }
 
 export function FilePreview({
-  expanded,
+  expanded: defaultExpanded,
   file,
   handle,
   headingOverride,
@@ -291,15 +288,21 @@ export function FilePreview({
     () => ({ ...handle, packageHandle }),
     [handle, packageHandle],
   )
+
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
+
   // TODO: check for glacier and hide items
   return (
     <Section description={description} heading={heading} handle={handle}>
       {Preview.load(
         previewHandle,
         Preview.display({
-          renderContents: (contents: React.ReactNode) => (
-            <PreviewBox {...{ contents, expanded }} />
-          ),
+          renderContents,
           renderProgress: () => <ContentSkel />,
           props,
         }),
