@@ -5,12 +5,12 @@ import * as M from '@material-ui/core'
 import * as Model from 'model'
 
 interface AvatarProps {
-  avatarsLength: number
+  avatarsLength: number // TODO: Avatar shouldn't know about `avatarsLength`
   children?: React.ReactNode
   className?: string
   email?: string
   hover: boolean
-  index: number
+  index: number // TODO: Avatar shouldn't know about `index`
 }
 
 const useAvatarStyles = M.makeStyles((t) => ({
