@@ -215,7 +215,6 @@ export const Loader = function TabularLoader({
     data.result,
     ({ csv, meta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
-        context: options.context,
         data: csv,
         handle,
         meta,
