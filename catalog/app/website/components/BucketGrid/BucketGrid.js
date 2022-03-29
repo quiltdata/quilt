@@ -47,8 +47,6 @@ const useBucketStyles = M.makeStyles((t) => ({
   active: {},
   matching: {},
   shared: {
-    color: t.palette.text.hint,
-    cursor: 'pointer',
     float: 'right',
   },
   tag: {
@@ -83,9 +81,7 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
     <div className={classes.bucket}>
       <div>
         <div className={classes.shared}>
-          {!!bucket.collaborators?.length && (
-            <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
-          )}
+          <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
         </div>
         <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
           {bucket.title}
