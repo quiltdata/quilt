@@ -35,6 +35,12 @@ const defaultUserSelector = () => undefined
 function APILoader({ appId, userSelector = defaultUserSelector, children, ...props }) {
   const settings = { app_id: appId, ...props }
 
+  const cfg = Config.use()
+  if (cfg.mode === 'PRODUCT') {
+    settings.custom_launcher_selector = '#intercom-mount-point'
+    settings.hide_default_launcher = true
+  }
+
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
   const { current: api } = React.useRef((...args) => window.Intercom(...args))

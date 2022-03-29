@@ -6,6 +6,7 @@ import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
 
+import intercomLogo from 'components/Intercom/logo.svg'
 import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
@@ -356,6 +357,31 @@ const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) 
   )
 })
 
+const useIntercomLauncherStyles = M.makeStyles({
+  root: {
+    backgroundColor: '#f88500',
+    cursor: 'pointer',
+    height: '30px',
+    width: '30px',
+  },
+  img: {
+    width: '18px',
+  },
+})
+
+function IntercomLauncher() {
+  const classes = useIntercomLauncherStyles()
+  return (
+    <M.Avatar
+      id="intercom-mount-point"
+      className={classes.root}
+      title="Send us a message"
+    >
+      <img className={classes.img} src={intercomLogo} />
+    </M.Avatar>
+  )
+}
+
 interface LinkDescriptor {
   label: string
   to?: string
@@ -422,12 +448,13 @@ export function NavBar() {
       )}
 
       {!useHamburger && (
-        <M.Box component="nav" display="flex" alignItems="center" ml={3}>
+        <M.Box component="nav" display="flex" alignItems="center" ml={3} mr={2}>
           {links.map(({ label, ...rest }) => (
             <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
               {label}
             </NavLink>
           ))}
+          {cfg.mode === 'PRODUCT' && <IntercomLauncher />}
         </M.Box>
       )}
 
