@@ -152,15 +152,18 @@ function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProp
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    overflow: 'scroll',
+    // NOTE: padding is required because perspective-viewer covers resize handle
+    padding: '0 0 4px',
+    resize: 'vertical',
     width: '100%',
   },
   meta: {
     marginBottom: t.spacing(1),
   },
   viewer: {
-    height: t.spacing(80),
-    overflow: 'auto',
-    resize: 'vertical',
+    height: '100%',
+    minHeight: t.spacing(80),
     zIndex: 1,
   },
   warning: {
