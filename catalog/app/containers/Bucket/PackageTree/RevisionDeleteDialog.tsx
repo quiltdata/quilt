@@ -31,7 +31,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageDeleteDialogProps {
-  error?: Error
+  error?: React.ReactNode
   loading: boolean
   onClose: () => void
   onDelete: (handle: packageHandleUtils.PackageHandle) => void
@@ -76,7 +76,7 @@ export default function PackageDeleteDialog({
           contents of this revision. Are you sure you want to delete it?
         </M.DialogContentText>
 
-        {error && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
+        {!!error && <Lab.Alert severity="error">{error}</Lab.Alert>}
       </M.DialogContent>
 
       <M.DialogActions>

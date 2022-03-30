@@ -29,6 +29,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import { UseQueryResult, useQuery } from 'utils/useQuery'
+import * as workflows from 'utils/workflows'
 
 import Code from '../Code'
 import CopyButton from '../CopyButton'
@@ -37,9 +38,7 @@ import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
-import PackageDeleteDialog from '../PackageDeleteDialog'
 import * as PD from '../PackageDialog'
-import { usePackageUpdateDialog } from '../PackageUpdateDialog'
 import Section from '../Section'
 import Summary from '../Summary'
 import WithPackagesSupport from '../WithPackagesSupport'
@@ -48,6 +47,7 @@ import renderPreview from '../renderPreview'
 import * as requests from '../requests'
 import { ViewMode, useViewModes, viewModeToSelectOption } from '../viewModes'
 import PackageLink from './PackageLink'
+import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
 import RevisionMenu from './RevisionMenu'
 
@@ -55,6 +55,7 @@ import REVISION_QUERY from './gql/Revision.generated'
 import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
+import DELETE_REVISION from './gql/DeleteRevision.generated'
 
 /*
 function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
@@ -157,10 +158,6 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   )
 }
 
-interface PushResult {
-  pushed: false | PD.PackageCreationSuccess
-}
-
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -177,18 +174,9 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: $TSFixMe[] // Crumb
-  onRevisionPush: (result: PushResult) => void
 }
 
-function DirDisplay({
-  bucket,
-  name,
-  hash,
-  hashOrTag,
-  path,
-  crumbs,
-  onRevisionPush,
-}: DirDisplayProps) {
+function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
   const { desktop } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
@@ -204,14 +192,12 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const updateDialog = usePackageUpdateDialog({
+  const updateDialog = PD.usePackageCreationDialog({
     bucket,
-    name,
-    hash,
-    onExited: onRevisionPush,
+    src: { name, hash },
   })
 
-  const [successor, setSuccessor] = React.useState(null)
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
   const onPackageCopyDialogExited = React.useCallback(() => {
     setSuccessor(null)
@@ -229,7 +215,7 @@ function DirDisplay({
   }, [bucket, history, urls])
 
   const [deletionState, setDeletionState] = React.useState({
-    error: undefined as Error | undefined,
+    error: undefined as React.ReactNode | undefined,
     loading: false,
     opened: false,
   })
@@ -247,17 +233,30 @@ function DirDisplay({
     )
   }, [])
 
-  const deleteRevision = requests.useDeleteRevision()
+  const [, deleteRevision] = urql.useMutation(DELETE_REVISION)
 
   const handlePackageDeletion = React.useCallback(async () => {
     setDeletionState(R.assoc('loading', true))
-
     try {
-      await deleteRevision({ source: { bucket, name, hash } })
-      setDeletionState(R.mergeLeft({ opened: false, loading: false }))
-      redirectToPackagesList()
-    } catch (error) {
-      setDeletionState(R.mergeLeft({ error: error as Error, loading: false }))
+      const res = await deleteRevision({ bucket, name, hash })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data returned by the API')
+      const r = res.data.packageRevisionDelete
+      switch (r.__typename) {
+        case 'PackageRevisionDeleteSuccess':
+          setDeletionState(R.mergeLeft({ opened: false, loading: false }))
+          redirectToPackagesList()
+          return
+        case 'OperationError':
+          setDeletionState(R.mergeLeft({ error: r.message, loading: false }))
+          return
+        default:
+          assertNever(r)
+      }
+    } catch (e: any) {
+      let error = 'Unexpected error'
+      if (e.message) error = `${error}: ${e.message}`
+      setDeletionState(R.mergeLeft({ error, loading: false }))
     }
   }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
 
@@ -269,84 +268,6 @@ function DirDisplay({
   const [expandedLocalFolder, setExpandedLocalFolder] = React.useState(false)
   const [localFolder, setLocalFolder] = Download.useLocalFolder()
 
-  // XXX: use different "strategy" (e.g. network-only)?
-  if (dirQuery.fetching || dirQuery.stale) {
-    // TODO: skeleton placeholder
-    return (
-      <>
-        <TopBar crumbs={crumbs} />
-        <M.Box mt={2}>
-          <M.CircularProgress />
-        </M.Box>
-      </>
-    )
-  }
-
-  const dir = dirQuery.data?.package?.revision?.dir
-  if (!dir) {
-    return (
-      <>
-        <TopBar crumbs={crumbs} />
-        <M.Box mt={4}>
-          <M.Typography variant="h4" align="center" gutterBottom>
-            Error loading directory
-          </M.Typography>
-          <M.Typography variant="body1" align="center">
-            Seems like there's no such directory in this package
-          </M.Typography>
-        </M.Box>
-      </>
-    )
-  }
-
-  const items: ListingItem[] = dir.children.map((c) => {
-    switch (c.__typename) {
-      case 'PackageFile':
-        return {
-          type: 'file' as const,
-          name: basename(c.path),
-          to: urls.bucketPackageTree(bucket, name, hashOrTag, c.path),
-          size: c.size,
-        }
-      case 'PackageDir':
-        return {
-          type: 'dir' as const,
-          name: basename(c.path),
-          to: urls.bucketPackageTree(
-            bucket,
-            name,
-            hashOrTag,
-            s3paths.ensureSlash(c.path),
-          ),
-          size: c.size,
-        }
-      default:
-        return assertNever(c)
-    }
-  })
-  if (path) {
-    items.unshift({
-      type: 'dir' as const,
-      name: '..',
-      to: urls.bucketPackageTree(bucket, name, hashOrTag, s3paths.up(path)),
-    })
-  }
-
-  const summaryHandles = dir.children
-    .map((c) =>
-      c.__typename === 'PackageFile'
-        ? {
-            ...s3paths.parseS3Url(c.physicalKey),
-            logicalKey: c.path,
-          }
-        : null,
-    )
-    .filter(Boolean)
-
-  const downloadPath = path
-    ? `package/${bucket}/${name}/${hash}/${path}`
-    : `package/${bucket}/${name}/${hash}`
-
   return (
     <>
       <PackageCopyDialog
@@ -356,10 +277,9 @@ function DirDisplay({
         open={!!successor}
         successor={successor}
         onExited={onPackageCopyDialogExited}
-        onClose={undefined}
       />
 
-      <PackageDeleteDialog
+      <RevisionDeleteDialog
         error={deletionState.error}
         open={deletionState.opened}
         packageHandle={packageHandle}
@@ -368,7 +288,16 @@ function DirDisplay({
         onDelete={handlePackageDeletion}
       />
 
-      {updateDialog.element}
+      {updateDialog.render({
+        resetFiles: 'Undo changes',
+        submit: 'Push',
+        successBrowse: 'Browse',
+        successTitle: 'Push complete',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package revision {packageLink} successfully created</>
+        ),
+        title: 'Push package revision',
+      })}
 
       <Download.ConfirmDialog
         localPath={localFolder}
@@ -377,51 +306,144 @@ function DirDisplay({
         packageHandle={packageHandle}
       />
 
-      <TopBar crumbs={crumbs}>
-        {preferences?.ui?.actions?.revisePackage && !desktop && (
-          <M.Button
-            className={classes.button}
-            variant="contained"
-            color="primary"
-            size="small"
-            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-            onClick={updateDialog.open}
-          >
-            Revise package
-          </M.Button>
-        )}
-        {preferences?.ui?.actions?.copyPackage && (
-          <CopyButton className={classes.button} bucket={bucket} onChange={setSuccessor}>
-            Push to bucket
-          </CopyButton>
-        )}
-        <Download.DownloadButton
-          className={classes.button}
-          label={path ? 'Download sub-package' : 'Download package'}
-          onClick={() => setExpandedLocalFolder(true)}
-          path={downloadPath}
-        />
-        {preferences?.ui?.actions?.deleteRevision && (
-          <RevisionMenu className={classes.button} onDelete={onPackageDeleteDialogOpen} />
-        )}
-      </TopBar>
-      {preferences?.ui?.blocks?.code && (
-        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
-      )}
-      {desktop && (
-        <Download.LocalFolderInput
-          onChange={setLocalFolder}
-          open={expandedLocalFolder}
-          value={localFolder}
-        />
-      )}
-      {preferences?.ui?.blocks?.meta && (
-        <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
-      )}
-      <M.Box mt={2}>
-        {preferences?.ui?.blocks?.browser && <Listing items={items} />}
-        <Summary files={summaryHandles} mkUrl={mkUrl} packageHandle={packageHandle} />
-      </M.Box>
+      {dirQuery.case({
+        // TODO: skeleton placeholder
+        fetching: () => (
+          <>
+            <TopBar crumbs={crumbs} />
+            <M.Box mt={2}>
+              <M.CircularProgress />
+            </M.Box>
+          </>
+        ),
+        data: (d) => {
+          const dir = d.package?.revision?.dir
+          if (!dir) {
+            return (
+              <>
+                <TopBar crumbs={crumbs} />
+                <M.Box mt={4}>
+                  <M.Typography variant="h4" align="center" gutterBottom>
+                    Error loading directory
+                  </M.Typography>
+                  <M.Typography variant="body1" align="center">
+                    Seems like there's no such directory in this package
+                  </M.Typography>
+                </M.Box>
+              </>
+            )
+          }
+
+          const items: ListingItem[] = dir.children.map((c) => {
+            switch (c.__typename) {
+              case 'PackageFile':
+                return {
+                  type: 'file' as const,
+                  name: basename(c.path),
+                  to: urls.bucketPackageTree(bucket, name, hashOrTag, c.path),
+                  size: c.size,
+                }
+              case 'PackageDir':
+                return {
+                  type: 'dir' as const,
+                  name: basename(c.path),
+                  to: urls.bucketPackageTree(
+                    bucket,
+                    name,
+                    hashOrTag,
+                    s3paths.ensureSlash(c.path),
+                  ),
+                  size: c.size,
+                }
+              default:
+                return assertNever(c)
+            }
+          })
+          if (path) {
+            items.unshift({
+              type: 'dir' as const,
+              name: '..',
+              to: urls.bucketPackageTree(bucket, name, hashOrTag, s3paths.up(path)),
+            })
+          }
+
+          const summaryHandles = dir.children
+            .map((c) =>
+              c.__typename === 'PackageFile'
+                ? {
+                    ...s3paths.parseS3Url(c.physicalKey),
+                    logicalKey: c.path,
+                  }
+                : null,
+            )
+            .filter(Boolean)
+
+          const downloadPath = path
+            ? `package/${bucket}/${name}/${hash}/${path}`
+            : `package/${bucket}/${name}/${hash}`
+
+          return (
+            <>
+              <TopBar crumbs={crumbs}>
+                {preferences?.ui?.actions?.revisePackage && !desktop && (
+                  <M.Button
+                    className={classes.button}
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                    onClick={updateDialog.open}
+                  >
+                    Revise package
+                  </M.Button>
+                )}
+                {preferences?.ui?.actions?.copyPackage && (
+                  <CopyButton
+                    className={classes.button}
+                    bucket={bucket}
+                    onChange={setSuccessor}
+                  >
+                    Push to bucket
+                  </CopyButton>
+                )}
+                <Download.DownloadButton
+                  className={classes.button}
+                  label={path ? 'Download sub-package' : 'Download package'}
+                  onClick={() => setExpandedLocalFolder(true)}
+                  path={downloadPath}
+                />
+                {preferences?.ui?.actions?.deleteRevision && (
+                  <RevisionMenu
+                    className={classes.button}
+                    onDelete={onPackageDeleteDialogOpen}
+                  />
+                )}
+              </TopBar>
+              {preferences?.ui?.blocks?.code && (
+                <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+              )}
+              {desktop && (
+                <Download.LocalFolderInput
+                  onChange={setLocalFolder}
+                  open={expandedLocalFolder}
+                  value={localFolder}
+                />
+              )}
+              {preferences?.ui?.blocks?.meta && (
+                <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
+              )}
+              <M.Box mt={2}>
+                {preferences?.ui?.blocks?.browser && <Listing items={items} key={hash} />}
+                <Summary
+                  files={summaryHandles}
+                  mkUrl={mkUrl}
+                  packageHandle={packageHandle}
+                />
+              </M.Box>
+            </>
+          )
+        },
+      })}
     </>
   )
 }
@@ -537,83 +559,91 @@ function FileDisplay({
     </>
   )
 
-  // XXX: use different "strategy" (e.g. network-only)?
-  if (fileQuery.fetching || fileQuery.stale) return renderProgress()
+  return fileQuery.case({
+    fetching: renderProgress,
+    data: (d) => {
+      const file = d.package?.revision?.file
 
-  const file = fileQuery.data?.package?.revision?.file
+      if (!file) {
+        // eslint-disable-next-line no-console
+        if (fileQuery.error) console.error(fileQuery.error)
+        return renderError(
+          'Error loading file',
+          "Seems like there's no such file in this package",
+        )
+      }
 
-  if (!file) {
-    // eslint-disable-next-line no-console
-    if (fileQuery.error) console.error(fileQuery.error)
-    return renderError(
-      'Error loading file',
-      "Seems like there's no such file in this package",
-    )
-  }
+      const handle: PackageEntryHandle = {
+        ...s3paths.parseS3Url(file.physicalKey),
+        logicalKey: file.path,
+      }
 
-  const handle: PackageEntryHandle = {
-    ...s3paths.parseS3Url(file.physicalKey),
-    logicalKey: file.path,
-  }
-
-  return (
-    // @ts-expect-error
-    <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
-      {AsyncResult.case({
-        _: renderProgress,
-        Err: (e: $TSFixMe) => {
-          if (e.code === 'Forbidden') {
-            return renderError('Access Denied', "You don't have access to this object")
-          }
-          // eslint-disable-next-line no-console
-          console.error(e)
-          return renderError('Error loading file', 'Something went wrong')
-        },
-        Ok: requests.ObjectExistence.case({
-          Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
-            <>
-              <TopBar crumbs={crumbs}>
-                <FileProperties
-                  className={classes.fileProperties}
-                  lastModified={lastModified}
-                  size={size}
-                />
-                {!!viewModes.modes.length && (
-                  <FileView.ViewModeSelector
-                    className={classes.button}
-                    // @ts-expect-error
-                    options={viewModes.modes.map(viewModeToSelectOption)}
-                    // @ts-expect-error
-                    value={viewModeToSelectOption(viewModes.mode)}
-                    onChange={onViewModeChange}
-                  />
-                )}
-                {!noDownload && !deleted && !archived && (
-                  <FileView.DownloadButton className={classes.button} handle={handle} />
-                )}
-              </TopBar>
-              {preferences?.ui?.blocks?.code && (
-                <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
-              )}
-              {preferences?.ui?.blocks?.meta && (
-                <FileView.Meta data={AsyncResult.Ok(file.metadata)} />
-              )}
-              <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                {withPreview(
-                  { archived, deleted },
-                  handle,
-                  viewModes.mode,
-                  packageHandle,
-                  renderPreview(viewModes.handlePreviewResult),
-                )}
-              </Section>
-            </>
-          ),
-          _: () => renderError('No Such Object'),
-        }),
-      })}
-    </Data>
-  )
+      return (
+        // @ts-expect-error
+        <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
+          {AsyncResult.case({
+            _: renderProgress,
+            Err: (e: $TSFixMe) => {
+              if (e.code === 'Forbidden') {
+                return renderError(
+                  'Access Denied',
+                  "You don't have access to this object",
+                )
+              }
+              // eslint-disable-next-line no-console
+              console.error(e)
+              return renderError('Error loading file', 'Something went wrong')
+            },
+            Ok: requests.ObjectExistence.case({
+              Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
+                <>
+                  <TopBar crumbs={crumbs}>
+                    <FileProperties
+                      className={classes.fileProperties}
+                      lastModified={lastModified}
+                      size={size}
+                    />
+                    {!!viewModes.modes.length && (
+                      <FileView.ViewModeSelector
+                        className={classes.button}
+                        // @ts-expect-error
+                        options={viewModes.modes.map(viewModeToSelectOption)}
+                        // @ts-expect-error
+                        value={viewModeToSelectOption(viewModes.mode)}
+                        onChange={onViewModeChange}
+                      />
+                    )}
+                    {!noDownload && !deleted && !archived && (
+                      <FileView.DownloadButton
+                        className={classes.button}
+                        handle={handle}
+                      />
+                    )}
+                  </TopBar>
+                  {preferences?.ui?.blocks?.code && (
+                    <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                  )}
+                  {preferences?.ui?.blocks?.meta && (
+                    <FileView.Meta data={AsyncResult.Ok(file.metadata)} />
+                  )}
+                  <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+                    {withPreview(
+                      { archived, deleted },
+                      handle,
+                      viewModes.mode,
+                      packageHandle,
+                      renderPreview(viewModes.handlePreviewResult),
+                    )}
+                  </Section>
+                </>
+              ),
+              _: () => renderError('No Such Object'),
+            }),
+          })}
+        </Data>
+      )
+    },
+  })
 }
 
 interface ResolverProviderProps {
@@ -673,8 +703,6 @@ interface PackageTreeProps {
   mode?: string
   resolvedFrom?: string
   revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
-  refreshRevisionData: () => void
-  refreshRevisionListData: () => void
 }
 
 function PackageTree({
@@ -686,8 +714,6 @@ function PackageTree({
   mode,
   resolvedFrom,
   revisionListQuery,
-  refreshRevisionData,
-  refreshRevisionListData,
 }: PackageTreeProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -716,21 +742,6 @@ function PackageTree({
       ),
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, hashOrTag, path, urls])
-
-  const onRevisionPush = React.useCallback(
-    (res: PushResult) => {
-      const pushedSamePackage = R.pathEq(['pushed', 'name'], name, res)
-      if (pushedSamePackage) {
-        // refresh revision list if a new revision of the current package has been pushed
-        refreshRevisionListData()
-        if (hashOrTag === 'latest') {
-          // when browsing 'latest' revision, also refresh the package view
-          refreshRevisionData()
-        }
-      }
-    },
-    [name, hashOrTag, refreshRevisionData, refreshRevisionListData],
-  )
 
   return (
     <FileView.Root>
@@ -788,8 +799,6 @@ function PackageTree({
                 path,
                 hashOrTag,
                 crumbs,
-                onRevisionPush,
-                key: hash,
               }}
             />
           ) : (
@@ -843,52 +852,38 @@ function PackageTreeQueries({
   const revisionListQuery = useQuery({
     query: REVISION_LIST_QUERY,
     variables: { bucket, name },
-    requestPolicy: 'cache-and-network',
   })
 
-  const refreshRevisionData = React.useCallback(() => {
-    revisionQuery.run({ requestPolicy: 'network-only' })
-  }, [revisionQuery])
+  return revisionQuery.case({
+    fetching: () => <Placeholder color="text.secondary" />,
+    error: (e) => errors.displayError()(e),
+    data: (d) => {
+      if (!d.package) {
+        return (
+          <Message headline="No Such Package">
+            Package named{' '}
+            <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box>{' '}
+            could not be found in this bucket.
+          </Message>
+        )
+      }
 
-  const refreshRevisionListData = React.useCallback(() => {
-    revisionListQuery.run({ requestPolicy: 'cache-and-network' })
-  }, [revisionListQuery])
-
-  if (revisionQuery.fetching || revisionQuery.stale) {
-    return <Placeholder color="text.secondary" />
-  }
-
-  if (!revisionQuery.data) {
-    return errors.displayError()(revisionQuery.error || new Error('no data'))
-  }
-
-  if (!revisionQuery.data.package) {
-    return (
-      <Message headline="No Such Package">
-        Package named{' '}
-        <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box> could
-        not be found in this bucket.
-      </Message>
-    )
-  }
-
-  const hash = revisionQuery.data.package.revision?.hash
-  return (
-    <PackageTree
-      {...{
-        bucket,
-        name,
-        hashOrTag,
-        hash,
-        path,
-        mode,
-        resolvedFrom,
-        revisionListQuery,
-        refreshRevisionData,
-        refreshRevisionListData,
-      }}
-    />
-  )
+      return (
+        <PackageTree
+          {...{
+            bucket,
+            name,
+            hashOrTag,
+            hash: d.package.revision?.hash,
+            path,
+            mode,
+            resolvedFrom,
+            revisionListQuery,
+          }}
+        />
+      )
+    },
+  })
 }
 
 interface PackageTreeRouteParams {
