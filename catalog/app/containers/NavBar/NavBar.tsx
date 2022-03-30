@@ -6,6 +6,7 @@ import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
@@ -422,12 +423,17 @@ export function NavBar() {
       )}
 
       {!useHamburger && (
-        <M.Box component="nav" display="flex" alignItems="center" ml={3}>
+        <M.Box component="nav" display="flex" alignItems="center" ml={3} mr={2}>
           {links.map(({ label, ...rest }) => (
             <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
               {label}
             </NavLink>
           ))}
+          {cfg.mode === 'PRODUCT' && (
+            <M.MuiThemeProvider theme={style.appTheme}>
+              <Intercom.Launcher />
+            </M.MuiThemeProvider>
+          )}
         </M.Box>
       )}
 
