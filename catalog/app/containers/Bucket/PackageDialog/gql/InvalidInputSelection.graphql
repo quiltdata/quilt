@@ -1,0 +1,6 @@
+fragment InvalidInputSelection on InvalidInput {
+  errors {
+    path
+    message
+  }
+}

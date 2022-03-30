@@ -11,7 +11,6 @@ import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
-import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 import * as workflows from 'utils/workflows'
@@ -678,7 +677,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
   }
 }
 
-const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
 
 const withCalculatedRevisions = (s) => ({
@@ -702,8 +700,6 @@ const withCalculatedRevisions = (s) => ({
     `,
   },
 })
-
-const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
 const TIMESTAMP_RE_SRC = '[0-9]{10}'
 
@@ -737,28 +733,10 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
-function tryParse(s) {
-  try {
-    return JSON.parse(s)
-  } catch (e) {
-    return undefined
-  }
-}
-
-export const loadRevisionHash = async ({ s3, bucket, name, id }) =>
-  s3
-    .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
-    .promise()
-    .then((res) => ({
-      modified: res.LastModified,
-      hash: res.Body.toString('utf-8'),
-    }))
-
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
 const MAX_PACKAGE_ENTRIES = 500
 
-export const MANIFEST_MAX_SIZE = 10 * 1000 * 1000
-
+// TODO: remove
 export const getRevisionData = async ({
   endpoint,
   sign,
@@ -781,61 +759,6 @@ export const getRevisionData = async ({
     stats: { files, bytes, truncated },
     message: header.message,
     header,
-  }
-}
-
-export async function loadManifest({
-  s3,
-  bucket,
-  name,
-  hash: maybeHash,
-  maxSize = MANIFEST_MAX_SIZE,
-}) {
-  // TODO: migrate to graphql
-  try {
-    const hash =
-      maybeHash ||
-      (await loadRevisionHash({ s3, bucket, name, id: 'latest' }).then(R.prop('hash')))
-    const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-
-    if (maxSize) {
-      const h = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
-      if (h.ContentLength > maxSize) {
-        throw new errors.ManifestTooLarge({
-          bucket,
-          key: manifestKey,
-          maxSize,
-          actualSize: h.ContentLength,
-        })
-      }
-    }
-
-    const m = await s3.getObject({ Bucket: bucket, Key: manifestKey }).promise()
-    const [header, ...rawEntries] = pipeThru(m.Body.toString('utf-8'))(
-      R.split('\n'),
-      R.map(tryParse),
-      R.filter(Boolean),
-    )
-    const entries = pipeThru(rawEntries)(
-      R.map((e) => [
-        e.logical_key,
-        {
-          hash: e.hash.value,
-          physicalKey: e.physical_keys[0],
-          size: e.size,
-          meta: e.meta,
-        },
-      ]),
-      R.fromPairs,
-    )
-    return { entries, meta: header.user_meta, workflow: header.workflow }
-  } catch (e) {
-    if (e instanceof errors.ManifestTooLarge) throw e
-    // eslint-disable-next-line no-console
-    console.log('loadManifest error:')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
   }
 }
 

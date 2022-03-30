@@ -22,7 +22,7 @@ import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
 
-import { usePackageCreateDialog } from '../PackageCreateDialog'
+import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -368,13 +368,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   const totalCountQuery = useQuery({
     query: PACKAGE_COUNT_QUERY,
     variables: { bucket, filter: null },
-    requestPolicy: 'cache-and-network',
   })
 
   const filteredCountQuery = useQuery({
     query: PACKAGE_COUNT_QUERY,
     variables: { bucket, filter: filter || null },
-    requestPolicy: 'cache-and-network',
   })
 
   const packagesQuery = useQuery({
@@ -386,12 +384,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
       page: computedPage,
       perPage: PER_PAGE,
     },
-    requestPolicy: 'cache-and-network',
   })
-
-  const refreshData = React.useCallback(() => {
-    packagesQuery.run({ requestPolicy: 'cache-and-network' })
-  }, [packagesQuery])
 
   const makeSortUrl = React.useCallback(
     (s) =>
@@ -438,20 +431,23 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const onExited = React.useCallback(
-    (res) => {
-      if (res?.pushed) refreshData()
-    },
-    [refreshData],
-  )
-
   const preferences = BucketPreferences.use()
 
-  const createDialog = usePackageCreateDialog({ bucket, onExited })
+  const createDialog = PD.usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
 
   return (
     <>
-      {createDialog.element}
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
 
       {totalCountQuery.case({
         fetching: () => (
