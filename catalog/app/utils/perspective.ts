@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 
 import 'utils/perspective-pollution'
@@ -18,7 +19,8 @@ export function renderViewer(
 ): HTMLPerspectiveViewerElement {
   const element = document.createElement('perspective-viewer')
   if (className) {
-    element.className = className
+    // NOTE: safari needs `.perspective-viewer-material` instead of custom tagName
+    element.className = cx(className, 'perspective-viewer-material')
   }
   parentNode.appendChild(element)
   return element
