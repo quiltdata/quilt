@@ -55,7 +55,7 @@ export default function Badge({
       <Component
         onClick={onClick}
         badgeContent={potentialCollaborators ? `${knownNumber}+` : `${knownNumber}`}
-        title="Click to view list of collaborators"
+        title="Click to view collaborators"
         icon="group"
       />
     )
