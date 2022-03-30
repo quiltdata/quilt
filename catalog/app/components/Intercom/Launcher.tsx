@@ -15,7 +15,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '30px',
   },
   img: {
-    width: '18px',
+    width: '16px',
   },
 }))
 
