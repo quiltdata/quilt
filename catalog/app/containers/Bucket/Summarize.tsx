@@ -599,15 +599,17 @@ function SummaryFailed({ error }: SummaryFailedProps) {
     <Section
       heading={
         <span className={classes.heading} title={error.message}>
-          <M.Icon className={classes.icon}>error</M.Icon>Rendering summary files failed
+          <M.Icon className={classes.icon}>error</M.Icon>Oops
         </span>
       }
     >
+      <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
       <M.Typography>
-        It's likely the problem with quilt_summarize.json. See the{' '}
+        See the{' '}
         <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
-          documentation
-        </Link>
+          summarize docs
+        </Link>{' '}
+        for more.
       </M.Typography>
     </Section>
   )
