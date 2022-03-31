@@ -67,6 +67,7 @@ or an object with one or more of the following properties:
 - `path` - file path relative to `quilt_summarize.json`
 - `title` - title rendered instead of file path
 - `description` - description in markdown format
+- `expanded` - expanded file view state (default is `false`)
 - `width` - column width either in pixels or ratio (default is ratio `1`)
 - `types` - a list of rendering types; currently only singleton list values are supported:
     - `["echarts"]` to render JSON as an EChart
