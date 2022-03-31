@@ -3,7 +3,6 @@ import cx from 'classnames'
 import type { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
