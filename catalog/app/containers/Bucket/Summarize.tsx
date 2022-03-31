@@ -579,11 +579,11 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
   )
 }
 
-interface BrokenQuiltSummarizeProps {
+interface SummaryFailedProps {
   error: Error
 }
 
-const useBrokenQuiltSummarizeStyles = M.makeStyles((t) => ({
+const useSummaryFailedStyles = M.makeStyles((t) => ({
   heading: {
     color: t.palette.error.light,
     display: 'flex',
@@ -594,8 +594,8 @@ const useBrokenQuiltSummarizeStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BrokenQuiltSummarize({ error }: BrokenQuiltSummarizeProps) {
-  const classes = useBrokenQuiltSummarizeStyles()
+function SummaryFailed({ error }: SummaryFailedProps) {
+  const classes = useSummaryFailedStyles()
   return (
     <Section
       heading={
@@ -633,7 +633,7 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
   return (
     <FileThemeContext.Provider value={FileThemes.Nested}>
       {data.case({
-        Err: (e: Error) => <BrokenQuiltSummarize error={e} />,
+        Err: (e: Error) => <SummaryFailed error={e} />,
         Ok: (entries: SummarizeFile[]) => (
           <SummaryEntries
             entries={entries}
