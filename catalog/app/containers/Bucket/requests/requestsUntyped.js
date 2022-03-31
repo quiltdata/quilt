@@ -628,8 +628,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     const manifest = JSON.parse(json)
     const configErrors = isValidManifest(manifest)
     if (configErrors.length) {
-      // eslint-disable-next-line no-console
-      console.error(configErrors[0])
       throw new Error(
         'Invalid manifest: must be a JSON array of files or arrays of files',
       )
@@ -674,7 +672,7 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     console.log('Error loading summary:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    throw e
   }
 }
 

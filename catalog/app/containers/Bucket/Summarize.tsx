@@ -3,12 +3,14 @@ import cx from 'classnames'
 import type { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import { docs } from 'constants/urls'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -83,12 +85,10 @@ const FileThemeContext = React.createContext(FileThemes.Overview)
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
+    marginTop: t.spacing(2),
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
-    },
-    [t.breakpoints.up('sm')]: {
-      marginTop: t.spacing(2),
     },
   },
   [FileThemes.Overview]: {
@@ -579,6 +579,41 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
   )
 }
 
+interface BrokenQuiltSummarizeProps {
+  error: Error
+}
+
+const useBrokenQuiltSummarizeStyles = M.makeStyles((t) => ({
+  heading: {
+    color: t.palette.error.light,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: t.spacing(1),
+  },
+}))
+
+function BrokenQuiltSummarize({ error }: BrokenQuiltSummarizeProps) {
+  const classes = useBrokenQuiltSummarizeStyles()
+  return (
+    <Section
+      heading={
+        <span className={classes.heading} title={error.message}>
+          <M.Icon className={classes.icon}>error</M.Icon>Rendering summary files failed
+        </span>
+      }
+    >
+      <M.Typography>
+        It's likely the problem with quilt_summarize.json. See the{' '}
+        <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
+          documentation
+        </Link>
+      </M.Typography>
+    </Section>
+  )
+}
+
 interface SummaryNestedProps {
   mkUrl: MakeURL
   handle: {
@@ -598,13 +633,7 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
   return (
     <FileThemeContext.Provider value={FileThemes.Nested}>
       {data.case({
-        Err: (e: Error) => {
-          // eslint-disable-next-line no-console
-          console.warn('Error loading summary')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          return null
-        },
+        Err: (e: Error) => <BrokenQuiltSummarize error={e} />,
         Ok: (entries: SummarizeFile[]) => (
           <SummaryEntries
             entries={entries}
