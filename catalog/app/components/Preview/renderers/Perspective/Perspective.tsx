@@ -9,13 +9,11 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
-import { CONTEXT } from '../../types'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
+  table: {
+    margin: t.spacing(1, 0, 1, 3),
   },
-  meta: {},
   mono: {
     fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
   },
@@ -26,6 +24,20 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
   },
   metaValue: {
     paddingLeft: t.spacing(1),
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  headerIcon: {
+    fontSize: '1.1rem',
+    transform: 'rotate(-90deg)',
+    marginRight: t.spacing(0.5),
+    transition: 'transform 0.3s ease',
+  },
+  headerIconExpanded: {
+    transform: 'rotate(0deg)',
   },
 }))
 
@@ -44,6 +56,8 @@ function ParquetMeta({
   ...props
 }: ParquetMetaProps) {
   const classes = useParquetMetaStyles()
+  const [show, setShow] = React.useState(false)
+  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
   const renderMeta = (
     name: string,
     value: ParquetMetadata[keyof ParquetMetadata],
@@ -57,28 +71,38 @@ function ParquetMeta({
     )
 
   return (
-    <div className={cx(classes.root, className)} {...props}>
-      <table className={classes.meta}>
-        <tbody>
-          {renderMeta('Created by:', createdBy, (c: string) => (
-            <span className={classes.mono}>{c}</span>
-          ))}
-          {renderMeta('Format version:', formatVersion, (v: string) => (
-            <span className={classes.mono}>{v}</span>
-          ))}
-          {renderMeta('# row groups:', numRowGroups)}
-          {renderMeta('Serialized size:', serializedSize)}
-          {renderMeta('Shape:', shape, ({ rows, columns }) => (
-            <span>
-              {rows} rows &times; {columns} columns
-            </span>
-          ))}
-          {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-            /* @ts-expect-error */
-            <JsonDisplay value={s} />
-          ))}
-        </tbody>
-      </table>
+    <div className={className} {...props}>
+      <M.Typography className={classes.header} onClick={toggleShow}>
+        <M.Icon
+          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
+        >
+          expand_more
+        </M.Icon>
+        Parquet metadata
+      </M.Typography>
+      <M.Collapse in={show}>
+        <table className={classes.table}>
+          <tbody>
+            {renderMeta('Created by:', createdBy, (c: string) => (
+              <span className={classes.mono}>{c}</span>
+            ))}
+            {renderMeta('Format version:', formatVersion, (v: string) => (
+              <span className={classes.mono}>{v}</span>
+            ))}
+            {renderMeta('# row groups:', numRowGroups)}
+            {renderMeta('Serialized size:', serializedSize)}
+            {renderMeta('Shape:', shape, ({ rows, columns }) => (
+              <span>
+                {rows} rows &times; {columns} columns
+              </span>
+            ))}
+            {renderMeta('Schema:', schema, (s: { names: string[] }) => (
+              /* @ts-expect-error */
+              <JsonDisplay value={s} />
+            ))}
+          </tbody>
+        </table>
+      </M.Collapse>
     </div>
   )
 }
@@ -128,16 +152,18 @@ function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProp
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    overflow: 'scroll',
+    // NOTE: padding is required because perspective-viewer covers resize handle
+    padding: '0 0 4px',
+    resize: 'vertical',
     width: '100%',
   },
   meta: {
     marginBottom: t.spacing(1),
   },
   viewer: {
-    height: ({ context }: { context: 'file' | 'listing' }) =>
-      context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
-    overflow: 'auto',
-    resize: 'vertical',
+    height: '100%',
+    minHeight: t.spacing(80),
     zIndex: 1,
   },
   warning: {
@@ -148,7 +174,6 @@ const useStyles = M.makeStyles((t) => ({
 export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
-  context: 'file' | 'listing'
   data: string | ArrayBuffer
   meta: ParquetMetadata
   handle: S3HandleBase
@@ -159,7 +184,6 @@ export interface PerspectiveProps
 export default function Perspective({
   children,
   className,
-  context,
   data,
   meta,
   handle,
@@ -168,7 +192,7 @@ export default function Perspective({
   settings,
   ...props
 }: PerspectiveProps) {
-  const classes = useStyles({ context })
+  const classes = useStyles()
 
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 

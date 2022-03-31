@@ -17,6 +17,17 @@ type Config {
   contentIndexingSettings: ContentIndexingSettings! @admin
 }
 
+type Collaborator {
+  email: String!
+  username: String!
+}
+
+type CollaboratorBucketConnection {
+  collaborator: Collaborator!
+  permissionLevel: BucketPermissionLevel!
+}
+
+
 type BucketConfig {
   name: String!
   title: String!
@@ -33,6 +44,7 @@ type BucketConfig {
   fileExtensionsToIndex: [String!] @admin
   indexContentBytes: Int @admin
   permissions: [RoleBucketPermission!]! @admin
+  collaborators: [CollaboratorBucketConnection!]!
 }
 
 type UnmanagedRole {
@@ -135,6 +147,7 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
+  potentialCollaborators: Int!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
   roles: [Role!]! @admin

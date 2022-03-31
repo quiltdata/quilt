@@ -1,13 +1,6 @@
-query {
-  bucketConfigs {
+query ($bucket: String!) {
+  bucketConfig(name: $bucket) {
     name
-    title
-    iconUrl
-    description
-    linkedData
-    overviewUrl
-    tags
-    relevanceScore
     collaborators {
       collaborator {
         email

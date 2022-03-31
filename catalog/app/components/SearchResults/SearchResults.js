@@ -299,12 +299,8 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title }) {
+function PreviewBox({ children, title, expanded, onExpand }) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(false)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <SmallerSection>
       {title && <SectionHeading>{title}</SectionHeading>}
@@ -314,7 +310,7 @@ function PreviewBox({ children, title }) {
 
         {!expanded && (
           <div className={classes.fade}>
-            <M.Button variant="outlined" onClick={expand}>
+            <M.Button variant="outlined" onClick={onExpand}>
               Expand
             </M.Button>
           </div>
@@ -324,11 +320,15 @@ function PreviewBox({ children, title }) {
   )
 }
 
-const renderContents = (children) => <PreviewBox {...{ children }} />
-
 const previewOptions = { context: Preview.CONTEXT.LISTING }
 
 function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
   const withData = (callback) =>
     bucketExistenceData.case({
       _: callback,
@@ -360,14 +360,21 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
         }),
     })
 
-  return withData(Preview.display({ renderContents, renderProgress: Progress }))
+  return withData(
+    Preview.display({
+      renderContents,
+      renderProgress: Progress,
+    }),
+  )
 }
 
 function Meta({ meta }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata">
+    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
       <JsonDisplay defaultExpanded={1} value={meta} />
     </PreviewBox>
   )

@@ -88,6 +88,7 @@ export interface BucketConfig {
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly permissions: ReadonlyArray<RoleBucketPermission>
+  readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
 }
 
 export interface BucketConfigDoesNotExist {
@@ -155,6 +156,18 @@ export type BucketUpdateResult =
 export interface BucketUpdateSuccess {
   readonly __typename: 'BucketUpdateSuccess'
   readonly bucketConfig: BucketConfig
+}
+
+export interface Collaborator {
+  readonly __typename: 'Collaborator'
+  readonly email: Scalars['String']
+  readonly username: Scalars['String']
+}
+
+export interface CollaboratorBucketConnection {
+  readonly __typename: 'CollaboratorBucketConnection'
+  readonly collaborator: Collaborator
+  readonly permissionLevel: BucketPermissionLevel
 }
 
 export interface Config {
@@ -355,6 +368,7 @@ export interface Query {
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
+  readonly potentialCollaborators: Scalars['Int']
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
   readonly roles: ReadonlyArray<Role>

@@ -64,6 +64,9 @@ If your cluster status is not "Green" (healthy), please contact Quilt support. C
 ### Service Limits
 This deployment does not require an increase in limits for your AWS Account.
 
+### External Dependencies
+In addition to containers running in Fargate, Quilt includes a set of AWS Lambda functions. These lambda functions are not scanned by AWS Marketplace. The [code for the lambda functions](https://github.com/quiltdata/quilt/tree/master/lambdas) is open-source and has been verified through an independent security audit.
+
 ## Requirements and Prerequisites
 
 ### Knowledge Requirements
@@ -239,6 +242,8 @@ All customer data and metadata in Quilt is stored in S3. It may also be cached i
 ![](imgs/aws-diagram-customer-data.png)
 
 We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html) to provide maximum protection.
+
+User email addresses are stored by the Identity Service in RDS Postgres (part of the Quilt stack). User email addresses are also sent through an encrypted channel to the customer support messaging system ([Intercom](https://www.intercom.com/)).
 
 ## Advanced configuration
 

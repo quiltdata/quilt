@@ -436,7 +436,7 @@ const withPreview = (
     return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
   }
   const previewHandle = { ...handle, packageHandle }
-  const previewOptions = { mode, context: Preview.CONTEXT.LISTING }
+  const previewOptions = { mode, context: Preview.CONTEXT.FILE }
   return Preview.load(previewHandle, callback, previewOptions)
 }
 

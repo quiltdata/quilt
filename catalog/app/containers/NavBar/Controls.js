@@ -1,8 +1,12 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
+import BUCKET_COLLABORATORS from './BucketCollaborators.generated'
+
 import BucketSelect from './BucketSelect'
+import Collaborators from './Collaborators'
 import Search from './Search'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
@@ -95,9 +99,20 @@ function BucketControls({ bucket, iconized, disableSearch }) {
     if (selectRef.current) selectRef.current.focus()
   }, [])
 
+  const [{ data }] = urql.useQuery({
+    query: BUCKET_COLLABORATORS,
+    variables: { bucket },
+  })
+  const collaborators = data?.bucketConfig?.collaborators
+
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
+      <Collaborators
+        bucket={bucket}
+        hidden={state === 'search'}
+        collaborators={collaborators}
+      />
       <Search
         bucket={bucket}
         onFocus={search}
