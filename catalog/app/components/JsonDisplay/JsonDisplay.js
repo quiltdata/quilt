@@ -63,7 +63,6 @@ function Key({ children, classes }) {
 }
 
 function getHref(v) {
-  if (!R.is(String)) return ''
   try {
     const urlData = new URL(v)
     return urlData.href
