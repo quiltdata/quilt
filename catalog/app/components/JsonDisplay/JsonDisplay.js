@@ -72,7 +72,7 @@ function getHref(v) {
 }
 
 function NonStringValue({ value }) {
-  return <div> {`${value}`}</div>
+  return <div>{`${value}`}</div>
 }
 
 function StringValue({ value }) {
