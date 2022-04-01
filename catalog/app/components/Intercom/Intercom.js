@@ -17,7 +17,7 @@ function dummyIntercomApi(...args) {
   // eslint-disable-next-line no-console
   console.log("Trying to call Intercom, but it's unavailable", args)
 }
-dummyIntercomApi.dummy = true
+dummyIntercomApi.isCustom = false
 dummyIntercomApi.isAvailable = () => false
 
 const Ctx = React.createContext(dummyIntercomApi)
@@ -38,16 +38,17 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
   const settings = { app_id: appId, ...props }
 
   const cfg = Config.use()
-  if (cfg.mode === 'PRODUCT') {
-    settings.custom_launcher_selector = SELECTOR
-    settings.hide_default_launcher = true
-  }
 
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
   const { current: api } = React.useRef((...args) => window.Intercom(...args))
-  if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
+  api.isCustom = cfg.mode === 'PRODUCT'
+
+  if (api.isCustom) {
+    settings.custom_launcher_selector = SELECTOR
+    settings.hide_default_launcher = true
+  }
 
   React.useEffect(() => {
     api('boot', settings)

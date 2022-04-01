@@ -169,7 +169,7 @@ export default function Footer() {
             <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
             <NavIcon icon={iconInstagram} href={URLS.instagram} target="_blank" ml={4} />
             <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={4} />
-            {!intercom.dummy && (
+            {!intercom.isCustom && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
           </M.Box>
