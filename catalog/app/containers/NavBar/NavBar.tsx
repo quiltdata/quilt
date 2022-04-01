@@ -411,7 +411,7 @@ const useNavBarStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(3),
     marginRight: t.spacing(2),
   },
-  navLink: {
+  navItem: {
     '& + &': {
       marginLeft: t.spacing(2),
     },
@@ -445,7 +445,7 @@ export function NavBar() {
           {links.map(({ label, ...rest }) => (
             <NavLink
               key={`${label}:${rest.to || rest.href}`}
-              className={classes.navLink}
+              className={classes.navItem}
               {...rest}
             >
               {label}
@@ -453,7 +453,7 @@ export function NavBar() {
           ))}
           {intercom.isCustom && (
             <M.MuiThemeProvider theme={style.appTheme}>
-              <Intercom.Launcher className={classes.navLink} />
+              <Intercom.Launcher className={classes.navItem} />
             </M.MuiThemeProvider>
           )}
         </nav>
