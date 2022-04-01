@@ -84,10 +84,12 @@ const FileThemeContext = React.createContext(FileThemes.Overview)
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(2),
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
+    },
+    [t.breakpoints.up('sm')]: {
+      marginTop: t.spacing(2),
     },
   },
   [FileThemes.Overview]: {
