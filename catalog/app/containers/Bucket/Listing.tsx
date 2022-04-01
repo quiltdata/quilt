@@ -775,6 +775,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     zIndex: 1, // to prevent receiveing shadow from footer
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
+    },
   },
   grid: {
     border: 'none',
