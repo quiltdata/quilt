@@ -124,6 +124,10 @@ const useSectionStyles = M.makeStyles((t) => ({
       ...t.typography.h5,
     },
   },
+  headingText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   headingAction: {
     marginLeft: 'auto',
   },
@@ -148,7 +152,7 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       {!!heading && (
         <div className={classes.heading}>
-          {heading}
+          <div className={classes.headingText}>{heading}</div>
           {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
         </div>
       )}
