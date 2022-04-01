@@ -44,7 +44,7 @@ LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
 
 def _mock_copy_file_list(file_list, callback=None, message=None):
-    return [key for _, key, _ in file_list]
+    return [(key, None) for _, key, _ in file_list]
 
 
 class PackageTest(QuiltTestCase):
@@ -221,11 +221,13 @@ class PackageTest(QuiltTestCase):
             method='put_object',
             service_response={
                 'VersionId': version,
+                'ChecksumSHA256': '123456',
             },
             expected_params={
                 'Body': ANY,  # TODO: use data here.
                 'Bucket': pkg_registry.root.bucket,
                 'Key': f'{pkg_name}/{lkey}',
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
 
@@ -474,7 +476,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '7fd8e7f49a344aadf4154a2210fe6b08297ecb23218d95027963dc0410548440',
+            '04ac395a79045e624238c9f68ab2865155dc378a24822ff6c755d6da5823cf12',
             pointer_name=str(timestamp1),
         )
         with patch('time.time', return_value=timestamp1), \
@@ -488,7 +490,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            'd4efbb1734a53726d97086824d153e6cb5e9d8bc31d15ead0dbc019022cfe539',
+            '04ac395a79045e624238c9f68ab2865155dc378a24822ff6c755d6da5823cf12',
             pointer_name=str(timestamp2),
         )
         with patch('time.time', return_value=timestamp2), \
@@ -1032,7 +1034,11 @@ class PackageTest(QuiltTestCase):
             )
             self.s3_stubber.add_response(
                 method='copy_object',
-                service_response={},
+                service_response={
+                    'CopyObjectResult': {
+                        'ChecksumSHA256': '123456',
+                    },
+                },
                 expected_params={
                     'CopySource': {
                         'Bucket': pkg_registry.root.bucket,
@@ -1040,6 +1046,7 @@ class PackageTest(QuiltTestCase):
                     },
                     'Bucket': pkg_registry.root.bucket,
                     'Key': pkg_registry.pointer_latest_pk(pkg_name).path,
+                    'ChecksumAlgorithm': 'SHA256',
                 }
             )
 
@@ -1625,6 +1632,19 @@ class PackageTest(QuiltTestCase):
         Path('test/blah').unlink()
         assert pkg.verify('test')
 
+        # Legacy hash
+        pkg['foo'].hash = dict(
+            type='SHA256',
+            value='12345',
+        )
+        assert not pkg.verify('test')
+
+        pkg['foo'].hash = dict(
+            type='SHA256',
+            value='dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f',
+        )
+        assert pkg.verify('test')
+
     def test_verify_poo_hash_type(self):
         expected_err_msg = "Unsupported hash type: '💩'. Supported types: SHA256. Try to update quilt3."
 
@@ -1683,7 +1703,7 @@ class PackageTest(QuiltTestCase):
         mocked_calculate_sha256.return_value = [hash_]
         pkg._fix_sha256()
         mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
-        assert entry.hash == {'type': 'SHA256', 'value': hash_}
+        assert entry.hash == {'type': 'AWSChecksumSHA256', 'value': hash_}
 
     def test_resolve_hash_invalid_pkg_name(self):
         with pytest.raises(QuiltException, match='Invalid package name'):
@@ -1832,18 +1852,20 @@ class PackageTest(QuiltTestCase):
             method='put_object',
             service_response={
                 'VersionId': '1',
+                'ChecksumSHA256': '123456',
             },
             expected_params={
                 'Body': ANY,
                 'Bucket': dest_bucket,
                 'Key': dest_key,
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn, force=True)
 
-        dest_fn.assert_called_once_with(lk, pkg[lk], mock.sentinel.top_hash)
+        dest_fn.assert_called_once_with(lk, pkg[lk])
         push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
