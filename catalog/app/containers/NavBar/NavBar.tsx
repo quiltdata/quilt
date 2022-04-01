@@ -339,7 +339,6 @@ const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) 
   return (
     <M.Box
       component={props.to ? HashLink : 'a'}
-      mr={2}
       color={isActive ? 'text.disabled' : 'text.secondary'}
       fontSize="body2.fontSize"
       maxWidth={64}
@@ -406,13 +405,16 @@ const selector = createStructuredSelector(
 )
 
 const useNavBarStyles = M.makeStyles((t) => ({
-  intercom: {
-    marginRight: t.spacing(2),
-  },
   nav: {
     alignItems: 'center',
     display: 'flex',
     marginLeft: t.spacing(3),
+    marginRight: t.spacing(2),
+  },
+  navLink: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   spacer: {
     flexGrow: 1,
@@ -441,13 +443,17 @@ export function NavBar() {
       {!useHamburger && (
         <nav className={classes.nav}>
           {links.map(({ label, ...rest }) => (
-            <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
+            <NavLink
+              key={`${label}:${rest.to || rest.href}`}
+              className={classes.navLink}
+              {...rest}
+            >
               {label}
             </NavLink>
           ))}
           {intercom.isCustom && (
             <M.MuiThemeProvider theme={style.appTheme}>
-              <Intercom.Launcher className={classes.intercom} />
+              <Intercom.Launcher className={classes.navLink} />
             </M.MuiThemeProvider>
           )}
         </nav>
