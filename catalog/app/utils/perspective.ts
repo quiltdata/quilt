@@ -9,6 +9,7 @@ import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
 export interface TableData {
   size: number | null
+  viewer: HTMLPerspectiveViewerElement
 }
 
 const worker = perspective.worker()
@@ -57,6 +58,7 @@ function usePerspective(
       const size = await table.size()
       setTableData({
         size,
+        viewer,
       })
     }
     renderData()

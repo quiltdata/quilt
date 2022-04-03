@@ -132,6 +132,8 @@ interface TruncatedWarningProps {
 
 function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProps) {
   const classes = useTruncatedWarningStyles()
+
+  const onConfigToggle = React.useCallback(() => table?.viewer.toggleConfig(), [table])
   return (
     <div className={cx(classes.root, className)}>
       <span className={classes.message}>
@@ -146,6 +148,14 @@ function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProp
           Load more
         </M.Button>
       )}
+
+      <M.Button
+        startIcon={<M.Icon>settings</M.Icon>}
+        size="small"
+        onClick={onConfigToggle}
+      >
+        Toggle config
+      </M.Button>
     </div>
   )
 }
@@ -177,6 +187,7 @@ export interface PerspectiveProps
   data: string | ArrayBuffer
   meta: ParquetMetadata
   handle: S3HandleBase
+  onConfigToggle: () => void
   onLoadMore: () => void
   truncated: boolean
 }
@@ -188,6 +199,7 @@ export default function Perspective({
   meta,
   handle,
   onLoadMore,
+  onConfigToggle,
   truncated,
   settings,
   ...props
