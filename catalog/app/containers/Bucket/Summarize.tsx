@@ -198,6 +198,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
     bottom: 0,
     display: 'flex',
     height: '100%',
+    cursor: 'pointer',
     justifyContent: 'center',
     left: 0,
     position: 'absolute',
@@ -212,10 +213,8 @@ function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
       {children}
       {!expanded && (
-        <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={onExpand}>
-            Expand
-          </M.Button>
+        <div className={classes.fade} onClick={onExpand} title="Click to expand">
+          <M.Button variant="outlined">Expand</M.Button>
         </div>
       )}
     </div>
