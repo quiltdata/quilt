@@ -114,7 +114,9 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
   message: {
     color: t.palette.text.secondary,
-    marginRight: t.spacing(2),
+  },
+  btn: {
+    marginLeft: t.spacing(2),
   },
   icon: {
     display: 'inline-block',
@@ -144,17 +146,23 @@ function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProp
       </span>
 
       {!!onLoadMore && (
-        <M.Button startIcon={<M.Icon>refresh</M.Icon>} size="small" onClick={onLoadMore}>
+        <M.Button
+          className={classes.btn}
+          startIcon={<M.Icon>refresh</M.Icon>}
+          size="small"
+          onClick={onLoadMore}
+        >
           Load more
         </M.Button>
       )}
 
       <M.Button
-        startIcon={<M.Icon>settings</M.Icon>}
+        className={classes.btn}
+        startIcon={<M.Icon>tune</M.Icon>}
         size="small"
         onClick={onConfigToggle}
       >
-        Toggle config
+        Toggle filter & plot
       </M.Button>
     </div>
   )
