@@ -129,20 +129,20 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface TruncatedWarningProps {
   className: string
   onLoadMore: () => void
-  table: perspective.TableData | null
+  state: perspective.State | null
 }
 
-function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProps) {
+function TruncatedWarning({ className, onLoadMore, state }: TruncatedWarningProps) {
   const classes = useTruncatedWarningStyles()
 
-  const onConfigToggle = React.useCallback(() => table?.viewer.toggleConfig(), [table])
+  const onConfigToggle = React.useCallback(() => state?.viewer.toggleConfig(), [state])
   return (
     <div className={cx(classes.root, className)}>
       <span className={classes.message}>
         <M.Icon fontSize="small" color="inherit" className={classes.icon}>
           info_outlined
         </M.Icon>
-        {table?.size ? `Showing only ${table?.size} rows` : `Partial preview`}
+        {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
       </span>
 
       {!!onLoadMore && (
@@ -217,14 +217,14 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const tableData = perspective.use(root, data, attrs, settings)
+  const state = perspective.use(root, data, attrs, settings)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
       {truncated && (
         <TruncatedWarning
           className={classes.warning}
-          table={tableData}
+          state={state}
           onLoadMore={onLoadMore}
         />
       )}
