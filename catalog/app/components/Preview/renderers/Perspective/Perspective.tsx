@@ -4,11 +4,34 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
+import Skeleton, { SkeletonProps } from 'components/Skeleton'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
+
+interface ContentSkeletonProps {
+  className: string
+}
+
+function ContentSkeleton({ className }: ContentSkeletonProps) {
+  const rows = React.useMemo(() => R.range(1, 15), [])
+  return (
+    <div className={className}>
+      {rows.map((i) => (
+        <Skeleton
+          // eslint-disable-next-line react/no-array-index-key
+          key={i}
+          height={16}
+          width="100%"
+          borderRadius="borderRadius"
+          mt={i ? 1 : 0}
+        />
+      ))}
+    </div>
+  )
+}
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
   table: {
@@ -152,10 +175,6 @@ function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProp
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    overflow: 'scroll',
-    // NOTE: padding is required because perspective-viewer covers resize handle
-    padding: '0 0 4px',
-    resize: 'vertical',
     width: '100%',
   },
   meta: {
@@ -168,6 +187,20 @@ const useStyles = M.makeStyles((t) => ({
   },
   warning: {
     marginBottom: t.spacing(1),
+  },
+  skeleton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  inner: {
+    position: 'relative',
+    overflow: 'scroll',
+    height: '100%',
+    // NOTE: padding is required because perspective-viewer covers resize handle
+    padding: '0 0 4px',
+    resize: 'vertical',
   },
 }))
 
@@ -200,7 +233,7 @@ export default function Perspective({
   const tableData = perspective.use(root, data, attrs, settings)
 
   return (
-    <div className={cx(className, classes.root)} ref={setRoot} {...props}>
+    <div className={cx(className, classes.root)} {...props}>
       {truncated && (
         <TruncatedWarning
           className={classes.warning}
@@ -208,8 +241,13 @@ export default function Perspective({
           onLoadMore={onLoadMore}
         />
       )}
+
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
-      {children}
+
+      <div className={classes.inner} ref={setRoot}>
+        <ContentSkeleton className={classes.skeleton} />
+        {children}
+      </div>
     </div>
   )
 }
