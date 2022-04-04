@@ -134,8 +134,6 @@ interface TruncatedWarningProps {
 
 function TruncatedWarning({ className, onLoadMore, state }: TruncatedWarningProps) {
   const classes = useTruncatedWarningStyles()
-
-  const onConfigToggle = React.useCallback(() => state.toggleConfig(), [state])
   return (
     <div className={cx(classes.root, className)}>
       <span className={classes.message}>
@@ -156,14 +154,16 @@ function TruncatedWarning({ className, onLoadMore, state }: TruncatedWarningProp
         </M.Button>
       )}
 
-      <M.Button
-        className={classes.btn}
-        startIcon={<M.Icon>tune</M.Icon>}
-        size="small"
-        onClick={onConfigToggle}
-      >
-        Toggle filter & plot
-      </M.Button>
+      {state.toggleConfig && (
+        <M.Button
+          className={classes.btn}
+          startIcon={<M.Icon>tune</M.Icon>}
+          size="small"
+          onClick={() => state.toggleConfig()}
+        >
+          Toggle filter & plot
+        </M.Button>
+      )}
     </div>
   )
 }
