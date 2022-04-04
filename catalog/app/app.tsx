@@ -150,7 +150,7 @@ const render = () => {
           userSelector: intercomUserSelector,
           horizontal_padding:
             // align the launcher with the right side of the container
-            (window.innerWidth - Math.min(1280, window.innerWidth)) / 2 + 32,
+            (window.innerWidth - Math.min(1280, window.innerWidth)) / 2 + 24,
           vertical_padding: 59,
         },
       ],
