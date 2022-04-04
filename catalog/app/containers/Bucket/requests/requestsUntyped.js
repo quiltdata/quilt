@@ -674,7 +674,7 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     console.log('Error loading summary:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    throw e
   }
 }
 

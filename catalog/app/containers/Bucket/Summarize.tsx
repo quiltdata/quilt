@@ -9,6 +9,7 @@ import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import { docs } from 'constants/urls'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -583,6 +584,43 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
   )
 }
 
+interface SummaryFailedProps {
+  error: Error
+}
+
+const useSummaryFailedStyles = M.makeStyles((t) => ({
+  heading: {
+    color: t.palette.error.light,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: t.spacing(1),
+  },
+}))
+
+function SummaryFailed({ error }: SummaryFailedProps) {
+  const classes = useSummaryFailedStyles()
+  return (
+    <Section
+      heading={
+        <span className={classes.heading} title={error.message}>
+          <M.Icon className={classes.icon}>error</M.Icon>Oops
+        </span>
+      }
+    >
+      <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
+      <M.Typography>
+        See the{' '}
+        <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
+          summarize docs
+        </Link>{' '}
+        for more.
+      </M.Typography>
+    </Section>
+  )
+}
+
 interface SummaryNestedProps {
   mkUrl: MakeURL
   handle: {
@@ -602,13 +640,7 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
   return (
     <FileThemeContext.Provider value={FileThemes.Nested}>
       {data.case({
-        Err: (e: Error) => {
-          // eslint-disable-next-line no-console
-          console.warn('Error loading summary')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          return null
-        },
+        Err: (e: Error) => <SummaryFailed error={e} />,
         Ok: (entries: SummarizeFile[]) => (
           <SummaryEntries
             entries={entries}
