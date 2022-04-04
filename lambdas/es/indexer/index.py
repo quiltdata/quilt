@@ -392,7 +392,7 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
             json.JSONDecodeError,
             KeyError,
     ) as err:
-        logger_.error("Unable to compute package stats via S3 select: %s", err)
+        logger_.exception("Unable to compute package stats via S3 select")
 
     return None
 
