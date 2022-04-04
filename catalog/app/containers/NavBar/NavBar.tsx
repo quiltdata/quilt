@@ -451,7 +451,7 @@ export function NavBar() {
               {label}
             </NavLink>
           ))}
-          {intercom.isCustom && (
+          {!intercom.dummy && intercom.isCustom && (
             <M.MuiThemeProvider theme={style.appTheme}>
               <Intercom.Launcher className={classes.navItem} />
             </M.MuiThemeProvider>

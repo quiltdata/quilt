@@ -17,6 +17,7 @@ function dummyIntercomApi(...args) {
   // eslint-disable-next-line no-console
   console.log("Trying to call Intercom, but it's unavailable", args)
 }
+dummyIntercomApi.dummy = true
 dummyIntercomApi.isCustom = false
 dummyIntercomApi.isAvailable = () => false
 
@@ -42,6 +43,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
   const { current: api } = React.useRef((...args) => window.Intercom(...args))
+  if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
   api.isCustom = cfg.mode === 'PRODUCT'
 

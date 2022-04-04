@@ -95,6 +95,7 @@ export default function Footer() {
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const year = React.useMemo(() => new Date().getFullYear(), [])
+  const reservedSpaceForIntercom = !intercom.dummy && !intercom.isCustom
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer
@@ -169,7 +170,7 @@ export default function Footer() {
             <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
             <NavIcon icon={iconInstagram} href={URLS.instagram} target="_blank" ml={4} />
             <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={4} />
-            {!intercom.isCustom && (
+            {reservedSpaceForIntercom && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
           </M.Box>
