@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 
 import 'utils/perspective-pollution'
@@ -9,7 +10,7 @@ import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
 export interface State {
   size: number | null
-  viewer: HTMLPerspectiveViewerElement
+  toggleConfig: () => void
 }
 
 const worker = perspective.worker()
@@ -40,34 +41,41 @@ function usePerspective(
   attrs: React.HTMLAttributes<HTMLDivElement>,
   settings?: boolean,
 ) {
-  const [state, setState] = React.useState<State | null>(null)
+  const table = React.useRef<Table | null>(null)
+  const viewer = React.useRef<HTMLPerspectiveViewerElement | null>(null)
+
+  const toggleConfig = React.useCallback(
+    () => viewer.current?.toggleConfig(),
+    [viewer.current],
+  )
+
+  const [state, setState] = React.useState<State>({
+    toggleConfig,
+    size: null,
+  })
 
   React.useEffect(() => {
-    let table: Table, viewer: HTMLPerspectiveViewerElement
-
     async function renderData() {
       if (!container) return
 
-      viewer = renderViewer(container, attrs)
-      table = await renderTable(data, viewer)
+      viewer.current = renderViewer(container, attrs)
+      table.current = await renderTable(data, viewer.current)
 
       if (settings) {
-        await viewer.toggleConfig(true)
+        await viewer.current.toggleConfig(true)
       }
 
-      const size = await table.size()
-      setState({
-        size,
-        viewer,
-      })
+      const size = await table.current.size()
+      setState(R.assoc('size', size))
     }
-    renderData()
 
     async function disposeTable() {
-      viewer?.parentNode?.removeChild(viewer)
-      await viewer?.delete()
-      await table?.delete()
+      viewer.current?.parentNode?.removeChild(viewer.current)
+      await viewer.current?.delete()
+      await table.current?.delete()
     }
+
+    renderData()
 
     return () => {
       disposeTable()

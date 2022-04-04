@@ -129,20 +129,20 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface TruncatedWarningProps {
   className: string
   onLoadMore: () => void
-  state: perspective.State | null
+  state: perspective.State
 }
 
 function TruncatedWarning({ className, onLoadMore, state }: TruncatedWarningProps) {
   const classes = useTruncatedWarningStyles()
 
-  const onConfigToggle = React.useCallback(() => state?.viewer.toggleConfig(), [state])
+  const onConfigToggle = React.useCallback(() => state.toggleConfig(), [state])
   return (
     <div className={cx(classes.root, className)}>
       <span className={classes.message}>
         <M.Icon fontSize="small" color="inherit" className={classes.icon}>
           info_outlined
         </M.Icon>
-        {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
+        {state.size ? `Showing only ${state.size} rows` : `Partial preview`}
       </span>
 
       {!!onLoadMore && (
