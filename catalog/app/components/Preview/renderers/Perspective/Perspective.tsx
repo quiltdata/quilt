@@ -164,7 +164,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
           className={classes.item}
           startIcon={<M.Icon>tune</M.Icon>}
           size="small"
-          onClick={() => state?.toggleConfig()}
+          onClick={state?.toggleConfig}
         >
           Filter and plot
         </M.Button>
