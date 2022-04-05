@@ -44,13 +44,8 @@ function usePerspective(
   const table = React.useRef<Table | null>(null)
   const viewer = React.useRef<HTMLPerspectiveViewerElement | null>(null)
 
-  const toggleConfig = React.useCallback(
-    () => viewer.current?.toggleConfig(),
-    [viewer.current],
-  )
-
   const [state, setState] = React.useState<State>({
-    toggleConfig,
+    toggleConfig: () => viewer.current?.toggleConfig(),
     size: null,
   })
 
