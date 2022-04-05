@@ -114,7 +114,11 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
   message: {
     color: t.palette.text.secondary,
-    marginRight: t.spacing(2),
+  },
+  item: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   icon: {
     display: 'inline-block',
@@ -124,26 +128,45 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TruncatedWarningProps {
+interface ToolbarProps {
   className: string
   onLoadMore: () => void
-  table: perspective.TableData | null
+  state: perspective.State | null
+  truncated: boolean
 }
 
-function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProps) {
+function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
   const classes = useTruncatedWarningStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <span className={classes.message}>
-        <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-          info_outlined
-        </M.Icon>
-        {table?.size ? `Showing only ${table?.size} rows` : `Partial preview`}
-      </span>
+      {truncated && (
+        <span className={cx(classes.message, classes.item)}>
+          <M.Icon fontSize="small" color="inherit" className={classes.icon}>
+            info_outlined
+          </M.Icon>
+          {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
+        </span>
+      )}
 
       {!!onLoadMore && (
-        <M.Button startIcon={<M.Icon>refresh</M.Icon>} size="small" onClick={onLoadMore}>
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>refresh</M.Icon>}
+          size="small"
+          onClick={onLoadMore}
+        >
           Load more
+        </M.Button>
+      )}
+
+      {state?.toggleConfig && (
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>tune</M.Icon>}
+          size="small"
+          onClick={state?.toggleConfig}
+        >
+          Filter and plot
         </M.Button>
       )}
     </div>
@@ -197,17 +220,16 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const tableData = perspective.use(root, data, attrs, settings)
+  const state = perspective.use(root, data, attrs, settings)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
-      {truncated && (
-        <TruncatedWarning
-          className={classes.warning}
-          table={tableData}
-          onLoadMore={onLoadMore}
-        />
-      )}
+      <Toolbar
+        className={classes.warning}
+        state={state}
+        onLoadMore={onLoadMore}
+        truncated={truncated}
+      />
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
       {children}
     </div>
