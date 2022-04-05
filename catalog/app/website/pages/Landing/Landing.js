@@ -31,7 +31,9 @@ export default function Landing({ location }) {
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>
-      {showMarketingBlocks && <Dots />}
+      {cfg.mode !== 'LOCAL' && (
+        <Dots style={{ height: cfg.mode === 'PRODUCT' ? '1109px' : undefined }} />
+      )}
       {cfg.mode === 'PRODUCT' && <Buckets query={query} />}
       {cfg.mode === 'LOCAL' && <LocalMode />}
       {showMarketingBlocks && <Showcase />}
