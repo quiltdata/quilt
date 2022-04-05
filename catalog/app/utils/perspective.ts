@@ -41,33 +41,35 @@ function usePerspective(
   attrs: React.HTMLAttributes<HTMLDivElement>,
   settings?: boolean,
 ) {
-  const table = React.useRef<Table | null>(null)
-  const viewer = React.useRef<HTMLPerspectiveViewerElement | null>(null)
-
-  const [state, setState] = React.useState<State>({
-    toggleConfig: () => viewer.current?.toggleConfig(),
-    size: null,
-  })
+  const [state, setState] = React.useState<State | null>(null)
 
   React.useEffect(() => {
+    // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
+    let table: Table | null = null
+    let viewer: HTMLPerspectiveViewerElement | null = null
+
     async function renderData() {
       if (!container) return
 
-      viewer.current = renderViewer(container, attrs)
-      table.current = await renderTable(data, viewer.current)
+      viewer = renderViewer(container, attrs)
+      table = await renderTable(data, viewer)
 
       if (settings) {
-        await viewer.current.toggleConfig(true)
+        await viewer.toggleConfig(true)
       }
 
-      const size = await table.current.size()
+      const size = await table.size()
+      setState({
+        size,
+        toggleConfig: () => viewer?.toggleConfig(),
+      })
       setState(R.assoc('size', size))
     }
 
     async function disposeTable() {
-      viewer.current?.parentNode?.removeChild(viewer.current)
-      await viewer.current?.delete()
-      await table.current?.delete()
+      viewer?.parentNode?.removeChild(viewer)
+      await viewer?.delete()
+      await table?.delete()
     }
 
     renderData()

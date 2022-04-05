@@ -131,7 +131,7 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 interface ToolbarProps {
   className: string
   onLoadMore: () => void
-  state: perspective.State
+  state: perspective.State | null
   truncated: boolean
 }
 
@@ -144,7 +144,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
           <M.Icon fontSize="small" color="inherit" className={classes.icon}>
             info_outlined
           </M.Icon>
-          {state.size ? `Showing only ${state.size} rows` : `Partial preview`}
+          {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
         </span>
       )}
 
@@ -159,12 +159,12 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
         </M.Button>
       )}
 
-      {state.toggleConfig && (
+      {state?.toggleConfig && (
         <M.Button
           className={classes.item}
           startIcon={<M.Icon>tune</M.Icon>}
           size="small"
-          onClick={() => state.toggleConfig()}
+          onClick={() => state?.toggleConfig()}
         >
           Filter and plot
         </M.Button>
