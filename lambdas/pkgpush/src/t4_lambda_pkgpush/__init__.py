@@ -40,6 +40,22 @@ S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS = 15 * 60  # Max lambda duration.
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
 
+CREDENTIALS_SCHEMA = {
+    '$schema': 'http://json-schema.org/draft-07/schema#',
+    'id': 'https://quiltdata.com/aws-credentials/1',
+    'type': 'object',
+    'properties': {
+        'aws_access_key_id': {'type': 'string', 'pattern': '^.+$'},
+        'aws_secret_access_key': {'type': 'string', 'pattern': '^.+$'},
+        'aws_session_token': {'type': 'string', 'pattern': '^.+$'},
+    },
+    'required': [
+        'aws_access_key_id',
+        'aws_secret_access_key',
+        'aws_session_token',
+    ],
+}
+
 PACKAGE_ID_PROPS = {
     'registry': {
         'type': 'string',
@@ -241,21 +257,6 @@ def invoke_hash_lambda(url):
     return json.load(resp['Payload'])
 
 
-CREDENTIALS_ATTRS = (
-    'aws_access_key_id',
-    'aws_secret_access_key',
-    'aws_session_token',
-)
-
-
-# XXX: use jsonschema?
-def get_user_credentials(input):
-    creds = {attr: input.get(attr) for attr in CREDENTIALS_ATTRS}
-    if not all(creds.values()):
-        raise InvalidCredentials()
-    return creds
-
-
 # Isolated for test-ability.
 get_user_boto_session = boto3.session.Session
 
@@ -271,9 +272,17 @@ def setup_user_boto_session(session):
 
 
 def auth(f):
+    validator = Draft7Validator(CREDENTIALS_SCHEMA)
+
     @functools.wraps(f)
     def wrapper(event):
-        with setup_user_boto_session(get_user_boto_session(**get_user_credentials(event["credentials"]))):
+        credentials = event["credentials"]
+        # TODO: collect all errors
+        ex = next(validator.iter_errors(credentials))
+        if ex is not None:
+            raise InvalidCredentials(ex)
+
+        with setup_user_boto_session(get_user_boto_session(**credentials)):
             return f(event["params"])
     return wrapper
 
@@ -301,10 +310,8 @@ class S3HashLambdaUnhandledError(PkgpushException):
 
 
 class InvalidCredentials(PkgpushException):
-    def __init__(self):
-        super().__init__(
-            f"Invalid credentials: {', '.join(CREDENTIALS_ATTRS)} are required.",
-        )
+    def __init__(self, ex):
+        super().__init__(f"Invalid credentials: {ex.message}")
 
 
 class InvalidInputParameters(PkgpushException):
