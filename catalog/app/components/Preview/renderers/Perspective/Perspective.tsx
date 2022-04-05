@@ -200,7 +200,6 @@ export interface PerspectiveProps
   data: string | ArrayBuffer
   meta: ParquetMetadata
   handle: S3HandleBase
-  onConfigToggle: () => void
   onLoadMore: () => void
   truncated: boolean
 }
@@ -212,7 +211,6 @@ export default function Perspective({
   meta,
   handle,
   onLoadMore,
-  onConfigToggle,
   truncated,
   settings,
   ...props
