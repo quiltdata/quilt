@@ -35,7 +35,14 @@ const extractSummary = R.applySpec({
 })
 
 const Container = M.styled(M.Card)(({ theme: t }) => ({
-  marginTop: t.spacing(2),
+  position: 'relative',
+  zIndex: 1,
+  [t.breakpoints.down('xs')]: {
+    borderRadius: 0,
+  },
+  [t.breakpoints.up('sm')]: {
+    marginTop: t.spacing(2),
+  },
 }))
 
 const Header = ({ children }) => (

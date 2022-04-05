@@ -339,7 +339,6 @@ const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) 
   return (
     <M.Box
       component={props.to ? HashLink : 'a'}
-      mr={2}
       color={isActive ? 'text.disabled' : 'text.secondary'}
       fontSize="body2.fontSize"
       maxWidth={64}
@@ -405,6 +404,23 @@ const selector = createStructuredSelector(
   R.pick(['error', 'waiting', 'authenticated'], authSelectors),
 )
 
+const useNavBarStyles = M.makeStyles((t) => ({
+  nav: {
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: t.spacing(3),
+    marginRight: t.spacing(2),
+  },
+  navItem: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
+  },
+  spacer: {
+    flexGrow: 1,
+  },
+}))
+
 export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
@@ -414,27 +430,33 @@ export function NavBar() {
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   const links = useLinks()
+  const intercom = Intercom.use()
+  const classes = useNavBarStyles()
   return (
     <Container>
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
-        <M.Box flexGrow={1} />
+        <div className={classes.spacer} />
       ) : (
         <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
       )}
 
       {!useHamburger && (
-        <M.Box component="nav" display="flex" alignItems="center" ml={3} mr={2}>
+        <nav className={classes.nav}>
           {links.map(({ label, ...rest }) => (
-            <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
+            <NavLink
+              key={`${label}:${rest.to || rest.href}`}
+              className={classes.navItem}
+              {...rest}
+            >
               {label}
             </NavLink>
           ))}
-          {cfg.mode === 'PRODUCT' && (
+          {!intercom.dummy && intercom.isCustom && (
             <M.MuiThemeProvider theme={style.appTheme}>
-              <Intercom.Launcher />
+              <Intercom.Launcher className={classes.navItem} />
             </M.MuiThemeProvider>
           )}
-        </M.Box>
+        </nav>
       )}
 
       {!cfg.disableNavigator &&

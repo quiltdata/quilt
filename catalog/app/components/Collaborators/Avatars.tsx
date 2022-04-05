@@ -115,6 +115,7 @@ export default function Avatars({
     >
       {avatars.map(({ collaborator: { email } }, index) => (
         <Avatar
+          key={`${email}_${index}`}
           className={classes.userpic}
           avatarsLength={avatarsLength}
           email={email}
