@@ -36,13 +36,17 @@ export default function Landing({ location }) {
       )}
       {cfg.mode === 'PRODUCT' && <Buckets query={query} />}
       {cfg.mode === 'LOCAL' && <LocalMode />}
-      {showMarketingBlocks && <Showcase />}
-      {showMarketingBlocks && <UseQuilt />}
-      {showMarketingBlocks && <Logos />}
-      {showMarketingBlocks && <CaseStudies />}
-      {showMarketingBlocks && <Testimonials />}
-      {showMarketingBlocks && <Platform />}
-      {showMarketingBlocks && <Highlights />}
+      {showMarketingBlocks && (
+        <>
+          <Showcase />
+          <UseQuilt />
+          <Logos />
+          <CaseStudies />
+          <Testimonials />
+          <Platform />
+          <Highlights />
+        </>
+      )}
       {cfg.mode === 'MARKETING' && <Pricing />}
       {showMarketingBlocks && <Contribute />}
       {cfg.mode === 'MARKETING' && <StickyFooter />}
