@@ -16,7 +16,6 @@ export interface StyleOptions {
 
 export interface PerspectiveOptions {
   config?: PerspectiveViewerConfig
-  settings?: boolean
 }
 
 interface TypeExtendedEssentials {

@@ -212,7 +212,6 @@ export default function Perspective({
   handle,
   onLoadMore,
   truncated,
-  settings,
   config,
   ...props
 }: PerspectiveProps) {
@@ -221,7 +220,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const state = perspective.use(root, data, attrs, settings, config)
+  const state = perspective.use(root, data, attrs, config)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>

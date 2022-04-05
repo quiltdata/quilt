@@ -42,7 +42,6 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
-  settings?: boolean,
   config?: PerspectiveViewerConfig,
 ) {
   const [state, setState] = React.useState<State | null>(null)
@@ -57,10 +56,6 @@ function usePerspective(
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
-
-      if (settings) {
-        await viewer.toggleConfig(true)
-      }
 
       if (config) {
         await viewer.restore(config)
@@ -85,7 +80,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, config, container, data, settings])
+  }, [attrs, config, container, data])
 
   return state
 }
