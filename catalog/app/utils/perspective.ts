@@ -63,7 +63,6 @@ function usePerspective(
         size,
         toggleConfig: () => viewer?.toggleConfig(),
       })
-      setState(R.assoc('size', size))
     }
 
     async function disposeTable() {
