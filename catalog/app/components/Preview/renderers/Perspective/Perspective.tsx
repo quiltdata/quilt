@@ -4,18 +4,18 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
-import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import Skeleton from 'components/Skeleton'
 import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
-interface ContentSkeletonProps {
+interface TableSkeletonProps {
   className: string
 }
 
-function ContentSkeleton({ className }: ContentSkeletonProps) {
+function TableSkeleton({ className }: TableSkeletonProps) {
   const rows = React.useMemo(() => R.range(1, 15), [])
   return (
     <div className={className}>
@@ -189,17 +189,19 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1),
   },
   skeleton: {
-    position: 'absolute',
-    top: 0,
     left: 0,
+    maxHeight: '100%',
+    overflow: 'hidden',
+    position: 'absolute',
     right: 0,
+    top: 0,
   },
   inner: {
-    position: 'relative',
+    minHeight: t.spacing(15),
     overflow: 'scroll',
-    height: '100%',
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 4px',
+    position: 'relative',
     resize: 'vertical',
   },
 }))
@@ -245,7 +247,7 @@ export default function Perspective({
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
 
       <div className={classes.inner} ref={setRoot}>
-        <ContentSkeleton className={classes.skeleton} />
+        <TableSkeleton className={classes.skeleton} />
         {children}
       </div>
     </div>
