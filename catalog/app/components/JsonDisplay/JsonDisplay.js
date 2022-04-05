@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import StyledLink from 'utils/StyledLink'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
 
@@ -61,17 +62,44 @@ function Key({ children, classes }) {
   return !!children && <div className={classes.key}>{children}: </div>
 }
 
-const formatValue = R.cond([
-  [R.is(String), (s) => `"${s}"`],
-  [R.T, (v) => `${v}`],
-])
+function getHref(v) {
+  try {
+    const urlData = new URL(v)
+    return urlData.href
+  } catch (e) {
+    return ''
+  }
+}
+
+function NonStringValue({ value }) {
+  return <div>{`${value}`}</div>
+}
+
+function StringValue({ value }) {
+  const href = React.useMemo(() => getHref(value), [value])
+  return href ? (
+    <div>
+      "
+      <StyledLink href={href} target="_blank">
+        {value}
+      </StyledLink>
+      "
+    </div>
+  ) : (
+    <div>"{value}"</div>
+  )
+}
 
 function PrimitiveEntry({ name, value, topLevel = true, classes }) {
   return (
     <div className={classes.flex}>
       {!topLevel && <IconBlank classes={classes} />}
       <Key classes={classes}>{name}</Key>
-      <div>{formatValue(value)}</div>
+      {typeof value === 'string' ? (
+        <StringValue value={value} />
+      ) : (
+        <NonStringValue value={value} />
+      )}
     </div>
   )
 }

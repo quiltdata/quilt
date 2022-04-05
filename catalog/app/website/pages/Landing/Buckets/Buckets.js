@@ -126,7 +126,7 @@ export default function Buckets({ query: filter } = { query: '' }) {
 
   return (
     <div className={classes.root}>
-      <Backlight style={{ opacity: 0.5 }} />
+      <Backlight style={{ height: '1200px', opacity: 0.5 }} />
       <M.Container maxWidth="lg" className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
