@@ -63,6 +63,10 @@
             }
           }
         },
+        "restore": {
+          "description": "Perspctive specific option. Restores config from .save()",
+          "type": "object"
+        },
         "settings": {
           "description": "Perspctive specific option. Sets config opened",
           "type": "boolean"

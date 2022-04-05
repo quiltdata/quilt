@@ -6,11 +6,14 @@ import 'utils/perspective-pollution'
 
 import perspective from '@finos/perspective'
 import type { Table } from '@finos/perspective'
-import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
+import type {
+  HTMLPerspectiveViewerElement,
+  PerspectiveViewerConfig,
+} from '@finos/perspective-viewer'
 
 export interface State {
   size: number | null
-  toggleConfig: () => void
+  toggleConfig: () => void // TODO: remove Config word since we use .save/.restore config
 }
 
 const worker = perspective.worker()
@@ -40,6 +43,7 @@ function usePerspective(
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
   settings?: boolean,
+  config?: PerspectiveViewerConfig,
 ) {
   const [state, setState] = React.useState<State | null>(null)
 
@@ -56,6 +60,10 @@ function usePerspective(
 
       if (settings) {
         await viewer.toggleConfig(true)
+      }
+
+      if (config) {
+        await viewer.restore(config)
       }
 
       const size = await table.size()
@@ -77,7 +85,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, container, data, settings])
+  }, [attrs, config, container, data, settings])
 
   return state
 }
