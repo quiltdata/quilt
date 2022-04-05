@@ -115,8 +115,10 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   message: {
     color: t.palette.text.secondary,
   },
-  btn: {
-    marginLeft: t.spacing(2),
+  item: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   icon: {
     display: 'inline-block',
@@ -126,26 +128,29 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TruncatedWarningProps {
+interface ToolbarProps {
   className: string
   onLoadMore: () => void
   state: perspective.State
+  truncated: boolean
 }
 
-function TruncatedWarning({ className, onLoadMore, state }: TruncatedWarningProps) {
+function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
   const classes = useTruncatedWarningStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <span className={classes.message}>
-        <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-          info_outlined
-        </M.Icon>
-        {state.size ? `Showing only ${state.size} rows` : `Partial preview`}
-      </span>
+      {truncated && (
+        <span className={cx(classes.message, classes.item)}>
+          <M.Icon fontSize="small" color="inherit" className={classes.icon}>
+            info_outlined
+          </M.Icon>
+          {state.size ? `Showing only ${state.size} rows` : `Partial preview`}
+        </span>
+      )}
 
       {!!onLoadMore && (
         <M.Button
-          className={classes.btn}
+          className={classes.item}
           startIcon={<M.Icon>refresh</M.Icon>}
           size="small"
           onClick={onLoadMore}
@@ -156,12 +161,12 @@ function TruncatedWarning({ className, onLoadMore, state }: TruncatedWarningProp
 
       {state.toggleConfig && (
         <M.Button
-          className={classes.btn}
+          className={classes.item}
           startIcon={<M.Icon>tune</M.Icon>}
           size="small"
           onClick={() => state.toggleConfig()}
         >
-          Toggle filter & plot
+          Filter and plot
         </M.Button>
       )}
     </div>
@@ -221,13 +226,12 @@ export default function Perspective({
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
-      {truncated && (
-        <TruncatedWarning
-          className={classes.warning}
-          state={state}
-          onLoadMore={onLoadMore}
-        />
-      )}
+      <Toolbar
+        className={classes.warning}
+        state={state}
+        onLoadMore={onLoadMore}
+        truncated={truncated}
+      />
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
       {children}
     </div>
