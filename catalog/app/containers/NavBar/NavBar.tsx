@@ -389,13 +389,13 @@ function useLinks(): LinkDescriptor[] {
       label: 'URI',
       path: paths.uriResolver,
     },
-    { href: URLS.docs, label: 'Docs' },
+    cfg.mode !== 'PRODUCT' && { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
       href: URLS.jobs,
       label: 'Jobs',
     },
-    { href: URLS.blog, label: 'Blog' },
+    cfg.mode !== 'PRODUCT' && { href: URLS.blog, label: 'Blog' },
     cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
   ].filter(Boolean) as LinkDescriptor[]
 }
