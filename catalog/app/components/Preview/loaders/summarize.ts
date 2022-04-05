@@ -15,7 +15,7 @@ export interface StyleOptions {
 }
 
 export interface PerspectiveOptions {
-  restore?: PerspectiveViewerConfig
+  config?: PerspectiveViewerConfig
   settings?: boolean
 }
 

@@ -63,7 +63,7 @@
             }
           }
         },
-        "restore": {
+        "config": {
           "description": "Perspctive specific option. Restores config from .save()",
           "type": "object"
         },
