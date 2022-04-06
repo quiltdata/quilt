@@ -1414,7 +1414,7 @@ class Package:
                 raise QuiltConflictException(
                     f"Package with hash {latest_hash} already exists at the destination; "
                     f"expected {None if self._origin is None else self._origin.top_hash}. "
-                    "Use force=True to overwrite."
+                    "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
         # Check the top hash and fail early if it's unexpected.
