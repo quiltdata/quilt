@@ -315,7 +315,7 @@ def auth(f):
 
 def exception_handler(f):
     @functools.wraps(f)
-    def wrapper(event):
+    def wrapper(event, _context):
         try:
             return {"result": f(event)}
         except PkgpushException as e:
