@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -15,14 +16,22 @@ const useStyles = M.makeStyles((t) => ({
     width: '30px',
   },
   img: {
-    width: '18px',
+    width: '16px',
   },
 }))
 
-export function Launcher() {
+interface LauncherProps {
+  className: string
+}
+
+export function Launcher({ className }: LauncherProps) {
   const classes = useStyles()
   return (
-    <M.Avatar id={DOM_ID} className={classes.root} title="Send us a message">
+    <M.Avatar
+      id={DOM_ID}
+      className={cx(classes.root, className)}
+      title="Get live support"
+    >
       <img className={classes.img} src={logo} />
     </M.Avatar>
   )

@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 
 import 'utils/perspective-pollution'
@@ -7,8 +8,9 @@ import perspective from '@finos/perspective'
 import type { Table } from '@finos/perspective'
 import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
 
-export interface TableData {
+export interface State {
   size: number | null
+  toggleConfig: () => void
 }
 
 const worker = perspective.worker()
@@ -39,10 +41,12 @@ function usePerspective(
   attrs: React.HTMLAttributes<HTMLDivElement>,
   settings?: boolean,
 ) {
-  const [tableData, setTableData] = React.useState<TableData | null>(null)
+  const [state, setState] = React.useState<State | null>(null)
 
   React.useEffect(() => {
-    let table: Table, viewer: HTMLPerspectiveViewerElement
+    // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
+    let table: Table | null = null
+    let viewer: HTMLPerspectiveViewerElement | null = null
 
     async function renderData() {
       if (!container) return
@@ -55,11 +59,11 @@ function usePerspective(
       }
 
       const size = await table.size()
-      setTableData({
+      setState({
         size,
+        toggleConfig: () => viewer?.toggleConfig(),
       })
     }
-    renderData()
 
     async function disposeTable() {
       viewer?.parentNode?.removeChild(viewer)
@@ -67,12 +71,14 @@ function usePerspective(
       await table?.delete()
     }
 
+    renderData()
+
     return () => {
       disposeTable()
     }
   }, [attrs, container, data, settings])
 
-  return tableData
+  return state
 }
 
 export const use = usePerspective
