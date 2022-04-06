@@ -298,7 +298,9 @@ configuration:
     "types": [
       {
         "name": "perspective",
-        "settings": true
+        "config": {
+          "settings": true
+        }
       }
     ]
   }
