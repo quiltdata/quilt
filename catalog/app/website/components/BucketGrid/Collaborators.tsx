@@ -17,6 +17,7 @@ export default function Collaborators({ bucket, collaborators }: CollaboratorsPr
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
 
+  // TODO: collaborators={[...collaborators, potentialCollaborators]}
   return (
     <>
       <Popup

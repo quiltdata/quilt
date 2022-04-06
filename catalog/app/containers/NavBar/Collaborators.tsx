@@ -1,11 +1,13 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import { Avatars, Popup } from 'components/Collaborators'
 import * as style from 'constants/style'
-import * as Model from 'model'
 import usePotentialCollaborators from 'utils/usePotentialCollaborators'
+
+import BUCKET_COLLABORATORS from './BucketCollaborators.generated'
 
 const useStyles = M.makeStyles((t) => ({
   avatars: {
@@ -19,17 +21,17 @@ const useStyles = M.makeStyles((t) => ({
 
 interface CollaboratorsProps {
   bucket: string
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
   hidden: boolean
 }
 
-export default function Collaborators({
-  bucket,
-  collaborators,
-  hidden,
-}: CollaboratorsProps) {
+export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const classes = useStyles()
 
+  const [{ data }] = urql.useQuery({
+    query: BUCKET_COLLABORATORS,
+    variables: { bucket },
+  })
+  const collaborators = data?.bucketConfig?.collaborators
   const potentialCollaborators = usePotentialCollaborators()
 
   const [open, setOpen] = React.useState(false)
@@ -37,6 +39,8 @@ export default function Collaborators({
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
 
   if (!collaborators?.length) return null
+
+  // TODO: collaborators={[...collaborators, potentialCollaborators]}
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
