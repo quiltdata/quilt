@@ -304,7 +304,7 @@ def auth(f):
     def wrapper(event):
         credentials = event["credentials"]
         # TODO: collect all errors
-        ex = next(validator.iter_errors(credentials))
+        ex = next(validator.iter_errors(credentials), None)
         if ex is not None:
             raise PkgpushException("InvalidCredentials", {"details": ex.message})
 
