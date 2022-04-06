@@ -307,6 +307,31 @@ configuration:
 ]
 ```
 
+Besides `{ "settings": true }` you can provide any object previously saved from Perspective.
+
+![](../imgs/perspective-save.png)
+
+All filters and columns will be restored:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "file1.csv",
+    "types": [
+      {
+        "name": "perspective",
+        "config": {
+          "columns": ["name", "value"],
+          "group_by": ["value"],
+          "settings": true
+        }
+      }
+    ]
+  }
+]
+```
+
 Click, drag, and drop columns to explore the data.
 
 ![](../imgs/perspective.png)
