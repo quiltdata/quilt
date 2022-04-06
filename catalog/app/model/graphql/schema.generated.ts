@@ -1531,6 +1531,25 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'PotentialCollaboratorBucketConnection',
+        fields: [
+          {
+            name: 'collaborator',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Collaborator',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Query',
         fields: [
           {
@@ -1589,9 +1608,15 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'PotentialCollaboratorBucketConnection',
+                    ofType: null,
+                  },
+                },
               },
             },
             args: [],

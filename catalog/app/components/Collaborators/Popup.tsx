@@ -20,8 +20,8 @@ interface PopupProps {
   open: boolean
   bucket: string
   onClose: () => void
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  potentialCollaborators: number
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
+  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
 }
 
 export default function Popup({

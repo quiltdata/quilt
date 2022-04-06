@@ -363,12 +363,17 @@ export interface PermissionInput {
   readonly level: Maybe<BucketPermissionLevel>
 }
 
+export interface PotentialCollaboratorBucketConnection {
+  readonly __typename: 'PotentialCollaboratorBucketConnection'
+  readonly collaborator: Collaborator
+}
+
 export interface Query {
   readonly __typename: 'Query'
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
-  readonly potentialCollaborators: Scalars['Int']
+  readonly potentialCollaborators: ReadonlyArray<PotentialCollaboratorBucketConnection>
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
   readonly roles: ReadonlyArray<Role>

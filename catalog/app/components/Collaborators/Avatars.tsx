@@ -78,8 +78,8 @@ const useStyles = M.makeStyles((t) => ({
 
 interface AvatarsProps {
   className?: string
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  potentialCollaborators: number
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
+  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
   onClick: () => void
 }
 

@@ -39,8 +39,8 @@ function Component({ badgeContent, icon, onClick, title }: ComponentProps) {
 }
 
 interface BadgeProps {
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  potentialCollaborators: number
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
+  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
   onClick: () => void
 }
 
@@ -49,23 +49,13 @@ export default function Badge({
   potentialCollaborators,
   onClick,
 }: BadgeProps) {
-  const knownNumber = collaborators.length
+  const knownNumber = collaborators.length + potentialCollaborators.length
   if (knownNumber) {
     return (
       <Component
         onClick={onClick}
-        badgeContent={potentialCollaborators ? `${knownNumber}+` : `${knownNumber}`}
+        badgeContent={potentialCollaborators ? `${knownNumber}?` : `${knownNumber}`}
         title="Click to view collaborators"
-        icon="group"
-      />
-    )
-  }
-
-  if (potentialCollaborators) {
-    return (
-      <Component
-        badgeContent="?"
-        title={`There are ${potentialCollaborators} potential collaborators with unmanaged roles`}
         icon="group"
       />
     )

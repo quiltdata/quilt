@@ -19,22 +19,28 @@ function getSortProperty(key: SortKey) {
 }
 
 interface TableProps {
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  potentialCollaborators: number
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
+  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
 }
 
 export default function Table({ collaborators, potentialCollaborators }: TableProps) {
-  const [sorted, setSorted] = React.useState(collaborators)
+  const [sorted, setSorted] = React.useState([
+    ...collaborators,
+    ...potentialCollaborators,
+  ])
   const [sort, setSort] = React.useState<Sort | null>(null)
   const toggleSort = React.useCallback(
     (key: SortKey, currentDirection?: boolean) => {
       const direction = currentDirection === undefined ? false : !currentDirection
       setSort({ [key]: direction } as Sort)
 
-      const preSorted = R.sortBy(getSortProperty(key))(collaborators)
+      const preSorted = R.sortBy(getSortProperty(key))([
+        ...collaborators,
+        ...potentialCollaborators,
+      ])
       setSorted(direction ? preSorted.reverse() : preSorted)
     },
-    [collaborators, setSort, setSorted],
+    [collaborators, potentialCollaborators, setSort, setSorted],
   )
 
   return (
@@ -72,22 +78,28 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
         </M.TableRow>
       </M.TableHead>
       <M.TableBody>
-        {sorted.map(({ collaborator: { email, username }, permissionLevel }) => (
-          <M.TableRow>
-            <M.TableCell padding="checkbox">
-              <M.Icon>account_circle</M.Icon>
-            </M.TableCell>
-            <M.TableCell>{username}</M.TableCell>
-            <M.TableCell>{email}</M.TableCell>
-            <M.TableCell>{permissionLevel}</M.TableCell>
-          </M.TableRow>
-        ))}
-        {!!potentialCollaborators && (
+        {sorted.map(
+          // @ts-expect-error
+          ({ collaborator: { email, username }, permissionLevel = 'UNKNOWN' }) => (
+            <M.TableRow>
+              <M.TableCell padding="checkbox">
+                <M.Icon>account_circle</M.Icon>
+              </M.TableCell>
+              <M.TableCell>
+                {username}
+                {permissionLevel === 'UNKNOWN' ? <sup> *</sup> : ''}
+              </M.TableCell>
+              <M.TableCell>{email}</M.TableCell>
+              <M.TableCell>{permissionLevel}</M.TableCell>
+            </M.TableRow>
+          ),
+        )}
+        {!!potentialCollaborators.length && (
           <M.TableRow>
             <M.TableCell />
             <M.TableCell colSpan={3}>
-              There are users with roles not managed by Quilt who can potentially access
-              this bucket
+              <sup>*</sup> User with a role not managed by Quilt who can potentially
+              access this bucket. Ask a Quilt administrator for details.
             </M.TableCell>
           </M.TableRow>
         )}

@@ -27,6 +27,9 @@ type CollaboratorBucketConnection {
   permissionLevel: BucketPermissionLevel!
 }
 
+type PotentialCollaboratorBucketConnection {
+  collaborator: Collaborator!
+}
 
 type BucketConfig {
   name: String!
@@ -147,7 +150,7 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
-  potentialCollaborators: Int!
+  potentialCollaborators: [PotentialCollaboratorBucketConnection!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
   roles: [Role!]! @admin
