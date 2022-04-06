@@ -9,6 +9,7 @@
 ## Catalog, Lambdas
 * [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
 * [Added] Show bucket collaborators ([#2756](https://github.com/quiltdata/quilt/pull/2756))
+* [Added] Add `config` field to Perspective scope of `quilt_summarize.json` ([#2781](https://github.com/quiltdata/quilt/pull/2781))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
 
