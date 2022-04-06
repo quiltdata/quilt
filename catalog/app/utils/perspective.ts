@@ -13,7 +13,7 @@ import type {
 
 export interface State {
   size: number | null
-  toggleConfig: () => void // TODO: remove Config word since we use .save/.restore config
+  toggleConfig: () => void
 }
 
 const worker = perspective.worker()
@@ -66,7 +66,6 @@ function usePerspective(
         size,
         toggleConfig: () => viewer?.toggleConfig(),
       })
-      setState(R.assoc('size', size))
     }
 
     async function disposeTable() {
