@@ -45,7 +45,7 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
   const handleClose = React.useCallback(() => setOpen(false), [setOpen])
 
-  if (!collaborators?.length) return null
+  if (!allCollaborators?.length) return null
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
