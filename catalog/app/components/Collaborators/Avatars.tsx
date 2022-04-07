@@ -5,47 +5,35 @@ import * as M from '@material-ui/core'
 import * as Model from 'model'
 
 interface AvatarProps {
-  avatarsLength: number // TODO: Avatar shouldn't know about `avatarsLength`
-  children?: React.ReactNode
-  className?: string
-  email?: string
-  hover: boolean
-  index: number // TODO: Avatar shouldn't know about `index`
+  className: string
+  email: string
+  index: number
 }
 
 const useAvatarStyles = M.makeStyles((t) => ({
-  root: ({ email, hover, index, avatarsLength }: AvatarProps) => {
-    // eslint-disable-next-line no-nested-ternary
-    const backgroundColor = !email
-      ? undefined
-      : index % 2
-      ? t.palette.info.main
-      : t.palette.info.light
+  root: ({ index }: { index: number }) => {
+    const backgroundColor = index % 2 ? t.palette.info.main : t.palette.info.light
     const color = backgroundColor ? t.palette.getContrastText(backgroundColor) : undefined
     return {
       backgroundColor,
-      fontSize: '13px',
       color,
-      transform: `translateX(${
-        hover ? `${(index + 1) * 2}px` : `-${(index + 1) * 12}px`
-      })`,
-      transition: 'transform 0.3s ease',
-      zIndex: (avatarsLength - index) * 10,
+      fontSize: '13px',
+      height: '24px',
+      textTransform: 'uppercase',
+      width: '24px',
     }
   },
 }))
 
-function Avatar({ className, children, email, ...props }: AvatarProps) {
-  const classes = useAvatarStyles({ email, ...props })
+function Avatar({ className, email, index }: AvatarProps) {
+  const classes = useAvatarStyles({ index })
+  const title =
+    email === '?'
+      ? 'User with a role not managed by Quilt who can potentially access this bucket'
+      : email
   return (
-    <M.Tooltip title={email || 'Click to show more collaborators'}>
-      {email ? (
-        <M.Avatar className={cx(classes.root, className)}>
-          {email.substring(0, 2)}
-        </M.Avatar>
-      ) : (
-        <span className={cx(classes.root, className)}>{children}</span>
-      )}
+    <M.Tooltip title={title}>
+      <M.Avatar className={cx(classes.root, className)}>{email.substring(0, 2)}</M.Avatar>
     </M.Tooltip>
   )
 }
@@ -61,18 +49,29 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     color: t.palette.common.white,
     lineHeight: '36px',
-    marginLeft: '4px',
+    marginLeft: '12px',
     // NOTE: base background color should be the same as NavBar bg
     background:
       'linear-gradient(to left, rgba(42,25,105, 0) 0, #2a2d69 32px, #2a2d69 100%)', // should be the same as NavBar bg
     padding: '0 16px 0 0',
   },
   userpic: {
-    height: '24px',
     marginTop: '6px',
-    position: 'relative',
-    width: '24px',
-    textTransform: 'uppercase',
+  },
+  avatarWrapper: {
+    display: 'flex',
+    transition: 'margin 0.3s ease',
+    '& &': {
+      margin: '0 0 0 -8px',
+      zIndex: -1,
+    },
+    '&:hover &': {
+      margin: '0 0 0 2px',
+      zIndex: 1,
+    },
+    '&:hover $more': {
+      marginLeft: '4px',
+    },
   },
 }))
 
@@ -83,53 +82,49 @@ interface AvatarsProps {
 }
 
 export default function Avatars({ className, collaborators, onClick }: AvatarsProps) {
-  const avatars = collaborators.slice(0, 5)
+  const knownCollaborators = collaborators.filter(
+    ({ permissionLevel }) => !!permissionLevel,
+  )
+  const potentialCollaborators = collaborators.filter(
+    ({ permissionLevel }) => !permissionLevel,
+  )
+  const hasUnmanagedRole = !!potentialCollaborators.length
+
+  const avatars = React.useMemo(() => {
+    if (!potentialCollaborators.length) return knownCollaborators.slice(0, 5)
+    return [potentialCollaborators[0], ...knownCollaborators.slice(0, 4)]
+  }, [knownCollaborators, potentialCollaborators])
   const avatarsLength = avatars.length
 
   const classes = useStyles()
-  const [hover, setHover] = React.useState(false)
-  const hasUnmanagedRole = React.useMemo(
-    () => collaborators.find(({ permissionLevel }) => !permissionLevel),
-    [collaborators],
-  )
   const more = React.useMemo(() => {
     const num = collaborators.length - avatarsLength
     return hasUnmanagedRole ? `${num}+ more` : `${num} more`
   }, [avatarsLength, collaborators, hasUnmanagedRole])
 
-  const handleMouseEnter = React.useCallback(() => {
-    if (avatarsLength > 1) setHover(true)
-  }, [avatarsLength])
-  const handleMouseLeave = React.useCallback(() => {
-    if (avatarsLength > 1) setHover(false)
-  }, [avatarsLength])
-
   return (
-    <div
-      className={cx(classes.root, className)}
-      onClick={onClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {avatars.map(({ collaborator: { email } }, index) => (
-        <Avatar
-          key={`${email}_${index}`}
-          className={classes.userpic}
-          avatarsLength={avatarsLength}
-          email={email}
-          index={index}
-          hover={hover}
-        />
-      ))}
-      {collaborators.length > avatarsLength && (
-        <Avatar
-          className={classes.more}
-          avatarsLength={avatarsLength}
-          index={avatarsLength - 1}
-          hover={hover}
-        >
-          {more}
-        </Avatar>
+    <div className={cx(classes.root, className)} onClick={onClick}>
+      {avatars.reduce(
+        (memo, { collaborator: { email }, permissionLevel }, index) => (
+          <div className={classes.avatarWrapper}>
+            {memo}
+            <Avatar
+              key={`${email}_${index}`}
+              className={classes.userpic}
+              email={permissionLevel ? email : '?'}
+              index={index}
+            />
+          </div>
+        ),
+        <>
+          {collaborators.length > avatarsLength && (
+            <div className={classes.avatarWrapper}>
+              <M.Tooltip title="Click to show more collaborators">
+                <span className={classes.more}>{more}</span>
+              </M.Tooltip>
+            </div>
+          )}
+        </>,
       )}
     </div>
   )

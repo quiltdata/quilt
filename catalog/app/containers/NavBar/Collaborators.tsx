@@ -47,8 +47,6 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
 
   if (!collaborators?.length) return null
 
-  // TODO: collaborators={[...collaborators, potentialCollaborators]}
-
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <Popup
