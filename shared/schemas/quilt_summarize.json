@@ -64,7 +64,7 @@
           }
         },
         "config": {
-          "description": "Perspctive specific option. Restores config from .save()",
+          "description": "Perspctive specific option. Restore renderer to a state previously returned by saving config",
           "type": "object"
         },
         "settings": {
