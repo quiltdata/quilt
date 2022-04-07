@@ -40,34 +40,34 @@ function Avatar({ className, email, index }: AvatarProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    cursor: 'pointer',
     display: 'flex',
     height: '36px',
     position: 'relative',
-    cursor: 'pointer',
   },
   more: {
-    position: 'relative',
     color: t.palette.common.white,
-    lineHeight: '36px',
-    marginLeft: '12px',
     // NOTE: base background color should be the same as NavBar bg
     background:
       'linear-gradient(to left, rgba(42,25,105, 0) 0, #2a2d69 32px, #2a2d69 100%)', // should be the same as NavBar bg
+    lineHeight: '36px',
+    marginLeft: '12px',
     padding: '0 16px 0 0',
+    position: 'relative',
+    transition: 'margin 0.3s ease',
   },
   userpic: {
     marginTop: '6px',
   },
   avatarWrapper: {
     display: 'flex',
+    flexDirection: 'row-reverse', // workaround for z-index
     transition: 'margin 0.3s ease',
     '& &': {
       margin: '0 0 0 -8px',
-      zIndex: -1,
     },
     '&:hover &': {
       margin: '0 0 0 2px',
-      zIndex: 1,
     },
     '&:hover $more': {
       marginLeft: '4px',
