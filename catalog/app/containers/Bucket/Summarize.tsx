@@ -46,7 +46,7 @@ interface SummarizeFile {
   title?: string
   types?: SummaryFileTypes
   width?: string | number
-  expanded?: boolean
+  expand?: boolean
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
@@ -431,7 +431,7 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
           handle={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
           file={file}
-          expanded={file.expanded}
+          expanded={file.expand}
           packageHandle={packageHandle}
         />
       )}
