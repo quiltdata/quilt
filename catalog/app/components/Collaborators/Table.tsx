@@ -19,28 +19,26 @@ function getSortProperty(key: SortKey) {
 }
 
 interface TableProps {
-  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
-  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
+  collaborators: Model.Collaborators
+  potentialCollaborators?: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
 }
 
-export default function Table({ collaborators, potentialCollaborators }: TableProps) {
-  const [sorted, setSorted] = React.useState([
-    ...collaborators,
-    ...potentialCollaborators,
-  ])
+export default function Table({ collaborators }: TableProps) {
+  const [sorted, setSorted] = React.useState(collaborators)
   const [sort, setSort] = React.useState<Sort | null>(null)
   const toggleSort = React.useCallback(
     (key: SortKey, currentDirection?: boolean) => {
       const direction = currentDirection === undefined ? false : !currentDirection
       setSort({ [key]: direction } as Sort)
 
-      const preSorted = R.sortBy(getSortProperty(key))([
-        ...collaborators,
-        ...potentialCollaborators,
-      ])
+      const preSorted = R.sortBy(getSortProperty(key))(collaborators)
       setSorted(direction ? preSorted.reverse() : preSorted)
     },
-    [collaborators, potentialCollaborators, setSort, setSorted],
+    [collaborators, setSort, setSorted],
+  )
+  const hasUnmanagedRole = React.useMemo(
+    () => collaborators.find(({ permissionLevel }) => !permissionLevel),
+    [collaborators],
   )
 
   return (
@@ -79,7 +77,6 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
       </M.TableHead>
       <M.TableBody>
         {sorted.map(
-          // @ts-expect-error
           ({ collaborator: { email, username }, permissionLevel = 'UNKNOWN' }) => (
             <M.TableRow>
               <M.TableCell padding="checkbox">
@@ -94,7 +91,7 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
             </M.TableRow>
           ),
         )}
-        {!!potentialCollaborators.length && (
+        {hasUnmanagedRole && (
           <M.TableRow>
             <M.TableCell />
             <M.TableCell colSpan={3}>

@@ -39,22 +39,21 @@ function Component({ badgeContent, icon, onClick, title }: ComponentProps) {
 }
 
 interface BadgeProps {
-  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
-  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
+  collaborators: Model.Collaborators
   onClick: () => void
 }
 
-export default function Badge({
-  collaborators,
-  potentialCollaborators,
-  onClick,
-}: BadgeProps) {
-  const knownNumber = collaborators.length + potentialCollaborators.length
+export default function Badge({ collaborators, onClick }: BadgeProps) {
+  const knownNumber = collaborators.length
+  const hasUnmanagedRole = React.useMemo(
+    () => collaborators.find(({ permissionLevel }) => !permissionLevel),
+    [collaborators],
+  )
   if (knownNumber) {
     return (
       <Component
         onClick={onClick}
-        badgeContent={potentialCollaborators ? `${knownNumber}?` : `${knownNumber}`}
+        badgeContent={hasUnmanagedRole ? `${knownNumber}?` : `${knownNumber}`}
         title="Click to view collaborators"
         icon="group"
       />

@@ -78,26 +78,24 @@ const useStyles = M.makeStyles((t) => ({
 
 interface AvatarsProps {
   className?: string
-  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
-  potentialCollaborators: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
+  collaborators: Model.Collaborators
   onClick: () => void
 }
 
-export default function Avatars({
-  className,
-  collaborators,
-  potentialCollaborators,
-  onClick,
-}: AvatarsProps) {
+export default function Avatars({ className, collaborators, onClick }: AvatarsProps) {
   const avatars = collaborators.slice(0, 5)
   const avatarsLength = avatars.length
 
   const classes = useStyles()
   const [hover, setHover] = React.useState(false)
+  const hasUnmanagedRole = React.useMemo(
+    () => collaborators.find(({ permissionLevel }) => !permissionLevel),
+    [collaborators],
+  )
   const more = React.useMemo(() => {
     const num = collaborators.length - avatarsLength
-    return !!potentialCollaborators ? `${num}+ more` : `${num} more`
-  }, [avatarsLength, collaborators, potentialCollaborators])
+    return hasUnmanagedRole ? `${num}+ more` : `${num} more`
+  }, [avatarsLength, collaborators, hasUnmanagedRole])
 
   const handleMouseEnter = React.useCallback(() => {
     if (avatarsLength > 1) setHover(true)
