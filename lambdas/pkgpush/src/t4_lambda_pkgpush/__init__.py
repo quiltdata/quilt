@@ -302,14 +302,14 @@ def auth(f):
 
     @functools.wraps(f)
     def wrapper(event):
-        credentials = event["credentials"]
+        credentials = event.get("credentials")
         # TODO: collect all errors
         ex = next(validator.iter_errors(credentials), None)
         if ex is not None:
             raise PkgpushException("InvalidCredentials", {"details": ex.message})
 
         with setup_user_boto_session(get_user_boto_session(**credentials)):
-            return f(event["params"])
+            return f(event.get("params"))
     return wrapper
 
 
@@ -572,7 +572,7 @@ def create_package(req_file):
             logical_key = entry['logical_key']
 
             hash_ = entry.get('hash')
-            obj_size = int(entry.get('size'))
+            obj_size = entry.get('size')
             meta = entry.get('meta')
 
             if hash_ and obj_size is not None:
@@ -580,7 +580,7 @@ def create_package(req_file):
                     logical_key,
                     quilt3.packages.PackageEntry(
                         physical_key,
-                        obj_size,
+                        None if obj_size is None else int(obj_size),
                         {'type': 'SHA256', 'value': hash_},
                         meta,
                     )
