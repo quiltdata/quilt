@@ -175,21 +175,23 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    overflow: 'scroll',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: t.spacing(80),
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 4px',
-    resize: 'vertical',
     width: '100%',
   },
   meta: {
     marginBottom: t.spacing(1),
   },
   viewer: {
-    height: '100%',
-    minHeight: t.spacing(80),
+    flexGrow: 1,
+    overflow: 'scroll',
+    resize: 'vertical',
     zIndex: 1,
   },
-  warning: {
+  toolbar: {
     marginBottom: t.spacing(1),
   },
 }))
@@ -222,10 +224,18 @@ export default function Perspective({
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
   const state = perspective.use(root, data, attrs, settings)
 
+  const style = React.useMemo(() => {
+    let minHeight
+    if (state?.size && state?.size < 20) {
+      minHeight = Math.max(190 + state?.size * 24, 300)
+    }
+    return { minHeight }
+  }, [state?.size])
+
   return (
-    <div className={cx(className, classes.root)} ref={setRoot} {...props}>
+    <div className={cx(className, classes.root)} ref={setRoot} style={style} {...props}>
       <Toolbar
-        className={classes.warning}
+        className={classes.toolbar}
         state={state}
         onLoadMore={onLoadMore}
         truncated={truncated}
