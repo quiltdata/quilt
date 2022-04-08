@@ -20,7 +20,6 @@ function getSortProperty(key: SortKey) {
 
 interface TableProps {
   collaborators: Model.Collaborators
-  potentialCollaborators?: ReadonlyArray<Model.GQLTypes.PotentialCollaboratorBucketConnection>
 }
 
 export default function Table({ collaborators }: TableProps) {

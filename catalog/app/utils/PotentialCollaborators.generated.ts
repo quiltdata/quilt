@@ -8,12 +8,10 @@ export type utils_PotentialCollaboratorsQueryVariables = Types.Exact<{
 
 export type utils_PotentialCollaboratorsQuery = { readonly __typename: 'Query' } & {
   readonly potentialCollaborators: ReadonlyArray<
-    { readonly __typename: 'PotentialCollaboratorBucketConnection' } & {
-      readonly collaborator: { readonly __typename: 'Collaborator' } & Pick<
-        Types.Collaborator,
-        'email' | 'username'
-      >
-    }
+    { readonly __typename: 'Collaborator' } & Pick<
+      Types.Collaborator,
+      'email' | 'username'
+    >
   >
 }
 
@@ -33,17 +31,8 @@ export const utils_PotentialCollaboratorsDocument = {
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
-                {
-                  kind: 'Field',
-                  name: { kind: 'Name', value: 'collaborator' },
-                  selectionSet: {
-                    kind: 'SelectionSet',
-                    selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'email' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'username' } },
-                    ],
-                  },
-                },
+                { kind: 'Field', name: { kind: 'Name', value: 'email' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'username' } },
               ],
             },
           },

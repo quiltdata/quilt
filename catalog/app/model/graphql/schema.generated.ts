@@ -1531,25 +1531,6 @@ export default {
       },
       {
         kind: 'OBJECT',
-        name: 'PotentialCollaboratorBucketConnection',
-        fields: [
-          {
-            name: 'collaborator',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'OBJECT',
-                name: 'Collaborator',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
         name: 'Query',
         fields: [
           {
@@ -1613,7 +1594,7 @@ export default {
                   kind: 'NON_NULL',
                   ofType: {
                     kind: 'OBJECT',
-                    name: 'PotentialCollaboratorBucketConnection',
+                    name: 'Collaborator',
                     ofType: null,
                   },
                 },
