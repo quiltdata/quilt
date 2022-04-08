@@ -224,16 +224,8 @@ export default function Perspective({
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
   const state = perspective.use(root, data, attrs, config)
 
-  const style = React.useMemo(() => {
-    let minHeight
-    if (state?.size && state?.size < 20) {
-      minHeight = Math.max(190 + state?.size * 24, 300)
-    }
-    return { minHeight }
-  }, [state?.size])
-
   return (
-    <div className={cx(className, classes.root)} ref={setRoot} style={style} {...props}>
+    <div className={cx(className, classes.root)} ref={setRoot} {...props}>
       <Toolbar
         className={classes.toolbar}
         state={state}
