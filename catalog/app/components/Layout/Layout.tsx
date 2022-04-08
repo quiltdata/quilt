@@ -7,6 +7,7 @@ import * as NavBar from 'containers/NavBar'
 const useRootStyles = M.makeStyles({
   root: {
     overflowX: 'hidden',
+    position: 'relative',
   },
 })
 
