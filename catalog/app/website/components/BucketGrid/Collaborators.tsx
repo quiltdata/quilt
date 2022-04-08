@@ -13,7 +13,13 @@ interface CollaboratorsProps {
 export default function Collaborators({ bucket, collaborators }: CollaboratorsProps) {
   const potentialCollaborators = usePotentialCollaborators()
   const allCollaborators: Model.Collaborators = React.useMemo(
-    () => [...collaborators, ...potentialCollaborators],
+    () => [
+      ...collaborators,
+      ...potentialCollaborators.map((collaborator) => ({
+        collaborator,
+        permissionLevel: undefined,
+      })),
+    ],
     [collaborators, potentialCollaborators],
   )
 

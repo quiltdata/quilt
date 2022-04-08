@@ -37,7 +37,13 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const collaborators = data?.bucketConfig?.collaborators || NO_COLLABORATORS
   const potentialCollaborators = usePotentialCollaborators()
   const allCollaborators: Model.Collaborators = React.useMemo(
-    () => [...collaborators, ...potentialCollaborators],
+    () => [
+      ...collaborators,
+      ...potentialCollaborators.map((collaborator) => ({
+        collaborator,
+        permissionLevel: undefined,
+      })),
+    ],
     [collaborators, potentialCollaborators],
   )
 
