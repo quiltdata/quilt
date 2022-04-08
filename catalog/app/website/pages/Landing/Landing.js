@@ -32,7 +32,7 @@ export default function Landing({ location }) {
         <LinkedData.CatalogData />
       </React.Suspense>
       {cfg.mode !== 'LOCAL' && (
-        <Dots style={{ height: cfg.mode === 'PRODUCT' ? '1109px' : undefined }} />
+        <Dots style={{ bottom: cfg.mode === 'PRODUCT' ? 0 : undefined }} />
       )}
       {cfg.mode === 'PRODUCT' && <Buckets query={query} />}
       {cfg.mode === 'LOCAL' && <LocalMode />}

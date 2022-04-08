@@ -1,12 +1,14 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 
 import 'utils/perspective-pollution'
 
 import perspective from '@finos/perspective'
 import type { Table } from '@finos/perspective'
-import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
+import type {
+  HTMLPerspectiveViewerElement,
+  PerspectiveViewerConfig,
+} from '@finos/perspective-viewer'
 
 export interface State {
   size: number | null
@@ -39,7 +41,7 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
-  settings?: boolean,
+  config?: PerspectiveViewerConfig,
 ) {
   const [state, setState] = React.useState<State | null>(null)
 
@@ -54,8 +56,8 @@ function usePerspective(
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
 
-      if (settings) {
-        await viewer.toggleConfig(true)
+      if (config) {
+        await viewer.restore(config)
       }
 
       const size = await table.size()
@@ -76,7 +78,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, container, data, settings])
+  }, [attrs, config, container, data])
 
   return state
 }

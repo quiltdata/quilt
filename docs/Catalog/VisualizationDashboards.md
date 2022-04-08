@@ -67,6 +67,7 @@ or an object with one or more of the following properties:
 - `path` - file path relative to `quilt_summarize.json`
 - `title` - title rendered instead of file path
 - `description` - description in markdown format
+- `expand` - Display the file (`true`) or display a preview in an expandable box (`false`, default)
 - `width` - column width either in pixels or ratio (default is ratio `1`)
 - `types` - a list of rendering types; currently only singleton list values are supported:
     - `["echarts"]` to render JSON as an EChart
@@ -285,7 +286,53 @@ Load More to fetch up to about 6MB of zipped data. Beyond this size, click Downl
 to see the entire file contents.
 
 In order to open the analysis and visualization capabilities of Perspecitve,
-click the vertical ellipsis, upper left. Click, drag, and drop columns to explore
-the data.
+click the vertical ellipsis, upper left. To open the controls by default, set the `config.settings` property
+in `quilt_summarize.json` as follows:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "file1.csv",
+    "types": [
+      {
+        "name": "perspective",
+        "config": {
+          "settings": true
+        }
+      }
+    ]
+  }
+]
+```
+
+Besides `{ "settings": true }` you can provide any object previously saved from Perspective.
+
+![](../imgs/perspective-save.png)
+
+All filters and columns will be restored:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "file1.csv",
+    "types": [
+      {
+        "name": "perspective",
+        "config": {
+          "columns": ["name", "value"],
+          "group_by": ["value"],
+          "settings": true
+        }
+      }
+    ]
+  }
+]
+```
+
+Drag columns from the left to the top to sort, filter, and pivot.
+Use the menu upper left to try different visualizations.
+Use the controls along the bottom to download, copy, resize, and more.
 
 ![](../imgs/perspective.png)

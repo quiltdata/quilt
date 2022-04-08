@@ -1,3 +1,5 @@
+import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
+
 export type TypeShorthand =
   | 'echarts'
   | 'json'
@@ -13,7 +15,7 @@ export interface StyleOptions {
 }
 
 export interface PerspectiveOptions {
-  settings?: boolean
+  config?: PerspectiveViewerConfig
 }
 
 interface TypeExtendedEssentials {
