@@ -119,7 +119,7 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
         <>
           {collaborators.length > avatarsLength && (
             <div className={classes.avatarWrapper}>
-              <M.Tooltip title="Click to show more collaborators">
+              <M.Tooltip title="Click to see more collaborators">
                 <span className={classes.more}>{more}</span>
               </M.Tooltip>
             </div>
