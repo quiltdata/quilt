@@ -405,7 +405,7 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
                 if total_files > pkg_max_files:
                     raise PkgpushException(
                         "TooManyFilesToCopy",
-                        {"files": total_files, "max_files": pkg_max_files},
+                        {"num_files": total_files, "max_files": pkg_max_files},
                     )
 
         meta = data.get('meta')
@@ -599,7 +599,7 @@ def create_package(req_file):
                 if files_to_hash > PKG_FROM_FOLDER_MAX_FILES:
                     raise PkgpushException(
                         "TooManyFilesToHash",
-                        {"files": files_to_hash, "max_files": PKG_FROM_FOLDER_MAX_FILES},
+                        {"num_files": files_to_hash, "max_files": PKG_FROM_FOLDER_MAX_FILES},
                     )
 
         pkg._validate_with_workflow(
