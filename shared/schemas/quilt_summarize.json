@@ -15,7 +15,7 @@
         "description": {
           "type": "string"
         },
-        "expanded": {
+        "expand": {
           "description": "Whether preview is expanded by default or not",
           "type": "boolean"
         },
