@@ -20,17 +20,10 @@ interface PopupProps {
   open: boolean
   bucket: string
   onClose: () => void
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  potentialCollaborators: number
+  collaborators: Model.Collaborators
 }
 
-export default function Popup({
-  bucket,
-  open,
-  onClose,
-  collaborators,
-  potentialCollaborators,
-}: PopupProps) {
+export default function Popup({ bucket, open, onClose, collaborators }: PopupProps) {
   const classes = useStyles()
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
@@ -43,10 +36,7 @@ export default function Popup({
         </div>
       </M.DialogTitle>
       <M.DialogContent>
-        <Table
-          collaborators={collaborators}
-          potentialCollaborators={potentialCollaborators}
-        />
+        <Table collaborators={collaborators} />
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onClose}>Close</M.Button>
