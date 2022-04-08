@@ -64,11 +64,11 @@
           }
         },
         "config": {
-          "description": "Perspctive specific option. Restore renderer to a state previously returned by saving config",
+          "description": "Perspective specific option. Restores renderer to a state previously returned by saving config",
           "type": "object"
         },
         "settings": {
-          "description": "Perspctive specific option. Sets config opened",
+          "description": "Perspective specific option. Sets config opened",
           "type": "boolean"
         }
       },
