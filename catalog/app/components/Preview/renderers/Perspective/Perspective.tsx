@@ -179,7 +179,9 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     minHeight: t.spacing(80),
     // NOTE: padding is required because perspective-viewer covers resize handle
-    padding: '0 0 4px',
+    overflow: 'hidden',
+    padding: '0 0 8px',
+    resize: 'vertical',
     width: '100%',
   },
   meta: {
@@ -187,8 +189,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   viewer: {
     flexGrow: 1,
-    overflow: 'scroll',
-    resize: 'vertical',
     zIndex: 1,
   },
   toolbar: {
