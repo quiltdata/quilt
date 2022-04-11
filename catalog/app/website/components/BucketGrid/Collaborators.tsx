@@ -7,11 +7,21 @@ import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 interface CollaboratorsProps {
   bucket: string
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
 }
 
 export default function Collaborators({ bucket, collaborators }: CollaboratorsProps) {
   const potentialCollaborators = usePotentialCollaborators()
+  const allCollaborators: Model.Collaborators = React.useMemo(
+    () => [
+      ...collaborators,
+      ...potentialCollaborators.map((collaborator) => ({
+        collaborator,
+        permissionLevel: undefined,
+      })),
+    ],
+    [collaborators, potentialCollaborators],
+  )
 
   const [open, setOpen] = React.useState(false)
   const handleOpen = React.useCallback(() => setOpen(true), [setOpen])
@@ -21,16 +31,11 @@ export default function Collaborators({ bucket, collaborators }: CollaboratorsPr
     <>
       <Popup
         bucket={bucket}
-        collaborators={collaborators}
-        potentialCollaborators={potentialCollaborators}
+        collaborators={allCollaborators}
         onClose={handleClose}
         open={open}
       />
-      <Badge
-        onClick={handleOpen}
-        collaborators={collaborators}
-        potentialCollaborators={potentialCollaborators}
-      />
+      <Badge onClick={handleOpen} collaborators={allCollaborators} />
     </>
   )
 }

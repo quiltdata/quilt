@@ -19,11 +19,10 @@ function getSortProperty(key: SortKey) {
 }
 
 interface TableProps {
-  collaborators: Model.GQLTypes.CollaboratorBucketConnection[]
-  potentialCollaborators: number
+  collaborators: Model.Collaborators
 }
 
-export default function Table({ collaborators, potentialCollaborators }: TableProps) {
+export default function Table({ collaborators }: TableProps) {
   const [sorted, setSorted] = React.useState(collaborators)
   const [sort, setSort] = React.useState<Sort | null>(null)
   const toggleSort = React.useCallback(
@@ -35,6 +34,10 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
       setSorted(direction ? preSorted.reverse() : preSorted)
     },
     [collaborators, setSort, setSorted],
+  )
+  const hasUnmanagedRole = React.useMemo(
+    () => collaborators.find(({ permissionLevel }) => !permissionLevel),
+    [collaborators],
   )
 
   return (
@@ -72,22 +75,27 @@ export default function Table({ collaborators, potentialCollaborators }: TablePr
         </M.TableRow>
       </M.TableHead>
       <M.TableBody>
-        {sorted.map(({ collaborator: { email, username }, permissionLevel }) => (
-          <M.TableRow>
-            <M.TableCell padding="checkbox">
-              <M.Icon>account_circle</M.Icon>
-            </M.TableCell>
-            <M.TableCell>{username}</M.TableCell>
-            <M.TableCell>{email}</M.TableCell>
-            <M.TableCell>{permissionLevel}</M.TableCell>
-          </M.TableRow>
-        ))}
-        {!!potentialCollaborators && (
+        {sorted.map(
+          ({ collaborator: { email, username }, permissionLevel = 'UNKNOWN' }) => (
+            <M.TableRow>
+              <M.TableCell padding="checkbox">
+                <M.Icon>account_circle</M.Icon>
+              </M.TableCell>
+              <M.TableCell>
+                {username}
+                {permissionLevel === 'UNKNOWN' ? <sup> *</sup> : ''}
+              </M.TableCell>
+              <M.TableCell>{email}</M.TableCell>
+              <M.TableCell>{permissionLevel}</M.TableCell>
+            </M.TableRow>
+          ),
+        )}
+        {hasUnmanagedRole && (
           <M.TableRow>
             <M.TableCell />
             <M.TableCell colSpan={3}>
-              There are users with roles not managed by Quilt who can potentially access
-              this bucket
+              <sup>*</sup> User with a role not managed by Quilt who can potentially
+              access this bucket. Ask a Quilt administrator for details.
             </M.TableCell>
           </M.TableRow>
         )}

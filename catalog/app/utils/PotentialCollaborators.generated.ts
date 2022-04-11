@@ -6,10 +6,14 @@ export type utils_PotentialCollaboratorsQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type utils_PotentialCollaboratorsQuery = { readonly __typename: 'Query' } & Pick<
-  Types.Query,
-  'potentialCollaborators'
->
+export type utils_PotentialCollaboratorsQuery = { readonly __typename: 'Query' } & {
+  readonly potentialCollaborators: ReadonlyArray<
+    { readonly __typename: 'Collaborator' } & Pick<
+      Types.Collaborator,
+      'email' | 'username'
+    >
+  >
+}
 
 export const utils_PotentialCollaboratorsDocument = {
   kind: 'Document',
@@ -21,7 +25,17 @@ export const utils_PotentialCollaboratorsDocument = {
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
-          { kind: 'Field', name: { kind: 'Name', value: 'potentialCollaborators' } },
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'potentialCollaborators' },
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'email' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'username' } },
+              ],
+            },
+          },
         ],
       },
     },

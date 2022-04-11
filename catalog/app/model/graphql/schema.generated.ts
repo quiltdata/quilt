@@ -1589,9 +1589,15 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'SCALAR',
-                name: 'Int',
-                ofType: null,
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Collaborator',
+                    ofType: null,
+                  },
+                },
               },
             },
             args: [],
