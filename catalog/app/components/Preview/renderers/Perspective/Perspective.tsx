@@ -178,8 +178,8 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     minHeight: t.spacing(80),
-    // NOTE: padding is required because perspective-viewer covers resize handle
     overflow: 'hidden',
+    // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 8px',
     resize: 'vertical',
     width: '100%',
