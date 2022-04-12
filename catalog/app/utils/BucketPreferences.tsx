@@ -59,6 +59,12 @@ const defaultPreferences: BucketPreferences = {
       deleteRevision: false,
       revisePackage: true,
     },
+    blocks: {
+      analytics: true,
+      code: true,
+      listing: true,
+      meta: true,
+    },
     nav: {
       files: true,
       packages: true,
@@ -79,6 +85,12 @@ const localModePreferences: BucketPreferences = {
       createPackage: false,
       deleteRevision: false,
       revisePackage: false,
+    },
+    blocks: {
+      analytics: true,
+      code: true,
+      listing: true,
+      meta: true,
     },
     nav: {
       files: true,
