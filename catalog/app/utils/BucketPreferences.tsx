@@ -30,7 +30,7 @@ export interface SourceBuckets {
 
 interface UiPreferences {
   actions: ActionPreferences
-  blocks?: BlocksPreferences
+  blocks: BlocksPreferences
   nav: NavPreferences
   sourceBuckets: SourceBuckets
 }
@@ -142,6 +142,7 @@ function parse(bucketPreferencesYaml: string, sentry: SentryInstance): BucketPre
   return {
     ui: {
       actions: R.mergeRight(defaultPreferences.ui.actions, data?.ui?.actions || {}),
+      blocks: R.mergeRight(defaultPreferences.ui.blocks, data?.ui?.blocks || {}),
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
       sourceBuckets: parseSourceBuckets(sentry, data?.ui),
     },
