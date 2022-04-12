@@ -67,7 +67,7 @@
               "description": "Show/hide code block",
               "type": "boolean"
             },
-            "files": {
+            "listing": {
               "default": true,
               "description": "Show/hide file browser block",
               "type": "boolean"

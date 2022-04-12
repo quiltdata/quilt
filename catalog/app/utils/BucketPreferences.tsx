@@ -19,7 +19,7 @@ export type ActionPreferences = Record<
   boolean
 >
 
-export type BlocksPreferences = Record<'analytics' | 'code' | 'files' | 'meta', boolean>
+export type BlocksPreferences = Record<'analytics' | 'code' | 'listing' | 'meta', boolean>
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 

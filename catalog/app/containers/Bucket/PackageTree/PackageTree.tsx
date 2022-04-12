@@ -419,7 +419,7 @@ function DirDisplay({
         <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
       )}
       <M.Box mt={2}>
-        {preferences?.ui?.blocks?.files && <Listing items={items} />}
+        {preferences?.ui?.blocks?.listing && <Listing items={items} />}
         <Summary files={summaryHandles} mkUrl={mkUrl} packageHandle={packageHandle} />
       </M.Box>
     </>
