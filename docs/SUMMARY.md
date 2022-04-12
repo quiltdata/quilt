@@ -43,6 +43,7 @@
 * [Workflows](advanced-features/workflows.md)
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
+* [Databricks](databricks.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
