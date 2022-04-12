@@ -405,7 +405,9 @@ function DirDisplay({
           <RevisionMenu className={classes.button} onDelete={onPackageDeleteDialogOpen} />
         )}
       </TopBar>
-      <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+      {preferences?.ui?.blocks?.code && (
+        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+      )}
       {desktop && (
         <Download.LocalFolderInput
           onChange={setLocalFolder}
@@ -413,9 +415,11 @@ function DirDisplay({
           value={localFolder}
         />
       )}
-      <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
+      {preferences?.ui?.blocks?.meta && (
+        <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
+      )}
       <M.Box mt={2}>
-        <Listing items={items} />
+        {preferences?.ui?.blocks?.files && <Listing items={items} />}
         <Summary files={summaryHandles} mkUrl={mkUrl} packageHandle={packageHandle} />
       </M.Box>
     </>
@@ -486,6 +490,7 @@ function FileDisplay({
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
+  const preferences = BucketPreferences.use()
 
   const fileQuery = useQuery({
     query: FILE_QUERY,
@@ -587,8 +592,12 @@ function FileDisplay({
                   <FileView.DownloadButton className={classes.button} handle={handle} />
                 )}
               </TopBar>
-              <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
-              <FileView.Meta data={AsyncResult.Ok(file.metadata)} />
+              {preferences?.ui?.blocks?.code && (
+                <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+              )}
+              {preferences?.ui?.blocks?.meta && (
+                <FileView.Meta data={AsyncResult.Ok(file.metadata)} />
+              )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 {withPreview(
                   { archived, deleted },

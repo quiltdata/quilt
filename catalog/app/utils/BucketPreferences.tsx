@@ -19,6 +19,8 @@ export type ActionPreferences = Record<
   boolean
 >
 
+export type BlocksPreferences = Record<'analytics' | 'code' | 'files' | 'meta', boolean>
+
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
 export interface SourceBuckets {
@@ -28,12 +30,14 @@ export interface SourceBuckets {
 
 interface UiPreferences {
   actions: ActionPreferences
+  blocks?: BlocksPreferences
   nav: NavPreferences
   sourceBuckets: SourceBuckets
 }
 
 interface UiPreferencesYaml {
   actions?: ActionPreferences
+  blocks?: BlocksPreferences
   defaultSourceBucket?: string
   nav?: NavPreferences
   sourceBuckets?: Record<string, null>
