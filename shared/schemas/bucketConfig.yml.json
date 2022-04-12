@@ -59,22 +59,22 @@
           "properties": {
             "analytics": {
               "default": true,
-              "description": "Shows/hides analytics block",
+              "description": "Show/hide analytics block",
               "type": "boolean"
             },
             "code": {
               "default": true,
-              "description": "Shows/hides code block",
+              "description": "Show/hide code block",
               "type": "boolean"
             },
             "files": {
               "default": true,
-              "description": "Shows/hides file browser block",
+              "description": "Show/hide file browser block",
               "type": "boolean"
             },
             "meta": {
               "default": true,
-              "description": "Shows/hides metadata block",
+              "description": "Show/hide metadata block",
               "type": "boolean"
             }
           }
