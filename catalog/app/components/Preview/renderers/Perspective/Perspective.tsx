@@ -8,13 +8,12 @@ import * as perspective from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
-import { CONTEXT } from '../../types'
+import type { PerspectiveOptions } from '../../loaders/summarize'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
+  table: {
+    margin: t.spacing(1, 0, 1, 3),
   },
-  meta: {},
   mono: {
     fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
   },
@@ -25,6 +24,20 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
   },
   metaValue: {
     paddingLeft: t.spacing(1),
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  headerIcon: {
+    fontSize: '1.1rem',
+    transform: 'rotate(-90deg)',
+    marginRight: t.spacing(0.5),
+    transition: 'transform 0.3s ease',
+  },
+  headerIconExpanded: {
+    transform: 'rotate(0deg)',
   },
 }))
 
@@ -43,6 +56,8 @@ function ParquetMeta({
   ...props
 }: ParquetMetaProps) {
   const classes = useParquetMetaStyles()
+  const [show, setShow] = React.useState(false)
+  const toggleShow = React.useCallback(() => setShow(!show), [show, setShow])
   const renderMeta = (
     name: string,
     value: ParquetMetadata[keyof ParquetMetadata],
@@ -56,28 +71,38 @@ function ParquetMeta({
     )
 
   return (
-    <div className={cx(classes.root, className)} {...props}>
-      <table className={classes.meta}>
-        <tbody>
-          {renderMeta('Created by:', createdBy, (c: string) => (
-            <span className={classes.mono}>{c}</span>
-          ))}
-          {renderMeta('Format version:', formatVersion, (v: string) => (
-            <span className={classes.mono}>{v}</span>
-          ))}
-          {renderMeta('# row groups:', numRowGroups)}
-          {renderMeta('Serialized size:', serializedSize)}
-          {renderMeta('Shape:', shape, ({ rows, columns }) => (
-            <span>
-              {rows} rows &times; {columns} columns
-            </span>
-          ))}
-          {renderMeta('Schema:', schema, (s: { names: string[] }) => (
-            /* @ts-expect-error */
-            <JsonDisplay value={s} />
-          ))}
-        </tbody>
-      </table>
+    <div className={className} {...props}>
+      <M.Typography className={classes.header} onClick={toggleShow}>
+        <M.Icon
+          className={cx(classes.headerIcon, { [classes.headerIconExpanded]: show })}
+        >
+          expand_more
+        </M.Icon>
+        Parquet metadata
+      </M.Typography>
+      <M.Collapse in={show}>
+        <table className={classes.table}>
+          <tbody>
+            {renderMeta('Created by:', createdBy, (c: string) => (
+              <span className={classes.mono}>{c}</span>
+            ))}
+            {renderMeta('Format version:', formatVersion, (v: string) => (
+              <span className={classes.mono}>{v}</span>
+            ))}
+            {renderMeta('# row groups:', numRowGroups)}
+            {renderMeta('Serialized size:', serializedSize)}
+            {renderMeta('Shape:', shape, ({ rows, columns }) => (
+              <span>
+                {rows} rows &times; {columns} columns
+              </span>
+            ))}
+            {renderMeta('Schema:', schema, (s: { names: string[] }) => (
+              /* @ts-expect-error */
+              <JsonDisplay value={s} />
+            ))}
+          </tbody>
+        </table>
+      </M.Collapse>
     </div>
   )
 }
@@ -89,7 +114,11 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
   message: {
     color: t.palette.text.secondary,
-    marginRight: t.spacing(2),
+  },
+  item: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   icon: {
     display: 'inline-block',
@@ -99,26 +128,45 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TruncatedWarningProps {
+interface ToolbarProps {
   className: string
   onLoadMore: () => void
-  table: perspective.TableData | null
+  state: perspective.State | null
+  truncated: boolean
 }
 
-function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProps) {
+function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
   const classes = useTruncatedWarningStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <span className={classes.message}>
-        <M.Icon fontSize="small" color="inherit" className={classes.icon}>
-          info_outlined
-        </M.Icon>
-        {table?.size ? `Showing only ${table?.size} rows` : `Partial preview`}
-      </span>
+      {truncated && (
+        <span className={cx(classes.message, classes.item)}>
+          <M.Icon fontSize="small" color="inherit" className={classes.icon}>
+            info_outlined
+          </M.Icon>
+          {state?.size ? `Showing only ${state?.size} rows` : `Partial preview`}
+        </span>
+      )}
 
       {!!onLoadMore && (
-        <M.Button startIcon={<M.Icon>refresh</M.Icon>} size="small" onClick={onLoadMore}>
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>refresh</M.Icon>}
+          size="small"
+          onClick={onLoadMore}
+        >
           Load more
+        </M.Button>
+      )}
+
+      {state?.toggleConfig && (
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>tune</M.Icon>}
+          size="small"
+          onClick={state?.toggleConfig}
+        >
+          Filter and plot
         </M.Button>
       )}
     </div>
@@ -127,24 +175,30 @@ function TruncatedWarning({ className, onLoadMore, table }: TruncatedWarningProp
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: t.spacing(80),
+    overflow: 'hidden',
+    // NOTE: padding is required because perspective-viewer covers resize handle
+    padding: '0 0 8px',
+    resize: 'vertical',
     width: '100%',
   },
   meta: {
     marginBottom: t.spacing(1),
   },
   viewer: {
-    height: ({ context }: { context: 'file' | 'listing' }) =>
-      context === CONTEXT.LISTING ? t.spacing(30) : t.spacing(50),
-    overflow: 'auto',
-    resize: 'vertical',
+    flexGrow: 1,
+    zIndex: 1,
   },
-  warning: {
+  toolbar: {
     marginBottom: t.spacing(1),
   },
 }))
 
-export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
-  context: 'file' | 'listing'
+export interface PerspectiveProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    PerspectiveOptions {
   data: string | ArrayBuffer
   meta: ParquetMetadata
   handle: S3HandleBase
@@ -155,31 +209,31 @@ export interface PerspectiveProps extends React.HTMLAttributes<HTMLDivElement> {
 export default function Perspective({
   children,
   className,
-  context,
   data,
   meta,
   handle,
   onLoadMore,
   truncated,
+  config,
   ...props
 }: PerspectiveProps) {
-  const classes = useStyles({ context })
+  const classes = useStyles()
 
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const tableData = perspective.use(root, data, attrs)
+  const state = perspective.use(root, data, attrs, config)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
-      {truncated && (
-        <TruncatedWarning
-          className={classes.warning}
-          table={tableData}
-          onLoadMore={onLoadMore}
-        />
-      )}
+      <Toolbar
+        className={classes.toolbar}
+        state={state}
+        onLoadMore={onLoadMore}
+        truncated={truncated}
+      />
       {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
+      {children}
     </div>
   )
 }

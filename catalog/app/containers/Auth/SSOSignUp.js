@@ -57,6 +57,11 @@ export default ({ location: { search } }) => {
             password: 'invalid',
           }
         }
+        if (e instanceof errors.NoDefaultRole) {
+          return {
+            [FF.FORM_ERROR]: 'noDefaultRole',
+          }
+        }
         if (e instanceof errors.EmailDomainNotAllowed) {
           return {
             [FF.FORM_ERROR]: 'emailDomain',
@@ -166,6 +171,8 @@ export default ({ location: { search } }) => {
                 unexpected: 'Something went wrong. Try again later.',
                 emailDomain: 'Email domain is not allowed',
                 smtp: 'SMTP error: contact your administrator',
+                noDefaultRole:
+                  'Unable to assign role. Ask your Quilt administrator to set a default role.',
               }}
             />
             <Layout.Actions>

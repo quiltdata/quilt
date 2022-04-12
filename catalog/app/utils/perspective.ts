@@ -1,13 +1,18 @@
+import cx from 'classnames'
 import * as React from 'react'
 
 import 'utils/perspective-pollution'
 
 import perspective from '@finos/perspective'
 import type { Table } from '@finos/perspective'
-import type { HTMLPerspectiveViewerElement } from '@finos/perspective-viewer'
+import type {
+  HTMLPerspectiveViewerElement,
+  PerspectiveViewerConfig,
+} from '@finos/perspective-viewer'
 
-export interface TableData {
+export interface State {
   size: number | null
+  toggleConfig: () => void
 }
 
 const worker = perspective.worker()
@@ -17,9 +22,8 @@ export function renderViewer(
   { className }: React.HTMLAttributes<HTMLDivElement>,
 ): HTMLPerspectiveViewerElement {
   const element = document.createElement('perspective-viewer')
-  if (className) {
-    element.className = className
-  }
+  // NOTE: safari needs `.perspective-viewer-material` instead of custom tagName
+  element.className = cx('perspective-viewer-material', className)
   parentNode.appendChild(element)
   return element
 }
@@ -37,24 +41,31 @@ function usePerspective(
   container: HTMLDivElement | null,
   data: string | ArrayBuffer,
   attrs: React.HTMLAttributes<HTMLDivElement>,
+  config?: PerspectiveViewerConfig,
 ) {
-  const [tableData, setTableData] = React.useState<TableData | null>(null)
+  const [state, setState] = React.useState<State | null>(null)
 
   React.useEffect(() => {
-    let table: Table, viewer: HTMLPerspectiveViewerElement
+    // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
+    let table: Table | null = null
+    let viewer: HTMLPerspectiveViewerElement | null = null
 
-    async function fetchData() {
+    async function renderData() {
       if (!container) return
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
 
+      if (config) {
+        await viewer.restore(config)
+      }
+
       const size = await table.size()
-      setTableData({
+      setState({
         size,
+        toggleConfig: () => viewer?.toggleConfig(),
       })
     }
-    fetchData()
 
     async function disposeTable() {
       viewer?.parentNode?.removeChild(viewer)
@@ -62,12 +73,14 @@ function usePerspective(
       await table?.delete()
     }
 
+    renderData()
+
     return () => {
       disposeTable()
     }
-  }, [attrs, container, data])
+  }, [attrs, config, container, data])
 
-  return tableData
+  return state
 }
 
 export const use = usePerspective

@@ -40,7 +40,7 @@ const errorDisplay = R.cond([
         </M.Typography>
         <M.Typography>
           Please fix the workflows config according to{' '}
-          <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
+          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
             the documentation
           </StyledLink>
           .

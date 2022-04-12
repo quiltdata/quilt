@@ -14,6 +14,7 @@ import traceback
 from http import HTTPStatus
 
 import boto3
+import botocore.client
 from botocore.exceptions import ClientError
 from jsonschema import Draft7Validator
 
@@ -206,7 +207,7 @@ def calculate_pkg_hashes(boto_session, pkg):
 
     @functools.lru_cache(maxsize=None)
     def get_s3_client_for_region(region: str):
-        return boto_session.client("s3", region_name=region)
+        return boto_session.client("s3", region_name=region, config=botocore.client.Config(signature_version="s3v4"))
 
     def get_client_for_bucket(bucket: str):
         return get_s3_client_for_region(get_region_for_bucket(bucket))

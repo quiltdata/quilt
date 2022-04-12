@@ -16,7 +16,19 @@ export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
       | 'overviewUrl'
       | 'tags'
       | 'relevanceScore'
-    >
+    > & {
+        readonly collaborators: ReadonlyArray<
+          { readonly __typename: 'CollaboratorBucketConnection' } & Pick<
+            Types.CollaboratorBucketConnection,
+            'permissionLevel'
+          > & {
+              readonly collaborator: { readonly __typename: 'Collaborator' } & Pick<
+                Types.Collaborator,
+                'email' | 'username'
+              >
+            }
+        >
+      }
   >
 }
 
@@ -44,6 +56,27 @@ export const utils_BucketConfigListDocument = {
                 { kind: 'Field', name: { kind: 'Name', value: 'overviewUrl' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'relevanceScore' } },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'collaborators' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'collaborator' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'email' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'username' } },
+                          ],
+                        },
+                      },
+                      { kind: 'Field', name: { kind: 'Name', value: 'permissionLevel' } },
+                    ],
+                  },
+                },
               ],
             },
           },

@@ -76,6 +76,7 @@ const transformConfig = (cfg) => ({
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
   binaryApiGatewayEndpoint: startWithOrigin(cfg.binaryApiGatewayEndpoint),
+  desktop: !!cfg.desktop,
 })
 
 const ConfigResource = Cache.createResource({

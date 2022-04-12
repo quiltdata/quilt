@@ -6,6 +6,7 @@ import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
@@ -140,6 +141,7 @@ function UserDropdown() {
       <M.Button variant="text" color="inherit" onClick={open}>
         {userDisplay(user)} <M.Icon>expand_more</M.Icon>
       </M.Button>
+
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
@@ -386,7 +388,6 @@ const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) 
   return (
     <M.Box
       component={props.to ? HashLink : 'a'}
-      mr={2}
       color={isActive ? 'text.disabled' : 'text.secondary'}
       fontSize="body2.fontSize"
       maxWidth={64}
@@ -437,13 +438,13 @@ function useLinks(): LinkDescriptor[] {
       label: 'URI',
       path: paths.uriResolver,
     },
-    { href: URLS.docs, label: 'Docs' },
+    cfg.mode !== 'PRODUCT' && { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
       href: URLS.jobs,
       label: 'Jobs',
     },
-    { href: URLS.blog, label: 'Blog' },
+    cfg.mode !== 'PRODUCT' && { href: URLS.blog, label: 'Blog' },
     cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
   ].filter(Boolean) as LinkDescriptor[]
 }
@@ -452,14 +453,27 @@ const selector = createStructuredSelector(
   R.pick(['error', 'waiting', 'authenticated'], authSelectors),
 )
 
-const useNavBarStyles = M.makeStyles({
+const useNavBarStyles = M.makeStyles((t) => ({
+  nav: {
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: t.spacing(3),
+    marginRight: t.spacing(2),
+  },
+  navItem: {
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
+  },
   quiltLogo: {
     margin: '0 0 3px 8px',
   },
-})
+  spacer: {
+    flexGrow: 1,
+  },
+}))
 
 export function NavBar() {
-  const classes = useNavBarStyles()
   const cfg = Config.use()
   const settings = CatalogSettings.use()
   const bucket = BucketConfig.useCurrentBucket()
@@ -469,21 +483,33 @@ export function NavBar() {
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   const links = useLinks()
+  const intercom = Intercom.use()
+  const classes = useNavBarStyles()
   return (
     <Container>
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
-        <M.Box flexGrow={1} />
+        <div className={classes.spacer} />
       ) : (
         <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
       )}
+
       {!useHamburger && (
-        <M.Box component="nav" display="flex" alignItems="center" ml={3}>
+        <nav className={classes.nav}>
           {links.map(({ label, ...rest }) => (
-            <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
+            <NavLink
+              key={`${label}:${rest.to || rest.href}`}
+              className={classes.navItem}
+              {...rest}
+            >
               {label}
             </NavLink>
           ))}
-        </M.Box>
+          {!intercom.dummy && intercom.isCustom && (
+            <M.MuiThemeProvider theme={style.appTheme}>
+              <Intercom.Launcher className={classes.navItem} />
+            </M.MuiThemeProvider>
+          )}
+        </nav>
       )}
 
       {!cfg.disableNavigator &&

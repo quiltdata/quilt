@@ -15,6 +15,10 @@
         "description": {
           "type": "string"
         },
+        "expand": {
+          "description": "Whether preview is expanded by default or not",
+          "type": "boolean"
+        },
         "title": {
           "type": "string"
         },
@@ -40,7 +44,7 @@
 
     "typeShorthand": {
       "type": "string",
-      "enum": ["echarts", "json", "jupyter", "vega", "voila"]
+      "enum": ["echarts", "json", "jupyter", "perspective", "vega", "voila"]
     },
 
     "typeExtended": {
@@ -58,6 +62,14 @@
               "type": "string"
             }
           }
+        },
+        "config": {
+          "description": "Perspective specific option. Restores renderer to a state previously returned by saving config",
+          "type": "object"
+        },
+        "settings": {
+          "description": "Perspective specific option. Sets config opened",
+          "type": "boolean"
         }
       },
       "required": ["name"]

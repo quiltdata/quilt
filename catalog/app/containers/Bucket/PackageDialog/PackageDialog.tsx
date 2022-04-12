@@ -5,6 +5,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as authSelectors from 'containers/Auth/selectors'
@@ -19,6 +20,7 @@ import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 import SelectWorkflow from './SelectWorkflow'
+import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
 export const MAX_S3_SIZE = 50 * 1000 * 1000 * 1000 // 50GB
@@ -132,23 +134,24 @@ export function useNameValidator(workflow?: workflows.Workflow) {
 export function useNameExistence(bucket: string) {
   const [counter, setCounter] = React.useState(0)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
-
-  const s3 = AWS.S3.use()
+  const client = urql.useClient()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
     cacheDebounce(async (name: string) => {
       if (name) {
-        const packageExists = await requests.ensurePackageIsPresent({
-          s3,
-          bucket,
-          name,
-        })
-        if (packageExists) return 'exists'
+        const res = await client
+          .query(
+            PACKAGE_EXISTS_QUERY,
+            { bucket, name },
+            { requestPolicy: 'network-only' },
+          )
+          .toPromise()
+        if (res.data?.package) return 'exists'
       }
       return undefined
     }, 200),
-    [bucket, counter, s3],
+    [bucket, counter, client],
   )
 
   return React.useMemo(() => ({ validate, inc }), [validate, inc])

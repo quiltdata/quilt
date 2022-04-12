@@ -6,6 +6,8 @@ import { PackageHandle } from 'utils/packageHandle'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
+
+import * as summarize from './summarize'
 import * as utils from './utils'
 
 interface AWSCredentials {
@@ -32,17 +34,8 @@ function usePackageQuery(packageHandle: PackageHandle) {
   }
 }
 
-type SummaryType = string | { name: string }
-
-interface LoaderOptions {
-  types?: SummaryType[]
-}
-
-const FILE_TYPE = 'voila'
-export const detect = (key: string, options: LoaderOptions) =>
-  options?.types?.find((type) =>
-    typeof type === 'string' ? type === FILE_TYPE : type.name === FILE_TYPE,
-  )
+export const detect = (key: string, options: summarize.File) =>
+  summarize.detect('voila')(options)
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
 const IFRAME_LOAD_TIMEOUT = 30000

@@ -87,9 +87,11 @@ interface ColumnFillerProps {
 
 function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps) {
   const emptyRows = React.useMemo(() => {
-    if (!hasSiblingColumn || filledRowsNumber >= MIN_ROWS_NUMBER) return []
+    if (filledRowsNumber >= MIN_ROWS_NUMBER) return []
     return R.range(0, MIN_ROWS_NUMBER - filledRowsNumber)
-  }, [hasSiblingColumn, filledRowsNumber])
+  }, [filledRowsNumber])
+
+  if (!hasSiblingColumn) return null
 
   return (
     <>

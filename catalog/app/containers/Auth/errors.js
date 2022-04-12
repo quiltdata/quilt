@@ -11,6 +11,14 @@ export class AuthError extends BaseError {
   }
 }
 
+export class NoDefaultRole extends AuthError {
+  static displayName = 'NoDefaultRole'
+
+  constructor(props) {
+    super(withDefaultMessage('default role not set', props))
+  }
+}
+
 export class InvalidToken extends AuthError {
   static displayName = 'InvalidToken'
 

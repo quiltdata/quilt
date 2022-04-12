@@ -26,6 +26,7 @@ import ROLE_CREATE_UNMANAGED_MUTATION from './gql/CreateUnmanaged.generated'
 import ROLE_UPDATE_MANAGED_MUTATION from './gql/UpdateManaged.generated'
 import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/UpdateUnmanaged.generated'
 import ROLE_DELETE_MUTATION from './gql/Delete.generated'
+import ROLE_SET_DEFAULT_MUTATION from './gql/SetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
@@ -46,6 +47,18 @@ const columns = [
     label: 'Name',
     getValue: R.prop('name'),
     props: { component: 'th', scope: 'row' },
+    getDisplay: (
+      value: string,
+      r: Role,
+      { defaultRoleId }: { defaultRoleId: string | null },
+    ) =>
+      r.id === defaultRoleId ? (
+        <M.Tooltip title="Automatically assigned to new users.">
+          <strong>{value}*</strong>
+        </M.Tooltip>
+      ) : (
+        value
+      ),
   },
   {
     id: 'source',
@@ -339,6 +352,58 @@ function Delete({ role, close }: DeleteProps) {
   )
 }
 
+interface SetDefaultProps {
+  role: Role
+  close: (reason?: string) => void
+}
+
+function SetDefault({ role, close }: SetDefaultProps) {
+  const { push } = Notifications.use()
+  const [, setDefault] = urql.useMutation(ROLE_SET_DEFAULT_MUTATION)
+
+  const doSetDefault = React.useCallback(async () => {
+    close()
+    try {
+      const res = await setDefault({ id: role.id })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data')
+      const r = res.data.roleSetDefault
+      switch (r.__typename) {
+        case 'RoleDoesNotExist':
+          throw new Error(r.__typename)
+        case 'RoleSetDefaultSuccess':
+          return
+        default:
+          assertNever(r)
+      }
+    } catch (e) {
+      push(`Error setting default role "${role.name}"`)
+      // eslint-disable-next-line no-console
+      console.error('Error setting default role')
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }, [close, push, setDefault, role.id, role.name])
+
+  return (
+    <>
+      <M.DialogTitle>Set default role</M.DialogTitle>
+      <M.DialogContent>
+        You are about to make &quot;{role.name}&quot; the default role for all new users.
+        Are you sure you want to do this?
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={() => close('cancel')} color="primary">
+          Cancel
+        </M.Button>
+        <M.Button onClick={doSetDefault} color="primary">
+          Set default
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
+
 const unmanagedRoleFormSpec: FormSpec<Model.GQLTypes.UnmanagedRoleInput> = {
   name: R.pipe(
     R.prop('name'),
@@ -569,6 +634,58 @@ function Edit({ role, close }: EditProps) {
   )
 }
 
+interface SettingsMenuProps {
+  role: Role
+  openDialog: (render: (props: DialogsOpenProps) => JSX.Element, props?: $TSFixMe) => void
+}
+
+function SettingsMenu({ role, openDialog }: SettingsMenuProps) {
+  const openDeleteDialog = React.useCallback(() => {
+    openDialog(({ close }) => <Delete {...{ role, close }} />)
+  }, [openDialog, role])
+
+  const openSetDefaultDialog = React.useCallback(() => {
+    openDialog(({ close }) => <SetDefault {...{ role, close }} />)
+  }, [openDialog, role])
+
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnchorEl(event.currentTarget)
+    },
+    [setAnchorEl],
+  )
+
+  const handleClose = React.useCallback(() => {
+    setAnchorEl(null)
+  }, [setAnchorEl])
+
+  const handleMakeDefault = React.useCallback(() => {
+    handleClose()
+    openSetDefaultDialog()
+  }, [handleClose, openSetDefaultDialog])
+
+  const handleDelete = React.useCallback(() => {
+    handleClose()
+    openDeleteDialog()
+  }, [handleClose, openDeleteDialog])
+
+  return (
+    <>
+      <M.Tooltip title="Settings">
+        <M.IconButton aria-label="Settings" onClick={handleClick}>
+          <M.Icon>more_vert</M.Icon>
+        </M.IconButton>
+      </M.Tooltip>
+      <M.Menu anchorEl={anchorEl} keepMounted open={!!anchorEl} onClose={handleClose}>
+        <M.MenuItem onClick={handleMakeDefault}>Set as default</M.MenuItem>
+        <M.MenuItem onClick={handleDelete}>Delete</M.MenuItem>
+      </M.Menu>
+    </>
+  )
+}
+
 // XXX: move to dialogs module
 interface DialogsOpenProps {
   close: (reason?: string) => void
@@ -577,6 +694,7 @@ interface DialogsOpenProps {
 export default function Roles() {
   const [{ data }] = urql.useQuery({ query: ROLES_QUERY })
   const rows = data!.roles
+  const defaultRoleId = data!.defaultRole?.id
 
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const dialogs = Dialogs.use()
@@ -600,13 +718,6 @@ export default function Roles() {
         }
       : null,
     {
-      title: 'Delete',
-      icon: <M.Icon>delete</M.Icon>,
-      fn: () => {
-        dialogs.open(({ close }: DialogsOpenProps) => <Delete {...{ role, close }} />)
-      },
-    },
-    {
       title: 'Edit',
       icon: <M.Icon>edit</M.Icon>,
       fn: () => {
@@ -621,6 +732,7 @@ export default function Roles() {
       },
     },
   ]
+
   return (
     <React.Suspense
       fallback={
@@ -643,11 +755,16 @@ export default function Roles() {
                     // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
                       {/* @ts-expect-error */}
-                      {(col.getDisplay || R.identity)(col.getValue(i))}
+                      {(col.getDisplay || R.identity)(col.getValue(i), i, {
+                        defaultRoleId,
+                      })}
                     </M.TableCell>
                   ))}
                   <M.TableCell align="right" padding="none">
-                    <Table.InlineActions actions={inlineActions(i)} />
+                    <Table.InlineActions actions={inlineActions(i)}>
+                      {/* @ts-expect-error */}
+                      <SettingsMenu role={i} openDialog={dialogs.open} />
+                    </Table.InlineActions>
                   </M.TableCell>
                 </M.TableRow>
               ))}

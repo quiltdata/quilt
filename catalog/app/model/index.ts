@@ -34,3 +34,12 @@ export const NullableBucketPermissionLevelFromString = new IO.Type<
     return 'None' as const
   },
 )
+
+export type PotentialCollaborator = {
+  collaborator: GQLTypes.Collaborator
+  permissionLevel?: undefined
+}
+
+export type Collaborators = ReadonlyArray<
+  GQLTypes.CollaboratorBucketConnection | PotentialCollaborator
+>

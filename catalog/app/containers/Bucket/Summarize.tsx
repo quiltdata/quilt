@@ -9,6 +9,7 @@ import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import { docs } from 'constants/urls'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -45,6 +46,7 @@ interface SummarizeFile {
   title?: string
   types?: SummaryFileTypes
   width?: string | number
+  expand?: boolean
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
@@ -124,6 +126,10 @@ const useSectionStyles = M.makeStyles((t) => ({
       ...t.typography.h5,
     },
   },
+  headingText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   headingAction: {
     marginLeft: 'auto',
   },
@@ -148,7 +154,7 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       {!!heading && (
         <div className={classes.heading}>
-          {heading}
+          <div className={classes.headingText}>{heading}</div>
           {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
         </div>
       )}
@@ -159,8 +165,9 @@ export function Section({
 }
 
 interface PreviewBoxProps {
-  contents: React.ReactNode
+  children: React.ReactNode
   expanded?: boolean
+  onExpand: () => void
 }
 
 const usePreviewBoxStyles = M.makeStyles((t) => ({
@@ -197,6 +204,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
     bottom: 0,
     display: 'flex',
     height: '100%',
+    cursor: 'pointer',
     justifyContent: 'center',
     left: 0,
     position: 'absolute',
@@ -205,20 +213,14 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxProps) {
+function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
+      {children}
       {!expanded && (
-        <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={expand}>
-            Expand
-          </M.Button>
+        <div className={classes.fade} onClick={onExpand} title="Click to expand">
+          <M.Button variant="outlined">Expand</M.Button>
         </div>
       )}
     </div>
@@ -268,7 +270,7 @@ interface FilePreviewProps {
 }
 
 export function FilePreview({
-  expanded,
+  expanded: defaultExpanded,
   file,
   handle,
   headingOverride,
@@ -291,15 +293,21 @@ export function FilePreview({
     () => ({ ...handle, packageHandle }),
     [handle, packageHandle],
   )
+
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
+
   // TODO: check for glacier and hide items
   return (
     <Section description={description} heading={heading} handle={handle}>
       {Preview.load(
         previewHandle,
         Preview.display({
-          renderContents: (contents: React.ReactNode) => (
-            <PreviewBox {...{ contents, expanded }} />
-          ),
+          renderContents,
           renderProgress: () => <ContentSkel />,
           props,
         }),
@@ -423,6 +431,7 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
           handle={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
           file={file}
+          expanded={file.expand}
           packageHandle={packageHandle}
         />
       )}
@@ -526,11 +535,11 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
   const shownEntries = R.take(shown, entries)
   return (
     <div className={classes.root}>
-      {shownEntries.map((file) => (
+      {shownEntries.map((file, i) => (
         <Row
-          key={
+          key={`${
             Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
-          }
+          }_${i}`}
           file={file}
           mkUrl={mkUrl}
           packageHandle={packageHandle}
@@ -576,6 +585,43 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
   )
 }
 
+interface SummaryFailedProps {
+  error: Error
+}
+
+const useSummaryFailedStyles = M.makeStyles((t) => ({
+  heading: {
+    color: t.palette.error.light,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: t.spacing(1),
+  },
+}))
+
+function SummaryFailed({ error }: SummaryFailedProps) {
+  const classes = useSummaryFailedStyles()
+  return (
+    <Section
+      heading={
+        <span className={classes.heading} title={error.message}>
+          <M.Icon className={classes.icon}>error</M.Icon>Oops
+        </span>
+      }
+    >
+      <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
+      <M.Typography>
+        See the{' '}
+        <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
+          summarize docs
+        </Link>{' '}
+        for more.
+      </M.Typography>
+    </Section>
+  )
+}
+
 interface SummaryNestedProps {
   mkUrl: MakeURL
   handle: {
@@ -595,13 +641,7 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
   return (
     <FileThemeContext.Provider value={FileThemes.Nested}>
       {data.case({
-        Err: (e: Error) => {
-          // eslint-disable-next-line no-console
-          console.warn('Error loading summary')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          return null
-        },
+        Err: (e: Error) => <SummaryFailed error={e} />,
         Ok: (entries: SummarizeFile[]) => (
           <SummaryEntries
             entries={entries}

@@ -7,6 +7,7 @@ import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
+import * as Notifications from 'containers/Notifications'
 // import * as urls from 'constants/urls' // TODO: uncomment on docs deploy
 import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -222,11 +223,27 @@ interface QueryRunnerRenderProps {
 interface QueryRunnerProps {
   children: (props: QueryRunnerRenderProps) => React.ReactElement
   queryBody: string
+  queryExecutionId: string | null
   workgroup: string
 }
 
-function QueryRunner({ children, queryBody, workgroup }: QueryRunnerProps) {
+function QueryRunner({
+  children,
+  queryBody,
+  queryExecutionId,
+  workgroup,
+}: QueryRunnerProps) {
   const queryRunData = requests.athena.useQueryRun(workgroup, queryBody)
+  const { push: notify } = Notifications.use()
+  React.useEffect(() => {
+    queryRunData.case({
+      _: () => null,
+      Ok: ({ id }) => {
+        if (id === queryExecutionId) notify('Query execution results remain unchanged')
+        return null
+      },
+    })
+  }, [notify, queryExecutionId, queryRunData])
   return children({ queryRunData })
 }
 interface QueryResultsFetcherRenderProps {
@@ -399,6 +416,7 @@ function State({ children, queryExecutionId }: StateProps) {
                       }) => (
                         <QueryRunner
                           queryBody={queryRequest || ''}
+                          queryExecutionId={queryExecutionId}
                           workgroup={selectedWorkgroup}
                         >
                           {({ queryRunData }) =>
@@ -455,7 +473,7 @@ const useHistoryHeaderStyles = M.makeStyles({
 })
 
 interface HistoryHeaderProps {
-  queryExecutionId?: string
+  queryExecutionId?: string | null
   bucket: string
   className: string
 }
@@ -524,164 +542,176 @@ export default function Athena({
         workgroup,
       }) =>
         queryRunData.case({
-          Ok: ({ id }) => <Redirect to={urls.bucketAthenaQueryExecution(bucket, id)} />,
-          _: () => (
-            <>
-              <M.Typography variant="h6">Athena SQL</M.Typography>
+          _: ({ value: executionData }: { value: { id: string } }) => {
+            if (executionData?.id && executionData?.id !== queryExecutionId) {
+              return (
+                <Redirect
+                  to={urls.bucketAthenaQueryExecution(bucket, executionData?.id)}
+                />
+              )
+            }
 
-              <div className={classes.selects}>
-                <div className={classes.select}>
-                  {workgroupsData.case({
-                    Ok: (workgroups) => (
-                      <>
-                        <M.Typography className={classes.sectionHeader}>
-                          Select workgroup
-                        </M.Typography>
+            return (
+              <>
+                <M.Typography variant="h6">Athena SQL</M.Typography>
 
-                        {workgroups.list.length ? (
-                          <WorkgroupSelect
-                            workgroups={workgroups}
-                            onChange={handleWorkgroupChange}
-                            onLoadMore={handleWorkgroupsLoadMore}
-                            value={workgroup}
-                          />
-                        ) : (
-                          <M.FormHelperText>There are no workgroups.</M.FormHelperText>
-                        )}
-                      </>
-                    ),
-                    Err: makeAsyncDataErrorHandler('Workgroups Data'),
-                    _: () => <SelectSkeleton />,
-                  })}
-                </div>
-
-                <div className={classes.select}>
-                  {queriesData.case({
-                    Ok: (queries) =>
-                      queries.list.length ? (
+                <div className={classes.selects}>
+                  <div className={classes.select}>
+                    {workgroupsData.case({
+                      Ok: (workgroups) => (
                         <>
-                          <M.Typography className={classes.sectionHeader} variant="body1">
-                            Select query
+                          <M.Typography className={classes.sectionHeader}>
+                            Select workgroup
                           </M.Typography>
 
-                          <QuerySelect
-                            queries={queries.list}
-                            onChange={handleQueryMetaChange}
-                            value={customQueryBody ? null : queryMeta}
-                            onLoadMore={
-                              queries.next
-                                ? () => handleQueriesLoadMore(queries)
-                                : undefined
-                            }
-                          />
+                          {workgroups.list.length ? (
+                            <WorkgroupSelect
+                              workgroups={workgroups}
+                              onChange={handleWorkgroupChange}
+                              onLoadMore={handleWorkgroupsLoadMore}
+                              value={workgroup}
+                            />
+                          ) : (
+                            <M.FormHelperText>There are no workgroups.</M.FormHelperText>
+                          )}
                         </>
-                      ) : (
-                        <M.Typography className={classes.emptySelect} variant="body1">
-                          There are no saved queries.
-                        </M.Typography>
                       ),
-                    Err: makeAsyncDataErrorHandler('Select query'),
-                    _: () => <SelectSkeleton />,
-                  })}
-                </div>
-              </div>
+                      Err: makeAsyncDataErrorHandler('Workgroups Data'),
+                      _: () => <SelectSkeleton />,
+                    })}
+                  </div>
 
-              <div className={classes.form}>
-                {queryResultsData.case({
-                  _: ({
-                    value: queryResults,
-                  }: {
-                    value: requests.athena.QueryResultsResponse
-                  }) => {
-                    const areQueriesLoaded = queriesData.case({ Ok: R.T, _: R.F })
-                    if (!areQueriesLoaded) return <FormSkeleton />
-                    return (
-                      <Form
-                        disabled={isButtonDisabled(
-                          customQueryBody ||
+                  <div className={classes.select}>
+                    {queriesData.case({
+                      Ok: (queries) =>
+                        queries.list.length ? (
+                          <>
+                            <M.Typography
+                              className={classes.sectionHeader}
+                              variant="body1"
+                            >
+                              Select query
+                            </M.Typography>
+
+                            <QuerySelect
+                              queries={queries.list}
+                              onChange={handleQueryMetaChange}
+                              value={customQueryBody ? null : queryMeta}
+                              onLoadMore={
+                                queries.next
+                                  ? () => handleQueriesLoadMore(queries)
+                                  : undefined
+                              }
+                            />
+                          </>
+                        ) : (
+                          <M.Typography className={classes.emptySelect} variant="body1">
+                            There are no saved queries.
+                          </M.Typography>
+                        ),
+                      Err: makeAsyncDataErrorHandler('Select query'),
+                      _: () => <SelectSkeleton />,
+                    })}
+                  </div>
+                </div>
+
+                <div className={classes.form}>
+                  {queryResultsData.case({
+                    _: ({
+                      value: queryResults,
+                    }: {
+                      value: requests.athena.QueryResultsResponse
+                    }) => {
+                      const areQueriesLoaded = queriesData.case({ Ok: R.T, _: R.F })
+                      if (!areQueriesLoaded) return <FormSkeleton />
+                      return (
+                        <Form
+                          disabled={isButtonDisabled(
+                            customQueryBody ||
+                              queryResults?.queryExecution?.query ||
+                              queryMeta?.body ||
+                              '',
+                            queryRunData,
+                            null,
+                          )}
+                          onChange={handleQueryBodyChange}
+                          onSubmit={handleSubmit}
+                          error={(queryRunData as $TSFixMe).case({
+                            Err: R.identity,
+                            _: () => undefined,
+                          })}
+                          value={
+                            customQueryBody ||
                             queryResults?.queryExecution?.query ||
                             queryMeta?.body ||
-                            '',
-                          queryRunData,
-                          null,
-                        )}
-                        onChange={handleQueryBodyChange}
-                        onSubmit={handleSubmit}
-                        error={(queryRunData as $TSFixMe).case({
-                          Err: R.identity,
-                          _: () => undefined,
-                        })}
-                        value={
-                          customQueryBody ||
-                          queryResults?.queryExecution?.query ||
-                          queryMeta?.body ||
-                          ''
-                        }
-                      />
+                            ''
+                          }
+                        />
+                      )
+                    },
+                    Err: makeAsyncDataErrorHandler('Query Body'),
+                    Pending: () => <FormSkeleton />,
+                  })}
+                </div>
+
+                <div>
+                  <HistoryHeader
+                    bucket={bucket}
+                    className={classes.sectionHeader}
+                    queryExecutionId={queryExecutionId}
+                  />
+
+                  {!queryExecutionId &&
+                    executionsData.case({
+                      Ok: (executions) => (
+                        <History
+                          bucket={bucket}
+                          executions={executions.list}
+                          onLoadMore={
+                            executions.next
+                              ? () => handleExecutionsLoadMore(executions)
+                              : undefined
+                          }
+                        />
+                      ),
+                      Err: makeAsyncDataErrorHandler('Executions Data'),
+                      _: () => <TableSkeleton size={4} />,
+                    })}
+                </div>
+
+                {queryResultsData.case({
+                  Init: () => null,
+                  Ok: (queryResults: requests.athena.QueryResultsResponse) => {
+                    if (queryResults.list.length) {
+                      return (
+                        <Results
+                          results={queryResults.list}
+                          onLoadMore={
+                            queryResults.next
+                              ? () => handleQueryResultsLoadMore(queryResults)
+                              : undefined
+                          }
+                        />
+                      )
+                    }
+                    if (queryResults.queryExecution) {
+                      return (
+                        <History
+                          bucket={bucket}
+                          executions={[queryResults.queryExecution!]}
+                        />
+                      )
+                    }
+                    return makeAsyncDataErrorHandler('Query Results Data')(
+                      new Error("Couldn't fetch query results"),
                     )
                   },
-                  Err: makeAsyncDataErrorHandler('Query Body'),
-                  Pending: () => <FormSkeleton />,
+                  Err: makeAsyncDataErrorHandler('Query Results Data'),
+                  _: () => <TableSkeleton size={10} />,
                 })}
-              </div>
-
-              <div>
-                <HistoryHeader
-                  bucket={bucket}
-                  className={classes.sectionHeader}
-                  queryExecutionId={queryExecutionId}
-                />
-
-                {!queryExecutionId &&
-                  executionsData.case({
-                    Ok: (executions) => (
-                      <History
-                        bucket={bucket}
-                        executions={executions.list}
-                        onLoadMore={
-                          executions.next
-                            ? () => handleExecutionsLoadMore(executions)
-                            : undefined
-                        }
-                      />
-                    ),
-                    Err: makeAsyncDataErrorHandler('Executions Data'),
-                    _: () => <TableSkeleton size={4} />,
-                  })}
-              </div>
-
-              {queryResultsData.case({
-                Init: () => null,
-                Ok: (queryResults: requests.athena.QueryResultsResponse) => {
-                  if (queryResults.list.length) {
-                    return (
-                      <Results
-                        results={queryResults.list}
-                        onLoadMore={
-                          queryResults.next
-                            ? () => handleQueryResultsLoadMore(queryResults)
-                            : undefined
-                        }
-                      />
-                    )
-                  }
-                  if (queryResults.queryExecution) {
-                    return (
-                      <History
-                        bucket={bucket}
-                        executions={[queryResults.queryExecution!]}
-                      />
-                    )
-                  }
-                  return makeAsyncDataErrorHandler('Query Results Data')(
-                    new Error("Couldn't fetch query results"),
-                  )
-                },
-                Err: makeAsyncDataErrorHandler('Query Results Data'),
-                _: () => <TableSkeleton size={10} />,
-              })}
-            </>
-          ),
+              </>
+            )
+          },
         })
       }
     </State>

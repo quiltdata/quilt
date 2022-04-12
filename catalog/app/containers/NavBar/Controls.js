@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import BucketSelect from './BucketSelect'
+import Collaborators from './Collaborators'
 import Search from './Search'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
@@ -98,6 +99,7 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
+      <Collaborators bucket={bucket} hidden={state === 'search'} />
       <Search
         bucket={bucket}
         onFocus={search}

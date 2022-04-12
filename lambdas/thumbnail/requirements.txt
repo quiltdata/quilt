@@ -7,7 +7,7 @@ imageio==2.5.0
 jsonschema==3.0.1
 numpy==1.21.5
 pdf2image==1.13.1
-Pillow==9.0.0
+Pillow==9.0.1
 psutil==5.7.0
 pyrsistent==0.14.11
 requests==2.26.0

@@ -4,4 +4,13 @@ query {
   roles {
     ...RoleSelection
   }
+  defaultRole {
+    __typename
+    ... on UnmanagedRole {
+      id
+    }
+    ... on ManagedRole {
+      id
+    }
+  }
 }

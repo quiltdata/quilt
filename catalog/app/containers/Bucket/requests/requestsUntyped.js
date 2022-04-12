@@ -327,6 +327,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       size: h.ContentLength,
       deleted: !!h.DeleteMarker,
       archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
+      lastModified: parseDate(h.LastModified),
     })
   } catch (e) {
     if (e.code === 405 && version != null) {
@@ -673,7 +674,7 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     console.log('Error loading summary:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    throw e
   }
 }
 
@@ -790,6 +791,7 @@ export async function loadManifest({
   hash: maybeHash,
   maxSize = MANIFEST_MAX_SIZE,
 }) {
+  // TODO: migrate to graphql
   try {
     const hash =
       maybeHash ||
@@ -926,15 +928,3 @@ export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today })
     today,
     window: 365,
   })
-
-export const ensurePackageIsPresent = async ({ s3, bucket, name }) => {
-  const response = await s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Prefix: `${PACKAGES_PREFIX}${name}/`,
-      MaxKeys: 1,
-      EncodingType: 'url',
-    })
-    .promise()
-  return !!response.KeyCount
-}

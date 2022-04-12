@@ -24,23 +24,31 @@ import UseQuilt from './UseQuilt'
 export default function Landing({ location }) {
   const cfg = Config.useConfig()
   const { q: query = '' } = parseSearch(location.search)
+  const showMarketingBlocks = cfg.mode !== 'LOCAL' && cfg.mode !== 'PRODUCT'
   return (
     <Layout>
       <MetaTitle />
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>
-      {cfg.mode !== 'LOCAL' && <Dots />}
+      {cfg.mode !== 'LOCAL' && (
+        <Dots style={{ bottom: cfg.mode === 'PRODUCT' ? 0 : undefined }} />
+      )}
       {cfg.mode === 'PRODUCT' && <Buckets query={query} />}
-      {cfg.mode === 'LOCAL' ? <LocalMode /> : <Showcase />}
-      {cfg.mode !== 'LOCAL' && <UseQuilt />}
-      {cfg.mode !== 'LOCAL' && <Logos />}
-      {cfg.mode !== 'LOCAL' && <CaseStudies />}
-      {cfg.mode !== 'LOCAL' && <Testimonials />}
-      {cfg.mode !== 'LOCAL' && <Platform />}
-      {cfg.mode !== 'LOCAL' && <Highlights />}
+      {cfg.mode === 'LOCAL' && <LocalMode />}
+      {showMarketingBlocks && (
+        <>
+          <Showcase />
+          <UseQuilt />
+          <Logos />
+          <CaseStudies />
+          <Testimonials />
+          <Platform />
+          <Highlights />
+        </>
+      )}
       {cfg.mode === 'MARKETING' && <Pricing />}
-      {cfg.mode !== 'LOCAL' && <Contribute />}
+      {showMarketingBlocks && <Contribute />}
       {cfg.mode === 'MARKETING' && <StickyFooter />}
     </Layout>
   )

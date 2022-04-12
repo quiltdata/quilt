@@ -336,6 +336,24 @@ export default {
             },
             args: [],
           },
+          {
+            name: 'collaborators',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'CollaboratorBucketConnection',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -502,6 +520,67 @@ export default {
                 kind: 'OBJECT',
                 name: 'BucketConfig',
                 ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Collaborator',
+        fields: [
+          {
+            name: 'email',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'username',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'CollaboratorBucketConnection',
+        fields: [
+          {
+            name: 'collaborator',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Collaborator',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'permissionLevel',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Any',
               },
             },
             args: [],
@@ -901,6 +980,30 @@ export default {
               ofType: {
                 kind: 'UNION',
                 name: 'RoleDeleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleSetDefault',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleSetDefaultResult',
                 ofType: null,
               },
             },
@@ -1482,6 +1585,24 @@ export default {
             ],
           },
           {
+            name: 'potentialCollaborators',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Collaborator',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
             name: 'packages',
             type: {
               kind: 'OBJECT',
@@ -1580,6 +1701,15 @@ export default {
                 },
               },
             ],
+          },
+          {
+            name: 'defaultRole',
+            type: {
+              kind: 'UNION',
+              name: 'Role',
+              ofType: null,
+            },
+            args: [],
           },
         ],
         interfaces: [],
@@ -1826,6 +1956,39 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RoleSetDefaultResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'RoleSetDefaultSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleDoesNotExist',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleSetDefaultSuccess',
+        fields: [
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
             },
             args: [],
           },

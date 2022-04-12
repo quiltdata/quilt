@@ -33,7 +33,7 @@ function Mono({ className, children }) {
 
 // close: PT.func.isRequired,
 // roles: PT.array.isRequired,
-function Invite({ close, roles }) {
+function Invite({ close, roles, defaultRoleId }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
@@ -113,7 +113,7 @@ function Invite({ close, roles }) {
   )
 
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={{ roleId: roles[0].id }}>
+    <RF.Form onSubmit={onSubmit} initialValues={{ roleId: defaultRoleId || roles[0].id }}>
       {({
         handleSubmit,
         submitting,
@@ -504,9 +504,10 @@ export default function Users({ users }) {
   const rows = Cache.suspend(users)
   const [
     {
-      data: { roles },
+      data: { roles, defaultRole },
     },
   ] = urql.useQuery({ query: ROLES_QUERY })
+  const defaultRoleId = defaultRole?.id
 
   const req = APIConnector.use()
   const cache = Cache.use()
@@ -678,8 +679,8 @@ export default function Users({ users }) {
       title: 'Invite',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        openDialog(({ close }) => <Invite {...{ close, roles }} />)
-      }, [roles, openDialog]),
+        openDialog(({ close }) => <Invite {...{ close, roles, defaultRoleId }} />)
+      }, [roles, defaultRoleId, openDialog]),
     },
   ]
 

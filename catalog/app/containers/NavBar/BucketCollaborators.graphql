@@ -1,0 +1,12 @@
+query ($bucket: String!) {
+  bucketConfig(name: $bucket) {
+    name
+    collaborators {
+      collaborator {
+        email
+        username
+      }
+      permissionLevel
+    }
+  }
+}

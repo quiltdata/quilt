@@ -9,6 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 const useRootStyles = M.makeStyles({
   root: {
     overflowX: 'hidden',
+    position: 'relative',
   },
 })
 

@@ -88,6 +88,7 @@ export interface BucketConfig {
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly permissions: ReadonlyArray<RoleBucketPermission>
+  readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
 }
 
 export interface BucketConfigDoesNotExist {
@@ -157,6 +158,18 @@ export interface BucketUpdateSuccess {
   readonly bucketConfig: BucketConfig
 }
 
+export interface Collaborator {
+  readonly __typename: 'Collaborator'
+  readonly email: Scalars['String']
+  readonly username: Scalars['String']
+}
+
+export interface CollaboratorBucketConnection {
+  readonly __typename: 'CollaboratorBucketConnection'
+  readonly collaborator: Collaborator
+  readonly permissionLevel: BucketPermissionLevel
+}
+
 export interface Config {
   readonly __typename: 'Config'
   readonly contentIndexingSettings: ContentIndexingSettings
@@ -203,6 +216,7 @@ export interface Mutation {
   readonly roleUpdateManaged: RoleUpdateResult
   readonly roleUpdateUnmanaged: RoleUpdateResult
   readonly roleDelete: RoleDeleteResult
+  readonly roleSetDefault: RoleSetDefaultResult
 }
 
 export interface MutationbucketAddArgs {
@@ -237,6 +251,10 @@ export interface MutationroleUpdateUnmanagedArgs {
 }
 
 export interface MutationroleDeleteArgs {
+  id: Scalars['ID']
+}
+
+export interface MutationroleSetDefaultArgs {
   id: Scalars['ID']
 }
 
@@ -350,10 +368,12 @@ export interface Query {
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
+  readonly potentialCollaborators: ReadonlyArray<Collaborator>
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
+  readonly defaultRole: Maybe<Role>
 }
 
 export interface QuerybucketConfigArgs {
@@ -439,6 +459,13 @@ export interface RoleNameInvalid {
 export interface RoleNameReserved {
   readonly __typename: 'RoleNameReserved'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export type RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+
+export interface RoleSetDefaultSuccess {
+  readonly __typename: 'RoleSetDefaultSuccess'
+  readonly role: Role
 }
 
 export type RoleUpdateResult =

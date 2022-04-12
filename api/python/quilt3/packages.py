@@ -1327,9 +1327,10 @@ class Package:
             message: the commit message for the new package
             selector_fn: An optional function that determines which package entries should be copied to S3.
                 The function takes in two arguments, logical_key and package_entry, and should return False if that
-                PackageEntry should be skipped during push. If for example you have a package where the files
-                are spread over multiple buckets and you add a single local file, you can use selector_fn to
-                only push the local file to s3 (instead of pushing all data to the destination bucket).
+                PackageEntry should not be copied to the destination registry during push.
+                If for example you have a package where the files are spread over multiple buckets
+                and you add a single local file, you can use selector_fn to only
+                push the local file to s3 (instead of pushing all data to the destination bucket).
             %(workflow)s
             force: skip the top hash check and overwrite any existing package
 
@@ -1413,7 +1414,7 @@ class Package:
                 raise QuiltConflictException(
                     f"Package with hash {latest_hash} already exists at the destination; "
                     f"expected {None if self._origin is None else self._origin.top_hash}. "
-                    "Use force=True to overwrite."
+                    "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
         # Check the top hash and fail early if it's unexpected.
