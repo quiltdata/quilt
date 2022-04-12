@@ -60,31 +60,13 @@ function format(settings: CatalogSettings) {
   return JSON.stringify(settings, null, 2)
 }
 
+// FIXME: remove if decide to not use file upload for logo
 export function useUploadFile() {
-  const credentials = AWS.Credentials.use()
-  const { serviceBucket } = Config.use()
-  const s3 = AWS.S3.use()
-
-  return React.useCallback(
-    async (file: File) => {
-      await credentials.getPromise()
-      console.log('UPLOAD FILE', { file })
-      // FIXME: use file's ext
-      // const location = `s3://${serviceBucket}/catalog/logo.jpg`
-      // const location = 'https://www.vir.bio/themes/default/images/logo_white.png'
-      const location =
-        'https://assets-global.website-files.com/594bf24620923a5a84fc2c8f/5dcd88f3137dcb0ed62c3142_nauto-sign-mono.svg'
-      return Promise.resolve(location)
-      // return s3
-      //   .upload({
-      //     Bucket: serviceBucket,
-      //     Key: `catalog/logo.jpg`,
-      //     Body: file,
-      //   })
-      //   .promise()
-    },
-    [serviceBucket, s3],
-  )
+  return React.useCallback(async (file: File) => {
+    // eslint-disable-next-line no-console
+    console.log(file)
+    throw new Error('This functionality is not ready yet')
+  }, [])
 }
 
 export function useWriteSettings() {
