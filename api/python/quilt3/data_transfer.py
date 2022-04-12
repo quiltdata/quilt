@@ -486,7 +486,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
             dest_size = resp['ContentLength']
             dest_etag = resp['ETag']
             dest_version_id = resp.get('VersionId')
-            if size == dest_size:
+            if size == dest_size and resp.get('ServerSideEncryption') != 'aws:kms':
                 src_etag = _calculate_etag(src_path)
                 if src_etag == dest_etag:
                     # Nothing more to do. We should not attempt to copy the object because
