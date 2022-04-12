@@ -13,6 +13,8 @@ import Logo from 'components/Logo'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as validators from 'utils/validators'
 
+import * as Form from '../Form'
+
 const useInputColorStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'flex-start',
@@ -265,9 +267,10 @@ export default function ThemeEditor() {
   const onSubmit = React.useCallback(
     async (values: { logoUrl: string; primaryColor: string }) => {
       try {
-        let logoUrl
-        if (values?.logoUrl && typeof values?.logoUrl !== 'string') {
-          logoUrl = await uploadFile(values.logoUrl)
+        let logoUrl = values?.logoUrl
+        // TODO: check is instance of File explicitly
+        if (logoUrl && typeof logoUrl !== 'string') {
+          logoUrl = await uploadFile(logoUrl)
         }
         const updatedSettings = settings || {}
         if (logoUrl) {
@@ -299,6 +302,9 @@ export default function ThemeEditor() {
     },
     [settings, writeSettings, uploadFile],
   )
+
+  // FIXME: remove when file upload would be ready
+  const useThirdPartyDomainForLogo = true
 
   return (
     <>
@@ -347,26 +353,44 @@ export default function ThemeEditor() {
               <M.DialogTitle>Configure theme</M.DialogTitle>
               <M.DialogContent>
                 <form onSubmit={handleSubmit}>
-                  <RF.Field
-                    component={InputFile}
-                    initialValue={settings?.logo?.url || ''}
-                    name="logoUrl"
-                    label="Logo URL"
-                    placeholder="e.g. https://example.com/path.jpg"
-                    validate={
-                      validators.composeOr(
-                        validators.file,
-                        validators.url,
-                      ) as FF.FieldValidator<string>
-                    }
-                    errors={{
-                      url: 'Image should be valid url',
-                      file: 'Image should be file',
-                    }}
-                    disabled={submitting}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                  />
+                  {useThirdPartyDomainForLogo ? (
+                    <RF.Field
+                      component={Form.Field}
+                      initialValue={settings?.logo?.url || ''}
+                      name="logoUrl"
+                      label="Logo URL"
+                      placeholder="e.g. https://example.com/path.jpg"
+                      validate={validators.url as FF.FieldValidator<string>}
+                      errors={{
+                        url: 'Image should be valid url',
+                        file: 'Image should be file',
+                      }}
+                      disabled={submitting}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  ) : (
+                    <RF.Field
+                      component={InputFile}
+                      initialValue={settings?.logo?.url || ''}
+                      name="logoUrl"
+                      label="Logo URL"
+                      placeholder="e.g. https://example.com/path.jpg"
+                      validate={
+                        validators.composeOr(
+                          validators.file,
+                          validators.url,
+                        ) as FF.FieldValidator<string>
+                      }
+                      errors={{
+                        url: 'Image should be valid url',
+                        file: 'Image should be file',
+                      }}
+                      disabled={submitting}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  )}
                   <M.Box pt={2} />
                   <RF.Field
                     // @ts-expect-error
