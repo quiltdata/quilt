@@ -26,7 +26,6 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
   root: {
     margin: t.spacing(2),
   },
-  logo: {},
 }))
 
 function LogoLink() {
@@ -40,7 +39,6 @@ function LogoLink() {
   return (
     <Link className={classes.root} to={urls.home()}>
       <Logo
-        className={classes.logo}
         width={wide ? '76.5px' : '27px'}
         height={wide ? '29px' : '27px'}
         src={settings?.logo?.url}
