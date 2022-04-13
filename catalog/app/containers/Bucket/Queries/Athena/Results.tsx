@@ -1,7 +1,10 @@
-import Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+
+import Perspective from 'components/Preview/renderers/Perspective'
+
+import * as requests from '../requests'
 
 const useStyles = M.makeStyles((t) => ({
   footer: {
@@ -16,14 +19,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ResultsProps {
-  results: Athena.RowList
-  onLoadMore?: () => void
+interface EmptyProps {
+  className: string
 }
 
-function Empty() {
+function Empty({ className }: EmptyProps) {
   return (
-    <M.Paper>
+    <M.Paper className={className}>
       <M.Box p={3} textAlign="center">
         <M.Typography variant="h6">No results for this query</M.Typography>
         <M.Typography>
@@ -34,64 +36,39 @@ function Empty() {
   )
 }
 
-export default function Results({ results: [head, ...tail], onLoadMore }: ResultsProps) {
-  const classes = useStyles()
+interface ResultsProps {
+  className: string
+  columns: requests.athena.QueryResultsColumns
+  onLoadMore?: () => void
+  rows: requests.athena.QueryResultsRows
+}
 
-  const pageSize = 10
-  const [page, setPage] = React.useState(1)
-
-  const handlePagination = React.useCallback(
-    (event, value) => {
-      setPage(value)
-    },
-    [setPage],
+export default function Results({ className, columns, rows, onLoadMore }: ResultsProps) {
+  const data = React.useMemo(
+    () =>
+      rows.map((row) =>
+        row.reduce(
+          (memo, item, index) => ({
+            ...memo,
+            [columns[index]?.name || 'Unknown']: item,
+          }),
+          {},
+        ),
+      ),
+    [columns, rows],
   )
 
-  if (!tail.length) return <Empty />
-
-  const rowsPaginated = tail.slice(pageSize * (page - 1), pageSize * page)
-  const hasPagination = tail.length > rowsPaginated.length
-
-  /* eslint-disable react/no-array-index-key */
+  if (!data.length) return <Empty className={className} />
 
   return (
-    <M.TableContainer component={M.Paper}>
-      <M.Table size="small">
-        <M.TableHead>
-          <M.TableRow>
-            {head?.Data?.map((item, index) => (
-              <M.TableCell key={index}>{item.VarCharValue}</M.TableCell>
-            ))}
-          </M.TableRow>
-        </M.TableHead>
-        <M.TableBody>
-          {rowsPaginated.map((row, rowIndex) => (
-            <M.TableRow key={rowIndex}>
-              {row?.Data?.map((item, itemIndex) => (
-                <M.TableCell key={itemIndex}>{item.VarCharValue}</M.TableCell>
-              ))}
-            </M.TableRow>
-          ))}
-        </M.TableBody>
-      </M.Table>
-
-      {(hasPagination || !!onLoadMore) && (
-        <div className={classes.footer}>
-          {hasPagination && (
-            <Lab.Pagination
-              count={Math.ceil(tail.length / pageSize)}
-              page={page}
-              size="small"
-              onChange={handlePagination}
-            />
-          )}
-          {onLoadMore && (
-            <M.Button className={classes.more} size="small" onClick={onLoadMore}>
-              Load more
-            </M.Button>
-          )}
-        </div>
-      )}
-    </M.TableContainer>
+    <Perspective
+      className={className}
+      data={data}
+      onLoadMore={onLoadMore}
+      config={{
+        settings: true,
+      }}
+      truncated={!!onLoadMore}
+    />
   )
 }
