@@ -198,13 +198,13 @@ logger = get_quilt_logger()
 
 
 class PkgpushException(Exception):
-    def __init__(self, code, data=None):
-        super().__init__(code, data)
-        self.code = code
-        self.data = data
+    def __init__(self, name, context=None):
+        super().__init__(name, context)
+        self.name = name
+        self.context = context
 
     def asdict(self):
-        return {"code": self.code, "data": self.data}
+        return {"name": self.name, "context": self.context}
 
     @classmethod
     def from_boto_error(cls, boto_error: ClientError):
@@ -217,6 +217,15 @@ class PkgpushException(Exception):
             "error_code": error_code,
             "error_message": error_message,
         })
+
+    @classmethod
+    def from_quilt_exception(cls, qe: quilt3.util.QuiltException):
+        name = (
+            "WorkflowValidationError"
+            if isinstance(qe, quilt3.workflows.WorkflowValidationError)
+            else "QuiltException"
+        )
+        return cls(name, {"details": qe.message})
 
 
 def calculate_pkg_hashes(boto_session, pkg):
@@ -424,7 +433,7 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
         )
         return {'top_hash': result._origin.top_hash}
     except quilt3.util.QuiltException as qe:
-        raise PkgpushException("QuiltException", {"details": qe.message})
+        raise PkgpushException.from_quilt_exception(qe)
     except ClientError as boto_error:
         raise PkgpushException.from_boto_error(boto_error)
     except quilt3.data_transfer.S3NoValidClientError as e:
@@ -610,7 +619,7 @@ def create_package(req_file):
         )
 
     except quilt3.util.QuiltException as qe:
-        raise PkgpushException("QuiltException", {"details": qe.message})
+        raise PkgpushException.from_quilt_exception(qe)
 
     calculate_pkg_hashes(user_boto_session, pkg)
     try:
