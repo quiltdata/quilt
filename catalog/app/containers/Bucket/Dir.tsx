@@ -131,7 +131,7 @@ function DirContents({
         onExited={onPackageDirectoryDialogExited}
       />
 
-      {preferences?.ui?.blocks?.listing && (
+      {preferences?.ui?.blocks?.browser && (
         <Listing
           items={items}
           locked={locked}

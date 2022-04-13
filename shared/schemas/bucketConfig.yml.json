@@ -62,14 +62,14 @@
               "description": "Show/hide analytics block",
               "type": "boolean"
             },
+            "browser": {
+              "default": true,
+              "description": "Show/hide file browser block",
+              "type": "boolean"
+            },
             "code": {
               "default": true,
               "description": "Show/hide code block",
-              "type": "boolean"
-            },
-            "listing": {
-              "default": true,
-              "description": "Show/hide file browser block",
               "type": "boolean"
             },
             "meta": {

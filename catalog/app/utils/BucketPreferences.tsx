@@ -19,7 +19,7 @@ export type ActionPreferences = Record<
   boolean
 >
 
-export type BlocksPreferences = Record<'analytics' | 'code' | 'listing' | 'meta', boolean>
+export type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boolean>
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
@@ -61,8 +61,8 @@ const defaultPreferences: BucketPreferences = {
     },
     blocks: {
       analytics: true,
+      browser: true,
       code: true,
-      listing: true,
       meta: true,
     },
     nav: {
@@ -88,8 +88,8 @@ const localModePreferences: BucketPreferences = {
     },
     blocks: {
       analytics: true,
+      browser: true,
       code: true,
-      listing: true,
       meta: true,
     },
     nav: {
