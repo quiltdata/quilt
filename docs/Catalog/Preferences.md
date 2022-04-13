@@ -19,6 +19,11 @@ ui:
     createPackage: True
     deleteRevision: False
     revisePackage: True
+  blocks:
+    analytics: True
+    browser: False
+    code: True
+    meta: True
   sourceBuckets:
     s3://BUCKET_1: {}
     s3://BUCKET_2: {}
@@ -34,6 +39,10 @@ ui:
 drag-and-drop or from folders in S3
 * `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.revisePackage: False` - hide the button to revise packages
+* `ui.blocks.analytics: False` - hide Analytics block on file page
+* `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
+* `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
+* `ui.blocks.meta: False` - hide Metadata block on Package page
 * `ui.sourceBuckets` - a dictionary of S3 bucket names that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks
 Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled

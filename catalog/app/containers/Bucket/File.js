@@ -14,6 +14,7 @@ import Sparkline from 'components/Sparkline'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
@@ -337,6 +338,7 @@ export default function File({
   const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
+  const preferences = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -472,9 +474,13 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              <Code>{code}</Code>
-              {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
-              <Meta bucket={bucket} path={path} version={version} />
+              {preferences?.ui?.blocks?.code && <Code>{code}</Code>}
+              {!!analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
+                <Analytics {...{ analyticsBucket, bucket, path }} />
+              )}
+              {preferences?.ui?.blocks?.meta && (
+                <Meta bucket={bucket} path={path} version={version} />
+              )}
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,
