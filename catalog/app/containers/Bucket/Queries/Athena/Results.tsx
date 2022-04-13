@@ -1,23 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import Perspective from 'components/Preview/renderers/Perspective'
 
 import * as requests from '../requests'
-
-const useStyles = M.makeStyles((t) => ({
-  footer: {
-    display: 'flex',
-    padding: t.spacing(1),
-  },
-  header: {
-    margin: t.spacing(0, 0, 1),
-  },
-  more: {
-    marginLeft: 'auto',
-  },
-}))
 
 interface EmptyProps {
   className: string

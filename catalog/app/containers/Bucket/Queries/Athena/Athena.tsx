@@ -685,6 +685,7 @@ export default function Athena({
                     if (queryResults.rows.length) {
                       return (
                         <Results
+                          className={classes.results}
                           rows={queryResults.rows}
                           columns={queryResults.columns}
                           onLoadMore={
