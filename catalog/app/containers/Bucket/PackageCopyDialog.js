@@ -164,7 +164,8 @@ function DialogForm({
         }, 300)
       }
 
-      handleNameChange(values.name)
+      // FIXME:
+      // handleNameChange(values.name)
     },
     [handleNameChange, selectedWorkflow, setWorkflow],
   )
