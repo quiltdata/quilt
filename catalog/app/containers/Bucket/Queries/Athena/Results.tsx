@@ -22,6 +22,8 @@ function Empty({ className }: EmptyProps) {
   )
 }
 
+const config = { settings: true }
+
 interface ResultsProps {
   className: string
   columns: requests.athena.QueryResultsColumns
@@ -49,11 +51,9 @@ export default function Results({ className, columns, rows, onLoadMore }: Result
   return (
     <Perspective
       className={className}
+      config={config}
       data={data}
       onLoadMore={onLoadMore}
-      config={{
-        settings: true,
-      }}
       truncated={!!onLoadMore}
     />
   )
