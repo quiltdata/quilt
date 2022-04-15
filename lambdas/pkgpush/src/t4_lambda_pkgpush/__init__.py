@@ -11,7 +11,6 @@ import json
 import os
 import tempfile
 import traceback
-from http import HTTPStatus
 
 import boto3
 import botocore.client
@@ -390,7 +389,7 @@ def _get_successor_params(registry, successor):
     for successor_url, successor_params in successors.items():
         if get_registry(successor_url) == successor:
             return successor_params
-    raise PkgpushException("InvalidSuccessor", {"successor": successor.base})
+    raise PkgpushException("InvalidSuccessor", {"successor": str(successor.base)})
 
 
 def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max_size, pkg_max_files):
