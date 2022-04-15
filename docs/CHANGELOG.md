@@ -13,6 +13,7 @@
 * [Added] Add `blocks` field to `.quilt/catalog/config.yaml` to control blocks visibility ([#2791](https://github.com/quiltdata/quilt/pull/2791))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
+* [Changed] Make `pkgpush` lambda directly invocable, adjust handling of parameters and errors ([#2776](https://github.com/quiltdata/quilt/pull/2776))
 
 # 5.0.0 - 2022-03-14
 ## CLI
