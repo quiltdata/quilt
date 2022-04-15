@@ -344,7 +344,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
 
     def test_no_auth(self):
         resp = self.make_request_base({}, credentials={})
-        assert resp["error"]["code"] == "InvalidCredentials"
+        assert resp["error"]["name"] == "InvalidCredentials"
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_dst_is_not_successor(self):
@@ -362,8 +362,8 @@ class PackagePromoteTest(PackagePromoteTestBase):
                     response = self.make_request(params)
                     assert response == {
                         "error": {
-                            "code": "InvalidSuccessor",
-                            "data": {
+                            "name": "InvalidSuccessor",
+                            "context": {
                                 "successor": self.dst_registry,
                             }
                         },
@@ -385,8 +385,8 @@ class PackagePromoteTest(PackagePromoteTestBase):
                     response = self.make_request(params)
                     assert response == {
                         "error": {
-                            "code": "InvalidRegistry",
-                            "data": {
+                            "name": "InvalidRegistry",
+                            "context": {
                                 "registry_url": registry_url,
                             }
                         },
@@ -406,8 +406,8 @@ class PackagePromoteTest(PackagePromoteTestBase):
             response = self.make_request(params)
             assert response == {
                 "error": {
-                    "code": "TooManyFilesToCopy",
-                    "data": {
+                    "name": "TooManyFilesToCopy",
+                    "context": {
                         "max_files": 1,
                         "num_files": 2,
                     }
@@ -438,8 +438,8 @@ class PackagePromoteTest(PackagePromoteTestBase):
                 response = self.make_request(params)
                 assert response == {
                     "error": {
-                        "code": "ManifestTooLarge",
-                        "data": {
+                        "name": "ManifestTooLarge",
+                        "context": {
                             "max_size": 1,
                             "size": 42,
                         }
@@ -465,8 +465,8 @@ class PackagePromoteTestSizeExceeded(PackagePromoteTestBase):
             response = self.make_request(params)
             assert response == {
                 "error": {
-                    "code": "PackageTooLargeToCopy",
-                    "data": {
+                    "name": "PackageTooLargeToCopy",
+                    "context": {
                         "max_size": 1,
                         "size": self.file_size,
                     }
@@ -796,29 +796,29 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
             (
                 self.gen_params(name=...),
                 {
-                    "code": "InvalidInputParameters",
-                    "data": {"details": "'name' is a required property"},
+                    "name": "InvalidInputParameters",
+                    "context": {"details": "'name' is a required property"},
                 },
             ),
             (
                 self.gen_params(name='invalid package name'),
                 {
-                    "code": "QuiltException",
-                    "data": {"details": "Invalid package name: invalid package name."},
+                    "name": "QuiltException",
+                    "context": {"details": "Invalid package name: invalid package name."},
                 },
             ),
             (
                 self.gen_params(registry=...),
                 {
-                    "code": "InvalidInputParameters",
-                    "data": {"details": "'registry' is a required property"},
+                    "name": "InvalidInputParameters",
+                    "context": {"details": "'registry' is a required property"},
                 },
             ),
             (
                 self.gen_params(registry=self.dst_bucket),  # Not URL.
                 {
-                    "code": "InvalidRegistry",
-                    "data": {"registry_url": self.dst_bucket},
+                    "name": "InvalidRegistry",
+                    "context": {"registry_url": self.dst_bucket},
                 },
             ),
         ):
@@ -844,8 +844,8 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                 ])
                 assert pkg_response == {
                     "error": {
-                        "code": "InvalidInputParameters",
-                        "data": {"details": f"'{prop_name}' is a required property"},
+                        "name": "InvalidInputParameters",
+                        "context": {"details": f"'{prop_name}' is a required property"},
                     },
                 }
 
@@ -861,8 +861,8 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         ])
         assert pkg_response == {
             "error": {
-                "code": "InvalidS3PhysicalKey",
-                "data": {"physical_key": bad_pkey},
+                "name": "InvalidS3PhysicalKey",
+                "context": {"physical_key": bad_pkey},
             },
         }
 
@@ -878,8 +878,8 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         ])
         assert pkg_response == {
             "error": {
-                "code": "InvalidLocalPhysicalKey",
-                "data": {"physical_key": bad_pkey},
+                "name": "InvalidLocalPhysicalKey",
+                "context": {"physical_key": bad_pkey},
             },
         }
 
@@ -903,8 +903,8 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
         ])
         assert pkg_response == {
             "error": {
-                "code": "AWSError",
-                "data": {
+                "name": "AWSError",
+                "context": {
                     "error_code": mock_error_code,
                     "error_message": mock_service_msg,
                     "status_code": mock_http_code,
@@ -975,7 +975,7 @@ class HashCalculationTest(unittest.TestCase):
         s3_client = mock.MagicMock()
         with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
             t4_lambda_pkgpush.calculate_pkg_hashes(s3_client, self.pkg)
-        assert excinfo.value.code == "FileTooLargeForHashing"
+        assert excinfo.value.name == "FileTooLargeForHashing"
 
     def test_calculate_pkg_entry_hash(self):
         get_s3_client_mock = mock.MagicMock()
@@ -1042,5 +1042,5 @@ class HashCalculationTest(unittest.TestCase):
 
         with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
             t4_lambda_pkgpush.invoke_hash_lambda(test_url)
-        assert excinfo.value.code == "S3HashLambdaUnhandledError"
+        assert excinfo.value.name == "S3HashLambdaUnhandledError"
         lambda_client_stubber.assert_no_pending_responses()
