@@ -427,6 +427,9 @@ export default function ThemeEditor() {
                   )
                 )}
 
+                <M.Button onClick={cancel} disabled={submitting}>
+                  Cancel
+                </M.Button>
                 <M.Button
                   type="submit"
                   onClick={handleSubmit}
@@ -435,9 +438,6 @@ export default function ThemeEditor() {
                   disabled={submitting || (submitFailed && hasValidationErrors)}
                 >
                   Save
-                </M.Button>
-                <M.Button onClick={cancel} disabled={submitting}>
-                  Cancel
                 </M.Button>
               </M.DialogActions>
             </>
