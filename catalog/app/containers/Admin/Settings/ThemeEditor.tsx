@@ -38,7 +38,7 @@ const useInputColorStyles = M.makeStyles((t) => ({
   },
 }))
 
-type InputColorProps = M.TextFieldProps & {
+type InputColorProps = Partial<M.TextFieldProps> & {
   input: {
     value: string
     onChange: (value: string) => void
