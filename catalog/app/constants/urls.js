@@ -11,6 +11,7 @@ export const docs = 'https://docs.quiltdata.com'
 export const docsMaster = 'https://docs.quiltdata.com/v/master'
 export const git = 'https://github.com/quiltdata/quilt.git'
 export const gitWeb = 'https://github.com/quiltdata/quilt'
+export const homeMarketing = 'https://quiltdata.com'
 export const instagram = 'https://www.instagram.com/quiltdata/'
 export const installGit = 'https://git-scm.com/downloads'
 export const installQuilt = `${docs}/get-started/installation`

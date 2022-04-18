@@ -7,9 +7,11 @@ import * as M from '@material-ui/core'
 import SubmitSpinner from 'containers/Bucket/PackageDialog/SubmitSpinner'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
+import ThemeEditor from './Settings/ThemeEditor'
 
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
   actions: {
@@ -206,6 +208,9 @@ function NavLinkEditor() {
                   )
                 )}
 
+                <M.Button onClick={cancel} disabled={submitting}>
+                  Cancel
+                </M.Button>
                 <M.Button
                   type="submit"
                   onClick={handleSubmit}
@@ -214,9 +219,6 @@ function NavLinkEditor() {
                   disabled={submitting || (submitFailed && hasValidationErrors)}
                 >
                   Save
-                </M.Button>
-                <M.Button onClick={cancel} disabled={submitting}>
-                  Cancel
                 </M.Button>
               </M.DialogActions>
             </>
@@ -228,28 +230,55 @@ function NavLinkEditor() {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2, 0, 0),
+  },
+  cards: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
   sectionHeading: {
-    ...t.typography.body1,
-    fontWeight: t.typography.fontWeightMedium,
     marginBottom: t.spacing(1),
+  },
+  group: {
+    flex: '50%',
+    padding: t.spacing(2),
+    '& + &': {
+      margin: t.spacing(0, 0, 0, 2),
+    },
+  },
+  title: {
+    margin: t.spacing(0, 0, 2),
+    padding: t.spacing(0, 2),
   },
 }))
 
 export default function Settings() {
   const classes = useStyles()
   return (
-    <M.Box mt={2} mb={2}>
-      <M.Paper>
-        <M.Box px={3} pt={2} pb={1}>
-          <M.Typography variant="h6">Catalog Customization</M.Typography>
-        </M.Box>
-        <M.Box px={3} pb={2}>
-          <div className={classes.sectionHeading}>Custom navbar link</div>
+    <div className={classes.root}>
+      <MetaTitle>{['Settings', 'Admin']}</MetaTitle>
+      <M.Typography variant="h4" className={classes.title}>
+        Catalog Customization
+      </M.Typography>
+      <div className={classes.cards}>
+        <M.Paper className={classes.group}>
+          <M.Typography variant="h5" className={classes.sectionHeading}>
+            Navbar link
+          </M.Typography>
           <React.Suspense fallback={<M.CircularProgress />}>
             <NavLinkEditor />
           </React.Suspense>
-        </M.Box>
-      </M.Paper>
-    </M.Box>
+        </M.Paper>
+        <M.Paper className={classes.group}>
+          <M.Typography variant="h5" className={classes.sectionHeading}>
+            Theme (logo and color)
+          </M.Typography>
+          <React.Suspense fallback={<M.CircularProgress />}>
+            <ThemeEditor />
+          </React.Suspense>
+        </M.Paper>
+      </div>
+    </div>
   )
 }

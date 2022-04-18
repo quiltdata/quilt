@@ -123,6 +123,26 @@ export const json = (v) => {
   }
 }
 
+export const hexColor = (v) => {
+  if (!v) return undefined
+  return matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)(v) ? undefined : 'hex'
+}
+
+export const url = (v) => {
+  if (!v) return undefined
+  try {
+    // if v is not valid URL, then URL will throws
+    new window.URL(v)
+  } catch (e) {
+    return 'url'
+  }
+}
+
+export const file = (v) => {
+  if (!v) return undefined
+  return v instanceof File ? undefined : 'file'
+}
+
 /**
  * Validate that the string represents a valid JSON object. Error string: 'jsonObject'.
  *
@@ -137,6 +157,19 @@ export const jsonObject = (v) => {
     return 'jsonObject'
   }
 }
+
+// TODO: create composeAnd, if needed
+export const composeOr =
+  (...validators) =>
+  (v) => {
+    let error
+    // check if any of validators returns undefined
+    validators.some((validator) => {
+      error = validator(v)
+      return !error
+    })
+    return error
+  }
 
 export const composeAsync =
   (...validators) =>

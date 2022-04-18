@@ -1,33 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`components/Logo should be default in wide viewport 1`] = `
-<img
-  alt="Quilt"
-  height={29}
-  src="IMAGE_MOCK"
+exports[`components/Logo should render custom logo 1`] = `
+<div
+  className="makeStyles-custom-1 makeStyles-custom-7"
 />
 `;
 
-exports[`components/Logo should be short in narrow viewport 1`] = `
-<img
-  alt="Quilt"
-  height={27}
-  src="IMAGE_MOCK"
+exports[`components/Logo should render rectangular logo 1`] = `
+<div
+  className="makeStyles-quilt-2 makeStyles-quilt-6"
 />
 `;
 
-exports[`components/Logo should be short when forcedShort 1`] = `
-<img
-  alt="Quilt"
-  height={27}
-  src="IMAGE_MOCK"
-/>
-`;
-
-exports[`components/Logo should render 1`] = `
-<img
-  alt="Quilt"
-  height={29}
-  src="IMAGE_MOCK"
+exports[`components/Logo should render squared logo 1`] = `
+<div
+  className="makeStyles-quilt-2 makeStyles-quilt-4"
 />
 `;
