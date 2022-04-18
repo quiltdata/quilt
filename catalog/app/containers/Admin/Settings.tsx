@@ -244,7 +244,7 @@ const useStyles = M.makeStyles((t) => ({
     flex: '50%',
     padding: t.spacing(2),
     '& + &': {
-      margin: '0 0 0 16px',
+      margin: t.spacing(0, 0, 0, 2),
     },
   },
   title: {
