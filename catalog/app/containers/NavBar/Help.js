@@ -70,6 +70,11 @@ const syntaxHelpRows = [
         title: 'Analyzed object key',
       },
       {
+        example: 'last_modified:[2022-02-04 TO 2022-02-20]',
+        syntax: 'last_modified:',
+        title: 'Last modified date',
+      },
+      {
         example: 'metadata:dapi',
         syntax: 'metadata:',
         title: 'Package metadata',
