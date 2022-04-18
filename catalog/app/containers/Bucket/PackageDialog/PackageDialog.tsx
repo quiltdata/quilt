@@ -36,6 +36,25 @@ export const getNormalizedPath = (f: { path?: string; name: string }) => {
   return p.startsWith('/') ? p.substring(1) : p
 }
 
+export const mkFormError = (err: React.ReactNode) => ({ [FORM_ERROR]: err })
+
+interface InputError {
+  path: string | null
+  message: string
+}
+
+export function mapInputErrors(
+  inputErrors: Readonly<InputError[]>,
+  mapping: Record<string, string> = {},
+) {
+  const formErrors: Record<string, string> = {}
+  for (let err of inputErrors) {
+    const key = err.path && err.path in mapping ? mapping[err.path] : FORM_ERROR
+    formErrors[key] = err.message
+  }
+  return formErrors
+}
+
 export async function hashFile(file: File) {
   if (!window.crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
   const buf = await file.arrayBuffer()
@@ -380,18 +399,14 @@ export type SchemaFetcherRenderProps =
 const noopValidator: MetaValidator = () => undefined
 
 interface SchemaFetcherProps {
-  manifest?: {
-    workflow?: {
-      id?: string
-    }
-  }
+  initialWorkflowId?: string
   workflow?: workflows.Workflow
   workflowsConfig: workflows.WorkflowsConfig
   children: (props: SchemaFetcherRenderProps) => React.ReactElement
 }
 
 export function SchemaFetcher({
-  manifest,
+  initialWorkflowId,
   workflow,
   workflowsConfig,
   children,
@@ -399,16 +414,14 @@ export function SchemaFetcher({
   const s3 = AWS.S3.use()
   const sentry = Sentry.use()
 
-  const slug = manifest?.workflow?.id
-
   const initialWorkflow = React.useMemo(() => {
     // reuse workflow from previous revision if it's still present in the config
-    if (slug) {
-      const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
+    if (initialWorkflowId) {
+      const w = workflowsConfig.workflows.find(R.propEq('slug', initialWorkflowId))
       if (w) return w
     }
     return defaultWorkflowFromConfig(workflowsConfig)
-  }, [slug, workflowsConfig])
+  }, [initialWorkflowId, workflowsConfig])
 
   const selectedWorkflow = workflow || initialWorkflow
 
@@ -452,15 +465,16 @@ export function SchemaFetcher({
 }
 
 export function useCryptoApiValidation() {
-  return React.useCallback(() => {
-    const isCryptoApiAvailable =
-      window.crypto && window.crypto.subtle && window.crypto.subtle.digest
-    return {
-      [FORM_ERROR]: !isCryptoApiAvailable
-        ? 'Quilt requires the Web Cryptography API. Please try another browser.'
-        : undefined,
-    }
-  }, [])
+  return React.useCallback(
+    () =>
+      !!window.crypto?.subtle?.digest
+        ? {}
+        : mkFormError(
+            'Quilt requires the Web Cryptography API. Please try another browser.',
+          ),
+
+    [],
+  )
 }
 
 export function calcDialogHeight(windowHeight: number, metaHeight: number): number {

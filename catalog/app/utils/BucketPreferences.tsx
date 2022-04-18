@@ -19,6 +19,8 @@ export type ActionPreferences = Record<
   boolean
 >
 
+export type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boolean>
+
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
 export interface SourceBuckets {
@@ -28,12 +30,14 @@ export interface SourceBuckets {
 
 interface UiPreferences {
   actions: ActionPreferences
+  blocks: BlocksPreferences
   nav: NavPreferences
   sourceBuckets: SourceBuckets
 }
 
 interface UiPreferencesYaml {
   actions?: ActionPreferences
+  blocks?: BlocksPreferences
   defaultSourceBucket?: string
   nav?: NavPreferences
   sourceBuckets?: Record<string, null>
@@ -55,6 +59,12 @@ const defaultPreferences: BucketPreferences = {
       deleteRevision: false,
       revisePackage: true,
     },
+    blocks: {
+      analytics: true,
+      browser: true,
+      code: true,
+      meta: true,
+    },
     nav: {
       files: true,
       packages: true,
@@ -75,6 +85,12 @@ const localModePreferences: BucketPreferences = {
       createPackage: false,
       deleteRevision: false,
       revisePackage: false,
+    },
+    blocks: {
+      analytics: true,
+      browser: true,
+      code: true,
+      meta: true,
     },
     nav: {
       files: true,
@@ -126,6 +142,7 @@ function parse(bucketPreferencesYaml: string, sentry: SentryInstance): BucketPre
   return {
     ui: {
       actions: R.mergeRight(defaultPreferences.ui.actions, data?.ui?.actions || {}),
+      blocks: R.mergeRight(defaultPreferences.ui.blocks, data?.ui?.blocks || {}),
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
       sourceBuckets: parseSourceBuckets(sentry, data?.ui),
     },

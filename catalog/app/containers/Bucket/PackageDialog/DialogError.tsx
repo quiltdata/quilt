@@ -57,7 +57,7 @@ const errorDisplay = R.cond([
         </M.Typography>
         <M.Typography gutterBottom>
           This package is not editable via the web UI&mdash;it cannot handle package
-          manifest that large ({readableBytes(e.actualSize)}).
+          manifests with more than {e.max} entries.
         </M.Typography>
         <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
       </>

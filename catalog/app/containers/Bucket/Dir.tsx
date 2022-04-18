@@ -101,6 +101,7 @@ function DirContents({
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
+  const preferences = BucketPreferences.use()
 
   const onPackageDirectoryDialogExited = React.useCallback(() => {
     setSuccessor(null)
@@ -130,20 +131,22 @@ function DirContents({
         onExited={onPackageDirectoryDialogExited}
       />
 
-      <Listing
-        items={items}
-        locked={locked}
-        loadMore={loadMore}
-        truncated={response.truncated}
-        prefixFilter={response.prefix}
-        toolbarContents={
-          <PrefixFilter
-            key={`${response.bucket}/${response.path}`}
-            prefix={response.prefix}
-            setPrefix={setPrefix}
-          />
-        }
-      />
+      {preferences?.ui?.blocks?.browser && (
+        <Listing
+          items={items}
+          locked={locked}
+          loadMore={loadMore}
+          truncated={response.truncated}
+          prefixFilter={response.prefix}
+          toolbarContents={
+            <PrefixFilter
+              key={`${response.bucket}/${response.path}`}
+              prefix={response.prefix}
+              setPrefix={setPrefix}
+            />
+          }
+        />
+      )}
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
       <Summary files={response.files} mkUrl={null} />
@@ -191,8 +194,8 @@ export default function Dir({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           # list files
           b.ls("${path}")
           # download
@@ -266,7 +269,7 @@ export default function Dir({
         )}
       </M.Box>
 
-      <Code gutterBottom>{code}</Code>
+      {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
 
       {data.case({
         Err: displayError(),

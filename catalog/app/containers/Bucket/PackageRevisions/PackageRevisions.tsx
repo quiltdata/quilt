@@ -21,7 +21,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
 
-import { usePackageUpdateDialog } from '../PackageUpdateDialog'
+import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -429,36 +429,26 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
   const revisionCountQuery = useQuery({
     query: REVISION_COUNT_QUERY,
     variables: { bucket, name },
-    requestPolicy: 'cache-and-network',
   })
   const revisionListQuery = useQuery({
     query: REVISION_LIST_QUERY,
     variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
-    requestPolicy: 'cache-and-network',
   })
 
-  const refreshData = React.useCallback(() => {
-    revisionCountQuery.run({ requestPolicy: 'cache-and-network' })
-    revisionListQuery.run({ requestPolicy: 'cache-and-network' })
-  }, [revisionCountQuery, revisionListQuery])
-
-  const onExited = React.useCallback(
-    (res) => {
-      // refresh data if new revision of current package was pushed
-      if (res?.pushed?.name === name) {
-        refreshData()
-        return true
-      }
-      return false
-    },
-    [name, refreshData],
-  )
-
-  const updateDialog = usePackageUpdateDialog({ bucket, name, onExited })
+  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      {updateDialog.element}
+      {updateDialog.render({
+        resetFiles: 'Undo changes',
+        submit: 'Push',
+        successBrowse: 'Browse',
+        successTitle: 'Push complete',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package revision {packageLink} successfully created</>
+        ),
+        title: 'Push package revision',
+      })}
 
       <M.Box
         pt={{ xs: 2, sm: 3 }}

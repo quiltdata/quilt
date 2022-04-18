@@ -690,6 +690,55 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'InputError',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'message',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'context',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'InsufficientPermissions',
         fields: [
           {
@@ -698,6 +747,31 @@ export default {
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'InvalidInput',
+        fields: [
+          {
+            name: 'errors',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'InputError',
+                    ofType: null,
+                  },
+                },
+              },
             },
             args: [],
           },
@@ -778,6 +852,151 @@ export default {
         kind: 'OBJECT',
         name: 'Mutation',
         fields: [
+          {
+            name: 'packageConstruct',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackageConstructResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'params',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'src',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'packagePromote',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackagePromoteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'params',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'src',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'packageFromFolder',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackageFromFolderResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'params',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+              {
+                name: 'src',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'packageRevisionDelete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackageRevisionDeleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'hash',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
           {
             name: 'bucketAdd',
             type: {
@@ -1058,6 +1277,46 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'OperationError',
+        fields: [
+          {
+            name: 'message',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'context',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Package',
         fields: [
           {
@@ -1148,6 +1407,32 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'SCALAR',
+        name: 'Float',
+      },
+      {
+        kind: 'UNION',
+        name: 'PackageConstructResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackagePushSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'PackageContentsFlatMap',
+      },
+      {
         kind: 'OBJECT',
         name: 'PackageDir',
         fields: [
@@ -1204,10 +1489,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Float',
       },
       {
         kind: 'UNION',
@@ -1276,6 +1557,24 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'PackageFromFolderResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackagePushSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
         kind: 'OBJECT',
         name: 'PackageList',
         fields: [
@@ -1337,6 +1636,55 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'PackagePromoteResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackagePushSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackagePushSuccess',
+        fields: [
+          {
+            name: 'package',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Package',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'revision',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackageRevision',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'OBJECT',
         name: 'PackageRevision',
         fields: [
@@ -1390,6 +1738,15 @@ export default {
             type: {
               kind: 'SCALAR',
               name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageWorkflow',
               ofType: null,
             },
             args: [],
@@ -1472,6 +1829,54 @@ export default {
               },
             ],
           },
+          {
+            name: 'contentsFlatMap',
+            type: {
+              kind: 'SCALAR',
+              name: 'PackageContentsFlatMap',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'max',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'PackageRevisionDeleteResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackageRevisionDeleteSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageRevisionDeleteSuccess',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -1525,6 +1930,34 @@ export default {
                 },
               },
             ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageWorkflow',
+        fields: [
+          {
+            name: 'config',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'id',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
           },
         ],
         interfaces: [],

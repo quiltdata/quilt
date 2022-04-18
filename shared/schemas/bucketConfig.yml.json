@@ -54,6 +54,31 @@
             }
           }
         },
+        "blocks": {
+          "type": "object",
+          "properties": {
+            "analytics": {
+              "default": true,
+              "description": "Show/hide analytics block",
+              "type": "boolean"
+            },
+            "browser": {
+              "default": true,
+              "description": "Show/hide file browser block",
+              "type": "boolean"
+            },
+            "code": {
+              "default": true,
+              "description": "Show/hide code block",
+              "type": "boolean"
+            },
+            "meta": {
+              "default": true,
+              "description": "Show/hide metadata block",
+              "type": "boolean"
+            }
+          }
+        },
         "sourceBuckets": {
           "type": "object",
           "description": "Buckets usable as sources for adding objects from while editing a package via web UI.",
