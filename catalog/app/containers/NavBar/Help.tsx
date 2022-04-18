@@ -181,8 +181,8 @@ interface ExamplePartProps {
 function ExamplePart({ syntax, part }: ExamplePartProps) {
   const classes = useExamplePartStyles()
   if (part !== 0 && part !== 1) return <span className={classes.example}>{part}</span>
-  if (Array.isArray(syntax)) return <>syntax[part]</>
-  return <>syntax</>
+  if (Array.isArray(syntax)) return <>{syntax[part]}</>
+  return <>{syntax}</>
 }
 
 interface SyntaxProps {
