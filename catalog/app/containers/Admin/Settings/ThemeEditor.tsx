@@ -366,7 +366,6 @@ export default function ThemeEditor() {
                       validate={validators.url as FF.FieldValidator<string>}
                       errors={{
                         url: 'Image should be valid url',
-                        file: 'Image should be file',
                       }}
                       disabled={submitting}
                       fullWidth
