@@ -27,7 +27,6 @@ const useInputColorStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(2),
   },
   picker: {
-    outline: `1px solid ${t.palette.action.disabled}`,
     height: '40px',
     width: '50px',
   },
