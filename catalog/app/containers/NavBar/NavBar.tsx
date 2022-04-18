@@ -436,7 +436,7 @@ function useLinks(): LinkDescriptor[] {
       label: 'URI',
       path: paths.uriResolver,
     },
-    cfg.mode !== 'PRODUCT' && { href: URLS.docs, label: 'Docs' },
+    { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
       href: URLS.jobs,
