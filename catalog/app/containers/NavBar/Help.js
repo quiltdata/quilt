@@ -35,62 +35,62 @@ const syntaxHelpRows = [
     namespace: 'Fields',
     rows: [
       {
-        example: 'comment:TODO',
+        example: [0, 'TODO'],
         syntax: 'comment:',
         title: 'Package comment',
       },
       {
-        example: 'content:Hello',
+        example: [0, 'Hello'],
         syntax: 'content:',
         title: 'Object content',
       },
       {
-        example: 'ext:*.fastq.gz',
+        example: [0, '*.fastq.gz'],
         syntax: 'ext:',
         title: 'Object extension',
       },
       {
-        example: 'handle:"user/*"',
+        example: [0, '"user/*"'],
         syntax: 'handle:',
         title: 'Package name',
       },
       {
-        example: 'hash:3192ac1*',
+        example: [0, '3192ac1*'],
         syntax: 'hash:',
         title: 'Package hash',
       },
       {
-        example: 'key:research*',
+        example: [0, 'research*'],
         syntax: 'key:',
         title: 'Object key',
       },
       {
-        example: 'key_text:"research"',
+        example: [0, '"research"'],
         syntax: 'key_text:',
         title: 'Analyzed object key',
       },
       {
-        example: 'metadata:dapi',
+        example: [0, 'dapi'],
         syntax: 'metadata:',
         title: 'Package metadata',
       },
       {
-        example: 'size:>=4096',
+        example: [0, '>=4096'],
         syntax: 'size:',
         title: 'Object size in bytes',
       },
       {
-        example: 'version_id:t.LVVCx*',
+        example: [0, 't.LVVCx*'],
         syntax: 'version_id:',
         title: 'Object version id',
       },
       {
-        example: 'package_stats\n  .total_files:>100',
+        example: [0, '>100'],
         syntax: 'package_stats\n  .total_files:',
         title: 'Package total files',
       },
       {
-        example: 'package_stats\n  .total_bytes:<100',
+        example: [0, '<100'],
         syntax: 'package_stats\n  .total_bytes:',
         title: 'Package total bytes',
       },
@@ -101,28 +101,28 @@ const syntaxHelpRows = [
     namespace: 'Logical operators and grouping',
     rows: [
       {
-        example: 'a AND b',
+        example: ['a ', 0, ' b'],
         syntax: 'AND',
         title: 'Conjunction',
       },
       {
-        example: 'a OR b',
+        example: ['a ', 0, ' b'],
         syntax: 'OR',
         title: 'Disjunction',
       },
       {
-        example: 'NOT a',
+        example: [0, ' a'],
         syntax: 'NOT',
         title: 'Negation',
       },
       {
-        example: '_exists_: content',
+        example: [0, ' content'],
         syntax: '_exists_:',
         title: 'Matches any non-null value for the given field',
       },
       {
-        example: '(a OR b)',
-        syntax: '()',
+        example: [0, 'a AND b', 1],
+        syntax: ['(', ')'],
         title: 'Group terms',
       },
     ],
@@ -132,23 +132,40 @@ const syntaxHelpRows = [
     namespace: 'Wildcards and regular expressions',
     rows: [
       {
-        example: 'config.y*ml',
+        example: ['config.y', 0, 'ml'],
         syntax: '*',
-        title: 'Zero or more characters, avoid leading * (slow)',
+        title: 'Zero or more characters, avoid leading * (slow)',
       },
       {
-        example: 'React.?sx',
+        example: ['React.', 0, 'sx'],
         syntax: '?',
         title: 'Exactly one character',
       },
       {
-        example: '/lmnb[12]/',
-        syntax: '//',
+        example: [0, 'lmnb[12]', 1],
+        syntax: ['/', '/'],
         title: 'Regular expression (slows search)',
       },
     ],
   },
 ]
+
+const useExamplePartStyles = M.makeStyles((t) => ({
+  example: {
+    color: t.palette.text.hint,
+  },
+}))
+
+function ExamplePart({ syntax, part }) {
+  const classes = useExamplePartStyles()
+  if (part !== 0 && part !== 1) return <span className={classes.example}>{part}</span>
+  if (Array.isArray(syntax)) return syntax[part]
+  return syntax
+}
+
+function Syntax({ syntax }) {
+  return Array.isArray(syntax) ? syntax.join('') : syntax
+}
 
 function Item({ item }) {
   const t = M.useTheme()
@@ -157,21 +174,22 @@ function Item({ item }) {
   const { example, syntax, title } = item
   return (
     <M.Grid container>
-      <M.Grid item xs={6} sm={3}>
+      <M.Grid item xs={6}>
         <M.Typography variant="body2">
-          <Code>{syntax}</Code>
+          <Code>
+            {sm ? (
+              example.map((part) => (
+                <ExamplePart key={part} syntax={syntax} part={part} />
+              ))
+            ) : (
+              <Syntax syntax={syntax} />
+            )}
+          </Code>
         </M.Typography>
       </M.Grid>
       <M.Grid item xs>
         <M.Typography variant="body2">{title}</M.Typography>
       </M.Grid>
-      {sm && (
-        <M.Grid item xs={4}>
-          <M.Typography variant="body2">
-            <Code>{example}</Code>
-          </M.Typography>
-        </M.Grid>
-      )}
     </M.Grid>
   )
 }
@@ -184,24 +202,16 @@ const useItemsHeaderStyles = M.makeStyles((t) => ({
 }))
 
 function ItemsHeader() {
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.up('sm'))
-
   const classes = useItemsHeaderStyles()
 
   return (
     <M.Grid container className={classes.root}>
-      <M.Grid item xs={6} sm={3}>
+      <M.Grid item xs={6}>
         <M.Typography variant="subtitle2">Command</M.Typography>
       </M.Grid>
       <M.Grid item xs>
         <M.Typography variant="subtitle2">Description</M.Typography>
       </M.Grid>
-      {sm && (
-        <M.Grid item xs sm={4}>
-          <M.Typography variant="subtitle2">Example</M.Typography>
-        </M.Grid>
-      )}
     </M.Grid>
   )
 }
