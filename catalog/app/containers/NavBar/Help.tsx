@@ -1,3 +1,4 @@
+import * as FP from 'fp-ts'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -30,7 +31,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const syntaxHelpRows = [
+interface SyntaxHelpItem {
+  example: (0 | 1 | string)[]
+  syntax: string | string[]
+  title: string
+}
+
+interface SyntaxHelpNamespace {
+  namespace: string
+  rows: SyntaxHelpItem[]
+}
+
+const syntaxHelpRows: SyntaxHelpNamespace[] = [
   {
     namespace: 'Fields',
     rows: [
@@ -161,18 +173,30 @@ const useExamplePartStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ExamplePart({ syntax, part }) {
+interface ExamplePartProps {
+  syntax: string | string[]
+  part: 0 | 1 | string
+}
+
+function ExamplePart({ syntax, part }: ExamplePartProps) {
   const classes = useExamplePartStyles()
   if (part !== 0 && part !== 1) return <span className={classes.example}>{part}</span>
-  if (Array.isArray(syntax)) return syntax[part]
-  return syntax
+  if (Array.isArray(syntax)) return <>syntax[part]</>
+  return <>syntax</>
 }
 
-function Syntax({ syntax }) {
-  return Array.isArray(syntax) ? syntax.join('') : syntax
+interface SyntaxProps {
+  syntax: string | string[]
+}
+function Syntax({ syntax }: SyntaxProps) {
+  return <>{Array.isArray(syntax) ? syntax.join('') : syntax}</>
 }
 
-function Item({ item }) {
+interface ItemProps {
+  item: SyntaxHelpItem
+}
+
+function Item({ item }: ItemProps) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.up('sm'))
 
@@ -242,9 +266,19 @@ function DocsExternalLink() {
   )
 }
 
-const normalizeSyntaxItem = (s) => s.replace(/\s/g, '')
+const normalizeSyntaxItem = (s: string | string[]) =>
+  FP.function.pipe(
+    s,
+    (s1: string | string[]) => (Array.isArray(s1) ? s1.join('') : s1),
+    (s2: string) => s2.replace(/\s/g, ''),
+  )
 
-export default function Help({ className, onQuery, ...props }) {
+type HelpProps = Partial<React.HTMLAttributes<HTMLDivElement>> & {
+  className: string
+  onQuery: (query: string) => void
+}
+
+export default function Help({ className, onQuery, ...props }: HelpProps) {
   const classes = useStyles()
 
   return (
@@ -269,16 +303,19 @@ export default function Help({ className, onQuery, ...props }) {
             <M.List className={classes.subList}>
               <ItemsHeader />
 
-              {rows.map((item) => (
-                <M.ListItem
-                  key={item.syntax}
-                  className={classes.item}
-                  button
-                  onClick={() => onQuery(normalizeSyntaxItem(item.syntax))}
-                >
-                  <Item item={item} />
-                </M.ListItem>
-              ))}
+              {rows.map((item) => {
+                const syntax = normalizeSyntaxItem(item.syntax)
+                return (
+                  <M.ListItem
+                    key={syntax}
+                    className={classes.item}
+                    button
+                    onClick={() => onQuery(syntax)}
+                  >
+                    <Item item={item} />
+                  </M.ListItem>
+                )
+              })}
             </M.List>
           </Lab.TreeItem>
         ))}
