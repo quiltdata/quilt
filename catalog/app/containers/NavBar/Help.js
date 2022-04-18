@@ -70,6 +70,11 @@ const syntaxHelpRows = [
         title: 'Analyzed object key',
       },
       {
+        example: [0, '[2022-02-04 TO 2022-02-20]'],
+        syntax: 'last_modified:',
+        title: 'Last modified date',
+      },
+      {
         example: [0, 'dapi'],
         syntax: 'metadata:',
         title: 'Package metadata',
@@ -174,7 +179,7 @@ function Item({ item }) {
   const { example, syntax, title } = item
   return (
     <M.Grid container>
-      <M.Grid item xs={6}>
+      <M.Grid item xs={7}>
         <M.Typography variant="body2">
           <Code>
             {sm ? (
@@ -206,7 +211,7 @@ function ItemsHeader() {
 
   return (
     <M.Grid container className={classes.root}>
-      <M.Grid item xs={6}>
+      <M.Grid item xs={7}>
         <M.Typography variant="subtitle2">Command</M.Typography>
       </M.Grid>
       <M.Grid item xs>
