@@ -26,7 +26,9 @@ const useStyles = M.makeStyles(({}) => ({
   quilt: ({ height, width }: { height: string; width: string }) => ({
     height,
     width,
-    backgroundSize: `auto ${height}`,
+    // HACK: hardcoded increased height, because there is the tall "l" in logo
+    backgroundSize:
+      height === width ? `auto ${Number.parseInt(height) + 2}px` : `auto ${height}`,
     backgroundImage: `url(${quilt})`,
     backgroundPosition: '0 100%',
     backgroundRepeat: 'no-repeat',
