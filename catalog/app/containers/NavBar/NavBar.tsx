@@ -55,7 +55,7 @@ function QuiltLink({ className }: QuiltLinkProps) {
   return (
     <a
       className={className}
-      href="https://quiltdata.com"
+      href={URLS.homeMarketing}
       target="_blank"
       title="Where data comes together"
     >

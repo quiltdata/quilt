@@ -112,7 +112,7 @@ export default function Footer() {
             justifyContent={{ xs: 'center', sm: 'flex-start' }}
           >
             {settings?.logo?.url ? (
-              <a href="https://quiltdata.com">
+              <a href={URLS.homeMarketing}>
                 <FooterLogo />
               </a>
             ) : (
