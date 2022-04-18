@@ -1,8 +1,10 @@
 import * as React from 'react'
+import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
 import * as NavBar from 'containers/NavBar'
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 const useRootStyles = M.makeStyles({
   root: {
@@ -38,13 +40,15 @@ export interface LayoutProps {
 }
 
 export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
+  const { paths } = NamedRoutes.use()
+  const isHomepage = useRouteMatch(paths.home)
   return (
     <Root dark={dark}>
       {bare ? <NavBar.Container /> : <NavBar.NavBar />}
       {!!pre && pre}
       {!!children && <M.Box p={4}>{children}</M.Box>}
       <M.Box flexGrow={1} />
-      <Footer />
+      {!!isHomepage && isHomepage.isExact && <Footer />}
     </Root>
   )
 }

@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import StyledLink from 'utils/StyledLink'
-import { readableBytes } from 'utils/string'
 import { docs } from 'constants/urls'
 
 import * as ERRORS from '../errors'
