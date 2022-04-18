@@ -59,13 +59,17 @@ function InputColor({
     (event) => onChange(event.target.value),
     [onChange],
   )
+  const isValidHex = React.useMemo(
+    () => value && value.length === 7 && !validators.hexColor(value),
+    [value],
+  )
   return (
     <div className={classes.root}>
       <input
         className={cx(classes.picker, { [classes.pickerBlank]: !value })}
         onChange={handleChange}
         type="color"
-        value={value && value.length === 7 ? value : props.placeholder}
+        value={isValidHex ? value : props.placeholder}
       />
       <M.TextField
         className={classes.input}
