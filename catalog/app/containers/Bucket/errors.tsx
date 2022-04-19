@@ -67,9 +67,8 @@ export class WorkflowsConfigInvalid extends BucketError {
 
 export interface ManifestTooLargeProps {
   bucket: string
-  key: string
-  actualSize: number
-  maxSize: number
+  hash: string
+  max: number
 }
 
 export class ManifestTooLarge extends BucketError {
@@ -77,7 +76,7 @@ export class ManifestTooLarge extends BucketError {
 
   constructor(props: ManifestTooLargeProps) {
     super(
-      `Package manifest at s3://${props.bucket}/${props.key} is too large: ${props.actualSize} (max size: ${props.maxSize})`,
+      `Package manifest ${props.hash} at s3://${props.bucket} is too large (more than ${props.max} entries)`,
       props,
     )
   }

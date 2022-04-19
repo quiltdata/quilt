@@ -8,6 +8,7 @@ import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
 import * as urls from 'constants/urls'
+import * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
@@ -16,7 +17,7 @@ import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
-import { JsonRecord } from 'utils/types'
+import * as Types from 'utils/types'
 
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
@@ -36,7 +37,7 @@ interface FileWithHash extends File {
     error?: Error
     promise: Promise<string | undefined>
   }
-  meta?: JsonRecord
+  meta?: Types.JsonRecord
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
@@ -77,7 +78,7 @@ export const FilesAction = tagged.create(
     }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
-    Meta: (v: { path: string; meta: JsonRecord }) => v,
+    Meta: (v: { path: string; meta: Types.JsonRecord }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -87,35 +88,20 @@ export const FilesAction = tagged.create(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
-// XXX: we probably should move this out to a more appropriate place
-export interface ExistingFile {
-  physicalKey: string
-  hash: string
-  meta: JsonRecord
-  size: number
-}
-
-export interface PartialExistingFile {
-  physicalKey: string
-  hash?: string
-  meta?: JsonRecord
-  size?: number
-}
-
 export type LocalFile = FileWithPath & FileWithHash
 
 export interface FilesState {
   added: Record<string, LocalFile | S3FilePicker.S3File>
   deleted: Record<string, true>
-  existing: Record<string, ExistingFile>
+  existing: Record<string, Model.PackageEntry>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
 }
 
 const addMetaToFile = (
-  file: ExistingFile | LocalFile | S3FilePicker.S3File,
-  meta: JsonRecord,
+  file: Model.PackageEntry | LocalFile | S3FilePicker.S3File,
+  meta: Types.JsonRecord,
 ) => {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
@@ -183,22 +169,16 @@ const handleFilesAction = FilesAction.match<
       ...rest,
     }),
   Meta: ({ path, meta }) => {
-    // TODO: use one function and type overload
-    const setMetaToAddedFile = (
-      filesDict: Record<string, LocalFile | S3FilePicker.S3File>,
-    ) => {
-      const file = filesDict[path]
-      if (!file) return filesDict
-      return R.assoc(path, addMetaToFile(file, meta), filesDict)
-    }
-    const setMetaToExistingFile = (filesDict: Record<string, ExistingFile>) => {
-      const file = filesDict[path]
-      if (!file) return filesDict
-      return R.assoc(path, addMetaToFile(file, meta), filesDict)
-    }
+    const mkSetMeta =
+      <T extends Model.PackageEntry | LocalFile | S3FilePicker.S3File>() =>
+      (filesDict: Record<string, T>) => {
+        const file = filesDict[path]
+        if (!file) return filesDict
+        return R.assoc(path, addMetaToFile(file, meta), filesDict)
+      }
     return R.evolve({
-      added: setMetaToAddedFile,
-      existing: setMetaToExistingFile,
+      added: mkSetMeta<LocalFile | S3FilePicker.S3File>(),
+      existing: mkSetMeta<Model.PackageEntry>(),
     })
   },
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
@@ -235,7 +215,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
-    meta?: JsonRecord
+    meta?: Types.JsonRecord | null
   }) => v,
 })
 
@@ -287,7 +267,7 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
-  meta?: JsonRecord
+  meta?: Types.JsonRecord | null
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
@@ -492,9 +472,9 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
-  meta?: JsonRecord
+  meta?: Types.JsonRecord | null
   metaDisabled?: boolean
-  onMeta?: (value: JsonRecord) => void
+  onMeta?: (value: Types.JsonRecord) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -1113,7 +1093,7 @@ function FileUpload({
   }, [])
 
   const onMeta = React.useCallback(
-    (m: JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
+    (m: Types.JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
 
@@ -1642,7 +1622,7 @@ interface FilesSelectorEntry {
   name: string
   selected: boolean
   size?: number
-  meta?: JsonRecord
+  meta?: Types.JsonRecord
 }
 
 export type FilesSelectorState = FilesSelectorEntry[]

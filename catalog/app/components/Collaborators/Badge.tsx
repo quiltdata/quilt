@@ -53,7 +53,7 @@ export default function Badge({ collaborators, onClick }: BadgeProps) {
     return (
       <Component
         onClick={onClick}
-        badgeContent={hasUnmanagedRole ? `${knownNumber}?` : `${knownNumber}`}
+        badgeContent={hasUnmanagedRole ? `${knownNumber}+` : `${knownNumber}`}
         title="Click to view collaborators"
         icon="group"
       />

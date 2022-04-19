@@ -348,8 +348,8 @@ export default function File({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           b.fetch("${path}", "./${basename(path)}")
         `,
       },

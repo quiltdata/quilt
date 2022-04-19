@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import StyledLink from 'utils/StyledLink'
-import { readableBytes } from 'utils/string'
 import { docs } from 'constants/urls'
 
 import * as ERRORS from '../errors'
@@ -57,7 +56,7 @@ const errorDisplay = R.cond([
         </M.Typography>
         <M.Typography gutterBottom>
           This package is not editable via the web UI&mdash;it cannot handle package
-          manifest that large ({readableBytes(e.actualSize)}).
+          manifests with more than {e.max} entries.
         </M.Typography>
         <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
       </>

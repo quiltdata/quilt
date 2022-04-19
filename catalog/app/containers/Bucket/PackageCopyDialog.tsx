@@ -1,7 +1,8 @@
-import { FORM_ERROR } from 'final-form'
+import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -9,10 +10,14 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import tagged from 'utils/tagged'
+import assertNever from 'utils/assertNever'
+import * as tagged from 'utils/taggedV2'
+import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
+import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
+import PACKAGE_PROMOTE from './PackageDialog/gql/PackagePromote.generated'
 import * as requests from './requests'
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
@@ -21,7 +26,11 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FormSkeleton({ animate }) {
+interface FormSkeletonProps {
+  animate?: boolean
+}
+
+function FormSkeleton({ animate }: FormSkeletonProps) {
   const classes = useFormSkeletonStyles()
 
   return (
@@ -35,7 +44,11 @@ function FormSkeleton({ animate }) {
   )
 }
 
-function DialogTitle({ bucket }) {
+interface DialogTitleProps {
+  bucket: string
+}
+
+function DialogTitle({ bucket }: DialogTitleProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -64,11 +77,24 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface DialogFormProps {
+  bucket: string
+  close: () => void
+  hash: string
+  initialMeta: PD.Manifest['meta']
+  name: string
+  setSubmitting: (submitting: boolean) => void
+  setSuccess: (success: PackageCreationSuccess) => void
+  setWorkflow: (workflow: workflows.Workflow) => void
+  successor: workflows.Successor
+  workflowsConfig: workflows.WorkflowsConfig
+}
+
 function DialogForm({
   bucket,
   close,
   hash,
-  manifest,
+  initialMeta,
   name: initialName,
   responseError,
   schema,
@@ -80,45 +106,72 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
-}) {
+}: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
-  const [nameWarning, setNameWarning] = React.useState('')
+  const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
-  const copyPackage = requests.useCopyPackage()
+  const [, copyPackage] = urql.useMutation(PACKAGE_PROMOTE)
+
+  interface FormData {
+    commitMessage: string
+    name: string
+    meta: Types.JsonRecord | undefined
+    workflow: workflows.Workflow
+  }
 
   // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
+  const onSubmit = async ({ commitMessage, name, meta, workflow }: FormData) => {
     try {
-      const res = await copyPackage(
-        {
+      const res = await copyPackage({
+        params: {
+          bucket: successor.slug,
+          name,
           message: commitMessage,
-          meta,
-          source: {
-            bucket,
-            name: initialName,
-            revision: hash,
-          },
-          target: {
-            bucket: successor.slug,
-            name,
-          },
-          workflow,
+          userMeta: requests.getMetaValue(meta, schema) ?? null,
+          workflow:
+            // eslint-disable-next-line no-nested-ternary
+            workflow.slug === workflows.notAvailable
+              ? null
+              : workflow.slug === workflows.notSelected
+              ? ''
+              : workflow.slug,
         },
-        schema,
-      )
-      setSuccess({ name, hash: res.top_hash })
-    } catch (e) {
+        src: {
+          bucket,
+          name: initialName,
+          hash,
+        },
+      })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data returned by the API')
+      const r = res.data.packagePromote
+      switch (r.__typename) {
+        case 'PackagePushSuccess':
+          setSuccess({ name, hash: r.revision.hash, bucket: successor.slug })
+          return
+        case 'OperationError':
+          return PD.mkFormError(r.message)
+        case 'InvalidInput':
+          return PD.mapInputErrors(r.errors)
+        default:
+          assertNever(r)
+      }
+    } catch (e: any) {
       // eslint-disable-next-line no-console
-      console.log('error creating manifest', e)
-      return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+      console.error('Error creating manifest:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return PD.mkFormError(
+        e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
+      )
     }
   }
 
-  const onSubmitWrapped = async (...args) => {
+  const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
     setSubmitting(true)
     try {
       return await onSubmit(...args)
@@ -139,7 +192,7 @@ function DialogForm({
     [nameWarning, nameExistence],
   )
 
-  const [editorElement, setEditorElement] = React.useState()
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
   const resizeObserver = React.useMemo(
     () =>
       new window.ResizeObserver((entries) => {
@@ -209,7 +262,7 @@ function DialogForm({
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
-                  if (modified.workflow) {
+                  if (modified?.workflow) {
                     setWorkflow(values.workflow)
                   }
                 }}
@@ -248,7 +301,7 @@ function DialogForm({
               <RF.Field
                 component={PD.CommitMessageInput}
                 name="commitMessage"
-                validate={validators.required}
+                validate={validators.required as FF.FieldValidator<any>}
                 validateFields={['commitMessage']}
                 errors={{
                   required: 'Enter a commit message',
@@ -269,7 +322,7 @@ function DialogForm({
                   validateFields={['meta']}
                   isEqual={R.equals}
                   ref={setEditorElement}
-                  initialValue={manifest.meta}
+                  initialValue={initialMeta}
                 />
               )}
 
@@ -313,7 +366,13 @@ function DialogForm({
   )
 }
 
-function DialogError({ bucket, error, onCancel }) {
+interface DialogErrorProps {
+  bucket: string
+  error: Error
+  onCancel: () => void
+}
+
+function DialogError({ bucket, error, onCancel }: DialogErrorProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -334,7 +393,12 @@ function DialogError({ bucket, error, onCancel }) {
   )
 }
 
-function DialogLoading({ bucket, onCancel }) {
+interface DialogLoadingProps {
+  bucket: string
+  onCancel: () => void
+}
+
+function DialogLoading({ bucket, onCancel }: DialogLoadingProps) {
   const { urls } = NamedRoutes.use()
 
   return (
@@ -354,7 +418,30 @@ function DialogLoading({ bucket, onCancel }) {
   )
 }
 
-const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
+interface PackageCreationSuccess {
+  bucket: string
+  name: string
+  hash: string
+}
+
+const DialogState = tagged.create(
+  'app/containers/Bucket/PackageCopyDialog:DialogState' as const,
+  {
+    Loading: () => {},
+    Error: (e: Error) => e,
+    Form: (v: { manifest: PD.Manifest; workflowsConfig: workflows.WorkflowsConfig }) => v,
+    Success: (v: PackageCreationSuccess) => v,
+  },
+)
+
+interface PackageCopyDialogProps {
+  open: boolean
+  bucket: string
+  successor: workflows.Successor | null
+  name: string
+  hash: string
+  onExited: (props: { pushed: PackageCreationSuccess | null }) => void
+}
 
 export default function PackageCopyDialog({
   open,
@@ -363,25 +450,21 @@ export default function PackageCopyDialog({
   name,
   hash,
   onExited,
-  onClose,
-}) {
+}: PackageCopyDialogProps) {
   const s3 = AWS.S3.use()
 
-  const [success, setSuccess] = React.useState(false)
+  const [success, setSuccess] = React.useState<PackageCreationSuccess | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
-  const [workflow, setWorkflow] = React.useState(null)
+  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
 
-  const manifestData = Data.use(
-    requests.loadManifest,
-    {
-      s3,
-      bucket,
-      name,
-      hash,
-    },
-    { noAutoFetch: !successor || !open },
-  )
+  const manifestData = PD.useManifest({
+    bucket,
+    name,
+    hash,
+    skipEntries: true,
+    pause: !successor || !open,
+  })
 
   const workflowsData = Data.use(
     requests.workflowsConfig,
@@ -392,9 +475,9 @@ export default function PackageCopyDialog({
   const state = React.useMemo(() => {
     if (success) return DialogState.Success(success)
     return workflowsData.case({
-      Ok: (workflowsConfig) =>
+      Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
         manifestData.case({
-          Ok: (manifest) => DialogState.Form({ manifest, workflowsConfig }),
+          Ok: (manifest: PD.Manifest) => DialogState.Form({ manifest, workflowsConfig }),
           Err: DialogState.Error,
           _: DialogState.Loading,
         }),
@@ -403,17 +486,14 @@ export default function PackageCopyDialog({
     })
   }, [success, workflowsData, manifestData])
 
-  const stateCase = React.useCallback((cases) => DialogState.case(cases, state), [state])
-
   const handleExited = React.useCallback(() => {
     if (submitting) return
 
     onExited({
       pushed: success,
     })
-    if (onClose) onClose()
     setSuccess(null)
-  }, [submitting, success, setSuccess, onClose, onExited])
+  }, [submitting, success, setSuccess, onExited])
 
   const close = React.useCallback(() => {
     if (submitting) return
@@ -421,15 +501,14 @@ export default function PackageCopyDialog({
     onExited({
       pushed: success,
     })
-    if (onClose) onClose()
     setSuccess(null)
-  }, [submitting, success, setSuccess, onClose, onExited])
+  }, [submitting, success, setSuccess, onExited])
 
   Intercom.usePauseVisibilityWhen(open)
 
   return (
     <M.Dialog fullWidth onClose={close} onExited={handleExited} open={open} scroll="body">
-      {stateCase({
+      {DialogState.match({
         Error: (e) =>
           successor && <DialogError bucket={successor.slug} onCancel={close} error={e} />,
         Loading: () =>
@@ -437,7 +516,7 @@ export default function PackageCopyDialog({
         Form: ({ manifest, workflowsConfig }) =>
           successor && (
             <PD.SchemaFetcher
-              manifest={manifest}
+              initialWorkflowId={manifest.workflowId}
               workflowsConfig={workflowsConfig}
               workflow={workflow}
             >
@@ -451,9 +530,8 @@ export default function PackageCopyDialog({
                     setSuccess,
                     setWorkflow,
                     workflowsConfig,
-
+                    initialMeta: manifest.meta,
                     hash,
-                    manifest,
                     name,
                     successor,
                   }}
@@ -461,16 +539,8 @@ export default function PackageCopyDialog({
               )}
             </PD.SchemaFetcher>
           ),
-        Success: (props) =>
-          successor && (
-            <PD.DialogSuccess
-              bucket={successor.slug}
-              name={props.name}
-              hash={props.hash}
-              onClose={close}
-            />
-          ),
-      })}
+        Success: (props) => successor && <PD.DialogSuccess {...props} onClose={close} />,
+      })(state)}
     </M.Dialog>
   )
 }

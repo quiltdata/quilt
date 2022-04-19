@@ -12,6 +12,16 @@ export interface CatalogSettings {
     url: string
     label: string
   }
+  logo?: {
+    url: string
+  }
+  theme?: {
+    palette: {
+      primary: {
+        main: string
+      }
+    }
+  }
 }
 
 async function fetchSettings({
@@ -48,6 +58,15 @@ const CatalogSettingsResource = Cache.createResource({
 
 function format(settings: CatalogSettings) {
   return JSON.stringify(settings, null, 2)
+}
+
+// FIXME: remove if decide to not use file upload for logo
+export function useUploadFile() {
+  return React.useCallback(async (file: File) => {
+    // eslint-disable-next-line no-console
+    console.log(file)
+    throw new Error('This functionality is not ready yet')
+  }, [])
 }
 
 export function useWriteSettings() {

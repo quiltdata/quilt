@@ -29,13 +29,38 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
 }))
 
 function LogoLink() {
-  const classes = useLogoLinkStyles()
+  const settings = CatalogSettings.use()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const cfg = Config.useConfig()
+  const wide = cfg.mode === 'MARKETING' && xs
+  const classes = useLogoLinkStyles()
   const { urls } = NamedRoutes.use()
   return (
     <Link className={classes.root} to={urls.home()}>
-      <Logo responsive forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'} />
+      <Logo
+        width={wide ? '76.5px' : '27px'}
+        height={wide ? '29px' : '27px'}
+        src={settings?.logo?.url}
+      />
     </Link>
+  )
+}
+
+interface QuiltLinkProps {
+  className?: string
+}
+
+function QuiltLink({ className }: QuiltLinkProps) {
+  return (
+    <a
+      className={className}
+      href={URLS.homeMarketing}
+      target="_blank"
+      title="Where data comes together"
+    >
+      <Logo width="27px" height="27px" />
+    </a>
   )
 }
 
@@ -294,10 +319,32 @@ function SignIn({ error, waiting }: SignInProps) {
   )
 }
 
-const AppBar = M.styled(M.AppBar)(({ theme: t }) => ({
-  background: `left / 64px url(${bg})`,
-  zIndex: t.zIndex.appBar + 1,
+const useAppBarStyles = M.makeStyles((t) => ({
+  root: {
+    background: ({ backgroundColor }: { backgroundColor?: string }) =>
+      backgroundColor || `left / 64px url(${bg})`,
+    zIndex: t.zIndex.appBar + 1,
+  },
 }))
+
+interface AppBarProps {
+  children: React.ReactNode
+}
+
+const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
+  { children },
+  ref,
+) {
+  const settings = CatalogSettings.use()
+  const classes = useAppBarStyles({
+    backgroundColor: settings?.theme?.palette?.primary?.main,
+  })
+  return (
+    <M.AppBar className={classes.root} ref={ref}>
+      {children}
+    </M.AppBar>
+  )
+})
 
 interface ContainerProps {
   children?: React.ReactNode
@@ -389,7 +436,7 @@ function useLinks(): LinkDescriptor[] {
       label: 'URI',
       path: paths.uriResolver,
     },
-    cfg.mode !== 'PRODUCT' && { href: URLS.docs, label: 'Docs' },
+    { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
       href: URLS.jobs,
@@ -416,6 +463,9 @@ const useNavBarStyles = M.makeStyles((t) => ({
       marginLeft: t.spacing(2),
     },
   },
+  quiltLogo: {
+    margin: '0 0 3px 8px',
+  },
   spacer: {
     flexGrow: 1,
   },
@@ -423,6 +473,7 @@ const useNavBarStyles = M.makeStyles((t) => ({
 
 export function NavBar() {
   const cfg = Config.use()
+  const settings = CatalogSettings.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRoute(paths.signIn, { exact: true }).match
@@ -474,6 +525,8 @@ export function NavBar() {
         ) : (
           <AuthHamburger {...{ authenticated, error, waiting }} />
         ))}
+
+      {settings?.logo?.url && <QuiltLink className={classes.quiltLogo} />}
     </Container>
   )
 }

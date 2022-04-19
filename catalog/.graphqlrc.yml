@@ -20,3 +20,4 @@ extensions:
             Datetime: Date
             Json: utils/types#Json
             JsonRecord: utils/types#JsonRecord
+            PackageContentsFlatMap: model#PackageContentsFlatMap

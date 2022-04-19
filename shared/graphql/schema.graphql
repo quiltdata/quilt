@@ -6,6 +6,25 @@ scalar Json
 
 scalar JsonRecord
 
+scalar PackageContentsFlatMap
+
+type OperationError {
+  message: String!
+  name: String!
+  context: JsonRecord
+}
+
+type InputError {
+  path: String
+  message: String!
+  name: String!
+  context: JsonRecord
+}
+
+type InvalidInput {
+  errors: [InputError!]!
+}
+
 type ContentIndexingSettings {
   extensions: [String!]!
   bytesDefault: Int!
@@ -96,22 +115,32 @@ type PackageFile {
   # 32-bit Int is too small to represent file size which quite often exceeds several GB
   size: Float!
   physicalKey: String!
+  # XXX: expose hash?
 }
 
 union PackageEntry = PackageFile | PackageDir
 
+type PackageWorkflow {
+  config: String!
+  id: String
+}
+
 type PackageRevision {
+  # XXX: backlink to package?
   hash: String!
   modified: Datetime!
   message: String
   metadata: JsonRecord!
   userMeta: JsonRecord
+  workflow: PackageWorkflow
   totalEntries: Int
   # 32-bit Int is too small to represent package size which quite often exceeds several GB
   totalBytes: Float
   dir(path: String!): PackageDir
   file(path: String!): PackageFile
   accessCounts(window: Int = 30): AccessCounts
+  # null when more than max entries
+  contentsFlatMap(max: Int = 1000): PackageContentsFlatMap
 }
 
 type PackageRevisionList {
@@ -352,7 +381,91 @@ type RoleSetDefaultSuccess {
   role: Role!
 }
 
+input PackagePushParams {
+  message: String
+  userMeta: JsonRecord
+  workflow: String
+  bucket: String!
+  name: String!
+}
+
+input PackageConstructEntry {
+  logicalKey: String!
+  physicalKey: String!
+  hash: String
+  # 32-bit Int may be too small to represent file size which may exceed several GB
+  size: Float
+  meta: JsonRecord
+}
+
+input PackageConstructSource {
+  entries: [PackageConstructEntry!]!
+}
+
+input PackagePromoteSource {
+  bucket: String!
+  name: String!
+  hash: String!
+}
+
+input PackageFromFolderEntry {
+  isDir: Boolean!
+  logicalKey: String!
+  path: String!
+}
+
+input PackageFromFolderSource {
+  bucket: String!
+  entries: [PackageFromFolderEntry!]!
+}
+
+type PackagePushSuccess {
+  package: Package!
+  revision: PackageRevision!
+}
+
+type PackageRevisionDeleteSuccess {
+  _: Boolean
+}
+
+union PackageConstructResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackagePromoteResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackageFromFolderResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackageRevisionDeleteResult =
+    PackageRevisionDeleteSuccess
+  | OperationError
+
 type Mutation {
+  packageConstruct(
+    params: PackagePushParams!
+    src: PackageConstructSource!
+  ): PackageConstructResult!
+  packagePromote(
+    params: PackagePushParams!
+    src: PackagePromoteSource!
+  ): PackagePromoteResult!
+  packageFromFolder(
+    params: PackagePushParams!
+    src: PackageFromFolderSource!
+  ): PackageFromFolderResult!
+  packageRevisionDelete(
+    bucket: String!
+    name: String!
+    hash: String!
+  ): PackageRevisionDeleteResult!
+
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
     @admin

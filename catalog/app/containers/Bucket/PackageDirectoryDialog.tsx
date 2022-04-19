@@ -3,6 +3,7 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -10,10 +11,12 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
 import * as validators from 'utils/validators'
-import type * as workflows from 'utils/workflows'
+import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
+import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
 import * as requests from './requests'
 
 const prepareEntries = (
@@ -23,11 +26,11 @@ const prepareEntries = (
 ) => {
   const selected = entries.filter(R.propEq('selected', true))
   return !filtered && selected.length === entries.length
-    ? [{ logical_key: '.', path, is_dir: true }]
+    ? [{ logicalKey: '.', path, isDir: true }]
     : selected.map(({ type, name }) => ({
-        logical_key: name,
+        logicalKey: name,
         path: path + name,
-        is_dir: type === 'dir',
+        isDir: type === 'dir',
       }))
 }
 
@@ -108,15 +111,17 @@ function DialogForm({
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
   const classes = useStyles()
 
-  const createPackage = requests.useWrapPackage()
+  const [, createPackage] = urql.useMutation(PACKAGE_FROM_FOLDER)
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
     async ({
       commitMessage: message,
+      name,
+      meta,
+      workflow,
       files: filesValue,
-      ...values
     }: {
       commitMessage: string
       name: string
@@ -126,25 +131,47 @@ function DialogForm({
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const res = await createPackage(
-          {
-            ...values,
-            entries: prepareEntries(filesValue, path, filtered),
+        const res = await createPackage({
+          params: {
+            bucket: successor.slug,
+            name,
             message,
-            source: bucket,
-            target: {
-              bucket: successor.slug,
-              name: values.name,
-            },
+            userMeta: requests.getMetaValue(meta, schema) ?? null,
+            workflow:
+              // eslint-disable-next-line no-nested-ternary
+              workflow.slug === workflows.notAvailable
+                ? null
+                : workflow.slug === workflows.notSelected
+                ? ''
+                : workflow.slug,
           },
-          schema,
-        )
-        setSuccess({ name: values.name, hash: res.top_hash })
-      } catch (e) {
+          src: {
+            bucket,
+            entries: prepareEntries(filesValue, path, filtered),
+          },
+        })
+        if (res.error) throw res.error
+        if (!res.data) throw new Error('No data returned by the API')
+        const r = res.data.packageFromFolder
+        switch (r.__typename) {
+          case 'PackagePushSuccess':
+            setSuccess({ name, hash: r.revision.hash })
+            return
+          case 'OperationError':
+            return PD.mkFormError(r.message)
+          case 'InvalidInput':
+            return PD.mapInputErrors(r.errors, { 'src.entries': 'files' })
+          default:
+            assertNever(r)
+        }
+      } catch (e: any) {
         // eslint-disable-next-line no-console
-        console.log('error creating manifest', e)
-        const errorMessage = e instanceof Error ? e.message : null
-        return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
+        console.error('Error creating manifest:')
+        // eslint-disable-next-line no-console
+        console.error(e)
+        return PD.mkFormError(
+          e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
+        )
       }
     },
     [bucket, successor, createPackage, setSuccess, schema, path, filtered],
@@ -461,19 +488,16 @@ export default function PackageDirectoryDialog({
   const handleClose = React.useCallback(() => {
     if (submitting) return
 
-    onExited({
-      pushed: success,
-    })
+    onExited({ pushed: success })
     if (onClose) onClose()
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
 
+  // XXX: something's wrong here with these identical handlers
   const handleExited = React.useCallback(() => {
     if (submitting) return
 
-    onExited({
-      pushed: success,
-    })
+    onExited({ pushed: success })
     if (onClose) onClose()
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
