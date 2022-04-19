@@ -31,8 +31,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+type ExampleFormatter = (...syntaxParts: React.ReactNode[]) => React.ReactNode
+
 interface SyntaxHelpItem {
-  example: (0 | 1 | string)[]
+  example: ExampleFormatter
   syntax: string | string[]
   title: string
 }
@@ -47,67 +49,67 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
     namespace: 'Fields',
     rows: [
       {
-        example: [0, 'TODO'],
+        example: (s) => <>{s}TODO</>,
         syntax: 'comment:',
         title: 'Package comment',
       },
       {
-        example: [0, 'Hello'],
+        example: (s) => <>{s}Hello</>,
         syntax: 'content:',
         title: 'Object content',
       },
       {
-        example: [0, '*.fastq.gz'],
+        example: (s) => <>{s}*.fastq.gz</>,
         syntax: 'ext:',
         title: 'Object extension',
       },
       {
-        example: [0, '"user/*"'],
+        example: (s) => <>{s}"user/*"</>,
         syntax: 'handle:',
         title: 'Package name',
       },
       {
-        example: [0, '3192ac1*'],
+        example: (s) => <>{s}3192ac1*</>,
         syntax: 'hash:',
         title: 'Package hash',
       },
       {
-        example: [0, 'research*'],
+        example: (s) => <>{s}research*</>,
         syntax: 'key:',
         title: 'Object key',
       },
       {
-        example: [0, '"research"'],
+        example: (s) => <>{s}"research"</>,
         syntax: 'key_text:',
         title: 'Analyzed object key',
       },
       {
-        example: [0, '[2022-02-04 TO 2022-02-20]'],
+        example: (s) => <>{s}[2022-02-04 TO 2022-02-20]</>,
         syntax: 'last_modified:',
         title: 'Last modified date',
       },
       {
-        example: [0, 'dapi'],
+        example: (s) => <>{s}dapi</>,
         syntax: 'metadata:',
         title: 'Package metadata',
       },
       {
-        example: [0, '>=4096'],
+        example: (s) => <>{s}&gt;=4096</>,
         syntax: 'size:',
         title: 'Object size in bytes',
       },
       {
-        example: [0, 't.LVVCx*'],
+        example: (s) => <>{s}t.LVVCx*</>,
         syntax: 'version_id:',
         title: 'Object version id',
       },
       {
-        example: [0, '>100'],
+        example: (s) => <>{s}&gt;100</>,
         syntax: 'package_stats\n  .total_files:',
         title: 'Package total files',
       },
       {
-        example: [0, '<100'],
+        example: (s) => <>{s}&lt;100</>,
         syntax: 'package_stats\n  .total_bytes:',
         title: 'Package total bytes',
       },
@@ -118,27 +120,31 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
     namespace: 'Logical operators and grouping',
     rows: [
       {
-        example: ['a ', 0, ' b'],
+        example: (s) => <>a {s} b</>,
         syntax: 'AND',
         title: 'Conjunction',
       },
       {
-        example: ['a ', 0, ' b'],
+        example: (s) => <>a {s} b</>,
         syntax: 'OR',
         title: 'Disjunction',
       },
       {
-        example: [0, ' a'],
+        example: (s) => <>{s} a</>,
         syntax: 'NOT',
         title: 'Negation',
       },
       {
-        example: [0, ' content'],
+        example: (s) => <>{s} content</>,
         syntax: '_exists_:',
         title: 'Matches any non-null value for the given field',
       },
       {
-        example: [0, 'a AND b', 1],
+        example: (s1, s2) => (
+          <>
+            {s1}a AND b{s2}
+          </>
+        ),
         syntax: ['(', ')'],
         title: 'Group terms',
       },
@@ -149,17 +155,21 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
     namespace: 'Wildcards and regular expressions',
     rows: [
       {
-        example: ['config.y', 0, 'ml'],
+        example: (s) => <>config.y{s}ml</>,
         syntax: '*',
         title: 'Zero or more characters, avoid leading * (slow)',
       },
       {
-        example: ['React.', 0, 'sx'],
+        example: (s) => <>React.{s}sx</>,
         syntax: '?',
         title: 'Exactly one character',
       },
       {
-        example: [0, 'lmnb[12]', 1],
+        example: (s1, s2) => (
+          <>
+            {s1}lmnb[12]{s2}
+          </>
+        ),
         syntax: ['/', '/'],
         title: 'Regular expression (slows search)',
       },
@@ -168,21 +178,25 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
 ]
 
 const useExamplePartStyles = M.makeStyles((t) => ({
-  example: {
+  root: {
     color: t.palette.text.hint,
+  },
+  syntax: {
+    color: t.palette.text.primary,
   },
 }))
 
 interface ExamplePartProps {
   syntax: string | string[]
-  part: 0 | 1 | string
+  example: ExampleFormatter
 }
 
-function ExamplePart({ syntax, part }: ExamplePartProps) {
+function Example({ syntax, example }: ExamplePartProps) {
   const classes = useExamplePartStyles()
-  if (part !== 0 && part !== 1) return <span className={classes.example}>{part}</span>
-  if (Array.isArray(syntax)) return <>{syntax[part]}</>
-  return <>{syntax}</>
+  const syntaxParts = (Array.isArray(syntax) ? syntax : [syntax]).map((part) => (
+    <span className={classes.syntax}>{part}</span>
+  ))
+  return <span className={classes.root}>{example(...syntaxParts)}</span>
 }
 
 interface SyntaxProps {
@@ -207,9 +221,7 @@ function Item({ item }: ItemProps) {
         <M.Typography variant="body2">
           <Code>
             {sm ? (
-              example.map((part) => (
-                <ExamplePart key={part} syntax={syntax} part={part} />
-              ))
+              <Example syntax={syntax} example={example} />
             ) : (
               <Syntax syntax={syntax} />
             )}
