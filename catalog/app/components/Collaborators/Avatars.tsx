@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import * as Model from 'model'
-import * as CatalogSettings from 'utils/CatalogSettings'
 
 interface AvatarProps {
   className: string
@@ -49,11 +48,11 @@ const useStyles = M.makeStyles((t) => ({
   },
   more: {
     color: t.palette.common.white,
-    background: ({ backgroundColor }: { backgroundColor: string }) =>
-      `linear-gradient(to left, ${fade(
-        backgroundColor,
-        0,
-      )} 0, ${backgroundColor} 32px, ${backgroundColor} 100%)`, // should be the same as NavBar bg
+    // NOTE: base background color should be the same as NavBar bg
+    background: `linear-gradient(to left, ${fade(
+      '#2a2d69',
+      0,
+    )} 0, #2a2d69 32px, #2a2d69 100%)`,
     lineHeight: '36px',
     marginLeft: '12px',
     padding: '0 16px 0 0',
@@ -86,7 +85,6 @@ interface AvatarsProps {
 }
 
 export default function Avatars({ className, collaborators, onClick }: AvatarsProps) {
-  const settings = CatalogSettings.use()
   const knownCollaborators = collaborators.filter(
     ({ permissionLevel }) => !!permissionLevel,
   )
@@ -101,10 +99,7 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
   }, [knownCollaborators, potentialCollaborators])
   const avatarsLength = avatars.length
 
-  // TODO: initial background color should be the same as NavBar bg
-  const classes = useStyles({
-    backgroundColor: settings?.theme?.palette?.primary?.main || '#2a2d69',
-  })
+  const classes = useStyles()
   const more = React.useMemo(() => {
     const num = collaborators.length - avatarsLength
     return hasUnmanagedRole ? `${num}+ more` : `${num} more`
