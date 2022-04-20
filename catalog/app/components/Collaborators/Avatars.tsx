@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import * as Model from 'model'
 
@@ -48,8 +49,10 @@ const useStyles = M.makeStyles((t) => ({
   more: {
     color: t.palette.common.white,
     // NOTE: base background color should be the same as NavBar bg
-    background:
-      'linear-gradient(to left, rgba(42,25,105, 0) 0, #2a2d69 32px, #2a2d69 100%)', // should be the same as NavBar bg
+    background: `linear-gradient(to left, ${fade(
+      '#2a2d69',
+      0,
+    )} 0, #2a2d69 32px, #2a2d69 100%)`,
     lineHeight: '36px',
     marginLeft: '12px',
     padding: '0 16px 0 0',
