@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -23,8 +24,21 @@ import bg from './bg.png'
 import Controls from './Controls'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
-  root: {
-    margin: t.spacing(2),
+  root: {},
+  bgQuilt: {
+    background: `left / 64px url(${bg})`,
+  },
+  bgCustom: {
+    background: ({ backgroundColor }: { backgroundColor?: string }) =>
+      backgroundColor || `left / 64px url(${bg})`,
+    borderRadius: '0 0 16px 0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '64px',
+    minWidth: '64px',
+    paddingRight: ({ backgroundColor }: { backgroundColor?: string }) =>
+      !!backgroundColor ? '32px' : undefined,
   },
 }))
 
@@ -34,16 +48,22 @@ function LogoLink() {
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const cfg = Config.useConfig()
   const wide = cfg.mode === 'MARKETING' && xs
-  const classes = useLogoLinkStyles()
+  const classes = useLogoLinkStyles({
+    backgroundColor: settings?.theme?.palette?.primary?.main,
+  })
   const { urls } = NamedRoutes.use()
   return (
-    <Link className={classes.root} to={urls.home()}>
-      <Logo
-        width={wide ? '76.5px' : '27px'}
-        height={wide ? '29px' : '27px'}
-        src={settings?.logo?.url}
-      />
-    </Link>
+    <div className={cx(classes.bgQuilt, classes.root)}>
+      <div className={classes.bgCustom}>
+        <Link to={urls.home()}>
+          <Logo
+            width={wide ? '76.5px' : '27px'}
+            height={wide ? '29px' : '27px'}
+            src={settings?.logo?.url}
+          />
+        </Link>
+      </div>
+    </div>
   )
 }
 
@@ -321,9 +341,24 @@ function SignIn({ error, waiting }: SignInProps) {
 
 const useAppBarStyles = M.makeStyles((t) => ({
   root: {
+    zIndex: t.zIndex.appBar + 1,
+  },
+  bgWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    display: 'flex',
+  },
+  bgCustom: {
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || `left / 64px url(${bg})`,
-    zIndex: t.zIndex.appBar + 1,
+    flex: '50%',
+  },
+  bgQuilt: {
+    background: `left / 64px url(${bg})`,
+    flex: '50%',
   },
 }))
 
@@ -341,10 +376,30 @@ const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
   })
   return (
     <M.AppBar className={classes.root} ref={ref}>
+      <div className={classes.bgWrapper}>
+        <div className={classes.bgCustom} />
+        <div className={classes.bgQuilt} />
+      </div>
       {children}
     </M.AppBar>
   )
 })
+
+const useContainerStyles = M.makeStyles(() => ({
+  container: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  main: {
+    display: 'flex',
+    alignItems: 'center',
+    background: `left / 64px url(${bg})`,
+    minHeight: '64px',
+    borderRadius: '16px 0 0 0',
+    flexGrow: 1,
+    paddingLeft: ({ customBg }: { customBg: boolean }) => (customBg ? '32px' : undefined),
+  },
+}))
 
 interface ContainerProps {
   children?: React.ReactNode
@@ -352,6 +407,10 @@ interface ContainerProps {
 
 export function Container({ children }: ContainerProps) {
   const trigger = M.useScrollTrigger()
+  const settings = CatalogSettings.use()
+  const classes = useContainerStyles({
+    customBg: !!settings?.theme?.palette?.primary?.main,
+  })
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <M.Box>
@@ -359,12 +418,9 @@ export function Container({ children }: ContainerProps) {
         <M.Slide appear={false} direction="down" in={!trigger}>
           <AppBar>
             <M.Toolbar disableGutters>
-              <M.Container
-                maxWidth="lg"
-                style={{ display: 'flex', alignItems: 'center' }}
-              >
+              <M.Container className={classes.container} maxWidth="lg">
                 <LogoLink />
-                {children}
+                <div className={classes.main}>{children}</div>
               </M.Container>
             </M.Toolbar>
           </AppBar>
