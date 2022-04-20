@@ -43,7 +43,7 @@ const NavIcon = ({ icon, ...props }) => (
 const useStyles = M.makeStyles((t) => ({
   padded: {},
   root: {
-    background: ({ backgroundColor }) => backgroundColor || `left / 64px url(${bg})`,
+    background: `left / 64px url(${bg})`,
     boxShadow: [
       '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
       '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
@@ -95,7 +95,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Footer() {
   const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
-  const classes = useStyles({ backgroundColor: settings?.theme?.palette?.primary?.main })
+  const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const year = React.useMemo(() => new Date().getFullYear(), [])
