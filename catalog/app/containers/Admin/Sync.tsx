@@ -1,5 +1,4 @@
 import * as FF from 'final-form'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
@@ -9,6 +8,34 @@ import * as validators from 'utils/validators'
 
 import * as Form from './Form'
 import * as Table from './Table'
+
+function useSyncFolders() {
+  return React.useMemo(
+    () => [
+      {
+        local: '/home/fiskus/Document/Top Secret Документы',
+        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
+      },
+      {
+        local: '/home/fiskus/Document/Top Secret Документы',
+        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
+      },
+      {
+        local: '/home/fiskus/Document/Top Secret Документы',
+        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
+      },
+      {
+        local: '/home/fiskus/Document/Top Secret Документы',
+        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
+      },
+      {
+        local: '/home/fiskus/Document/Top Secret Документы',
+        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
+      },
+    ],
+    [],
+  )
+}
 
 interface AddFolderProps {
   open: boolean
@@ -20,14 +47,7 @@ function AddFolder({ open, onCancel, onSubmit }: AddFolderProps) {
   return (
     <M.Dialog open={open}>
       <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
-        {({
-          handleSubmit,
-          submitting,
-          submitFailed,
-          error,
-          submitError,
-          hasValidationErrors,
-        }) => (
+        {({ handleSubmit, submitting, submitFailed, hasValidationErrors }) => (
           <>
             <M.DialogTitle>Add local &lt;-&gt; s3 folder pair</M.DialogTitle>
             <M.DialogContent>
@@ -86,35 +106,11 @@ export default function Sync() {
 
   const [addOpen, setAddOpen] = React.useState(false)
 
-  const folders = React.useMemo(
-    () => [
-      {
-        local: '/home/fiskus/Document/Top Secret Документы',
-        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-      },
-      {
-        local: '/home/fiskus/Document/Top Secret Документы',
-        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-      },
-      {
-        local: '/home/fiskus/Document/Top Secret Документы',
-        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-      },
-      {
-        local: '/home/fiskus/Document/Top Secret Документы',
-        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-      },
-      {
-        local: '/home/fiskus/Document/Top Secret Документы',
-        s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-      },
-    ],
-    [],
-  )
+  const folders = useSyncFolders()
 
   const toolbarActions = [
     {
-      title: 'Add local <-> s3 folder pair',
+      title: 'Add local ⇄ s3 folder pair',
       icon: <M.Icon>add</M.Icon>,
       fn: () => setAddOpen(true),
     },
