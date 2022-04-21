@@ -2,8 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import logo from './logo.svg'
-
 const DOM_ID = 'intercom-mount-point'
 
 export const SELECTOR = `#${DOM_ID}`

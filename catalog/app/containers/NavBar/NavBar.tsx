@@ -23,7 +23,7 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 
-const useLogoLinkStyles = M.makeStyles((t) => ({
+const useLogoLinkStyles = M.makeStyles({
   root: {},
   bgQuilt: {
     background: `left / 64px url(${bg})`,
@@ -40,7 +40,7 @@ const useLogoLinkStyles = M.makeStyles((t) => ({
     paddingRight: ({ backgroundColor }: { backgroundColor?: string }) =>
       !!backgroundColor ? '32px' : undefined,
   },
-}))
+})
 
 function LogoLink() {
   const settings = CatalogSettings.use()
