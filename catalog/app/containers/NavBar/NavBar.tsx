@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -23,8 +24,20 @@ import bg from './bg.png'
 import Controls from './Controls'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
-  root: {
-    margin: t.spacing(2),
+  bgQuilt: {
+    background: `left / 64px url(${bg})`,
+  },
+  bgCustom: {
+    alignItems: 'center',
+    // TODO: make UI component with this background, and DRY
+    background: ({ backgroundColor }: { backgroundColor?: string }) =>
+      backgroundColor || `left / 64px url(${bg})`,
+    borderRadius: t.spacing(0, 0, 2, 0),
+    display: 'flex',
+    justifyContent: 'center',
+    minHeight: t.spacing(8),
+    paddingRight: ({ backgroundColor }: { backgroundColor?: string }) =>
+      backgroundColor ? t.spacing(4) : t.spacing(2),
   },
 }))
 
@@ -34,16 +47,22 @@ function LogoLink() {
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const cfg = Config.useConfig()
   const wide = cfg.mode === 'MARKETING' && xs
-  const classes = useLogoLinkStyles()
+  const classes = useLogoLinkStyles({
+    backgroundColor: settings?.theme?.palette?.primary?.main,
+  })
   const { urls } = NamedRoutes.use()
   return (
-    <Link className={classes.root} to={urls.home()}>
-      <Logo
-        width={wide ? '76.5px' : '27px'}
-        height={wide ? '29px' : '27px'}
-        src={settings?.logo?.url}
-      />
-    </Link>
+    <div className={classes.bgQuilt}>
+      <div className={classes.bgCustom}>
+        <Link to={urls.home()}>
+          <Logo
+            width={wide ? '76.5px' : '27px'}
+            height={wide ? '29px' : '27px'}
+            src={settings?.logo?.url}
+          />
+        </Link>
+      </div>
+    </div>
   )
 }
 
@@ -321,9 +340,24 @@ function SignIn({ error, waiting }: SignInProps) {
 
 const useAppBarStyles = M.makeStyles((t) => ({
   root: {
+    zIndex: t.zIndex.appBar + 1,
+  },
+  bgWrapper: {
+    bottom: 0,
+    display: 'flex',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  bgCustom: {
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || `left / 64px url(${bg})`,
-    zIndex: t.zIndex.appBar + 1,
+    flex: '50%',
+  },
+  bgQuilt: {
+    background: `left / 64px url(${bg})`,
+    flex: '50%',
   },
 }))
 
@@ -341,10 +375,30 @@ const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
   })
   return (
     <M.AppBar className={classes.root} ref={ref}>
+      <div className={classes.bgWrapper}>
+        <div className={classes.bgCustom} />
+        <div className={classes.bgQuilt} />
+      </div>
       {children}
     </M.AppBar>
   )
 })
+
+const useContainerStyles = M.makeStyles(() => ({
+  container: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  main: {
+    alignItems: 'center',
+    background: `left / 64px url(${bg})`,
+    borderRadius: '16px 0 0 0',
+    display: 'flex',
+    flexGrow: 1,
+    minHeight: '64px',
+    paddingLeft: ({ customBg }: { customBg: boolean }) => (customBg ? '32px' : undefined),
+  },
+}))
 
 interface ContainerProps {
   children?: React.ReactNode
@@ -352,6 +406,10 @@ interface ContainerProps {
 
 export function Container({ children }: ContainerProps) {
   const trigger = M.useScrollTrigger()
+  const settings = CatalogSettings.use()
+  const classes = useContainerStyles({
+    customBg: !!settings?.theme?.palette?.primary?.main,
+  })
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <M.Box>
@@ -359,12 +417,9 @@ export function Container({ children }: ContainerProps) {
         <M.Slide appear={false} direction="down" in={!trigger}>
           <AppBar>
             <M.Toolbar disableGutters>
-              <M.Container
-                maxWidth="lg"
-                style={{ display: 'flex', alignItems: 'center' }}
-              >
+              <M.Container className={classes.container} maxWidth="lg">
                 <LogoLink />
-                {children}
+                <div className={classes.main}>{children}</div>
               </M.Container>
             </M.Toolbar>
           </AppBar>
@@ -503,9 +558,7 @@ export function NavBar() {
             </NavLink>
           ))}
           {!intercom.dummy && intercom.isCustom && (
-            <M.MuiThemeProvider theme={style.appTheme}>
-              <Intercom.Launcher className={classes.navItem} />
-            </M.MuiThemeProvider>
+            <Intercom.Launcher className={classes.navItem} />
           )}
         </nav>
       )}
