@@ -23,8 +23,7 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 
-const useLogoLinkStyles = M.makeStyles({
-  root: {},
+const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
     background: `left / 64px url(${bg})`,
   },
@@ -33,15 +32,14 @@ const useLogoLinkStyles = M.makeStyles({
     // TODO: make UI component with this background, and DRY
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || `left / 64px url(${bg})`,
-    borderRadius: '0 0 16px 0',
+    borderRadius: t.spacing(0, 0, 2, 0),
     display: 'flex',
     justifyContent: 'center',
-    minHeight: '64px',
-    minWidth: '64px',
+    minHeight: t.spacing(8),
     paddingRight: ({ backgroundColor }: { backgroundColor?: string }) =>
-      !!backgroundColor ? '32px' : undefined,
+      backgroundColor ? t.spacing(4) : t.spacing(2),
   },
-})
+}))
 
 function LogoLink() {
   const settings = CatalogSettings.use()
@@ -54,7 +52,7 @@ function LogoLink() {
   })
   const { urls } = NamedRoutes.use()
   return (
-    <div className={cx(classes.bgQuilt, classes.root)}>
+    <div className={classes.bgQuilt}>
       <div className={classes.bgCustom}>
         <Link to={urls.home()}>
           <Logo
