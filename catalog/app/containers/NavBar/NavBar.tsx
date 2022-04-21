@@ -30,6 +30,7 @@ const useLogoLinkStyles = M.makeStyles({
   },
   bgCustom: {
     alignItems: 'center',
+    // TODO: make UI component with this background, and DRY
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || `left / 64px url(${bg})`,
     borderRadius: '0 0 16px 0',
