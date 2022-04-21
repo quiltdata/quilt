@@ -29,11 +29,11 @@ const useLogoLinkStyles = M.makeStyles({
     background: `left / 64px url(${bg})`,
   },
   bgCustom: {
+    alignItems: 'center',
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
       backgroundColor || `left / 64px url(${bg})`,
     borderRadius: '0 0 16px 0',
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'center',
     minHeight: '64px',
     minWidth: '64px',
@@ -344,12 +344,12 @@ const useAppBarStyles = M.makeStyles((t) => ({
     zIndex: t.zIndex.appBar + 1,
   },
   bgWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
     bottom: 0,
-    top: 0,
     display: 'flex',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   bgCustom: {
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
@@ -391,12 +391,12 @@ const useContainerStyles = M.makeStyles(() => ({
     alignItems: 'center',
   },
   main: {
-    display: 'flex',
     alignItems: 'center',
     background: `left / 64px url(${bg})`,
-    minHeight: '64px',
     borderRadius: '16px 0 0 0',
+    display: 'flex',
     flexGrow: 1,
+    minHeight: '64px',
     paddingLeft: ({ customBg }: { customBg: boolean }) => (customBg ? '32px' : undefined),
   },
 }))
