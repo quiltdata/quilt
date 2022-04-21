@@ -2,18 +2,13 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import logo from './logo.svg'
-
 const DOM_ID = 'intercom-mount-point'
 
 export const SELECTOR = `#${DOM_ID}`
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    backgroundColor: t.palette.secondary.main,
-    cursor: 'pointer',
-    height: '30px',
-    width: '30px',
+    fontWeight: t.typography.fontWeightRegular,
   },
   img: {
     width: '16px',
@@ -27,12 +22,15 @@ interface LauncherProps {
 export function Launcher({ className }: LauncherProps) {
   const classes = useStyles()
   return (
-    <M.Avatar
-      id={DOM_ID}
+    <M.Button
       className={cx(classes.root, className)}
-      title="Get live support"
+      color="primary"
+      id={DOM_ID}
+      startIcon={<M.Icon fontSize="small">chat_bubble_outline</M.Icon>}
+      variant="contained"
+      size="small"
     >
-      <img className={classes.img} src={logo} />
-    </M.Avatar>
+      Support
+    </M.Button>
   )
 }
