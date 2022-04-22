@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import * as IPC from 'utils/electron/ipc-provider'
 import * as s3paths from 'utils/s3paths'
 import * as validators from 'utils/validators'
 
@@ -14,50 +15,31 @@ import * as Form from './Form'
 import * as Table from './Table'
 
 interface DataRow {
+  id?: string
   local: string
   s3: string
 }
 
-const mockFolders = [
-  {
-    local: '/home/fiskus/Documents/Top Secret',
-    s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-  },
-  {
-    local: '/home/fiskus/Downloads',
-    s3: 's3://fiskus-sandbox-dev/fiskus/test',
-  },
-  {
-    local: '/Applications',
-    s3: 's3://fiskus-sandbox-dev/fiskus/desktop',
-  },
-  {
-    local: '/home/fiskus/Document/Top Secret',
-    s3: 's3://quilt-bio-staging/fiskus/sandbox',
-  },
-  {
-    local: '/media/fiskus/undq9832nyu/inbox',
-    s3: 's3://fiskus-sandbox-dev/fiskus/sandbox',
-  },
-]
-
 function useSyncFolders(): [null | DataRow[], () => void] {
+  const ipc = IPC.use()
   const [key, setKey] = React.useState(1)
   const inc = React.useCallback(() => setKey(R.inc), [setKey])
-  const [folders, setFolders] = React.useState<null | DataRow[]>([...mockFolders])
+  const [folders, setFolders] = React.useState<null | DataRow[]>(null)
   React.useEffect(() => {
-    setFolders(null)
-    setTimeout(() => {
-      setFolders([...mockFolders])
-    }, 300)
-  }, [key])
+    async function fetchData() {
+      const list = await ipc.invoke(IPC.EVENTS.SYNC_FOLDERS_LIST)
+      setFolders(list)
+    }
+
+    fetchData()
+  }, [ipc, key])
   return folders ? [folders, inc] : [null, inc]
 }
 
 interface ConfirmDeletionDialogProps {
   onCancel: () => void
-  onSubmit: () => void
-  value: Partial<DataRow> | null
+  onSubmit: (v: DataRow) => void
+  value: DataRow | null
 }
 
 function ConfirmDeletionDialog({
@@ -65,6 +47,9 @@ function ConfirmDeletionDialog({
   onSubmit,
   value,
 }: ConfirmDeletionDialogProps) {
+  const handleSubmit = React.useCallback(() => {
+    if (value) onSubmit(value)
+  }, [onSubmit, value])
   return (
     <M.Dialog open={!!value}>
       <M.DialogTitle>Remove local ⇄ s3 folder pair</M.DialogTitle>
@@ -75,8 +60,8 @@ function ConfirmDeletionDialog({
         <M.Button onClick={onCancel} color="primary">
           Cancel
         </M.Button>
-        <M.Button color="primary" onClick={onSubmit} variant="contained">
-          Delete
+        <M.Button color="primary" onClick={handleSubmit} variant="contained">
+          Remove
         </M.Button>
       </M.DialogActions>
     </M.Dialog>
@@ -85,7 +70,7 @@ function ConfirmDeletionDialog({
 
 interface AddFolderDialogProps {
   onCancel: () => void
-  onSubmit: () => void
+  onSubmit: (v: DataRow) => void
   value: Partial<DataRow> | null
 }
 
@@ -143,27 +128,27 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps)
     </M.Dialog>
   )
 }
-const useTableRowStyles = M.makeStyles((t) => ({
+const useTableRowStyles = M.makeStyles({
   action: {
     opacity: 0.3,
     'tr:hover &': {
       opacity: 1,
     },
   },
-}))
+})
 
 interface TableRowProps {
-  onDelete: (v: DataRow) => void
   onEdit: (v: DataRow) => void
+  onRemove: (v: DataRow) => void
   row: DataRow
 }
 
-function TableRow({ onDelete, onEdit, row }: TableRowProps) {
+function TableRow({ onEdit, onRemove, row }: TableRowProps) {
   const classes = useTableRowStyles()
   const { urls } = NamedRoutes.use()
   const handle = s3paths.parseS3Url(row.s3)
-  const handleDelete = React.useCallback(() => onDelete(row), [row])
-  const handleEdit = React.useCallback(() => onEdit(row), [row])
+  const handleRemove = React.useCallback(() => onRemove(row), [onRemove, row])
+  const handleEdit = React.useCallback(() => onEdit(row), [onEdit, row])
   return (
     <M.TableRow hover>
       <M.TableCell>{row.local}</M.TableCell>
@@ -173,11 +158,11 @@ function TableRow({ onDelete, onEdit, row }: TableRowProps) {
         </StyledLink>
       </M.TableCell>
       <M.TableCell align="right">
-        <M.Tooltip title="Delete">
+        <M.Tooltip title="Remove">
           <M.IconButton
             className={classes.action}
-            aria-label="Delete"
-            onClick={handleDelete}
+            aria-label="Remove"
+            onClick={handleRemove}
           >
             <M.Icon>delete</M.Icon>
           </M.IconButton>
@@ -200,9 +185,10 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Sync() {
   const classes = useStyles()
+  const ipc = IPC.use()
 
   const [selected, setSelected] = React.useState<Partial<DataRow> | null>(null)
-  const [deleting, setDeleting] = React.useState<Partial<DataRow> | null>(null)
+  const [removing, setRemoving] = React.useState<DataRow | null>(null)
 
   const [folders, inc] = useSyncFolders()
 
@@ -222,15 +208,28 @@ export default function Sync() {
     [folders],
   )
 
-  const handleDelete = React.useCallback(() => {
-    setDeleting(null)
-    inc()
-  }, [inc])
+  const handleRemove = React.useCallback(
+    async (row: DataRow) => {
+      await ipc.invoke(IPC.EVENTS.SYNC_FOLDERS_REMOVE, row)
 
-  const handleEdit = React.useCallback(() => {
-    setSelected(null)
-    inc()
-  }, [inc])
+      setRemoving(null)
+      inc()
+    },
+    [inc, ipc],
+  )
+
+  const handleEdit = React.useCallback(
+    async (row: DataRow) => {
+      await ipc.invoke(
+        row.id ? IPC.EVENTS.SYNC_FOLDERS_EDIT : IPC.EVENTS.SYNC_FOLDERS_ADD,
+        row,
+      )
+
+      setSelected(null)
+      inc()
+    },
+    [inc, ipc],
+  )
 
   return (
     <div className={classes.root}>
@@ -243,9 +242,9 @@ export default function Sync() {
       />
 
       <ConfirmDeletionDialog
-        onCancel={() => setDeleting(null)}
-        onSubmit={handleDelete}
-        value={deleting}
+        onCancel={() => setRemoving(null)}
+        onSubmit={handleRemove}
+        value={removing}
       />
 
       <M.Paper>
@@ -262,7 +261,7 @@ export default function Sync() {
             </M.TableHead>
             <M.TableBody>
               {folders.map((row) => (
-                <TableRow row={row} onEdit={setSelected} onDelete={setDeleting} />
+                <TableRow row={row} onEdit={setSelected} onRemove={setRemoving} />
               ))}
             </M.TableBody>
           </M.Table>
