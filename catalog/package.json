@@ -76,7 +76,7 @@
     "dedent": "^0.7.0",
     "dompurify": "^2.3.6",
     "echarts": "^5.3.2",
-    "final-form": "^4.20.4",
+    "final-form": "^4.20.6",
     "fontfaceobserver": "^2.1.0",
     "fp-ts": "^2.11.5",
     "graphql": "^15.7.2",
