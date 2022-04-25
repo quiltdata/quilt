@@ -184,7 +184,7 @@
     "compare-versions": "^3.6.0",
     "compression": "^1.7.4",
     "compression-webpack-plugin": "^8.0.1",
-    "copy-webpack-plugin": "^9.0.1",
+    "copy-webpack-plugin": "^9.1.0",
     "css-loader": "^5.2.7",
     "eslint": "^7.32.0",
     "eslint-config-airbnb": "^18.2.1",
