@@ -88,7 +88,7 @@
     "io-ts-reporters": "^1.2.2",
     "io-ts-types": "^0.5.16",
     "js-yaml": "^4.1.0",
-    "jsoneditor-react": "^3.1.1",
+    "jsoneditor-react": "^3.1.2",
     "katex": "^0.13.19",
     "lodash": "^4.17.21",
     "match-sorter": "^6.3.1",
