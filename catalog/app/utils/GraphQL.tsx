@@ -14,6 +14,7 @@ import * as Config from 'utils/Config'
 const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExchange] : []
 
 const BUCKET_CONFIGS_QUERY = urql.gql`{ bucketConfigs { name } }`
+const POLICIES_QUERY = urql.gql`{ policies { id } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
@@ -109,6 +110,32 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
+            },
+            policyCreateManaged: (result, _vars, cache) => {
+              if ((result.policyCreateManaged as any)?.__typename !== 'Policy') return
+              cache.updateQuery(
+                { query: POLICIES_QUERY },
+                // XXX: sort?
+                R.evolve({ policies: R.append(result.policyCreateManaged) }),
+              )
+            },
+            policyCreateUnmanaged: (result, _vars, cache) => {
+              if ((result.policyCreateUnmanaged as any)?.__typename !== 'Policy') return
+              cache.updateQuery(
+                { query: POLICIES_QUERY },
+                // XXX: sort?
+                R.evolve({ policies: R.append(result.policyCreateUnmanaged) }),
+              )
+            },
+            policyDelete: (result, vars, cache) => {
+              const typename = (result.policyDelete as any)?.__typename
+              // TODO: invalidate all policy lists?
+              if (typename === 'Ok') {
+                cache.updateQuery(
+                  { query: POLICIES_QUERY },
+                  R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
+                )
+              }
             },
             roleCreateManaged: (result, _vars, cache) => {
               if ((result.roleCreateManaged as any)?.__typename !== 'RoleCreateSuccess')

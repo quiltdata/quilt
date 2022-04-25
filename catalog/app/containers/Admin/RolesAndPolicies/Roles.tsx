@@ -1,5 +1,5 @@
 import * as FF from 'final-form'
-import * as FP from 'fp-ts'
+// import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -18,15 +18,15 @@ import * as validators from 'utils/validators'
 import * as Form from '../RFForm'
 import * as Table from '../Table'
 
-import BucketsPermissions from './BucketsPermissions'
-import BUCKETS_QUERY from './gql/Buckets.generated'
+import AssociatedPolicies from './AssociatedPolicies'
+
 import ROLES_QUERY from './gql/Roles.generated'
-import ROLE_CREATE_MANAGED_MUTATION from './gql/CreateManaged.generated'
-import ROLE_CREATE_UNMANAGED_MUTATION from './gql/CreateUnmanaged.generated'
-import ROLE_UPDATE_MANAGED_MUTATION from './gql/UpdateManaged.generated'
-import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/UpdateUnmanaged.generated'
-import ROLE_DELETE_MUTATION from './gql/Delete.generated'
-import ROLE_SET_DEFAULT_MUTATION from './gql/SetDefault.generated'
+import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
+import ROLE_CREATE_UNMANAGED_MUTATION from './gql/RoleCreateUnmanaged.generated'
+import ROLE_UPDATE_MANAGED_MUTATION from './gql/RoleUpdateManaged.generated'
+import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/RoleUpdateUnmanaged.generated'
+import ROLE_DELETE_MUTATION from './gql/RoleDelete.generated'
+import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
@@ -74,12 +74,15 @@ const columns = [
       ),
   },
   {
+    id: 'policies',
+    label: 'Associated policies',
+    getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.policies.length : null),
+    getDisplay: (policies: number | null) => (policies == null ? 'N/A' : policies),
+  },
+  {
     id: 'buckets',
     label: 'Buckets',
-    getValue: (r: Role) =>
-      r.__typename === 'ManagedRole'
-        ? r.permissions.filter((p) => !!p.level).length
-        : null,
+    getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.permissions.length : null),
     getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
   },
 ]
@@ -123,8 +126,9 @@ function Create({ close }: CreateProps) {
 
   const { push } = Notifications.use()
 
-  const [{ data }] = urql.useQuery({ query: BUCKETS_QUERY })
-  const { buckets } = data!
+  // TODO: get policies
+  // const [{ data }] = urql.useQuery({ query: BUCKETS_QUERY })
+  // const { buckets } = data!
 
   const [managed, setManaged] = React.useState(true)
 
@@ -169,18 +173,8 @@ function Create({ close }: CreateProps) {
     [managed, createManaged, createUnmanaged, push, close],
   )
 
-  const initialPermissions: Model.GQLTypes.PermissionInput[] = React.useMemo(
-    () =>
-      FP.function.pipe(
-        buckets,
-        R.sort((a, b) => a.name.localeCompare(b.name)),
-        R.map(({ name }) => ({ bucket: name, level: null })),
-      ),
-    [buckets],
-  )
-
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={{ permissions: initialPermissions }}>
+    <RF.Form onSubmit={onSubmit} initialValues={INITIAL_VALUES}>
       {({
         handleSubmit,
         submitting,
@@ -196,7 +190,6 @@ function Create({ close }: CreateProps) {
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
-                // @ts-expect-error
                 component={Form.Field}
                 name="name"
                 validate={validators.required as FF.FieldValidator<any>}
@@ -221,17 +214,20 @@ function Create({ close }: CreateProps) {
               />
 
               <M.FormControlLabel
-                label="Manually set ARN instead of configuring per-bucket permissions"
+                label="Manually set ARN instead of configuring policies"
                 control={<M.Checkbox checked={!managed} />}
                 onChange={() => setManaged(!managed)}
               />
 
               <M.Collapse in={!managed}>
                 <RF.Field
-                  // @ts-expect-error
                   component={Form.Field}
                   name="arn"
-                  validate={(v) => (managed ? undefined : validators.required(v))}
+                  validate={
+                    managed ? undefined : (validators.required as FF.FieldValidator<any>)
+                  }
+                  // to re-trigger validation when "managed" state changes
+                  key={`${managed}`}
                   placeholder="Enter role ARN"
                   label="ARN"
                   fullWidth
@@ -246,12 +242,19 @@ function Create({ close }: CreateProps) {
               <M.Collapse in={managed}>
                 <RF.Field
                   className={classes.panel}
-                  // @ts-expect-error
-                  component={BucketsPermissions}
-                  name="permissions"
+                  component={AssociatedPolicies}
+                  name="policies"
                   fullWidth
                   margin="normal"
+                  validate={
+                    managed ? (validators.nonEmpty as FF.FieldValidator<any>) : undefined
+                  }
+                  // to re-trigger validation when "managed" state changes
+                  key={`${managed}`}
                   onAdvanced={() => setManaged(false)}
+                  errors={{
+                    nonEmpty: 'Add at least one policy',
+                  }}
                 />
               </M.Collapse>
 
@@ -419,14 +422,6 @@ const unmanagedRoleFormSpec: FormSpec<Model.GQLTypes.UnmanagedRoleInput> = {
   ),
 }
 
-const PermissionInput = IO.type(
-  {
-    bucket: IO.string,
-    level: Types.nullable(Model.BucketPermissionLevel),
-  },
-  'PermissionInput',
-)
-
 const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
   name: R.pipe(
     R.prop('name'),
@@ -434,11 +429,13 @@ const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
     R.trim,
     Types.decode(Types.NonEmptyString),
   ),
-  permissions: R.pipe(
-    R.prop('permissions'),
-    Types.decode(IO.readonlyArray(PermissionInput)),
+  policies: R.pipe(
+    R.prop('policies'),
+    Types.decode(IO.readonlyArray(Types.NonEmptyString)),
   ),
 }
+
+const INITIAL_VALUES = { managed: true, policies: [] }
 
 interface EditProps {
   role: Role
@@ -498,18 +495,18 @@ function Edit({ role, close }: EditProps) {
   const initialValues = React.useMemo(
     () => ({
       name: role.name,
-      permissions:
-        role.__typename === 'ManagedRole'
-          ? role.permissions.map(
-              (p) =>
-                ({
-                  bucket: p.bucket.name,
-                  level: p.level,
-                } as Model.GQLTypes.PermissionInput),
-            )
-          : [],
+      policies: role.__typename === 'ManagedRole' ? R.pluck('id', role.policies) : [],
       arn: role.__typename === 'UnmanagedRole' ? role.arn : null,
     }),
+    [role],
+  )
+
+  const policyTitles = React.useMemo(
+    () =>
+      (role.__typename === 'ManagedRole' ? role.policies : []).reduce(
+        (acc, { id, title }) => ({ ...acc, [id]: title }),
+        {} as Record<string, string>,
+      ),
     [role],
   )
 
@@ -547,7 +544,6 @@ function Edit({ role, close }: EditProps) {
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
-                // @ts-expect-error
                 component={Form.Field}
                 name="name"
                 validate={validators.required as FF.FieldValidator<any>}
@@ -573,16 +569,19 @@ function Edit({ role, close }: EditProps) {
                   />
                   <RF.Field
                     className={classes.panel}
-                    // @ts-expect-error
-                    component={BucketsPermissions}
-                    name="permissions"
+                    component={AssociatedPolicies}
+                    name="policies"
                     fullWidth
                     margin="normal"
+                    validate={validators.nonEmpty as FF.FieldValidator<any>}
+                    policyTitles={policyTitles}
+                    errors={{
+                      nonEmpty: 'Add at least one policy',
+                    }}
                   />
                 </>
               ) : (
                 <RF.Field
-                  // @ts-expect-error
                   component={Form.Field}
                   name="arn"
                   validate={validators.required as FF.FieldValidator<any>}

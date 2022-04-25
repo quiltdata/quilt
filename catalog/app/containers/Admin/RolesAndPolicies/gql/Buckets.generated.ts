@@ -2,23 +2,25 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Roles_gql_BucketsQueryVariables = Types.Exact<{
+export type containers_Admin_RolesAndPolicies_gql_BucketsQueryVariables = Types.Exact<{
   [key: string]: never
 }>
 
-export type containers_Admin_Roles_gql_BucketsQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_RolesAndPolicies_gql_BucketsQuery = {
+  readonly __typename: 'Query'
+} & {
   readonly buckets: ReadonlyArray<
     { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'>
   >
 }
 
-export const containers_Admin_Roles_gql_BucketsDocument = {
+export const containers_Admin_RolesAndPolicies_gql_BucketsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_Buckets' },
+      name: { kind: 'Name', value: 'containers_Admin_RolesAndPolicies_gql_Buckets' },
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
@@ -36,8 +38,8 @@ export const containers_Admin_Roles_gql_BucketsDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Roles_gql_BucketsQuery,
-  containers_Admin_Roles_gql_BucketsQueryVariables
+  containers_Admin_RolesAndPolicies_gql_BucketsQuery,
+  containers_Admin_RolesAndPolicies_gql_BucketsQueryVariables
 >
 
-export { containers_Admin_Roles_gql_BucketsDocument as default }
+export { containers_Admin_RolesAndPolicies_gql_BucketsDocument as default }

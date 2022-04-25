@@ -8,11 +8,12 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_Roles_gql_CreateUnmanagedMutationVariables = Types.Exact<{
-  input: Types.UnmanagedRoleInput
-}>
+export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutationVariables =
+  Types.Exact<{
+    input: Types.ManagedRoleInput
+  }>
 
-export type containers_Admin_Roles_gql_CreateUnmanagedMutation = {
+export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleCreate:
@@ -29,13 +30,16 @@ export type containers_Admin_Roles_gql_CreateUnmanagedMutation = {
     | { readonly __typename: 'BucketConfigDoesNotExist' }
 }
 
-export const containers_Admin_Roles_gql_CreateUnmanagedDocument = {
+export const containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_CreateUnmanaged' },
+      name: {
+        kind: 'Name',
+        value: 'containers_Admin_RolesAndPolicies_gql_RoleCreateManaged',
+      },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -44,7 +48,7 @@ export const containers_Admin_Roles_gql_CreateUnmanagedDocument = {
             kind: 'NonNullType',
             type: {
               kind: 'NamedType',
-              name: { kind: 'Name', value: 'UnmanagedRoleInput' },
+              name: { kind: 'Name', value: 'ManagedRoleInput' },
             },
           },
         },
@@ -55,7 +59,7 @@ export const containers_Admin_Roles_gql_CreateUnmanagedDocument = {
           {
             kind: 'Field',
             alias: { kind: 'Name', value: 'roleCreate' },
-            name: { kind: 'Name', value: 'roleCreateUnmanaged' },
+            name: { kind: 'Name', value: 'roleCreateManaged' },
             arguments: [
               {
                 kind: 'Argument',
@@ -100,8 +104,8 @@ export const containers_Admin_Roles_gql_CreateUnmanagedDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Roles_gql_CreateUnmanagedMutation,
-  containers_Admin_Roles_gql_CreateUnmanagedMutationVariables
+  containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation,
+  containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutationVariables
 >
 
-export { containers_Admin_Roles_gql_CreateUnmanagedDocument as default }
+export { containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument as default }
