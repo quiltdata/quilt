@@ -198,7 +198,7 @@
     "eslint-plugin-redux-saga": "^1.2.1",
     "express": "^4.17.2",
     "file-loader": "^6.2.0",
-    "fork-ts-checker-webpack-plugin": "^6.4.0",
+    "fork-ts-checker-webpack-plugin": "^6.5.1",
     "html-loader": "^2.1.2",
     "html-webpack-plugin": "^5.5.0",
     "husky": "^4.3.8",
