@@ -194,7 +194,7 @@
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-jsx-a11y": "^6.5.1",
     "eslint-plugin-react": "^7.27.0",
-    "eslint-plugin-react-hooks": "^4.3.0",
+    "eslint-plugin-react-hooks": "^4.5.0",
     "eslint-plugin-redux-saga": "^1.2.1",
     "express": "^4.17.2",
     "file-loader": "^6.2.0",
