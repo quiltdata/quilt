@@ -14,32 +14,24 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import * as Table from './Table'
 
-type LocalFolderInputProps = M.TextFieldProps & {
-  input: {
-    onChange: (path: string) => void
-    value: string | null
-  }
-}
+type LocalFolderInputProps = M.TextFieldProps & Form.FieldProps
 
-export function LocalFolderInput({
-  input: { onChange, value },
-  ...props
-}: LocalFolderInputProps) {
+export function LocalFolderInput({ input, ...props }: LocalFolderInputProps) {
   const ipc = IPC.use()
 
   const handleClick = React.useCallback(async () => {
     const newLocalPath = await ipc.invoke(IPC.EVENTS.LOCALPATH_REQUEST)
     if (!newLocalPath) return
-    onChange(newLocalPath)
-  }, [ipc, onChange])
+    input.onChange(newLocalPath)
+  }, [ipc, input.onChange])
 
   return (
-    <M.TextField
+    <Form.Field
       disabled={false}
       id="localPath"
       onClick={handleClick}
       size="small"
-      value={value}
+      input={input}
       {...props}
     />
   )
@@ -121,7 +113,7 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps)
                 placeholder="Folder on local file system"
                 validate={validators.required as FF.FieldValidator<any>}
                 errors={{
-                  required: 'Enter a bucket name',
+                  required: 'Path to local directory is required',
                 }}
                 initialValue={value?.local}
                 fullWidth
@@ -132,10 +124,16 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps)
                 name="s3"
                 label="S3 bucket + Package name"
                 placeholder="s3://bucket/namespace/package"
-                validate={validators.required as FF.FieldValidator<any>}
+                validate={
+                  validators.composeAnd(
+                    validators.required,
+                    validators.s3Url,
+                  ) as FF.FieldValidator<any>
+                }
                 initialValue={value?.s3}
                 errors={{
-                  required: 'Enter package name',
+                  required: 'S3 URL is required',
+                  s3Url: 'Enter valid S3 url to package',
                 }}
                 fullWidth
                 margin="normal"
