@@ -3,12 +3,10 @@
     "config:base",
     ":maintainLockFilesWeekly",
     ":prHourlyLimitNone",
-    ":prConcurrentLimitNone"
+    ":prConcurrentLimitNone",
+    ":dependencyDashboardApproval"
   ],
   "enabledManagers": ["npm"],
   "rangeStrategy": "bump",
-  "labels": ["js dependencies"],
-  "major": {
-    "dependencyDashboardApproval": true
-  }
+  "labels": ["js dependencies"]
 }
