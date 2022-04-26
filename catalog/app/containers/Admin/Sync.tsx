@@ -14,6 +14,37 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import * as Table from './Table'
 
+type LocalFolderInputProps = M.TextFieldProps & {
+  input: {
+    onChange: (path: string) => void
+    value: string | null
+  }
+}
+
+export function LocalFolderInput({
+  input: { onChange, value },
+  ...props
+}: LocalFolderInputProps) {
+  const ipc = IPC.use()
+
+  const handleClick = React.useCallback(async () => {
+    const newLocalPath = await ipc.invoke(IPC.EVENTS.LOCALPATH_REQUEST)
+    if (!newLocalPath) return
+    onChange(newLocalPath)
+  }, [ipc, onChange])
+
+  return (
+    <M.TextField
+      disabled={false}
+      id="localPath"
+      onClick={handleClick}
+      size="small"
+      value={value}
+      {...props}
+    />
+  )
+}
+
 interface DataRow {
   id?: string
   local: string
@@ -84,7 +115,7 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps)
             <M.DialogTitle>Add local ⇄ s3 folder pair</M.DialogTitle>
             <M.DialogContent>
               <RF.Field
-                component={Form.Field}
+                component={LocalFolderInput}
                 name="local"
                 label="Local folder"
                 placeholder="Folder on local file system"
