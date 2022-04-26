@@ -27,8 +27,8 @@ function useSyncFolders(): [null | DataRow[], () => void] {
   const [folders, setFolders] = React.useState<null | DataRow[]>(null)
   React.useEffect(() => {
     async function fetchData() {
-      const list = await ipc.invoke(IPC.EVENTS.SYNC_FOLDERS_LIST)
-      setFolders(list)
+      const config = await ipc.invoke(IPC.EVENTS.SYNC_FOLDERS_LIST)
+      setFolders(config.folders)
     }
 
     fetchData()
@@ -75,9 +75,10 @@ interface AddFolderDialogProps {
 }
 
 function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps) {
+  const initialValues = React.useMemo(() => ({ id: value?.id }), [value])
   return (
     <M.Dialog open={!!value}>
-      <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
+      <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
         {({ handleSubmit, submitting, submitFailed, hasValidationErrors }) => (
           <>
             <M.DialogTitle>Add local ⇄ s3 folder pair</M.DialogTitle>
@@ -261,7 +262,12 @@ export default function Sync() {
             </M.TableHead>
             <M.TableBody>
               {folders.map((row) => (
-                <TableRow row={row} onEdit={setSelected} onRemove={setRemoving} />
+                <TableRow
+                  key={row.id}
+                  onEdit={setSelected}
+                  onRemove={setRemoving}
+                  row={row}
+                />
               ))}
             </M.TableBody>
           </M.Table>
