@@ -205,7 +205,7 @@
     "ip": "^1.1.5",
     "jest": "^27.5.1",
     "jest-localstorage-mock": "^2.4.21",
-    "lint-staged": "^11.2.6",
+    "lint-staged": "^12.4.1",
     "minimist": "^1.2.6",
     "prettier": "^2.6.2",
     "raw-loader": "^4.0.2",
