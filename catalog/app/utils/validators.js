@@ -189,7 +189,6 @@ export const composeAnd =
     // check if all validators returns undefined
     validators.every((validator) => {
       error = validator(v)
-      console.log('VALIDATOR', v, error)
       return !error
     })
     return error

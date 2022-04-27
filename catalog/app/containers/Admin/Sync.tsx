@@ -18,12 +18,13 @@ type LocalFolderInputProps = M.TextFieldProps & Form.FieldProps
 
 export function LocalFolderInput({ input, ...props }: LocalFolderInputProps) {
   const ipc = IPC.use()
+  const { onChange } = input
 
   const handleClick = React.useCallback(async () => {
     const newLocalPath = await ipc.invoke(IPC.EVENTS.LOCALPATH_REQUEST)
     if (!newLocalPath) return
-    input.onChange(newLocalPath)
-  }, [ipc, input.onChange])
+    onChange(newLocalPath)
+  }, [ipc, onChange])
 
   return (
     <Form.Field
