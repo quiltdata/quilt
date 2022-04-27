@@ -77,13 +77,55 @@ const columns = [
     id: 'policies',
     label: 'Associated policies',
     getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.policies.length : null),
-    getDisplay: (policies: number | null) => (policies == null ? 'N/A' : policies),
+    getDisplay: (_policies: any, r: Role) =>
+      r.__typename === 'ManagedRole' ? (
+        <M.Tooltip
+          arrow
+          title={
+            r.policies.length ? (
+              <M.Box component="ul" pl={1} m={0.5}>
+                {r.policies.map((p) => (
+                  <li key={p.id}>{p.title}</li>
+                ))}
+              </M.Box>
+            ) : (
+              ''
+            )
+          }
+        >
+          <span>{r.policies.length}</span>
+        </M.Tooltip>
+      ) : (
+        'N/A'
+      ),
   },
   {
     id: 'buckets',
     label: 'Buckets',
     getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.permissions.length : null),
-    getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
+    getDisplay: (_buckets: any, r: Role) =>
+      r.__typename === 'ManagedRole' ? (
+        <M.Tooltip
+          arrow
+          title={
+            r.permissions.length ? (
+              <M.Box component="ul" pl={1} m={0.5}>
+                {r.permissions.map((p) => (
+                  <li key={p.bucket.name}>
+                    {p.bucket.name} ({p.level})
+                  </li>
+                ))}
+              </M.Box>
+            ) : (
+              ''
+            )
+          }
+        >
+          <span>{r.permissions.length}</span>
+        </M.Tooltip>
+      ) : (
+        'N/A'
+      ),
   },
 ]
 
@@ -126,10 +168,6 @@ function Create({ close }: CreateProps) {
 
   const { push } = Notifications.use()
 
-  // TODO: get policies
-  // const [{ data }] = urql.useQuery({ query: BUCKETS_QUERY })
-  // const { buckets } = data!
-
   const [managed, setManaged] = React.useState(true)
 
   const onSubmit = React.useCallback(
@@ -146,6 +184,7 @@ function Create({ close }: CreateProps) {
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
         const r = res.data.roleCreate
+        // TODO: check new policy-related errors
         switch (r.__typename) {
           case 'RoleCreateSuccess':
             push(`Role "${r.role.name}" created`)
@@ -246,15 +285,7 @@ function Create({ close }: CreateProps) {
                   name="policies"
                   fullWidth
                   margin="normal"
-                  validate={
-                    managed ? (validators.nonEmpty as FF.FieldValidator<any>) : undefined
-                  }
-                  // to re-trigger validation when "managed" state changes
-                  key={`${managed}`}
                   onAdvanced={() => setManaged(false)}
-                  errors={{
-                    nonEmpty: 'Add at least one policy',
-                  }}
                 />
               </M.Collapse>
 
@@ -573,11 +604,7 @@ function Edit({ role, close }: EditProps) {
                     name="policies"
                     fullWidth
                     margin="normal"
-                    validate={validators.nonEmpty as FF.FieldValidator<any>}
                     policyTitles={policyTitles}
-                    errors={{
-                      nonEmpty: 'Add at least one policy',
-                    }}
                   />
                 </>
               ) : (

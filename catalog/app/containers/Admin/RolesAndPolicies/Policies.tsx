@@ -62,13 +62,55 @@ const columns = [
     id: 'buckets',
     label: 'Buckets',
     getValue: (p: Policy) => (p.managed ? p.permissions.length : null),
-    getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
+    getDisplay: (_buckets: any, p: Policy) =>
+      p.managed ? (
+        <M.Tooltip
+          arrow
+          title={
+            p.permissions.length ? (
+              <M.Box component="ul" pl={1} m={0.5}>
+                {p.permissions.map((pp) => (
+                  <li key={pp.bucket.name}>
+                    {pp.bucket.name} ({pp.level})
+                  </li>
+                ))}
+              </M.Box>
+            ) : (
+              ''
+            )
+          }
+        >
+          <span>{p.permissions.length}</span>
+        </M.Tooltip>
+      ) : (
+        'N/A'
+      ),
   },
   {
     id: 'roles',
     label: 'Associated roles',
     getValue: (p: Policy) => (p.managed ? p.roles.length : null),
-    getDisplay: (roles: number | null) => (roles == null ? 'N/A' : roles),
+    getDisplay: (_roles: any, p: Policy) =>
+      p.managed ? (
+        <M.Tooltip
+          arrow
+          title={
+            p.roles.length ? (
+              <M.Box component="ul" pl={1} m={0.5}>
+                {p.roles.map((r) => (
+                  <li key={r.id}>{r.name}</li>
+                ))}
+              </M.Box>
+            ) : (
+              ''
+            )
+          }
+        >
+          <span>{p.roles.length}</span>
+        </M.Tooltip>
+      ) : (
+        'N/A'
+      ),
   },
 ]
 
@@ -702,7 +744,6 @@ export default function Policies() {
                   {columns.map((col) => (
                     // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
-                      {/* @ts-expect-error */}
                       {(col.getDisplay || R.identity)(col.getValue(i), i)}
                     </M.TableCell>
                   ))}
