@@ -12,6 +12,7 @@ export const bucketFile = {
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
 }

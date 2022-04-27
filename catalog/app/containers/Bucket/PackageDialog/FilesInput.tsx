@@ -236,6 +236,7 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
   return FilesEntry.Dir({ name, state, childEntries: newChildren })
 }
 
+// eslint-disable-next-line @typescript-eslint/default-param-last
 const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEntry[]) => {
   let inserted = file
   let restEntries = entries
