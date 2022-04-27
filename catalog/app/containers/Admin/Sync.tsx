@@ -263,7 +263,7 @@ export default function Sync() {
 
   return (
     <div className={classes.root}>
-      <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
+      <MetaTitle>{['Sync Folders', 'Admin']}</MetaTitle>
 
       <ManageFolderDialog
         onCancel={() => setSelected(null)}
