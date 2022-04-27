@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
@@ -62,6 +63,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function AdminLayout({ section = false, children }) {
+  const { desktop } = Config.use()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
   return (
@@ -72,7 +74,7 @@ function AdminLayout({ section = false, children }) {
             <M.Tabs value={section} centered>
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
-              <NavTab label="Sync" value="sync" to={urls.adminSync()} />
+              {desktop && <NavTab label="Sync" value="sync" to={urls.adminSync()} />}
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
           </M.AppBar>
@@ -84,13 +86,14 @@ function AdminLayout({ section = false, children }) {
 }
 
 export default function Admin({ location }) {
+  const { desktop } = Config.use()
   const { paths } = NamedRoutes.use()
   return (
     <AdminLayout section={getAdminSection(paths)(location.pathname)}>
       <RR.Switch>
         <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
         <RR.Route path={paths.adminBuckets} component={Buckets} exact />
-        <RR.Route path={paths.adminSync} component={Sync} exact />
+        {desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
         <RR.Route path={paths.adminSettings} component={Settings} exact />
         <RR.Route component={ThrowNotFound} />
       </RR.Switch>
