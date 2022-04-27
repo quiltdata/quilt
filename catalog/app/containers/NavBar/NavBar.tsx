@@ -24,13 +24,13 @@ import Controls from './Controls'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
-    background: `${t.palette.secondary.dark} left / 64px url()`,
+    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
   },
   bgCustom: {
     alignItems: 'center',
     // TODO: make UI component with this background, and DRY
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `${t.palette.secondary.dark} left / 64px url()`,
+      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
     borderRadius: t.spacing(0, 0, 2, 0),
     display: 'flex',
     justifyContent: 'center',
@@ -351,11 +351,11 @@ const useAppBarStyles = M.makeStyles((t) => ({
   },
   bgCustom: {
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `${t.palette.secondary.dark} left / 64px url()`,
+      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
     flex: '50%',
   },
   bgQuilt: {
-    background: `${t.palette.secondary.dark} left / 64px url()`,
+    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
     flex: '50%',
   },
 }))
@@ -390,7 +390,7 @@ const useContainerStyles = M.makeStyles((t) => ({
   },
   main: {
     alignItems: 'center',
-    background: `${t.palette.secondary.dark} left / 64px url()`,
+    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
     borderRadius: '16px 0 0 0',
     display: 'flex',
     flexGrow: 1,
