@@ -92,17 +92,16 @@ function ConfirmDeletionDialog({
   )
 }
 
-interface AddFolderDialogProps {
+interface ManageFolderDialogProps {
   onCancel: () => void
   onSubmit: (v: DataRow) => void
   value: Partial<DataRow> | null
 }
 
-function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps) {
-  const initialValues = React.useMemo(() => ({ id: value?.id }), [value])
+function ManageFolderDialog({ onCancel, onSubmit, value }: ManageFolderDialogProps) {
   return (
     <M.Dialog open={!!value}>
-      <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
+      <RF.Form onSubmit={onSubmit} initialValues={value}>
         {({ handleSubmit, submitting, submitFailed, hasValidationErrors }) => (
           <>
             <M.DialogTitle>Add local ⇄ s3 folder pair</M.DialogTitle>
@@ -116,7 +115,6 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps)
                 errors={{
                   required: 'Path to local directory is required',
                 }}
-                initialValue={value?.local}
                 fullWidth
                 margin="normal"
               />
@@ -131,7 +129,6 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: AddFolderDialogProps)
                     validators.s3Url,
                   ) as FF.FieldValidator<any>
                 }
-                initialValue={value?.s3}
                 errors={{
                   required: 'S3 URL is required',
                   s3Url: 'Enter valid S3 url to package',
@@ -279,7 +276,6 @@ export default function Sync() {
       />
 
       <M.Paper>
-        <M.Typography variant="h6"></M.Typography>
         <Table.Toolbar heading="Sync folders" actions={toolbarActions} />
         {folders ? (
           <M.Table size="small">
