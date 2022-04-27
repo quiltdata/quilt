@@ -101,7 +101,7 @@
     "papaparse": "^5.3.2",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
-    "prop-types": "^15.7.2",
+    "prop-types": "^15.8.1",
     "ramda": "^0.27.1",
     "react": "^17.0.2",
     "react-ace": "^9.5.0",
