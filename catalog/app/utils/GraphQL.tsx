@@ -87,7 +87,10 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
             r.hash ? `${r.hash}:${r.modified?.valueOf() || ''}` : null,
           PackageRevisionList: () => null,
           PackageWorkflow: () => null,
-          RoleBucketPermission: () => null,
+          PolicyBucketPermission: (p: any) =>
+            p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
+          RoleBucketPermission: (p: any) =>
+            p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
         },
         updates: {
           Mutation: {
@@ -136,6 +139,12 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
                   R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
                 )
               }
+            },
+            policyUpdateManaged: (/*result, vars, cache*/) => {
+              // TODO: update role's policies if policy was removed from that role
+            },
+            policyUpdateUnmanaged: (/*result, vars, cache*/) => {
+              // TODO: update role's policies if policy was removed from that role
             },
             roleCreateManaged: (result, _vars, cache) => {
               if ((result.roleCreateManaged as any)?.__typename !== 'RoleCreateSuccess')
