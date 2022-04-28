@@ -2,7 +2,7 @@ import * as React from 'react'
 import type * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-interface FieldProps {
+export interface FieldProps {
   errors: Record<string, React.ReactNode>
   input: RF.FieldInputProps<string>
   meta: RF.FieldMetaState<string>

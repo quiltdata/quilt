@@ -179,6 +179,10 @@ export const adminSettings = {
   path: '/admin/settings',
   url: () => '/admin/settings',
 }
+export const adminSync = {
+  path: '/admin/sync',
+  url: () => '/admin/sync',
+}
 
 // storybook
 export const storyBook = {

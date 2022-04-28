@@ -1,6 +1,8 @@
 import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 
+import * as s3paths from './s3paths'
+
 /**
  * @typedef {function} TestFunction
  *
@@ -138,6 +140,16 @@ export const url = (v) => {
   }
 }
 
+export const s3Url = (v) => {
+  if (!v) return undefined
+  try {
+    const { bucket, key } = s3paths.parseS3Url(v)
+    if (!bucket || !key) return 's3Url'
+  } catch (e) {
+    return 's3Url'
+  }
+}
+
 export const file = (v) => {
   if (!v) return undefined
   return v instanceof File ? undefined : 'file'
@@ -158,13 +170,24 @@ export const jsonObject = (v) => {
   }
 }
 
-// TODO: create composeAnd, if needed
 export const composeOr =
   (...validators) =>
   (v) => {
     let error
     // check if any of validators returns undefined
     validators.some((validator) => {
+      error = validator(v)
+      return !error
+    })
+    return error
+  }
+
+export const composeAnd =
+  (...validators) =>
+  (v) => {
+    let error
+    // check if all validators returns undefined
+    validators.every((validator) => {
       error = validator(v)
       return !error
     })
