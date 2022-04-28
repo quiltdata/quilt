@@ -41,18 +41,19 @@ function Avatar({ className, email, index }: AvatarProps) {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    cursor: 'pointer',
-    display: 'flex',
-    height: '36px',
-    position: 'relative',
-  },
-  more: {
-    color: t.palette.common.white,
     // NOTE: base background color should be the same as NavBar bg
     background: `linear-gradient(to left, ${fade(
       '#2a2d69',
       0,
     )} 0, #2a2d69 32px, #2a2d69 100%)`,
+    cursor: 'pointer',
+    display: 'flex',
+    height: '36px',
+    position: 'relative',
+    zIndex: 1,
+  },
+  more: {
+    color: t.palette.common.white,
     lineHeight: '36px',
     marginLeft: '12px',
     padding: '0 16px 0 0',
