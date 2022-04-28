@@ -131,7 +131,7 @@ function ManageFolderDialog({ onCancel, onSubmit, value }: ManageFolderDialogPro
                 }
                 errors={{
                   required: 'S3 URL is required',
-                  s3Url: 'Enter valid S3 url to package',
+                  s3Url: 'Enter valid S3 URL to package',
                 }}
                 fullWidth
                 margin="normal"
