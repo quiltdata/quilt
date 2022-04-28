@@ -92,19 +92,17 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
   const potentialCollaborators = collaborators.filter(
     ({ permissionLevel }) => !permissionLevel,
   )
-  const hasUnmanagedRole = !!potentialCollaborators.length
 
   const avatars = React.useMemo(() => {
     if (!potentialCollaborators.length) return knownCollaborators.slice(0, 5)
     return [potentialCollaborators[0], ...knownCollaborators.slice(0, 4)]
   }, [knownCollaborators, potentialCollaborators])
-  const avatarsLength = avatars.length
 
   const classes = useStyles()
-  const more = React.useMemo(() => {
-    const num = collaborators.length - avatarsLength
-    return hasUnmanagedRole ? `${num}+ more` : `${num} more`
-  }, [avatarsLength, collaborators, hasUnmanagedRole])
+  const moreNum = React.useMemo(
+    () => collaborators.length - avatars.length,
+    [avatars, collaborators],
+  )
 
   return (
     <div className={cx(classes.root, className)} onClick={onClick}>
@@ -121,10 +119,10 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
           </div>
         ),
         <>
-          {collaborators.length > avatarsLength && (
+          {moreNum > 0 && (
             <div className={classes.avatarWrapper}>
               <M.Tooltip title="Click to see more collaborators">
-                <span className={classes.more}>{more}</span>
+                <span className={classes.more}>{moreNum}+</span>
               </M.Tooltip>
             </div>
           )}
