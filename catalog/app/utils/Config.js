@@ -48,7 +48,7 @@ const fetchConfig = async ({ path, opts = {} }) => {
     return R.pipe(
       parseJSON(`invalid config JSON at "${path}"`),
       validate('Config', `invalid config format at "${path}"`),
-      R.merge(opts),
+      R.mergeRight(opts),
     )(text)
   } catch (e) {
     if (!(e instanceof ConfigError)) {
