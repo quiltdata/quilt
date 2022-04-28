@@ -23,17 +23,19 @@ interface LauncherProps {
 export function Launcher({ className }: LauncherProps) {
   const classes = useStyles()
   return (
-    <M.Button
-      className={cx(classes.root, className)}
-      color="primary"
-      id={DOM_ID}
-      startIcon={
-        <M.Icon fontSize="small" className={classes.img}>
-          chat_bubble_outline
-        </M.Icon>
-      }
-      variant="contained"
-      size="small"
-    />
+    <M.Tooltip title="Chat with Quilt support">
+      <M.Button
+        className={cx(classes.root, className)}
+        color="primary"
+        id={DOM_ID}
+        startIcon={
+          <M.Icon fontSize="small" className={classes.img}>
+            chat_bubble_outline
+          </M.Icon>
+        }
+        variant="contained"
+        size="small"
+      />
+    </M.Tooltip>
   )
 }
