@@ -48,7 +48,7 @@ function useSyncFolders(): [null | DataRow[], () => void] {
 
     fetchData()
   }, [ipc, key])
-  return folders ? [folders, inc] : [null, inc]
+  return [folders, inc]
 }
 
 interface ConfirmDeletionDialogProps {
