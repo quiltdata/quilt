@@ -24,13 +24,13 @@ import Controls from './Controls'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
-    background: `left / 64px url(${bg})`,
+    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
   },
   bgCustom: {
     alignItems: 'center',
     // TODO: make UI component with this background, and DRY
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `left / 64px url(${bg})`,
+      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
     borderRadius: t.spacing(0, 0, 2, 0),
     display: 'flex',
     justifyContent: 'center',
@@ -351,11 +351,11 @@ const useAppBarStyles = M.makeStyles((t) => ({
   },
   bgCustom: {
     background: ({ backgroundColor }: { backgroundColor?: string }) =>
-      backgroundColor || `left / 64px url(${bg})`,
+      backgroundColor || `${t.palette.secondary.dark} left / 64px url(${bg})`,
     flex: '50%',
   },
   bgQuilt: {
-    background: `left / 64px url(${bg})`,
+    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
     flex: '50%',
   },
 }))
@@ -383,14 +383,14 @@ const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
   )
 })
 
-const useContainerStyles = M.makeStyles(() => ({
+const useContainerStyles = M.makeStyles((t) => ({
   container: {
     display: 'flex',
     alignItems: 'center',
   },
   main: {
     alignItems: 'center',
-    background: `left / 64px url(${bg})`,
+    background: `${t.palette.secondary.dark} left / 64px url(${bg})`,
     borderRadius: '16px 0 0 0',
     display: 'flex',
     flexGrow: 1,
