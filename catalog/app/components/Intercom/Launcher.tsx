@@ -9,9 +9,10 @@ export const SELECTOR = `#${DOM_ID}`
 const useStyles = M.makeStyles((t) => ({
   root: {
     fontWeight: t.typography.fontWeightRegular,
+    minWidth: t.spacing(4),
   },
   img: {
-    width: '16px',
+    marginRight: t.spacing(-1),
   },
 }))
 
@@ -26,11 +27,13 @@ export function Launcher({ className }: LauncherProps) {
       className={cx(classes.root, className)}
       color="primary"
       id={DOM_ID}
-      startIcon={<M.Icon fontSize="small">chat_bubble_outline</M.Icon>}
+      startIcon={
+        <M.Icon fontSize="small" className={classes.img}>
+          chat_bubble_outline
+        </M.Icon>
+      }
       variant="contained"
       size="small"
-    >
-      Support
-    </M.Button>
+    />
   )
 }
