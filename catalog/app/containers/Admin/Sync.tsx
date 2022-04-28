@@ -26,16 +26,7 @@ export function LocalFolderInput({ input, ...props }: LocalFolderInputProps) {
     onChange(newLocalPath)
   }, [ipc, onChange])
 
-  return (
-    <Form.Field
-      disabled={false}
-      id="localPath"
-      onClick={handleClick}
-      size="small"
-      input={input}
-      {...props}
-    />
-  )
+  return <Form.Field onClick={handleClick} size="small" input={input} {...props} />
 }
 
 interface DataRow {
