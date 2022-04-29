@@ -77,6 +77,7 @@ const useBucketStyles = M.makeStyles((t) => ({
 function Bucket({ bucket, onTagClick, tagIsMatching }) {
   const classes = useBucketStyles()
   const { urls } = NamedRoutes.use()
+  const cfg = Config.use()
 
   return (
     <div className={classes.bucket}>
