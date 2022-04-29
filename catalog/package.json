@@ -94,7 +94,7 @@
     "match-sorter": "^6.3.1",
     "mime-types": "^2.1.35",
     "mixpanel-browser": "^2.41.0",
-    "monocle-ts": "^2.3.11",
+    "monocle-ts": "^2.3.13",
     "newtype-ts": "^0.3.4",
     "ngl": "^2.0.0-dev.39",
     "p-limit": "^3.1.0",
