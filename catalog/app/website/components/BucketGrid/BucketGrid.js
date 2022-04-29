@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import Collaborators from './Collaborators'
@@ -76,13 +77,16 @@ const useBucketStyles = M.makeStyles((t) => ({
 function Bucket({ bucket, onTagClick, tagIsMatching }) {
   const classes = useBucketStyles()
   const { urls } = NamedRoutes.use()
+  const cfg = Config.use()
 
   return (
     <div className={classes.bucket}>
       <div>
-        <div className={classes.shared}>
-          <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
-        </div>
+        {cfg.mode === 'PRODUCT' && (
+          <div className={classes.shared}>
+            <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
+          </div>
+        )}
         <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
           {bucket.title}
         </Link>
