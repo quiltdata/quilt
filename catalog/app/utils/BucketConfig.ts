@@ -9,6 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRoute } from 'utils/router'
 
 import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
+import BUCKET_CONFIGS_QUERY_NO_COLLABORATORS from './BucketConfigListNoCollaborators.generated'
 
 // always suspended
 function useBucketConfigs() {
@@ -17,7 +18,10 @@ function useBucketConfigs() {
   // XXX: consider moving this logic to gql resolver
   const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)
 
-  const [{ data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY, pause: empty })
+  // TODO: use condition inside GraphQL query
+  const query =
+    cfg.mode === 'PRODUCT' ? BUCKET_CONFIGS_QUERY : BUCKET_CONFIGS_QUERY_NO_COLLABORATORS
+  const [{ data }] = urql.useQuery({ query, pause: empty })
 
   return React.useMemo(() => {
     if (empty) return []
