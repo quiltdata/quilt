@@ -79,7 +79,7 @@
     "final-form": "^4.20.6",
     "fontfaceobserver": "^2.1.0",
     "fp-ts": "^2.12.1",
-    "graphql": "^15.7.2",
+    "graphql": "^15.8.0",
     "highlight.js": "^11.4.0",
     "history": "^4.10.1",
     "immutable": "^3.8.2",
