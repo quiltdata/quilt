@@ -154,9 +154,7 @@ export function LocalFolderInput({ onChange, open, value }: LocalFolderInputProp
       <M.TextField
         fullWidth
         size="small"
-        disabled={false}
         helperText="Click to set local folder with your file browser"
-        id="localPath"
         label="Path to local folder"
         onClick={handleClick}
         value={value}
