@@ -18,7 +18,7 @@ import * as validators from 'utils/validators'
 import * as Form from '../RFForm'
 import * as Table from '../Table'
 
-import AssociatedPolicies from './AssociatedPolicies'
+import AttachedPolicies from './AttachedPolicies'
 
 import ROLES_QUERY from './gql/Roles.generated'
 import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
@@ -281,7 +281,7 @@ function Create({ close }: CreateProps) {
               <M.Collapse in={managed}>
                 <RF.Field
                   className={classes.panel}
-                  component={AssociatedPolicies}
+                  component={AttachedPolicies}
                   name="policies"
                   fullWidth
                   margin="normal"
@@ -462,6 +462,8 @@ const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
   ),
   policies: R.pipe(
     R.prop('policies'),
+    Types.decode(IO.array(IO.type({ id: IO.string }))),
+    R.pluck('id'),
     Types.decode(IO.readonlyArray(Types.NonEmptyString)),
   ),
 }
@@ -526,18 +528,9 @@ function Edit({ role, close }: EditProps) {
   const initialValues = React.useMemo(
     () => ({
       name: role.name,
-      policies: role.__typename === 'ManagedRole' ? R.pluck('id', role.policies) : [],
+      policies: role.__typename === 'ManagedRole' ? role.policies : [],
       arn: role.__typename === 'UnmanagedRole' ? role.arn : null,
     }),
-    [role],
-  )
-
-  const policyTitles = React.useMemo(
-    () =>
-      (role.__typename === 'ManagedRole' ? role.policies : []).reduce(
-        (acc, { id, title }) => ({ ...acc, [id]: title }),
-        {} as Record<string, string>,
-      ),
     [role],
   )
 
@@ -600,11 +593,10 @@ function Edit({ role, close }: EditProps) {
                   />
                   <RF.Field
                     className={classes.panel}
-                    component={AssociatedPolicies}
+                    component={AttachedPolicies}
                     name="policies"
                     fullWidth
                     margin="normal"
-                    policyTitles={policyTitles}
                   />
                 </>
               ) : (
