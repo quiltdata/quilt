@@ -9,7 +9,7 @@ import { PreviewData } from '../types'
 
 import * as utils from './utils'
 
-export const detect = R.pipe(utils.stripCompression, utils.extIs('.pdb'))
+export const detect = R.pipe(utils.stripCompression, utils.extIn(['.ent', '.pdb']))
 
 const gzipDecompress = DecompressorRegistry.get('gz')
 
