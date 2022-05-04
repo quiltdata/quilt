@@ -17,6 +17,7 @@ import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
+import SuccessorsSelect from './SuccessorsSelect'
 import * as requests from './requests'
 
 const prepareEntries = (
@@ -35,22 +36,55 @@ const prepareEntries = (
 }
 
 interface DialogTitleProps {
-  bucket: string
+  bucket?: string
+  onChange?: (successor: workflows.Successor) => void
   path?: string
+  successor: workflows.Successor
 }
 
-function DialogTitle({ bucket, path }: DialogTitleProps) {
+function DialogTitle({ bucket, path, successor, onChange }: DialogTitleProps) {
   const { urls } = NamedRoutes.use()
 
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement | null>(null)
   const directory = path ? `"${path}"` : 'root'
+
+  const handleChange = React.useCallback(
+    (event) => setMenuAnchorEl(event.currentTarget),
+    [setMenuAnchorEl],
+  )
+
+  const onMenuClick = React.useCallback(
+    (menuItem) => {
+      if (onChange) onChange(menuItem)
+      setMenuAnchorEl(null)
+    },
+    [onChange, setMenuAnchorEl],
+  )
+
+  const onMenuClose = React.useCallback(() => setMenuAnchorEl(null), [setMenuAnchorEl])
 
   return (
     <>
       Push {directory} directory to{' '}
-      <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
-        {bucket}
-      </StyledLink>{' '}
+      <StyledLink target="_blank" to={urls.bucketOverview(successor.slug)}>
+        {successor.slug}
+      </StyledLink>
+      {}
+      {!!bucket && !!onChange && (
+        <M.IconButton onClick={handleChange} size="small">
+          <M.Icon>edit</M.Icon>
+        </M.IconButton>
+      )}{' '}
       bucket as package
+      {!!bucket && !!onChange && (
+        <SuccessorsSelect
+          anchorEl={menuAnchorEl}
+          bucket={bucket}
+          open={!!menuAnchorEl}
+          onChange={onMenuClick}
+          onClose={onMenuClose}
+        />
+      )}
     </>
   )
 }
@@ -82,6 +116,7 @@ interface DialogFormProps {
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   successor: workflows.Successor
+  onChangeSuccessor: (successor: workflows.Successor) => void
   workflowsConfig: workflows.WorkflowsConfig
 }
 
@@ -103,6 +138,7 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
+  onChangeSuccessor,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -262,7 +298,12 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>
-            <DialogTitle bucket={successor.slug} path={path} />
+            <DialogTitle
+              bucket={bucket}
+              onChange={onChangeSuccessor}
+              path={path}
+              successor={successor}
+            />
           </M.DialogTitle>
 
           <M.DialogContent classes={dialogContentClasses}>
@@ -414,33 +455,49 @@ function DialogForm({
 
 interface DialogErrorProps {
   bucket: string
-  path: string
   error: $TSFixMe
   onCancel: () => void
+  onChangeSuccessor: (successor: workflows.Successor) => void
+  path: string
+  successor: workflows.Successor
 }
 
-function DialogError({ bucket, error, path, onCancel }: DialogErrorProps) {
+function DialogError({
+  bucket,
+  successor,
+  error,
+  path,
+  onCancel,
+  onChangeSuccessor,
+}: DialogErrorProps) {
   return (
     <PD.DialogError
       error={error}
       skeletonElement={<PD.FormSkeleton animate={false} />}
-      title={<DialogTitle bucket={bucket} path={path} />}
+      title={
+        <DialogTitle
+          bucket={bucket}
+          onChange={onChangeSuccessor}
+          successor={successor}
+          path={path}
+        />
+      }
       onCancel={onCancel}
     />
   )
 }
 
 interface DialogLoadingProps {
-  bucket: string
+  successor: workflows.Successor
   path: string
   onCancel: () => void
 }
 
-function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
+function DialogLoading({ path, successor, onCancel }: DialogLoadingProps) {
   return (
     <PD.DialogLoading
       skeletonElement={<PD.FormSkeleton />}
-      title={<DialogTitle bucket={bucket} path={path} />}
+      title={<DialogTitle successor={successor} path={path} />}
       onCancel={onCancel}
     />
   )
@@ -457,6 +514,7 @@ interface PackageDirectoryDialogProps {
   successor: workflows.Successor | null
   onClose?: () => void
   onExited: (param: { pushed: null | { name: string; hash: string } }) => void
+  onChangeSuccessor: (successor: workflows.Successor) => void
 }
 
 export default function PackageDirectoryDialog({
@@ -470,6 +528,7 @@ export default function PackageDirectoryDialog({
   onExited,
   open,
   successor,
+  onChangeSuccessor,
 }: PackageDirectoryDialogProps) {
   const s3 = AWS.S3.use()
 
@@ -525,10 +584,12 @@ export default function PackageDirectoryDialog({
           Err: (e: Error) =>
             successor && (
               <DialogError
-                bucket={successor.slug}
-                path={path}
-                onCancel={handleClose}
+                bucket={bucket}
                 error={e}
+                onCancel={handleClose}
+                onChangeSuccessor={onChangeSuccessor}
+                path={path}
+                successor={successor}
               />
             ),
           Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
@@ -550,6 +611,7 @@ export default function PackageDirectoryDialog({
                       setWorkflow,
                       successor,
                       workflowsConfig,
+                      onChangeSuccessor,
                     }}
                   />
                 )}
@@ -557,7 +619,7 @@ export default function PackageDirectoryDialog({
             ),
           _: () =>
             successor && (
-              <DialogLoading bucket={successor.slug} path={path} onCancel={handleClose} />
+              <DialogLoading successor={successor} path={path} onCancel={handleClose} />
             ),
         })
       )}

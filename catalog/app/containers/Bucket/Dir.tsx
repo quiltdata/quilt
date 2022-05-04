@@ -129,6 +129,7 @@ function DirContents({
         open={!!successor}
         successor={successor}
         onExited={onPackageDirectoryDialogExited}
+        onChangeSuccessor={setSuccessor}
       />
 
       {preferences?.ui?.blocks?.browser && (
