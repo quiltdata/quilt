@@ -37,12 +37,12 @@ const prepareEntries = (
 
 interface DialogTitleProps {
   bucket?: string
-  onChange?: (successor: workflows.Successor) => void
+  onSuccessor?: (successor: workflows.Successor) => void
   path?: string
   successor: workflows.Successor
 }
 
-function DialogTitle({ bucket, path, successor, onChange }: DialogTitleProps) {
+function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps) {
   const { urls } = NamedRoutes.use()
 
   const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement | null>(null)
@@ -55,10 +55,10 @@ function DialogTitle({ bucket, path, successor, onChange }: DialogTitleProps) {
 
   const onMenuClick = React.useCallback(
     (menuItem) => {
-      if (onChange) onChange(menuItem)
+      if (onSuccessor) onSuccessor(menuItem)
       setMenuAnchorEl(null)
     },
-    [onChange, setMenuAnchorEl],
+    [onSuccessor, setMenuAnchorEl],
   )
 
   const onMenuClose = React.useCallback(() => setMenuAnchorEl(null), [setMenuAnchorEl])
@@ -69,14 +69,13 @@ function DialogTitle({ bucket, path, successor, onChange }: DialogTitleProps) {
       <StyledLink target="_blank" to={urls.bucketOverview(successor.slug)}>
         {successor.slug}
       </StyledLink>
-      {}
-      {!!bucket && !!onChange && (
+      {!!bucket && !!onSuccessor && (
         <M.IconButton onClick={handleChange} size="small">
           <M.Icon>edit</M.Icon>
         </M.IconButton>
       )}{' '}
       bucket as package
-      {!!bucket && !!onChange && (
+      {!!bucket && !!onSuccessor && (
         <SuccessorsSelect
           anchorEl={menuAnchorEl}
           bucket={bucket}
@@ -116,7 +115,7 @@ interface DialogFormProps {
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   successor: workflows.Successor
-  onChangeSuccessor: (successor: workflows.Successor) => void
+  onSuccessor: (successor: workflows.Successor) => void
   workflowsConfig: workflows.WorkflowsConfig
 }
 
@@ -138,7 +137,7 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
-  onChangeSuccessor,
+  onSuccessor,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -300,7 +299,7 @@ function DialogForm({
           <M.DialogTitle>
             <DialogTitle
               bucket={bucket}
-              onChange={onChangeSuccessor}
+              onSuccessor={onSuccessor}
               path={path}
               successor={successor}
             />
@@ -457,7 +456,7 @@ interface DialogErrorProps {
   bucket: string
   error: $TSFixMe
   onCancel: () => void
-  onChangeSuccessor: (successor: workflows.Successor) => void
+  onSuccessor: (successor: workflows.Successor) => void
   path: string
   successor: workflows.Successor
 }
@@ -468,7 +467,7 @@ function DialogError({
   error,
   path,
   onCancel,
-  onChangeSuccessor,
+  onSuccessor,
 }: DialogErrorProps) {
   return (
     <PD.DialogError
@@ -477,7 +476,7 @@ function DialogError({
       title={
         <DialogTitle
           bucket={bucket}
-          onChange={onChangeSuccessor}
+          onSuccessor={onSuccessor}
           successor={successor}
           path={path}
         />
@@ -514,7 +513,7 @@ interface PackageDirectoryDialogProps {
   successor: workflows.Successor | null
   onClose?: () => void
   onExited: (param: { pushed: null | { name: string; hash: string } }) => void
-  onChangeSuccessor: (successor: workflows.Successor) => void
+  onSuccessor: (successor: workflows.Successor) => void
 }
 
 export default function PackageDirectoryDialog({
@@ -528,7 +527,7 @@ export default function PackageDirectoryDialog({
   onExited,
   open,
   successor,
-  onChangeSuccessor,
+  onSuccessor,
 }: PackageDirectoryDialogProps) {
   const s3 = AWS.S3.use()
 
@@ -587,7 +586,7 @@ export default function PackageDirectoryDialog({
                 bucket={bucket}
                 error={e}
                 onCancel={handleClose}
-                onChangeSuccessor={onChangeSuccessor}
+                onSuccessor={onSuccessor}
                 path={path}
                 successor={successor}
               />
@@ -611,7 +610,7 @@ export default function PackageDirectoryDialog({
                       setWorkflow,
                       successor,
                       workflowsConfig,
-                      onChangeSuccessor,
+                      onSuccessor: onSuccessor,
                     }}
                   />
                 )}
