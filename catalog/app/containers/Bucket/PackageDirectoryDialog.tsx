@@ -9,8 +9,6 @@ import * as M from '@material-ui/core'
 import * as Intercom from 'components/Intercom'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
@@ -35,12 +33,11 @@ const prepareEntries = (
       }))
 }
 
-const useDialogTitleStyles = M.makeStyles((t) => ({
+const useDialogTitleStyles = M.makeStyles({
   select: {
-    display: 'inline-block',
-    minWidth: t.spacing(20),
+    verticalAlign: '2px',
   },
-}))
+})
 
 interface DialogTitleProps {
   bucket?: string
@@ -52,23 +49,16 @@ interface DialogTitleProps {
 function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps) {
   const classes = useDialogTitleStyles()
   const directory = path ? `"${path}"` : 'root'
-  const { urls } = NamedRoutes.use()
 
   return (
     <>
       Push {directory} directory to{' '}
-      {bucket && onSuccessor ? (
-        <SuccessorsSelectInput
-          className={classes.select}
-          bucket={bucket || ''}
-          successor={successor}
-          onChange={onSuccessor}
-        />
-      ) : (
-        <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
-          {successor.slug}
-        </StyledLink>
-      )}{' '}
+      <SuccessorsSelectInput
+        className={classes.select}
+        bucket={bucket || ''}
+        successor={successor}
+        onChange={onSuccessor}
+      />{' '}
       bucket as package
     </>
   )

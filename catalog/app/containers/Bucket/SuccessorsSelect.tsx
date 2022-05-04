@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -136,51 +137,40 @@ interface InputProps {
   onChange?: (value: workflows.Successor) => void
 }
 
-export function Input({ className, bucket, successor, onChange, ...props }: InputProps) {
+export function Input({ className, bucket, successor, onChange }: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
   const successors = useSuccessors(bucket, { noAutoFetch })
+  const options = React.useMemo(() => {
+    if (!Array.isArray(successors)) return []
+    return successors.map((s) => ({
+      ...s,
+      valueOf: () => s.slug,
+      toString: () => s.slug,
+    }))
+  }, [successors])
+  const handleClose = React.useCallback(() => setOpen(false), [])
   const handleOpen = React.useCallback(() => {
     setOpen(true)
     setNoAutoFetch(false)
-  }, [setOpen, setNoAutoFetch])
-  const handleClose = React.useCallback(() => setOpen(false), [])
-  const loading = !successors && open
+  }, [])
   const handleChange = React.useCallback(
-    (event, newValue) => {
-      if (onChange) onChange(newValue)
+    ({ valueOf, toString, ...s }) => {
+      if (onChange) onChange(s)
     },
     [onChange],
   )
-  // defaultValue
+  const loading = !successors && open
   return (
-    <Lab.Autocomplete
+    <SelectDropdown
       className={className}
       disabled={!onChange}
-      getOptionLabel={(option) => option.slug}
+      loading={loading}
       onChange={handleChange}
       onClose={handleClose}
       onOpen={handleOpen}
-      open={open}
-      disableClearable
-      openOnFocus
-      options={Array.isArray(successors) ? successors : []}
-      renderInput={(params) => (
-        <M.TextField
-          {...params}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <React.Fragment>
-                {loading ? <M.CircularProgress color="inherit" size={16} /> : null}
-                {params.InputProps.endAdornment}
-              </React.Fragment>
-            ),
-          }}
-        />
-      )}
-      defaultValue={successor}
-      {...props}
+      options={options}
+      value={successor.slug}
     />
   )
 }

@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    display: 'inline-block',
+    display: 'inline-flex',
     [t.breakpoints.down('sm')]: {
       borderRadius: 0,
       boxShadow: 'none',
@@ -15,8 +15,14 @@ const useStyles = M.makeStyles((t) => ({
     border: 0,
     textTransform: 'none',
   },
+  disabled: {
+    cursor: 'not-allowed',
+  },
   label: {
     marginLeft: t.spacing(1),
+  },
+  progress: {
+    margin: t.spacing(0, 1),
   },
 }))
 
@@ -26,27 +32,45 @@ export interface ValueBase {
 }
 
 interface SelectDropdownProps<Value extends ValueBase> {
-  children: React.ReactNode
+  children?: React.ReactNode
+  disabled?: boolean
+  loading?: boolean
   onChange: (selected: Value) => void
+  onClose?: () => void
+  onOpen?: () => void
   options: Value[]
-  value: Value
+  value: ValueBase
 }
 
 export default function SelectDropdown<Value extends ValueBase>({
   children,
+  disabled = false,
+  className,
+  loading,
   onChange,
+  onClose,
+  onOpen,
   options,
   value,
-  className,
   ...props
 }: SelectDropdownProps<Value> & M.PaperProps) {
   const classes = useStyles()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
-  const handleOpen = React.useCallback((event) => setAnchorEl(event.currentTarget), [])
+  const handleOpen = React.useCallback(
+    (event) => {
+      if (disabled) return
+      if (onOpen) onOpen()
+      setAnchorEl(event.currentTarget)
+    },
+    [disabled, onOpen, setAnchorEl],
+  )
 
-  const handleClose = React.useCallback(() => setAnchorEl(null), [])
+  const handleClose = React.useCallback(() => {
+    if (onClose) onClose()
+    setAnchorEl(null)
+  }, [])
 
   const handleSelect = React.useCallback(
     (selected: Value) => () => {
@@ -60,17 +84,28 @@ export default function SelectDropdown<Value extends ValueBase>({
   const aboveSm = M.useMediaQuery(t.breakpoints.up('sm'))
 
   return (
-    <M.Paper className={cx(className, classes.root)} {...props}>
+    <M.Paper
+      className={cx(className, classes.root, { [classes.disabled]: disabled })}
+      {...props}
+    >
       <M.Button
         className={classes.button}
         onClick={handleOpen}
         size="small"
         variant="outlined"
+        disabled={disabled}
       >
         {children}
         {aboveSm && (
           <>
             <span className={classes.label}>{value.toString()}</span>
+            {loading && (
+              <M.CircularProgress
+                className={classes.progress}
+                color="inherit"
+                size={16}
+              />
+            )}
             <M.Icon fontSize="inherit">expand_more</M.Icon>
           </>
         )}
@@ -78,7 +113,7 @@ export default function SelectDropdown<Value extends ValueBase>({
 
       <M.Menu
         anchorEl={anchorEl}
-        open={!!anchorEl}
+        open={!!anchorEl && !loading}
         onClose={handleClose}
         MenuListProps={{ dense: true }}
       >
