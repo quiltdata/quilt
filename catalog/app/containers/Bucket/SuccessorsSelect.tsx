@@ -49,6 +49,23 @@ const MenuItem = React.forwardRef<HTMLLIElement, MenuItemProps>(function MenuIte
   )
 })
 
+function useSuccessors(
+  bucket: string,
+  { noAutoFetch = false },
+): workflows.Successor[] | Error | undefined {
+  const s3 = AWS.S3.use()
+  const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch })
+  return React.useMemo(
+    () =>
+      data.case({
+        Ok: ({ successors }: { successors: workflows.Successor[] }) => successors,
+        Err: (error: Error) => error,
+        _: () => undefined,
+      }),
+    [data],
+  )
+}
+
 interface SuccessorsSelectProps {
   anchorEl: HTMLElement | null
   bucket: string
@@ -109,5 +126,61 @@ export default function SuccessorsSelect({
         ),
       })}
     </M.Menu>
+  )
+}
+
+interface InputProps {
+  className?: string
+  bucket: string
+  successor: workflows.Successor
+  onChange?: (value: workflows.Successor) => void
+}
+
+export function Input({ className, bucket, successor, onChange, ...props }: InputProps) {
+  const [open, setOpen] = React.useState(false)
+  const [noAutoFetch, setNoAutoFetch] = React.useState(true)
+  const successors = useSuccessors(bucket, { noAutoFetch })
+  const handleOpen = React.useCallback(() => {
+    setOpen(true)
+    setNoAutoFetch(false)
+  }, [setOpen, setNoAutoFetch])
+  const handleClose = React.useCallback(() => setOpen(false), [])
+  const loading = !successors && open
+  const handleChange = React.useCallback(
+    (event, newValue) => {
+      if (onChange) onChange(newValue)
+    },
+    [onChange],
+  )
+  // defaultValue
+  return (
+    <Lab.Autocomplete
+      className={className}
+      disabled={!onChange}
+      getOptionLabel={(option) => option.slug}
+      onChange={handleChange}
+      onClose={handleClose}
+      onOpen={handleOpen}
+      open={open}
+      disableClearable
+      openOnFocus
+      options={Array.isArray(successors) ? successors : []}
+      renderInput={(params) => (
+        <M.TextField
+          {...params}
+          InputProps={{
+            ...params.InputProps,
+            endAdornment: (
+              <React.Fragment>
+                {loading ? <M.CircularProgress color="inherit" size={16} /> : null}
+                {params.InputProps.endAdornment}
+              </React.Fragment>
+            ),
+          }}
+        />
+      )}
+      defaultValue={successor}
+      {...props}
+    />
   )
 }

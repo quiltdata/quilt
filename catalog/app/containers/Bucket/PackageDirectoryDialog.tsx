@@ -17,7 +17,7 @@ import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
-import SuccessorsSelect from './SuccessorsSelect'
+import { Input as SuccessorsSelectInput } from './SuccessorsSelect'
 import * as requests from './requests'
 
 const prepareEntries = (
@@ -35,55 +35,41 @@ const prepareEntries = (
       }))
 }
 
+const useDialogTitleStyles = M.makeStyles((t) => ({
+  select: {
+    display: 'inline-block',
+    minWidth: t.spacing(20),
+  },
+}))
+
 interface DialogTitleProps {
   bucket?: string
-  onSuccessor?: (successor: workflows.Successor) => void
   path?: string
   successor: workflows.Successor
+  onSuccessor?: (v: workflows.Successor) => void
 }
 
 function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps) {
-  const { urls } = NamedRoutes.use()
-
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement | null>(null)
+  const classes = useDialogTitleStyles()
   const directory = path ? `"${path}"` : 'root'
-
-  const handleChange = React.useCallback(
-    (event) => setMenuAnchorEl(event.currentTarget),
-    [setMenuAnchorEl],
-  )
-
-  const onMenuClick = React.useCallback(
-    (menuItem) => {
-      if (onSuccessor) onSuccessor(menuItem)
-      setMenuAnchorEl(null)
-    },
-    [onSuccessor, setMenuAnchorEl],
-  )
-
-  const onMenuClose = React.useCallback(() => setMenuAnchorEl(null), [setMenuAnchorEl])
+  const { urls } = NamedRoutes.use()
 
   return (
     <>
       Push {directory} directory to{' '}
-      <StyledLink target="_blank" to={urls.bucketOverview(successor.slug)}>
-        {successor.slug}
-      </StyledLink>
-      {!!bucket && !!onSuccessor && (
-        <M.IconButton onClick={handleChange} size="small">
-          <M.Icon>edit</M.Icon>
-        </M.IconButton>
+      {bucket && onSuccessor ? (
+        <SuccessorsSelectInput
+          className={classes.select}
+          bucket={bucket || ''}
+          successor={successor}
+          onChange={onSuccessor}
+        />
+      ) : (
+        <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
+          {successor.slug}
+        </StyledLink>
       )}{' '}
       bucket as package
-      {!!bucket && !!onSuccessor && (
-        <SuccessorsSelect
-          anchorEl={menuAnchorEl}
-          bucket={bucket}
-          open={!!menuAnchorEl}
-          onChange={onMenuClick}
-          onClose={onMenuClose}
-        />
-      )}
     </>
   )
 }
