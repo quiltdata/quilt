@@ -138,14 +138,17 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
   const successors = useSuccessors(bucket, { noAutoFetch })
-  const options = React.useMemo(() => {
-    if (!Array.isArray(successors)) return []
-    return successors.map((s) => ({
-      ...s,
-      valueOf: () => s.slug,
-      toString: () => s.slug,
-    }))
-  }, [successors])
+  const options = React.useMemo(
+    () =>
+      Array.isArray(successors)
+        ? successors.map((s) => ({
+            ...s,
+            valueOf: () => s.slug,
+            toString: () => s.slug,
+          }))
+        : [],
+    [successors],
+  )
   const handleClose = React.useCallback(() => setOpen(false), [])
   const handleOpen = React.useCallback(() => {
     setOpen(true)
