@@ -30,8 +30,8 @@ import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
-const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:\d+:role\/(.+)$/
-const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:\d+:policy\/(.+)$/
+const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:[^:]+:role\/(.+)$/
+const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:[^:]+:policy\/(.+)$/
 
 const getARNLink = (arn: string) => {
   const [, role] = arn.match(ARN_ROLE_RE) || []
@@ -184,7 +184,7 @@ function Create({ close }: CreateProps) {
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
         const r = res.data.roleCreate
-        // TODO: check new policy-related errors
+        // TODO: check new policy-related errors if/when they are added
         switch (r.__typename) {
           case 'RoleCreateSuccess':
             push(`Role "${r.role.name}" created`)

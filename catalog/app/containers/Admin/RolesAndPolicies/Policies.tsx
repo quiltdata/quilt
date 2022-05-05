@@ -29,7 +29,7 @@ import POLICY_DELETE_MUTATION from './gql/PolicyDelete.generated'
 import { PolicySelectionFragment as Policy } from './gql/PolicySelection.generated'
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
-const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:\d+:policy\/(.+)$/
+const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:[^:]+:policy\/(.+)$/
 
 // TODO: reuse
 const getARNLink = (arn: string) => {
@@ -90,27 +90,24 @@ const columns = [
     id: 'roles',
     label: 'Associated roles',
     getValue: (p: Policy) => (p.managed ? p.roles.length : null),
-    getDisplay: (_roles: any, p: Policy) =>
-      p.managed ? (
-        <M.Tooltip
-          arrow
-          title={
-            p.roles.length ? (
-              <M.Box component="ul" pl={1} m={0.5}>
-                {p.roles.map((r) => (
-                  <li key={r.id}>{r.name}</li>
-                ))}
-              </M.Box>
-            ) : (
-              ''
-            )
-          }
-        >
-          <span>{p.roles.length}</span>
-        </M.Tooltip>
-      ) : (
-        'N/A'
-      ),
+    getDisplay: (_roles: any, p: Policy) => (
+      <M.Tooltip
+        arrow
+        title={
+          p.roles.length ? (
+            <M.Box component="ul" pl={1} m={0.5}>
+              {p.roles.map((r) => (
+                <li key={r.id}>{r.name}</li>
+              ))}
+            </M.Box>
+          ) : (
+            ''
+          )
+        }
+      >
+        <span>{p.roles.length}</span>
+      </M.Tooltip>
+    ),
   },
 ]
 
@@ -398,7 +395,12 @@ const unmanagedPolicyFormSpec: FormSpec<Model.GQLTypes.UnmanagedPolicyInput> = {
     R.trim,
     Types.decode(Types.NonEmptyString),
   ),
-  roles: R.pipe(R.prop('roles'), Types.decode(IO.readonlyArray(Types.NonEmptyString))),
+  roles: R.pipe(
+    R.prop('roles'),
+    Types.decode(IO.array(IO.type({ id: IO.string }))),
+    R.pluck('id'),
+    Types.decode(IO.readonlyArray(Types.NonEmptyString)),
+  ),
 }
 
 // XXX: can we use gql PermissionInput type?
@@ -417,7 +419,12 @@ const managedPolicyFormSpec: FormSpec<Model.GQLTypes.ManagedPolicyInput> = {
     R.trim,
     Types.decode(Types.NonEmptyString),
   ),
-  roles: R.pipe(R.prop('roles'), Types.decode(IO.readonlyArray(Types.NonEmptyString))),
+  roles: R.pipe(
+    R.prop('roles'),
+    Types.decode(IO.array(IO.type({ id: IO.string }))),
+    R.pluck('id'),
+    Types.decode(IO.readonlyArray(Types.NonEmptyString)),
+  ),
   permissions: R.pipe(
     R.prop('permissions'),
     Types.decode(IO.readonlyArray(PermissionInput)),
@@ -485,19 +492,10 @@ function Edit({ policy, close }: EditProps) {
               } as Model.GQLTypes.PermissionInput),
           )
         : [],
-      roles: R.pluck('id', policy.roles),
+      roles: policy.roles,
       arn: policy.managed ? null : policy.arn,
     }),
     [policy],
-  )
-
-  const roleNames = React.useMemo(
-    () =>
-      policy.roles.reduce(
-        (acc, { id, name }) => ({ ...acc, [id]: name }),
-        {} as Record<string, string>,
-      ),
-    [policy.roles],
   )
 
   const title = (
@@ -594,7 +592,6 @@ function Edit({ policy, close }: EditProps) {
                 name="roles"
                 fullWidth
                 margin="normal"
-                roleNames={roleNames}
               />
 
               {submitFailed && (

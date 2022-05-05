@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
@@ -6,150 +5,183 @@ import * as M from '@material-ui/core'
 import useQuery from 'utils/useQuery'
 
 import ROLES_QUERY from './gql/Roles.generated'
+import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
 
-const useStyles = M.makeStyles((t) => ({
-  heading: {
-    alignItems: 'center',
-    display: 'flex',
-  },
-  icon: {
-    marginLeft: t.spacing(0.5),
-  },
-  cell: {
-    minWidth: t.spacing(17.5),
-  },
-  container: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginTop: t.spacing(1),
-    maxHeight: 'calc(100vh - 500px)',
-  },
-}))
+interface RoleSelectionDialogProps {
+  open: boolean
+  onClose: () => void
+  roles: Role[]
+  attachRoles: (roles: Role[]) => void
+}
 
-interface AssociatedRolesProps extends RF.FieldRenderProps<string[]> {
+function RoleSelectionDialog({
+  open,
+  onClose,
+  roles,
+  attachRoles,
+}: RoleSelectionDialogProps) {
+  const [selected, setSelected] = React.useState<Role[]>([])
+  const [committed, setCommitted] = React.useState(false)
+
+  const handleExited = React.useCallback(() => {
+    if (committed) attachRoles(selected)
+    setCommitted(false)
+    setSelected([])
+  }, [attachRoles, committed, selected, setCommitted, setSelected])
+
+  const handleAttach = React.useCallback(() => {
+    setCommitted(true)
+    onClose()
+  }, [onClose, setCommitted])
+
+  const toggle = React.useCallback(
+    (role: Role) => {
+      setSelected((value) =>
+        value.includes(role) ? value.filter((r) => r.id !== role.id) : value.concat(role),
+      )
+    },
+    [setSelected],
+  )
+
+  return (
+    <M.Dialog maxWidth="xs" open={open} onClose={onClose} onExited={handleExited}>
+      <M.DialogTitle>Attach policy to roles</M.DialogTitle>
+      <M.DialogContent dividers>
+        {roles.length ? (
+          roles.map((role) => (
+            <M.FormControlLabel
+              key={role.id}
+              style={{ display: 'flex', marginRight: 0 }}
+              control={
+                <M.Checkbox
+                  checked={selected.includes(role)}
+                  onChange={() => toggle(role)}
+                  color="primary"
+                />
+              }
+              label={role.name}
+            />
+          ))
+        ) : (
+          <M.Typography>No more roles to attach this policy to</M.Typography>
+        )}
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button autoFocus onClick={onClose} color="primary">
+          Cancel
+        </M.Button>
+        <M.Button onClick={handleAttach} disabled={!selected.length} color="primary">
+          Attach
+        </M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
+interface AssociatedRolesProps extends RF.FieldRenderProps<Role[]> {
   className?: string
-  roleNames?: Record<string, string>
 }
 
 export default function AssociatedRoles({
   className,
   input: { value, onChange },
   meta,
-  roleNames = {},
 }: AssociatedRolesProps) {
-  const classes = useStyles()
+  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const rolesData = useQuery({ query: ROLES_QUERY })
 
-  const [anchorEl, setAnchorEl] = React.useState<Element | null>(null)
+  const [roleSelectionOpen, setRoleSelectionOpen] = React.useState(false)
 
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const openRoleSelection = React.useCallback(() => {
+    setRoleSelectionOpen(true)
+  }, [setRoleSelectionOpen])
 
-  const handleOpen = React.useCallback(
-    (e: React.MouseEvent) => {
-      setAnchorEl(e.currentTarget)
+  const closeRoleSelection = React.useCallback(() => {
+    setRoleSelectionOpen(false)
+  }, [setRoleSelectionOpen])
+
+  const attachRoles = React.useCallback(
+    (roles: Role[]) => {
+      onChange(value.concat(roles))
     },
-    [setAnchorEl],
+    [onChange, value],
   )
 
-  const handleClose = React.useCallback(() => {
-    setAnchorEl(null)
-  }, [setAnchorEl])
+  const detachRole = (policy: Role) => {
+    onChange(value.filter((p) => p.id !== policy.id))
+  }
 
-  const handleAdd = React.useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      const roleId = e.currentTarget.dataset.role
-      if (roleId) onChange(value.concat([roleId]))
-      handleClose()
-    },
-    [value, onChange, handleClose],
-  )
-
-  const handleRemove = React.useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      const roleId = e.currentTarget.dataset.role
-      if (roleId) onChange(R.without([roleId], value))
-    },
-    [value, onChange],
+  const availableRoles = React.useMemo(
+    () =>
+      rolesData.case({
+        fetching: () => null,
+        error: () => null,
+        data: ({ roles }) => {
+          const ids = value.reduce(
+            (acc, { id }) => ({ ...acc, [id]: true }),
+            {} as Record<string, boolean>,
+          )
+          return roles.filter((r) => r.__typename === 'ManagedRole' && !ids[r.id])
+        },
+      }),
+    [rolesData, value],
   )
 
   return (
     <div className={className}>
-      <div className={classes.heading}>
+      <M.Box display="flex" alignItems="center">
         <M.Typography variant="h6">Associated roles</M.Typography>
-        <M.Tooltip arrow title={<>TBD</>}>
-          <M.Icon fontSize="small" color="disabled" className={classes.icon}>
-            info_outlined
-          </M.Icon>
-        </M.Tooltip>
-      </div>
+        {rolesData.case({
+          data: () => null,
+          fetching: () => (
+            <M.Tooltip arrow title="Fetching roles">
+              <M.CircularProgress size={20} style={{ opacity: 0.3, marginLeft: '8px' }} />
+            </M.Tooltip>
+          ),
+          error: (e) => (
+            <M.Tooltip arrow title={<>Error fetching roles: {e.message}</>}>
+              <M.Icon style={{ opacity: 0.3, marginLeft: '8px' }}>error</M.Icon>
+            </M.Tooltip>
+          ),
+        })}
+      </M.Box>
       <M.Collapse in={!!error}>
         <M.FormHelperText error>{error || ' '}</M.FormHelperText>
       </M.Collapse>
 
-      {/* TODO: sort? */}
-      <M.TableContainer className={classes.container}>
-        <M.Table stickyHeader size="small">
-          <M.TableHead>
-            <M.TableRow>
-              <M.TableCell className={classes.cell}>Role name</M.TableCell>
-            </M.TableRow>
-          </M.TableHead>
-          <M.TableBody>
-            {value.map((roleId) => (
-              <M.TableRow key={roleId}>
-                <M.TableCell>
-                  {roleNames[roleId] ||
-                    rolesData.case({
-                      fetching: () => roleId,
-                      error: () => roleId,
-                      data: (d) => d.roles.find((r) => r.id === roleId)?.name || roleId,
-                    })}
-                  <M.Button data-role={roleId} onClick={handleRemove}>
-                    Remove
-                  </M.Button>
-                </M.TableCell>
-              </M.TableRow>
-            ))}
-            <M.TableRow>
-              <M.TableCell>
-                <M.Button onClick={handleOpen}>+ Add role</M.Button>
-                <M.Menu
-                  anchorEl={anchorEl}
-                  keepMounted
-                  open={!!anchorEl}
-                  onClose={handleClose}
-                >
-                  {rolesData.case({
-                    // TODO: nicer fetching and error states
-                    fetching: () => (
-                      <M.MenuItem onClick={handleClose}>FETCHING</M.MenuItem>
-                    ),
-                    data: ({ roles }) => {
-                      const filtered = roles.filter(
-                        (r) => r.__typename === 'ManagedRole' && !value.includes(r.id),
-                      )
-                      return filtered.length ? (
-                        filtered.map((r) => (
-                          <M.MenuItem key={r.id} data-role={r.id} onClick={handleAdd}>
-                            {r.name}
-                          </M.MenuItem>
-                        ))
-                      ) : (
-                        <M.MenuItem onClick={handleClose}>No more roles</M.MenuItem>
-                      )
-                    },
-                    error: (e) => (
-                      <M.MenuItem onClick={handleClose} title={e.message}>
-                        ERROR
-                      </M.MenuItem>
-                    ),
-                  })}
-                </M.Menu>
-              </M.TableCell>
-            </M.TableRow>
-          </M.TableBody>
-        </M.Table>
-      </M.TableContainer>
+      <M.List dense disablePadding>
+        {value.map((role) => (
+          // XXX: sort?
+          // XXX: navigate to role on click?
+          <M.ListItem key={role.id} divider disableGutters>
+            <M.ListItemText>{role.name}</M.ListItemText>
+            <M.ListItemSecondaryAction style={{ right: 0 }}>
+              <M.Tooltip title="Detach current policy from this role">
+                <M.IconButton onClick={() => detachRole(role)} edge="end" size="small">
+                  <M.Icon fontSize="small">clear</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            </M.ListItemSecondaryAction>
+          </M.ListItem>
+        ))}
+        {!!availableRoles?.length && (
+          <M.ListItem button disableGutters onClick={openRoleSelection}>
+            <M.ListItemText>
+              {!value.length && <>No associated roles. </>}
+              Attach current policy to roles&hellip;
+            </M.ListItemText>
+          </M.ListItem>
+        )}
+      </M.List>
+      {availableRoles && (
+        <RoleSelectionDialog
+          roles={availableRoles}
+          open={roleSelectionOpen}
+          onClose={closeRoleSelection}
+          attachRoles={attachRoles}
+        />
+      )}
     </div>
   )
 }

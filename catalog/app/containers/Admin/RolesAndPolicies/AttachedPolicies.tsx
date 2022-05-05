@@ -98,21 +98,19 @@ function PolicySelectionDialog({
 interface AttachedPoliciesProps extends RF.FieldRenderProps<Policy[]> {
   className?: string
   onAdvanced?: () => void
-  errors: Record<string, React.ReactNode>
 }
 
 export default function AttachedPolicies({
   className,
   input: { value, onChange },
   meta,
-  errors,
   onAdvanced,
 }: AttachedPoliciesProps) {
+  const error = meta.submitFailed && (meta.error || meta.submitError)
+
   const policiesData = useQuery({ query: POLICIES_QUERY })
 
   const [policySelectionOpen, setPolicySelectionOpen] = React.useState(false)
-
-  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const openPolicySelection = React.useCallback(() => {
     setPolicySelectionOpen(true)
@@ -174,7 +172,7 @@ export default function AttachedPolicies({
         </M.FormHelperText>
       )}
       <M.Collapse in={!!error}>
-        <M.FormHelperText error>{error ? errors[error] || error : ' '}</M.FormHelperText>
+        <M.FormHelperText error>{error || ' '}</M.FormHelperText>
       </M.Collapse>
 
       <M.List dense disablePadding>
