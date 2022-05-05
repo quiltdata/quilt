@@ -54,21 +54,30 @@ function ErrorSlot({ error }: ErrorSlotProps) {
   )
 }
 
-function MenuPlaceholder() {
-  const t = M.useTheme()
+const useMenuPlaceholderStyles = M.makeStyles((t) => ({
+  root: {
+    minWidth: t.spacing(22),
+  },
+  item: {
+    height: t.spacing(6),
+    width: '100%',
+  },
+}))
 
+function MenuPlaceholder() {
+  const classes = useMenuPlaceholderStyles()
   return (
-    <M.Box minWidth={t.spacing(22)}>
+    <div className={classes.root}>
       <M.MenuItem disabled>
-        <Lab.Skeleton height={t.spacing(6)} width="100%" />
+        <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
       <M.MenuItem disabled>
-        <Lab.Skeleton height={t.spacing(6)} width="100%" />
+        <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
       <M.MenuItem disabled>
-        <Lab.Skeleton height={t.spacing(6)} width="100%" />
+        <Lab.Skeleton className={classes.item} />
       </M.MenuItem>
-    </M.Box>
+    </div>
   )
 }
 
