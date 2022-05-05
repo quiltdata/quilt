@@ -19,10 +19,10 @@ import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/
 import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
-import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
+import { CopyButton } from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'

@@ -1,31 +1,52 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type * as workflows from 'utils/workflows'
+
 import SuccessorsSelect from './SuccessorsSelect'
 
-function Button({ children, className, onClick }) {
+interface ButtonProps {
+  children: string
+  className: string
+  onClick: React.MouseEventHandler<HTMLButtonElement>
+}
+
+function Button({ children, className, onClick }: ButtonProps) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
-  const props = {
-    'aria-haspopup': 'true',
-    className,
-    onClick,
-    size: 'small',
-  }
-
   return sm ? (
-    <M.IconButton edge="end" title={children} {...props}>
+    <M.IconButton
+      aria-haspopup
+      className={className}
+      edge="end"
+      onClick={onClick}
+      size="small"
+      title={children}
+    >
       <M.Icon>exit_to_app</M.Icon>
     </M.IconButton>
   ) : (
-    <M.Button variant="outlined" {...props}>
+    <M.Button
+      aria-haspopup
+      className={className}
+      onClick={onClick}
+      size="small"
+      variant="outlined"
+    >
       {children}
     </M.Button>
   )
 }
 
-export default function CopyButton({ bucket, className, children, onChange }) {
+interface CopyButtonProps {
+  bucket: string
+  className: string
+  children: string
+  onChange: (s: workflows.Successor) => void
+}
+
+export function CopyButton({ bucket, className, children, onChange }: CopyButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
