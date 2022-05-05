@@ -13,7 +13,7 @@ import type * as workflows from 'utils/workflows'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
-function Empty() {
+function EmptySlot() {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>
@@ -28,6 +28,28 @@ function Empty() {
         </StyledLink>
         .
       </M.Typography>
+    </M.Box>
+  )
+}
+
+interface ErrorSlotProps {
+  error: Error
+}
+
+function ErrorSlot({ error }: ErrorSlotProps) {
+  return (
+    <M.Box px={2} py={1}>
+      <M.Typography gutterBottom>
+        Error: <code>{error.message}</code>
+      </M.Typography>
+      {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
+        <M.Typography>
+          Please fix the workflows config according to{' '}
+          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
+            the documentation
+          </StyledLink>
+        </M.Typography>
+      )}
     </M.Box>
   )
 }
@@ -89,17 +111,17 @@ function useSuccessors(
 interface SuccessorsSelectProps {
   anchorEl: HTMLElement | null
   bucket: string
-  open: boolean
   onChange: (x: workflows.Successor) => void
   onClose: () => void
+  open: boolean
 }
 
 export default function SuccessorsSelect({
   anchorEl,
   bucket,
-  open,
   onChange,
   onClose,
+  open,
 }: SuccessorsSelectProps) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsConfig, { s3, bucket })
@@ -150,13 +172,13 @@ export default function SuccessorsSelect({
 }
 
 interface InputProps {
-  className?: string
   bucket: string
-  successor: workflows.Successor
+  className?: string
   onChange?: (value: workflows.Successor) => void
+  successor: workflows.Successor
 }
 
-export function Input({ className, bucket, successor, onChange }: InputProps) {
+export function Input({ bucket, className, onChange, successor }: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
   const successors = useSuccessors(bucket, { noAutoFetch })
@@ -179,6 +201,11 @@ export function Input({ className, bucket, successor, onChange }: InputProps) {
     },
     [onChange],
   )
+  const emptySlot = React.useMemo(
+    () =>
+      successors instanceof Error ? <ErrorSlot error={successors} /> : <EmptySlot />,
+    [successors],
+  )
   const loading = !successors && open
   return (
     <SelectDropdown
@@ -190,7 +217,7 @@ export function Input({ className, bucket, successor, onChange }: InputProps) {
       onOpen={handleOpen}
       options={options}
       value={successor.slug}
-      emptySlot={<Empty />}
+      emptySlot={emptySlot}
     />
   )
 }

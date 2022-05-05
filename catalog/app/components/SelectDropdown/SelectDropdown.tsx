@@ -69,7 +69,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   const handleClose = React.useCallback(() => {
     if (onClose) onClose()
     setAnchorEl(null)
-  }, [])
+  }, [onClose])
 
   const handleSelect = React.useCallback(
     (selected: Value) => () => {
