@@ -178,7 +178,7 @@ interface InputProps {
   successor: workflows.Successor
 }
 
-export function Input({ bucket, className, onChange, successor }: InputProps) {
+export function Dropdown({ bucket, className, onChange, successor }: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
   const successors = useSuccessors(bucket, { noAutoFetch })

@@ -24,7 +24,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
-import { Input as SuccessorsSelectInput } from '../Successors'
+import * as Successors from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
 
@@ -419,7 +419,7 @@ function PackageCreationForm({
         <>
           <M.DialogTitle>
             {ui.title || 'Create package'} in{' '}
-            <SuccessorsSelectInput
+            <Successors.Dropdown
               className={classes.successorSelect}
               bucket={bucket || ''}
               successor={successor}

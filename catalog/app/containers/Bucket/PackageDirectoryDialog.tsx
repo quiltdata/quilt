@@ -15,7 +15,7 @@ import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
-import { Input as SuccessorsSelectInput } from './Successors'
+import * as Successors from './Successors'
 import * as requests from './requests'
 
 const prepareEntries = (
@@ -53,7 +53,7 @@ function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps)
   return (
     <>
       Push {directory} directory to{' '}
-      <SuccessorsSelectInput
+      <Successors.Dropdown
         className={classes.select}
         bucket={bucket || ''}
         successor={successor}
