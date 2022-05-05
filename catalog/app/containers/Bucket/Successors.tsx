@@ -72,25 +72,6 @@ function MenuPlaceholder() {
   )
 }
 
-interface MenuItemProps {
-  item: workflows.Successor
-  onClick: (x: workflows.Successor) => void
-}
-
-const MenuItem = React.forwardRef<HTMLLIElement, MenuItemProps>(function MenuItem(
-  { item, onClick },
-  ref,
-) {
-  return (
-    <M.MenuItem
-      ref={ref}
-      onClick={React.useCallback(() => onClick(item), [item, onClick])}
-    >
-      <M.ListItemText primary={item.name} secondary={item.url} />
-    </M.MenuItem>
-  )
-})
-
 function useSuccessors(
   bucket: string,
   { noAutoFetch = false },
@@ -132,40 +113,15 @@ function SuccessorsSelect({
         Ok: ({ successors }: { successors: workflows.Successor[] }) =>
           successors.length ? (
             successors.map((successor) => (
-              <MenuItem key={successor.slug} item={successor} onClick={onChange} />
+              <M.MenuItem key={successor.slug} onClick={() => onChange(successor)}>
+                <M.ListItemText primary={successor.name} secondary={successor.url} />
+              </M.MenuItem>
             ))
           ) : (
-            <M.Box px={2} py={1}>
-              <M.Typography gutterBottom>
-                Add or update a config.yml file to populate this menu.
-              </M.Typography>
-              <M.Typography>
-                <StyledLink
-                  href={`${docs}/advanced/workflows#cross-bucket-package-push-quilt-catalog`}
-                  target="_blank"
-                >
-                  Learn more
-                </StyledLink>
-                .
-              </M.Typography>
-            </M.Box>
+            <EmptySlot />
           ),
         _: () => <MenuPlaceholder />,
-        Err: (error: Error) => (
-          <M.Box px={2} py={1}>
-            <M.Typography gutterBottom>
-              Error: <code>{error.message}</code>
-            </M.Typography>
-            {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
-              <M.Typography>
-                Please fix the workflows config according to{' '}
-                <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
-                  the documentation
-                </StyledLink>
-              </M.Typography>
-            )}
-          </M.Box>
-        ),
+        Err: (error: Error) => <ErrorSlot error={error} />,
       })}
     </M.Menu>
   )
