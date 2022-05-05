@@ -31,6 +31,7 @@ export interface ValueBase {
 interface SelectDropdownProps<Value extends ValueBase> {
   children?: React.ReactNode
   disabled?: boolean
+  emptySlot?: React.ReactNode
   loading?: boolean
   onChange: (selected: Value) => void
   onClose?: () => void
@@ -41,8 +42,9 @@ interface SelectDropdownProps<Value extends ValueBase> {
 
 export default function SelectDropdown<Value extends ValueBase>({
   children,
-  disabled = false,
   className,
+  disabled = false,
+  emptySlot,
   loading,
   onChange,
   onClose,
@@ -114,15 +116,17 @@ export default function SelectDropdown<Value extends ValueBase>({
         onClose={handleClose}
         MenuListProps={{ dense: true }}
       >
-        {options.map((item) => (
-          <M.MenuItem
-            key={item.toString()}
-            onClick={handleSelect(item)}
-            selected={value.valueOf() === item.valueOf()}
-          >
-            <M.ListItemText primary={item.toString()} />
-          </M.MenuItem>
-        ))}
+        {options.length
+          ? options.map((item) => (
+              <M.MenuItem
+                key={item.toString()}
+                onClick={handleSelect(item)}
+                selected={value.valueOf() === item.valueOf()}
+              >
+                <M.ListItemText primary={item.toString()} />
+              </M.MenuItem>
+            ))
+          : emptySlot}
       </M.Menu>
     </M.Paper>
   )

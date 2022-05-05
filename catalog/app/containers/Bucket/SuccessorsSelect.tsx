@@ -13,6 +13,25 @@ import type * as workflows from 'utils/workflows'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
+function Empty() {
+  return (
+    <M.Box px={2} py={1}>
+      <M.Typography gutterBottom>
+        Add or update a config.yml file to populate this menu.
+      </M.Typography>
+      <M.Typography>
+        <StyledLink
+          href={`${docs}/advanced/workflows#cross-bucket-package-push-quilt-catalog`}
+          target="_blank"
+        >
+          Learn more
+        </StyledLink>
+        .
+      </M.Typography>
+    </M.Box>
+  )
+}
+
 function MenuPlaceholder() {
   const t = M.useTheme()
 
@@ -164,13 +183,14 @@ export function Input({ className, bucket, successor, onChange }: InputProps) {
   return (
     <SelectDropdown
       className={className}
-      disabled={!onChange}
+      disabled={!onChange || (Array.isArray(successors) && !successors?.length)}
       loading={loading}
       onChange={handleChange}
       onClose={handleClose}
       onOpen={handleOpen}
       options={options}
       value={successor.slug}
+      emptySlot={<Empty />}
     />
   )
 }
