@@ -24,6 +24,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
+import { Input as SuccessorsSelectInput } from '../SuccessorsSelect'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
 
@@ -80,6 +81,9 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
+  successorSelect: {
+    verticalAlign: '2px',
+  },
 }))
 
 interface PackageCreationFormProps {
@@ -91,6 +95,8 @@ interface PackageCreationFormProps {
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
   }
+  successor: workflows.Successor
+  onSuccessor: (successor: workflows.Successor) => void
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: PackageCreationSuccess) => void
   setWorkflow: (workflow: workflows.Workflow) => void
@@ -109,6 +115,8 @@ function PackageCreationForm({
   bucket,
   close,
   initial,
+  successor,
+  onSuccessor,
   responseError,
   schema,
   schemaLoading,
@@ -124,7 +132,7 @@ function PackageCreationForm({
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
-  const nameExistence = PD.useNameExistence(bucket)
+  const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const { desktop }: { desktop: boolean } = Config.use()
@@ -185,11 +193,15 @@ function PackageCreationForm({
         meta,
         workflow,
       }
-      const uploadResult = await uploadPackage(payload, { name, bucket }, schema)
+      const uploadResult = await uploadPackage(
+        payload,
+        { name, bucket: successor.slug },
+        schema,
+      )
       setSuccess({ name, hash: uploadResult?.hash })
       return null
     },
-    [bucket, schema, setSuccess, uploadPackage],
+    [successor.slug, schema, setSuccess, uploadPackage],
   )
 
   const onSubmitWeb = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
@@ -230,7 +242,7 @@ function PackageCreationForm({
     try {
       uploadedEntries = await uploads.upload({
         files: toUpload,
-        bucket,
+        bucket: successor.slug,
         prefix: name,
         getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
@@ -273,7 +285,7 @@ function PackageCreationForm({
     try {
       const res = await constructPackage({
         params: {
-          bucket,
+          bucket: successor.slug,
           name,
           message: msg,
           userMeta: requests.getMetaValue(meta, schema) ?? null,
@@ -405,7 +417,16 @@ function PackageCreationForm({
         handleSubmit,
       }) => (
         <>
-          <M.DialogTitle>{ui.title || 'Create package'}</M.DialogTitle>
+          <M.DialogTitle>
+            {ui.title || 'Create package'} in{' '}
+            <SuccessorsSelectInput
+              className={classes.successorSelect}
+              bucket={bucket || ''}
+              successor={successor}
+              onChange={onSuccessor}
+            />{' '}
+            bucket
+          </M.DialogTitle>
           <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
@@ -631,9 +652,12 @@ export function usePackageCreationDialog({
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
 
   const s3 = AWS.S3.use()
-  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket })
+  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket: successor.slug })
   // XXX: use AsyncResult
   const preferences = BucketPreferences.use()
 
@@ -743,6 +767,7 @@ export function usePackageCreationDialog({
                   {...schemaProps}
                   {...{
                     bucket,
+                    successor,
                     close,
                     setSubmitting,
                     setSuccess,
@@ -752,6 +777,7 @@ export function usePackageCreationDialog({
                     initial: { name: src?.name, ...manifest },
                     delayHashing,
                     disableStateDisplay,
+                    onSuccessor: setSuccessor,
                     ui: {
                       title: ui.title,
                       submit: ui.submit,
