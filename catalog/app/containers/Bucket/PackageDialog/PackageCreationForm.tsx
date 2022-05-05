@@ -791,7 +791,7 @@ export function usePackageCreationDialog({
           Success: (props) => (
             <DialogSuccess
               {...props}
-              bucket={bucket}
+              bucket={successor.slug}
               onClose={close}
               browseText={ui.successBrowse}
               title={ui.successTitle}
