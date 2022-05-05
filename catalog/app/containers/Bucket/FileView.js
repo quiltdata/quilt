@@ -32,13 +32,16 @@ export function Meta({ data, ...props }) {
   )
 }
 
-const useDownloadButtonStyles = M.makeStyles({
+const useDownloadButtonStyles = M.makeStyles((t) => ({
   root: {
     flexShrink: 0,
     marginBottom: -3,
     marginTop: -3,
   },
-})
+  label: {
+    marginRight: t.spacing(1),
+  },
+}))
 
 export function DownloadButtonLayout({ className, label, icon, ...props }) {
   const classes = useDownloadButtonStyles()
@@ -85,7 +88,7 @@ export function ViewModeSelector({ className, ...props }) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
     <SelectDropdown className={cx(classes.root, className)} {...props}>
-      {sm ? <M.Icon>visibility</M.Icon> : 'View as:'}
+      {sm ? <M.Icon>visibility</M.Icon> : <span className={classes.label}>View as:</span>}
     </SelectDropdown>
   )
 }

@@ -18,9 +18,6 @@ const useStyles = M.makeStyles((t) => ({
   disabled: {
     cursor: 'not-allowed',
   },
-  label: {
-    marginLeft: t.spacing(1),
-  },
   progress: {
     margin: t.spacing(0, 1),
   },
@@ -98,7 +95,7 @@ export default function SelectDropdown<Value extends ValueBase>({
         {children}
         {aboveSm && (
           <>
-            <span className={classes.label}>{value.toString()}</span>
+            {value.toString()}
             {loading && (
               <M.CircularProgress
                 className={classes.progress}
