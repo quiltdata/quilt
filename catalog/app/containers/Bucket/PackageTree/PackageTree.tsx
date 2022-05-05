@@ -39,7 +39,7 @@ import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
-import { CopyButton } from '../Successors'
+import * as Successors from '../Successors'
 import Summary from '../Summary'
 import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
@@ -398,13 +398,13 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                   </M.Button>
                 )}
                 {preferences?.ui?.actions?.copyPackage && (
-                  <CopyButton
+                  <Successors.Button
                     className={classes.button}
                     bucket={bucket}
                     onChange={setSuccessor}
                   >
                     Push to bucket
-                  </CopyButton>
+                  </Successors.Button>
                 )}
                 <Download.DownloadButton
                   className={classes.button}

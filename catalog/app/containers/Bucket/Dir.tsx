@@ -22,7 +22,7 @@ import Code from './Code'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
-import { CopyButton } from './Successors'
+import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -257,9 +257,13 @@ export default function Dir({
         </div>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.createPackage && (
-          <CopyButton bucket={bucket} className={classes.button} onChange={setSuccessor}>
+          <Successors.Button
+            bucket={bucket}
+            className={classes.button}
+            onChange={setSuccessor}
+          >
             Create package from directory
-          </CopyButton>
+          </Successors.Button>
         )}
         {!noDownload && !desktop && (
           <FileView.ZipDownloadForm

@@ -116,7 +116,7 @@ interface SuccessorsSelectProps {
   open: boolean
 }
 
-export default function SuccessorsSelect({
+function SuccessorsSelect({
   anchorEl,
   bucket,
   onChange,
@@ -222,13 +222,13 @@ export function Input({ bucket, className, onChange, successor }: InputProps) {
   )
 }
 
-interface ButtonProps {
+interface ButtonInnerProps {
   children: string
   className: string
   onClick: React.MouseEventHandler<HTMLButtonElement>
 }
 
-function Button({ children, className, onClick }: ButtonProps) {
+function ButtonInner({ children, className, onClick }: ButtonInnerProps) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
@@ -256,14 +256,14 @@ function Button({ children, className, onClick }: ButtonProps) {
   )
 }
 
-interface CopyButtonProps {
+interface ButtonProps {
   bucket: string
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
 }
 
-export function CopyButton({ bucket, className, children, onChange }: CopyButtonProps) {
+export function Button({ bucket, className, children, onChange }: ButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -283,9 +283,9 @@ export function CopyButton({ bucket, className, children, onChange }: CopyButton
 
   return (
     <>
-      <Button className={className} onClick={onButtonClick}>
+      <ButtonInner className={className} onClick={onButtonClick}>
         {children}
-      </Button>
+      </ButtonInner>
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}
