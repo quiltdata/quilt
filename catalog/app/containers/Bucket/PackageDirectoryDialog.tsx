@@ -15,7 +15,7 @@ import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
-import { Input as SuccessorsSelectInput } from './SuccessorsSelect'
+import { Input as SuccessorsSelectInput } from './Successors'
 import * as requests from './requests'
 
 const prepareEntries = (

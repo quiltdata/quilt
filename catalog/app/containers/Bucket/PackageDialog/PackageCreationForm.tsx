@@ -24,7 +24,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
-import { Input as SuccessorsSelectInput } from '../SuccessorsSelect'
+import { Input as SuccessorsSelectInput } from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
 
