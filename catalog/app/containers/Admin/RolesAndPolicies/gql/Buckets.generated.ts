@@ -10,7 +10,10 @@ export type containers_Admin_RolesAndPolicies_gql_BucketsQuery = {
   readonly __typename: 'Query'
 } & {
   readonly buckets: ReadonlyArray<
-    { readonly __typename: 'BucketConfig' } & Pick<Types.BucketConfig, 'name'>
+    { readonly __typename: 'BucketConfig' } & Pick<
+      Types.BucketConfig,
+      'name' | 'title' | 'iconUrl'
+    >
   >
 }
 
@@ -30,7 +33,11 @@ export const containers_Admin_RolesAndPolicies_gql_BucketsDocument = {
             name: { kind: 'Name', value: 'bucketConfigs' },
             selectionSet: {
               kind: 'SelectionSet',
-              selections: [{ kind: 'Field', name: { kind: 'Name', value: 'name' } }],
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'iconUrl' } },
+              ],
             },
           },
         ],

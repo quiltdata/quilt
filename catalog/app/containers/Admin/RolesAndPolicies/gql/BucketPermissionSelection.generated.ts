@@ -7,7 +7,7 @@ export type BucketPermissionSelection_PolicyBucketPermission_Fragment = {
 } & Pick<Types.PolicyBucketPermission, 'level'> & {
     readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
       Types.BucketConfig,
-      'name'
+      'name' | 'title' | 'iconUrl'
     >
   }
 
@@ -16,7 +16,7 @@ export type BucketPermissionSelection_RoleBucketPermission_Fragment = {
 } & Pick<Types.RoleBucketPermission, 'level'> & {
     readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
       Types.BucketConfig,
-      'name'
+      'name' | 'title' | 'iconUrl'
     >
   }
 
@@ -43,7 +43,11 @@ export const BucketPermissionSelectionFragmentDoc = {
             name: { kind: 'Name', value: 'bucket' },
             selectionSet: {
               kind: 'SelectionSet',
-              selections: [{ kind: 'Field', name: { kind: 'Name', value: 'name' } }],
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'iconUrl' } },
+              ],
             },
           },
           { kind: 'Field', name: { kind: 'Name', value: 'level' } },

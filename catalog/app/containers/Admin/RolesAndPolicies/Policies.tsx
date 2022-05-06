@@ -26,6 +26,7 @@ import POLICY_CREATE_UNMANAGED_MUTATION from './gql/PolicyCreateUnmanaged.genera
 import POLICY_UPDATE_MANAGED_MUTATION from './gql/PolicyUpdateManaged.generated'
 import POLICY_UPDATE_UNMANAGED_MUTATION from './gql/PolicyUpdateUnmanaged.generated'
 import POLICY_DELETE_MUTATION from './gql/PolicyDelete.generated'
+import { BucketPermissionSelectionFragment as BucketPermission } from './gql/BucketPermissionSelection.generated'
 import { PolicySelectionFragment as Policy } from './gql/PolicySelection.generated'
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
@@ -426,7 +427,11 @@ const managedPolicyFormSpec: FormSpec<Model.GQLTypes.ManagedPolicyInput> = {
     Types.decode(IO.readonlyArray(Types.NonEmptyString)),
   ),
   permissions: R.pipe(
-    R.prop('permissions'),
+    (values: Record<string, unknown>) =>
+      ((values.permissions || []) as BucketPermission[]).map((p) => ({
+        bucket: p.bucket.name,
+        level: p.level,
+      })),
     Types.decode(IO.readonlyArray(PermissionInput)),
   ),
 }
@@ -483,15 +488,7 @@ function Edit({ policy, close }: EditProps) {
   const initialValues = React.useMemo(
     () => ({
       title: policy.title,
-      permissions: policy.managed
-        ? policy.permissions.map(
-            (p) =>
-              ({
-                bucket: p.bucket.name,
-                level: p.level,
-              } as Model.GQLTypes.PermissionInput),
-          )
-        : [],
+      permissions: policy.permissions,
       roles: policy.roles,
       arn: policy.managed ? null : policy.arn,
     }),

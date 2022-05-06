@@ -1,80 +1,80 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import defaultBucketIcon from 'components/BucketIcon/bucket.svg'
 import * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
-import * as Types from 'utils/types'
 import useQuery from 'utils/useQuery'
 
 import BUCKETS_QUERY from './gql/Buckets.generated'
+import { BucketPermissionSelectionFragment as BucketPermission } from './gql/BucketPermissionSelection.generated'
 
-const NONE = 'None'
+const Level = Model.GQLTypes.BucketPermissionLevel
+type Level = Model.GQLTypes.BucketPermissionLevel
 
-const useBucketPermissionStyles = M.makeStyles((t) => ({
-  bucket: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  button: {
-    marginLeft: t.spacing(1),
-  },
-  cell: {
-    minWidth: t.spacing(17.5),
-  },
-  row: {
-    '&:last-child $cell': {
-      borderBottom: 0,
-    },
-  },
-}))
+type Bucket = BucketPermission['bucket']
 
-interface BucketPermissionProps {
-  bucket: string
-  value: Model.GQLTypes.BucketPermissionLevel
-  onChange: (bucket: string, value: Model.GQLTypes.BucketPermissionLevel) => void
-  onRemove: (bucket: string) => void
+interface BucketAddDialogProps {
+  open: boolean
+  onClose: () => void
+  buckets: Bucket[]
+  addBucket: (bucket: Bucket) => void
 }
 
-function BucketPermissionEdit({
-  bucket,
-  value,
-  onChange,
-  onRemove,
-}: BucketPermissionProps) {
-  const classes = useBucketPermissionStyles()
-  const handleChange = React.useCallback(
-    (event) => {
-      if (event.target.value === NONE) {
-        onRemove(bucket)
-        return
-      }
-      const level = Types.decode(Model.BucketPermissionLevelFromString)(
-        event.target.value,
-      )
-      onChange(bucket, level)
+function BucketAddDialog({ open, onClose, buckets, addBucket }: BucketAddDialogProps) {
+  const [selected, select] = React.useState<Bucket | null>(null)
+
+  const handleExited = React.useCallback(() => {
+    if (selected) addBucket(selected)
+    select(null)
+  }, [addBucket, selected, select])
+
+  const handleAdd = React.useCallback(
+    (bucket: Bucket) => {
+      select(bucket)
+      onClose()
     },
-    [bucket, onRemove, onChange],
+    [onClose, select],
   )
-  const levelStr = Model.BucketPermissionLevelFromString.encode(value)
+
   return (
-    <M.TableRow className={classes.row}>
-      <M.TableCell className={classes.cell}>
-        <M.Typography className={classes.bucket} variant="body1">
-          {bucket}
-        </M.Typography>
-      </M.TableCell>
-      <M.TableCell className={classes.cell} align="right">
-        <M.Select native value={levelStr} onChange={handleChange}>
-          {Model.BucketPermissionLevelStrings.map((permission) => (
-            <option key={permission}>{permission}</option>
+    <M.Dialog maxWidth="xs" open={open} onClose={onClose} onExited={handleExited}>
+      <M.DialogTitle>Add a bucket</M.DialogTitle>
+      {buckets.length ? (
+        <M.List>
+          {buckets.map((bucket) => (
+            <M.ListItem key={bucket.name} button onClick={() => handleAdd(bucket)}>
+              <M.ListItemAvatar style={{ minWidth: 44 }}>
+                <M.Avatar
+                  style={{ width: 32, height: 32 }}
+                  src={bucket.iconUrl || defaultBucketIcon}
+                />
+              </M.ListItemAvatar>
+              <M.ListItemText
+                primary={
+                  <>
+                    s3://{bucket.name}{' '}
+                    <M.Box component="span" color="text.secondary" ml={0.5}>
+                      {bucket.title}
+                    </M.Box>
+                  </>
+                }
+              />
+            </M.ListItem>
           ))}
-          <option>{NONE}</option>
-        </M.Select>
-      </M.TableCell>
-    </M.TableRow>
+        </M.List>
+      ) : (
+        <M.DialogContent>
+          <M.Typography>No more buckets to add</M.Typography>
+        </M.DialogContent>
+      )}
+      <M.DialogActions>
+        <M.Button autoFocus onClick={onClose} color="primary">
+          Cancel
+        </M.Button>
+      </M.DialogActions>
+    </M.Dialog>
   )
 }
 
@@ -86,18 +86,9 @@ const useStyles = M.makeStyles((t) => ({
   icon: {
     marginLeft: t.spacing(0.5),
   },
-  cell: {
-    minWidth: t.spacing(17.5),
-  },
-  container: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    marginTop: t.spacing(1),
-    maxHeight: 'calc(100vh - 500px)',
-  },
 }))
 
-interface BucketPermissionsProps
-  extends RF.FieldRenderProps<Model.GQLTypes.PermissionInput[]> {
+interface BucketPermissionsProps extends RF.FieldRenderProps<BucketPermission[]> {
   className?: string
   errors: Record<string, string>
   onAdvanced?: () => void
@@ -112,59 +103,75 @@ export default function BucketsPermissions({
 }: BucketPermissionsProps) {
   const classes = useStyles()
 
-  const bucketsData = useQuery({ query: BUCKETS_QUERY })
-
-  const [anchorEl, setAnchorEl] = React.useState<Element | null>(null)
-
   const error = meta.submitFailed && (meta.error || meta.submitError)
 
-  const bucketsIndices = React.useMemo(
+  const bucketsData = useQuery({ query: BUCKETS_QUERY })
+
+  const [permissionMenuState, setPermissionMenuState] = React.useState<{
+    anchorEl: HTMLElement
+    perm: BucketPermission
+  } | null>(null)
+
+  const openPermissionMenu = (
+    event: React.MouseEvent<HTMLElement>,
+    perm: BucketPermission,
+  ) => {
+    setPermissionMenuState({ anchorEl: event.currentTarget, perm })
+  }
+
+  const closePermissionMenu = () => {
+    setPermissionMenuState(null)
+  }
+
+  const setBucketPermission = (level: Level | null) => () => {
+    const { bucket } = permissionMenuState?.perm ?? {}
+    if (bucket) {
+      onChange(
+        level
+          ? value.map((perm) =>
+              perm.bucket.name === bucket.name ? { ...perm, bucket, level } : perm,
+            )
+          : value.filter((perm) => perm.bucket.name !== bucket.name),
+      )
+    }
+    closePermissionMenu()
+  }
+
+  const [bucketAdditionOpen, setBucketAdditionOpen] = React.useState(false)
+
+  const openBucketAddition = React.useCallback(() => {
+    setBucketAdditionOpen(true)
+  }, [setBucketAdditionOpen])
+
+  const closeBucketAddition = React.useCallback(() => {
+    setBucketAdditionOpen(false)
+  }, [setBucketAdditionOpen])
+
+  const addBucket = React.useCallback(
+    (bucket: Bucket) => {
+      onChange(
+        value.concat([
+          { __typename: 'PolicyBucketPermission', bucket, level: Level.READ },
+        ]),
+      )
+    },
+    [onChange, value],
+  )
+
+  const availableBuckets = React.useMemo(
     () =>
-      value.reduce(
-        (acc, { bucket }, idx) => ({ [bucket]: idx, ...acc }),
-        {} as Record<string, number>,
-      ),
-    [value],
-  )
-
-  const handleChange = React.useCallback(
-    (bucket: string, level: Model.GQLTypes.BucketPermissionLevel) => {
-      const idx = bucketsIndices[bucket]
-      if (idx == null) return
-      onChange(R.adjust(idx, R.assoc('level', level), value))
-    },
-    [bucketsIndices, value, onChange],
-  )
-
-  const handleRemove = React.useCallback(
-    (bucket: string) => {
-      onChange(R.reject(R.propEq('bucket', bucket), value))
-    },
-    [value, onChange],
-  )
-
-  const handleOpen = React.useCallback(
-    (e: React.MouseEvent) => {
-      setAnchorEl(e.currentTarget)
-    },
-    [setAnchorEl],
-  )
-
-  const handleClose = React.useCallback(() => {
-    setAnchorEl(null)
-  }, [setAnchorEl])
-
-  const handleAdd = React.useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      const bucket = e.currentTarget.dataset.name
-      if (bucket) {
-        onChange(
-          value.concat([{ bucket, level: Model.GQLTypes.BucketPermissionLevel.READ }]),
-        )
-      }
-      handleClose()
-    },
-    [value, onChange, handleClose],
+      bucketsData.case({
+        fetching: () => null,
+        error: () => null,
+        data: ({ buckets }) => {
+          const names = value.reduce(
+            (acc, { bucket: { name } }) => ({ ...acc, [name]: true }),
+            {} as Record<string, boolean>,
+          )
+          return buckets.filter((b) => !names[b.name])
+        },
+      }),
+    [bucketsData, value],
   )
 
   return (
@@ -185,6 +192,25 @@ export default function BucketsPermissions({
             info_outlined
           </M.Icon>
         </M.Tooltip>
+        {bucketsData.case({
+          data: () => null,
+          fetching: () => (
+            <M.Tooltip arrow title="Fetching buckets">
+              <M.CircularProgress
+                size={20}
+                style={{ opacity: 0.3 }}
+                className={classes.icon}
+              />
+            </M.Tooltip>
+          ),
+          error: (e) => (
+            <M.Tooltip arrow title={<>Error fetching buckets: {e.message}</>}>
+              <M.Icon fontSize="small" color="disabled" className={classes.icon}>
+                error
+              </M.Icon>
+            </M.Tooltip>
+          ),
+        })}
       </div>
       {!!onAdvanced && (
         <M.FormHelperText>
@@ -196,65 +222,90 @@ export default function BucketsPermissions({
         <M.FormHelperText error>{error ? errors[error] || error : ' '}</M.FormHelperText>
       </M.Collapse>
 
-      {/* TODO: sort? */}
-      <M.TableContainer className={classes.container}>
-        <M.Table stickyHeader size="small">
-          <M.TableHead>
-            <M.TableRow>
-              <M.TableCell className={classes.cell}>Bucket name</M.TableCell>
-              <M.TableCell className={classes.cell} align="right">
-                Permissions
-              </M.TableCell>
-            </M.TableRow>
-          </M.TableHead>
-          <M.TableBody>
-            {value.map(({ bucket, level }) => (
-              <BucketPermissionEdit
-                key={bucket}
-                bucket={bucket}
-                value={level}
-                onChange={handleChange}
-                onRemove={handleRemove}
+      <M.List dense disablePadding>
+        {value.map((perm) => (
+          // XXX: navigate to bucket on click?
+          <M.ListItem
+            key={perm.bucket.name}
+            disableGutters
+            button
+            onClick={(event) => openPermissionMenu(event, perm)}
+          >
+            <M.ListItemAvatar style={{ minWidth: 44 }}>
+              <M.Avatar
+                style={{ width: 32, height: 32 }}
+                src={perm.bucket.iconUrl || defaultBucketIcon}
               />
-            ))}
-            <M.TableRow>
-              <M.TableCell>
-                <M.Button onClick={handleOpen}>+ Add bucket</M.Button>
-                <M.Menu
-                  anchorEl={anchorEl}
-                  keepMounted
-                  open={!!anchorEl}
-                  onClose={handleClose}
+            </M.ListItemAvatar>
+            <M.ListItemText
+              primary={
+                <>
+                  s3://{perm.bucket.name}{' '}
+                  <M.Box component="span" color="text.secondary" ml={0.5}>
+                    {perm.bucket.title}
+                  </M.Box>
+                </>
+              }
+            />
+            <M.ListItemSecondaryAction style={{ right: 0 }}>
+              <M.Tooltip
+                title={`Read-${perm.level === Level.READ ? 'only' : 'write'} access`}
+              >
+                <M.IconButton
+                  onClick={(event) => openPermissionMenu(event, perm)}
+                  edge="end"
+                  size="small"
                 >
-                  {bucketsData.case({
-                    // TODO: nicer fetching and error states
-                    fetching: () => (
-                      <M.MenuItem onClick={handleClose}>FETCHING</M.MenuItem>
-                    ),
-                    data: ({ buckets }) => {
-                      const filtered = buckets.filter((b) => !(b.name in bucketsIndices))
-                      return filtered.length ? (
-                        filtered.map((b) => (
-                          <M.MenuItem key={b.name} data-name={b.name} onClick={handleAdd}>
-                            s3://{b.name}
-                          </M.MenuItem>
-                        ))
-                      ) : (
-                        <M.MenuItem onClick={handleClose}>No more buckets</M.MenuItem>
-                      )
-                    },
-                    error: (e) => (
-                      <M.MenuItem onClick={handleClose} title={e.message}>
-                        ERROR
-                      </M.MenuItem>
-                    ),
-                  })}
-                </M.Menu>
-              </M.TableCell>
-            </M.TableRow>
-          </M.TableBody>
-        </M.Table>
-      </M.TableContainer>
+                  <M.Icon>{perm.level === Level.READ ? 'visibility' : 'edit'}</M.Icon>
+                </M.IconButton>
+              </M.Tooltip>
+            </M.ListItemSecondaryAction>
+          </M.ListItem>
+        ))}
+        {!!availableBuckets?.length && (
+          <M.ListItem button disableGutters onClick={openBucketAddition}>
+            <M.ListItemAvatar style={{ minWidth: 44 }}>
+              <M.Avatar style={{ width: 32, height: 32 }}>
+                <M.Icon>add</M.Icon>
+              </M.Avatar>
+            </M.ListItemAvatar>
+            <M.ListItemText>
+              {!value.length && <>No buckets selected. </>}
+              Add a bucket&hellip;
+            </M.ListItemText>
+          </M.ListItem>
+        )}
+      </M.List>
+
+      {availableBuckets && (
+        <BucketAddDialog
+          buckets={availableBuckets}
+          open={bucketAdditionOpen}
+          onClose={closeBucketAddition}
+          addBucket={addBucket}
+        />
+      )}
+
+      <M.Menu
+        anchorEl={permissionMenuState?.anchorEl}
+        keepMounted
+        open={!!permissionMenuState?.anchorEl}
+        onClose={closePermissionMenu}
+      >
+        <M.MenuItem
+          onClick={setBucketPermission(Level.READ)}
+          selected={permissionMenuState?.perm.level === Level.READ}
+        >
+          Read-only access
+        </M.MenuItem>
+        <M.MenuItem
+          onClick={setBucketPermission(Level.READ_WRITE)}
+          selected={permissionMenuState?.perm.level === Level.READ_WRITE}
+        >
+          Read-write access
+        </M.MenuItem>
+        <M.MenuItem onClick={setBucketPermission(null)}>Remove bucket access</M.MenuItem>
+      </M.Menu>
     </div>
   )
 }
