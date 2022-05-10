@@ -17,6 +17,10 @@ const useStyles = M.makeStyles((t) => ({
   disabled: {
     cursor: 'not-allowed',
   },
+  expand: {
+    fontSize: 'inherit',
+    marginLeft: t.spacing(0.25),
+  },
   progress: {
     margin: t.spacing(0, 1),
   },
@@ -111,7 +115,7 @@ export default function SelectDropdown<Value extends ValueBase>({
                 size={16}
               />
             )}
-            <M.Icon fontSize="inherit">expand_more</M.Icon>
+            <M.Icon className={classes.expand}>expand_more</M.Icon>
           </>
         )}
       </M.Button>
