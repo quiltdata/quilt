@@ -15,7 +15,7 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
     maxHeight: '600px',
   },
   actions: {
-    margin: t.spacing(2, 0, 0),
+    marginTop: t.spacing(2),
   },
   header: {
     color: t.palette.text.primary,
@@ -33,6 +33,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   const title = isCredentialsError
     ? 'Refresh session (secure tokens expired)'
     : 'Something went wrong'
+  // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
     <div className={classes.root} onClick={onClick}>
