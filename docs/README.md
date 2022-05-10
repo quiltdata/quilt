@@ -46,7 +46,7 @@ on [quiltdata.com](https://quiltdata.com).
 ### I - Performance and core services
 * [x] Address performance issues with push (e.g. re-hash)
 * [x] Provide Presto-DB-powered services for filtering package repos with SQL
-* [ ] Transiation S3 manifests to [Apache Iceberg](https://iceberg.apache.org/) tables
+* [ ] Transition S3 manifests to [Apache Iceberg](https://iceberg.apache.org/) tables
 
 ### II - CI/CD for data
 * [ ] Ability to fork/merge packages
