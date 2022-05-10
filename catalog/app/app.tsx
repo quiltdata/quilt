@@ -19,6 +19,7 @@ import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
 import * as Auth from 'containers/Auth'
+import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
@@ -86,22 +87,6 @@ const ErrorBoundary = createBoundary(
       <ErrorBoundaryPlaceholder error={error} info={info} reset={reset} />,
 )
 
-// error gets automatically logged to the console, so no need to do it explicitly
-const FinalBoundary = createBoundary(() => (/* error, info */) => (
-  <h1
-    style={{
-      alignItems: 'center',
-      color: '#fff',
-      display: 'flex',
-      height: '90vh',
-      justifyContent: 'center',
-      maxHeight: '600px',
-    }}
-  >
-    Something went wrong
-  </h1>
-))
-
 const history = createHistory()
 const MOUNT_NODE = document.getElementById('app')
 
@@ -129,7 +114,7 @@ const render = () => {
     nest(
       [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
       WithGlobalStyles,
-      FinalBoundary,
+      Errors.FinalBoundary,
       // @ts-expect-error
       Sentry.Provider,
       [Store.Provider, { history }],
