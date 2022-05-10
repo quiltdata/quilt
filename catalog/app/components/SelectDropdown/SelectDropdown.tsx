@@ -12,7 +12,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   button: {
     ...t.typography.body1,
-    border: 0,
     textTransform: 'none',
   },
   disabled: {
@@ -31,6 +30,7 @@ export interface ValueBase {
 }
 
 interface SelectDropdownProps<Value extends ValueBase> {
+  ButtonProps?: M.ButtonProps
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -43,6 +43,7 @@ interface SelectDropdownProps<Value extends ValueBase> {
 }
 
 export default function SelectDropdown<Value extends ValueBase>({
+  ButtonProps,
   children,
   className,
   disabled = false,
@@ -54,7 +55,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   options,
   value,
   ...props
-}: SelectDropdownProps<Value> & M.PaperProps) {
+}: M.PaperProps & SelectDropdownProps<Value>) {
   const classes = useStyles()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
@@ -83,18 +84,21 @@ export default function SelectDropdown<Value extends ValueBase>({
 
   const t = M.useTheme()
   const aboveSm = M.useMediaQuery(t.breakpoints.up('sm'))
+  const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
     <M.Paper
       className={cx(className, classes.root, { [classes.disabled]: disabled })}
+      elevation={0}
       {...props}
     >
       <M.Button
-        className={classes.button}
+        className={cx(classes.button, buttonClassName)}
         onClick={handleOpen}
         size="small"
         variant="outlined"
         disabled={disabled}
+        {...buttonProps}
       >
         {children}
         {aboveSm && (

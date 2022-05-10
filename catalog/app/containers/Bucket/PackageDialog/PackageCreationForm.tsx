@@ -81,9 +81,6 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
-  successorSelect: {
-    verticalAlign: '2px',
-  },
 }))
 
 interface PackageCreationFormProps {
@@ -420,7 +417,6 @@ function PackageCreationForm({
           <M.DialogTitle>
             {ui.title || 'Create package'} in{' '}
             <Successors.Dropdown
-              className={classes.successorSelect}
               bucket={bucket || ''}
               successor={successor}
               onChange={onSuccessor}

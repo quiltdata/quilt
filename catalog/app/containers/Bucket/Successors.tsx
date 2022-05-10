@@ -136,6 +136,12 @@ function SuccessorsSelect({
   )
 }
 
+const useButtonStyles = M.makeStyles({
+  root: {
+    font: 'inherit',
+  },
+})
+
 interface InputProps {
   bucket: string
   className?: string
@@ -175,17 +181,28 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
     [successors],
   )
   const loading = !successors && open
+
+  const buttonClasses = useButtonStyles()
+  const ButtonProps = React.useMemo(
+    () =>
+      ({
+        className: buttonClasses.root,
+        variant: 'text',
+      } as M.ButtonProps),
+    [buttonClasses],
+  )
   return (
     <SelectDropdown
+      ButtonProps={ButtonProps}
       className={className}
       disabled={!onChange || (Array.isArray(successors) && !successors?.length)}
+      emptySlot={emptySlot}
       loading={loading}
       onChange={handleChange}
       onClose={handleClose}
       onOpen={handleOpen}
       options={options}
       value={successor.slug}
-      emptySlot={emptySlot}
     />
   )
 }

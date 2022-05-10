@@ -33,12 +33,6 @@ const prepareEntries = (
       }))
 }
 
-const useDialogTitleStyles = M.makeStyles({
-  select: {
-    verticalAlign: '2px',
-  },
-})
-
 interface DialogTitleProps {
   bucket?: string
   path?: string
@@ -47,14 +41,12 @@ interface DialogTitleProps {
 }
 
 function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps) {
-  const classes = useDialogTitleStyles()
   const directory = path ? `"${path}"` : 'root'
 
   return (
     <>
       Push {directory} directory to{' '}
       <Successors.Dropdown
-        className={classes.select}
         bucket={bucket || ''}
         successor={successor}
         onChange={onSuccessor}
