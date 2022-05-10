@@ -40,3 +40,19 @@ export class ErrorDisplay extends BaseError {
     super(headline, { headline, detail, object })
   }
 }
+
+/**
+ * Error class with fields designed to feed <Error /> via object rest spread.
+ */
+export class ErrorCredentials extends BaseError {
+  /**
+   * @param headline
+   *
+   * @param detail
+   *
+   * @param object
+   */
+  constructor(headline: string, detail?: string, object?: {}) {
+    super(headline, { headline, detail, object })
+  }
+}

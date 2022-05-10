@@ -6,6 +6,7 @@ import * as redux from 'react-redux'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
+import { ErrorCredentials } from 'utils/error'
 import useMemoEq from 'utils/useMemoEq'
 
 class RegistryCredentials extends AWS.Credentials {
@@ -79,6 +80,8 @@ export function AWSCredentialsProvider({ children }) {
 }
 
 export function useCredentials() {
+  const credentials = React.useContext(Ctx)
+  if (!credentials) throw new ErrorCredentials()
   return React.useContext(Ctx)
 }
 
