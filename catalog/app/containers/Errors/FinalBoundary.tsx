@@ -20,6 +20,9 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
   header: {
     color: t.palette.text.primary,
   },
+  headerIcon: {
+    verticalAlign: '-2px',
+  },
 }))
 
 interface FinalBoundaryLayoutProps {
@@ -30,19 +33,25 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   const classes = useFinalBoundaryStyles()
   const onClick = () => window.location.reload()
   const isCredentialsError = error instanceof ErrorCredentials
-  const title = isCredentialsError
-    ? 'Refresh session (secure tokens expired)'
-    : 'Something went wrong'
   // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
     <div className={classes.root} onClick={onClick}>
       <M.Typography variant="h4" className={classes.header}>
-        {title}
+        {isCredentialsError ? (
+          <>
+            <M.Icon fontSize="large" className={classes.headerIcon}>
+              no_encryption
+            </M.Icon>{' '}
+            {error.headline}
+          </>
+        ) : (
+          'Something went wrong'
+        )}
       </M.Typography>
       <div className={classes.actions}>
         <M.Button startIcon={<M.Icon>refresh</M.Icon>} variant="outlined">
-          Reload page
+          Reload
         </M.Button>
       </div>
     </div>
