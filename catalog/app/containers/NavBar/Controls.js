@@ -102,7 +102,9 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
-      {cfg.mode === 'PRODUCT' && <Collaborators bucket={bucket} hidden={state === 'search'} />}
+      {cfg.mode === 'PRODUCT' && (
+        <Collaborators bucket={bucket} hidden={state === 'search'} />
+      )}
       <Search
         bucket={bucket}
         onFocus={search}
