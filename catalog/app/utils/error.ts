@@ -41,9 +41,6 @@ export class ErrorDisplay extends BaseError {
   }
 }
 
-/**
- * Error class with fields designed to feed <Error /> via object rest spread.
- */
 export class ErrorCredentials extends BaseError {
   /**
    * @param headline
