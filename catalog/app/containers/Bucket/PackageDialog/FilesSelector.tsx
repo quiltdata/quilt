@@ -94,12 +94,9 @@ export function FilesSelector({
     onChange(value.map(R.assoc('selected', selected < value.length)))
   }, [onChange, value, selected])
 
-  const handleItemClick = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      e.stopPropagation()
-      const idx = value.findIndex(R.propEq('name', e.currentTarget.dataset.name!))
-      if (idx < 0) return
-      onChange(R.adjust(idx, R.evolve({ selected: R.not }), value))
+  const toggleItem = React.useCallback(
+    (index: number, checked: boolean) => {
+      onChange(R.adjust(index, R.mergeLeft({ selected: checked }), value))
     },
     [onChange, value],
   )
@@ -153,13 +150,18 @@ export function FilesSelector({
         <Contents error={!!error} warn={truncated}>
           {value.length ? (
             <FilesContainer noBorder>
-              {value.map(({ type, name, selected: sel, size }) =>
+              {value.map(({ type, name, selected: sel, size }, index) =>
                 type === 'dir' ? (
                   <Dir
                     key={`dir:${name}`}
                     name={name}
-                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                    onClick={handleItemClick}
+                    checkbox={
+                      <M.Checkbox
+                        className={classes.checkbox}
+                        checked={sel}
+                        onChange={(_e, checked) => toggleItem(index, checked)}
+                      />
+                    }
                     data-name={name}
                     faint={!sel}
                   />
@@ -168,8 +170,13 @@ export function FilesSelector({
                     key={`file:${name}`}
                     name={name}
                     size={size}
-                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                    onClick={handleItemClick}
+                    checkbox={
+                      <M.Checkbox
+                        className={classes.checkbox}
+                        checked={sel}
+                        onChange={(_e, checked) => toggleItem(index, checked)}
+                      />
+                    }
                     data-name={name}
                     faint={!sel}
                     interactive

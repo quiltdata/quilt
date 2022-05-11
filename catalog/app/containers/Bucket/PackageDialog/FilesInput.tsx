@@ -465,6 +465,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
+  checkbox?: React.ReactNode
   meta?: Types.JsonRecord | null
   metaDisabled?: boolean
   onMeta?: (value: Types.JsonRecord) => void
@@ -479,6 +480,7 @@ export function File({
   type = 'local',
   size,
   action,
+  checkbox,
   meta,
   metaDisabled,
   onMeta,
@@ -504,6 +506,7 @@ export function File({
       )}
       {...props}
     >
+      {checkbox}
       <div className={cx(classes.inner, faint && classes.faint)}>
         <EntryIcon state={stateDisplay} overlay={type === 's3' ? 'S3' : undefined}>
           insert_drive_file
@@ -626,12 +629,14 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   expanded?: boolean
   faint?: boolean
   onChangeExpanded?: (expanded: boolean) => void
+  checkbox?: React.ReactNode
   action?: React.ReactNode
   onHeadClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
 export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
+    checkbox,
     name,
     state = 'unchanged',
     disableStateDisplay = false,
@@ -660,6 +665,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
+        {checkbox}
         <div className={cx(classes.headInner, faint && classes.faint)}>
           <EntryIcon state={stateDisplay}>
             {expanded ? 'folder_open' : 'folder'}
@@ -1050,11 +1056,6 @@ function FileUpload({
           handler: handle(FilesAction.Revert(path)),
         }
       case 'modified':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
       case 'hashing':
         return {
           hint: 'Revert',
@@ -1175,11 +1176,6 @@ function DirUpload({
           handler: handle(FilesAction.RevertDir(path)),
         }
       case 'modified':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
       case 'hashing':
         return {
           hint: 'Revert',
