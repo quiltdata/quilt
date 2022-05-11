@@ -81,7 +81,8 @@ export function AWSCredentialsProvider({ children }) {
 
 export function useCredentials() {
   const credentials = React.useContext(Ctx)
-  if (!credentials) throw new ErrorCredentials()
+  // TODO: find out real reason
+  if (!credentials) throw new ErrorCredentials('Session expired')
   return React.useContext(Ctx)
 }
 
