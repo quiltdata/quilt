@@ -1,12 +1,12 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 
 const PROGRESS_EMPTY = { total: 0, loaded: 0, percent: 0 }
 
 import * as Types from 'utils/types'
 import {
+  Checkbox,
   Contents,
   ContentsContainer,
   Dir,
@@ -24,22 +24,6 @@ export const validateNonEmptySelection = (state: FilesSelectorState) => {
   if (state.every(R.propEq('selected', false))) return EMPTY_SELECTION
   return undefined
 }
-
-const useFilesSelectorStyles = M.makeStyles((t) => ({
-  checkbox: {
-    color: `${t.palette.action.active} !important`,
-    padding: 3,
-    '&:hover': {
-      backgroundColor: `${fade(
-        t.palette.action.active,
-        t.palette.action.hoverOpacity,
-      )} !important`,
-    },
-    '& svg': {
-      fontSize: '18px',
-    },
-  },
-}))
 
 interface FilesSelectorEntry {
   type: 'dir' | 'file'
@@ -80,8 +64,6 @@ export function FilesSelector({
   title,
   truncated = false,
 }: FilesSelectorProps) {
-  const classes = useFilesSelectorStyles()
-
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 
@@ -156,8 +138,7 @@ export function FilesSelector({
                     key={`dir:${name}`}
                     name={name}
                     checkbox={
-                      <M.Checkbox
-                        className={classes.checkbox}
+                      <Checkbox
                         checked={sel}
                         onChange={(_e, checked) => toggleItem(index, checked)}
                       />
@@ -171,8 +152,7 @@ export function FilesSelector({
                     name={name}
                     size={size}
                     checkbox={
-                      <M.Checkbox
-                        className={classes.checkbox}
+                      <Checkbox
                         checked={sel}
                         onChange={(_e, checked) => toggleItem(index, checked)}
                       />

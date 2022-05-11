@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import * as urls from 'constants/urls'
@@ -21,6 +22,27 @@ import * as Types from 'utils/types'
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
+
+const useCheckboxStyles = M.makeStyles((t) => ({
+  root: {
+    color: `${t.palette.action.active} !important`,
+    padding: 3,
+    '&:hover': {
+      backgroundColor: `${fade(
+        t.palette.action.active,
+        t.palette.action.hoverOpacity,
+      )} !important`,
+    },
+    '& svg': {
+      fontSize: '18px',
+    },
+  },
+}))
+
+export function Checkbox({ className, ...props }: M.CheckboxProps) {
+  const classes = useCheckboxStyles()
+  return <M.Checkbox className={cx(classes.root, className)} {...props} />
+}
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -1079,6 +1101,16 @@ function FileUpload({
     }
   }, [state, dispatch, path])
 
+  const handleCheckbox = React.useCallback(() => {
+    switch (state) {
+      case 'deleted':
+        dispatch(FilesAction.Revert(path))
+        return
+      default:
+        dispatch(FilesAction.Delete(path))
+    }
+  }, [dispatch, path, state])
+
   const onClick = React.useCallback((e: React.MouseEvent) => {
     // stop click from propagating to parent elements and triggering their handlers
     e.stopPropagation()
@@ -1103,6 +1135,7 @@ function FileUpload({
       meta={meta}
       metaDisabled={state === 'deleted'}
       onMeta={onMeta}
+      checkbox={<Checkbox onChange={handleCheckbox} checked={state !== 'deleted'} />}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
