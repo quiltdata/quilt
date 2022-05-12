@@ -13,7 +13,7 @@ Quilt requires at least one admin account per stack.
 
 ## Users and roles
 
-This section provides comprehensive access control management for the follwing
+This section provides comprehensive access control management for the following
 functions:
 * Create/Delete user
 * De/activate user
