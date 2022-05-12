@@ -486,11 +486,8 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   state?: FilesEntryState
   type?: FilesEntryType
   size?: number
-  action?: React.ReactNode
   checkbox?: React.ReactNode
-  meta?: Types.JsonRecord | null
-  metaDisabled?: boolean
-  onMeta?: (value: Types.JsonRecord) => void
+  menu?: React.ReactNode[]
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -501,22 +498,18 @@ export function File({
   state = 'unchanged',
   type = 'local',
   size,
-  action,
   checkbox,
-  meta,
-  metaDisabled,
-  onMeta,
   interactive = false,
   faint = false,
   className,
   disableStateDisplay = false,
+  menu,
   ...props
 }: FileProps) {
   const classes = useFileStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
-  // XXX: reset EditFileMeta state when file is reverted
-  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
   return (
     <div
@@ -538,14 +531,18 @@ export function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta
-        disabled={metaDisabled}
-        key={metaKey}
-        name={name}
-        onChange={onMeta}
-        value={meta}
-      />
-      {action}
+      {menu && !!menu.length && (
+        <M.IconButton
+          onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
+          size="small"
+        >
+          <M.Icon>more_horiz</M.Icon>
+        </M.IconButton>
+      )}
+      {/* FIXME: close menu when click on menu item */}
+      <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+        {menu}
+      </M.Menu>
     </div>
   )
 }
@@ -1063,44 +1060,6 @@ function FileUpload({
 }: FileUploadProps) {
   const path = (prefix || '') + name
 
-  // eslint-disable-next-line consistent-return
-  const action = React.useMemo(() => {
-    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
-      // stop click from propagating to the root element and triggering its handler
-      e.stopPropagation()
-      dispatch(a)
-    }
-    switch (state) {
-      case 'added':
-        return {
-          hint: 'Remove',
-          icon: 'clear',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'modified':
-      case 'hashing':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'deleted':
-        return {
-          hint: 'Restore',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'unchanged':
-        return {
-          hint: 'Delete',
-          icon: 'clear',
-          handler: handle(FilesAction.Delete(path)),
-        }
-      default:
-        assertNever(state)
-    }
-  }, [state, dispatch, path])
-
   const handleCheckbox = React.useCallback(() => {
     switch (state) {
       case 'deleted':
@@ -1116,10 +1075,38 @@ function FileUpload({
     e.stopPropagation()
   }, [])
 
-  const onMeta = React.useCallback(
+  const handleMeta = React.useCallback(
     (m: Types.JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
+
+  const handleUndo = React.useCallback(
+    () => dispatch(FilesAction.Revert(path)),
+    [dispatch, path],
+  )
+
+  // XXX: reset EditFileMeta state when file is reverted
+  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
+
+  const menu = [
+    <EditFileMeta
+      disabled={state === 'deleted'}
+      key={metaKey}
+      name={name}
+      onChange={handleMeta}
+      value={meta}
+    />,
+  ]
+  if (state === 'modified' || state === 'hashing') {
+    menu.push(
+      <M.MenuItem onClick={handleUndo}>
+        <M.ListItemIcon>
+          <M.Icon>undo</M.Icon>
+        </M.ListItemIcon>
+        <M.ListItemText>Revert</M.ListItemText>
+      </M.MenuItem>,
+    )
+  }
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
@@ -1132,15 +1119,8 @@ function FileUpload({
       type={type}
       name={name}
       size={size}
-      meta={meta}
-      metaDisabled={state === 'deleted'}
-      onMeta={onMeta}
       checkbox={<Checkbox onChange={handleCheckbox} checked={state !== 'deleted'} />}
-      action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
-          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-        </M.IconButton>
-      }
+      menu={menu}
     />
   )
 }

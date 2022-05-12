@@ -71,26 +71,17 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
   )
 }
 
-interface MetadataIconProps {
-  color: M.PropTypes.Color | 'disabled'
-}
-
-function MetadataIcon({ color }: MetadataIconProps) {
-  return (
-    <M.Icon fontSize="inherit" color={color}>
-      list
-    </M.Icon>
-  )
-}
-
 interface EditMetaProps {
   disabled?: boolean
   name: string
-  onChange?: (value: JsonValue) => void
+  onChange: (value: JsonValue) => void
   value: JsonValue
 }
 
-export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
+const EditFileMeta = React.forwardRef<HTMLLIElement, EditMetaProps>(function EditFileMeta(
+  { disabled, name, value, onChange },
+  ref,
+) {
   // TODO: show "modified" state
   //       possible solution: store value and its state in one object `metaValue = { value, state }`
   const [open, setOpen] = React.useState(false)
@@ -99,21 +90,25 @@ export default function EditFileMeta({ disabled, name, value, onChange }: EditMe
   // TODO: simplify R.isEmpty when meta will be normalized to null
   const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
 
-  if (!onChange) return null
-
   if (disabled) {
     return (
-      <M.IconButton size="small" disabled>
-        <MetadataIcon color="disabled" />
-      </M.IconButton>
+      <M.MenuItem disabled ref={ref}>
+        <M.ListItemIcon>
+          <M.Icon color="disabled">list</M.Icon>
+        </M.ListItemIcon>
+        <M.ListItemText>Edit meta</M.ListItemText>
+      </M.MenuItem>
     )
   }
 
   return (
     <>
-      <M.IconButton onClick={openEditor} title="Edit meta" size="small">
-        <MetadataIcon color={color} />
-      </M.IconButton>
+      <M.MenuItem onClick={openEditor} ref={ref}>
+        <M.ListItemIcon>
+          <M.Icon color={color}>list</M.Icon>
+        </M.ListItemIcon>
+        <M.ListItemText>Edit meta</M.ListItemText>
+      </M.MenuItem>
 
       <Dialog
         name={name}
@@ -124,4 +119,6 @@ export default function EditFileMeta({ disabled, name, value, onChange }: EditMe
       />
     </>
   )
-}
+})
+
+export default EditFileMeta
