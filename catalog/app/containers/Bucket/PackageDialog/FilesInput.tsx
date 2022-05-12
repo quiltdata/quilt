@@ -954,7 +954,6 @@ export function Lock({
 
 const useFilesContainerStyles = M.makeStyles((t) => ({
   root: {
-    direction: 'rtl', // show the scrollbar on the left
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -966,9 +965,6 @@ const useFilesContainerStyles = M.makeStyles((t) => ({
   },
   warn: {
     borderColor: t.palette.warning.dark,
-  },
-  inner: {
-    direction: 'ltr',
   },
 }))
 
@@ -989,7 +985,7 @@ export function FilesContainer({ error, warn, noBorder, children }: FilesContain
         !error && warn && classes.warn,
       )}
     >
-      <div className={classes.inner}>{children}</div>
+      {children}
     </div>
   )
 }
