@@ -10,7 +10,6 @@ import * as Lab from '@material-ui/lab'
 import * as urls from 'constants/urls'
 import * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
 import useDragging from 'utils/dragging'
 import { withoutPrefix } from 'utils/s3paths'
@@ -486,8 +485,8 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   state?: FilesEntryState
   type?: FilesEntryType
   size?: number
-  checkbox?: React.ReactNode
-  actions?: FileAction[]
+  checkbox: React.ReactNode
+  actions: FileAction[]
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -532,21 +531,18 @@ export function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      {!!actions && !!actions.length && (
-        <M.IconButton
-          onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
-          size="small"
-        >
-          <M.Icon>more_horiz</M.Icon>
-        </M.IconButton>
-      )}
-      {!!actions && !!actions.length && (
+      <M.IconButton
+        disabled={!actions.length}
+        onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
+        size="small"
+      >
+        <M.Icon>more_horiz</M.Icon>
+      </M.IconButton>
+      {!!actions.length && (
         <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-          {actions?.map(({ onClick, disabled, icon, text, key }) => (
+          {actions.map(({ onClick, icon, text, key }) => (
             <M.MenuItem
-              disabled={disabled}
-              onClick={(event) => {
-                event.preventDefault()
+              onClick={() => {
                 setAnchorEl(null)
                 onClick()
               }}
@@ -664,8 +660,8 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   expanded?: boolean
   faint?: boolean
   onChangeExpanded?: (expanded: boolean) => void
-  checkbox?: React.ReactNode
-  action?: React.ReactNode
+  checkbox: React.ReactNode
+  actions: FileAction[]
   onHeadClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
@@ -679,7 +675,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     empty = false,
     expanded = false,
     faint = false,
-    action,
+    actions,
     className,
     onHeadClick,
     children,
@@ -690,6 +686,8 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   const classes = useDirStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+
   return (
     <div
       className={cx(className, classes.root, classes[stateDisplay], {
@@ -699,15 +697,40 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
       {...props}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-      <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
+      <div className={classes.head} role="button" tabIndex={0}>
         {checkbox}
-        <div className={cx(classes.headInner, faint && classes.faint)}>
+        <div
+          className={cx(classes.headInner, faint && classes.faint)}
+          onClick={onHeadClick}
+        >
           <EntryIcon state={stateDisplay}>
             {expanded ? 'folder_open' : 'folder'}
           </EntryIcon>
           <div className={classes.name}>{name}</div>
         </div>
-        {action}
+        <M.IconButton
+          disabled={!actions.length}
+          onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
+          size="small"
+        >
+          <M.Icon>more_horiz</M.Icon>
+        </M.IconButton>
+        {!!actions.length && (
+          <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+            {actions.map(({ onClick, icon, text, key }) => (
+              <M.MenuItem
+                onClick={() => {
+                  setAnchorEl(null)
+                  onClick()
+                }}
+                key={key}
+              >
+                <M.ListItemIcon>{icon}</M.ListItemIcon>
+                <M.ListItemText>{text}</M.ListItemText>
+              </M.MenuItem>
+            ))}
+          </M.Menu>
+        )}
         {(!!children || empty) && (
           <>
             <div className={classes.bar} />
@@ -1112,34 +1135,33 @@ function FileUpload({
     [dispatch, path],
   )
 
-  const handleUndo = React.useCallback(
-    () => dispatch(FilesAction.Revert(path)),
-    [dispatch, path],
-  )
-
   // XXX: reset EditFileMeta state when file is reverted
   const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
 
+  const metaAction = React.useMemo(
+    () => ({
+      onClick: () => setMetaOpen(true),
+      icon: <M.Icon color={metaColor}>list</M.Icon>,
+      text: 'Edit meta',
+      key: 'meta',
+    }),
+    [metaColor],
+  )
+  const undoAction = React.useMemo(
+    () => ({
+      onClick: () => dispatch(FilesAction.Revert(path)),
+      icon: <M.Icon>undo</M.Icon>,
+      text: 'Revert',
+      key: 'revert',
+    }),
+    [dispatch, path],
+  )
   const actions: FileAction[] = React.useMemo(() => {
-    const output: FileAction[] = [
-      {
-        onClick: () => setMetaOpen(true),
-        disabled: state === 'deleted',
-        icon: <M.Icon color={metaColor}>list</M.Icon>,
-        text: 'Edit meta',
-        key: 'meta',
-      },
-    ]
-    if (state === 'modified' || state === 'hashing') {
-      output.push({
-        onClick: handleUndo,
-        icon: <M.Icon>undo</M.Icon>,
-        text: 'Revert',
-        key: 'revert',
-      })
-    }
+    const output: FileAction[] = []
+    if (state !== 'deleted') output.push(metaAction)
+    if (state === 'modified' || state === 'hashing') output.push(undoAction)
     return output
-  }, [handleUndo, metaColor, state])
+  }, [metaAction, undoAction, state])
 
   return (
     <File
@@ -1215,43 +1237,28 @@ function DirUpload({
     noClick: true,
   })
 
-  // eslint-disable-next-line consistent-return
-  const action = React.useMemo(() => {
-    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
-      // stop click from propagating to the root element and triggering its handler
-      e.stopPropagation()
-      dispatch(a)
+  const handleCheckbox = React.useCallback(() => {
+    if (state === 'deleted') {
+      dispatch(FilesAction.RevertDir(path))
+    } else {
+      dispatch(FilesAction.DeleteDir(path))
     }
-    switch (state) {
-      case 'added':
-        return {
-          hint: 'Remove',
-          icon: 'clear',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'modified':
-      case 'hashing':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'deleted':
-        return {
-          hint: 'Restore',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'unchanged':
-        return {
-          hint: 'Delete',
-          icon: 'clear',
-          handler: handle(FilesAction.DeleteDir(path)),
-        }
-      default:
-        assertNever(state)
-    }
-  }, [state, dispatch, path])
+  }, [dispatch, path, state])
+
+  const undoAction = React.useMemo(
+    () => ({
+      onClick: () => dispatch(FilesAction.RevertDir(path)),
+      icon: <M.Icon>undo</M.Icon>,
+      text: 'Revert',
+      key: 'revert',
+    }),
+    [dispatch, path],
+  )
+
+  const actions: FileAction[] = React.useMemo(
+    () => (state === 'modified' || state === 'hashing' ? [undoAction] : []),
+    [undoAction, state],
+  )
 
   return (
     <Dir
@@ -1262,11 +1269,8 @@ function DirUpload({
       name={name}
       state={state}
       disableStateDisplay={disableStateDisplay}
-      action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
-          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-        </M.IconButton>
-      }
+      checkbox={<Checkbox onChange={handleCheckbox} checked={state !== 'deleted'} />}
+      actions={actions}
       empty={!childEntries.length}
     >
       {!!childEntries.length &&

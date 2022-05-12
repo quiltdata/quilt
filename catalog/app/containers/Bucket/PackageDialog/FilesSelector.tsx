@@ -145,6 +145,7 @@ export function FilesSelector({
                     }
                     data-name={name}
                     faint={!sel}
+                    actions={[]}
                   />
                 ) : (
                   <File
@@ -160,6 +161,7 @@ export function FilesSelector({
                     data-name={name}
                     faint={!sel}
                     interactive
+                    actions={[]}
                   />
                 ),
               )}

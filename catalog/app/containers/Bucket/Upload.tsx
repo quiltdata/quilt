@@ -92,6 +92,7 @@ export function LocalFolderInput({
   }, [disabledInternal, ipc, onChange])
 
   const onDrop = React.useCallback((files) => onChange(files[0].path), [onChange])
+  const handleCheckbox = React.useCallback(() => onChange(''), [onChange])
 
   const isDragging = useDragging()
   const { getRootProps, isDragActive } = useDropzone({
@@ -123,7 +124,13 @@ export function LocalFolderInput({
           error={!!error}
         >
           <FI.FilesContainer error={!!error} noBorder>
-            {value && <FI.Dir name={basename(value)} />}
+            {value && (
+              <FI.Dir
+                actions={[]}
+                checkbox={<FI.Checkbox onChange={handleCheckbox} checked />}
+                name={basename(value)}
+              />
+            )}
           </FI.FilesContainer>
           <FI.DropzoneMessage
             label="Drop directory or click to browse"
