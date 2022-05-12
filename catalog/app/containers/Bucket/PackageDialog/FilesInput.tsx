@@ -37,13 +37,22 @@ function FileMenu({ actions }: FileMenuProps) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
   return (
     <>
-      <M.IconButton
-        disabled={!actions.length}
-        onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
-        size="small"
-      >
-        <M.Icon>more_horiz</M.Icon>
-      </M.IconButton>
+      {actions.length ? (
+        <M.IconButton
+          onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
+          size="small"
+        >
+          <M.Icon>more_horiz</M.Icon>
+        </M.IconButton>
+      ) : (
+        <M.Tooltip title="No actions available">
+          <span>
+            <M.IconButton disabled size="small">
+              <M.Icon>more_horiz</M.Icon>
+            </M.IconButton>
+          </span>
+        </M.Tooltip>
+      )}
       {!!actions.length && (
         <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
           {actions.map(({ onClick, icon, text, key }) => (
@@ -471,16 +480,14 @@ const useFileStyles = M.makeStyles((t) => ({
   hashing: {},
   deleted: {},
   unchanged: {},
-  interactive: {},
   root: {
     alignItems: 'center',
     color: COLORS.default,
     cursor: 'default',
     display: 'flex',
-    opacity: 0.7,
     outline: 'none',
     '&:hover': {
-      opacity: 1,
+      background: t.palette.background.default,
     },
     '&$added': {
       color: COLORS.added,
@@ -493,9 +500,6 @@ const useFileStyles = M.makeStyles((t) => ({
     },
     '&$deleted': {
       color: COLORS.deleted,
-    },
-    '&$interactive': {
-      cursor: 'pointer',
     },
   },
   inner: {
@@ -529,7 +533,6 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number
   checkbox: React.ReactNode
   actions: FileAction[]
-  interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
 }
@@ -540,7 +543,6 @@ export function File({
   type = 'local',
   size,
   checkbox,
-  interactive = false,
   faint = false,
   className,
   disableStateDisplay = false,
@@ -552,15 +554,7 @@ export function File({
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
   return (
-    <div
-      className={cx(
-        className,
-        classes.root,
-        classes[stateDisplay],
-        interactive && classes.interactive,
-      )}
-      {...props}
-    >
+    <div className={cx(className, classes.root, classes[stateDisplay])} {...props}>
       {checkbox}
       <div className={cx(classes.inner, faint && classes.faint)}>
         <EntryIcon state={stateDisplay} overlay={type === 's3' ? 'S3' : undefined}>
@@ -585,18 +579,15 @@ const useDirStyles = M.makeStyles((t) => ({
   unchanged: {},
   active: {},
   root: {
-    cursor: 'pointer',
-    outline: 'none',
     position: 'relative',
   },
   head: {
     alignItems: 'center',
     color: COLORS.default,
     display: 'flex',
-    opacity: 0.7,
     outline: 'none',
     '$active > &, &:hover': {
-      opacity: 1,
+      background: t.palette.background.default,
     },
     '$added > &': {
       color: COLORS.added,
@@ -613,8 +604,10 @@ const useDirStyles = M.makeStyles((t) => ({
   },
   headInner: {
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
+    outline: 'none',
     overflow: 'hidden',
   },
   faint: {
@@ -633,6 +626,7 @@ const useDirStyles = M.makeStyles((t) => ({
   },
   bar: {
     bottom: 0,
+    cursor: 'pointer',
     left: 0,
     opacity: 0.3,
     position: 'absolute',
@@ -677,10 +671,9 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   empty?: boolean
   expanded?: boolean
   faint?: boolean
-  onChangeExpanded?: (expanded: boolean) => void
   checkbox: React.ReactNode
   actions: FileAction[]
-  onHeadClick?: React.MouseEventHandler<HTMLDivElement>
+  onToggle?: React.MouseEventHandler<HTMLDivElement>
 }
 
 export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
@@ -695,7 +688,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     faint = false,
     actions,
     className,
-    onHeadClick,
+    onToggle,
     children,
     ...props
   },
@@ -715,10 +708,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div className={classes.head} role="button" tabIndex={0}>
         {checkbox}
-        <div
-          className={cx(classes.headInner, faint && classes.faint)}
-          onClick={onHeadClick}
-        >
+        <div className={cx(classes.headInner, faint && classes.faint)} onClick={onToggle}>
           <EntryIcon state={stateDisplay}>
             {expanded ? 'folder_open' : 'folder'}
           </EntryIcon>
@@ -727,7 +717,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
         <FileMenu actions={actions} />
         {(!!children || empty) && (
           <>
-            <div className={classes.bar} />
+            <div className={classes.bar} onClick={onToggle} />
             {empty && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
           </>
         )}
@@ -1029,9 +1019,6 @@ const useContentsStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     position: 'relative',
   },
-  interactive: {
-    cursor: 'pointer',
-  },
   active: {
     background: t.palette.action.selected,
   },
@@ -1044,14 +1031,13 @@ const useContentsStyles = M.makeStyles((t) => ({
 }))
 
 interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
-  interactive?: boolean
   active?: boolean
   error?: boolean
   warn?: boolean
 }
 
 export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
-  { interactive, active, error, warn, className, ...props },
+  { active, error, warn, className, ...props },
   ref,
 ) {
   const classes = useContentsStyles()
@@ -1060,7 +1046,6 @@ export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function
       className={cx(
         className,
         classes.root,
-        interactive && classes.interactive,
         active && classes.active,
         error && classes.err,
         !error && warn && classes.warn,
@@ -1182,14 +1167,7 @@ function DirUpload({
 }: DirUploadProps) {
   const [expanded, setExpanded] = React.useState(false)
 
-  const toggleExpanded = React.useCallback(
-    (e) => {
-      // stop click from propagating to the root element and triggering its handler
-      e.stopPropagation()
-      setExpanded((x) => !x)
-    },
-    [setExpanded],
-  )
+  const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [setExpanded])
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
     // stop click from propagating to parent elements and triggering their handlers
@@ -1240,7 +1218,7 @@ function DirUpload({
     <Dir
       {...getRootProps({ onClick })}
       active={isDragActive}
-      onHeadClick={toggleExpanded}
+      onToggle={toggleExpanded}
       expanded={expanded}
       name={name}
       state={state}
@@ -1553,7 +1531,6 @@ export function FilesInput({
       <ContentsContainer outlined={isDragging && !ref.current.disabled}>
         <Contents
           {...getRootProps()}
-          interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
           warn={warn.upload || warn.s3 || warn.count}

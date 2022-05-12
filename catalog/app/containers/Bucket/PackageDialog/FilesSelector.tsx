@@ -160,7 +160,6 @@ export function FilesSelector({
                     }
                     data-name={name}
                     faint={!sel}
-                    interactive
                     actions={[]}
                   />
                 ),
