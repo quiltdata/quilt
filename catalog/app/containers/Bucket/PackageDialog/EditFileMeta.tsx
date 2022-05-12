@@ -16,7 +16,7 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface DialogProps {
+interface EditFileMetaProps {
   name: string
   onChange: (value: JsonValue) => void
   onClose: () => void
@@ -24,28 +24,28 @@ interface DialogProps {
   value: JsonValue
 }
 
-function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
+export default function EditFileMeta({
+  name,
+  onChange,
+  onClose,
+  open,
+  value,
+}: EditFileMetaProps) {
+  // TODO: show "modified" state
+  //       possible solution: store value and its state in one object `metaValue = { value, state }`
   // TODO: add button to reset innerValue
   const [innerValue, setInnerValue] = React.useState(value)
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
   const [isRaw, setRaw] = React.useState(false)
-  const handleSubmit = React.useCallback(
-    (event) => {
-      event.stopPropagation()
-      onChange(innerValue)
-      onClose()
-    },
-    [innerValue, onChange, onClose],
-  )
-  const handleCancel = React.useCallback(
-    (event) => {
-      event.stopPropagation()
-      setInnerValue(value)
-      onClose()
-    },
-    [onClose, value],
-  )
+  const handleSubmit = React.useCallback(() => {
+    onChange(innerValue)
+    onClose()
+  }, [innerValue, onChange, onClose])
+  const handleCancel = React.useCallback(() => {
+    setInnerValue(value)
+    onClose()
+  }, [onClose, value])
   return (
     <M.Dialog
       fullWidth
@@ -75,28 +75,5 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
         </M.Button>
       </M.DialogActions>
     </M.Dialog>
-  )
-}
-
-interface EditMetaProps {
-  open: boolean
-  name: string
-  onChange: (value: JsonValue) => void
-  onClose: () => void
-  value: JsonValue
-}
-
-export default function EditFileMeta({
-  name,
-  value,
-  onChange,
-  onClose,
-  open,
-}: EditMetaProps) {
-  // TODO: show "modified" state
-  //       possible solution: store value and its state in one object `metaValue = { value, state }`
-
-  return (
-    <Dialog name={name} onChange={onChange} onClose={onClose} open={open} value={value} />
   )
 }
