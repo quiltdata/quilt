@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -31,14 +30,22 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
   const [isRaw, setRaw] = React.useState(false)
-  const handleSubmit = React.useCallback(() => {
-    onChange(innerValue)
-    onClose()
-  }, [innerValue, onChange, onClose])
-  const handleCancel = React.useCallback(() => {
-    setInnerValue(value)
-    onClose()
-  }, [onClose, value])
+  const handleSubmit = React.useCallback(
+    (event) => {
+      event.stopPropagation()
+      onChange(innerValue)
+      onClose()
+    },
+    [innerValue, onChange, onClose],
+  )
+  const handleCancel = React.useCallback(
+    (event) => {
+      event.stopPropagation()
+      setInnerValue(value)
+      onClose()
+    },
+    [onClose, value],
+  )
   return (
     <M.Dialog
       fullWidth
@@ -72,53 +79,24 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
 }
 
 interface EditMetaProps {
-  disabled?: boolean
+  open: boolean
   name: string
   onChange: (value: JsonValue) => void
+  onClose: () => void
   value: JsonValue
 }
 
-const EditFileMeta = React.forwardRef<HTMLLIElement, EditMetaProps>(function EditFileMeta(
-  { disabled, name, value, onChange },
-  ref,
-) {
+export default function EditFileMeta({
+  name,
+  value,
+  onChange,
+  onClose,
+  open,
+}: EditMetaProps) {
   // TODO: show "modified" state
   //       possible solution: store value and its state in one object `metaValue = { value, state }`
-  const [open, setOpen] = React.useState(false)
-  const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
-  const openEditor = React.useCallback(() => setOpen(true), [setOpen])
-  // TODO: simplify R.isEmpty when meta will be normalized to null
-  const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
-
-  if (disabled) {
-    return (
-      <M.MenuItem disabled ref={ref}>
-        <M.ListItemIcon>
-          <M.Icon color="disabled">list</M.Icon>
-        </M.ListItemIcon>
-        <M.ListItemText>Edit meta</M.ListItemText>
-      </M.MenuItem>
-    )
-  }
 
   return (
-    <>
-      <M.MenuItem onClick={openEditor} ref={ref}>
-        <M.ListItemIcon>
-          <M.Icon color={color}>list</M.Icon>
-        </M.ListItemIcon>
-        <M.ListItemText>Edit meta</M.ListItemText>
-      </M.MenuItem>
-
-      <Dialog
-        name={name}
-        onChange={onChange}
-        onClose={closeEditor}
-        open={open}
-        value={value}
-      />
-    </>
+    <Dialog name={name} onChange={onChange} onClose={onClose} open={open} value={value} />
   )
-})
-
-export default EditFileMeta
+}
