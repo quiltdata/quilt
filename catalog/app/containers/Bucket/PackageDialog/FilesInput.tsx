@@ -1118,11 +1118,6 @@ function FileUpload({
   }, [])
 
   const [metaOpen, setMetaOpen] = React.useState(false)
-  const metaColor = React.useMemo(() => {
-    if (state === 'deleted') return 'disabled'
-    if (R.isEmpty(meta)) return 'inherit'
-    return 'primary'
-  }, [meta, state])
   const handleMetaEdit = React.useCallback(
     (m: Types.JsonRecord) => {
       setMetaOpen(false)
@@ -1137,11 +1132,11 @@ function FileUpload({
   const metaAction = React.useMemo(
     () => ({
       onClick: () => setMetaOpen(true),
-      icon: <M.Icon color={metaColor}>list</M.Icon>,
-      text: 'Edit meta',
+      icon: <M.Icon>list</M.Icon>,
+      text: R.isEmpty(meta) ? 'Add meta' : 'Edit meta',
       key: 'meta',
     }),
-    [metaColor],
+    [meta],
   )
   const undoAction = React.useMemo(
     () => ({
