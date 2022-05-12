@@ -1145,7 +1145,6 @@ function FileUpload({
     [handleUndo, metaColor, state],
   )
 
-  // eslint-disable-next-line jsx-a11y/click-events-have-key-events
   return (
     <File
       onClick={onClick}
