@@ -161,6 +161,7 @@ export function FilesSelector({
                     data-name={name}
                     faint={!sel}
                     actions={[]}
+                    type="s3"
                   />
                 ),
               )}
