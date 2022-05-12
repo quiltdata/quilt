@@ -22,6 +22,48 @@ import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
+interface FileAction {
+  icon: React.ReactNode
+  key: string
+  onClick: () => void
+  text: string
+}
+
+interface FileMenuProps {
+  actions: FileAction[]
+}
+
+function FileMenu({ actions }: FileMenuProps) {
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+  return (
+    <>
+      <M.IconButton
+        disabled={!actions.length}
+        onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
+        size="small"
+      >
+        <M.Icon>more_horiz</M.Icon>
+      </M.IconButton>
+      {!!actions.length && (
+        <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+          {actions.map(({ onClick, icon, text, key }) => (
+            <M.MenuItem
+              onClick={() => {
+                setAnchorEl(null)
+                onClick()
+              }}
+              key={key}
+            >
+              <M.ListItemIcon>{icon}</M.ListItemIcon>
+              <M.ListItemText>{text}</M.ListItemText>
+            </M.MenuItem>
+          ))}
+        </M.Menu>
+      )}
+    </>
+  )
+}
+
 const useCheckboxStyles = M.makeStyles((t) => ({
   root: {
     color: `${t.palette.action.active} !important`,
@@ -509,8 +551,6 @@ export function File({
   const classes = useFileStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
-
   return (
     <div
       className={cx(
@@ -531,29 +571,7 @@ export function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <M.IconButton
-        disabled={!actions.length}
-        onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
-        size="small"
-      >
-        <M.Icon>more_horiz</M.Icon>
-      </M.IconButton>
-      {!!actions.length && (
-        <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-          {actions.map(({ onClick, icon, text, key }) => (
-            <M.MenuItem
-              onClick={() => {
-                setAnchorEl(null)
-                onClick()
-              }}
-              key={key}
-            >
-              <M.ListItemIcon>{icon}</M.ListItemIcon>
-              <M.ListItemText>{text}</M.ListItemText>
-            </M.MenuItem>
-          ))}
-        </M.Menu>
-      )}
+      <FileMenu actions={actions} />
       {children}
     </div>
   )
@@ -686,8 +704,6 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   const classes = useDirStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
-
   return (
     <div
       className={cx(className, classes.root, classes[stateDisplay], {
@@ -708,29 +724,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
           </EntryIcon>
           <div className={classes.name}>{name}</div>
         </div>
-        <M.IconButton
-          disabled={!actions.length}
-          onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
-          size="small"
-        >
-          <M.Icon>more_horiz</M.Icon>
-        </M.IconButton>
-        {!!actions.length && (
-          <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-            {actions.map(({ onClick, icon, text, key }) => (
-              <M.MenuItem
-                onClick={() => {
-                  setAnchorEl(null)
-                  onClick()
-                }}
-                key={key}
-              >
-                <M.ListItemIcon>{icon}</M.ListItemIcon>
-                <M.ListItemText>{text}</M.ListItemText>
-              </M.MenuItem>
-            ))}
-          </M.Menu>
-        )}
+        <FileMenu actions={actions} />
         {(!!children || empty) && (
           <>
             <div className={classes.bar} />
@@ -1076,15 +1070,6 @@ export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function
     />
   )
 })
-
-interface FileAction {
-  children?: React.ReactNode
-  disabled?: boolean
-  icon: React.ReactNode
-  key: string
-  onClick: () => void
-  text: string
-}
 
 type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
   prefix?: string
