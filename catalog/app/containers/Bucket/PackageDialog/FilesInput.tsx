@@ -1086,12 +1086,10 @@ function FileUpload({
   const path = (prefix || '') + name
 
   const handleCheckbox = React.useCallback(() => {
-    switch (state) {
-      case 'deleted':
-        dispatch(FilesAction.Revert(path))
-        return
-      default:
-        dispatch(FilesAction.Delete(path))
+    if (state === 'deleted') {
+      dispatch(FilesAction.Revert(path))
+    } else {
+      dispatch(FilesAction.Delete(path))
     }
   }, [dispatch, path, state])
 
@@ -1122,8 +1120,8 @@ function FileUpload({
   // XXX: reset EditFileMeta state when file is reverted
   const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
 
-  const actions: FileAction[] = React.useMemo(
-    () => [
+  const actions: FileAction[] = React.useMemo(() => {
+    const output: FileAction[] = [
       {
         onClick: () => setMetaOpen(true),
         disabled: state === 'deleted',
@@ -1131,19 +1129,17 @@ function FileUpload({
         text: 'Edit meta',
         key: 'meta',
       },
-      ...(state === 'modified' || state === 'hashing'
-        ? [
-            {
-              onClick: handleUndo,
-              icon: <M.Icon>undo</M.Icon>,
-              text: 'Revert',
-              key: 'revert',
-            },
-          ]
-        : []),
-    ],
-    [handleUndo, metaColor, state],
-  )
+    ]
+    if (state === 'modified' || state === 'hashing') {
+      output.push({
+        onClick: handleUndo,
+        icon: <M.Icon>undo</M.Icon>,
+        text: 'Revert',
+        key: 'revert',
+      })
+    }
+    return output
+  }, [handleUndo, metaColor, state])
 
   return (
     <File
