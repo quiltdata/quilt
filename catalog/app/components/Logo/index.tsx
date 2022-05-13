@@ -15,13 +15,8 @@ interface LogoProps {
 }
 
 const useStyles = M.makeStyles(({}) => ({
-  custom: ({ src, height, width }: { src?: string; height: string; width: string }) => ({
+  custom: ({ height }: { height: string }) => ({
     height,
-    width,
-    backgroundSize: 'contain',
-    backgroundImage: `url(${src})`,
-    backgroundPosition: '50% 50%',
-    backgroundRepeat: 'no-repeat',
   }),
   quilt: ({ height, width }: { height: string; width: string }) => ({
     height,
@@ -46,8 +41,8 @@ function CustomLogo({ className, src, height, width }: LogoProps) {
     if (!src || !s3paths.isS3Url(src)) return src
     return sign(s3paths.parseS3Url(src))
   }, [sign, src])
-  const classes = useStyles({ height, src: parsedSrc, width })
-  return <div className={cx(classes.custom, className)} />
+  const classes = useStyles({ height, width })
+  return <img src={parsedSrc} className={cx(classes.custom, className)} />
 }
 
 export default function Logo({ src, ...rest }: LogoProps) {

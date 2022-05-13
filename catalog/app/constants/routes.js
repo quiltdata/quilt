@@ -110,6 +110,7 @@ export const bucketFile = {
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
 }
@@ -124,6 +125,7 @@ export const bucketPackageDetail = {
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
       ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
@@ -176,6 +178,10 @@ export const adminBuckets = {
 export const adminSettings = {
   path: '/admin/settings',
   url: () => '/admin/settings',
+}
+export const adminSync = {
+  path: '/admin/sync',
+  url: () => '/admin/sync',
 }
 
 // storybook

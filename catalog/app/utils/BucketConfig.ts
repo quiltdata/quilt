@@ -17,7 +17,11 @@ function useBucketConfigs() {
   // XXX: consider moving this logic to gql resolver
   const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)
 
-  const [{ data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY, pause: empty })
+  const [{ data }] = urql.useQuery({
+    query: BUCKET_CONFIGS_QUERY,
+    pause: empty,
+    variables: { includeCollaborators: cfg.mode === 'PRODUCT' },
+  })
 
   return React.useMemo(() => {
     if (empty) return []

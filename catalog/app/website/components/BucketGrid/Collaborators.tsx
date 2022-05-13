@@ -7,14 +7,14 @@ import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 interface CollaboratorsProps {
   bucket: string
-  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection>
+  collaborators: ReadonlyArray<Model.GQLTypes.CollaboratorBucketConnection> | null
 }
 
 export default function Collaborators({ bucket, collaborators }: CollaboratorsProps) {
   const potentialCollaborators = usePotentialCollaborators()
   const allCollaborators: Model.Collaborators = React.useMemo(
     () => [
-      ...collaborators,
+      ...(collaborators || []),
       ...potentialCollaborators.map((collaborator) => ({
         collaborator,
         permissionLevel: undefined,
