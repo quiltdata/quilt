@@ -250,6 +250,14 @@ User email addresses are stored by the Identity Service in RDS Postgres (part of
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
+### Setting the default role
+
+**The Quilt admin must log in and set the default role** in order for new 
+users to be able to log in. Without this, new users will have no permissions.
+
+![](imgs/default-role.png)
+
+
 ### Single sign-on (SSO)
 
 #### Google
@@ -339,12 +347,7 @@ Use current template > Next > Specify stack details), set the following paramete
 * *AuthClientId*: *Client ID*
 * *AuthBaseUrl*: *Issuer URL V2*
 
-#### Setting the default role
-
-**The Quilt admin must log in and set the default role** in order for new SSO
-users to be able to log in. Without this, new users will have no permissions.
-
-![](imgs/default-role.png)
+> Be sure to set the [default role](#setting-the-default-role) as indicated above.
 
 ### Preparing an AWS Role for use with Quilt
 
