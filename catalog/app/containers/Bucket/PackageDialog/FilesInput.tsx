@@ -474,6 +474,109 @@ function EntryIcon({ state, overlay, children }: EntryIconProps) {
   )
 }
 
+const useEntryStyles = M.makeStyles((t) => ({
+  added: {},
+  modified: {},
+  hashing: {},
+  deleted: {},
+  unchanged: {},
+  root: {
+    alignItems: 'center',
+    color: COLORS.default,
+    cursor: 'default',
+    display: 'flex',
+    outline: 'none',
+    '&:hover': {
+      background: t.palette.background.default,
+    },
+    '&$added': {
+      color: COLORS.added,
+    },
+    '&$modified': {
+      color: COLORS.modified,
+    },
+    '&$hashing': {
+      color: COLORS.modified,
+    },
+    '&$deleted': {
+      color: COLORS.deleted,
+    },
+  },
+  faint: {
+    opacity: 0.5,
+  },
+  inner: {
+    alignItems: 'center',
+    display: 'flex',
+    flexGrow: 1,
+    overflow: 'hidden',
+  },
+  name: {
+    ...t.typography.body2,
+    flexGrow: 1,
+    marginRight: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  clickable: {
+    cursor: 'pointer',
+    outline: 'none',
+  },
+}))
+
+interface EntryProps {
+  className?: string
+  faint: boolean
+  actions: FileAction[]
+  checkbox: React.ReactNode
+  children: React.ReactNode
+  icon: string
+  name: string
+  onClick?: () => void
+  state: FilesEntryState
+}
+
+function Entry({
+  actions,
+  checkbox,
+  children,
+  className,
+  faint,
+  icon,
+  name,
+  onClick,
+  state,
+}: EntryProps) {
+  const clickableProps = !!onClick
+    ? {
+        onClick,
+        role: 'button',
+        tabIndex: 0,
+      }
+    : undefined
+  const classes = useEntryStyles()
+
+  return (
+    <div className={cx(classes.root, classes[state], className)}>
+      {checkbox}
+      <div
+        className={cx(
+          classes.inner,
+          faint && classes.faint,
+          onClick && classes.clickable,
+        )}
+        {...clickableProps}
+      >
+        <EntryIcon state={state}>{icon}</EntryIcon>
+        <div className={classes.name}>{name}</div>
+      </div>
+      <FileMenu actions={actions} />
+      {children}
+    </div>
+  )
+}
+
 const useFileStyles = M.makeStyles((t) => ({
   added: {},
   modified: {},
@@ -577,7 +680,17 @@ const useDirStyles = M.makeStyles((t) => ({
   hashing: {},
   deleted: {},
   unchanged: {},
-  active: {},
+  active: {
+    '&:before': {
+      position: 'absolute',
+      content: '""',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      border: '2px dashed #333',
+    },
+  },
   root: {
     position: 'relative',
   },
@@ -586,9 +699,7 @@ const useDirStyles = M.makeStyles((t) => ({
     color: COLORS.default,
     display: 'flex',
     outline: 'none',
-    '$active > &, &:hover': {
-      background: t.palette.background.default,
-    },
+    '$active > &, &:hover': {},
     '$added > &': {
       color: COLORS.added,
     },
@@ -673,7 +784,7 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   faint?: boolean
   checkbox: React.ReactNode
   actions: FileAction[]
-  onToggle?: React.MouseEventHandler<HTMLDivElement>
+  onToggle?: () => void
 }
 
 export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
@@ -705,23 +816,22 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
       ref={ref}
       {...props}
     >
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-      <div className={classes.head} role="button" tabIndex={0}>
-        {checkbox}
-        <div className={cx(classes.headInner, faint && classes.faint)} onClick={onToggle}>
-          <EntryIcon state={stateDisplay}>
-            {expanded ? 'folder_open' : 'folder'}
-          </EntryIcon>
-          <div className={classes.name}>{name}</div>
-        </div>
-        <FileMenu actions={actions} />
+      <Entry
+        actions={actions}
+        checkbox={checkbox}
+        faint={faint}
+        icon={expanded ? 'folder_open' : 'folder'}
+        name={name}
+        state={stateDisplay}
+        onClick={onToggle}
+      >
         {(!!children || empty) && (
           <>
             <div className={classes.bar} onClick={onToggle} />
             {empty && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
           </>
         )}
-      </div>
+      </Entry>
       {(!!children || empty) && (
         <M.Collapse in={expanded} mountOnEnter unmountOnExit>
           <div className={classes.body}>
