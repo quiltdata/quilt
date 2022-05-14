@@ -34,7 +34,6 @@ following to buckets in your *DataAccount*.
                 "s3:ListBucketVersions",
                 "s3:DeleteObject",
                 "s3:DeleteObjectVersion",
-                "s3:PutObject",
                 "s3:GetBucketNotification",
                 "s3:PutBucketNotification"
             ],
@@ -42,6 +41,23 @@ following to buckets in your *DataAccount*.
                 "arn:aws:s3:::bucket-in-data-account",
                 "arn:aws:s3:::bucket-in-data-account/*"
             ]
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::CONTROL_ACCOUNT:root"
+            },
+            "Action": [
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::bucket-in-data-account/*"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "s3:x-amz-acl": "bucket-owner-full-control"
+                }
+            }
         }
     ]
 }
