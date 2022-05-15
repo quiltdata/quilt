@@ -22,6 +22,11 @@ import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
+const stopPropagation = (e: React.MouseEvent) => {
+  // stop click from propagating to parent elements and triggering their handlers
+  e.stopPropagation()
+}
+
 interface FileAction {
   icon: React.ReactNode
   key: string
@@ -778,13 +783,13 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
   disableStateDisplay?: boolean
-  active?: boolean
   empty?: boolean
   expanded?: boolean
   faint?: boolean
   checkbox: React.ReactNode
   actions: FileAction[]
   onToggle?: () => void
+  onDropFiles?: (files: FileWithPath[]) => void
 }
 
 export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
@@ -793,7 +798,6 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     name,
     state = 'unchanged',
     disableStateDisplay = false,
-    active = false,
     empty = false,
     expanded = false,
     faint = false,
@@ -801,6 +805,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     className,
     onToggle,
     children,
+    onDropFiles: onDrop,
     ...props
   },
   ref,
@@ -808,10 +813,17 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   const classes = useDirStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
+  const { getRootProps, isDragActive } = useDropzone({
+    onDrop,
+    noDragEventsBubbling: true,
+    noClick: true,
+  })
+
   return (
     <div
+      {...getRootProps({ onClick: stopPropagation })}
       className={cx(className, classes.root, classes[stateDisplay], {
-        [classes.active]: active,
+        [classes.active]: isDragActive,
       })}
       ref={ref}
       {...props}
@@ -1279,14 +1291,9 @@ function DirUpload({
 
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [setExpanded])
 
-  const onClick = React.useCallback((e: React.MouseEvent) => {
-    // stop click from propagating to parent elements and triggering their handlers
-    e.stopPropagation()
-  }, [])
-
   const path = (prefix || '') + name
 
-  const onDrop = React.useCallback(
+  const onDropFiles = React.useCallback(
     (files: FileWithPath[]) => {
       // TODO: fix File ⟷ DOMFile ⟷ FileWithHash ⟷ FileWithPath interplay
       // @ts-expect-error
@@ -1294,12 +1301,6 @@ function DirUpload({
     },
     [dispatch, path],
   )
-
-  const { getRootProps, isDragActive } = useDropzone({
-    onDrop,
-    noDragEventsBubbling: true,
-    noClick: true,
-  })
 
   const handleCheckbox = React.useCallback(() => {
     if (state === 'deleted') {
@@ -1326,9 +1327,8 @@ function DirUpload({
 
   return (
     <Dir
-      {...getRootProps({ onClick })}
-      active={isDragActive}
       onToggle={toggleExpanded}
+      onDropFiles={onDropFiles}
       expanded={expanded}
       name={name}
       state={state}
