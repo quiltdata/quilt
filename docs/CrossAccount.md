@@ -20,7 +20,7 @@ To ensure that the Quilt stack in the *ControlAccount* can access and administer
 S3 buckets in the *DataAccount*, you can apply a bucket policy similar to the
 following to buckets in your *DataAccount*.
 
-> Quilt admins can still control which users do an do not have access to the 
+> Quilt admins can still control which users do and do not have access to the 
 > following bucket via Admin panel Roles and Policies.
 
 ```json
