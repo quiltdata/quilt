@@ -18,6 +18,7 @@ import * as Form from '../RFForm'
 import * as Table from '../Table'
 
 import AttachedPolicies from './AttachedPolicies'
+import { MAX_POLICIES_PER_ROLE } from './shared'
 
 import ROLES_QUERY from './gql/Roles.generated'
 import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
@@ -92,7 +93,9 @@ const columns = [
             )
           }
         >
-          <span>{r.policies.length}</span>
+          <span>
+            {r.policies.length} / {MAX_POLICIES_PER_ROLE}
+          </span>
         </M.Tooltip>
       ) : (
         'N/A'

@@ -220,18 +220,7 @@ function Create({ close }: CreateProps) {
                 margin="normal"
                 errors={{
                   required: 'Enter a policy title',
-                  // XXX: reserved: 'This is a reserved name, please use another',
                   taken: 'Policy with this title already exists',
-                  invalid: (
-                    // TODO: is this relevant?
-                    <>
-                      Enter a{' '}
-                      <abbr title="Must start with a letter and contain only alphanumeric characters and underscores thereafter">
-                        valid
-                      </abbr>{' '}
-                      policy title
-                    </>
-                  ),
                 }}
               />
 
@@ -265,17 +254,9 @@ function Create({ close }: CreateProps) {
                   className={classes.panel}
                   component={BucketsPermissions}
                   name="permissions"
-                  validate={
-                    managed ? (validators.nonEmpty as FF.FieldValidator<any>) : undefined
-                  }
-                  // to re-trigger validation when "managed" state changes
-                  key={`${managed}`}
                   fullWidth
                   margin="normal"
                   onAdvanced={() => setManaged(false)}
-                  errors={{
-                    nonEmpty: 'Add at least one bucket permission',
-                  }}
                 />
               </M.Collapse>
 
@@ -538,9 +519,7 @@ function Edit({ policy, close }: EditProps) {
                 margin="normal"
                 errors={{
                   required: 'Enter a policy title',
-                  // XXX: reserved: 'This is a reserved name, please use another',
                   taken: 'Policy with this title already exists',
-                  invalid: 'Invalid title for policy',
                 }}
               />
               {policy.managed ? (
@@ -558,14 +537,6 @@ function Edit({ policy, close }: EditProps) {
                     name="permissions"
                     fullWidth
                     margin="normal"
-                    validate={
-                      policy.managed
-                        ? (validators.nonEmpty as FF.FieldValidator<any>)
-                        : undefined
-                    }
-                    errors={{
-                      nonEmpty: 'Add at least one bucket permission',
-                    }}
                   />
                 </>
               ) : (

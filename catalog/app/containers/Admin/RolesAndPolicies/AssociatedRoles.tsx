@@ -4,14 +4,16 @@ import * as M from '@material-ui/core'
 
 import useQuery from 'utils/useQuery'
 
+import { MAX_POLICIES_PER_ROLE } from './shared'
+
 import ROLES_QUERY from './gql/Roles.generated'
-import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
+import { RoleSelection_ManagedRole_Fragment as ManagedRole } from './gql/RoleSelection.generated'
 
 interface RoleSelectionDialogProps {
   open: boolean
   onClose: () => void
-  roles: Role[]
-  attachRoles: (roles: Role[]) => void
+  roles: ManagedRole[]
+  attachRoles: (roles: ManagedRole[]) => void
 }
 
 function RoleSelectionDialog({
@@ -20,7 +22,7 @@ function RoleSelectionDialog({
   roles,
   attachRoles,
 }: RoleSelectionDialogProps) {
-  const [selected, setSelected] = React.useState<Role[]>([])
+  const [selected, setSelected] = React.useState<ManagedRole[]>([])
   const [committed, setCommitted] = React.useState(false)
 
   const handleExited = React.useCallback(() => {
@@ -35,7 +37,7 @@ function RoleSelectionDialog({
   }, [onClose, setCommitted])
 
   const toggle = React.useCallback(
-    (role: Role) => {
+    (role: ManagedRole) => {
       setSelected((value) =>
         value.includes(role) ? value.filter((r) => r.id !== role.id) : value.concat(role),
       )
@@ -52,6 +54,7 @@ function RoleSelectionDialog({
             <M.FormControlLabel
               key={role.id}
               style={{ display: 'flex', marginRight: 0 }}
+              disabled={role.policies.length >= MAX_POLICIES_PER_ROLE}
               control={
                 <M.Checkbox
                   checked={selected.includes(role)}
@@ -59,7 +62,14 @@ function RoleSelectionDialog({
                   color="primary"
                 />
               }
-              label={role.name}
+              label={
+                <>
+                  {role.name}{' '}
+                  <M.Box component="span" color="text.secondary">
+                    ({role.policies.length} / {MAX_POLICIES_PER_ROLE} policies)
+                  </M.Box>
+                </>
+              }
             />
           ))
         ) : (
@@ -78,7 +88,7 @@ function RoleSelectionDialog({
   )
 }
 
-interface AssociatedRolesProps extends RF.FieldRenderProps<Role[]> {
+interface AssociatedRolesProps extends RF.FieldRenderProps<ManagedRole[]> {
   className?: string
 }
 
@@ -102,14 +112,14 @@ export default function AssociatedRoles({
   }, [setRoleSelectionOpen])
 
   const attachRoles = React.useCallback(
-    (roles: Role[]) => {
+    (roles: ManagedRole[]) => {
       onChange(value.concat(roles))
     },
     [onChange, value],
   )
 
-  const detachRole = (policy: Role) => {
-    onChange(value.filter((p) => p.id !== policy.id))
+  const detachRole = (role: ManagedRole) => {
+    onChange(value.filter((r) => r.id !== role.id))
   }
 
   const availableRoles = React.useMemo(
@@ -122,7 +132,9 @@ export default function AssociatedRoles({
             (acc, { id }) => ({ ...acc, [id]: true }),
             {} as Record<string, boolean>,
           )
-          return roles.filter((r) => r.__typename === 'ManagedRole' && !ids[r.id])
+          return roles.filter(
+            (r) => r.__typename === 'ManagedRole' && !ids[r.id],
+          ) as ManagedRole[]
         },
       }),
     [rolesData, value],
