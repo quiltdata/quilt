@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
@@ -130,7 +129,7 @@ const useTruncatedWarningStyles = M.makeStyles((t) => ({
 
 interface ToolbarProps {
   className: string
-  onLoadMore: () => void
+  onLoadMore?: () => void
   state: perspective.State | null
   truncated: boolean
 }
@@ -199,10 +198,9 @@ const useStyles = M.makeStyles((t) => ({
 export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
-  data: string | ArrayBuffer
-  meta: ParquetMetadata
-  handle: S3HandleBase
-  onLoadMore: () => void
+  data: perspective.PerspectiveInput
+  meta?: ParquetMetadata
+  onLoadMore?: () => void
   truncated: boolean
 }
 
@@ -211,7 +209,6 @@ export default function Perspective({
   className,
   data,
   meta,
-  handle,
   onLoadMore,
   truncated,
   config,
