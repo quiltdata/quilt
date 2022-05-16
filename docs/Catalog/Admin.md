@@ -48,6 +48,17 @@ display settings.
 ![](../imgs/admin-buckets-add.png)
 
 
+### S3 events
+
+By default, when you add a bucket to the Quilt stack one of two things will happen:
+
+1. If there is no bucket notification in place, Quilt will attempt to add a new notification
+1. If there is a bucket notification in place, Quilt will see if it provides sufficient notifications
+
+If either of the above conditions fails, Quilt will not add the bucket in question.
+
+See [S3 Events, EventBridge](EventBridge.md) for more.
+
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links

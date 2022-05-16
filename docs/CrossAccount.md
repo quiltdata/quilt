@@ -1,7 +1,7 @@
-# Cross-account Access
+# Cross-account access
 
 It is often desirable to run the Quilt control plane (CloudFormation stack)
-in a separate account from your data plane (S3 Buckets).
+in a separate account from your data plane (S3 buckets).
 
 Assume that we have two accounts, *ControlAccount* (containing the Quilt
 CloudFormation stack) and *DataAccount* (containing the desired S3 buckets).
@@ -37,7 +37,6 @@ following to buckets in your *DataAccount*.
                 "s3:GetObjectAcl",
                 "s3:GetObjectVersion",
                 "s3:GetObjectVersionAcl",
-                "s3:GetObjectVersionTagging",
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
                 "s3:DeleteObject",
@@ -54,24 +53,6 @@ following to buckets in your *DataAccount*.
     ]
 }
 ```
-
-<!--TODO 
-1. Ensure that :root does not over-permit and still only allows explicitly
-added principals in ControlAccount to access
-2. Consider adding these permissions:
-* GetObjectTagging
--->
-
-## Events
-
-By default when you add a bucket to the Quilt stack one of two things will happen:
-
-1. If there is no bucket notification in place, Quilt will attempt to add a new notification
-1. If there is a bucket notification in place, Quilt will see if it provides sufficient notifications
-
-If either of the above conditions fails, Quilt will not add the bucket in question.
-
-See [S3 Events, EventBridge](EventBridge.md) for more.
 
 ## CloudTrail
 
