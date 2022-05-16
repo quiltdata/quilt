@@ -351,8 +351,8 @@ type RoleNameInvalid {
   _: Boolean
 }
 
-type BucketConfigDoesNotExist {
-  name: String!
+type RoleHasTooManyPoliciesToAttach {
+  _: Boolean
 }
 
 type RoleDoesNotExist {
@@ -376,7 +376,7 @@ union RoleCreateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 type RoleUpdateSuccess {
   role: Role!
@@ -389,7 +389,7 @@ union RoleUpdateResult =
   | RoleNameInvalid
   | RoleIsManaged
   | RoleIsUnmanaged
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 type RoleDeleteSuccess {
   _: Boolean
