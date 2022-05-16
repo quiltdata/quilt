@@ -40,16 +40,3 @@ export class ErrorDisplay extends BaseError {
     super(headline, { headline, detail, object })
   }
 }
-
-export class ErrorCredentials extends BaseError {
-  /**
-   * @param headline
-   *
-   * @param detail
-   *
-   * @param object
-   */
-  constructor(headline: string, detail?: string, object?: {}) {
-    super(headline, { headline, detail, object })
-  }
-}

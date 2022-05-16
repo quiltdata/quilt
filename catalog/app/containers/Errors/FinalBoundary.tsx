@@ -3,7 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
-import { ErrorCredentials } from 'utils/error'
+import { CredentialsError } from 'utils/AWS/Credentials'
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -32,7 +32,7 @@ interface FinalBoundaryLayoutProps {
 function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   const classes = useFinalBoundaryStyles()
   const onClick = () => window.location.reload()
-  const isCredentialsError = error instanceof ErrorCredentials
+  const isCredentialsError = error instanceof CredentialsError
   // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
