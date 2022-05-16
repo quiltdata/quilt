@@ -578,7 +578,7 @@ export default function PackageDirectoryDialog({
                       setWorkflow,
                       successor,
                       workflowsConfig,
-                      onSuccessor: onSuccessor,
+                      onSuccessor,
                     }}
                   />
                 )}
