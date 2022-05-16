@@ -30,7 +30,7 @@ export type containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedMutation = {
     | { readonly __typename: 'RoleNameInvalid' }
     | { readonly __typename: 'RoleIsManaged' }
     | { readonly __typename: 'RoleIsUnmanaged' }
-    | { readonly __typename: 'BucketConfigDoesNotExist' }
+    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
 }
 
 export const containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedDocument = {

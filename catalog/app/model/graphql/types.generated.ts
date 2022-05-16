@@ -94,11 +94,6 @@ export interface BucketConfig {
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
 }
 
-export interface BucketConfigDoesNotExist {
-  readonly __typename: 'BucketConfigDoesNotExist'
-  readonly name: Scalars['String']
-}
-
 export interface BucketDoesNotExist {
   readonly __typename: 'BucketDoesNotExist'
   readonly _: Maybe<Scalars['Boolean']>
@@ -600,7 +595,7 @@ export type RoleCreateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 export interface RoleCreateSuccess {
   readonly __typename: 'RoleCreateSuccess'
@@ -620,6 +615,11 @@ export interface RoleDeleteSuccess {
 
 export interface RoleDoesNotExist {
   readonly __typename: 'RoleDoesNotExist'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface RoleHasTooManyPoliciesToAttach {
+  readonly __typename: 'RoleHasTooManyPoliciesToAttach'
   readonly _: Maybe<Scalars['Boolean']>
 }
 
@@ -662,7 +662,7 @@ export type RoleUpdateResult =
   | RoleNameInvalid
   | RoleIsManaged
   | RoleIsUnmanaged
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 export interface RoleUpdateSuccess {
   readonly __typename: 'RoleUpdateSuccess'

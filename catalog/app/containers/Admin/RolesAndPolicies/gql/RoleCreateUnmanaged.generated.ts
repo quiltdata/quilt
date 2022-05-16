@@ -27,7 +27,7 @@ export type containers_Admin_RolesAndPolicies_gql_RoleCreateUnmanagedMutation = 
     | { readonly __typename: 'RoleNameReserved' }
     | { readonly __typename: 'RoleNameExists' }
     | { readonly __typename: 'RoleNameInvalid' }
-    | { readonly __typename: 'BucketConfigDoesNotExist' }
+    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
 }
 
 export const containers_Admin_RolesAndPolicies_gql_RoleCreateUnmanagedDocument = {

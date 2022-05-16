@@ -5,6 +5,8 @@ import * as M from '@material-ui/core'
 import StyledLink from 'utils/StyledLink'
 import useQuery from 'utils/useQuery'
 
+import { MAX_POLICIES_PER_ROLE } from './shared'
+
 import POLICIES_QUERY from './gql/Policies.generated'
 import { PolicySelectionFragment as Policy } from './gql/PolicySelection.generated'
 
@@ -12,83 +14,61 @@ interface PolicySelectionDialogProps {
   open: boolean
   onClose: () => void
   policies: Policy[]
-  attachPolicies: (policies: Policy[]) => void
+  attachPolicy: (policy: Policy) => void
 }
 
 function PolicySelectionDialog({
   open,
   onClose,
   policies,
-  attachPolicies,
+  attachPolicy,
 }: PolicySelectionDialogProps) {
-  const [selected, setSelected] = React.useState<Policy[]>([])
-  const [committed, setCommitted] = React.useState(false)
+  const [selected, setSelected] = React.useState<Policy | null>(null)
 
   const handleExited = React.useCallback(() => {
-    if (committed) attachPolicies(selected)
-    setCommitted(false)
-    setSelected([])
-  }, [attachPolicies, committed, selected, setCommitted, setSelected])
+    if (selected) attachPolicy(selected)
+    setSelected(null)
+  }, [attachPolicy, selected, setSelected])
 
-  const handleAttach = React.useCallback(() => {
-    setCommitted(true)
-    onClose()
-  }, [onClose, setCommitted])
-
-  const toggle = React.useCallback(
+  const select = React.useCallback(
     (policy: Policy) => {
-      setSelected((value) =>
-        value.includes(policy)
-          ? value.filter((p) => p.id !== policy.id)
-          : value.concat(policy),
-      )
+      setSelected(policy)
+      onClose()
     },
-    [setSelected],
+    [setSelected, onClose],
   )
 
   return (
     <M.Dialog maxWidth="xs" open={open} onClose={onClose} onExited={handleExited}>
-      <M.DialogTitle>Attach policies</M.DialogTitle>
-      <M.DialogContent dividers>
+      <M.DialogTitle>Attach a policy</M.DialogTitle>
+      <M.List dense>
         {policies.length ? (
           policies.map((policy) => (
-            <M.FormControlLabel
-              key={policy.id}
-              style={{ display: 'flex', marginRight: 0 }}
-              control={
-                <M.Checkbox
-                  checked={selected.includes(policy)}
-                  onChange={() => toggle(policy)}
-                  color="primary"
-                />
-              }
-              label={
-                <>
-                  {policy.title}
-                  <M.Box component="span" color="text.secondary">
-                    {' '}
-                    (
-                    {policy.managed ? (
-                      <>{policy.permissions.length} buckets</>
-                    ) : (
-                      <>unmanaged</>
-                    )}
-                    )
-                  </M.Box>
-                </>
-              }
-            />
+            <M.ListItem button key={policy.id} onClick={() => select(policy)}>
+              <M.ListItemText>
+                {policy.title}
+                <M.Box component="span" color="text.secondary">
+                  {' '}
+                  (
+                  {policy.managed ? (
+                    <>{policy.permissions.length} buckets</>
+                  ) : (
+                    <>unmanaged</>
+                  )}
+                  )
+                </M.Box>
+              </M.ListItemText>
+            </M.ListItem>
           ))
         ) : (
-          <M.Typography>No more policies to attach</M.Typography>
+          <M.DialogContent dividers>
+            <M.Typography>No more policies to attach</M.Typography>
+          </M.DialogContent>
         )}
-      </M.DialogContent>
+      </M.List>
       <M.DialogActions>
         <M.Button autoFocus onClick={onClose} color="primary">
           Cancel
-        </M.Button>
-        <M.Button onClick={handleAttach} disabled={!selected.length} color="primary">
-          Attach
         </M.Button>
       </M.DialogActions>
     </M.Dialog>
@@ -120,9 +100,9 @@ export default function AttachedPolicies({
     setPolicySelectionOpen(false)
   }, [setPolicySelectionOpen])
 
-  const attachPolicies = React.useCallback(
-    (policies: Policy[]) => {
-      onChange(value.concat(policies))
+  const attachPolicy = React.useCallback(
+    (policy: Policy) => {
+      onChange(value.concat([policy]))
     },
     [onChange, value],
   )
@@ -147,6 +127,8 @@ export default function AttachedPolicies({
     [policiesData, value],
   )
 
+  const maxReached = value.length >= MAX_POLICIES_PER_ROLE
+
   return (
     <div className={className}>
       <M.Box display="flex" alignItems="center">
@@ -165,12 +147,16 @@ export default function AttachedPolicies({
           ),
         })}
       </M.Box>
-      {!!onAdvanced && (
-        <M.FormHelperText>
-          Manage access by combining reusable policies or{' '}
-          <StyledLink onClick={onAdvanced}>set existing role via ARN</StyledLink>
-        </M.FormHelperText>
-      )}
+      <M.FormHelperText>
+        Manage access by combining <strong>up to {MAX_POLICIES_PER_ROLE}</strong> reusable
+        policies
+        {!!onAdvanced && (
+          <>
+            {' '}
+            or <StyledLink onClick={onAdvanced}>set existing role via ARN</StyledLink>
+          </>
+        )}
+      </M.FormHelperText>
       <M.Collapse in={!!error}>
         <M.FormHelperText error>{error || ' '}</M.FormHelperText>
       </M.Collapse>
@@ -206,11 +192,11 @@ export default function AttachedPolicies({
             </M.ListItemSecondaryAction>
           </M.ListItem>
         ))}
-        {!!availablePolicies?.length && (
+        {!maxReached && !!availablePolicies?.length && (
           <M.ListItem button disableGutters onClick={openPolicySelection}>
             <M.ListItemText>
               {!value.length && <>No policies attached. </>}
-              Attach policies&hellip;
+              Attach a policy&hellip;
             </M.ListItemText>
           </M.ListItem>
         )}
@@ -220,7 +206,7 @@ export default function AttachedPolicies({
           policies={availablePolicies}
           open={policySelectionOpen}
           onClose={closePolicySelection}
-          attachPolicies={attachPolicies}
+          attachPolicy={attachPolicy}
         />
       )}
     </div>

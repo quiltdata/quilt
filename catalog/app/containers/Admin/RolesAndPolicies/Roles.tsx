@@ -1,5 +1,4 @@
 import * as FF from 'final-form'
-// import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -184,7 +183,6 @@ function Create({ close }: CreateProps) {
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
         const r = res.data.roleCreate
-        // TODO: check new policy-related errors if/when they are added
         switch (r.__typename) {
           case 'RoleCreateSuccess':
             push(`Role "${r.role.name}" created`)
@@ -196,8 +194,8 @@ function Create({ close }: CreateProps) {
             return { name: 'taken' }
           case 'RoleNameInvalid':
             return { name: 'invalid' }
-          case 'BucketConfigDoesNotExist':
-            throw new Error(r.__typename)
+          case 'RoleHasTooManyPoliciesToAttach':
+            return { policies: 'Too many policies to attach' }
           default:
             return assertNever(r)
         }
@@ -505,9 +503,10 @@ function Edit({ role, close }: EditProps) {
             return { name: 'taken' }
           case 'RoleNameInvalid':
             return { name: 'invalid' }
+          case 'RoleHasTooManyPoliciesToAttach':
+            return { policies: 'Too many policies to attach' }
           case 'RoleIsManaged':
           case 'RoleIsUnmanaged':
-          case 'BucketConfigDoesNotExist':
             throw new Error(r.__typename)
           default:
             return assertNever(r)

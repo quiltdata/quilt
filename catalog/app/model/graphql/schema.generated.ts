@@ -377,25 +377,6 @@ export default {
       },
       {
         kind: 'OBJECT',
-        name: 'BucketConfigDoesNotExist',
-        fields: [
-          {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-        ],
-        interfaces: [],
-      },
-      {
-        kind: 'OBJECT',
         name: 'BucketDoesNotExist',
         fields: [
           {
@@ -2692,7 +2673,7 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'BucketConfigDoesNotExist',
+            name: 'RoleHasTooManyPoliciesToAttach',
           },
         ],
       },
@@ -2756,6 +2737,22 @@ export default {
       {
         kind: 'OBJECT',
         name: 'RoleDoesNotExist',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleHasTooManyPoliciesToAttach',
         fields: [
           {
             name: '_',
@@ -2912,7 +2909,7 @@ export default {
           },
           {
             kind: 'OBJECT',
-            name: 'BucketConfigDoesNotExist',
+            name: 'RoleHasTooManyPoliciesToAttach',
           },
         ],
       },
