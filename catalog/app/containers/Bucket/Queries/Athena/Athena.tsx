@@ -682,10 +682,12 @@ export default function Athena({
                 {queryResultsData.case({
                   Init: () => null,
                   Ok: (queryResults: requests.athena.QueryResultsResponse) => {
-                    if (queryResults.list.length) {
+                    if (queryResults.rows.length) {
                       return (
                         <Results
-                          results={queryResults.list}
+                          className={classes.results}
+                          rows={queryResults.rows}
+                          columns={queryResults.columns}
                           onLoadMore={
                             queryResults.next
                               ? () => handleQueryResultsLoadMore(queryResults)
