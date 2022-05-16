@@ -6,6 +6,14 @@ in a separate account from your data plane (S3 Buckets).
 Assume that we have two accounts, *ControlAccount* (containing the Quilt
 CloudFormation stack) and *DataAccount* (containing the desired S3 buckets).
 
+## Object ownership
+
+If you want *DataAccount* to have access to S3 objects put by *ControlAccount*
+(and you probably do), you need to ensure that S3 bucket has `ObjectOwnership`
+set to `BucketOwnerEnforced`, see
+[docs](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html)
+for details.
+
 ## Bucket policies
 
 To ensure that the Quilt stack in the *ControlAccount* can access and administer 
@@ -34,6 +42,7 @@ following to buckets in your *DataAccount*.
                 "s3:ListBucketVersions",
                 "s3:DeleteObject",
                 "s3:DeleteObjectVersion",
+                "s3:PutObject",
                 "s3:GetBucketNotification",
                 "s3:PutBucketNotification"
             ],
@@ -41,23 +50,6 @@ following to buckets in your *DataAccount*.
                 "arn:aws:s3:::bucket-in-data-account",
                 "arn:aws:s3:::bucket-in-data-account/*"
             ]
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::CONTROL_ACCOUNT:root"
-            },
-            "Action": [
-                "s3:PutObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::bucket-in-data-account/*"
-            ],
-            "Condition": {
-                "StringEquals": {
-                    "s3:x-amz-acl": "bucket-owner-full-control"
-                }
-            }
         }
     ]
 }
