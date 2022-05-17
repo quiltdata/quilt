@@ -11,6 +11,7 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as tagged from 'utils/taggedV2'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
@@ -154,9 +155,9 @@ function DialogForm({
           setSuccess({ name, hash: r.revision.hash, bucket: successor.slug })
           return
         case 'OperationError':
-          return PD.mkFormError(r.message)
+          return mkFormError(r.message)
         case 'InvalidInput':
-          return PD.mapInputErrors(r.errors)
+          return mapInputErrors(r.errors)
         default:
           assertNever(r)
       }
@@ -165,7 +166,7 @@ function DialogForm({
       console.error('Error creating manifest:')
       // eslint-disable-next-line no-console
       console.error(e)
-      return PD.mkFormError(
+      return mkFormError(
         e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
       )
     }
