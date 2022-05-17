@@ -19,6 +19,7 @@ import * as Table from '../Table'
 
 import AssociatedRoles from './AssociatedRoles'
 import BucketsPermissions from './BucketsPermissions'
+import { getArnLink } from './shared'
 
 import POLICIES_QUERY from './gql/Policies.generated'
 import POLICY_CREATE_MANAGED_MUTATION from './gql/PolicyCreateManaged.generated'
@@ -29,20 +30,10 @@ import POLICY_DELETE_MUTATION from './gql/PolicyDelete.generated'
 import { BucketPermissionSelectionFragment as BucketPermission } from './gql/BucketPermissionSelection.generated'
 import { PolicySelectionFragment as Policy } from './gql/PolicySelection.generated'
 
-const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
-const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:[^:]+:policy\/(.+)$/
-
 const validateNonEmptyString: FF.FieldValidator<any> = validate(
   'nonEmptyString',
   validators.matches(/\S/),
 )
-
-// TODO: reuse
-const getARNLink = (arn: string) => {
-  const [, policy] = arn.match(ARN_POLICY_RE) || []
-  if (policy) return `${IAM_HOME}#/policies/${arn}`
-  return undefined
-}
 
 const columns = [
   {
@@ -679,7 +670,7 @@ export default function Policies() {
       ? {
           title: 'Open AWS Console',
           icon: <M.Icon>launch</M.Icon>,
-          href: getARNLink(policy.arn),
+          href: getArnLink(policy.arn),
         }
       : null,
     {

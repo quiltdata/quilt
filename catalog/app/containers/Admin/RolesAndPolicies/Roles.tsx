@@ -18,7 +18,7 @@ import * as Form from '../RFForm'
 import * as Table from '../Table'
 
 import AttachedPolicies from './AttachedPolicies'
-import { MAX_POLICIES_PER_ROLE } from './shared'
+import { MAX_POLICIES_PER_ROLE, getArnLink } from './shared'
 
 import ROLES_QUERY from './gql/Roles.generated'
 import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
@@ -28,18 +28,6 @@ import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/RoleUpdateUnmanaged.generated'
 import ROLE_DELETE_MUTATION from './gql/RoleDelete.generated'
 import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
-
-const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
-const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:[^:]+:role\/(.+)$/
-const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:[^:]+:policy\/(.+)$/
-
-const getARNLink = (arn: string) => {
-  const [, role] = arn.match(ARN_ROLE_RE) || []
-  if (role) return `${IAM_HOME}#/roles/${role}`
-  const [, policy] = arn.match(ARN_POLICY_RE) || []
-  if (policy) return `${IAM_HOME}#/policies/${arn}`
-  return undefined
-}
 
 const columns = [
   {
@@ -734,7 +722,7 @@ export default function Roles() {
       ? {
           title: 'Open AWS Console',
           icon: <M.Icon>launch</M.Icon>,
-          href: getARNLink(role.arn),
+          href: getArnLink(role.arn),
         }
       : null,
     {
