@@ -43,6 +43,7 @@
 * [Workflows](advanced-features/workflows.md)
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
+* [Cross-account access](CrossAccount.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
