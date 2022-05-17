@@ -12,7 +12,7 @@ import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
-import * as validators from 'utils/validators'
+import validate, * as validators from 'utils/validators'
 
 import * as Form from '../RFForm'
 import * as Table from '../Table'
@@ -31,6 +31,11 @@ import { PolicySelectionFragment as Policy } from './gql/PolicySelection.generat
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
 const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:[^:]+:policy\/(.+)$/
+
+const validateNonEmptyString: FF.FieldValidator<any> = validate(
+  'nonEmptyString',
+  validators.matches(/\S/),
+)
 
 // TODO: reuse
 const getARNLink = (arn: string) => {
@@ -213,14 +218,17 @@ function Create({ close }: CreateProps) {
               <RF.Field
                 component={Form.Field}
                 name="title"
-                validate={validators.required as FF.FieldValidator<any>}
+                validate={validators.composeAnd(
+                  validators.required,
+                  validateNonEmptyString,
+                )}
                 placeholder="Enter policy title"
                 label="Title"
                 fullWidth
                 margin="normal"
                 errors={{
                   required: 'Enter a policy title',
-                  taken: 'Policy with this title already exists',
+                  nonEmptyString: 'Enter a non-empty policy title',
                 }}
               />
 
@@ -326,8 +334,7 @@ function Delete({ policy, close }: DeleteProps) {
         case 'Ok':
           return
         case 'InvalidInput':
-          // shouldnt happen?
-          // TODO: examine r.errors
+          // shouldnt happen
           push(`Unable to delete policy "${policy.title}"`)
           return
         case 'OperationError':
@@ -512,14 +519,17 @@ function Edit({ policy, close }: EditProps) {
               <RF.Field
                 component={Form.Field}
                 name="title"
-                validate={validators.required as FF.FieldValidator<any>}
+                validate={validators.composeAnd(
+                  validators.required,
+                  validateNonEmptyString,
+                )}
                 placeholder="Enter policy title"
                 label="Title"
                 fullWidth
                 margin="normal"
                 errors={{
                   required: 'Enter a policy title',
-                  taken: 'Policy with this title already exists',
+                  nonEmptyString: 'Enter a non-empty policy title',
                 }}
               />
               {policy.managed ? (
