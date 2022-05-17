@@ -11,6 +11,7 @@ import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as Types from 'utils/types'
 import validate, * as validators from 'utils/validators'
 
@@ -171,11 +172,12 @@ function Create({ close }: CreateProps) {
             close()
             return undefined
           case 'InvalidInput':
-            // TODO: mapInputErrors(r.errors)
-            return { [FF.FORM_ERROR]: 'unexpected' }
+            return mapInputErrors(r.errors, {
+              'input.roles': 'roles',
+              'input.arn': 'arn',
+            })
           case 'OperationError':
-            // TODO: mkFormError
-            return { [FF.FORM_ERROR]: r.message }
+            return mkFormError(r.message)
           default:
             return assertNever(r)
         }
@@ -184,7 +186,7 @@ function Create({ close }: CreateProps) {
         console.error('Error creating policy')
         // eslint-disable-next-line no-console
         console.error(e)
-        return { [FF.FORM_ERROR]: 'unexpected' }
+        return mkFormError('unexpected')
       }
     },
     [managed, createManaged, createUnmanaged, push, close],
@@ -443,11 +445,12 @@ function Edit({ policy, close }: EditProps) {
             close()
             return undefined
           case 'InvalidInput':
-            // TODO: mapInputErrors(r.errors)
-            return { [FF.FORM_ERROR]: 'unexpected' }
+            return mapInputErrors(r.errors, {
+              'input.roles': 'roles',
+              'input.arn': 'arn',
+            })
           case 'OperationError':
-            // TODO: mkFormError
-            return { [FF.FORM_ERROR]: r.message }
+            return mkFormError(r.message)
           default:
             return assertNever(r)
         }
@@ -456,7 +459,7 @@ function Edit({ policy, close }: EditProps) {
         console.error('Error updating policy')
         // eslint-disable-next-line no-console
         console.error(e)
-        return { [FF.FORM_ERROR]: 'unexpected' }
+        return mkFormError('unexpected')
       }
     },
     [policy.id, policy.managed, updateManaged, updateUnmanaged, close],

@@ -86,7 +86,8 @@ export default function AttachedPolicies({
   meta,
   onAdvanced,
 }: AttachedPoliciesProps) {
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const policiesData = useQuery({ query: POLICIES_QUERY })
 

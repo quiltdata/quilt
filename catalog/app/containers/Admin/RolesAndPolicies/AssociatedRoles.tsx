@@ -97,7 +97,8 @@ export default function AssociatedRoles({
   input: { value, onChange },
   meta,
 }: AssociatedRolesProps) {
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const rolesData = useQuery({ query: ROLES_QUERY })
 

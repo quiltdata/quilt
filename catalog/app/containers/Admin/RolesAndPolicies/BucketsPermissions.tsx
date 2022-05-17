@@ -103,7 +103,8 @@ export default function BucketsPermissions({
 }: BucketPermissionsProps) {
   const classes = useStyles()
 
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const bucketsData = useQuery({ query: BUCKETS_QUERY })
 

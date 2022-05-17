@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 interface FieldOwnProps {
   error?: string
-  errors: Record<string, string>
+  errors: Record<string, React.ReactNode>
   helperText?: React.ReactNode
   validating?: boolean
 }
@@ -12,7 +12,8 @@ interface FieldOwnProps {
 type FieldProps = FieldOwnProps & RF.FieldRenderProps<string> & M.TextFieldProps
 
 export function Field({ input, meta, errors, helperText, ...rest }: FieldProps) {
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
   const props = {
     error: !!error,
     helperText: error ? errors[error] || error : helperText,
