@@ -35,7 +35,7 @@ You must select the default role for all new users, else they will
 not be able to sign in to the Quilt catalog.
 The default role is shown in bold.
 
-![](imgs/admin-set-default-role.png)
+![](../imgs/admin-set-default-role.png)
 
 ## Buckets
 
