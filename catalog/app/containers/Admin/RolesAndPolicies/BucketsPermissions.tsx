@@ -51,16 +51,12 @@ function BucketAddDialog({ open, onClose, buckets, addBucket }: BucketAddDialogP
                   src={bucket.iconUrl || defaultBucketIcon}
                 />
               </M.ListItemAvatar>
-              <M.ListItemText
-                primary={
-                  <>
-                    s3://{bucket.name}{' '}
-                    <M.Box component="span" color="text.secondary" ml={0.5}>
-                      {bucket.title}
-                    </M.Box>
-                  </>
-                }
-              />
+              <M.ListItemText>
+                s3://{bucket.name}{' '}
+                <M.Box component="span" color="text.secondary" ml={0.5}>
+                  {bucket.title}
+                </M.Box>
+              </M.ListItemText>
             </M.ListItem>
           ))}
         </M.List>
