@@ -521,7 +521,7 @@ type Mutation {
   policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
   policyUpdateManaged(id: ID!, input: ManagedPolicyInput!): PolicyResult! @admin
   policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult! @admin
-  policyDelete(id: ID!): PolicyDeleteResult!
+  policyDelete(id: ID!): PolicyDeleteResult! @admin
 
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
   roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
