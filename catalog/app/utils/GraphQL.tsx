@@ -48,28 +48,20 @@ function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   }
 }
 
-function syncPolicyRoles(policy: any, cache: GraphCache.Cache) {
+function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
   if (!policy.roles) return
   const roleIds = R.pluck('id', policy.roles as { id: string }[])
-  cache.updateQuery(
-    {
-      query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
-    },
-    R.evolve({
-      roles: R.map((role: any) => {
-        if (!role.policies) return role
-        const hasThisPolicy = !!role.policies.find(R.propEq('id', policy.id))
-        const shouldHaveThisPolicy = roleIds.includes(role.id)
-        if (hasThisPolicy === shouldHaveThisPolicy) return role
-        return {
-          ...role,
-          policies: shouldHaveThisPolicy
-            ? [...role.policies, policy]
-            : role.policies.filter((p: any) => p.id !== policy.id),
-        }
-      }),
-    }),
-  )
+  const rolesData = cache.readQuery({
+    query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
+  })
+  for (let role of rolesData?.roles || []) {
+    if (!role.policies) continue
+    const hasThisPolicy = !!role.policies.find(R.propEq('id', policy.id))
+    const shouldHaveThisPolicy = roleIds.includes(role.id)
+    if (hasThisPolicy === shouldHaveThisPolicy) continue
+    cache.invalidate(role, 'policies')
+    cache.invalidate(role, 'permissions')
+  }
 }
 
 export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
@@ -159,13 +151,13 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
             policyUpdateManaged: (result, _vars, cache) => {
               const policy = result.policyUpdateManaged as any
               if (policy?.__typename !== 'Policy') return
-              syncPolicyRoles(policy, cache)
+              invalidateAffectedRoles(policy, cache)
               // XXX: same with BucketConfigs?
             },
             policyUpdateUnmanaged: (result, _vars, cache) => {
               const policy = result.policyUpdateUnmanaged as any
               if (policy?.__typename !== 'Policy') return
-              syncPolicyRoles(policy, cache)
+              invalidateAffectedRoles(policy, cache)
             },
             policyDelete: (result, vars, cache) => {
               const typename = (result.policyDelete as any)?.__typename
