@@ -27,6 +27,9 @@ export type PolicySelectionFragment = { readonly __typename: 'Policy' } & Pick<
               readonly __typename: 'RoleBucketPermission'
             } & BucketPermissionSelection_RoleBucketPermission_Fragment
           >
+          readonly policies: ReadonlyArray<
+            { readonly __typename: 'Policy' } & Pick<Types.Policy, 'id'>
+          >
         }
     >
   }
@@ -80,6 +83,14 @@ export const PolicySelectionFragmentDoc = {
                         name: { kind: 'Name', value: 'BucketPermissionSelection' },
                       },
                     ],
+                  },
+                },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'policies' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
                   },
                 },
               ],

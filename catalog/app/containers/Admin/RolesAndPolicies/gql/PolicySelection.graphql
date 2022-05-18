@@ -18,5 +18,8 @@ fragment PolicySelection on Policy {
     permissions {
       ...BucketPermissionSelection
     }
+    policies {
+      id
+    }
   }
 }

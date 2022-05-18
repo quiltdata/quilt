@@ -25,6 +25,9 @@ fragment RoleSelection on Role {
         }
         level
       }
+      roles {
+        id
+      }
     }
   }
 }

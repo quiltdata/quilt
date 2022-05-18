@@ -18,7 +18,7 @@ const POLICIES_QUERY = urql.gql`{ policies { id } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
-const handlePackageCreation = (result: any, cache: GraphCache.Cache) => {
+function handlePackageCreation(result: any, cache: GraphCache.Cache) {
   if (result.__typename !== 'PackagePushSuccess') return
   const { bucket, name } = result.package
   const revList = cache.resolve({ __typename: 'Package', bucket, name }, 'revisions')
@@ -46,6 +46,30 @@ const handlePackageCreation = (result: any, cache: GraphCache.Cache) => {
       cache.invalidate('Query', f.fieldKey)
     }
   }
+}
+
+function syncPolicyRoles(policy: any, cache: GraphCache.Cache) {
+  if (!policy.roles) return
+  const roleIds = R.pluck('id', policy.roles as { id: string }[])
+  cache.updateQuery(
+    {
+      query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
+    },
+    R.evolve({
+      roles: R.map((role: any) => {
+        if (!role.policies) return role
+        const hasThisPolicy = !!role.policies.find(R.propEq('id', policy.id))
+        const shouldHaveThisPolicy = roleIds.includes(role.id)
+        if (hasThisPolicy === shouldHaveThisPolicy) return role
+        return {
+          ...role,
+          policies: shouldHaveThisPolicy
+            ? [...role.policies, policy]
+            : role.policies.filter((p: any) => p.id !== policy.id),
+        }
+      }),
+    }),
+  )
 }
 
 export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
@@ -115,75 +139,144 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
               )
             },
             policyCreateManaged: (result, _vars, cache) => {
-              if ((result.policyCreateManaged as any)?.__typename !== 'Policy') return
+              const policy = result.policyCreateManaged as any
+              if (policy?.__typename !== 'Policy') return
               cache.updateQuery(
                 { query: POLICIES_QUERY },
                 // XXX: sort?
-                R.evolve({ policies: R.append(result.policyCreateManaged) }),
+                R.evolve({ policies: R.append(policy) }),
               )
             },
             policyCreateUnmanaged: (result, _vars, cache) => {
-              if ((result.policyCreateUnmanaged as any)?.__typename !== 'Policy') return
+              const policy = result.policyCreateUnmanaged as any
+              if (policy?.__typename !== 'Policy') return
               cache.updateQuery(
                 { query: POLICIES_QUERY },
                 // XXX: sort?
-                R.evolve({ policies: R.append(result.policyCreateUnmanaged) }),
+                R.evolve({ policies: R.append(policy) }),
               )
+            },
+            policyUpdateManaged: (result, _vars, cache) => {
+              const policy = result.policyUpdateManaged as any
+              if (policy?.__typename !== 'Policy') return
+              syncPolicyRoles(policy, cache)
+              // XXX: same with BucketConfigs?
+            },
+            policyUpdateUnmanaged: (result, _vars, cache) => {
+              const policy = result.policyUpdateUnmanaged as any
+              if (policy?.__typename !== 'Policy') return
+              syncPolicyRoles(policy, cache)
             },
             policyDelete: (result, vars, cache) => {
               const typename = (result.policyDelete as any)?.__typename
-              // TODO: invalidate all policy lists?
-              if (typename === 'Ok') {
-                cache.updateQuery(
-                  { query: POLICIES_QUERY },
-                  R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
-                )
-              }
-            },
-            policyUpdateManaged: (/*result, vars, cache*/) => {
-              // TODO: update role's policies if policy was removed from that role
-            },
-            policyUpdateUnmanaged: (/*result, vars, cache*/) => {
-              // TODO: update role's policies if policy was removed from that role
+              if (typename !== 'Ok') return
+
+              // Remove deleted Policy from root policies
+              cache.updateQuery(
+                { query: POLICIES_QUERY },
+                R.evolve({ policies: R.reject(R.propEq('id', vars.id)) }),
+              )
+
+              // Remove deleted Policy from every ManagedRole's policies
+              // (probably not necessary since we disallow removing attached policies)
+              cache.updateQuery(
+                {
+                  query: urql.gql`{ roles { id ... on ManagedRole { policies { id } } } }`,
+                },
+                R.evolve({
+                  roles: R.map(R.evolve({ policies: R.reject(R.propEq('id', vars.id)) })),
+                }),
+              )
             },
             roleCreateManaged: (result, _vars, cache) => {
-              if ((result.roleCreateManaged as any)?.__typename !== 'RoleCreateSuccess')
-                return
+              const create = result.roleCreateManaged as any
+              if (create?.__typename !== 'RoleCreateSuccess') return
+              // Add created Role to root roles
               cache.updateQuery(
                 { query: ROLES_QUERY },
                 // XXX: sort?
-                R.evolve({ roles: R.append((result.roleCreateManaged as any).role) }),
+                R.evolve({ roles: R.append(create.role) }),
               )
             },
             roleCreateUnmanaged: (result, _vars, cache) => {
-              if ((result.roleCreateUnmanaged as any)?.__typename !== 'RoleCreateSuccess')
-                return
+              const create = result.roleCreateUnmanaged as any
+              if (create?.__typename !== 'RoleCreateSuccess') return
+              // Add created Role to root roles
               cache.updateQuery(
                 { query: ROLES_QUERY },
                 // XXX: sort?
-                R.evolve({ roles: R.append((result.roleCreateUnmanaged as any).role) }),
+                R.evolve({ roles: R.append(create.role) }),
+              )
+            },
+            roleUpdateManaged: (result, _vars, cache) => {
+              const update = result.roleUpdateManaged as any
+              if (update?.__typename !== 'RoleUpdateSuccess') return
+              const { role } = update
+              if (!role.policies) return
+              const policyIds = R.pluck('id', role.policies as { id: string }[])
+              cache.updateQuery(
+                { query: urql.gql`{ policies { id roles { id } } }` },
+                R.evolve({
+                  policies: R.map((policy: any) => {
+                    if (!policy.roles) return policy
+                    const hasThisRole = !!policy.roles.find(R.propEq('id', role.id))
+                    const shouldHaveThisRole = policyIds.includes(policy.id)
+                    if (hasThisRole === shouldHaveThisRole) return policy
+                    return {
+                      ...policy,
+                      roles: shouldHaveThisRole
+                        ? [...policy.roles, role]
+                        : policy.roles.filter((r: any) => r.id !== role.id),
+                    }
+                  }),
+                }),
               )
             },
             roleDelete: (result, vars, cache) => {
               const typename = (result.roleDelete as any)?.__typename
-              if (typename === 'RoleDeleteSuccess' || typename === 'RoleDoesNotExist') {
-                cache.updateQuery(
-                  { query: ROLES_QUERY },
-                  R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
-                )
-                cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
-                  data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
-                )
-              }
+              if (typename !== 'RoleDeleteSuccess' && typename !== 'RoleDoesNotExist')
+                return
+
+              // Remove deleted Role from every Policy's roles
+              cache.updateQuery(
+                { query: urql.gql`{ policies { id roles { id } } }` },
+                R.evolve({
+                  policies: R.map(R.evolve({ roles: R.reject(R.propEq('id', vars.id)) })),
+                }),
+              )
+
+              // Remove deleted Role from every BucketConfig's associatedRoles
+              cache.updateQuery(
+                {
+                  query: urql.gql`{ bucketConfigs { name associatedRoles { role { id } bucket { name } } } }`,
+                },
+                R.evolve({
+                  bucketConfigs: R.map(
+                    R.evolve({
+                      associatedRoles: R.reject(R.pathEq(['role', 'id'], vars.id)),
+                    }),
+                  ),
+                }),
+              )
+
+              // Remove deleted Role from root roles
+              cache.updateQuery(
+                { query: ROLES_QUERY },
+                R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
+              )
+
+              // Unset default Role if it was deleted
+              cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, (data) =>
+                data.defaultRole?.id === vars.id ? { defaultRole: null } : data,
+              )
             },
             roleSetDefault: (result, _vars, cache) => {
               const typename = (result.roleSetDefault as any)?.__typename
-              if (typename === 'RoleSetDefaultSuccess') {
-                const { role } = result.roleSetDefault as any
-                cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, () => ({
-                  defaultRole: { __typename: role.__typename, id: role.id },
-                }))
-              }
+              if (typename !== 'RoleSetDefaultSuccess') return
+              const { role } = result.roleSetDefault as any
+              cache.updateQuery({ query: DEFAULT_ROLE_QUERY }, () => ({
+                defaultRole: { __typename: role.__typename, id: role.id },
+              }))
             },
             packageRevisionDelete: (result, { bucket, name, hash }, cache) => {
               const del = result.packageRevisionDelete as any

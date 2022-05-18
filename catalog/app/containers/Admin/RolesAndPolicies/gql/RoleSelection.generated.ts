@@ -36,6 +36,9 @@ export type RoleSelection_ManagedRole_Fragment = {
                 >
               }
           >
+          readonly roles: ReadonlyArray<
+            { readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>
+          >
         }
     >
   }
@@ -131,6 +134,16 @@ export const RoleSelectionFragmentDoc = {
                               },
                             },
                             { kind: 'Field', name: { kind: 'Name', value: 'level' } },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'roles' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                           ],
                         },
                       },
