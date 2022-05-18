@@ -173,8 +173,9 @@ function Create({ close }: CreateProps) {
             return undefined
           case 'InvalidInput':
             return mapInputErrors(r.errors, {
-              'input.roles': 'roles',
               'input.arn': 'arn',
+              'input.roles': 'roles',
+              'input.title': 'title',
             })
           case 'OperationError':
             return mkFormError(r.message)
@@ -446,8 +447,9 @@ function Edit({ policy, close }: EditProps) {
             return undefined
           case 'InvalidInput':
             return mapInputErrors(r.errors, {
-              'input.roles': 'roles',
               'input.arn': 'arn',
+              'input.roles': 'roles',
+              'input.title': 'title',
             })
           case 'OperationError':
             return mkFormError(r.message)
