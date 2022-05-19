@@ -8,11 +8,12 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_Roles_gql_CreateManagedMutationVariables = Types.Exact<{
-  input: Types.ManagedRoleInput
-}>
+export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutationVariables =
+  Types.Exact<{
+    input: Types.ManagedRoleInput
+  }>
 
-export type containers_Admin_Roles_gql_CreateManagedMutation = {
+export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleCreate:
@@ -26,16 +27,19 @@ export type containers_Admin_Roles_gql_CreateManagedMutation = {
     | { readonly __typename: 'RoleNameReserved' }
     | { readonly __typename: 'RoleNameExists' }
     | { readonly __typename: 'RoleNameInvalid' }
-    | { readonly __typename: 'BucketConfigDoesNotExist' }
+    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
 }
 
-export const containers_Admin_Roles_gql_CreateManagedDocument = {
+export const containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_CreateManaged' },
+      name: {
+        kind: 'Name',
+        value: 'containers_Admin_RolesAndPolicies_gql_RoleCreateManaged',
+      },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -100,8 +104,8 @@ export const containers_Admin_Roles_gql_CreateManagedDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Roles_gql_CreateManagedMutation,
-  containers_Admin_Roles_gql_CreateManagedMutationVariables
+  containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation,
+  containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutationVariables
 >
 
-export { containers_Admin_Roles_gql_CreateManagedDocument as default }
+export { containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument as default }

@@ -1,0 +1,17 @@
+# import PolicySelection from "./PolicySelection.graphql"
+
+fragment PolicyResultSelection on PolicyResult {
+  __typename
+  ... on Policy {
+    ...PolicySelection
+  }
+  ... on InvalidInput {
+    errors {
+      path
+      message
+    }
+  }
+  ... on OperationError {
+    message
+  }
+}

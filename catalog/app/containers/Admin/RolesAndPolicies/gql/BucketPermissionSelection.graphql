@@ -1,0 +1,9 @@
+fragment BucketPermissionSelection on BucketPermission {
+  __typename
+  bucket {
+    name
+    title
+    iconUrl
+  }
+  level
+}
