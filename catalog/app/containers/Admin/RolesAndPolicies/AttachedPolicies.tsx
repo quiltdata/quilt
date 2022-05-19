@@ -103,7 +103,7 @@ export default function AttachedPolicies({
 
   const attachPolicy = React.useCallback(
     (policy: Policy) => {
-      onChange(value.concat([policy]))
+      onChange(value.concat(policy))
     },
     [onChange, value],
   )

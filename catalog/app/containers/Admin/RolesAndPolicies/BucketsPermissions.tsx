@@ -11,6 +11,7 @@ import BUCKETS_QUERY from './gql/Buckets.generated'
 import { BucketPermissionSelectionFragment as BucketPermission } from './gql/BucketPermissionSelection.generated'
 
 const Level = Model.GQLTypes.BucketPermissionLevel
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 type Level = Model.GQLTypes.BucketPermissionLevel
 
 type Bucket = BucketPermission['bucket']
@@ -147,9 +148,7 @@ export default function BucketsPermissions({
   const addBucket = React.useCallback(
     (bucket: Bucket) => {
       onChange(
-        value.concat([
-          { __typename: 'PolicyBucketPermission', bucket, level: Level.READ },
-        ]),
+        value.concat({ __typename: 'PolicyBucketPermission', bucket, level: Level.READ }),
       )
     },
     [onChange, value],
