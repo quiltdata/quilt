@@ -293,15 +293,17 @@ export default function BucketsPermissions({
           onClick={setBucketPermission(Level.READ)}
           selected={permissionMenuState?.perm.level === Level.READ}
         >
-          Read-only access
+          <M.Icon>visibility</M.Icon>&nbsp;&nbsp;Read-only access
         </M.MenuItem>
         <M.MenuItem
           onClick={setBucketPermission(Level.READ_WRITE)}
           selected={permissionMenuState?.perm.level === Level.READ_WRITE}
         >
-          Read-write access
+          <M.Icon>edit</M.Icon>&nbsp;&nbsp;Read-write access
         </M.MenuItem>
-        <M.MenuItem onClick={setBucketPermission(null)}>Remove bucket access</M.MenuItem>
+        <M.MenuItem onClick={setBucketPermission(null)}>
+          <M.Icon>clear</M.Icon>&nbsp;&nbsp;No access
+        </M.MenuItem>
       </M.Menu>
     </div>
   )
