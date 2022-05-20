@@ -13,7 +13,7 @@ import * as utils from './utils'
 
 export const detect = R.pipe(
   utils.stripCompression,
-  utils.extIn(['.cif', '.ent', '.mol', '.pdb', '.sdf']),
+  utils.extIn(['.cif', '.ent', '.mol', '.mol2', '.pdb', '.sdf']),
 )
 
 const gzipDecompress = DecompressorRegistry.get('gz')
