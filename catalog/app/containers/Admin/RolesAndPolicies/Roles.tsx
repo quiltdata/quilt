@@ -1,5 +1,4 @@
 import * as FF from 'final-form'
-import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -18,28 +17,17 @@ import * as validators from 'utils/validators'
 import * as Form from '../RFForm'
 import * as Table from '../Table'
 
-import BucketsPermissions from './BucketsPermissions'
-import BUCKETS_QUERY from './gql/Buckets.generated'
+import AttachedPolicies from './AttachedPolicies'
+import { MAX_POLICIES_PER_ROLE, getArnLink } from './shared'
+
 import ROLES_QUERY from './gql/Roles.generated'
-import ROLE_CREATE_MANAGED_MUTATION from './gql/CreateManaged.generated'
-import ROLE_CREATE_UNMANAGED_MUTATION from './gql/CreateUnmanaged.generated'
-import ROLE_UPDATE_MANAGED_MUTATION from './gql/UpdateManaged.generated'
-import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/UpdateUnmanaged.generated'
-import ROLE_DELETE_MUTATION from './gql/Delete.generated'
-import ROLE_SET_DEFAULT_MUTATION from './gql/SetDefault.generated'
+import ROLE_CREATE_MANAGED_MUTATION from './gql/RoleCreateManaged.generated'
+import ROLE_CREATE_UNMANAGED_MUTATION from './gql/RoleCreateUnmanaged.generated'
+import ROLE_UPDATE_MANAGED_MUTATION from './gql/RoleUpdateManaged.generated'
+import ROLE_UPDATE_UNMANAGED_MUTATION from './gql/RoleUpdateUnmanaged.generated'
+import ROLE_DELETE_MUTATION from './gql/RoleDelete.generated'
+import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
-
-const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
-const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:\d+:role\/(.+)$/
-const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:\d+:policy\/(.+)$/
-
-const getARNLink = (arn: string) => {
-  const [, role] = arn.match(ARN_ROLE_RE) || []
-  if (role) return `${IAM_HOME}#/roles/${role}`
-  const [, policy] = arn.match(ARN_POLICY_RE) || []
-  if (policy) return `${IAM_HOME}#/policies/${arn}`
-  return undefined
-}
 
 const columns = [
   {
@@ -74,13 +62,60 @@ const columns = [
       ),
   },
   {
+    id: 'policies',
+    label: 'Associated policies',
+    getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.policies.length : null),
+    getDisplay: (_policies: any, r: Role) =>
+      r.__typename === 'ManagedRole' ? (
+        <M.Tooltip
+          arrow
+          title={
+            r.policies.length ? (
+              <M.Box component="ul" pl={1} m={0.5}>
+                {r.policies.map((p) => (
+                  <li key={p.id}>{p.title}</li>
+                ))}
+              </M.Box>
+            ) : (
+              ''
+            )
+          }
+        >
+          <span>
+            {r.policies.length} / {MAX_POLICIES_PER_ROLE}
+          </span>
+        </M.Tooltip>
+      ) : (
+        'N/A'
+      ),
+  },
+  {
     id: 'buckets',
     label: 'Buckets',
-    getValue: (r: Role) =>
-      r.__typename === 'ManagedRole'
-        ? r.permissions.filter((p) => !!p.level).length
-        : null,
-    getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
+    getValue: (r: Role) => (r.__typename === 'ManagedRole' ? r.permissions.length : null),
+    getDisplay: (_buckets: any, r: Role) =>
+      r.__typename === 'ManagedRole' ? (
+        <M.Tooltip
+          arrow
+          title={
+            r.permissions.length ? (
+              <M.Box component="ul" pl={1} m={0.5}>
+                {r.permissions.map((p) => (
+                  <li key={p.bucket.name}>
+                    {p.bucket.name} ({p.level})
+                  </li>
+                ))}
+              </M.Box>
+            ) : (
+              ''
+            )
+          }
+        >
+          <span>{r.permissions.length}</span>
+        </M.Tooltip>
+      ) : (
+        'N/A'
+      ),
   },
 ]
 
@@ -123,9 +158,6 @@ function Create({ close }: CreateProps) {
 
   const { push } = Notifications.use()
 
-  const [{ data }] = urql.useQuery({ query: BUCKETS_QUERY })
-  const { buckets } = data!
-
   const [managed, setManaged] = React.useState(true)
 
   const onSubmit = React.useCallback(
@@ -153,8 +185,8 @@ function Create({ close }: CreateProps) {
             return { name: 'taken' }
           case 'RoleNameInvalid':
             return { name: 'invalid' }
-          case 'BucketConfigDoesNotExist':
-            throw new Error(r.__typename)
+          case 'RoleHasTooManyPoliciesToAttach':
+            return { policies: 'Too many policies to attach' }
           default:
             return assertNever(r)
         }
@@ -169,18 +201,8 @@ function Create({ close }: CreateProps) {
     [managed, createManaged, createUnmanaged, push, close],
   )
 
-  const initialPermissions: Model.GQLTypes.PermissionInput[] = React.useMemo(
-    () =>
-      FP.function.pipe(
-        buckets,
-        R.sort((a, b) => a.name.localeCompare(b.name)),
-        R.map(({ name }) => ({ bucket: name, level: null })),
-      ),
-    [buckets],
-  )
-
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={{ permissions: initialPermissions }}>
+    <RF.Form onSubmit={onSubmit} initialValues={INITIAL_VALUES}>
       {({
         handleSubmit,
         submitting,
@@ -196,7 +218,6 @@ function Create({ close }: CreateProps) {
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
-                // @ts-expect-error
                 component={Form.Field}
                 name="name"
                 validate={validators.required as FF.FieldValidator<any>}
@@ -221,17 +242,20 @@ function Create({ close }: CreateProps) {
               />
 
               <M.FormControlLabel
-                label="Manually set ARN instead of configuring per-bucket permissions"
+                label="Manually set ARN instead of configuring policies"
                 control={<M.Checkbox checked={!managed} />}
                 onChange={() => setManaged(!managed)}
               />
 
               <M.Collapse in={!managed}>
                 <RF.Field
-                  // @ts-expect-error
                   component={Form.Field}
                   name="arn"
-                  validate={(v) => (managed ? undefined : validators.required(v))}
+                  validate={
+                    managed ? undefined : (validators.required as FF.FieldValidator<any>)
+                  }
+                  // to re-trigger validation when "managed" state changes
+                  key={`${managed}`}
                   placeholder="Enter role ARN"
                   label="ARN"
                   fullWidth
@@ -246,9 +270,8 @@ function Create({ close }: CreateProps) {
               <M.Collapse in={managed}>
                 <RF.Field
                   className={classes.panel}
-                  // @ts-expect-error
-                  component={BucketsPermissions}
-                  name="permissions"
+                  component={AttachedPolicies}
+                  name="policies"
                   fullWidth
                   margin="normal"
                   onAdvanced={() => setManaged(false)}
@@ -419,14 +442,6 @@ const unmanagedRoleFormSpec: FormSpec<Model.GQLTypes.UnmanagedRoleInput> = {
   ),
 }
 
-const PermissionInput = IO.type(
-  {
-    bucket: IO.string,
-    level: Types.nullable(Model.BucketPermissionLevel),
-  },
-  'PermissionInput',
-)
-
 const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
   name: R.pipe(
     R.prop('name'),
@@ -434,11 +449,15 @@ const managedRoleFormSpec: FormSpec<Model.GQLTypes.ManagedRoleInput> = {
     R.trim,
     Types.decode(Types.NonEmptyString),
   ),
-  permissions: R.pipe(
-    R.prop('permissions'),
-    Types.decode(IO.readonlyArray(PermissionInput)),
+  policies: R.pipe(
+    R.prop('policies'),
+    Types.decode(IO.array(IO.type({ id: IO.string }))),
+    R.pluck('id'),
+    Types.decode(IO.readonlyArray(Types.NonEmptyString)),
   ),
 }
+
+const INITIAL_VALUES = { managed: true, policies: [] }
 
 interface EditProps {
   role: Role
@@ -475,9 +494,10 @@ function Edit({ role, close }: EditProps) {
             return { name: 'taken' }
           case 'RoleNameInvalid':
             return { name: 'invalid' }
+          case 'RoleHasTooManyPoliciesToAttach':
+            return { policies: 'Too many policies to attach' }
           case 'RoleIsManaged':
           case 'RoleIsUnmanaged':
-          case 'BucketConfigDoesNotExist':
             throw new Error(r.__typename)
           default:
             return assertNever(r)
@@ -498,16 +518,7 @@ function Edit({ role, close }: EditProps) {
   const initialValues = React.useMemo(
     () => ({
       name: role.name,
-      permissions:
-        role.__typename === 'ManagedRole'
-          ? role.permissions.map(
-              (p) =>
-                ({
-                  bucket: p.bucket.name,
-                  level: p.level,
-                } as Model.GQLTypes.PermissionInput),
-            )
-          : [],
+      policies: role.__typename === 'ManagedRole' ? role.policies : [],
       arn: role.__typename === 'UnmanagedRole' ? role.arn : null,
     }),
     [role],
@@ -547,7 +558,6 @@ function Edit({ role, close }: EditProps) {
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
-                // @ts-expect-error
                 component={Form.Field}
                 name="name"
                 validate={validators.required as FF.FieldValidator<any>}
@@ -573,16 +583,14 @@ function Edit({ role, close }: EditProps) {
                   />
                   <RF.Field
                     className={classes.panel}
-                    // @ts-expect-error
-                    component={BucketsPermissions}
-                    name="permissions"
+                    component={AttachedPolicies}
+                    name="policies"
                     fullWidth
                     margin="normal"
                   />
                 </>
               ) : (
                 <RF.Field
-                  // @ts-expect-error
                   component={Form.Field}
                   name="arn"
                   validate={validators.required as FF.FieldValidator<any>}
@@ -714,7 +722,7 @@ export default function Roles() {
       ? {
           title: 'Open AWS Console',
           icon: <M.Icon>launch</M.Icon>,
-          href: getARNLink(role.arn),
+          href: getArnLink(role.arn),
         }
       : null,
     {

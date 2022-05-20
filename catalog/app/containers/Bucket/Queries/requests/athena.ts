@@ -234,10 +234,22 @@ async function waitForQueryStatus(
   }
 }
 
+export type QueryResultsValue = Athena.datumString
+
+export interface QueryResultsColumnInfo {
+  name: Athena.String
+  type: Athena.String
+}
+
+export type QueryResultsColumns = QueryResultsColumnInfo[]
+type Row = QueryResultsValue[]
+export type QueryResultsRows = Row[]
+
 export interface QueryResultsResponse {
-  list: Athena.RowList
+  columns: QueryResultsColumns
   next?: string
   queryExecution: QueryExecution | null
+  rows: QueryResultsRows
 }
 
 interface QueryResultsArgs {
@@ -245,6 +257,10 @@ interface QueryResultsArgs {
   queryExecutionId: string
   prev: QueryResultsResponse | null
 }
+
+const emptyRow: Row = []
+const emptyList: QueryResultsRows = []
+const emptyColumns: QueryResultsColumns = []
 
 async function fetchQueryResults({
   athena,
@@ -259,10 +275,20 @@ async function fetchQueryResults({
       NextToken: prev?.next,
     })
     .promise()
-  const parsed = queryResultsOutput.ResultSet?.Rows || []
-  const list = (prev?.list || []).concat(parsed)
+  const parsed =
+    queryResultsOutput.ResultSet?.Rows?.map(
+      (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
+    ) || emptyList
+  const rows = [...(prev?.rows || emptyList), ...parsed]
   return {
-    list,
+    rows,
+    columns:
+      queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
+        ({ Name, Type }) => ({
+          name: Name,
+          type: Type,
+        }),
+      ) || emptyColumns,
     next: queryResultsOutput.NextToken,
     queryExecution: queryExecution ? parseQueryExecution(queryExecution) : null,
   }

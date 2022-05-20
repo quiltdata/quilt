@@ -4,7 +4,7 @@ import * as React from 'react'
 import 'utils/perspective-pollution'
 
 import perspective from '@finos/perspective'
-import type { Table } from '@finos/perspective'
+import type { Table, TableData } from '@finos/perspective'
 import type {
   HTMLPerspectiveViewerElement,
   PerspectiveViewerConfig,
@@ -14,6 +14,8 @@ export interface State {
   size: number | null
   toggleConfig: () => void
 }
+
+export type PerspectiveInput = TableData
 
 const worker = perspective.worker()
 
@@ -29,7 +31,7 @@ export function renderViewer(
 }
 
 export async function renderTable(
-  data: string | ArrayBuffer,
+  data: PerspectiveInput,
   viewer: HTMLPerspectiveViewerElement,
 ) {
   const table = await worker.table(data)
@@ -39,7 +41,7 @@ export async function renderTable(
 
 function usePerspective(
   container: HTMLDivElement | null,
-  data: string | ArrayBuffer,
+  data: PerspectiveInput,
   attrs: React.HTMLAttributes<HTMLDivElement>,
   config?: PerspectiveViewerConfig,
 ) {

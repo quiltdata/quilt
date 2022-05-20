@@ -245,9 +245,13 @@ def calculate_pkg_hashes(boto_session, pkg):
 
     @functools.lru_cache(maxsize=None)
     def get_region_for_bucket(bucket: str) -> str:
-        return user_s3.get_bucket_location(
-            Bucket=bucket
-        )["LocationConstraint"] or "us-east-1"
+        try:
+            resp = user_s3.head_bucket(Bucket=bucket)
+        except botocore.exceptions.ClientError as e:
+            resp = e.response
+            if resp["Error"]["Code"] == "404":
+                raise
+        return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
     @functools.lru_cache(maxsize=None)
     def get_s3_client_for_region(region: str):

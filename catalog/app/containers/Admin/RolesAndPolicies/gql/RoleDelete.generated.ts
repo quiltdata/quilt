@@ -2,11 +2,12 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Roles_gql_DeleteMutationVariables = Types.Exact<{
-  id: Types.Scalars['ID']
-}>
+export type containers_Admin_RolesAndPolicies_gql_RoleDeleteMutationVariables =
+  Types.Exact<{
+    id: Types.Scalars['ID']
+  }>
 
-export type containers_Admin_Roles_gql_DeleteMutation = {
+export type containers_Admin_RolesAndPolicies_gql_RoleDeleteMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleDelete:
@@ -16,13 +17,13 @@ export type containers_Admin_Roles_gql_DeleteMutation = {
     | { readonly __typename: 'RoleAssigned' }
 }
 
-export const containers_Admin_Roles_gql_DeleteDocument = {
+export const containers_Admin_RolesAndPolicies_gql_RoleDeleteDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_Delete' },
+      name: { kind: 'Name', value: 'containers_Admin_RolesAndPolicies_gql_RoleDelete' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -58,8 +59,8 @@ export const containers_Admin_Roles_gql_DeleteDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Roles_gql_DeleteMutation,
-  containers_Admin_Roles_gql_DeleteMutationVariables
+  containers_Admin_RolesAndPolicies_gql_RoleDeleteMutation,
+  containers_Admin_RolesAndPolicies_gql_RoleDeleteMutationVariables
 >
 
-export { containers_Admin_Roles_gql_DeleteDocument as default }
+export { containers_Admin_RolesAndPolicies_gql_RoleDeleteDocument as default }

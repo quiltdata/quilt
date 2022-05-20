@@ -20,6 +20,27 @@ export type RoleSelection_ManagedRole_Fragment = {
           >
         }
     >
+    readonly policies: ReadonlyArray<
+      { readonly __typename: 'Policy' } & Pick<
+        Types.Policy,
+        'id' | 'title' | 'managed'
+      > & {
+          readonly permissions: ReadonlyArray<
+            { readonly __typename: 'PolicyBucketPermission' } & Pick<
+              Types.PolicyBucketPermission,
+              'level'
+            > & {
+                readonly bucket: { readonly __typename: 'BucketConfig' } & Pick<
+                  Types.BucketConfig,
+                  'name'
+                >
+              }
+          >
+          readonly roles: ReadonlyArray<
+            { readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>
+          >
+        }
+    >
   }
 
 export type RoleSelectionFragment =
@@ -81,6 +102,51 @@ export const RoleSelectionFragmentDoc = {
                         },
                       },
                       { kind: 'Field', name: { kind: 'Name', value: 'level' } },
+                    ],
+                  },
+                },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'policies' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'title' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'managed' } },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'permissions' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'bucket' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'name' },
+                                  },
+                                ],
+                              },
+                            },
+                            { kind: 'Field', name: { kind: 'Name', value: 'level' } },
+                          ],
+                        },
+                      },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'roles' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                          ],
+                        },
+                      },
                     ],
                   },
                 },

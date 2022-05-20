@@ -1,5 +1,7 @@
 query {
   buckets: bucketConfigs {
     name
+    title
+    iconUrl
   }
 }
