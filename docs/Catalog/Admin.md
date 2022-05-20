@@ -19,23 +19,50 @@ functions:
 * De/activate user
 * De/admin user
 * Assign roles to users
+* Configure access policies
 
 ![](../imgs/admin-users-roles.png)
 
 You may invite new users to your Quilt stack by clicking the + button, upper right.
 
-You may create custom roles for different groups of users. With the exception of
-administrators, users of managed roles are only aware of the buckets that they
-are permitted to read. All other stack buckets are invisible to users of managed
-roles.
-
-![](../imgs/admin-users-roles-create-managed.png)
-
-You must select the default role for all new users, else they will
-not be able to sign in to the Quilt catalog.
-The default role is shown in bold.
+You must select the default role for all new users, else they will not be able
+to sign in to the Quilt catalog. The default role is shown in bold.
 
 ![](../imgs/default-role.png)
+
+You may create roles for different groups of users by combining up to 5 policies.
+With the exception of administrators, users of managed roles can only see, list,
+and search buckets for which they are explicitly granted read access.
+
+![](../imgs/admin-role-managed-create.png)
+
+![](../imgs/admin-role-managed-attach-policy.png)
+
+Alternatively, you may provide your own IAM roles via ARN:
+
+![](../imgs/admin-role-unmanaged-create.png)
+
+You may create policies providing access to a selected set of buckets:
+
+![](../imgs/admin-policy-managed-create.png)
+
+![](../imgs/admin-policy-managed-bucket-access-add.png)
+
+![](../imgs/admin-policy-managed-bucket-access.png)
+
+![](../imgs/admin-policy-managed-bucket-access-change.png)
+
+You may attach policies to managed roles from policy edit and create screens:
+
+![](../imgs/admin-policy-attach-to-role.png)
+
+You may also provide custom policies via ARN:
+
+![](../imgs/admin-policy-unmanaged-create.png)
+
+The resulting permission set is equivalent to a union of all permissions
+provided by the policies attached to that role.
+
 
 ## Buckets
 
