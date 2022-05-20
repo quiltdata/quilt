@@ -54,11 +54,9 @@ function Ngl({ blob, ext, ...props }: NglProps) {
       stage?.dispose()
       window.removeEventListener('wheel', handleWheel)
     }
-  }, [viewport, blob, handleWheel, t])
+  }, [blob, ext, handleWheel, t, viewport])
 
   return <div ref={viewport} className={classes.root} {...props} />
 }
 
-export default (data: NglProps, props: NglProps) => {
-  return <Ngl {...data} {...props} />
-}
+export default (data: NglProps, props: NglProps) => <Ngl {...data} {...props} />
