@@ -253,7 +253,7 @@ covers advanced customization options.
 ### Setting the default role
 
 **The Quilt admin must log in and set the default role** in order for new 
-users to be able to log in. Without this, new users will have no permissions.
+users to be able to sign up.
 
 ![](imgs/default-role.png)
 
