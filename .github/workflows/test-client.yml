@@ -26,5 +26,5 @@ jobs:
           python -m pip install -e api/python[tests]
       - name: Run Pytest
         run: |
-          pytest --cov=api/python api/python
+          pytest -svv --cov=api/python api/python
 
