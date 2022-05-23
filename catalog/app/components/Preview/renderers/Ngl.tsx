@@ -1,8 +1,11 @@
-import * as NGL from 'ngl'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import type { Stage } from 'ngl'
+
+const NGLLibrary = import('ngl')
 
 async function renderNgl(blob: Blob, ext: string, wrapperEl: HTMLDivElement, t: M.Theme) {
+  const NGL = await NGLLibrary
   const stage = new NGL.Stage(wrapperEl, { backgroundColor: t.palette.common.white })
 
   const resizeObserver = new window.ResizeObserver(() => stage.handleResize())
@@ -45,7 +48,7 @@ function Ngl({ blob, ext, ...props }: NglProps) {
   )
 
   React.useEffect(() => {
-    let stage: NGL.Stage
+    let stage: Stage
     if (viewport.current) {
       renderNgl(blob, ext, viewport.current, t).then((s) => (stage = s))
       window.addEventListener('wheel', handleWheel, { passive: false })
