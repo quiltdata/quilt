@@ -1465,6 +1465,10 @@ class Package:
             return pathlib.Path(pk.path).parent == APP_DIR_TEMPFILE_DIR
 
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
+        print('!!!')
+        print(APP_DIR_TEMPFILE_DIR)
+        print([lk for lk, entry in self.walk()])
+        print(temp_file_logical_keys)
         if temp_file_logical_keys:
             temp_file_physical_keys = [self[lk].physical_key for lk in temp_file_logical_keys]
 
