@@ -22,16 +22,16 @@ async function parseFile(
   const { Molecule } = await openchem
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
-    return Promise.resolve({
+    return {
       file,
       ext,
-    })
+    }
   const strFile = file.toString()
-  if (strFile.indexOf('V3000') === -1) return Promise.resolve({ file, ext })
-  return Promise.resolve({
+  if (strFile.indexOf('V3000') === -1) return { file, ext }
+  return {
     file: Molecule.fromMolfile(strFile).toMolfile(),
     ext: 'mol',
-  })
+  }
 }
 
 export const detect = R.pipe(
