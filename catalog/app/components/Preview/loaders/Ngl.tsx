@@ -13,6 +13,19 @@ import * as utils from './utils'
 
 const openchem = import('openchemlib/minimal')
 
+/*
+  TODO: make file accessible by function call
+  function makeRenderFile(f: ResponseFile) {
+    toPreviewFile() {
+      return {
+        file,
+        ext,
+      }
+    }
+
+  }
+*/
+
 type ResponseFile = string | Uint8Array
 
 async function parseFile(
@@ -23,14 +36,14 @@ async function parseFile(
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
     return {
-      file,
       ext,
+      file,
     }
   const strFile = file.toString()
-  if (strFile.indexOf('V3000') === -1) return { file, ext }
+  if (strFile.indexOf('V3000') === -1) return { ext, file }
   return {
-    file: Molecule.fromMolfile(strFile).toMolfile(),
     ext: 'mol',
+    file: Molecule.fromMolfile(strFile).toMolfile(),
   }
 }
 
