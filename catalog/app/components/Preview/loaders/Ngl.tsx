@@ -12,22 +12,24 @@ import { PreviewData } from '../types'
 
 import * as utils from './utils'
 
-function parseFile(
-  file: string | Uint8Array,
+type ResponseFile = string | Uint8Array
+
+async function parseFile(
+  file: ResponseFile,
   handle: S3HandleBase,
-): { file: string | Uint8Array; ext: string } {
+): Promise<{ file: ResponseFile; ext: string }> {
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
-    return {
+    return Promise.resolve({
       file,
       ext,
-    }
+    })
   const strFile = file.toString()
-  if (strFile.indexOf('V3000') === -1) return { file, ext }
-  return {
+  if (strFile.indexOf('V3000') === -1) return Promise.resolve({ file, ext })
+  return Promise.resolve({
     file: Molecule.fromMolfile(strFile).toMolfile(),
     ext: 'mol',
-  }
+  })
 }
 
 export const detect = R.pipe(
@@ -44,12 +46,12 @@ interface NglLoaderProps {
 
 export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
   const data = utils.useObjectGetter(handle)
-  const processed = utils.useProcessing(
+  const processed = utils.useAsyncProcessing(
     data.result,
-    (r: PromiseResult<{ Body: Uint8Array | string }, null>) => {
+    async (r: PromiseResult<{ Body: ResponseFile }, null>) => {
       const compression = utils.getCompression(handle.key)
       const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
-      const { file, ext } = parseFile(body, handle)
+      const { file, ext } = await parseFile(body, handle)
       return PreviewData.Ngl({ blob: new Blob([file]), ext })
     },
   )
