@@ -1,7 +1,6 @@
 import { extname } from 'path'
 
 import type { PromiseResult } from 'aws-sdk/lib/request'
-import { Molecule } from 'openchemlib/minimal'
 import * as R from 'ramda'
 import * as React from 'react'
 import { DecompressorRegistry } from 'ngl'
@@ -12,12 +11,15 @@ import { PreviewData } from '../types'
 
 import * as utils from './utils'
 
+const openchem = import('openchemlib/minimal')
+
 type ResponseFile = string | Uint8Array
 
 async function parseFile(
   file: ResponseFile,
   handle: S3HandleBase,
 ): Promise<{ file: ResponseFile; ext: string }> {
+  const { Molecule } = await openchem
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
     return Promise.resolve({
