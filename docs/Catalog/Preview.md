@@ -11,6 +11,7 @@ Quilt can display any plaintext file format, including the following.
 * Most programming languages, with syntax highlighting
 (.cpp, .json, .js, .py, .sh,  .sql, etc.)
 * Biological file formats (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
+* Chemical files (.cif, .ent, .mol, .mol2, .pdb, .sdf). It's a work in progress and preview for .mol files is better developed
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
 ## Binary and special file format previews
