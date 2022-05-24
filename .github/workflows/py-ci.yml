@@ -1,6 +1,6 @@
 on: push
 jobs:
-  test:
+  test-client:
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -28,4 +28,4 @@ jobs:
       - uses: codecov/codecov-action@v2
         with:
             flags: api-python
-            name: ${{ github.job }}
+            name: ${{ format('{0}-{1}', github.job, matrix.python-version) }}
