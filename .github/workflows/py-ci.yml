@@ -12,6 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true
+      OS: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -29,3 +30,4 @@ jobs:
         with:
             flags: api-python
             name: ${{ format('{0}-{1}', github.job, matrix.python-version) }}
+            env_vars: OS
