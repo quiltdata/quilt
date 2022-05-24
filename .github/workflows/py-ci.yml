@@ -25,4 +25,7 @@ jobs:
       - name: Run Pytest
         run: |
           pytest --cov=api/python api/python
-
+      - uses: codecov/codecov-action@v2
+        with:
+            flags: api-python
+            name: ${{ github.job }}
