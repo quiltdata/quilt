@@ -46,11 +46,14 @@ export default function Ngl({ blob, ext, ...props }: NglProps) {
     },
     [viewport],
   )
+  const [error, setError] = React.useState(null)
 
   React.useEffect(() => {
     let stage: Stage
     if (viewport.current) {
-      renderNgl(blob, ext, viewport.current, t).then((s) => (stage = s))
+      renderNgl(blob, ext, viewport.current, t)
+        .then((s) => (stage = s))
+        .catch((e) => setError(e))
       window.addEventListener('wheel', handleWheel, { passive: false })
     }
     return () => {
@@ -58,6 +61,8 @@ export default function Ngl({ blob, ext, ...props }: NglProps) {
       window.removeEventListener('wheel', handleWheel)
     }
   }, [blob, ext, handleWheel, t, viewport])
+
+  if (error) throw error
 
   return <div ref={viewport} className={classes.root} {...props} />
 }
