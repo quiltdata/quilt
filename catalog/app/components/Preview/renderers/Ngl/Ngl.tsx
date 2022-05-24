@@ -18,6 +18,17 @@ async function renderNgl(blob: Blob, ext: string, wrapperEl: HTMLDivElement, t: 
   return stage
 }
 
+function NglError() {
+  const intercom = Intercom.use()
+  return (
+    <M.Typography>
+      We couldn't parse this file. If you have such an opportunity,{' '}
+      <StyledLink onClick={() => intercom('show')}>send</StyledLink> the file to our
+      support
+    </M.Typography>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     height: t.spacing(50),
@@ -46,11 +57,14 @@ export default function Ngl({ blob, ext, ...props }: NglProps) {
     },
     [viewport],
   )
+  const [error, setError] = React.useState(null)
 
   React.useEffect(() => {
     let stage: Stage
     if (viewport.current) {
-      renderNgl(blob, ext, viewport.current, t).then((s) => (stage = s))
+      renderNgl(blob, ext, viewport.current, t)
+        .then((s) => (stage = s))
+        .catch((e) => setError(e))
       window.addEventListener('wheel', handleWheel, { passive: false })
     }
     return () => {
@@ -58,6 +72,8 @@ export default function Ngl({ blob, ext, ...props }: NglProps) {
       window.removeEventListener('wheel', handleWheel)
     }
   }, [blob, ext, handleWheel, t, viewport])
+
+  if (error) return <NglError />
 
   return <div ref={viewport} className={classes.root} {...props} />
 }
