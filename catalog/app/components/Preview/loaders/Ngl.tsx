@@ -13,22 +13,9 @@ import * as utils from './utils'
 
 const openchem = import('openchemlib/minimal')
 
-/*
-  TODO: make file accessible by function call
-  function makeRenderFile(f: ResponseFile) {
-    toPreviewFile() {
-      return {
-        file,
-        ext,
-      }
-    }
-
-  }
-*/
-
 type ResponseFile = string | Uint8Array
 
-async function parseFile(
+async function parseResponse(
   file: ResponseFile,
   handle: S3HandleBase,
 ): Promise<{ file: ResponseFile; ext: string }> {
@@ -66,7 +53,7 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
     async (r: PromiseResult<{ Body: ResponseFile }, null>) => {
       const compression = utils.getCompression(handle.key)
       const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
-      const { file, ext } = await parseFile(body, handle)
+      const { file, ext } = await parseResponse(body, handle)
       return PreviewData.Ngl({ blob: new Blob([file]), ext })
     },
   )
