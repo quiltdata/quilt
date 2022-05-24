@@ -13,7 +13,7 @@ Quilt requires at least one admin account per stack.
 
 ## Users and roles
 
-This section provides comprehensive access control management for the follwing
+This section provides comprehensive access control management for the following
 functions:
 * Create/Delete user
 * De/activate user
@@ -35,18 +35,17 @@ You must select the default role for all new users, else they will
 not be able to sign in to the Quilt catalog.
 The default role is shown in bold.
 
-![](../imgs/admin-set-default-role.png)
+![](../imgs/default-role.png)
 
 ## Buckets
 
 Here you can add or remove buckets from Quilt and configure bucket indexing and
 display settings. 
-<!--TODO explain sub sections of bucket editro !-->
+<!--TODO explain sub sections of bucket editor !-->
 
 ![](../imgs/admin-buckets.png)
 
 ![](../imgs/admin-buckets-add.png)
-
 
 ### S3 events
 
