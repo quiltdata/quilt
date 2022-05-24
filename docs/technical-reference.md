@@ -220,7 +220,7 @@ your CloudFormation stack.
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-## Routine Maintainance and Upgrades
+## Routine Maintenance and Upgrades
 
 Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
 
@@ -414,7 +414,7 @@ To restore Quilt in your backup region:
 1. Create a new Quilt stack from the same CloudFormation template in the backup region.
 1. Connect the replica buckets (in the backup region) to your Quilt stack. In the Quilt catalog, select "Users and Buckets"->"Buckets" and enter the bucket information.
 
-## Emergency Maintainance
+## Emergency Maintenance
 See [Troubleshooting](Troubleshooting.md)
 
 ## Support
