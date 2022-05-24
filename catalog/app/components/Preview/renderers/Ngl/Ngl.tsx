@@ -18,17 +18,6 @@ async function renderNgl(blob: Blob, ext: string, wrapperEl: HTMLDivElement, t: 
   return stage
 }
 
-function NglError() {
-  const intercom = Intercom.use()
-  return (
-    <M.Typography>
-      We couldn't parse this file. If you have such an opportunity,{' '}
-      <StyledLink onClick={() => intercom('show')}>send</StyledLink> the file to our
-      support
-    </M.Typography>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     height: t.spacing(50),
@@ -73,7 +62,7 @@ export default function Ngl({ blob, ext, ...props }: NglProps) {
     }
   }, [blob, ext, handleWheel, t, viewport])
 
-  if (error) return <NglError />
+  if (error) throw error
 
   return <div ref={viewport} className={classes.root} {...props} />
 }
