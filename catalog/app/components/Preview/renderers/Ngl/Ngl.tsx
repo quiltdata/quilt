@@ -27,12 +27,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface NglProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface NglProps extends React.HTMLAttributes<HTMLDivElement> {
   blob: Blob
   ext: string
 }
 
-function Ngl({ blob, ext, ...props }: NglProps) {
+export default function Ngl({ blob, ext, ...props }: NglProps) {
   const classes = useStyles()
 
   const t = M.useTheme()
@@ -61,5 +61,3 @@ function Ngl({ blob, ext, ...props }: NglProps) {
 
   return <div ref={viewport} className={classes.root} {...props} />
 }
-
-export default (data: NglProps, props: NglProps) => <Ngl {...data} {...props} />
