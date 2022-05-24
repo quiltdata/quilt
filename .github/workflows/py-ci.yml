@@ -33,6 +33,24 @@ jobs:
         run: |
           isort --check --diff .
 
+  test-gendocs:
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.7'
+      - name: install deps
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+      - name: generate docs
+        run: cd gendocs && python build.py
+      - name: check there are no changes
+        run: git diff --exit-code
+
   test-client:
     strategy:
       matrix:
