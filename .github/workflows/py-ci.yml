@@ -28,7 +28,48 @@ jobs:
       - uses: codecov/codecov-action@v2
         env:
           OS: ${{ matrix.os }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
         with:
-            flags: api-python
-            name: ${{ format('{0}-{1}', github.job, matrix.python-version) }}
-            env_vars: OS
+          flags: api-python
+          #name: ${{ format('{0}-{1}', github.job, matrix.python-version) }}
+          env_vars: OS,PYTHON_VERSION
+
+  test-lambda:
+    strategy:
+      matrix:
+        path:
+          - access_counts
+          - preview
+          - s3select
+          - thumbnail
+          - transcode
+          - pkgselect
+          - shared
+          - s3hash
+          - pkgevents
+          - pkgpush
+          - tabular_preview
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          if [ ${{ matrix.path }} == "shared" ]
+            python -m pip install -e lambdas/shared[tests]
+          then
+            python -m pip install -e lambdas/shared
+            python -m pip install -e lambdas/${{ matrix.path }}
+          fi
+          python -m pip install -r lambdas/${{ matrix.path }}/requirements.txt -r lambdas/${{ matrix.path }}/test-requirements.txt
+      - name: Pytest
+        run: |
+          pytest --cov=lambdas lambdas/${{ matrix.path }}
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: lambda
