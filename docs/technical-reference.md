@@ -220,7 +220,7 @@ your CloudFormation stack.
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-## Routine Maintainance and Upgrades
+## Routine Maintenance and Upgrades
 
 Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
 
@@ -250,14 +250,13 @@ User email addresses are stored by the Identity Service in RDS Postgres (part of
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
-### Setting default role
+### Setting the default role
 
-If your stack settings allow users signing up by themselves, you must set the
-default role which will be assigned to all new users.
-Users won't be able to sign up by themselves until the default role is set,
-though they still can be invited by an admin via user management UI.
+**The Quilt admin must log in and set the default role** in order for new 
+users to be able to sign up.
 
-![](imgs/admin-set-default-role.png)
+![](imgs/default-role.png)
+
 
 ### Single sign-on (SSO)
 
@@ -306,9 +305,12 @@ and hybrid flows, and check the box to issue ID tokens
 `Initiate login URI`
 1. Copy the `Client ID` to a safe place
 1. Go to API > Authorization servers
-1. You should see a default URI that looks something like this
-`https://<MY_COMPANY>.okta.com/oauth2/default`; copy it to a
-safe place
+1. You should see a default URI that looks something like the following:
+    ```
+    https://<MY_COMPANY>.okta.com/oauth2
+    ```
+    See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
+    for more.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ![](./imgs/okta-sso-general.png)
@@ -344,6 +346,8 @@ Use current template > Next > Specify stack details), set the following paramete
 * *AuthType*: Enabled
 * *AuthClientId*: *Client ID*
 * *AuthBaseUrl*: *Issuer URL V2*
+
+> Be sure to set the [default role](#setting-the-default-role) as indicated above.
 
 ### Preparing an AWS Role for use with Quilt
 
@@ -410,7 +414,7 @@ To restore Quilt in your backup region:
 1. Create a new Quilt stack from the same CloudFormation template in the backup region.
 1. Connect the replica buckets (in the backup region) to your Quilt stack. In the Quilt catalog, select "Users and Buckets"->"Buckets" and enter the bucket information.
 
-## Emergency Maintainance
+## Emergency Maintenance
 See [Troubleshooting](Troubleshooting.md)
 
 ## Support

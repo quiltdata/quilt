@@ -15,5 +15,19 @@ fragment RoleSelection on Role {
       }
       level
     }
+    policies {
+      id
+      title
+      managed
+      permissions {
+        bucket {
+          name
+        }
+        level
+      }
+      roles {
+        id
+      }
+    }
   }
 }

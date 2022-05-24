@@ -1,20 +1,19 @@
 import * as React from 'react'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-type FieldProps = M.TextFieldProps & {
-  meta: $TSFixMe
-  input: {
-    value: $TSFixMe
-    onChange: (value: $TSFixMe) => void
-  }
+interface FieldOwnProps {
   error?: string
-  errors: Record<string, string>
+  errors: Record<string, React.ReactNode>
   helperText?: React.ReactNode
   validating?: boolean
 }
 
+type FieldProps = FieldOwnProps & RF.FieldRenderProps<string> & M.TextFieldProps
+
 export function Field({ input, meta, errors, helperText, ...rest }: FieldProps) {
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
   const props = {
     error: !!error,
     helperText: error ? errors[error] || error : helperText,

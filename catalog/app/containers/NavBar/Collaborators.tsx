@@ -19,6 +19,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   hidden: {
     opacity: 0,
+    zIndex: 0,
   },
 }))
 

@@ -8,12 +8,13 @@ import {
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
-export type containers_Admin_Roles_gql_UpdateUnmanagedMutationVariables = Types.Exact<{
-  id: Types.Scalars['ID']
-  input: Types.UnmanagedRoleInput
-}>
+export type containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedMutationVariables =
+  Types.Exact<{
+    id: Types.Scalars['ID']
+    input: Types.ManagedRoleInput
+  }>
 
-export type containers_Admin_Roles_gql_UpdateUnmanagedMutation = {
+export type containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleUpdate:
@@ -29,16 +30,19 @@ export type containers_Admin_Roles_gql_UpdateUnmanagedMutation = {
     | { readonly __typename: 'RoleNameInvalid' }
     | { readonly __typename: 'RoleIsManaged' }
     | { readonly __typename: 'RoleIsUnmanaged' }
-    | { readonly __typename: 'BucketConfigDoesNotExist' }
+    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
 }
 
-export const containers_Admin_Roles_gql_UpdateUnmanagedDocument = {
+export const containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'containers_Admin_Roles_gql_UpdateUnmanaged' },
+      name: {
+        kind: 'Name',
+        value: 'containers_Admin_RolesAndPolicies_gql_RoleUpdateManaged',
+      },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -55,7 +59,7 @@ export const containers_Admin_Roles_gql_UpdateUnmanagedDocument = {
             kind: 'NonNullType',
             type: {
               kind: 'NamedType',
-              name: { kind: 'Name', value: 'UnmanagedRoleInput' },
+              name: { kind: 'Name', value: 'ManagedRoleInput' },
             },
           },
         },
@@ -66,7 +70,7 @@ export const containers_Admin_Roles_gql_UpdateUnmanagedDocument = {
           {
             kind: 'Field',
             alias: { kind: 'Name', value: 'roleUpdate' },
-            name: { kind: 'Name', value: 'roleUpdateUnmanaged' },
+            name: { kind: 'Name', value: 'roleUpdateManaged' },
             arguments: [
               {
                 kind: 'Argument',
@@ -116,8 +120,8 @@ export const containers_Admin_Roles_gql_UpdateUnmanagedDocument = {
     ...RoleSelectionFragmentDoc.definitions,
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Roles_gql_UpdateUnmanagedMutation,
-  containers_Admin_Roles_gql_UpdateUnmanagedMutationVariables
+  containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedMutation,
+  containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedMutationVariables
 >
 
-export { containers_Admin_Roles_gql_UpdateUnmanagedDocument as default }
+export { containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedDocument as default }

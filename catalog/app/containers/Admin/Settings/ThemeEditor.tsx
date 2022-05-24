@@ -158,10 +158,10 @@ const useThemePreviewStyles = M.makeStyles((t) => ({
   },
   inner: {
     ...t.typography.body2,
+    minWidth: '100px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    width: '100px',
   },
   logoWrapper: {
     padding: t.spacing(1),
