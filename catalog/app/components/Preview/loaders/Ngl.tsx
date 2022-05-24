@@ -11,6 +11,29 @@ import { PreviewData } from '../types'
 
 import * as utils from './utils'
 
+const openchem = import('openchemlib/minimal')
+
+type ResponseFile = string | Uint8Array
+
+async function parseResponse(
+  file: ResponseFile,
+  handle: S3HandleBase,
+): Promise<{ file: ResponseFile; ext: string }> {
+  const { Molecule } = await openchem
+  const ext = extname(utils.stripCompression(handle.key)).substring(1)
+  if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
+    return {
+      ext,
+      file,
+    }
+  const strFile = file.toString()
+  if (strFile.indexOf('V3000') === -1) return { ext, file }
+  return {
+    ext: 'mol',
+    file: Molecule.fromMolfile(strFile).toMolfile(),
+  }
+}
+
 export const detect = R.pipe(
   utils.stripCompression,
   utils.extIn(['.cif', '.ent', '.mol', '.mol2', '.pdb', '.sdf']),
@@ -25,13 +48,13 @@ interface NglLoaderProps {
 
 export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
   const data = utils.useObjectGetter(handle)
-  const processed = utils.useProcessing(
+  const processed = utils.useAsyncProcessing(
     data.result,
-    (r: PromiseResult<{ Body: Uint8Array | string }, null>) => {
+    async (r: PromiseResult<{ Body: ResponseFile }, null>) => {
       const compression = utils.getCompression(handle.key)
       const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
-      const ext = extname(utils.stripCompression(handle.key)).substring(1)
-      return PreviewData.Ngl({ blob: new Blob([body]), ext })
+      const { file, ext } = await parseResponse(body, handle)
+      return PreviewData.Ngl({ blob: new Blob([file]), ext })
     },
   )
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
