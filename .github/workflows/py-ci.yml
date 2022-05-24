@@ -31,7 +31,7 @@ jobs:
           PYTHON_VERSION: ${{ matrix.python-version }}
         with:
           flags: api-python
-          #name: ${{ format('{0}-{1}', github.job, matrix.python-version) }}
+          name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
 
   test-lambda:
@@ -49,6 +49,7 @@ jobs:
           - pkgevents
           - pkgpush
           - tabular_preview
+          - es/indexer
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -71,5 +72,9 @@ jobs:
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
       - uses: codecov/codecov-action@v2
+        env:
+          LAMBDA: ${{ matrix.path }}
         with:
           flags: lambda
+          name: ${{ github.job }}
+          env_vars: LAMBDA
