@@ -13,40 +13,77 @@ Quilt requires at least one admin account per stack.
 
 ## Users and roles
 
-This section provides comprehensive access control management for the follwing
+This section provides comprehensive access control management for the following
 functions:
 * Create/Delete user
 * De/activate user
 * De/admin user
 * Assign roles to users
+* Configure access policies
 
 ![](../imgs/admin-users-roles.png)
 
 You may invite new users to your Quilt stack by clicking the + button, upper right.
 
-You may create custom roles for different groups of users. With the exception of
-administrators, users of managed roles are only aware of the buckets that they
-are permitted to read. All other stack buckets are invisible to users of managed
-roles.
+You must select the default role for all new users, else they will not be able
+to sign in to the Quilt catalog. The default role is shown in bold.
 
-![](../imgs/admin-users-roles-create-managed.png)
+![](../imgs/default-role.png)
 
-You must select the default role for all new users, else they will
-not be able to sign in to the Quilt catalog.
-The default role is shown in bold.
+You may create roles for different groups of users by combining up to 5 policies.
+With the exception of administrators, users of managed roles can only see, list,
+and search buckets for which they are explicitly granted read access.
 
-![](imgs/admin-set-default-role.png)
+![](../imgs/admin-role-managed-create.png)
+
+![](../imgs/admin-role-managed-attach-policy.png)
+
+Alternatively, you may provide your own IAM roles via ARN:
+
+![](../imgs/admin-role-unmanaged-create.png)
+
+You may create policies providing access to a selected set of buckets:
+
+![](../imgs/admin-policy-managed-create.png)
+
+![](../imgs/admin-policy-managed-bucket-access-add.png)
+
+![](../imgs/admin-policy-managed-bucket-access.png)
+
+![](../imgs/admin-policy-managed-bucket-access-change.png)
+
+You may attach policies to managed roles from policy edit and create screens:
+
+![](../imgs/admin-policy-attach-to-role.png)
+
+You may also provide custom policies via ARN:
+
+![](../imgs/admin-policy-unmanaged-create.png)
+
+The resulting permission set is equivalent to a union of all permissions
+provided by the policies attached to that role.
+
 
 ## Buckets
 
 Here you can add or remove buckets from Quilt and configure bucket indexing and
 display settings. 
-<!--TODO explain sub sections of bucket editro !-->
+<!--TODO explain sub sections of bucket editor !-->
 
 ![](../imgs/admin-buckets.png)
 
 ![](../imgs/admin-buckets-add.png)
 
+### S3 events
+
+By default, when you add a bucket to the Quilt stack one of two things will happen:
+
+1. If there is no existing bucket notification, Quilt will attempt to add a new notification
+1. If there is an existing bucket notification, Quilt will use the existing notification if and only if it supports the required events (object creation and deletion)
+
+If either of the above conditions fails, Quilt will not add the bucket in question.
+
+See [S3 Events, EventBridge](EventBridge.md) for more.
 
 ## Settings
 

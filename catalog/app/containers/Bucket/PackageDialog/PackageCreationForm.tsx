@@ -17,6 +17,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as Types from 'utils/types'
@@ -239,7 +240,7 @@ function PackageCreationForm({
       console.error('Error uploading files:')
       // eslint-disable-next-line no-console
       console.error(e)
-      return PD.mkFormError(PD.ERROR_MESSAGES.UPLOAD)
+      return mkFormError(PD.ERROR_MESSAGES.UPLOAD)
     }
 
     const s3Entries = FP.function.pipe(
@@ -297,9 +298,9 @@ function PackageCreationForm({
           setSuccess({ name, hash: r.revision.hash })
           return
         case 'OperationError':
-          return PD.mkFormError(r.message)
+          return mkFormError(r.message)
         case 'InvalidInput':
-          return PD.mapInputErrors(r.errors, { 'src.entries': 'files' })
+          return mapInputErrors(r.errors, { 'src.entries': 'files' })
         default:
           assertNever(r)
       }
@@ -308,7 +309,7 @@ function PackageCreationForm({
       console.error('Error creating manifest:')
       // eslint-disable-next-line no-console
       console.error(e)
-      return PD.mkFormError(
+      return mkFormError(
         e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
       )
     }

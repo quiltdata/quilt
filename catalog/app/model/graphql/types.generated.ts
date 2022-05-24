@@ -89,13 +89,9 @@ export interface BucketConfig {
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
-  readonly permissions: ReadonlyArray<RoleBucketPermission>
+  readonly associatedPolicies: ReadonlyArray<PolicyBucketPermission>
+  readonly associatedRoles: ReadonlyArray<RoleBucketPermission>
   readonly collaborators: ReadonlyArray<CollaboratorBucketConnection>
-}
-
-export interface BucketConfigDoesNotExist {
-  readonly __typename: 'BucketConfigDoesNotExist'
-  readonly name: Scalars['String']
 }
 
 export interface BucketDoesNotExist {
@@ -116,6 +112,11 @@ export interface BucketIndexContentBytesInvalid {
 export interface BucketNotFound {
   readonly __typename: 'BucketNotFound'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface BucketPermission {
+  readonly bucket: BucketConfig
+  readonly level: BucketPermissionLevel
 }
 
 export enum BucketPermissionLevel {
@@ -208,17 +209,24 @@ export interface InvalidInput {
   readonly errors: ReadonlyArray<InputError>
 }
 
+export interface ManagedPolicyInput {
+  readonly title: Scalars['String']
+  readonly permissions: ReadonlyArray<PermissionInput>
+  readonly roles: ReadonlyArray<Scalars['ID']>
+}
+
 export interface ManagedRole {
   readonly __typename: 'ManagedRole'
   readonly id: Scalars['ID']
   readonly name: Scalars['String']
-  readonly arn: Maybe<Scalars['String']>
+  readonly arn: Scalars['String']
+  readonly policies: ReadonlyArray<Policy>
   readonly permissions: ReadonlyArray<RoleBucketPermission>
 }
 
 export interface ManagedRoleInput {
   readonly name: Scalars['String']
-  readonly permissions: ReadonlyArray<PermissionInput>
+  readonly policies: ReadonlyArray<Scalars['ID']>
 }
 
 export interface Mutation {
@@ -230,6 +238,11 @@ export interface Mutation {
   readonly bucketAdd: BucketAddResult
   readonly bucketUpdate: BucketUpdateResult
   readonly bucketRemove: BucketRemoveResult
+  readonly policyCreateManaged: PolicyResult
+  readonly policyCreateUnmanaged: PolicyResult
+  readonly policyUpdateManaged: PolicyResult
+  readonly policyUpdateUnmanaged: PolicyResult
+  readonly policyDelete: PolicyDeleteResult
   readonly roleCreateManaged: RoleCreateResult
   readonly roleCreateUnmanaged: RoleCreateResult
   readonly roleUpdateManaged: RoleUpdateResult
@@ -272,6 +285,28 @@ export interface MutationbucketRemoveArgs {
   name: Scalars['String']
 }
 
+export interface MutationpolicyCreateManagedArgs {
+  input: ManagedPolicyInput
+}
+
+export interface MutationpolicyCreateUnmanagedArgs {
+  input: UnmanagedPolicyInput
+}
+
+export interface MutationpolicyUpdateManagedArgs {
+  id: Scalars['ID']
+  input: ManagedPolicyInput
+}
+
+export interface MutationpolicyUpdateUnmanagedArgs {
+  id: Scalars['ID']
+  input: UnmanagedPolicyInput
+}
+
+export interface MutationpolicyDeleteArgs {
+  id: Scalars['ID']
+}
+
 export interface MutationroleCreateManagedArgs {
   input: ManagedRoleInput
 }
@@ -305,6 +340,11 @@ export interface NotificationConfigurationError {
 
 export interface NotificationTopicNotFound {
   readonly __typename: 'NotificationTopicNotFound'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface Ok {
+  readonly __typename: 'Ok'
   readonly _: Maybe<Scalars['Boolean']>
 }
 
@@ -475,8 +515,29 @@ export interface PackageWorkflow {
 
 export interface PermissionInput {
   readonly bucket: Scalars['String']
-  readonly level: Maybe<BucketPermissionLevel>
+  readonly level: BucketPermissionLevel
 }
+
+export interface Policy {
+  readonly __typename: 'Policy'
+  readonly id: Scalars['ID']
+  readonly title: Scalars['String']
+  readonly arn: Scalars['String']
+  readonly managed: Scalars['Boolean']
+  readonly permissions: ReadonlyArray<PolicyBucketPermission>
+  readonly roles: ReadonlyArray<ManagedRole>
+}
+
+export interface PolicyBucketPermission extends BucketPermission {
+  readonly __typename: 'PolicyBucketPermission'
+  readonly policy: Policy
+  readonly bucket: BucketConfig
+  readonly level: BucketPermissionLevel
+}
+
+export type PolicyDeleteResult = Ok | InvalidInput | OperationError
+
+export type PolicyResult = Policy | InvalidInput | OperationError
 
 export interface Query {
   readonly __typename: 'Query'
@@ -486,6 +547,8 @@ export interface Query {
   readonly potentialCollaborators: ReadonlyArray<Collaborator>
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
+  readonly policies: ReadonlyArray<Policy>
+  readonly policy: Maybe<Policy>
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
   readonly defaultRole: Maybe<Role>
@@ -505,6 +568,10 @@ export interface QuerypackageArgs {
   name: Scalars['String']
 }
 
+export interface QuerypolicyArgs {
+  id: Scalars['ID']
+}
+
 export interface QueryroleArgs {
   id: Scalars['ID']
 }
@@ -516,11 +583,11 @@ export interface RoleAssigned {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
-export interface RoleBucketPermission {
+export interface RoleBucketPermission extends BucketPermission {
   readonly __typename: 'RoleBucketPermission'
   readonly role: Role
   readonly bucket: BucketConfig
-  readonly level: Maybe<BucketPermissionLevel>
+  readonly level: BucketPermissionLevel
 }
 
 export type RoleCreateResult =
@@ -528,7 +595,7 @@ export type RoleCreateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 export interface RoleCreateSuccess {
   readonly __typename: 'RoleCreateSuccess'
@@ -548,6 +615,11 @@ export interface RoleDeleteSuccess {
 
 export interface RoleDoesNotExist {
   readonly __typename: 'RoleDoesNotExist'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface RoleHasTooManyPoliciesToAttach {
+  readonly __typename: 'RoleHasTooManyPoliciesToAttach'
   readonly _: Maybe<Scalars['Boolean']>
 }
 
@@ -590,7 +662,7 @@ export type RoleUpdateResult =
   | RoleNameInvalid
   | RoleIsManaged
   | RoleIsUnmanaged
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 export interface RoleUpdateSuccess {
   readonly __typename: 'RoleUpdateSuccess'
@@ -602,11 +674,17 @@ export interface SnsInvalid {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export interface UnmanagedPolicyInput {
+  readonly title: Scalars['String']
+  readonly arn: Scalars['String']
+  readonly roles: ReadonlyArray<Scalars['ID']>
+}
+
 export interface UnmanagedRole {
   readonly __typename: 'UnmanagedRole'
   readonly id: Scalars['ID']
   readonly name: Scalars['String']
-  readonly arn: Maybe<Scalars['String']>
+  readonly arn: Scalars['String']
 }
 
 export interface UnmanagedRoleInput {

@@ -31,9 +31,17 @@ function Mono({ className, children }) {
   return <span className={cx(className, classes.root)}>{children}</span>
 }
 
+const useInviteStyles = M.makeStyles({
+  infoIcon: {
+    fontSize: '1.25em',
+    verticalAlign: '-3px',
+  },
+})
+
 // close: PT.func.isRequired,
 // roles: PT.array.isRequired,
 function Invite({ close, roles, defaultRoleId }) {
+  const classes = useInviteStyles()
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
@@ -138,13 +146,15 @@ function Invite({ close, roles, defaultRoleId }) {
                   required: 'Enter a username',
                   taken: 'Username already taken',
                   invalid: (
-                    <span>
-                      Enter a{' '}
-                      <abbr title="Must start with a letter or underscore, and contain only alphanumeric characters and underscores thereafter">
-                        valid
-                      </abbr>{' '}
-                      username
-                    </span>
+                    <>
+                      Enter a valid username{' '}
+                      <M.Tooltip
+                        arrow
+                        title="Must start with a letter or underscore, and contain only alphanumeric characters and underscores thereafter"
+                      >
+                        <M.Icon className={classes.infoIcon}>info</M.Icon>
+                      </M.Tooltip>
+                    </>
                   ),
                 }}
                 autoComplete="off"
