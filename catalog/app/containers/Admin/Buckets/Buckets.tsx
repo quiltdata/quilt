@@ -400,7 +400,7 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
             component={Form.Field}
             name="relevanceScore"
             label="Relevance score"
-            placeholder="-1 to hide, 0 to sort first, 1 or higher to sort later"
+            placeholder="Higher numbers appear first, -1 to hide"
             parse={R.pipe(
               R.replace(/[^0-9-]/g, ''),
               R.replace(/(.+)-+$/g, '$1'),

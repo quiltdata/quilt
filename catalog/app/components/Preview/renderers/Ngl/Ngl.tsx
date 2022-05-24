@@ -1,8 +1,11 @@
-import * as NGL from 'ngl'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import type { Stage } from 'ngl'
+
+const NGLLibrary = import('ngl')
 
 async function renderNgl(blob: Blob, ext: string, wrapperEl: HTMLDivElement, t: M.Theme) {
+  const NGL = await NGLLibrary
   const stage = new NGL.Stage(wrapperEl, { backgroundColor: t.palette.common.white })
 
   const resizeObserver = new window.ResizeObserver(() => stage.handleResize())
@@ -24,12 +27,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface NglProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface NglProps extends React.HTMLAttributes<HTMLDivElement> {
   blob: Blob
   ext: string
 }
 
-function Ngl({ blob, ext, ...props }: NglProps) {
+export default function Ngl({ blob, ext, ...props }: NglProps) {
   const classes = useStyles()
 
   const t = M.useTheme()
@@ -43,11 +46,14 @@ function Ngl({ blob, ext, ...props }: NglProps) {
     },
     [viewport],
   )
+  const [error, setError] = React.useState(null)
 
   React.useEffect(() => {
-    let stage: NGL.Stage
+    let stage: Stage
     if (viewport.current) {
-      renderNgl(blob, ext, viewport.current, t).then((s) => (stage = s))
+      renderNgl(blob, ext, viewport.current, t)
+        .then((s) => (stage = s))
+        .catch((e) => setError(e))
       window.addEventListener('wheel', handleWheel, { passive: false })
     }
     return () => {
@@ -56,7 +62,7 @@ function Ngl({ blob, ext, ...props }: NglProps) {
     }
   }, [blob, ext, handleWheel, t, viewport])
 
+  if (error) throw error
+
   return <div ref={viewport} className={classes.root} {...props} />
 }
-
-export default (data: NglProps, props: NglProps) => <Ngl {...data} {...props} />
