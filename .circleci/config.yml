@@ -188,27 +188,6 @@ jobs:
             pip install twine==3.1.1
             twine upload dist/*
 
-  test-catalog:
-    resource_class: medium+
-    executor:
-      name: node/default
-      tag: "16.11"
-    steps:
-      - checkout
-      - node/install-packages:
-          app-dir: catalog
-      - run:
-          working_directory: catalog
-          command: npm test
-      - run:
-          working_directory: catalog
-          command: npm run build
-      - run:
-          working_directory: catalog
-          command: npm run bundlewatch
-      - codecov:
-          flags: "catalog"
-
 workflows:
   version: 2
   py-ci:
@@ -262,6 +241,3 @@ workflows:
             <<: *release-tags
             branches:
               ignore: /.*/
-  js-ci:
-    jobs:
-      - test-catalog
