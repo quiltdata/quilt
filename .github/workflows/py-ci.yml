@@ -111,7 +111,7 @@ jobs:
           python-version: '3.7'
       - name: verify git tag vs. version
         env:
-          CIRCLE_TAG: ${{ github.ref_name }}
+          GIT_TAG: ${{ github.ref_name }}
         run: python setup.py verify
       - name: Install dependencies
         run: |
@@ -121,8 +121,8 @@ jobs:
         run: python -m build
       - name: upload to PyPI
         env:
-          TWINE_USERNAME: ''
-          TWINE_PASSWORD: ''
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: twine upload -r testpypi dist/*
 
   test-lambda:
