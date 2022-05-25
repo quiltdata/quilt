@@ -84,6 +84,25 @@ jobs:
           name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
 
+  pypi-release-check:
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.check.outputs.check }}
+    steps:
+      - id: check
+        run: |
+        if [[ ${{ github.event.ref }} =~ ^refs/tags/test$ ]]; then
+            echo ::set-output name=check::true
+        fi
+
+  pypi-release:
+    needs: pypi-release-check
+    if: needs.pypi-release-check.outputs.check == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+       echo '!!!'
+
   test-lambda:
     strategy:
       matrix:
