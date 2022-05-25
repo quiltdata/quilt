@@ -91,9 +91,9 @@ jobs:
     steps:
       - id: check
         run: |
-        if [[ ${{ github.event.ref }} =~ ^refs/tags/test$ ]]; then
+          if [[ ${{ github.event.ref }} =~ ^refs/tags/test$ ]]; then
             echo ::set-output name=check::true
-        fi
+          fi
 
   pypi-release:
     needs: pypi-release-check
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-       echo '!!!'
+          echo '!!!'
 
   test-lambda:
     strategy:
