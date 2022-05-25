@@ -84,7 +84,7 @@ jobs:
           name: ${{ github.job }}
           env_vars: OS,PYTHON_VERSION
 
-  pypi-release-check:
+  pypi-release-tag-check:
     needs: test-client
     runs-on: ubuntu-latest
     outputs:
