@@ -399,9 +399,9 @@ Note the comma after the object. Your trust relationship should now look somethi
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
 
 ### S3 buckets with SSE-KMS
-Using S3 buckets with SSE-KMS enabled needs additional setup.
-Go to your Quilt stack in CloudFormation, `Resources` tab.
-Look for IAM roles with these logical IDs:
+In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
+the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
+and look for IAM roles with the following logical IDs:
 * `AmazonECSTaskExecutionRole`
 * `PkgEventsRole`
 * `PkgSelectLambdaRole`
@@ -409,8 +409,8 @@ Look for IAM roles with these logical IDs:
 * `T4BucketReadRole`
 * `T4BucketWriteRole`
 
-Add a statement to KMS key policy document supplying ARNs of roles
-found on the previous step:
+Note the ARN for each of the above logical IDs and add an Allow statement
+similar to the following to the KMS key policy:
 
 ```
 {
