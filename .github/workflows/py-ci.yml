@@ -99,8 +99,8 @@ jobs:
           fi
 
   pypi-release:
-    needs: pypi-release-check
-    if: github.ref_type == 'tag' && needs.pypi-release-check.outputs.check == 'true'
+    needs: pypi-release-tag-check
+    if: github.ref_type == 'tag' && needs.pypi-release-tag-check.outputs.check == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
