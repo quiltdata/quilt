@@ -85,7 +85,7 @@ jobs:
           env_vars: OS,PYTHON_VERSION
 
   pypi-release-check:
-    #needs: test-client
+    needs: test-client
     runs-on: ubuntu-latest
     outputs:
       check: ${{ steps.check.outputs.check }}
