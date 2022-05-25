@@ -112,7 +112,7 @@ jobs:
           python-version: '3.7'
       - name: verify git tag vs. version
         env:
-          GIT_TAG: ${{ github.ref_name }}
+          CIRCLE_TAG: ${{ github.ref_name }}
         run: python setup.py verify
       - name: Install dependencies
         run: |
