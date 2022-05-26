@@ -398,6 +398,38 @@ Note the comma after the object. Your trust relationship should now look somethi
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
 
+### S3 buckets with SSE-KMS
+In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
+the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
+and look for IAM roles with the following logical IDs:
+* `AmazonECSTaskExecutionRole`
+* `PkgEventsRole`
+* `PkgSelectLambdaRole`
+* `SearchHandlerRole`
+* `T4BucketReadRole`
+* `T4BucketWriteRole`
+
+Note the ARN for each of the above logical IDs and add an Allow statement
+similar to the following to the KMS key policy:
+
+```
+{
+    "Effect": "Allow",
+    "Principal": {
+        "AWS": [
+            "<RoleARN-1>",
+            ...
+            "<RoleARN-N>"
+        ]
+    },
+    "Action": [
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
+    ],
+    "Resource": "*"
+}
+```
+
 ## Backup and Recovery
 
 All data and metadata in Quilt is stored in S3. S3 data is automatically backed up (replicated across multiple available zones). To protect against accidental deletion or overwriting of data, we strongly recommend enabling object versioning for all S3 buckets connected to Quilt.
