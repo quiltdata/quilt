@@ -4,6 +4,7 @@ query ($bucket: String!, $name: String!, $hashOrTag: String!) {
     name
     revision(hashOrTag: $hashOrTag) {
       hash
+      modified
     }
   }
 }
