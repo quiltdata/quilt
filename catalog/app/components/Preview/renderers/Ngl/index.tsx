@@ -8,7 +8,8 @@ import * as RT from 'utils/reactTools'
 import type { NglProps } from './Ngl'
 
 function NglError() {
-  return <M.Typography>Error rendering file (we couldn't parse this file)</M.Typography>
+  // TODO: <a href={docs}>Learn more</a>
+  return <M.Typography>Oops. Unable to parse file.</M.Typography>
 }
 
 const ErrorBoundary = createBoundary(() => () => <NglError />)
