@@ -2,7 +2,7 @@
 
 ## Show and hide features in the Quilt catalog
 
-You can use the a configuration file to show or hide certain
+You can use the configuration file to show or hide certain
 tabs and buttons in the Quilt catalog. This gives you fine-grained control
 over how users interact with the Quilt catalog. There is one catalog config file 
 per-bucket. The config file's path is `s3://BUCKET/.quilt/catalog/config.yaml`.
