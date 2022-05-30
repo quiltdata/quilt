@@ -23,6 +23,7 @@ export const SUPPORTED_EXTENSIONS = [
   '.webp',
   '.bmp',
   '.tiff',
+  '.tif',
   '.czi',
 ]
 
