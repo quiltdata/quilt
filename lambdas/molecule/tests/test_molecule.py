@@ -55,6 +55,7 @@ def test_403():
     assert "text" in body
     assert "error" in body
 
+
 @responses.activate
 @pytest.mark.parametrize(
     'format',
