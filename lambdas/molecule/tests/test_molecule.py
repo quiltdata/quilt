@@ -55,32 +55,6 @@ def test_403():
     assert "text" in body
     assert "error" in body
 
-# def test_bad_params():
-#     """test invalid input"""
-#     url = "https://example.com/folder/file.ext"
-#     responses.add(
-#         responses.GET,
-#         url=url,
-#         status=200,
-#         body="ab",
-#     )
-#     event = _make_event({"url": url, "format": "video/mp4"})
-
-#     # Get the response
-#     with patch.object(index, 'OBABEL', '/bin/false'):
-#         response = index.lambda_handler(event, MockContext())
-
-#     print("statusCode!!!!!!!!!!!!!!!!!!!!!!!!!!")
-#     print(response["statusCode"])
-#     print(response["body"])
-#     print("statusCode??????????????????????????")
-#     assert response["statusCode"] == 400
-#     # body = json.loads(response["body"])
-#     # # body = response["body"]
-#     # # print(body)
-#     assert response["body"]
-
-
 @responses.activate
 @pytest.mark.parametrize(
     'format',
