@@ -93,6 +93,7 @@ function parseSourceBuckets(
       if (defaultSourceBucket) {
         const found = list.find((name) => name === defaultSourceBucket)
         if (found) return found
+        // TODO: use more civilized logger, log all similar configuration errors
         sentry(
           'captureMessage',
           `defaultSourceBucket ${defaultSourceBucket} is incorrect`,
@@ -119,6 +120,21 @@ export function parse(
       blocks: R.mergeRight(defaultPreferences.ui.blocks, data?.ui?.blocks || {}),
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
       sourceBuckets: parseSourceBuckets(sentry, data?.ui),
+    },
+  }
+}
+
+interface BucketPreferencesExtensions {
+  ui: Partial<UiPreferences>
+}
+
+export function extendDefaults(
+  preferences: BucketPreferencesExtensions,
+): BucketPreferences {
+  return {
+    ui: {
+      ...defaultPreferences.ui,
+      ...preferences.ui,
     },
   }
 }

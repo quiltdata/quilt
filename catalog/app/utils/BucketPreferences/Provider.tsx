@@ -8,35 +8,8 @@ import * as Sentry from 'utils/Sentry'
 import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
-import {
-  BucketPreferences,
-  SentryInstance,
-  defaultPreferences,
-  parse,
-} from './BucketPreferences'
-
-const localModePreferences: BucketPreferences = {
-  ui: {
-    ...defaultPreferences.ui,
-    actions: {
-      copyPackage: false,
-      createPackage: false,
-      deleteRevision: false,
-      revisePackage: false,
-    },
-    blocks: {
-      analytics: true,
-      browser: true,
-      code: true,
-      meta: true,
-    },
-    nav: {
-      files: true,
-      packages: true,
-      queries: false,
-    },
-  },
-}
+import { BucketPreferences, SentryInstance, parse } from './BucketPreferences'
+import LocalProvider from './LocalProvider'
 
 const BUCKET_PREFERENCES_PATH = [
   '.quilt/catalog/config.yaml',
@@ -47,16 +20,13 @@ interface FetchBucketPreferencesArgs {
   s3: $TSFixMe
   bucket: string
   sentry: SentryInstance
-  local: boolean
 }
 
 async function fetchBucketPreferences({
   s3,
   sentry,
   bucket,
-  local,
 }: FetchBucketPreferencesArgs) {
-  if (local) return localModePreferences
   try {
     const response = await requests.fetchFile({
       s3,
@@ -69,7 +39,7 @@ async function fetchBucketPreferences({
       e instanceof bucketErrors.FileNotFound ||
       e instanceof bucketErrors.VersionNotFound
     )
-      return defaultPreferences
+      return parse('', sentry)
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -83,21 +53,26 @@ const Ctx = React.createContext<BucketPreferences | null>(null)
 
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
-// TODO: ProviderWrapper LocalProvider
-export function Provider({ bucket, children }: ProviderProps) {
-  const cfg = Config.use()
-  const local = cfg.mode === 'LOCAL'
+function CatalogProvider({ bucket, children }: ProviderProps) {
   const sentry = Sentry.use()
   const s3 = AWS.S3.use()
-  const data = useData(fetchBucketPreferences, { s3, sentry, bucket, local })
+  const data = useData(fetchBucketPreferences, { s3, sentry, bucket })
 
   // XXX: consider returning AsyncResult or using Suspense
   const preferences = data.case({
     Ok: R.identity,
-    Err: () => defaultPreferences,
+    Err: () => parse('', sentry),
     _: () => null,
   })
   return <Ctx.Provider value={preferences}>{children}</Ctx.Provider>
+}
+
+export function Provider({ bucket, children }: ProviderProps) {
+  const cfg = Config.use()
+  const local = cfg.mode === 'LOCAL'
+  if (!local) return <LocalProvider context={Ctx}>{children}</LocalProvider>
+
+  return <CatalogProvider bucket={bucket}>{children}</CatalogProvider>
 }
 
 export const useBucketPreferences = () => React.useContext(Ctx)
