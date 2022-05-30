@@ -41,8 +41,8 @@ def lambda_handler(request):
     format = request.args['format']
 
     input_base, input_ext = os.path.splitext(url)
-    # if input_ext == '.gz':
-    #     _, input_ext = os.path.splitext(input_base)
+    if input_ext == '.gz':
+        _, input_ext = os.path.splitext(input_base)
 
     resp = requests.get(url)
 
