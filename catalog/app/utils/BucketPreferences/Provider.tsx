@@ -70,7 +70,7 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
 export function Provider({ bucket, children }: ProviderProps) {
   const cfg = Config.use()
   const local = cfg.mode === 'LOCAL'
-  if (!local) return <LocalProvider context={Ctx}>{children}</LocalProvider>
+  if (local) return <LocalProvider context={Ctx}>{children}</LocalProvider>
 
   return <CatalogProvider bucket={bucket}>{children}</CatalogProvider>
 }
