@@ -6,7 +6,6 @@ import responses
 
 from .. import index
 
-
 HEADER_403 = {
     'x-amz-request-id': 'guid123',
     'x-amz-id-2': 'some/dat/here/+xxxxx+=',

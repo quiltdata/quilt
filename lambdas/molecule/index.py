@@ -2,10 +2,11 @@
 Convert molecele files from one format to another.
 """
 import os
-import requests
 import subprocess
 import tempfile
 from urllib.parse import urlparse
+
+import requests
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
