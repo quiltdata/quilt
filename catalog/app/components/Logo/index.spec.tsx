@@ -1,15 +1,14 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-import { mocked } from 'ts-jest/utils'
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 
 import Logo from '.'
 
-jest.mock('@material-ui/core/useMediaQuery')
+const mockFn = jest.fn(useMediaQuery)
 
 describe('components/Logo', () => {
   afterEach(() => {
-    mocked(useMediaQuery).mockClear()
+    mockFn.mockClear()
   })
 
   it('should render squared logo', () => {
@@ -23,6 +22,7 @@ describe('components/Logo', () => {
   })
 
   it.skip('should render custom logo', () => {
+    // TODO: mock AWS.Signer
     const tree = renderer
       .create(<Logo src="https://example.com/example.png" height="10px" width="10px" />)
       .toJSON()
