@@ -1,16 +1,9 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-import useMediaQuery from '@material-ui/core/useMediaQuery'
 
 import Logo from '.'
 
-const mockFn = jest.fn(useMediaQuery)
-
 describe('components/Logo', () => {
-  afterEach(() => {
-    mockFn.mockClear()
-  })
-
   it('should render squared logo', () => {
     const tree = renderer.create(<Logo height="20px" width="20px" />).toJSON()
     expect(tree).toMatchSnapshot()
