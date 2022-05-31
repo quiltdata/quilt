@@ -17,6 +17,21 @@ export type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta'
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
+type DefaultSourceBucketInput = string
+type SourceBucketsInput = Record<string, null>
+
+interface UiPreferencesInput {
+  actions?: Partial<ActionPreferences>
+  blocks?: Partial<BlocksPreferences>
+  defaultSourceBucket?: DefaultSourceBucketInput
+  nav?: Partial<NavPreferences>
+  sourceBuckets?: SourceBucketsInput
+}
+
+interface BucketPreferencesInput {
+  ui?: UiPreferencesInput
+}
+
 export interface SourceBuckets {
   getDefault: () => string
   list: string[]
@@ -27,22 +42,6 @@ interface UiPreferences {
   blocks: BlocksPreferences
   nav: NavPreferences
   sourceBuckets: SourceBuckets
-}
-
-// TODO: rename Yaml to Input
-type DefaultSourceBucketYaml = string
-type SourceBucketsYaml = Record<string, null>
-
-interface UiPreferencesYaml {
-  actions?: Partial<ActionPreferences>
-  blocks?: Partial<BlocksPreferences>
-  defaultSourceBucket?: DefaultSourceBucketYaml
-  nav?: Partial<NavPreferences>
-  sourceBuckets?: SourceBucketsYaml
-}
-
-interface BucketPreferencesYaml {
-  ui?: UiPreferencesYaml
 }
 
 export interface BucketPreferences {
@@ -81,15 +80,15 @@ const normalizeBucketName = (input: string) =>
 
 const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 
-function validate(data: unknown): asserts data is BucketPreferencesYaml {
+function validate(data: unknown): asserts data is BucketPreferencesInput {
   const errors = bucketPreferencesValidator(data)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
 function parseSourceBuckets(
   sentry: SentryInstance,
-  sourceBuckets?: SourceBucketsYaml,
-  defaultSourceBucketInput?: DefaultSourceBucketYaml,
+  sourceBuckets?: SourceBucketsInput,
+  defaultSourceBucketInput?: DefaultSourceBucketInput,
 ): SourceBuckets {
   const list = Object.keys(sourceBuckets || {}).map(normalizeBucketName)
   const defaultSourceBucket = normalizeBucketName(defaultSourceBucketInput || '')
@@ -111,7 +110,7 @@ function parseSourceBuckets(
 }
 
 function extendUiDefaults(
-  preferences?: UiPreferencesYaml,
+  preferences?: UiPreferencesInput,
 ): Omit<UiPreferences, 'sourceBuckets'> {
   return {
     actions: R.mergeRight(defaultPreferences.ui.actions, preferences?.actions || {}),
@@ -120,7 +119,7 @@ function extendUiDefaults(
   }
 }
 
-export function extendDefaults(data: BucketPreferencesYaml, sentry: SentryInstance) {
+export function extendDefaults(data: BucketPreferencesInput, sentry: SentryInstance) {
   return {
     ui: {
       ...extendUiDefaults(data?.ui || {}),
