@@ -41,10 +41,10 @@ describe('utils/BucketPreferences', () => {
                 actions:
                     copyPackage: False
       `
-      const result = parse(config, sentryMock)
-      expect(result.ui.actions.copyPackage).toBe(false)
-      expect(result.ui.actions.createPackage).toBe(true)
-      expect(result.ui.actions.deleteRevision).toBe(false)
+      expect(parse(config, sentryMock).ui.actions).toMatchObject({
+        ...expectedDefaults.ui.actions,
+        copyPackage: false,
+      })
     })
 
     test('If one block is overwritten, others should be default', () => {
@@ -53,10 +53,40 @@ describe('utils/BucketPreferences', () => {
                 blocks:
                     analytics: False
       `
-      const result = parse(config, sentryMock)
-      expect(result.ui.blocks.analytics).toBe(false)
-      expect(result.ui.blocks.browser).toBe(true)
-      expect(result.ui.blocks.code).toBe(true)
+      expect(parse(config, sentryMock).ui.blocks).toMatchObject({
+        ...expectedDefaults.ui.blocks,
+        analytics: false,
+      })
+    })
+
+    test('If one nav is overwritten, others should be default', () => {
+      const config = dedent`
+            ui:
+                nav:
+                    queries: False
+      `
+      expect(parse(config, sentryMock).ui.nav).toMatchObject({
+        ...expectedDefaults.ui.nav,
+        queries: false,
+      })
+    })
+
+    test('Additional config structures returns defaults', () => {
+      const config = dedent`
+            ui:
+                blocks:
+                    queries: QUERY
+      `
+      expect(parse(config, sentryMock)).toMatchObject(expectedDefaults)
+    })
+
+    test('Invalid config values throws error', () => {
+      const config = dedent`
+            ui:
+                nav:
+                    queries: QUERY
+      `
+      expect(() => parse(config, sentryMock)).toThrowError()
     })
   })
 
@@ -69,28 +99,42 @@ describe('utils/BucketPreferences', () => {
       const config = {
         ui: {
           actions: {
-            copyPackage: false,
+            deleteRevision: true,
           },
         },
       }
-      const result = extendDefaults(config, sentryMock)
-      expect(result.ui.actions.copyPackage).toBe(false)
-      expect(result.ui.actions.createPackage).toBe(true)
-      expect(result.ui.actions.deleteRevision).toBe(false)
+      expect(extendDefaults(config, sentryMock).ui.actions).toMatchObject({
+        ...expectedDefaults.ui.actions,
+        deleteRevision: true,
+      })
     })
 
     test('If one block is overwritten, others should be default', () => {
       const config = {
         ui: {
           blocks: {
-            analytics: false,
+            browser: false,
           },
         },
       }
-      const result = extendDefaults(config, sentryMock)
-      expect(result.ui.blocks.analytics).toBe(false)
-      expect(result.ui.blocks.browser).toBe(true)
-      expect(result.ui.blocks.code).toBe(true)
+      expect(extendDefaults(config, sentryMock).ui.blocks).toMatchObject({
+        ...expectedDefaults.ui.blocks,
+        browser: false,
+      })
+    })
+
+    test('If one nav is overwritten, others should be default', () => {
+      const config = {
+        ui: {
+          nav: {
+            files: false,
+          },
+        },
+      }
+      expect(extendDefaults(config, sentryMock).ui.nav).toMatchObject({
+        ...expectedDefaults.ui.nav,
+        files: false,
+      })
     })
   })
 })
