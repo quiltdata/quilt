@@ -129,7 +129,6 @@ jobs:
           - access_counts
           - preview
           - s3select
-          - thumbnail
           - transcode
           - pkgselect
           - shared
@@ -138,6 +137,10 @@ jobs:
           - pkgpush
           - tabular_preview
           - es/indexer
+        python-version: ['3.7']
+        include:
+          - path: thumbnail
+            python-version: '3.9'
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -145,7 +148,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: '3.7'
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
