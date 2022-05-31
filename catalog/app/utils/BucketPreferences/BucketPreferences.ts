@@ -48,7 +48,7 @@ export interface BucketPreferences {
   ui: UiPreferences
 }
 
-export const defaultPreferences: BucketPreferences = {
+const defaultPreferences: BucketPreferences = {
   ui: {
     actions: {
       copyPackage: true,
