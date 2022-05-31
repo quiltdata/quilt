@@ -1,8 +1,10 @@
 import * as React from 'react'
 
+import * as Sentry from 'utils/Sentry'
+
 import { BucketPreferences, extendDefaults } from './BucketPreferences'
 
-const localModePreferences: BucketPreferences = extendDefaults({
+const localModePreferences = {
   ui: {
     actions: {
       copyPackage: false,
@@ -22,7 +24,7 @@ const localModePreferences: BucketPreferences = extendDefaults({
       queries: false,
     },
   },
-})
+}
 
 interface LocalProviderProps {
   context: React.Context<BucketPreferences | null>
@@ -30,5 +32,10 @@ interface LocalProviderProps {
 }
 
 export default function LocalProvider({ context: Ctx, children }: LocalProviderProps) {
-  return <Ctx.Provider value={localModePreferences}>{children}</Ctx.Provider>
+  const sentry = Sentry.use()
+  const value = React.useMemo(
+    () => extendDefaults(localModePreferences, sentry),
+    [sentry],
+  )
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

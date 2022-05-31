@@ -1,6 +1,6 @@
 import dedent from 'dedent'
 
-import { parse } from './BucketPreferences'
+import { extendDefaults, parse } from './BucketPreferences'
 
 const sentryMock = () => {}
 
@@ -60,5 +60,37 @@ describe('utils/BucketPreferences', () => {
     })
   })
 
-  describe.skip('extend', () => {})
+  describe('extendUiDefaults', () => {
+    test('Empty config returns default preferences', () => {
+      expect(extendDefaults({}, sentryMock)).toMatchObject(expectedDefaults)
+    })
+
+    test('If one action is overwritten, others should be default', () => {
+      const config = {
+        ui: {
+          actions: {
+            copyPackage: false,
+          },
+        },
+      }
+      const result = extendDefaults(config, sentryMock)
+      expect(result.ui.actions.copyPackage).toBe(false)
+      expect(result.ui.actions.createPackage).toBe(true)
+      expect(result.ui.actions.deleteRevision).toBe(false)
+    })
+
+    test('If one block is overwritten, others should be default', () => {
+      const config = {
+        ui: {
+          blocks: {
+            analytics: false,
+          },
+        },
+      }
+      const result = extendDefaults(config, sentryMock)
+      expect(result.ui.blocks.analytics).toBe(false)
+      expect(result.ui.blocks.browser).toBe(true)
+      expect(result.ui.blocks.code).toBe(true)
+    })
+  })
 })

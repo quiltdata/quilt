@@ -29,12 +29,16 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
+// TODO: rename Yaml to Input
+type DefaultSourceBucketYaml = string
+type SourceBucketsYaml = Record<string, null>
+
 interface UiPreferencesYaml {
   actions?: ActionPreferences
   blocks?: BlocksPreferences
-  defaultSourceBucket?: string
+  defaultSourceBucket?: DefaultSourceBucketYaml
   nav?: NavPreferences
-  sourceBuckets?: Record<string, null>
+  sourceBuckets?: SourceBucketsYaml
 }
 
 interface BucketPreferencesYaml {
@@ -43,6 +47,19 @@ interface BucketPreferencesYaml {
 
 export interface BucketPreferences {
   ui: UiPreferences
+}
+
+type RecursivePartial<T> = {
+  [P in keyof T]?: RecursivePartial<T[P]>
+}
+
+// NOTE: `sourceBuckets` is special because null (from type) and undefined(from Partial) incompatible
+type UiToExtend = RecursivePartial<Omit<UiPreferencesYaml, 'sourceBuckets'>>
+
+interface PreferencesToExtend {
+  ui?: UiToExtend & {
+    sourceBuckets?: SourceBucketsYaml
+  }
 }
 
 export const defaultPreferences: BucketPreferences = {
@@ -84,10 +101,11 @@ function validate(data: unknown): asserts data is BucketPreferencesYaml {
 
 function parseSourceBuckets(
   sentry: SentryInstance,
-  ui?: UiPreferencesYaml,
+  sourceBuckets?: SourceBucketsYaml,
+  defaultSourceBucketInput?: DefaultSourceBucketYaml,
 ): SourceBuckets {
-  const list = Object.keys(ui?.sourceBuckets || {}).map(normalizeBucketName)
-  const defaultSourceBucket = normalizeBucketName(ui?.defaultSourceBucket || '')
+  const list = Object.keys(sourceBuckets || {}).map(normalizeBucketName)
+  const defaultSourceBucket = normalizeBucketName(defaultSourceBucketInput || '')
   return {
     getDefault: () => {
       if (defaultSourceBucket) {
@@ -105,6 +123,29 @@ function parseSourceBuckets(
   }
 }
 
+function extendUiDefaults(
+  preferences?: UiToExtend,
+): Omit<UiPreferences, 'sourceBuckets'> {
+  return {
+    actions: R.mergeRight(defaultPreferences.ui.actions, preferences?.actions || {}),
+    blocks: R.mergeRight(defaultPreferences.ui.blocks, preferences?.blocks || {}),
+    nav: R.mergeRight(defaultPreferences.ui.nav, preferences?.nav || {}),
+  }
+}
+
+export function extendDefaults(data: PreferencesToExtend, sentry: SentryInstance) {
+  return {
+    ui: {
+      ...extendUiDefaults(data?.ui || {}),
+      sourceBuckets: parseSourceBuckets(
+        sentry,
+        data?.ui?.sourceBuckets,
+        data?.ui?.defaultSourceBucket,
+      ),
+    },
+  }
+}
+
 export function parse(
   bucketPreferencesYaml: string,
   sentry: SentryInstance,
@@ -114,27 +155,5 @@ export function parse(
 
   validate(data)
 
-  return {
-    ui: {
-      actions: R.mergeRight(defaultPreferences.ui.actions, data?.ui?.actions || {}),
-      blocks: R.mergeRight(defaultPreferences.ui.blocks, data?.ui?.blocks || {}),
-      nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
-      sourceBuckets: parseSourceBuckets(sentry, data?.ui),
-    },
-  }
-}
-
-interface BucketPreferencesExtensions {
-  ui: Partial<UiPreferences>
-}
-
-export function extendDefaults(
-  preferences: BucketPreferencesExtensions,
-): BucketPreferences {
-  return {
-    ui: {
-      ...defaultPreferences.ui,
-      ...preferences.ui,
-    },
-  }
+  return extendDefaults(data, sentry)
 }
