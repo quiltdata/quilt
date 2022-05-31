@@ -12,15 +12,7 @@ const localModePreferences = {
       deleteRevision: false,
       revisePackage: false,
     },
-    blocks: {
-      analytics: true,
-      browser: true,
-      code: true,
-      meta: true,
-    },
     nav: {
-      files: true,
-      packages: true,
       queries: false,
     },
   },
