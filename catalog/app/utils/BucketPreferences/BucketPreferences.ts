@@ -34,10 +34,10 @@ type DefaultSourceBucketYaml = string
 type SourceBucketsYaml = Record<string, null>
 
 interface UiPreferencesYaml {
-  actions?: ActionPreferences
-  blocks?: BlocksPreferences
+  actions?: Partial<ActionPreferences>
+  blocks?: Partial<BlocksPreferences>
   defaultSourceBucket?: DefaultSourceBucketYaml
-  nav?: NavPreferences
+  nav?: Partial<NavPreferences>
   sourceBuckets?: SourceBucketsYaml
 }
 
@@ -47,19 +47,6 @@ interface BucketPreferencesYaml {
 
 export interface BucketPreferences {
   ui: UiPreferences
-}
-
-type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>
-}
-
-// NOTE: `sourceBuckets` is special because null (from type) and undefined(from Partial) incompatible
-type UiToExtend = RecursivePartial<Omit<UiPreferencesYaml, 'sourceBuckets'>>
-
-interface PreferencesToExtend {
-  ui?: UiToExtend & {
-    sourceBuckets?: SourceBucketsYaml
-  }
 }
 
 export const defaultPreferences: BucketPreferences = {
@@ -124,7 +111,7 @@ function parseSourceBuckets(
 }
 
 function extendUiDefaults(
-  preferences?: UiToExtend,
+  preferences?: UiPreferencesYaml,
 ): Omit<UiPreferences, 'sourceBuckets'> {
   return {
     actions: R.mergeRight(defaultPreferences.ui.actions, preferences?.actions || {}),
@@ -133,7 +120,7 @@ function extendUiDefaults(
   }
 }
 
-export function extendDefaults(data: PreferencesToExtend, sentry: SentryInstance) {
+export function extendDefaults(data: BucketPreferencesYaml, sentry: SentryInstance) {
   return {
     ui: {
       ...extendUiDefaults(data?.ui || {}),
