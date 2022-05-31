@@ -109,20 +109,10 @@ function parseSourceBuckets(
   }
 }
 
-function extendUiDefaults(
-  preferences?: UiPreferencesInput,
-): Omit<UiPreferences, 'sourceBuckets'> {
-  return {
-    actions: R.mergeRight(defaultPreferences.ui.actions, preferences?.actions || {}),
-    blocks: R.mergeRight(defaultPreferences.ui.blocks, preferences?.blocks || {}),
-    nav: R.mergeRight(defaultPreferences.ui.nav, preferences?.nav || {}),
-  }
-}
-
 export function extendDefaults(data: BucketPreferencesInput, sentry: SentryInstance) {
   return {
     ui: {
-      ...extendUiDefaults(data?.ui || {}),
+      ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,
