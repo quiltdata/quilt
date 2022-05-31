@@ -90,7 +90,7 @@ describe('utils/BucketPreferences', () => {
     })
   })
 
-  describe('extendUiDefaults', () => {
+  describe('extendDefaults', () => {
     test('Empty config returns default preferences', () => {
       expect(extendDefaults({}, sentryMock)).toMatchObject(expectedDefaults)
     })
