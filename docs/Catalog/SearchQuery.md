@@ -24,6 +24,7 @@ indexing for the following file extensions:
   * .pdf
   * .html, .txt, .tsv, .csv, .md (plus many other plain-text formats)
   * .xls, .xlsx
+  * .pptx
 
 ### Queries
 

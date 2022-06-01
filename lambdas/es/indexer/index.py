@@ -397,6 +397,28 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
     return None
 
 
+def extract_pptx(fileobj, max_size: int) -> str:
+    import pptx
+
+    out = []
+    prs = pptx.Presentation(fileobj)
+
+    def iter_text_parts():
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    text = shape.text
+                    if text.strip():
+                        yield text
+
+    for part in iter_text_parts():
+        max_size -= len(part)
+        if max_size < 0:
+            break
+        out.append(part)
+    return '\n'.join(out)
+
+
 def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file if it's a target for deep indexing"""
     logger_ = get_quilt_logger()
@@ -412,16 +434,19 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     content = ""
     inferred_ext = infer_extensions(key, ext)
     if inferred_ext in get_content_index_extensions(bucket_name=bucket):
-        if inferred_ext == ".fcs":
-            obj = retry_s3(
+        def _get_obj():
+            return retry_s3(
                 "get",
                 bucket,
                 key,
                 size,
                 etag=etag,
                 s3_client=s3_client,
-                version_id=version_id
+                version_id=version_id,
             )
+
+        if inferred_ext == ".fcs":
+            obj = _get_obj()
             body, info = extract_fcs(get_bytes(obj["Body"], compression), as_html=False)
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
@@ -448,15 +473,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 # at least index the key and other stats, but don't overrun memory
                 # and fail indexing altogether
                 return ""
-            obj = retry_s3(
-                "get",
-                bucket,
-                key,
-                size,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
-            )
+            obj = _get_obj()
             body, info = extract_parquet(
                 get_bytes(obj["Body"], compression),
                 as_html=False,
@@ -468,34 +485,21 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             columns = ','.join(list(info['schema']['names']))
             content = trim_to_bytes(f"{columns}\n{body}", get_content_index_bytes(bucket_name=bucket))
         elif inferred_ext == ".pdf":
-            obj = retry_s3(
-                "get",
-                bucket,
-                key,
-                size,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
-            )
+            obj = _get_obj()
             content = trim_to_bytes(
                 extract_pdf(get_bytes(obj["Body"], compression)),
                 get_content_index_bytes(bucket_name=bucket),
             )
         elif inferred_ext in (".xls", ".xlsx"):
-            obj = retry_s3(
-                "get",
-                bucket,
-                key,
-                size,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
-            )
+            obj = _get_obj()
             body, _ = extract_excel(get_bytes(obj["Body"], compression), as_html=False)
             content = trim_to_bytes(
                 body,
                 get_content_index_bytes(bucket_name=bucket),
             )
+        elif inferred_ext == ".pptx":
+            obj = _get_obj()
+            content = extract_pptx(get_bytes(obj["Body"], compression), get_content_index_bytes(bucket_name=bucket))
         else:
             content = get_plain_text(
                 bucket,
