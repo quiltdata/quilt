@@ -6,7 +6,6 @@ n-dimensional imaging formats. Stong assumptions as to the shape of the
 n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
-import base64
 import functools
 import io
 import json
@@ -73,7 +72,7 @@ SCHEMA = {
             'enum': ['pdf', 'pptx']
         },
         'output': {
-            'enum': ['json', 'raw']
+            'enum': ['raw']
         },
         'page': {
             'type': 'string',
@@ -383,13 +382,6 @@ def lambda_handler(request):
             'thumbnail_size': thumbnail_size,
         }
 
-    if output == 'json':
-        ret_val = {
-            'info': info,
-            'thumbnail': base64.b64encode(data).decode(),
-        }
-        return make_json_response(200, ret_val)
-    # Not JSON response ('raw')
     headers = {
         'Content-Type': Image.MIME[thumbnail_format],
         QUILT_INFO_HEADER: json.dumps(info)
