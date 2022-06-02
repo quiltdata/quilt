@@ -1,28 +1,54 @@
-FROM amazon/aws-lambda-python:3.8 as base
+ARG base_image="debian:bullseye-slim"
+ARG FUNCTION_DIR="/function"
 
-FROM base as pyenv_builder
-RUN yum -y install gcc
+FROM ${base_image} as build-image
+
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Create function directory
+RUN mkdir -p ${FUNCTION_DIR}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        curl \
+        python3-dev \
+        python3-pip
+
 COPY shared/requirements.txt /requirements/shared.txt
 COPY thumbnail/requirements.txt /requirements/thumbnail.txt
-
 RUN pip install -U pip setuptools
-RUN pip install --target /deps -r /requirements/shared.txt -r /requirements/thumbnail.txt
+RUN pip install --target /deps awslambdaric -r /requirements/shared.txt -r /requirements/thumbnail.txt
+RUN curl --output /deps/unoconv \
+    https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
 
 COPY shared/ /src/shared/
 COPY thumbnail/ /src/thumbnail/
 RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
 
+FROM ${base_image}
 
-FROM base
-RUN yum -y install amazon-linux-extras && \
-    # amazon-linux-extras command is broken by the base image.
-    python2 -m amazon_linux_extras enable libreoffice && \
-    yum -y install libreoffice-impress poppler-utils && \
-    yum -y remove amazon-linux-extras && \
-    yum clean all
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends\
+        ca-certificates \
+        libreoffice-impress-nogui \
+        python3 \
+        python3-uno \
+        poppler-utils \
+        fonts-crosextra-caladea \
+        fonts-crosextra-carlito \
+        fonts-liberation \
+    && \
+    apt-get clean
 
-# Install Python environment.
-COPY --from=pyenv_builder /deps/ $LAMBDA_TASK_ROOT
-COPY --from=pyenv_builder /lambda/ $LAMBDA_TASK_ROOT
+# Include global arg in this stage of the build
+ARG FUNCTION_DIR
+# Set working directory to function root directory
+WORKDIR ${FUNCTION_DIR}
 
+# Copy in the build image dependencies
+COPY --from=build-image /deps ${FUNCTION_DIR}
+COPY --from=build-image /lambda ${FUNCTION_DIR}
+
+ENTRYPOINT ["/usr/bin/python3", "-m", "awslambdaric"]
 CMD ["t4_lambda_thumbnail.lambda_handler"]

@@ -7,6 +7,8 @@ n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
 import base64
+import functools
+import io
 import json
 import os
 import subprocess
@@ -19,6 +21,7 @@ from typing import List, Tuple
 import imageio
 import numpy as np
 import pdf2image
+import pptx
 import requests
 from aicsimageio import AICSImage, readers
 from pdf2image import convert_from_bytes
@@ -232,30 +235,96 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     return img.reader.data
 
 
-def pptx_to_pdf(src: bytes) -> bytes:
+def pptx_to_pdf(*, src: bytes, page: int) -> bytes:
     with tempfile.TemporaryDirectory() as tmp_dir:
-        file_name_base = "file"
-        output_ext = "pdf"
-        src_file_path = os.path.join(tmp_dir, f"{file_name_base}.pptx")
-        with open(src_file_path, "xb") as src_file:
-            src_file.write(src)
-
-        subprocess.run(
-            ("soffice", "--convert-to", output_ext, "--outdir", tmp_dir, src_file_path),
+        return subprocess.run(
+            (
+                sys.executable,
+                "unoconv",
+                "--doctype=presentation",
+                "--format=pdf",
+                "--stdout",
+                "--stdin",
+                f"--export=PageRange={page}-{page}",
+            ),
             check=True,
             env={
                 **os.environ,
                 # This is needed because LibreOffice writes some stuff to $HOME/.config.
                 "HOME": tmp_dir,
             },
-        )
+            input=src,
+            capture_output=True,
+        ).stdout
 
-        with open(os.path.join(tmp_dir, f"{file_name_base}.{output_ext}"), "rb") as out_file:
-            return out_file.read()
+
+def handle_exceptions(*exception_types):
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exception_types as e:
+                return make_json_response(500, {'error': str(e)})
+
+        return wrapper
+    return decorator
+
+
+class PDFThumbError(Exception):
+    pass
+
+
+def pdf_thumb(src: bytes, page: int, size: int):
+    try:
+        pages = convert_from_bytes(
+            src,
+            # respect width but not necessarily height to preserve aspect ratio
+            size=(size, None),
+            fmt="JPEG",
+            first_page=page,
+            last_page=page,
+        )
+        return pages[0]
+    except (
+        IndexError,
+        PDFInfoNotInstalledError,
+        PDFPageCountError,
+        PDFSyntaxError,
+        PopplerNotInstalledError
+    ) as e:
+        raise PDFThumbError(str(e))
+
+
+def handle_pdf(*, src: bytes, page: int, size: int, count_pages: bool):
+    fmt = "JPEG"
+    thumb = pdf_thumb(src, page, size)
+    info = {
+        "thumbnail_format": fmt,
+        "thumbnail_size": thumb.size,
+    }
+    if count_pages:
+        info["page_count"] = pdf2image.pdfinfo_from_bytes(src)["Pages"]
+
+    thumbnail_bytes = BytesIO()
+    thumb.save(thumbnail_bytes, fmt)
+    data = thumbnail_bytes.getvalue()
+
+    return info, data
+
+
+def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
+    pdf_bytes = pptx_to_pdf(src=src, page=page)
+    info, data = handle_pdf(src=pdf_bytes, page=1, size=size, count_pages=False)
+    if count_pages:
+        info["page_count"] = len(pptx.Presentation(io.BytesIO(src)).slides)
+
+    return info, data
 
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
+@handle_exceptions(PDFThumbError)
 def lambda_handler(request):
     """
     Generate thumbnails for images in S3
@@ -279,47 +348,17 @@ def lambda_handler(request):
         return make_json_response(resp.status_code, ret_val)
 
     src_bytes = resp.content
-    if input_ == "pptx":
-        src_bytes = pptx_to_pdf(src_bytes)
-        input_ = "pdf"
-
     try:
         thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
             imageio.get_reader(src_bytes),
             "PNG"
         )
     except ValueError:
-        thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
+        thumbnail_format = "JPEG" if input_ in ("pdf", "pptx") else "PNG"
     if input_ == "pdf":
-        try:
-            pages = convert_from_bytes(
-                src_bytes,
-                # respect width but not necessarily height to preserve aspect ratio
-                size=(size[0], None),
-                fmt="JPEG",
-                first_page=page,
-                last_page=page,
-            )
-            preview = pages[0]
-        except (
-                IndexError,
-                PDFInfoNotInstalledError,
-                PDFPageCountError,
-                PDFSyntaxError,
-                PopplerNotInstalledError
-        ) as exc:
-            return make_json_response(500, {'error': str(exc)})
-
-        info = {
-            'thumbnail_format': 'JPEG',
-            'thumbnail_size': preview.size,
-        }
-        if count_pages:
-            info['page_count'] = pdf2image.pdfinfo_from_bytes(src_bytes)["Pages"]
-
-        thumbnail_bytes = BytesIO()
-        preview.save(thumbnail_bytes, thumbnail_format)
-        data = thumbnail_bytes.getvalue()
+        info, data = handle_pdf(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
+    elif input_ == "pptx":
+        info, data = handle_pptx(src=src_bytes, page=page, size=size[0], count_pages=count_pages)
     else:
         # Read image data
         img = AICSImage(src_bytes)
