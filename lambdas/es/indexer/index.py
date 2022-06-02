@@ -407,8 +407,8 @@ def extract_pptx(fileobj, max_size: int) -> str:
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame:
-                    text = shape.text
-                    if text.strip():
+                    text = shape.text.strip()
+                    if text:
                         yield text
 
     for part in iter_text_parts():
