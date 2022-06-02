@@ -412,7 +412,7 @@ def extract_pptx(fileobj, max_size: int) -> str:
                         yield text
 
     for part in iter_text_parts():
-        max_size -= len(part)
+        max_size -= len(part) + 1
         if max_size < 0:
             break
         out.append(part)
