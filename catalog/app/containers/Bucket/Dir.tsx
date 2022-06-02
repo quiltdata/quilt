@@ -101,7 +101,6 @@ function DirContents({
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const preferences = BucketPreferences.use()
 
   const onPackageDirectoryDialogExited = React.useCallback(() => {
     setSuccessor(null)
