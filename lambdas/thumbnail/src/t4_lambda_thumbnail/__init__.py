@@ -71,9 +71,6 @@ SCHEMA = {
         'input': {
             'enum': ['pdf', 'pptx']
         },
-        'output': {
-            'enum': ['raw']
-        },
         'page': {
             'type': 'string',
             'pattern': r'^\d+$',
