@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import responses
 
-from .. import index
+import t4_lambda_molecule
 
 HEADER_403 = {
     "x-amz-request-id": "guid123",
@@ -46,8 +46,8 @@ def test_403():
     event = _make_event({"url": url, "format": "chemical/x-mdl-molfile"})
 
     # Get the response
-    with patch.object(index, "OBABEL", "/bin/false"):
-        response = index.lambda_handler(event, MockContext())
+    with patch.object(t4_lambda_molecule, "OBABEL", "/bin/false"):
+        response = t4_lambda_molecule.lambda_handler(event, MockContext())
 
     assert response["statusCode"] == 403
     body = json.loads(response["body"])
@@ -73,8 +73,8 @@ def test_format(format):
     event = _make_event({"url": url, "format": format})
 
     # Get the response
-    with patch.object(index, "OBABEL", "/bin/true"):
-        response = index.lambda_handler(event, MockContext())
+    with patch.object(t4_lambda_molecule, "OBABEL", "/bin/true"):
+        response = t4_lambda_molecule.lambda_handler(event, MockContext())
 
     assert response["statusCode"] == 200
     assert response["body"] == ""
