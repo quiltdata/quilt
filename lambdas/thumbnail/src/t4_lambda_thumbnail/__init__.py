@@ -368,8 +368,38 @@ def lambda_handler(request):
         img = format_aicsimage_to_prepped(img)
         # Send to Image object for thumbnail generation and saving to bytes
         img = Image.fromarray(img)
+
         # Generate thumbnail
-        img.thumbnail(size)
+        try:
+            # 'I;16' modes have limited resamplers for scaling (poor quality)
+            # convert to 'I' to use a better resampler.
+            # remove the following two lines to prefer fast (but much lower quality) conversion
+            if img.mode.startswith('I;16'):
+                img = img.convert('I')  # 32-bit (more completely implemented by PIL)
+            # attempt to use the default resampler - we have test images using this.
+            img.thumbnail(size)
+        except ValueError as err:
+            if err.args[0] == 'image has wrong mode':
+                # The default resampler doesn't work with this image mode.
+                # PIL does not support all resamplers with all modes.
+                # These are all of the resamplers available, Ordered highest to lowest quality.
+                fallback_resampler_order = [Image.LANCZOS, Image.BICUBIC, Image.HAMMING,
+                                            Image.BILINEAR, Image.BOX, Image.NEAREST]
+                success = False
+                for resampler in fallback_resampler_order:
+                    try:
+                        img.thumbnail(size, resample=resampler)
+                        success = True
+                        break
+                    except ValueError:
+                        continue
+                if not success:
+                    raise ValueError(
+                        "image has wrong mode",
+                        f"no known resampler for mode {img.mode}"
+                    )
+            else:
+                raise
         thumbnail_size = img.size
         # Store the bytes
         thumbnail_bytes = BytesIO()
