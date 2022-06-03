@@ -127,6 +127,7 @@ jobs:
       matrix:
         path:
           - access_counts
+          - molecule
           - preview
           - s3select
           - transcode
