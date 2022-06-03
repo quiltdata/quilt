@@ -42,7 +42,7 @@ def test_403():
 
     # Get the response
     with patch.object(t4_lambda_molecule, "OBABEL", "/bin/false"):
-        response = t4_lambda_molecule.lambda_handler(event, MockContext())
+        response = t4_lambda_molecule.lambda_handler(event, None)
 
     assert response["statusCode"] == 403
     body = json.loads(response["body"])
