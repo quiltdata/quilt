@@ -73,7 +73,7 @@ def lambda_handler(request):
 
     headers = {
         "Content-Type": format_,
-        "Content-Disposition": f'inline; filename="{filename}"',
+        "Content-Disposition": f'inline; filename="{input_base}.{FORMATS[format_]}"',
     }
 
     return 200, data, headers

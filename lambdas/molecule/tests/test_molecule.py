@@ -52,20 +52,21 @@ def test_403():
 
 @responses.activate
 @pytest.mark.parametrize(
-    "format",
+    "format_,expected_extension",
     [
-        "chemical/x-mdl-molfile",
+        ("chemical/x-mdl-molfile", "mol")
     ],
 )
-def test_format(format):
-    url = "https://example.com/folder/file.ext"
+def test_format(format_, expected_extension):
+    filename_base = "file"
+    url = f"https://example.com/folder/{filename_base}.ext"
     responses.add(
         responses.GET,
         url=url,
         status=200,
         body="",
     )
-    event = _make_event({"url": url, "format": format})
+    event = _make_event({"url": url, "format": format_})
 
     # Get the response
     with patch.object(t4_lambda_molecule, "OBABEL", "/bin/true"):
@@ -73,3 +74,4 @@ def test_format(format):
 
     assert response["statusCode"] == 200
     assert response["body"] == ""
+    assert response["headers"]["Content-Disposition"] == f'inline; filename="{filename_base}.{expected_extension}"'
