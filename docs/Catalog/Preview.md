@@ -13,13 +13,15 @@ Quilt can display any plaintext file format, including the following.
 * Biological file formats (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
-## Chemical files
-We use NGL library to render chemical files. It can't render v3000 Mol file format, so we convert it to v2000 on-the-fly.
+## Chemical structures
+The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl) to render structures.
+By default, v3000 Molfiles are converted to v2000 by the JavaScript client for rendering.
 
-It's a work in progress, preview for .mol files is better developed
-
+The following file formats are supported:
 * Mol files (.mol, .mol2, .sdf)
-* Other chemical files (.cif, .ent, .pdb)
+* .cif
+* .ent
+* .pdb
 
 ## Binary and special file format previews
 * Excel (.xls, .xlsx)
