@@ -18,7 +18,6 @@ async function loadPdf({ endpoint, sign, handle }) {
     const search = mkSearch({
       url,
       input: type,
-      output: 'raw',
       size: 'w1024h768',
       countPages: true,
     })
