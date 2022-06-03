@@ -1,4 +1,3 @@
-import base64
 import json
 from io import BytesIO
 from pathlib import Path
@@ -10,6 +9,7 @@ from aicsimageio import AICSImage
 from PIL import Image
 
 import t4_lambda_thumbnail
+from t4_lambda_shared.decorator import QUILT_INFO_HEADER
 from t4_lambda_shared.utils import read_body
 
 HEADER_403 = {
@@ -149,23 +149,24 @@ def test_generate_thumbnail(
     assert response["statusCode"] == 200, f"response: {response}"
     # only check the body and expected image if it's a successful call
     # Parse the body / the returned thumbnail
-    body = json.loads(read_body(response))
+    body = read_body(response)
     # Assert basic metadata was filled properly
-    assert body["info"]["thumbnail_size"] == expected_thumb_size
+    info = json.loads(response["headers"][QUILT_INFO_HEADER])
+    assert info["thumbnail_size"] == expected_thumb_size
     if expected_original_size:  # PDFs don't have an expected size
-        assert body["info"]["original_size"] == expected_original_size
+        assert info["original_size"] == expected_original_size
     if "countPages" in params:
-        assert body["info"]["page_count"] == num_pages
+        assert info["page_count"] == num_pages
     # Assert the produced image is the same as the expected
     if params.get('input') in ('pdf', "pptx"):
-        actual = Image.open(BytesIO(base64.b64decode(body['thumbnail'])))
+        actual = Image.open(BytesIO(body))
         expected = Image.open(data_dir / expected_thumb)
         actual_array = np.array(actual)
         expected_array = np.array(expected)
         assert actual_array.shape == expected_array.shape
         assert np.allclose(expected_array, actual_array, atol=15, rtol=0.1)
     else:
-        actual = AICSImage(base64.b64decode(body['thumbnail']))
+        actual = AICSImage(body)
         expected = AICSImage(data_dir / expected_thumb)
         assert actual.size() == expected.size()
         assert np.array_equal(actual.reader.data, expected.reader.data)
