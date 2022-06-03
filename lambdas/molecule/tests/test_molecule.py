@@ -28,11 +28,6 @@ def _make_event(query, headers=None):
     }
 
 
-class MockContext:
-    def get_remaining_time_in_millis(self):
-        return 42
-
-
 @responses.activate
 def test_403():
     """test 403 cases, such as Glacier"""
@@ -74,7 +69,7 @@ def test_format(format):
 
     # Get the response
     with patch.object(t4_lambda_molecule, "OBABEL", "/bin/true"):
-        response = t4_lambda_molecule.lambda_handler(event, MockContext())
+        response = t4_lambda_molecule.lambda_handler(event, None)
 
     assert response["statusCode"] == 200
     assert response["body"] == ""
