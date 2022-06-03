@@ -68,11 +68,11 @@ def lambda_handler(request):
         input=input_bytes,
         capture_output=True,
     )
-
     if p.returncode != 0:
         return make_json_response(403, {"error": p.stderr.decode()})
-
     data = p.stdout
+    if not data:
+        return make_json_response(500, {"error": "empty obabel output"})
 
     headers = {
         "Content-Type": format_,
