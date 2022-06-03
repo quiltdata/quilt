@@ -29,7 +29,6 @@ async function loadBlob({ endpoint, sign, handle, page, firstPageBlob, type }) {
     const search = mkSearch({
       url,
       input: type,
-      output: 'raw',
       size: 'w1024h768',
       page,
     })
