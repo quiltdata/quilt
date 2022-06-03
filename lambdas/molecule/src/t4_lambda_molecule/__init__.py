@@ -1,6 +1,7 @@
 """
 Convert molecule files from one format to another.
 """
+import gzip
 import os
 import subprocess
 from urllib.parse import urlparse
@@ -40,12 +41,6 @@ def lambda_handler(request):
     url = request.args["url"]
     format_ = request.args["format"]
 
-    filename = urlparse(url).path.rpartition("/")[-1]
-    input_base, input_ext = os.path.splitext(filename)
-    if input_ext == ".gz":
-        _, input_ext = os.path.splitext(input_base)
-    input_ext = input_ext[1:]
-
     resp = requests.get(url)
     if not resp.ok:
         # Errored, return error code
@@ -54,6 +49,14 @@ def lambda_handler(request):
             "text": resp.text,
         }
         return make_json_response(resp.status_code, ret_val)
+    input_bytes = resp.content
+
+    filename = urlparse(url).path.rpartition("/")[-1]
+    input_base, input_ext = os.path.splitext(filename)
+    if input_ext == ".gz":
+        input_ext = os.path.splitext(input_base)[1]
+        input_bytes = gzip.decompress(input_bytes)
+    input_ext = input_ext[1:]
 
     p = subprocess.run(
         (
@@ -62,7 +65,7 @@ def lambda_handler(request):
             f"-o{FORMATS[format_]}",
         ),
         check=False,
-        input=resp.content,
+        input=input_bytes,
         capture_output=True,
     )
 
