@@ -17,18 +17,30 @@ import Section from './Section'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
+function MetaInner({ meta, ...props }) {
+  const value = React.useMemo(() => {
+    if (!meta || R.isEmpty(meta)) return null
+    // This version confuses users
+    // They think its package version rather than meta format version
+    return R.dissoc('version', meta)
+  }, [meta])
+
+  if (!value) return null
+
+  return (
+    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+      <JsonDisplay value={value} defaultExpanded={1} />
+    </Section>
+  )
+}
+
 export function Meta({ data, ...props }) {
-  return pipeThru(data)(
-    AsyncResult.case({
-      Ok: (meta) =>
-        !!meta &&
-        !R.isEmpty(meta) && (
-          <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-            <JsonDisplay value={meta} defaultExpanded={1} />
-          </Section>
-        ),
+  return AsyncResult.case(
+    {
+      Ok: (meta) => <MetaInner meta={meta} {...props} />,
       _: () => null,
-    }),
+    },
+    data,
   )
 }
 
