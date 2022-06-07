@@ -11,7 +11,6 @@ import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
-import pipeThru from 'utils/pipeThru'
 
 import Section from './Section'
 
