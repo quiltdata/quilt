@@ -322,6 +322,37 @@ def handle_pptx(*, src: bytes, page: int, size: int, count_pages: bool):
     return info, data
 
 
+def generate_thumbnail(arr, size):
+    # Send to Image object for thumbnail generation and saving to bytes
+    img = Image.fromarray(arr)
+
+    # The mode I;16 has limited resamplers for scaling, and throws an error.
+    # Rather than use a non-default poor-quality resampler, convert to a better-handled mode.
+    if img.mode == 'I;16':
+        img = Image.fromarray((arr // 256).astype('uint8'))
+
+    # Generate thumbnail
+    try:
+        # attempt to use the default resampler - we have test images using this.
+        img.thumbnail(size)
+        return img
+    except ValueError as err:
+        if err.args[0] != 'image has wrong mode':
+            raise
+        # The default resampler doesn't work with this image mode.
+        # PIL does not support all resamplers with all modes.
+        # These are all of the resamplers available, Ordered highest to lowest quality.
+        fallback_resampler_order = [Image.LANCZOS, Image.BICUBIC, Image.HAMMING,
+                                    Image.BILINEAR, Image.BOX, Image.NEAREST]
+        for resampler in fallback_resampler_order:
+            try:
+                img.thumbnail(size, resample=resampler)
+                return img
+            except ValueError:
+                continue
+        raise
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 @handle_exceptions(PDFThumbError)
@@ -366,40 +397,9 @@ def lambda_handler(request):
         # Generate a formatted ndarray using the image data
         # Makes some assumptions for n-dim data
         img = format_aicsimage_to_prepped(img)
-        # Send to Image object for thumbnail generation and saving to bytes
-        img = Image.fromarray(img)
 
-        # Generate thumbnail
-        try:
-            # 'I;16' modes have limited resamplers for scaling (poor quality)
-            # convert to 'I' to use a better resampler.
-            # remove the following two lines to prefer fast (but much lower quality) conversion
-            if img.mode.startswith('I;16'):
-                img = img.convert('I')  # 32-bit (more completely implemented by PIL)
-            # attempt to use the default resampler - we have test images using this.
-            img.thumbnail(size)
-        except ValueError as err:
-            if err.args[0] == 'image has wrong mode':
-                # The default resampler doesn't work with this image mode.
-                # PIL does not support all resamplers with all modes.
-                # These are all of the resamplers available, Ordered highest to lowest quality.
-                fallback_resampler_order = [Image.LANCZOS, Image.BICUBIC, Image.HAMMING,
-                                            Image.BILINEAR, Image.BOX, Image.NEAREST]
-                success = False
-                for resampler in fallback_resampler_order:
-                    try:
-                        img.thumbnail(size, resample=resampler)
-                        success = True
-                        break
-                    except ValueError:
-                        continue
-                if not success:
-                    raise ValueError(
-                        "image has wrong mode",
-                        f"no known resampler for mode {img.mode}"
-                    )
-            else:
-                raise
+        img = generate_thumbnail(img, size)
+
         thumbnail_size = img.size
         # Store the bytes
         thumbnail_bytes = BytesIO()
