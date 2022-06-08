@@ -337,20 +337,21 @@ def generate_thumbnail(arr, size):
         img.thumbnail(size)
         return img
     except ValueError as err:
-        if err.args[0] != 'image has wrong mode':
+        if 'image has wrong mode' in str(err):
+            # The default resampler doesn't work with this image mode.
+            # PIL does not support all resamplers with all modes.
+            # These are all of the resamplers available, Ordered highest to lowest quality.
+            fallback_resampler_order = [Image.LANCZOS, Image.BICUBIC, Image.HAMMING,
+                                        Image.BILINEAR, Image.BOX, Image.NEAREST]
+            for resampler in fallback_resampler_order:
+                try:
+                    img.thumbnail(size, resample=resampler)
+                    return img
+                except ValueError:
+                    continue
             raise
-        # The default resampler doesn't work with this image mode.
-        # PIL does not support all resamplers with all modes.
-        # These are all of the resamplers available, Ordered highest to lowest quality.
-        fallback_resampler_order = [Image.LANCZOS, Image.BICUBIC, Image.HAMMING,
-                                    Image.BILINEAR, Image.BOX, Image.NEAREST]
-        for resampler in fallback_resampler_order:
-            try:
-                img.thumbnail(size, resample=resampler)
-                return img
-            except ValueError:
-                continue
-        raise
+        else:
+            raise
 
 
 @api(cors_origins=get_default_origins())
