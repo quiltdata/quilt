@@ -5,4 +5,4 @@ import '@finos/perspective-viewer'
 import '@finos/perspective-viewer-datagrid'
 import '@finos/perspective-viewer-d3fc'
 
-import 'perspective-material.css'
+import 'assets/perspective-material.css'
