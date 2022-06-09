@@ -3,6 +3,8 @@
 //   https://github.com/import-js/eslint-plugin-import/issues/1810
 import '@finos/perspective-viewer'
 import '@finos/perspective-viewer-datagrid'
+
+// TODO: import it on user demand (for example, "Load Charts" click button)
 import '@finos/perspective-viewer-d3fc'
 
 import 'perspective-material.css'
