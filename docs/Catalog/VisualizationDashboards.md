@@ -323,7 +323,8 @@ All filters and columns will be restored:
         "config": {
           "columns": ["name", "value"],
           "group_by": ["value"],
-          "settings": true
+          "settings": true,
+          "theme": "Material Light Mono"
         }
       }
     ]
