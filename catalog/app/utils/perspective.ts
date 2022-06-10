@@ -1,14 +1,14 @@
 import cx from 'classnames'
 import * as React from 'react'
 
-import { themes } from 'utils/perspective-pollution'
-
 import perspective from '@finos/perspective'
 import type { Table, TableData } from '@finos/perspective'
 import type {
   HTMLPerspectiveViewerElement,
   PerspectiveViewerConfig,
 } from '@finos/perspective-viewer'
+
+import { themes } from 'utils/perspective-pollution'
 
 export interface State {
   rotateThemes: () => void
