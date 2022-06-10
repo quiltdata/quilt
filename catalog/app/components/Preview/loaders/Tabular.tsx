@@ -25,7 +25,7 @@ const isParquet = R.anyPass([
   R.test(/[.-]c\d{3,5}$/gi),
 ])
 
-const isTsv = utils.extIs('.tsv')
+const isTsv = utils.extIn(['.tsv', '.tab'])
 
 const detectBySummarizeType = summarize.detect('perspective')
 
