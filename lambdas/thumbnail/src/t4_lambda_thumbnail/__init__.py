@@ -90,6 +90,9 @@ SCHEMA = {
 }
 
 
+_TEST_FALLBACK = False
+
+
 def generate_factor_pairs(x: int) -> List[Tuple[int, int]]:
     """
     Generate tuples of integer pairs that are factors for the provided x integer value.
@@ -328,7 +331,7 @@ def generate_thumbnail(arr, size):
 
     # The mode I;16 has limited resamplers for scaling, and throws an error.
     # Rather than use a non-default poor-quality resampler, convert to a better-handled mode.
-    if img.mode == 'I;16':
+    if img.mode == 'I;16' and not _TEST_FALLBACK:
         img = Image.fromarray((arr // 256).astype('uint8'))
 
     # Generate thumbnail
