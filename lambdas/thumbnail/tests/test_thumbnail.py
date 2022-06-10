@@ -158,7 +158,7 @@ def test_generate_thumbnail(
             t4_lambda_thumbnail._TEST_FALLBACK = False
     else:
         response = t4_lambda_thumbnail.lambda_handler(event, None)
-    
+
     # Assert the request was handled with no errors
     assert response["statusCode"] == 200, f"response: {response}"
     # only check the body and expected image if it's a successful call
