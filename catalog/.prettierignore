@@ -2,4 +2,4 @@ build/
 node_modules/
 internals/generators/
 package-lock.json
-app/ipynb.css
+app/assets
