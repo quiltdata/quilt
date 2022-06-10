@@ -7,3 +7,5 @@ import '@finos/perspective-viewer-d3fc'
 
 import 'assets/perspective-material.css'
 import 'assets/perspective-material-mono.css'
+
+export const themes = ['Material Light', 'Material Light Mono']

@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 
-import 'utils/perspective-pollution'
+import { themes } from 'utils/perspective-pollution'
 
 import perspective from '@finos/perspective'
 import type { Table, TableData } from '@finos/perspective'
@@ -11,6 +11,7 @@ import type {
 } from '@finos/perspective-viewer'
 
 export interface State {
+  rotateThemes: () => void
   size: number | null
   toggleConfig: () => void
 }
@@ -64,6 +65,14 @@ function usePerspective(
 
       const size = await table.size()
       setState({
+        rotateThemes: async () => {
+          const settings = await viewer?.save()
+          // @ts-expect-error `PerspectiveViewerConfig` type doesn't have `theme`
+          const themeIndex = themes.findIndex((t) => t === settings?.theme)
+          const theme =
+            themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
+          viewer?.restore({ theme } as PerspectiveViewerConfig)
+        },
         size,
         toggleConfig: () => viewer?.toggleConfig(),
       })
