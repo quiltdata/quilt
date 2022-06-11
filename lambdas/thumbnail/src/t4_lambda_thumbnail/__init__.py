@@ -344,8 +344,14 @@ def generate_thumbnail(arr, size):
             # The default resampler doesn't work with this image mode.
             # PIL does not support all resamplers with all modes.
             # These are all of the resamplers available, Ordered highest to lowest quality.
-            fallback_resampler_order = [Image.LANCZOS, Image.BICUBIC, Image.HAMMING,
-                                        Image.BILINEAR, Image.BOX, Image.NEAREST]
+            fallback_resampler_order = [
+                Image.LANCZOS,
+                Image.BICUBIC,
+                Image.HAMMING,
+                Image.BILINEAR,
+                Image.BOX,
+                Image.NEAREST
+            ]
             for resampler in fallback_resampler_order:
                 try:
                     img.thumbnail(size, resample=resampler)
