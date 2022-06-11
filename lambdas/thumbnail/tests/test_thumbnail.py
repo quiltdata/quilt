@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
@@ -39,6 +40,17 @@ def _make_event(query, headers=None):
     }
 
 
+@contextmanager
+def _mock(target, attr, obj):
+    """a simple mocking context manager"""
+    orig_obj = getattr(target, attr)
+    try:
+        setattr(target, attr, obj)
+        yield
+    finally:
+        setattr(target, attr, orig_obj)
+
+
 @responses.activate
 def test_403():
     """test 403 cases, such as Glacier"""
@@ -66,6 +78,8 @@ def test_403():
     "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages, status",
     [
         # BUG: lambda doesn't preserve source format.
+        ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128-fallback.png", [650, 650], [128, 128], None, 200),
+        ("I16-mode.tiff", {"size": "w128h128"}, "I16-mode-128.png", [650, 650], [128, 128], None, 200),
         ("penguin.jpg", {"size": "w256h256"}, "penguin-256.png", [1526, 1290, 3], [216, 256], None, 200),
         ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [515, 480], None, 200),
         ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [40, 64], None, 200),
@@ -144,7 +158,15 @@ def test_generate_thumbnail(
     # Create the lambda request event
     event = _make_event({"url": url, **params})
     # Get the response
-    response = t4_lambda_thumbnail.lambda_handler(event, None)
+    if expected_thumb == "I16-mode-128-fallback.png":
+        # Note that if this set of params fails, it may be that better resamplers
+        # have been added for this mode, and either the image or test will need
+        # to be updated.
+        with _mock(t4_lambda_thumbnail, '_convert_I16_to_L', Image.fromarray):
+            response = t4_lambda_thumbnail.lambda_handler(event, None)
+    else:
+        response = t4_lambda_thumbnail.lambda_handler(event, None)
+
     # Assert the request was handled with no errors
     assert response["statusCode"] == 200, f"response: {response}"
     # only check the body and expected image if it's a successful call
