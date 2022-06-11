@@ -360,7 +360,8 @@ def generate_thumbnail(arr, size):
                     return img
                 except ValueError:
                     continue
-            raise
+            # If this error is raised, we need to convert the image to a mode that can scale.
+            raise ValueError(f"Exhausted all fallback resamplers for scaling mode {img.mode}")
         else:
             raise
 
