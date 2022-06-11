@@ -162,7 +162,7 @@ def test_generate_thumbnail(
         # Note that if this set of params fails, it may be that better resamplers
         # have been added for this mode, and either the image or test will need
         # to be updated.
-        with _mock(t4_lambda_thumbnail, '_convert_I16_to_L', lambda arr: Image.fromarray(arr)):
+        with _mock(t4_lambda_thumbnail, '_convert_I16_to_L', Image.fromarray):
             response = t4_lambda_thumbnail.lambda_handler(event, None)
     else:
         response = t4_lambda_thumbnail.lambda_handler(event, None)
