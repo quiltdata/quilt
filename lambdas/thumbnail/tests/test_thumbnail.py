@@ -1,5 +1,6 @@
 import base64
 import json
+from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
 
@@ -37,6 +38,17 @@ def _make_event(query, headers=None):
         'body': None,
         'isBase64Encoded': False,
     }
+
+
+@contextmanager
+def _mock(target, attr, obj):
+    """a simple mocking context manager"""
+    orig_obj = getattr(target, attr)
+    try:
+        setattr(target, attr, obj)
+        yield
+    finally:
+        setattr(target, attr, orig_obj)
 
 
 @responses.activate
@@ -150,12 +162,8 @@ def test_generate_thumbnail(
         # Note that if this set of params fails, it may be that better resamplers
         # have been added for this mode, and either the image or test will need
         # to be updated.
-        try:
-            # pretend this mode is unhandled
-            t4_lambda_thumbnail._TEST_FALLBACK = True
+        with _mock(t4_lambda_thumbnail, '_convert_I16_to_L', lambda arr: Image.fromarray(arr)):
             response = t4_lambda_thumbnail.lambda_handler(event, None)
-        finally:
-            t4_lambda_thumbnail._TEST_FALLBACK = False
     else:
         response = t4_lambda_thumbnail.lambda_handler(event, None)
 
