@@ -71,9 +71,5 @@ You can hide "Queries" tab by setting `ui > nav > queries: false` ([Learn more](
 "Run query" executes the selected query and waits for the result.
 ![](../imgs/athena-ui.png)
 
-<!-- Max I think we have a bug here. Need to add a rounded timestamp to the hashing
-or else queries will get stale. What if the SQL is the same but 99 rows hav been
-added to the table since the last execution? -->
-
 Queries are idempotent, so running the same query will return identical results.
 ![](../imgs/athena-history.png)
