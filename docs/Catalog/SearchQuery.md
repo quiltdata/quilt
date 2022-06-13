@@ -65,7 +65,7 @@ run them.
 [AWS's documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).)
 
 ### Configuration
-<!-- Max please add docs on config.yaml format and/or link to Preferences.md -->
+You can hide "Queries" tab by setting `ui > nav > queries: false` ([Learn more](../Preferences.md)).
 
 ### Basics
 "Run query" executes the selected query and waits for the result.
