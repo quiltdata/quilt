@@ -22,14 +22,13 @@ function useBlob(blob) {
   return url
 }
 
-async function loadBlob({ endpoint, sign, handle, page, firstPageBlob }) {
+async function loadBlob({ endpoint, sign, handle, page, firstPageBlob, type }) {
   if (page === 1) return firstPageBlob
   try {
     const url = sign(handle)
     const search = mkSearch({
       url,
-      input: 'pdf',
-      output: 'raw',
+      input: type,
       size: 'w1024h768',
       page,
     })
@@ -104,7 +103,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Pdf({ handle, firstPageBlob, pages }, { className, ...props }) {
+function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const classes = useStyles()
@@ -112,7 +111,7 @@ function Pdf({ handle, firstPageBlob, pages }, { className, ...props }) {
   const [page, setPage] = React.useState(1)
   const [pageValue, setPageValue] = React.useState(page)
 
-  const data = Data.use(loadBlob, { endpoint, sign, handle, page, firstPageBlob })
+  const data = Data.use(loadBlob, { endpoint, sign, handle, page, firstPageBlob, type })
 
   const [blob, setBlob] = React.useState(firstPageBlob)
 

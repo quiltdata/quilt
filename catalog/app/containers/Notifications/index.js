@@ -1,10 +1,7 @@
-import PT from 'prop-types'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { defaultProps, setPropTypes } from 'recompose'
 import { bindActionCreators } from 'redux'
 
-import { composeComponent } from 'utils/reactTools'
 import * as ReducerInjector from 'utils/ReducerInjector'
 
 import * as actions from './actions'
@@ -18,30 +15,28 @@ export const Provider = function NotificationsProvider({ children }) {
   return children
 }
 
-export const Display = composeComponent(
-  'Notifications.Display',
-  redux.connect(selector, actions),
-  setPropTypes({
-    notifications: PT.arrayOf(
-      PT.shape({
-        id: PT.string.isRequired,
-        ttl: PT.number.isRequired,
-        message: PT.node.isRequired,
-        action: PT.shape({
-          label: PT.string.isRequired,
-          onClick: PT.func.isRequired,
-        }),
-      }).isRequired,
-    ).isRequired,
-    dismiss: PT.func.isRequired,
-    NotificationComponent: PT.oneOfType([PT.string, PT.func]),
-  }),
-  defaultProps({ NotificationComponent: Notification }),
-  ({ NotificationComponent, notifications, dismiss }) =>
-    notifications.map((n) => (
-      <NotificationComponent key={n.id} {...n} dismiss={dismiss} />
-    )),
-)
+// notifications: PT.arrayOf(
+//   PT.shape({
+//     id: PT.string.isRequired,
+//     ttl: PT.number.isRequired,
+//     message: PT.node.isRequired,
+//     action: PT.shape({
+//       label: PT.string.isRequired,
+//       onClick: PT.func.isRequired,
+//     }),
+//   }).isRequired,
+// ).isRequired,
+export function Display() {
+  const { notifications } = redux.useSelector(selector)
+  const dispatch = redux.useDispatch()
+  const handleDismiss = React.useCallback(
+    (id) => dispatch(actions.dismiss(id)),
+    [dispatch],
+  )
+  return notifications.map((n) => (
+    <Notification key={n.id} {...n} dismiss={handleDismiss} />
+  ))
+}
 
 export function WithNotifications({ children }) {
   return (

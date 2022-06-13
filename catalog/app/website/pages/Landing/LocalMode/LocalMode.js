@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Bar from 'website/components/Bar'
+import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
 import Overlay2 from 'website/components/Backgrounds/Overlay2'
 import Screenshots from 'website/components/Screenshots'
@@ -9,7 +10,7 @@ import Screenshots from 'website/components/Screenshots'
 const useStyles = M.makeStyles((t) => ({
   root: {
     paddingBottom: t.spacing(10),
-    paddingTop: t.spacing(15),
+    paddingTop: t.spacing(9),
     position: 'relative',
   },
   container: {
@@ -38,10 +39,8 @@ const useStyles = M.makeStyles((t) => ({
       maxWidth: 400,
     },
     [t.breakpoints.down('md')]: {
-      alignItems: 'center',
       display: 'flex',
       flexDirection: 'column',
-      textAlign: 'center',
     },
   },
   carousel: {
@@ -61,10 +60,22 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                Quilt&nbsp;catalog: local&nbsp;mode
+                Quilt&nbsp;catalog: Local&nbsp;development&nbsp;mode
               </M.Typography>
             </M.Box>
-            <M.Box mt={5}>
+            <M.Box mt={4}>
+              <M.Typography variant="body1" color="textSecondary">
+                This is a limited version of the Quilt catalog for development and
+                temporary demos. Key features such as user authentication, analytics,
+                preview, and more are not available in local dev mode.
+              </M.Typography>
+            </M.Box>
+            <M.Box mt={4}>
+              <ChevronLink href="https://docs.quiltdata.com/v/master/catalog/localmode">
+                Read more about local mode
+              </ChevronLink>
+            </M.Box>
+            <M.Box mt={2}>
               <M.Button variant="contained" color="primary" href="https://quiltdata.com">
                 Learn more about Quilt
               </M.Button>

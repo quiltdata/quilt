@@ -5,13 +5,12 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
-import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import search from 'utils/search'
+import useSearch from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
 
 function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl }) {
@@ -122,7 +121,6 @@ const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
 
     ...t.typography.body1,
     cursor: 'pointer',
-    fontWeight: t.typography.fontWeightMedium,
   },
 }))
 
@@ -266,9 +264,10 @@ function ModeAndBucketSelector({ mode, onModeChange, buckets, onBucketsChange })
 
   const [controlsShown, setControlsShown] = React.useState(false)
   const showControls = React.useCallback(() => setControlsShown(true), [setControlsShown])
-  const hideControls = React.useCallback(() => setControlsShown(false), [
-    setControlsShown,
-  ])
+  const hideControls = React.useCallback(
+    () => setControlsShown(false),
+    [setControlsShown],
+  )
 
   const controls = (
     <>
@@ -386,10 +385,9 @@ export default function Search({ location: l }) {
     [urls, q, buckets, mode, retry],
   )
 
-  const req = AWS.APIGateway.use()
   const data = Data.use(
-    search,
-    { req, buckets, mode, query: q, retry },
+    useSearch(),
+    { buckets, mode, query: q, retry },
     { noAutoFetch: !q },
   )
 

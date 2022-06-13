@@ -59,7 +59,7 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
               </M.Typography>
               <M.Typography>
                 <StyledLink
-                  href={`${docs}/advanced-usage/workflows#pushing-across-buckets-with-the-quilt-catalog`}
+                  href={`${docs}/advanced/workflows#cross-bucket-package-push-quilt-catalog`}
                   target="_blank"
                 >
                   Learn more
@@ -77,7 +77,7 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
             {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
               <M.Typography>
                 Please fix the workflows config according to{' '}
-                <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
+                <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
                   the documentation
                 </StyledLink>
               </M.Typography>
@@ -89,21 +89,13 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   )
 }
 
-const useButtonStyles = M.makeStyles({
-  root: {
-    flexShrink: 0,
-    margin: '-3px 0',
-  },
-})
-
-function Button({ children, onClick }) {
-  const classes = useButtonStyles()
+function Button({ children, className, onClick }) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const props = {
     'aria-haspopup': 'true',
-    className: classes.root,
+    className,
     onClick,
     size: 'small',
   }
@@ -119,7 +111,7 @@ function Button({ children, onClick }) {
   )
 }
 
-export default function CopyButton({ bucket, children, onChange }) {
+export default function CopyButton({ bucket, className, children, onChange }) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -139,7 +131,9 @@ export default function CopyButton({ bucket, children, onChange }) {
 
   return (
     <>
-      <Button onClick={onButtonClick}>{children}</Button>
+      <Button className={className} onClick={onButtonClick}>
+        {children}
+      </Button>
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}

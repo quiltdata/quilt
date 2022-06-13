@@ -1,0 +1,23 @@
+schema: '../shared/graphql/schema.graphql'
+documents: './app/**/*.{graphql,js,ts,tsx}'
+extensions:
+  codegen:
+    hooks:
+      afterAllFileWrite:
+        - eslint --fix
+        - prettier --write
+    generates:
+      ./app/:
+        documents: './app/**/*.graphql'
+        preset: ./internals/graphql-codegen/quilt-graphql
+        presetConfig:
+          baseTypesPath: model/graphql/types.generated.ts
+          schemaIntrospectionPath: model/graphql/schema.generated.ts
+        plugins:
+          - ./internals/graphql-codegen/quilt-graphql
+        config:
+          scalars:
+            Datetime: Date
+            Json: utils/types#Json
+            JsonRecord: utils/types#JsonRecord
+            PackageContentsFlatMap: model#PackageContentsFlatMap

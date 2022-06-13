@@ -1,0 +1,16 @@
+fragment BucketConfigSelection on BucketConfig {
+  name
+  title
+  iconUrl
+  description
+  relevanceScore
+  overviewUrl
+  tags
+  linkedData
+  fileExtensionsToIndex
+  indexContentBytes
+  scannerParallelShardsDepth
+  snsNotificationArn
+  skipMetaDataIndexing
+  lastIndexed
+}

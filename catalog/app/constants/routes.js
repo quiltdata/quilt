@@ -5,7 +5,7 @@ const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
 export const home = {
   path: '/',
-  url: () => '/',
+  url: ({ q } = {}) => `/${mkSearch({ q })}`,
 }
 
 export const install = {
@@ -32,6 +32,11 @@ export const product = {
 export const activate = {
   path: '/activate/:token',
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
+}
+
+export const example = {
+  path: '/__example',
+  url: () => '/__example',
 }
 
 // auth
@@ -105,6 +110,7 @@ export const bucketFile = {
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
 }
@@ -119,6 +125,7 @@ export const bucketPackageDetail = {
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
       ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
@@ -135,6 +142,21 @@ export const bucketPackageRevisions = {
 export const bucketQueries = {
   path: '/b/:bucket/queries',
   url: (bucket) => `/b/${bucket}/queries`,
+}
+
+export const bucketESQueries = {
+  path: '/b/:bucket/queries/es',
+  url: (bucket) => `/b/${bucket}/queries/es`,
+}
+
+export const bucketAthenaQueries = {
+  path: '/b/:bucket/queries/athena',
+  url: (bucket) => `/b/${bucket}/queries/athena`,
+}
+
+export const bucketAthenaQueryExecution = {
+  path: '/b/:bucket/queries/athena/:queryExecutionId',
+  url: (bucket, queryExecutionId) => `/b/${bucket}/queries/athena/${queryExecutionId}`,
 }
 
 // legacy stuff
@@ -156,4 +178,14 @@ export const adminBuckets = {
 export const adminSettings = {
   path: '/admin/settings',
   url: () => '/admin/settings',
+}
+export const adminSync = {
+  path: '/admin/sync',
+  url: () => '/admin/sync',
+}
+
+// storybook
+export const storyBook = {
+  path: '/storybook',
+  url: () => '/storybook',
 }

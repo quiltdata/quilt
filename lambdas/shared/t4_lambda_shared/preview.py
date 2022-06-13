@@ -2,7 +2,6 @@
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
 import math
-import os
 import re
 import tempfile
 import zlib
@@ -10,6 +9,7 @@ from io import BytesIO
 
 import fcsparser
 import pandas
+from xlrd.biffh import XLRDError
 
 from .utils import get_available_memory
 
@@ -20,10 +20,6 @@ AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # by pandas or by exclude_output='true'
 CATALOG_LIMIT_BYTES = 1024*1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
-# number of bytes we take from each document before sending to elastic-search
-# DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
-# change to CloudFormation templates to use the new name
-ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 MAX_PREVIEW_ROWS = 1_000
 READ_CHUNK = 1024
@@ -57,6 +53,27 @@ def decompress_stream(chunk_iterator, compression):
             # gzip'ed files can contain arbitrary data after the end of the archive,
             # so we might be done early.
             break
+
+
+def extract_excel(file_, as_html=True):
+    """
+    excel file => data frame => html
+    Args:
+        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+    Returns:
+        body - html or text version of *first sheet only* in workbook
+        info - metadata
+    """
+    try:
+        first_sheet = pandas.read_excel(file_, sheet_name=0)
+    except XLRDError:
+        first_sheet = pandas.read_excel(file_, sheet_name=0, engine='openpyxl')
+
+    if as_html:
+        html = remove_pandas_footer(first_sheet._repr_html_())  # pylint: disable=protected-access
+        return html, {}
+
+    return first_sheet.to_string(index=False), {}
 
 
 def extract_fcs(file_, as_html=True):
@@ -112,7 +129,7 @@ def extract_fcs(file_, as_html=True):
     return body, info
 
 
-def extract_parquet(file_, as_html=True, skip_rows=False):
+def extract_parquet(file_, as_html=True, skip_rows=False, *, max_bytes: int):
     """
     parse and extract key metadata from parquet files
 
@@ -175,7 +192,7 @@ def extract_parquet(file_, as_html=True, skip_rows=False):
                 encoded = column.encode()
                 # +1 for \t
                 encoded_size = len(encoded) + 1
-                if (size + encoded_size) < ELASTIC_LIMIT_BYTES:
+                if (size + encoded_size) < max_bytes:
                     buffer.append(encoded)
                     buffer.append(b"\t")
                     size += encoded_size

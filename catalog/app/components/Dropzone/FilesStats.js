@@ -12,9 +12,10 @@ const useStyles = M.makeStyles({
 export default function FilesStats({ files, warning }) {
   const classes = useStyles()
 
-  const totalSize = React.useMemo(() => files.reduce((sum, f) => sum + f.size, 0), [
-    files,
-  ])
+  const totalSize = React.useMemo(
+    () => files.reduce((sum, f) => sum + f.size, 0),
+    [files],
+  )
 
   if (!files.length) return null
 

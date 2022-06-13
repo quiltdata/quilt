@@ -1,8 +1,7 @@
-import SignerV4 from 'aws-sdk/lib/signers/v4'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Auth from 'containers/Auth'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import { handleToHttpsUri } from 'utils/s3paths'
@@ -16,26 +15,11 @@ const LAG = POLL_INTERVAL * 3
 
 const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
 
-export function useRequestSigner() {
-  const authenticated = redux.useSelector(Auth.selectors.authenticated)
-  const { mode } = Config.useConfig()
-  const credentials = Credentials.use().suspend()
-  return React.useCallback(
-    (request, serviceName) => {
-      if (mode === 'LOCAL' || authenticated) {
-        const signer = new SignerV4(request, serviceName)
-        signer.addAuthorization(credentials, new Date())
-      }
-    },
-    [credentials, authenticated, mode],
-  )
-}
-
-export function useS3Signer({ urlExpiration: exp } = {}) {
+export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
-  const authenticated = redux.useSelector(Auth.selectors.authenticated)
+  const authenticated = redux.useSelector(authSelectors.authenticated)
   const { mode } = Config.useConfig()
   const isInStack = BucketConfig.useIsInStack()
   const s3 = S3.use()
@@ -47,10 +31,11 @@ export function useS3Signer({ urlExpiration: exp } = {}) {
             Key: key,
             VersionId: version,
             Expires: urlExpiration,
+            forceProxy,
             ...opts,
           })
         : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
-    [mode, isInStack, authenticated, s3, urlExpiration],
+    [mode, isInStack, authenticated, s3, urlExpiration, forceProxy],
   )
 }
 

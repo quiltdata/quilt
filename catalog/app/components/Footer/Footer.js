@@ -7,6 +7,7 @@ import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -14,8 +15,12 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
 import iconGithub from './icon-github.svg'
+import iconInstagram from './icon-instagram.svg'
+import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
+
+const FooterLogo = () => <Logo height="29px" width="76.5px" />
 
 const NavLink = (props) => (
   <M.Link
@@ -89,10 +94,12 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Footer() {
   const cfg = Config.useConfig()
+  const settings = CatalogSettings.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const year = React.useMemo(() => new Date().getFullYear(), [])
+  const reservedSpaceForIntercom = !intercom.dummy && !intercom.isCustom
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer
@@ -104,9 +111,15 @@ export default function Footer() {
             display="flex"
             justifyContent={{ xs: 'center', sm: 'flex-start' }}
           >
-            <M.Box component={Link} to={urls.home()} display="block">
-              <Logo />
-            </M.Box>
+            {settings?.logo?.url ? (
+              <a href={URLS.homeMarketing}>
+                <FooterLogo />
+              </a>
+            ) : (
+              <M.Box component={Link} to={urls.home()} display="block">
+                <FooterLogo />
+              </M.Box>
+            )}
           </M.Box>
 
           <M.Box
@@ -165,7 +178,9 @@ export default function Footer() {
             <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
             <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
             <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
-            {!intercom.dummy && (
+            <NavIcon icon={iconInstagram} href={URLS.instagram} target="_blank" ml={4} />
+            <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={4} />
+            {reservedSpaceForIntercom && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
           </M.Box>

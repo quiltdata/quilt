@@ -123,11 +123,23 @@ signOut.resolve = actionCreator(actions.SIGN_OUT_RESULT, (result) => ({
  */
 export const check = actionCreator(
   actions.CHECK,
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   ({ refetch = true } = {}, resolver) => ({
     payload: { refetch },
     meta: { ...resolver },
   }),
 )
+
+/**
+ * Create a GET_TOKENS action.
+ *
+ * @param {{ resolve: function, reject: function }} resolver
+ *
+ * @returns {Action}
+ */
+export const getTokens = actionCreator(actions.GET_TOKENS, (resolver) => ({
+  meta: { ...resolver },
+}))
 
 /**
  * Create a REFRESH action.

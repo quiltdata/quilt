@@ -3,7 +3,7 @@
 
 # TODO
 
-<!-- Use <del></del> for items that are not required for this PR -->
+<!-- Remove items that are irrelevant to this PR -->
 
 - [ ] Unit tests
 - [ ] Automated tests (e.g. Preflight)

@@ -5,6 +5,8 @@ import * as redux from 'react-redux'
 import * as Config from 'utils/Config'
 import usePrevious from 'utils/usePrevious'
 
+import { SELECTOR } from './Launcher'
+
 const canUseDOM = !!(
   typeof window !== 'undefined' &&
   window.document &&
@@ -16,6 +18,7 @@ function dummyIntercomApi(...args) {
   console.log("Trying to call Intercom, but it's unavailable", args)
 }
 dummyIntercomApi.dummy = true
+dummyIntercomApi.isCustom = false
 dummyIntercomApi.isAvailable = () => false
 
 const Ctx = React.createContext(dummyIntercomApi)
@@ -35,11 +38,19 @@ const defaultUserSelector = () => undefined
 function APILoader({ appId, userSelector = defaultUserSelector, children, ...props }) {
   const settings = { app_id: appId, ...props }
 
+  const cfg = Config.use()
+
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
   const { current: api } = React.useRef((...args) => window.Intercom(...args))
   if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
+  api.isCustom = cfg.mode === 'PRODUCT'
+
+  if (api.isCustom) {
+    settings.custom_launcher_selector = SELECTOR
+    settings.hide_default_launcher = true
+  }
 
   React.useEffect(() => {
     api('boot', settings)
@@ -93,3 +104,22 @@ export function useIntercom() {
 }
 
 export { IntercomProvider as Provider, useIntercom as use }
+
+export function usePauseVisibilityWhen(condition) {
+  const intercom = useIntercom()
+  const [isVisible, setVisible] = React.useState(true)
+  const showIntercom = React.useCallback(
+    (shouldShow) => {
+      if (isVisible === shouldShow) return
+      intercom('update', {
+        hide_default_launcher: !shouldShow,
+      })
+      setVisible(shouldShow)
+    },
+    [intercom, isVisible, setVisible],
+  )
+  React.useEffect(() => {
+    if (condition) showIntercom(false)
+    return () => showIntercom(true)
+  }, [condition, showIntercom])
+}

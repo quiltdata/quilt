@@ -629,9 +629,9 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
 
   const filteredStats = React.useMemo(() => {
     if (!filterCount) return undefined
-    const visibleItems = ((state.visibleRows.visibleRows || []).map(
+    const visibleItems = (state.visibleRows.visibleRows || []).map(
       (id) => state.rows.idRowsLookup[id],
-    ) as unknown) as Item[]
+    ) as unknown as Item[]
     return computeStats(visibleItems)
   }, [filterCount, state.visibleRows.visibleRows, state.rows.idRowsLookup])
 
@@ -741,7 +741,7 @@ function compareBy<T, V extends R.Ord>(a: T, b: T, getValue: (arg: T) => V) {
 // 2:fileA (file "fileA")
 // 2:fileB (file "fileB")
 const getNameSortValueAsc = (row: DG.GridRowModel) => {
-  const i = (row as unknown) as Item
+  const i = row as unknown as Item
   if (i.type === 'dir' && i.name === '..') return '0'
   return `${i.type === 'dir' ? 1 : 2}:${i.name}`
 }
@@ -753,7 +753,7 @@ const getNameSortValueAsc = (row: DG.GridRowModel) => {
 // 0:fileB (file "fileB")
 // 0:fileA (file "fileA")
 const getNameSortValueDesc = (row: DG.GridRowModel) => {
-  const i = (row as unknown) as Item
+  const i = row as unknown as Item
   if (i.type === 'dir' && i.name === '..') return '2'
   return `${i.type === 'dir' ? 1 : 0}:${i.name}`
 }
@@ -775,6 +775,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     zIndex: 1, // to prevent receiveing shadow from footer
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
+    },
   },
   grid: {
     border: 'none',
@@ -960,7 +963,7 @@ export function Listing({
           )
         },
         renderCell: (params: DG.GridCellParams) => {
-          const i = (params.row as unknown) as Item
+          const i = params.row as unknown as Item
           return (
             <CellComponent
               item={i}
@@ -994,7 +997,7 @@ export function Listing({
         type: 'number',
         width: COL_SIZE_W,
         renderCell: (params: DG.GridCellParams) => {
-          const i = (params.row as unknown) as Item
+          const i = params.row as unknown as Item
           return (
             <CellComponent
               item={i}
@@ -1013,7 +1016,7 @@ export function Listing({
         align: 'right',
         width: COL_MODIFIED_W,
         renderCell: (params: DG.GridCellParams) => {
-          const i = (params.row as unknown) as Item
+          const i = params.row as unknown as Item
           return (
             <CellComponent
               item={i}
@@ -1057,7 +1060,7 @@ export function Listing({
           toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
           footer: { truncated, locked, loadMore, items },
         }}
-        getRowId={(row) => row.name}
+        getRowId={(row) => row.name.replaceAll("'", "\\'")}
         pagination
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}

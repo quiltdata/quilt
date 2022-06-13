@@ -1,0 +1,33 @@
+fragment RoleSelection on Role {
+  __typename
+  ... on UnmanagedRole {
+    id
+    name
+    arn
+  }
+  ... on ManagedRole {
+    id
+    name
+    arn
+    permissions {
+      bucket {
+        name
+      }
+      level
+    }
+    policies {
+      id
+      title
+      managed
+      permissions {
+        bucket {
+          name
+        }
+        level
+      }
+      roles {
+        id
+      }
+    }
+  }
+}

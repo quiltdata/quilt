@@ -1,7 +1,6 @@
 /* String utils */
 import * as R from 'ramda'
 import React from 'react'
-import { FormattedNumber } from 'react-intl'
 
 export function printObject(obj) {
   return JSON.stringify(obj, null, '  ')
@@ -15,6 +14,8 @@ const splitNumber = (n) => {
   const coeff = (n / 10 ** (index * 3)).toFixed(1)
   return [coeff, suffixes[index]]
 }
+
+const numberFormat = new Intl.NumberFormat('en-US')
 
 export function formatQuantity(
   q,
@@ -31,7 +32,7 @@ export function formatQuantity(
   const [coeff, suffix] = splitNumber(q)
   return (
     <Component>
-      {renderValue(<FormattedNumber value={coeff} />)}
+      {renderValue(numberFormat.format(coeff).toString())}
       {renderSuffix(suffix)}
     </Component>
   )

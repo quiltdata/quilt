@@ -58,21 +58,28 @@ export function useSelection({ rows, getId = R.unary(I.fromJS) }) {
     setSelected(emptySet)
   }, [setSelected])
 
-  const isSelected = React.useCallback((row) => selected.has(getId(row)), [
-    selected,
-    getId,
-  ])
+  const isSelected = React.useCallback(
+    (row) => selected.has(getId(row)),
+    [selected, getId],
+  )
 
   return { toggle, toggleAll, clear, isSelected, selected, all: allSelected }
 }
 
-export const renderAction = (a) => (
-  <M.Tooltip title={a.title} key={a.title}>
-    <M.IconButton aria-label={a.title} onClick={a.fn}>
-      {a.icon}
-    </M.IconButton>
-  </M.Tooltip>
-)
+export const renderAction = (a) =>
+  !a ? null : (
+    <M.Tooltip title={a.title} key={a.title}>
+      <M.IconButton
+        aria-label={a.title}
+        onClick={a.fn}
+        href={a.href}
+        component={a.href ? 'a' : undefined}
+        target={a.href ? '_blank' : undefined}
+      >
+        {a.icon}
+      </M.IconButton>
+    </M.Tooltip>
+  )
 
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
@@ -122,7 +129,7 @@ export function Toolbar({ heading, selected = 0, actions = [], selectedActions =
 
 export function Head({
   columns,
-  selection: sel,
+  selection: sel = undefined,
   ordering: ord,
   withInlineActions = false,
 }) {
@@ -174,17 +181,18 @@ const useWrapperStyles = M.makeStyles({
   },
 })
 
-export function Wrapper({ className, ...props }) {
+export function Wrapper({ className = undefined, ...props }) {
   const classes = useWrapperStyles()
   return <div className={cx(classes.root, className)} {...props} />
 }
 
 const useInlineActionsStyles = M.makeStyles((t) => ({
   root: {
-    opacity: 0,
+    opacity: 0.3,
     paddingRight: t.spacing(1),
     textAlign: 'right',
     transition: 'opacity 100ms',
+    whiteSpace: 'nowrap',
 
     'tr:hover &': {
       opacity: 1,
@@ -192,7 +200,7 @@ const useInlineActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function InlineActions({ actions = [], children, ...props }) {
+export function InlineActions({ actions = [], children = undefined, ...props }) {
   const classes = useInlineActionsStyles()
   return (
     <div className={classes.root} {...props}>

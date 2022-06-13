@@ -288,6 +288,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
       rgba(255, 255, 255, 0.1)
     )`,
     bottom: 0,
+    cursor: 'pointer',
     display: 'flex',
     height: '100%',
     justifyContent: 'center',
@@ -299,12 +300,8 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title }) {
+function PreviewBox({ children, title, expanded, onExpand }) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(false)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <SmallerSection>
       {title && <SectionHeading>{title}</SectionHeading>}
@@ -313,10 +310,8 @@ function PreviewBox({ children, title }) {
         {children}
 
         {!expanded && (
-          <div className={classes.fade}>
-            <M.Button variant="outlined" onClick={expand}>
-              Expand
-            </M.Button>
+          <div className={classes.fade} onClick={onExpand}>
+            <M.Button variant="outlined">Expand</M.Button>
           </div>
         )}
       </div>
@@ -324,9 +319,15 @@ function PreviewBox({ children, title }) {
   )
 }
 
-const renderContents = (children) => <PreviewBox {...{ children }} />
+const previewOptions = { context: Preview.CONTEXT.LISTING }
 
 function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
   const withData = (callback) =>
     bucketExistenceData.case({
       _: callback,
@@ -350,7 +351,7 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
                   AsyncResult.Err(Preview.PreviewError.Archived({ handle })),
                 )
               }
-              return Preview.load(handle, callback)
+              return Preview.load(handle, callback, previewOptions)
             },
             DoesNotExist: () =>
               callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
@@ -358,14 +359,21 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
         }),
     })
 
-  return withData(Preview.display({ renderContents }))
+  return withData(
+    Preview.display({
+      renderContents,
+      renderProgress: Progress,
+    }),
+  )
 }
 
 function Meta({ meta }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata">
+    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
       <JsonDisplay defaultExpanded={1} value={meta} />
     </PreviewBox>
   )
@@ -570,60 +578,61 @@ export function Progress({ children }) {
   )
 }
 
-export const handleErr = (retryUrl) => (e) => (
-  <Alt>
-    <M.Typography variant="h5" gutterBottom>
-      {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
-        <>Search syntax error</>
-      ) : e.message === 'Timeout' ? (
-        <>Query timed out</>
-      ) : (
-        <>Search error</>
-      )}
-    </M.Typography>
-    {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
-      <M.Typography gutterBottom>
-        Oops, couldn&apos;t parse that search. Try quoting your query or read about{' '}
-        <StyledLink href={ES_REF_SYNTAX} target="_blank">
-          supported query syntax
-        </StyledLink>
-        .
-        {!!retryUrl && (
-          <> You can also click RETRY to try a simplified version of your query.</>
+export const handleErr = (retryUrl) => (e) =>
+  (
+    <Alt>
+      <M.Typography variant="h5" gutterBottom>
+        {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
+          <>Search syntax error</>
+        ) : e.message === 'Timeout' ? (
+          <>Query timed out</>
+        ) : (
+          <>Search error</>
         )}
       </M.Typography>
-    ) : e.message === 'Timeout' ? (
-      <M.Typography gutterBottom>
-        That made ElasticSearch sweat. Try{' '}
-        <StyledLink href={ES_REF_WILDCARDS} target="_blank">
-          avoiding wildcards
-        </StyledLink>{' '}
-        or ask Quilt about scaling your cluster.
-      </M.Typography>
-    ) : (
-      <M.Typography gutterBottom>
-        ElasticSearch had trouble with that query. The cluster may be busy indexing new
-        documents. Try again later
-        {!!retryUrl && <> or click RETRY to try a simplified version of your query</>}.
-      </M.Typography>
-    )}
-    {!!e.status && <M.Typography>Status: {e.status}</M.Typography>}
-    {!!e.code && <M.Typography>Code: {e.code}</M.Typography>}
-    {!!e.details && (
-      <>
-        <M.Typography>Error details:</M.Typography>
-        <M.Typography style={{ whiteSpace: 'pre' }}>{e.details}</M.Typography>
-      </>
-    )}
-    {!!retryUrl && (
-      <M.Box pt={2}>
-        <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
-          Retry simplified query
-        </M.Button>
-      </M.Box>
-    )}
-  </Alt>
-)
+      {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
+        <M.Typography gutterBottom>
+          Oops, couldn&apos;t parse that search. Try quoting your query or read about{' '}
+          <StyledLink href={ES_REF_SYNTAX} target="_blank">
+            supported query syntax
+          </StyledLink>
+          .
+          {!!retryUrl && (
+            <> You can also click RETRY to try a simplified version of your query.</>
+          )}
+        </M.Typography>
+      ) : e.message === 'Timeout' ? (
+        <M.Typography gutterBottom>
+          That made ElasticSearch sweat. Try{' '}
+          <StyledLink href={ES_REF_WILDCARDS} target="_blank">
+            avoiding wildcards
+          </StyledLink>{' '}
+          or ask Quilt about scaling your cluster.
+        </M.Typography>
+      ) : (
+        <M.Typography gutterBottom>
+          ElasticSearch had trouble with that query. The cluster may be busy indexing new
+          documents. Try again later
+          {!!retryUrl && <> or click RETRY to try a simplified version of your query</>}.
+        </M.Typography>
+      )}
+      {!!e.status && <M.Typography>Status: {e.status}</M.Typography>}
+      {!!e.code && <M.Typography>Code: {e.code}</M.Typography>}
+      {!!e.details && (
+        <>
+          <M.Typography>Error details:</M.Typography>
+          <M.Typography style={{ whiteSpace: 'pre' }}>{e.details}</M.Typography>
+        </>
+      )}
+      {!!retryUrl && (
+        <M.Box pt={2}>
+          <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
+            Retry simplified query
+          </M.Button>
+        </M.Box>
+      )}
+    </Alt>
+  )
 
 export function NothingFound({ children }) {
   return (

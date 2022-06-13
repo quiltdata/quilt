@@ -20,7 +20,8 @@ export const SIZE_THRESHOLDS = [
 
 export const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
 
-export const GLACIER_ERROR_RE = /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/
+export const GLACIER_ERROR_RE =
+  /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/
 
 // eslint-disable-next-line consistent-return
 export const getCompression = (key) => {
@@ -100,14 +101,25 @@ const parseRange = (range) => {
   return Number(m[1])
 }
 
+const getContentLength = async ({ s3, handle }) => {
+  const req = s3.headObject({
+    Bucket: handle.bucket,
+    Key: handle.key,
+    VersionId: handle.version,
+  })
+  const head = await req.promise()
+  return head.ContentLength
+}
+
 const getFirstBytes = async ({ s3, bytes, handle }) => {
   try {
+    const fileSize = await getContentLength({ s3, handle })
     const res = await s3
       .getObject({
         Bucket: handle.bucket,
         Key: handle.key,
         VersionId: handle.version,
-        Range: `bytes=0-${bytes}`,
+        Range: `bytes=0-${Math.min(bytes, fileSize)}`,
       })
       .promise()
     const firstBytes = res.Body.toString('utf-8')
@@ -136,7 +148,7 @@ export function useFirstBytes({ bytes, handle }) {
   return Data.use(getFirstBytes, { s3, bytes, handle })
 }
 
-const getObject = ({ s3, handle }) =>
+export const getObject = ({ s3, handle }) =>
   s3
     .getObject({
       Bucket: handle.bucket,
@@ -185,15 +197,19 @@ const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }
   return json
 }
 
-export function usePreview({ type, handle, query }) {
+export function usePreview({ type, handle, query }, options) {
   const { apiGatewayEndpoint: endpoint } = Config.use()
   const sign = AWS.Signer.useS3Signer()
   const compression = getCompression(handle.key)
-  return Data.use(fetchPreview, { endpoint, handle, sign, type, compression, query })
+  return Data.use(
+    fetchPreview,
+    { endpoint, handle, sign, type, compression, query },
+    options,
+  )
 }
 
 export function useProcessing(asyncResult, process, deps = []) {
-  return useMemoEq([asyncResult, process, deps], () =>
+  return useMemoEq([asyncResult, deps], () =>
     AsyncResult.case(
       {
         Ok: R.tryCatch(R.pipe(process, AsyncResult.Ok), AsyncResult.Err),

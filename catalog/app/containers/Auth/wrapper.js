@@ -1,24 +1,21 @@
 import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 import Typography from '@material-ui/core/Typography'
-import { withStyles } from '@material-ui/core/styles'
+import * as M from '@material-ui/core'
 
 import Error from 'components/Error'
 import Layout from 'components/Layout'
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RT from 'utils/reactTools'
 import { selectLocation } from 'utils/router'
 
 import { check } from './actions'
 import { InvalidToken } from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
 const ErrorScreen = () => {
@@ -28,16 +25,16 @@ const ErrorScreen = () => {
   return (
     <Layout>
       <Error
-        headline={<FM {...msg.wrapperFailureHeading} />}
+        headline="Authentication error"
         detail={
           <span>
-            <FM {...msg.wrapperFailureDescription} />
+            Something went wrong. Try again.
             <Button
               variant="contained"
               color="primary"
               style={{ marginLeft: '1em' }}
               onClick={retry}
-              label={<FM {...msg.wrapperFailureRetry} />}
+              label="Retry"
             />
           </span>
         }
@@ -46,24 +43,25 @@ const ErrorScreen = () => {
   )
 }
 
-const NotAuthorized = RT.composeComponent(
-  'Auth.Wrapper.NotAuthorized',
-  withStyles((t) => ({
-    heading: {
-      marginTop: t.spacing(10),
-    },
-  })),
-  ({ classes }) => (
+const useStyles = M.makeStyles((t) => ({
+  heading: {
+    marginTop: t.spacing(10),
+  },
+}))
+
+function NotAuthorized() {
+  const classes = useStyles()
+  return (
     <Layout>
       <Typography variant="h3" align="center" className={classes.heading} gutterBottom>
         Not Authorized
       </Typography>
       <Typography variant="body1" align="center">
-        You are not authorized to visit this page.
+        Contact a Quilt admin to perform this task.
       </Typography>
     </Layout>
-  ),
-)
+  )
+}
 
 export default ({ authorizedSelector = R.T } = {}) => {
   const select = createStructuredSelector({
@@ -73,34 +71,28 @@ export default ({ authorizedSelector = R.T } = {}) => {
     waiting: selectors.waiting,
     location: selectLocation,
   })
-  return memoize(
-    RT.composeHOC('Auth.Wrapper', (Component) => (props) => {
-      const state = redux.useSelector(select)
-      const { urls } = NamedRoutes.use()
+  return memoize((Component) => (props) => {
+    const state = redux.useSelector(select)
+    const { urls } = NamedRoutes.use()
 
-      if (state.error && !(state.error instanceof InvalidToken)) {
-        return <ErrorScreen />
-      }
+    if (state.error && !(state.error instanceof InvalidToken)) {
+      return <ErrorScreen />
+    }
 
-      // TODO: use suspense
-      if (state.waiting) {
-        return (
-          <Working>
-            <FM {...msg.wrapperWorking} />
-          </Working>
-        )
-      }
+    // TODO: use suspense
+    if (state.waiting) {
+      return <Working>Authenticating…</Working>
+    }
 
-      if (!state.authenticated) {
-        const l = state.location
-        return <Redirect to={urls.signIn(l.pathname + l.search)} />
-      }
+    if (!state.authenticated) {
+      const l = state.location
+      return <Redirect to={urls.signIn(l.pathname + l.search)} />
+    }
 
-      if (!state.authorized) {
-        return <NotAuthorized />
-      }
+    if (!state.authorized) {
+      return <NotAuthorized />
+    }
 
-      return <Component {...props} />
-    }),
-  )
+    return <Component {...props} />
+  })
 }

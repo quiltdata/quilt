@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Logo should render custom logo 1`] = `
+<div
+  className="makeStyles-custom-1 makeStyles-custom-7"
+/>
+`;
+
+exports[`components/Logo should render rectangular logo 1`] = `
+<div
+  className="makeStyles-quilt-2 makeStyles-quilt-6"
+/>
+`;
+
+exports[`components/Logo should render squared logo 1`] = `
+<div
+  className="makeStyles-quilt-2 makeStyles-quilt-4"
+/>
+`;

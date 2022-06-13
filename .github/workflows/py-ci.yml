@@ -1,0 +1,176 @@
+on: push
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.7'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install 'pylint==2.10.2' 'pycodestyle>=2.6.1'
+      - name: Run pylint
+        run: |
+          pylint $(find -name '*.py' -not -path './venv/*')
+      - name: Run pycodestyle
+        run: |
+          pycodestyle $(find -name '*.py' -not -path './venv/*')
+
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.7'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install isort
+      - name: Run isort
+        run: |
+          isort --check --diff .
+
+  test-gendocs:
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.7'
+      - name: install deps
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+      - name: generate docs
+        run: cd gendocs && python build.py
+      - name: check there are no changes
+        run: git diff --exit-code
+
+  test-client:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.7', '3.8', '3.9', '3.10']
+        # TODO: test windows with other Python versions, currently it fails for some reason.
+        include:
+          - os: windows-latest
+            python-version: '3.7'
+    runs-on: ${{ matrix.os }}
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e api/python[tests]
+      - name: Run Pytest
+        run: |
+          pytest --cov=api/python api/python
+      - uses: codecov/codecov-action@v2
+        env:
+          OS: ${{ matrix.os }}
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        with:
+          flags: api-python
+          name: ${{ github.job }}
+          env_vars: OS,PYTHON_VERSION
+
+  pypi-release-tag-check:
+    needs: test-client
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.check.outputs.check }}
+    if: github.ref_type == 'tag'
+    steps:
+      - name: check git tag
+        id: check
+        run: |
+          if [[ ${{ github.ref_name }} =~ ^[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$ ]]; then
+            echo ::set-output name=check::true
+          fi
+
+  pypi-release:
+    needs: pypi-release-tag-check
+    if: github.ref_type == 'tag' && needs.pypi-release-tag-check.outputs.check == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api/python
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.7'
+      - name: verify git tag vs. version
+        env:
+          CIRCLE_TAG: ${{ github.ref_name }}
+        run: python setup.py verify
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install build==0.8.0 twine==4.0.0
+      - name: build
+        run: python -m build
+      - name: upload to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: twine upload dist/*
+
+  test-lambda:
+    strategy:
+      matrix:
+        path:
+          - access_counts
+          - molecule
+          - preview
+          - s3select
+          - transcode
+          - pkgselect
+          - shared
+          - s3hash
+          - pkgevents
+          - pkgpush
+          - tabular_preview
+          - es/indexer
+        python-version: ['3.7']
+        include:
+          - path: thumbnail
+            python-version: '3.9'
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          if [ ${{ matrix.path }} == "shared" ]
+            python -m pip install -e lambdas/shared[tests]
+          then
+            python -m pip install -e lambdas/shared
+            python -m pip install -e lambdas/${{ matrix.path }}
+          fi
+          python -m pip install -r lambdas/${{ matrix.path }}/requirements.txt -r lambdas/${{ matrix.path }}/test-requirements.txt
+      - name: Pytest
+        run: |
+          pytest --cov=lambdas lambdas/${{ matrix.path }}
+      - uses: codecov/codecov-action@v2
+        env:
+          LAMBDA: ${{ matrix.path }}
+        with:
+          flags: lambda
+          name: ${{ github.job }}
+          env_vars: LAMBDA

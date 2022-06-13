@@ -37,6 +37,11 @@
               "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
               "type": "boolean"
             },
+            "deleteRevision": {
+              "default": true,
+              "description": "Hides buttons triggering Delete Package Revision dialog",
+              "type": "boolean"
+            },
             "revisePackage": {
               "default": true,
               "description": "Hides button triggering Revise Package dialog",
@@ -45,6 +50,31 @@
             "copyPackage": {
               "default": true,
               "description": "Hides button triggering Push to Bucket dialog",
+              "type": "boolean"
+            }
+          }
+        },
+        "blocks": {
+          "type": "object",
+          "properties": {
+            "analytics": {
+              "default": true,
+              "description": "Show/hide analytics block",
+              "type": "boolean"
+            },
+            "browser": {
+              "default": true,
+              "description": "Show/hide file browser block",
+              "type": "boolean"
+            },
+            "code": {
+              "default": true,
+              "description": "Show/hide code block",
+              "type": "boolean"
+            },
+            "meta": {
+              "default": true,
+              "description": "Show/hide metadata block",
               "type": "boolean"
             }
           }

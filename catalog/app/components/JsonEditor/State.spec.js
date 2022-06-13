@@ -94,7 +94,9 @@ describe('components/JsonEditor/State', () => {
     })
 
     it('should return one state object utilizing Schema keys and object keys, when input is a flat object', () => {
-      const sortOrder = { current: { counter: Number.MIN_SAFE_INTEGER, dict: { c: 15 } } }
+      const sortOrder = {
+        current: { counter: Number.MIN_SAFE_INTEGER, dict: { '/c': 15 } },
+      }
       const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, regular.object1)
       sortOrder.counter = 0

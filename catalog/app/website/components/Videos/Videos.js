@@ -18,8 +18,7 @@ const SLIDE_COUNT_FACTOR = 1000000
 const videos = [
   {
     title: 'Overview',
-    src:
-      'https://www.youtube.com/embed/videoseries?list=PLmXfD6KoA_vArp85tMod7apo2UTeC3khq',
+    src: 'https://www.youtube.com/embed/videoseries?list=PLmXfD6KoA_vArp85tMod7apo2UTeC3khq',
   },
 ]
 

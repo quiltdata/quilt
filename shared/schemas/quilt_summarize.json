@@ -1,0 +1,123 @@
+{
+  "definitions": {
+    "fileShortcut": {
+      "type": "string",
+      "description": "Path relative to quilt_summarize.json",
+      "examples": ["file1.json"]
+    },
+
+    "fileExtended": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "$ref": "#/definitions/fileShortcut"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expand": {
+          "description": "Whether preview is expanded by default or not",
+          "type": "boolean"
+        },
+        "title": {
+          "type": "string"
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/definitions/typeShorthand"
+              },
+              {
+                "$ref": "#/definitions/typeExtended"
+              }
+            ]
+          }
+        },
+        "width": {
+          "$ref": "#/definitions/width"
+        }
+      },
+      "required": ["path"]
+    },
+
+    "typeShorthand": {
+      "type": "string",
+      "enum": ["echarts", "json", "jupyter", "perspective", "vega", "voila"]
+    },
+
+    "typeExtended": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/typeShorthand"
+        },
+        "style": {
+          "type": "object",
+          "properties": {
+            "height": {
+              "description": "Height as an absolute value (in `px`, `vh`, `em` etc.)",
+              "examples": ["1000px", "500vh"],
+              "type": "string"
+            }
+          }
+        },
+        "config": {
+          "description": "Perspective specific option. Restores renderer to a state previously returned by saving config",
+          "type": "object"
+        },
+        "settings": {
+          "description": "Perspective specific option. Sets config opened",
+          "type": "boolean"
+        }
+      },
+      "required": ["name"]
+    },
+
+    "file": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/fileShortcut"
+        },
+        {
+          "$ref": "#/definitions/fileExtended"
+        }
+      ]
+    },
+
+    "width": {
+      "anyOf": [
+        {
+          "description": "Ratio number for flex-based width",
+          "examples": [1.5],
+          "type": "number"
+        },
+        {
+          "description": "Width in pixels or percents",
+          "examples": ["100px"],
+          "type": "string"
+        }
+      ]
+    },
+
+    "row": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/file"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/file"
+          }
+        }
+      ]
+    }
+  },
+
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/row"
+  }
+}

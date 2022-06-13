@@ -1,16 +1,16 @@
-import tempfile
-from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
 
-import quilt3
 from quilt3 import main
 
 from .utils import QuiltTestCase
 
 create_parser = main.create_parser
+
+
+patch_package_class = mock.patch('quilt3.main.Package', autospec=True)
 
 
 class CommandLineTestCase(QuiltTestCase):
@@ -30,66 +30,141 @@ class QuiltCLITestCase(CommandLineTestCase):
 
     def test_push(self):
         name = 'test/name'
-        pkg = quilt3.Package()
+        dir_path = 'test/dir/path'
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            (Path(tmp_dir) / 'foo').touch()
-            (Path(tmp_dir) / 'bar').mkdir()
-            (Path(tmp_dir) / 'bar' / 'baz')
+        with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
 
-            with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class, \
-                 mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-                 mock.patch.object(pkg, 'push') as mocked_push:
-                main.main(('push', '--dir', tmp_dir, name))
+            main.main(('push', '--dir', dir_path, name))
 
-                mocked_package_class.assert_called_once_with(quilt3.Package)
-                mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=None)
-                mocked_push.assert_called_once_with(name, registry=None, dest=None, message=None)
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False
+            )
+
+    def test_push_force(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
+
+            main.main(('push', '--dir', dir_path, name, '--force'))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=True
+            )
+
+    def test_push_existing(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            main.main(('push', '--dir', dir_path, name))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_not_called()
+            mocked_package = mocked_package_class.browse.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False
+            )
 
 
 @pytest.mark.parametrize(
-    'meta_arg, meta_data, expected_set_dir_count, expected_push_count, expected_meta, expected_stderr',
+    'meta_data, expected_meta',
     [
-        (None, None, 1, 1, None, ''),
-        ('--meta', '{invalid: meta}', 0, 0, {}, 'is not a valid json string'),
-        ('--meta', "{'single': 'quotation'}", 0, 0, {}, 'is not a valid json string'),
-        ('--meta', '{"test": "meta", }', 0, 0, {}, 'is not a valid json string'),
-        ('--meta', '{"test": "meta"}', 1, 1, {"test": "meta"}, ''),
+        (None, None),
+        ('{"test": "meta"}', {"test": "meta"}),
     ]
 )
 def test_push_with_meta_data(
-    meta_arg,
     meta_data,
-    expected_set_dir_count,
-    expected_push_count,
     expected_meta,
-    expected_stderr,
+):
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class, \
+         mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+
+        # '--registry' defaults to configured remote registry hence optional.
+        if meta_data:
+            main.main(('push', '--dir', dir_path, name, '--meta', meta_data))
+            mocked_parse_json_arg.assert_called_once_with(meta_data)
+        else:
+            main.main(('push', '--dir', dir_path, name))
+            mocked_parse_json_arg.assert_not_called()
+        mocked_package_class.browse.assert_called_once_with(name, None)
+        mocked_package_class.assert_called_once_with()
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
+        mocked_package.push.assert_called_once_with(
+            name, dest=None, message=None, registry=None, workflow=..., force=False
+        )
+
+
+@pytest.mark.parametrize(
+    'meta_data',
+    [
+        '{invalid: meta}',
+        "{'single': 'quotation'}",
+        '{"test": "meta", }',
+    ]
+)
+def test_push_with_meta_data_error(
+    meta_data,
     capsys
 ):
     name = 'test/name'
-    pkg = quilt3.Package()
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        (Path(tmp_dir) / 'foo').touch()
-        (Path(tmp_dir) / 'bar').mkdir()
-        (Path(tmp_dir) / 'bar' / 'baz')
+    with patch_package_class as mocked_package_class, \
+         mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
 
-        with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class,\
-             mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-             mock.patch.object(pkg, 'push') as mocked_push:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
 
-            # '--registry' defaults to configured remote registry hence optional.
-            if meta_arg:
-                main.main(('push', '--dir', tmp_dir, name, meta_arg, meta_data))
-            else:
-                main.main(('push', '--dir', tmp_dir, name))
-            mocked_package_class.assert_called_once_with(quilt3.Package)
-            assert mocked_set_dir.call_count == expected_set_dir_count
-            assert mocked_push.call_count == expected_push_count
-            assert pkg.meta == expected_meta
-            # check for expected stderr exception message
-            captured = capsys.readouterr()
-            assert expected_stderr in captured.err
+        with pytest.raises(SystemExit):
+            main.main(('push', '--dir', '.', name, '--meta', meta_data))
+        # check for expected stderr exception message
+        captured = capsys.readouterr()
+        assert 'is not a valid json string' in captured.err
+        mocked_parse_json_arg.assert_called_once_with(meta_data)
+        mocked_package_class.browse.assert_not_called()
+        mocked_package_class.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    'workflow_input, expected_workflow',
+    [
+        (None, ...),
+        ('', None),
+        ('test-workflow', 'test-workflow'),
+    ]
+)
+def test_push_workflow(workflow_input, expected_workflow):
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        mocked_package_class.browse.side_effect = FileNotFoundError()
+        workflow_args = () if workflow_input is None else ('--workflow', workflow_input)
+        main.main(('push', '--dir', dir_path, *workflow_args, name))
+
+        mocked_package_class.assert_called_once_with()
+        mocked_package = mocked_package_class.return_value
+        mocked_package_class.browse.assert_called_once_with(name, None)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+        mocked_package.push.assert_called_once_with(
+            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False
+        )
 
 
 def test_list_packages(capsys):

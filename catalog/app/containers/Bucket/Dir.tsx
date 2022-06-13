@@ -124,6 +124,7 @@ function DirContents({
         files={response.files}
         dirs={response.dirs}
         truncated={response.truncated}
+        filtered={!!response.prefix}
         open={!!successor}
         successor={successor}
         onExited={onPackageDirectoryDialogExited}
@@ -143,6 +144,8 @@ function DirContents({
           />
         }
       />
+      {/* Remove TS workaround when Summary will be converted to .tsx */}
+      {/* @ts-expect-error */}
       <Summary files={response.files} mkUrl={null} />
     </>
   )
@@ -153,6 +156,12 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     maxWidth: '100%',
     overflowWrap: 'break-word',
+  },
+  button: {
+    flexShrink: 0,
+    marginBottom: '-3px',
+    marginLeft: t.spacing(1),
+    marginTop: '-3px',
   },
 }))
 
@@ -169,7 +178,7 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const { noDownload } = Config.use()
+  const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
   const preferences = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
@@ -182,8 +191,8 @@ export default function Dir({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           # list files
           b.ls("${path}")
           # download
@@ -244,22 +253,20 @@ export default function Dir({
         </div>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.createPackage && (
-          <CopyButton bucket={bucket} onChange={setSuccessor}>
+          <CopyButton bucket={bucket} className={classes.button} onChange={setSuccessor}>
             Create package from directory
           </CopyButton>
         )}
-        {!noDownload && (
-          <>
-            <M.Box ml={1} />
-            <FileView.ZipDownloadForm
-              suffix={`dir/${bucket}/${path}`}
-              label="Download directory"
-            />
-          </>
+        {!noDownload && !desktop && (
+          <FileView.ZipDownloadForm
+            className={classes.button}
+            suffix={`dir/${bucket}/${path}`}
+            label="Download directory"
+          />
         )}
       </M.Box>
 
-      <Code gutterBottom>{code}</Code>
+      {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
 
       {data.case({
         Err: displayError(),

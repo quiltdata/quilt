@@ -23,6 +23,8 @@ export const SUPPORTED_EXTENSIONS = [
   '.webp',
   '.bmp',
   '.tiff',
+  '.tif',
+  '.czi',
 ]
 
 const SIZES = {
@@ -119,7 +121,7 @@ export default function Thumbnail({
   usePrevious(handle, (prev) => {
     if (R.equals(handle, prev)) return
     const url = sign(handle)
-    const src = `${api}/thumbnail${mkSearch({ url, size: sizeStr(size), output: 'raw' })}`
+    const src = `${api}/thumbnail${mkSearch({ url, size: sizeStr(size) })}`
     setState(AsyncResult.Pending())
     loadImg(src)
       .then((blob) => {

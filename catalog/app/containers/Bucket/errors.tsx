@@ -19,19 +19,6 @@ export class CORSError extends BucketError {}
 
 export class NoSuchBucket extends BucketError {}
 
-interface NoSuchPackageProps {
-  bucket: string
-  handle: string
-}
-
-export class NoSuchPackage extends BucketError {
-  static displayName = 'NoSuchPackage'
-
-  constructor(props: NoSuchPackageProps) {
-    super(`no package named '${props.handle}' in bucket '${props.bucket}'`, props)
-  }
-}
-
 export class ESNoIndex extends BucketError {}
 
 export class ESTimeout extends BucketError {}
@@ -43,7 +30,7 @@ export class FileNotFound extends BucketError {}
 export class VersionNotFound extends BucketError {}
 
 export interface BucketPreferencesInvalidProps {
-  errors: { dataPath: string; message: string }[]
+  errors: { instancePath?: string; message?: string }[]
 }
 
 export class BucketPreferencesInvalid extends BucketError {
@@ -51,14 +38,16 @@ export class BucketPreferencesInvalid extends BucketError {
 
   constructor(props: BucketPreferencesInvalidProps) {
     super(
-      props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
+      props.errors
+        .map(({ instancePath, message }) => `${instancePath} ${message}`)
+        .join(', '),
       props,
     )
   }
 }
 
 export interface WorkflowsConfigInvalidProps {
-  errors: { dataPath: string; message: string }[]
+  errors: { instancePath?: string; message?: string }[]
 }
 
 export class WorkflowsConfigInvalid extends BucketError {
@@ -66,7 +55,11 @@ export class WorkflowsConfigInvalid extends BucketError {
 
   constructor(props: WorkflowsConfigInvalidProps) {
     super(
-      props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
+      props.errors
+        .map(({ instancePath, message }) =>
+          instancePath ? `${instancePath} ${message}` : message,
+        )
+        .join(', '),
       props,
     )
   }
@@ -74,9 +67,8 @@ export class WorkflowsConfigInvalid extends BucketError {
 
 export interface ManifestTooLargeProps {
   bucket: string
-  key: string
-  actualSize: number
-  maxSize: number
+  hash: string
+  max: number
 }
 
 export class ManifestTooLarge extends BucketError {
@@ -84,24 +76,7 @@ export class ManifestTooLarge extends BucketError {
 
   constructor(props: ManifestTooLargeProps) {
     super(
-      `Package manifest at s3://${props.bucket}/${props.key} is too large: ${props.actualSize} (max size: ${props.maxSize})`,
-      props,
-    )
-  }
-}
-
-export interface BadRevisionProps {
-  bucket: string
-  handle: string
-  revision: string
-}
-
-export class BadRevision extends BucketError {
-  static displayName = 'BadRevision'
-
-  constructor(props: BadRevisionProps) {
-    super(
-      `Could not resolve revision "${props.revision}" for package "${props.handle}" in s3://${props.bucket}`,
+      `Package manifest ${props.hash} at s3://${props.bucket} is too large (more than ${props.max} entries)`,
       props,
     )
   }
@@ -162,16 +137,6 @@ const defaultHandlers: ErrorHandler[] = [
     R.is(NoSuchBucket),
     () => (
       <Message headline="No Such Bucket">The specified bucket does not exist.</Message>
-    ),
-  ],
-  [
-    R.is(NoSuchPackage),
-    (e: NoSuchPackage) => (
-      <Message headline="No Such Package">
-        Package named{' '}
-        <M.Box component="span" fontWeight="fontWeightMedium">{`"${e.handle}"`}</M.Box>{' '}
-        could not be found in this bucket.
-      </Message>
     ),
   ],
   [

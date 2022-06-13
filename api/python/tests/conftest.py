@@ -1,5 +1,8 @@
 import os
+import pathlib
+import shutil
 import sys
+import tempfile
 from unittest import mock
 
 import pytest
@@ -24,10 +27,13 @@ def pytest_sessionstart(session):
     Do teardown in `pytest_sessionfinish()`
     """
     print("Pre-Session Setup..")
-    # Figuring out how to use the pytest tmpdir fixture externally was kinda awful.
-    Vars.tmpdir_home = pytest.ensuretemp('fake_home')
-    Vars.tmpdir_data = Vars.tmpdir_home.mkdir('appdirs_datadir')
-    Vars.tmpdir_cache = Vars.tmpdir_home.mkdir('appdirs_cachedir')
+    # Looks like there's no public API to get the resolved value of pytest base temp dir
+    # (https://docs.pytest.org/en/6.2.x/tmpdir.html#the-default-base-temporary-directory).
+    Vars.tmpdir_home = pathlib.Path(tempfile.mkdtemp(prefix='pytest-fake_home'))
+    Vars.tmpdir_data = Vars.tmpdir_home / 'appdirs_datadir'
+    Vars.tmpdir_data.mkdir()
+    Vars.tmpdir_cache = Vars.tmpdir_home / 'appdirs_cachedir'
+    Vars.tmpdir_cache.mkdir()
 
     # Mockers that need to be loaded before any of our code
     Vars.extrasession_mockers.extend([
@@ -48,6 +54,7 @@ def pytest_sessionfinish(session, exitstatus):
     """
     print("\nPost-session Teardown..")
 
+    shutil.rmtree(Vars.tmpdir_home)
     for mocker in Vars.extrasession_mockers:
         mocker.stop()
 

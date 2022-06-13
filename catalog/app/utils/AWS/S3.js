@@ -3,7 +3,7 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Auth from 'containers/Auth'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import { useConfig } from 'utils/Config'
 import useConstant from 'utils/useConstant'
@@ -19,6 +19,7 @@ const DEFAULT_OPTS = {
 
 const PROXIED = Symbol('proxied')
 const PRESIGN = Symbol('presign')
+const FORCE_PROXY = Symbol('forceProxy')
 
 const Ctx = React.createContext()
 
@@ -36,7 +37,7 @@ function useTrackingFn(fn) {
 function useSmartS3() {
   const cfg = useConfig()
   const selectEndpoint = `${cfg.binaryApiGatewayEndpoint}/s3select/`
-  const isAuthenticated = useTracking(redux.useSelector(Auth.selectors.authenticated))
+  const isAuthenticated = useTracking(redux.useSelector(authSelectors.authenticated))
   const isInStack = useTrackingFn(BucketConfig.useIsInStack())
 
   return useConstant(() => {
@@ -86,11 +87,12 @@ function useSmartS3() {
               endpoint: req.httpRequest.endpoint,
               path: req.httpRequest.path,
             }
+            const basePath = endpoint.path.replace(/\/$/, '')
             req.httpRequest.endpoint = endpoint
             req.httpRequest.path =
               type === 'select'
-                ? `${endpoint.path.replace(/\/$/, '')}${req.httpRequest.path}`
-                : `/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+                ? `${basePath}${req.httpRequest.path}`
+                : `${basePath}/${req.httpRequest.region}/${b}${req.httpRequest.path}`
           })
           req.on(
             'retry',
@@ -112,7 +114,7 @@ function useSmartS3() {
 
       prepareSignedUrl(req) {
         super.prepareSignedUrl(req)
-        req.httpRequest[PRESIGN] = true
+        if (!req.httpRequest[FORCE_PROXY]) req.httpRequest[PRESIGN] = true
       }
 
       makeRequest(operation, params, callback) {
@@ -123,7 +125,12 @@ function useSmartS3() {
           params = null
         }
 
+        const forceProxy = params?.forceProxy ?? false
+        delete params?.forceProxy
         const req = super.makeRequest(operation, params)
+        if (forceProxy) {
+          req.httpRequest[FORCE_PROXY] = true
+        }
         const type = this.getReqType(req)
 
         if (type !== 'signed') {

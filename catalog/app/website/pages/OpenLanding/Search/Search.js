@@ -139,6 +139,7 @@ export default function Search() {
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
 
+  // XXX: consider using graphql directly
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
   const [value, change] = React.useState('')
@@ -150,9 +151,10 @@ export default function Search() {
 
   const onQuery = React.useCallback((strPart) => change(`${value} ${strPart}`), [value])
 
-  const onToggleOptions = React.useCallback(() => setHelpOpened(!helpOpened), [
-    helpOpened,
-  ])
+  const onToggleOptions = React.useCallback(
+    () => setHelpOpened(!helpOpened),
+    [helpOpened],
+  )
 
   const onKeyDown = React.useCallback(
     (evt) => {

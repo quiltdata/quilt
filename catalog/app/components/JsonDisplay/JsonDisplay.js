@@ -3,6 +3,10 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import StyledLink from 'utils/StyledLink'
+import useMemoEq from 'utils/useMemoEq'
+import wait from 'utils/wait'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     fontFamily: t.typography.monospace.fontFamily,
@@ -35,21 +39,67 @@ const IconBlank = ({ classes }) => <div className={classes.iconBlank} />
 const IconExpand = () => <M.Icon fontSize="small">chevron_right</M.Icon>
 const IconCollapse = () => <M.Icon fontSize="small">expand_more</M.Icon>
 
+const useWaitingJsonRenderStyles = M.makeStyles((t) => ({
+  root: {
+    color: t.palette.text.secondary,
+    display: 'flex',
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.body2.fontSize,
+    marginLeft: t.spacing(2),
+  },
+}))
+
+const WaitingJsonRender = () => {
+  const classes = useWaitingJsonRenderStyles()
+  return (
+    <span className={classes.root}>
+      <M.Icon fontSize="small">hourglass_empty</M.Icon>rendering…
+    </span>
+  )
+}
+
 function Key({ children, classes }) {
   return !!children && <div className={classes.key}>{children}: </div>
 }
 
-const formatValue = R.cond([
-  [R.is(String), (s) => `"${s}"`],
-  [R.T, (v) => `${v}`],
-])
+function getHref(v) {
+  try {
+    const urlData = new URL(v)
+    return urlData.href
+  } catch (e) {
+    return ''
+  }
+}
+
+function NonStringValue({ value }) {
+  return <div>{`${value}`}</div>
+}
+
+function StringValue({ value }) {
+  const href = React.useMemo(() => getHref(value), [value])
+  return href ? (
+    <div>
+      "
+      <StyledLink href={href} target="_blank">
+        {value}
+      </StyledLink>
+      "
+    </div>
+  ) : (
+    <div>"{value}"</div>
+  )
+}
 
 function PrimitiveEntry({ name, value, topLevel = true, classes }) {
   return (
     <div className={classes.flex}>
       {!topLevel && <IconBlank classes={classes} />}
       <Key classes={classes}>{name}</Key>
-      <div>{formatValue(value)}</div>
+      {typeof value === 'string' ? (
+        <StringValue value={value} />
+      ) : (
+        <NonStringValue value={value} />
+      )}
     </div>
   )
 }
@@ -57,7 +107,7 @@ function PrimitiveEntry({ name, value, topLevel = true, classes }) {
 const SEP = ', '
 const SEP_LEN = 2
 const MORE_LEN = 4
-const CHAR_W = 8.55
+const CHAR_W = 8.6
 
 function More({ keys, classes }) {
   return (
@@ -94,7 +144,7 @@ function CompoundEntry({
   const empty = !entries.length
   const expanded = !empty && stateExpanded
 
-  const renderCollapsed = () => {
+  const renderCollapsed = React.useCallback(() => {
     const availableSpace =
       showKeysWhenCollapsed -
       R.sum([
@@ -127,7 +177,7 @@ function CompoundEntry({
       },
       { str: null, availableSpace, keys: 0, done: false },
     ).str
-  }
+  }, [classes, entries, name, showKeysWhenCollapsed, value])
 
   return (
     <div>
@@ -150,25 +200,36 @@ function CompoundEntry({
           </>
         )}
       </div>
-      <div className={cx(classes.compoundInner, !expanded && classes.hidden)}>
-        {entries.map(([k, v]) => (
-          <JsonDisplayInner
-            classes={classes}
-            key={k}
-            name={k}
-            value={v}
-            topLevel={false}
-            defaultExpanded={
-              Number.isInteger(defaultExpanded) && defaultExpanded > 0
-                ? defaultExpanded - 1
-                : defaultExpanded
-            }
-            showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
-          />
-        ))}
-        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-        <div onClick={toggle}>{braces[1]}</div>
-      </div>
+      {expanded && (
+        <React.Suspense
+          fallback={
+            <>
+              <WaitingJsonRender />
+              {braces[1]}
+            </>
+          }
+        >
+          <div className={cx(classes.compoundInner)}>
+            {entries.map(([k, v]) => (
+              <JsonDisplayInner
+                classes={classes}
+                key={k}
+                name={k}
+                value={v}
+                topLevel={false}
+                defaultExpanded={
+                  Number.isInteger(defaultExpanded) && defaultExpanded > 0
+                    ? defaultExpanded - 1
+                    : defaultExpanded
+                }
+                showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
+              />
+            ))}
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
+            <div onClick={toggle}>{braces[1]}</div>
+          </div>
+        </React.Suspense>
+      )}
     </div>
   )
 }
@@ -181,9 +242,23 @@ const isPrimitive = R.anyPass([
   R.equals(undefined),
 ])
 
+function useComponentOnNextTick(Component, props, optTimeout) {
+  return useMemoEq([Component, props], () =>
+    React.lazy(async () => {
+      await wait(optTimeout || 0)
+      return {
+        default: () => <Component {...props} />,
+      }
+    }),
+  )
+}
+
 function JsonDisplayInner(props) {
-  const Component = isPrimitive(props.value) ? PrimitiveEntry : CompoundEntry
-  return <Component {...props} />
+  const Component = useComponentOnNextTick(
+    isPrimitive(props.value) ? PrimitiveEntry : CompoundEntry,
+    props,
+  )
+  return <Component />
 }
 
 function useCurrentBreakpointWidth() {
@@ -218,10 +293,12 @@ export default function JsonDisplay({
 
   return (
     <M.Box className={cx(className, classes.root)} {...props}>
-      <JsonDisplayInner
-        {...{ name, value, topLevel, defaultExpanded, classes }}
-        showKeysWhenCollapsed={computedKeys}
-      />
+      <React.Suspense fallback={<WaitingJsonRender />}>
+        <JsonDisplayInner
+          {...{ name, value, topLevel, defaultExpanded, classes }}
+          showKeysWhenCollapsed={computedKeys}
+        />
+      </React.Suspense>
     </M.Box>
   )
 }

@@ -4,7 +4,6 @@ import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative } from 'react-intl'
 import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -15,6 +14,7 @@ import Sparkline from 'components/Sparkline'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
@@ -22,16 +22,18 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
+import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
-import useViewModes from './viewModes'
+import { useViewModes, viewModeToSelectOption } from './viewModes'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -121,7 +123,7 @@ function VersionInfo({ bucket, path, version }) {
                   <M.ListItemText
                     primary={
                       <span>
-                        <FormattedRelative value={v.lastModified} />
+                        <Format.Relative value={v.lastModified} />
                         {v.isLatest && ' (latest)'}
                         {' | '}
                         {v.size != null ? readableBytes(v.size) : 'Delete Marker'}
@@ -291,6 +293,8 @@ function CenteredProgress() {
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
+    alignItems: 'center',
+    display: 'flex',
     marginLeft: 'auto',
   },
   at: {
@@ -303,6 +307,9 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     maxWidth: '100%',
     overflowWrap: 'break-word',
+  },
+  fileProperties: {
+    marginTop: '2px',
   },
   name: {
     ...t.typography.body1,
@@ -325,12 +332,13 @@ export default function File({
   },
   location,
 }) {
-  const { version, mode: viewModeSlug } = parseSearch(location.search)
+  const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
+  const preferences = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -340,8 +348,8 @@ export default function File({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           b.fetch("${path}", "./${basename(path)}")
         `,
       },
@@ -382,9 +390,23 @@ export default function File({
       }),
     })
 
+  const viewModes = useViewModes(path, mode)
+
+  const onViewModeChange = React.useCallback(
+    (m) => {
+      history.push(urls.bucketFile(bucket, encodedPath, version, m.valueOf()))
+    },
+    [history, urls, bucket, encodedPath, version],
+  )
+
   const handle = { bucket, key: path, version }
 
-  const withPreview = (callback, mode) =>
+  const previewOptions = React.useMemo(
+    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
+    [viewModes.mode],
+  )
+
+  const withPreview = (callback) =>
     requests.ObjectExistence.case({
       Exists: (h) => {
         if (h.deleted) {
@@ -393,26 +415,11 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return mode
-          ? Preview.load(R.assoc('mode', mode.key, handle), callback)
-          : Preview.load(handle, callback)
+        return Preview.load(handle, callback, previewOptions)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
-
-  const { registryUrl } = Config.use()
-  const viewModes = useViewModes(registryUrl, path)
-  const viewMode = React.useMemo(
-    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
-    [viewModes, viewModeSlug],
-  )
-  const onViewModeChange = React.useCallback(
-    (mode) => {
-      history.push(urls.bucketFile(bucket, encodedPath, version, mode.key))
-    },
-    [history, urls, bucket, encodedPath, version],
-  )
 
   return (
     <FileView.Root>
@@ -437,11 +444,12 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          {!!viewModes.length && (
-            <FileView.ViewWithVoilaButtonLayout
+          <FileProperties className={classes.fileProperties} data={versionExistsData} />
+          {!!viewModes.modes.length && (
+            <FileView.ViewModeSelector
               className={classes.button}
-              modesList={viewModes}
-              mode={viewMode}
+              options={viewModes.modes.map(viewModeToSelectOption)}
+              value={viewModeToSelectOption(viewModes.mode)}
               onChange={onViewModeChange}
             />
           )}
@@ -466,16 +474,20 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              <Code>{code}</Code>
-              {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
-              <Meta bucket={bucket} path={path} version={version} />
+              {preferences?.ui?.blocks?.code && <Code>{code}</Code>}
+              {!!analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
+                <Analytics {...{ analyticsBucket, bucket, path }} />
+              )}
+              {preferences?.ui?.blocks?.meta && (
+                <Meta bucket={bucket} path={path} version={version} />
+              )}
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(renderPreview, viewMode),
+                  Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
                 })}
               </Section>
             </>

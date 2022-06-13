@@ -4,7 +4,6 @@ import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -21,18 +20,30 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from 'containers/Bucket/Code'
+import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
 import renderPreview from 'containers/Bucket/renderPreview'
 import * as requests from 'containers/Bucket/requests'
 
 import * as EmbedConfig from './EmbedConfig'
+import * as Overrides from './Overrides'
 import getCrumbs from './getCrumbs'
+import * as ipc from './ipc'
+
+const defaults = {
+  s3ObjectLink: {
+    title: "Copy object version's canonical HTTPS URI to the clipboard",
+    href: (ctx) => ctx.s3HttpsUri,
+    notification: 'HTTPS URI copied to clipboard',
+  },
+}
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
@@ -54,6 +65,7 @@ function VersionInfo({ bucket, path, version }) {
   const { urls } = NamedRoutes.use()
   const cfg = Config.use()
   const { push } = Notifications.use()
+  const messageParent = ipc.useMessageParent()
 
   const containerRef = React.useRef()
   const [anchor, setAnchor] = React.useState()
@@ -61,16 +73,37 @@ function VersionInfo({ bucket, path, version }) {
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
 
+  const overrides = Overrides.use(defaults)
+
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) =>
-    s3paths.handleToHttpsUri({ bucket, key: path, version: v.id })
+  const getLink = (v) =>
+    overrides.s3ObjectLink.href({
+      url: urls.bucketFile(bucket, path, v.id),
+      s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
+      bucket,
+      key: path,
+      version: v.id,
+    })
+
   const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
 
-  const copyHttpsUri = (v) => (e) => {
+  const copyLink = (v) => (e) => {
     e.preventDefault()
-    copyToClipboard(getHttpsUri(v), { container: containerRef.current })
-    push('HTTPS URI copied to clipboard')
+    if (overrides.s3ObjectLink.emit !== 'override') {
+      copyToClipboard(getLink(v), { container: containerRef.current })
+      push(overrides.s3ObjectLink.notification)
+    }
+    if (overrides.s3ObjectLink.emit) {
+      messageParent({
+        type: 's3ObjectLink',
+        url: urls.bucketFile(bucket, path, v.id),
+        s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
+        bucket,
+        key: path,
+        version: v.id,
+      })
+    }
   }
 
   const copyCliArgs = (v) => (e) => {
@@ -114,7 +147,7 @@ function VersionInfo({ bucket, path, version }) {
                   <M.ListItemText
                     primary={
                       <span>
-                        <FormattedRelative value={v.lastModified} />
+                        <Format.Relative value={v.lastModified} />
                         {v.isLatest && ' (latest)'}
                         {' | '}
                         {v.size != null ? readableBytes(v.size) : 'Delete Marker'}
@@ -145,9 +178,9 @@ function VersionInfo({ bucket, path, version }) {
                         )}
                       <M.Hidden xsDown>
                         <M.IconButton
-                          title="Copy object version's canonical HTTPS URI to the clipboard"
-                          href={getHttpsUri(v)}
-                          onClick={copyHttpsUri(v)}
+                          title={overrides.s3ObjectLink.title}
+                          href={getLink(v)}
+                          onClick={copyLink(v)}
                         >
                           <M.Icon>link</M.Icon>
                         </M.IconButton>
@@ -304,15 +337,17 @@ const useStyles = M.makeStyles((t) => ({
   at: {
     color: t.palette.text.secondary,
   },
-  spacer: {
-    flexGrow: 1,
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: 'auto',
   },
   button: {
-    flexShrink: 0,
-    marginBottom: -3,
-    marginTop: -3,
+    marginLeft: t.spacing(2),
   },
 }))
+
+const previewOptions = { context: Preview.CONTEXT.FILE }
 
 export default function File({
   match: {
@@ -335,8 +370,8 @@ export default function File({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           b.fetch("${path}", "./${basename(path)}")
         `,
       },
@@ -388,7 +423,7 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load(handle, callback)
+        return Preview.load(handle, callback, previewOptions)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
@@ -415,8 +450,12 @@ export default function File({
             'latest'
           )}
         </div>
-        <div className={classes.spacer} />
-        {downloadable && <FileView.DownloadButton handle={handle} />}
+        <div className={classes.actions}>
+          <FileProperties data={versionExistsData} />
+          {downloadable && (
+            <FileView.DownloadButton className={classes.button} handle={handle} />
+          )}
+        </div>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
@@ -444,7 +483,7 @@ export default function File({
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(renderPreview),
+                  Ok: withPreview(renderPreview()),
                 })}
               </Section>
               <Meta bucket={bucket} path={path} version={version} />

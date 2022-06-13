@@ -2,6 +2,7 @@
 Tests for the ES indexer. This function consumes events from SQS.
 """
 import datetime
+import io
 import json
 import os
 from copy import deepcopy
@@ -16,6 +17,7 @@ from unittest.mock import ANY, Mock, call, patch
 from urllib.parse import unquote_plus
 
 import boto3
+import pptx
 import pytest
 import responses
 from botocore import UNSIGNED
@@ -31,7 +33,7 @@ from t4_lambda_shared.utils import (
     separated_env_to_iter,
 )
 
-from .. import index
+from .. import document_queue, index
 
 BASE_DIR = Path(__file__).parent / 'data'
 
@@ -711,7 +713,7 @@ class TestIndex(TestCase):
                 else:
                     expected = {
                         **expected_params,
-                        'Range': 'bytes=0-100'
+                        'Range': 'bytes=0-99'
                     }
                 self.s3_stubber.add_response(
                     method='get_object',
@@ -921,6 +923,25 @@ class TestIndex(TestCase):
             bucket_versioning=False,
             expected_es_calls=1
         )
+
+    def test_extract_pdf(self):
+        """test pdf extraction to text"""
+        with open(BASE_DIR / "MUMmer.pdf", "rb") as pdf:
+            txt = index.extract_pdf(pdf)
+            phrases = [
+                "Alignment of whole genomes",
+                "When the genome sequence of two closely related organisms",
+                # 2 lines as one string
+                "; the result is a very detailed and inclusive base-to-base mapping "
+                "between the two sequences.",
+                # 4 lines as one string
+                "Although our alignment does not contain all the details generated "
+                "and displayed by the combination of methods used in Ansari-Lari "
+                "et al., the overall alignment of the two sequences is easily "
+                "apparent from the output of our program.",
+                "under Grant no. R01-AI40125-01.",
+            ]
+            assert all(p in txt for p in phrases)
 
     @patch.object(index, 'extract_parquet')
     def test_index_c000(self, extract_mock):
@@ -1152,7 +1173,7 @@ class TestIndex(TestCase):
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
                 "VersionId": OBJECT_RESPONSE["VersionId"],
-                'Range': "bytes=0-64"
+                'Range': "bytes=0-63"
             }
         )
 
@@ -1370,7 +1391,7 @@ class TestIndex(TestCase):
 
     def test_extension_overrides(self):
         """ensure that only the file extensions in override are indexed"""
-        with patch(__name__ + '.index.CONTENT_INDEX_EXTS', {'.unique1', '.unique2'}):
+        with patch(__name__ + '.index.get_content_index_extensions', return_value={'.unique1', '.unique2'}):
             self.s3_stubber.add_response(
                 method='get_object',
                 service_response={
@@ -1382,7 +1403,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique1',
                     'IfMatch': 'etag',
-                    'Range': 'bytes=0-123',
+                    'Range': 'bytes=0-122',
                 }
             )
             self.s3_stubber.add_response(
@@ -1396,7 +1417,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique2',
                     'IfMatch': 'etag',
-                    'Range': 'bytes=0-123',
+                    'Range': 'bytes=0-122',
                 }
             )
             # only these two file types should be indexed
@@ -1707,8 +1728,8 @@ class TestIndex(TestCase):
         assert self._get_contents('foo.exe', '.exe') == ""
         assert self._get_contents('foo.exe.gz', '.exe.gz') == ""
 
-    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 100)
-    def test_get_contents(self):
+    @patch(__name__ + '.index.get_content_index_bytes', return_value=100)
+    def test_get_contents(self, mocked_get_content_index_bytes):
         parquet = (BASE_DIR / 'onlycolumns-c000').read_bytes()
         # mock up the responses
         size = len(parquet)
@@ -1730,7 +1751,7 @@ class TestIndex(TestCase):
             version_id='abcde',
         )
         # test return val
-        assert len(contents.encode()) == index.ELASTIC_LIMIT_BYTES, \
+        assert len(contents.encode()) == mocked_get_content_index_bytes.return_value, \
             'contents return more data than expected'
         # we know from ELASTIC_LIMIT_BYTES=1000 that column_k is the last one
         present, _, absent = ascii_lowercase.partition('l')
@@ -1762,7 +1783,7 @@ class TestIndex(TestCase):
         assert contents == ""
 
     @pytest.mark.extended
-    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 64_000)
+    @patch('document_queue.ELASTIC_LIMIT_BYTES', 64_000)
     def test_get_contents_extended(self):
         directory = (BASE_DIR / 'extended')
         files = directory.glob('**/*-c000')
@@ -1786,7 +1807,7 @@ class TestIndex(TestCase):
                 size=size,
                 version_id='abcde',
             )
-            assert len(contents.encode()) <= index.ELASTIC_LIMIT_BYTES, \
+            assert len(contents.encode()) <= 64_000, \
                 'contents return more data than expected'
 
     def test_get_plain_text(self):
@@ -1801,7 +1822,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': 'bytes=0-123',
+                'Range': 'bytes=0-122',
             }
         )
 
@@ -1828,7 +1849,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': 'bytes=0-123',
+                'Range': 'bytes=0-122',
             }
         )
 
@@ -1846,7 +1867,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': 'bytes=0-123',
+                'Range': 'bytes=0-122',
             }
         )
 
@@ -1908,7 +1929,7 @@ class TestIndex(TestCase):
 
         contents = self._get_contents('foo.parquet', '.parquet')
         size = len(contents.encode('utf-8', 'ignore'))
-        assert size <= index.ELASTIC_LIMIT_BYTES
+        assert size <= document_queue.ELASTIC_LIMIT_BYTES
         # spot check for contents
         assert "This is not even worth the money." in contents
         assert "As for results; I felt relief almost immediately." in contents
@@ -1936,3 +1957,27 @@ class TestIndex(TestCase):
                     'IfMatch': 'etag',
                 }
             )
+
+
+def test_extract_pptx():
+    lorem = "Lorem ipsum dolor sit amet, consectetur"
+
+    prs = pptx.Presentation()
+
+    blank_slide_layout = prs.slide_layouts[6]
+    left = top = width = height = pptx.util.Inches(1)
+
+    slide1 = prs.slides.add_slide(blank_slide_layout)
+    slide1.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+    slide1.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+
+    slide2 = prs.slides.add_slide(blank_slide_layout)
+    slide2.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+    slide2.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+
+    buf = io.BytesIO()
+    prs.save(buf)
+    buf.seek(0)
+    result = index.extract_pptx(buf, len(lorem) * 4 - 1)
+
+    assert result == "\n".join([lorem] * 3)

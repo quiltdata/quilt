@@ -13,7 +13,7 @@ package-level and object-level metadata are queryable via AWS Athena
 
 * *Trust* — Quilt metadata are screened against JSON schemas that you define to
 ensure that annotations are complete and type-safe. (See
-[Workflows](../Advanced Features/workflows.md))
+[Workflows](../advanced-features/workflows.md))
 
 * *Understandability* - Metadata are a love letter to the future; with metadata
 in hand, users can better understand what data mean, where they came from,

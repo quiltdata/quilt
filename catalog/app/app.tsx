@@ -11,29 +11,26 @@ import * as M from '@material-ui/core'
 import 'sanitize.css'
 
 // Import root app
-import Error from 'components/Error'
 import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
-import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
-import LanguageProvider from 'containers/LanguageProvider'
 import * as Auth from 'containers/Auth'
+import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
+import { GraphQLProvider } from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
-import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RF from 'utils/ReduxForm'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
-import { nest, composeComponent } from 'utils/reactTools'
+import { nest } from 'utils/reactTools'
 import RouterProvider, { LOCATION_CHANGE, selectLocation } from 'utils/router'
 import mkStorage from 'utils/storage'
 import * as Tracking from 'utils/tracking'
@@ -41,9 +38,6 @@ import * as Tracking from 'utils/tracking'
 /* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico'
 import '!file-loader?name=[name].[ext]!./quilt-og.png'
-/* eslint-enable import/no-unresolved, import/extensions */
-// Import i18n messages
-import { translationMessages, MessagesByLocale } from './i18n'
 // Import CSS reset and Global Styles
 import WithGlobalStyles from './global-styles'
 
@@ -52,37 +46,6 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
   // reload doc when we have all custom fonts
   document.body.classList.add('fontLoaded')
 })
-
-const ErrorBoundary = composeComponent(
-  'ErrorBoundary',
-  Sentry.inject(),
-  createBoundary(
-    ({ sentry }: { sentry: $TSFixMe }) => (error: $TSFixMe, info: $TSFixMe) => {
-      sentry('captureException', error, info)
-      return (
-        <Layout bare>
-          <Error headline="Unexpected Error" detail="Something went wrong" />
-        </Layout>
-      )
-    },
-  ),
-)
-
-// error gets automatically logged to the console, so no need to do it explicitly
-const FinalBoundary = createBoundary(() => (/* error, info */) => (
-  <h1
-    style={{
-      alignItems: 'center',
-      color: '#fff',
-      display: 'flex',
-      height: '90vh',
-      justifyContent: 'center',
-      maxHeight: '600px',
-    }}
-  >
-    Something went wrong
-  </h1>
-))
 
 const history = createHistory()
 const MOUNT_NODE = document.getElementById('app')
@@ -106,24 +69,23 @@ const sentryUserSelector = (state: $TSFixMe) => {
   return u ? { username: u.current_user, email: u.email } : {}
 }
 
-const render = (messages: MessagesByLocale) => {
+const render = () => {
   ReactDOM.render(
     nest(
       [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
       WithGlobalStyles,
-      FinalBoundary,
+      Errors.FinalBoundary,
       // @ts-expect-error
       Sentry.Provider,
       [Store.Provider, { history }],
-      [LanguageProvider, { messages }],
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
       Cache.Provider,
       [Config.Provider, { path: '/config.json' }],
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
-      ErrorBoundary,
-      RF.Provider,
+      GraphQLProvider,
+      Errors.ErrorBoundary,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
@@ -133,7 +95,7 @@ const render = (messages: MessagesByLocale) => {
           userSelector: intercomUserSelector,
           horizontal_padding:
             // align the launcher with the right side of the container
-            (window.innerWidth - Math.min(1280, window.innerWidth)) / 2 + 32,
+            (window.innerWidth - Math.min(1280, window.innerWidth)) / 2 + 24,
           vertical_padding: 59,
         },
       ],
@@ -147,9 +109,10 @@ const render = (messages: MessagesByLocale) => {
       ],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
+      AWS.Athena.Provider,
       AWS.S3.Provider,
       Notifications.WithNotifications,
-      ErrorBoundary,
+      Errors.ErrorBoundary,
       BucketCacheProvider,
       App,
     ),
@@ -169,4 +132,4 @@ if (module.hot) {
 }
 */
 
-render(translationMessages)
+render()

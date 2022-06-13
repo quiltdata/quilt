@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as effects from 'redux-saga/effects'
-import uuid from 'uuid'
+import * as uuid from 'uuid'
 
 import AsyncResult from 'utils/AsyncResult'
 import { useReducer } from 'utils/ReducerInjector'
@@ -17,6 +17,8 @@ import useMemoEq from 'utils/useMemoEq'
 const REDUX_KEY = 'app/ResourceCache'
 
 const Ctx = React.createContext()
+
+const RELEASE_TIME = 5000
 
 // Resource<I, O> = {
 //   name: string,
@@ -33,14 +35,16 @@ const Ctx = React.createContext()
 //     Ok: O
 //   }),
 //   claimed: number,
+//   releasedAt: Date?
 // }
 // State = Map<string, Map<I, Entry<O>>>
 
-export const createResource = ({ name, fetch, key = R.identity }) => ({
+export const createResource = ({ name, fetch, key = R.identity, persist = false }) => ({
   name,
   fetch,
-  id: uuid(),
+  id: uuid.v4(),
   key,
+  persist,
 })
 
 const Action = tagged([
@@ -49,7 +53,8 @@ const Action = tagged([
   'Response', // { resource, input: any, result: Result }
   'Patch', // { resource, input: any, update: fn, silent: bool }
   'Claim', // { resource, input: any }
-  'Release', // { resource, input: any }
+  'Release', // { resource, input: any, releasedAt: Date }
+  'CleanUp', // { time: Date }
 ])
 
 const keyFor = (resource, input) => [resource.id, I.fromJS(resource.key(input))]
@@ -57,48 +62,72 @@ const keyFor = (resource, input) => [resource.id, I.fromJS(resource.key(input))]
 const reducer = reduxTools.withInitialState(
   I.Map(),
   Action.reducer({
-    Init: ({ resource, input, promise }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (entry) throw new Error('Init: entry already exists')
-        return { promise, result: AsyncResult.Init(), claimed: 0 }
-      }),
-    Request: ({ resource, input }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Request: entry does not exist')
-        if (!AsyncResult.Init.is(entry.result)) {
-          throw new Error('Request: invalid transition')
-        }
-        return { ...entry, result: AsyncResult.Pending() }
-      }),
-    Response: ({ resource, input, result }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) return undefined // released before response
-        if (!AsyncResult.Pending.is(entry.result)) {
-          throw new Error('Response: invalid transition')
-        }
-        return { ...entry, result }
-      }),
-    Patch: ({ resource, input, update, silent = false }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) {
-          if (silent) return entry
-          throw new Error('Patch: entry does not exist')
-        }
-        return update(entry)
-      }),
-    Claim: ({ resource, input }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Claim: entry does not exist')
-        return { ...entry, claimed: entry.claimed + 1 }
-      }),
-    Release: ({ resource, input }) => (s) => {
-      const key = keyFor(resource, input)
-      const entry = s.getIn(key)
-      if (!entry) throw new Error('Release: entry does not exist')
-      return entry.claimed <= 1
-        ? s.removeIn(key)
-        : s.updateIn(key, R.evolve({ claimed: R.dec }))
-    },
+    Init:
+      ({ resource, input, promise }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (entry) throw new Error('Init: entry already exists')
+          return {
+            promise,
+            result: AsyncResult.Init(),
+            claimed: resource.persist ? 1 : 0, // "persistent" resources won't be released
+          }
+        }),
+    Request:
+      ({ resource, input }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) throw new Error('Request: entry does not exist')
+          if (!AsyncResult.Init.is(entry.result)) {
+            throw new Error('Request: invalid transition')
+          }
+          return { ...entry, result: AsyncResult.Pending() }
+        }),
+    Response:
+      ({ resource, input, result }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) return undefined // released before response
+          if (!AsyncResult.Pending.is(entry.result)) {
+            throw new Error('Response: invalid transition')
+          }
+          return { ...entry, result }
+        }),
+    Patch:
+      ({ resource, input, update, silent = false }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) {
+            if (silent) return entry
+            throw new Error('Patch: entry does not exist')
+          }
+          return update(entry)
+        }),
+    Claim:
+      ({ resource, input }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) throw new Error('Claim: entry does not exist')
+          return { ...entry, claimed: entry.claimed + 1 }
+        }),
+    Release:
+      ({ resource, input, releasedAt }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) throw new Error('Release: entry does not exist')
+          return { ...entry, claimed: entry.claimed - 1, releasedAt }
+        }),
+    CleanUp:
+      ({ time }) =>
+      (s) =>
+        s.map((r) =>
+          r.filter(
+            (entry) =>
+              entry.claimed >= 1 ||
+              !entry.releasedAt ||
+              time - entry.releasedAt < RELEASE_TIME,
+          ),
+        ),
     __: () => R.identity,
   }),
 )
@@ -118,8 +147,18 @@ function* handleInit({ resource, input, resolver }) {
   }
 }
 
+function* cleanup() {
+  // TODO: refactor cleanup logic, so that the cleanup action is only dispatched
+  // when there's anything to cleanup (to avoid re-renders every 5 sec)
+  while (true) {
+    yield effects.delay(RELEASE_TIME)
+    yield effects.put(Action.CleanUp({ time: new Date() }))
+  }
+}
+
 function* saga() {
   yield sagaTools.takeEveryTagged(Action.Init, handleInit)
+  yield effects.fork(cleanup)
 }
 
 export const suspend = ({ promise, result }) =>
@@ -172,7 +211,7 @@ export const Provider = function ResourceCacheProvider({ children }) {
             Ok: R.pipe(updateOk, AsyncResult.Ok),
             _: R.identity,
           }),
-          promise: R.then(updateOk),
+          promise: R.andThen(updateOk),
         }),
       )
       return patch(resource, input, update, silent)
@@ -189,7 +228,8 @@ export const Provider = function ResourceCacheProvider({ children }) {
 
   const release = React.useCallback(
     (resource, input) => {
-      store.dispatch(Action.Release({ resource, input }))
+      const releasedAt = new Date()
+      store.dispatch(Action.Release({ resource, input, releasedAt }))
     },
     [store],
   )

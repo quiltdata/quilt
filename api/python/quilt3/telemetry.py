@@ -37,7 +37,7 @@ class ApiTelemetry:
 
     @classmethod
     def create_session(cls):
-        return FuturesSession(executor=ThreadPoolExecutor(max_workers=2))
+        return FuturesSession(executor=ThreadPoolExecutor(max_workers=2))  # pylint: disable=consider-using-with
 
     def __init__(self, api_name):
         if ApiTelemetry.telemetry_disabled is None:

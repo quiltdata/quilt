@@ -8,9 +8,20 @@ const useStyles = M.makeStyles((t) => ({
     borderWidth: '1px 1px 0',
     color: t.palette.text.hint,
     display: 'flex',
-    padding: '5px 8px',
+    padding: '4px 8px',
   },
 }))
+
+const useOverrideStyles = M.makeStyles({
+  li: {
+    '&::before': {
+      position: 'absolute', // Workaround for sanitize.css a11y styles
+    },
+  },
+  separator: {
+    alignItems: 'center',
+  },
+})
 
 const useItemStyles = M.makeStyles({
   root: {
@@ -19,13 +30,13 @@ const useItemStyles = M.makeStyles({
   },
 })
 
-interface BreadcrumbsItemProps {
-  index: number
+interface ItemProps {
   children: React.ReactNode
+  index: number
   onClick: (index: number) => void
 }
 
-function BreadcrumbsItem({ index, children, onClick }: BreadcrumbsItemProps) {
+function Item({ index, children, onClick }: ItemProps) {
   const classes = useItemStyles()
 
   return (
@@ -39,17 +50,32 @@ function BreadcrumbsItem({ index, children, onClick }: BreadcrumbsItemProps) {
   )
 }
 
+interface CurrentItemProps {
+  children: React.ReactNode
+}
+
+function CurrentItem({ children }: CurrentItemProps) {
+  return <M.Typography variant="subtitle2">{children}</M.Typography>
+}
+
 function BreadcrumbsDivider() {
   return <M.Icon fontSize="small">chevron_right</M.Icon>
+}
+
+function shoudShowItem(index: number, itemsNumber: number, tailOnly: boolean) {
+  if (!tailOnly) return true
+  return index > itemsNumber - 2
 }
 
 interface BreadcrumbsProps {
   items: string[]
   onSelect: (path: string[]) => void
+  tailOnly: boolean
 }
 
-export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
+export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsProps) {
   const classes = useStyles()
+  const overrideClasses = useOverrideStyles()
 
   const onBreadcrumb = React.useCallback(
     (index) => {
@@ -66,28 +92,32 @@ export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
   }, [ref])
 
   return (
-    <M.Breadcrumbs className={classes.root} ref={ref} separator={<BreadcrumbsDivider />}>
-      <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
-        <M.Icon fontSize="small">home</M.Icon>
-      </BreadcrumbsItem>
-
-      {items.map((item, index) =>
-        index === items.length - 1 ? (
-          <M.Typography key="last-breadcrumb" variant="subtitle2">
-            {item}
-          </M.Typography>
-        ) : (
-          <BreadcrumbsItem
-            {...{
-              key: `${item}_${index}`,
-              index: index + 1,
-              onClick: onBreadcrumb,
-            }}
-          >
-            {item}
-          </BreadcrumbsItem>
-        ),
+    <M.Breadcrumbs
+      className={classes.root}
+      classes={overrideClasses}
+      ref={ref}
+      separator={<BreadcrumbsDivider />}
+    >
+      {shoudShowItem(0, items.length, tailOnly) && (
+        <Item index={0} onClick={onBreadcrumb}>
+          <M.Icon fontSize="small">home</M.Icon>
+        </Item>
       )}
+
+      {items.map((item, index) => {
+        const actualIndex = index + 1
+
+        if (!shoudShowItem(actualIndex, items.length, tailOnly)) return null
+
+        if (index === items.length - 1)
+          return <CurrentItem key="last-breadcrumb">{item}</CurrentItem>
+
+        return (
+          <Item key={`${item}_${actualIndex}`} index={actualIndex} onClick={onBreadcrumb}>
+            {item}
+          </Item>
+        )
+      })}
     </M.Breadcrumbs>
   )
 }

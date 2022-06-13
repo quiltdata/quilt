@@ -1,6 +1,8 @@
 import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 
+import * as s3paths from './s3paths'
+
 /**
  * @typedef {function} TestFunction
  *
@@ -23,7 +25,7 @@ import * as R from 'ramda'
  */
 
 /**
- * Validator function to use with redux-form.
+ * Validator function to use with final-form.
  *
  * @typedef {function} Validator
  *
@@ -59,9 +61,10 @@ import * as R from 'ramda'
  *   ...
  * />
  */
-export default memoize((error, test) => (v, vs, props) =>
-  // only test truthy values
-  v && !test(v, vs, props) ? error : undefined,
+export default memoize(
+  (error, test) => (v, vs, props) =>
+    // only test truthy values
+    v && !test(v, vs, props) ? error : undefined,
 )
 
 /**
@@ -122,6 +125,36 @@ export const json = (v) => {
   }
 }
 
+export const hexColor = (v) => {
+  if (!v) return undefined
+  return matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)(v) ? undefined : 'hex'
+}
+
+export const url = (v) => {
+  if (!v) return undefined
+  try {
+    // if v is not valid URL, then URL will throws
+    new window.URL(v)
+  } catch (e) {
+    return 'url'
+  }
+}
+
+export const s3Url = (v) => {
+  if (!v) return undefined
+  try {
+    const { bucket, key } = s3paths.parseS3Url(v)
+    if (!bucket || !key) return 's3Url'
+  } catch (e) {
+    return 's3Url'
+  }
+}
+
+export const file = (v) => {
+  if (!v) return undefined
+  return v instanceof File ? undefined : 'file'
+}
+
 /**
  * Validate that the string represents a valid JSON object. Error string: 'jsonObject'.
  *
@@ -137,8 +170,34 @@ export const jsonObject = (v) => {
   }
 }
 
-export const composeAsync = (...validators) => (...args) =>
-  validators.reduce(
-    (error, next) => Promise.resolve(error).then((e) => e || next(...args)),
-    undefined,
-  )
+export const composeOr =
+  (...validators) =>
+  (v) => {
+    let error
+    // check if any of validators returns undefined
+    validators.some((validator) => {
+      error = validator(v)
+      return !error
+    })
+    return error
+  }
+
+export const composeAnd =
+  (...validators) =>
+  (v) => {
+    let error
+    // check if all validators returns undefined
+    validators.every((validator) => {
+      error = validator(v)
+      return !error
+    })
+    return error
+  }
+
+export const composeAsync =
+  (...validators) =>
+  (...args) =>
+    validators.reduce(
+      (error, next) => Promise.resolve(error).then((e) => e || next(...args)),
+      undefined,
+    )

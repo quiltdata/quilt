@@ -2,7 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Config from 'utils/Config'
+
 import BucketSelect from './BucketSelect'
+import Collaborators from './Collaborators'
 import Search from './Search'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
@@ -80,6 +83,7 @@ function GlobalControls({ iconized, disableSearch }) {
 
 function BucketControls({ bucket, iconized, disableSearch }) {
   const [state, setState] = React.useState(null)
+  const cfg = Config.use()
   const select = React.useCallback(() => {
     setState('select')
   }, [setState])
@@ -98,6 +102,9 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
+      {cfg.mode === 'PRODUCT' && (
+        <Collaborators bucket={bucket} hidden={state === 'search'} />
+      )}
       <Search
         bucket={bucket}
         onFocus={search}

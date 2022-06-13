@@ -8,19 +8,30 @@ import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
 import * as s3paths from 'utils/s3paths'
 
-import * as Text from './Text'
 import { PreviewData, PreviewError } from '../types'
+
+import * as Text from './Text'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
-const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
+const SCHEMA_RE =
+  /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
+const BYTES_TO_SCAN = 128 * 1024
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
-const traverseUrls = (fn, spec) => R.evolve({ data: map(R.evolve({ url: fn })) }, spec)
+export const traverseUrls = (fn, spec) =>
+  R.evolve(
+    {
+      data: map(R.evolve({ url: fn })),
+      layer: map((l) => traverseUrls(fn, l)),
+    },
+    spec,
+  )
 
+// NOTE: downloads content from urls embeded in `{ data: url-here-becomes-json }`
 function useVegaSpecSigner(handle) {
-  const sign = AWS.Signer.useS3Signer()
+  const sign = AWS.Signer.useS3Signer({ forceProxy: true })
   const resolveLogicalKey = useLogicalKeyResolver()
 
   const resolvePath = React.useMemo(
@@ -57,7 +68,6 @@ function useVegaSpecSigner(handle) {
     [sign, resolvePath],
   )
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback(
     async (spec) => {
       const promises = []
@@ -151,10 +161,10 @@ function JsonLoader({ gated, handle, children }) {
 
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
-export const Loader = function GatedJsonLoader({ handle, children }) {
-  return utils.useFirstBytes({ bytes: 256, handle }).case({
+export const Loader = function GatedJsonLoader({ handle, children, options }) {
+  return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
-      detectSchema(firstBytes) ? (
+      detectSchema(firstBytes) && options.mode !== 'json' ? (
         <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ) : (
         <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />

@@ -9,16 +9,15 @@ VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 
 def readme():
-    readme_short = """
-    Quilt manages data like code (with packages, repositories, browsing and
-    revision history) so that teams can experiment faster in machine learning,
-    biotech, and other data-driven domains.
+    return """\
+Quilt manages data like code (with packages, repositories, browsing and
+revision history) so that teams can experiment faster in machine learning,
+biotech, and other data-driven domains.
 
-    The `quilt3` PyPi package allows you to build, push, and install data packages.
-    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
-    to learn more.
-    """
-    return readme_short
+The `quilt3` PyPI package allows you to build, push, and install data packages.
+Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+to learn more.
+"""
 
 
 class VerifyVersionCommand(install):
@@ -38,18 +37,18 @@ class VerifyVersionCommand(install):
 setup(
     name="quilt3",
     version=VERSION,
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -60,17 +59,13 @@ setup(
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.10.0',
-        'dnspython>=1.16.0',
-        'flask',
-        'flask_cors',
-        'flask_json',
         'jsonlines==1.2.0',
         'PyYAML>=5.1',
         'requests>=2.12.4',
         'tenacity>=5.1.1',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
-        'jsonschema==3.*',
+        'jsonschema>=3,<5',
     ],
     extras_require={
         'pyarrow': [
@@ -79,16 +74,20 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
         'tests': [
-            'urllib3<1.26,>=1.25.4'         # https://github.com/quiltdata/quilt/pull/1903
             'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-            'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
+            'pytest==6.*',
             'pytest-cov',
+            'coverage==6.4',
             'pytest-env',
             'pytest-subtests',
             'responses',
             'git-pylint-commit-hook',
+        ],
+        'catalog': [
+            'quilt3_local>=1,<2',
+            'uvicorn>=0.15,<0.18',
         ],
     },
     include_package_data=True,
