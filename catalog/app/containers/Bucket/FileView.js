@@ -16,19 +16,57 @@ import Section from './Section'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
+const useMetaInnerStyles = M.makeStyles((t) => ({
+  lastRowCells: {
+    borderBottom: 0,
+  },
+  headCell: {
+    width: t.spacing(20),
+    borderRight: '1px solid rgba(224,224,224,1)',
+  },
+}))
+
+const HeadCell = ({ className, children }) => {
+  const classes = useMetaInnerStyles()
+  return (
+    <M.TableCell className={cx(classes.headCell, className)} component="th" scope="row">
+      {children}
+    </M.TableCell>
+  )
+}
+
 function MetaInner({ meta, ...props }) {
+  const classes = useMetaInnerStyles()
   const value = React.useMemo(() => {
-    if (!meta || R.isEmpty(meta)) return null
-    // This version confuses users
-    // They think its package version rather than meta format version
-    return R.dissoc('version', meta)
+    return meta && !R.isEmpty(meta) ? meta : null
   }, [meta])
 
   if (!value) return null
 
   return (
-    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      <JsonDisplay value={value} defaultExpanded={1} />
+    <Section icon="list" heading="Details" defaultExpanded {...props}>
+      <M.Table size="small">
+        <M.TableBody>
+          <M.TableRow>
+            <HeadCell>Commit message:</HeadCell>
+            <M.TableCell>
+              <M.Typography>"{value.message}"</M.Typography>
+            </M.TableCell>
+          </M.TableRow>
+          <M.TableRow>
+            <HeadCell>Metadata:</HeadCell>
+            <M.TableCell>
+              <JsonDisplay value={value.user_meta} />
+            </M.TableCell>
+          </M.TableRow>
+          <M.TableRow>
+            <HeadCell className={classes.lastCell}>Workflow:</HeadCell>
+            <M.TableCell className={classes.lastCell}>
+              <JsonDisplay value={value.workflow} />
+            </M.TableCell>
+          </M.TableRow>
+        </M.TableBody>
+      </M.Table>
     </Section>
   )
 }
