@@ -56,3 +56,20 @@ queries:
 
 The Quilt catalog displays your saved queries in a drop-down for your users to
 select, edit, and execute.
+
+## Athena
+
+You can park reusable Athena Queries in the Quilt catalog so that your users can
+run them.
+(We presume that you have already set up you Athena workgroup and tables per
+[AWS's documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).)
+
+### Configuration
+You can hide "Queries" tab by setting `ui > nav > queries: false` ([Learn more](./Preferences.md)).
+
+### Basics
+"Run query" executes the selected query and waits for the result.
+![](../imgs/athena-ui.png)
+
+Queries are idempotent, so running the same query will return identical results.
+![](../imgs/athena-history.png)
