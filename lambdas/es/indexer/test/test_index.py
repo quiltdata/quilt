@@ -1140,12 +1140,7 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
 
-    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
-    @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_package_positive(self, append_mock, filter_mock):
-        """test manifest file and its indexing"""
-        timestamp = floor(time())
-        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
+    def _test_index_if_package(self, pointer_key, append_mock):
         # first, handler() will head the object
         self.s3_stubber.add_response(
             method="head_object",
@@ -1281,70 +1276,18 @@ class TestIndex(TestCase):
 
     @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
     @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_package_tag(self, append_mock, filter_mock):
+    def test_index_if_package_positive(self, append_mock, filter_mock):
         """test manifest file and its indexing"""
         timestamp = floor(time())
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
+        self._test_index_if_package(pointer_key, append_mock)
+
+    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_package_tag(self, append_mock, filter_mock):
+        """test manifest file and its indexing"""
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/latest"
-        # first, handler() will head the object
-        self.s3_stubber.add_response(
-            method="head_object",
-            service_response={
-                **OBJECT_RESPONSE,
-                "ContentLength": 64
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": pointer_key,
-                "VersionId": OBJECT_RESPONSE["VersionId"],
-            }
-        )
-
-        self._test_index_events(
-            ["ObjectCreated:Put"],
-            # we're mocking append so ES will never get called
-            mock_elastic=False,
-            mock_overrides={
-                "event_kwargs": {
-                    "key": pointer_key,
-                    "versionId": OBJECT_RESPONSE["VersionId"]
-                },
-                # we, not _test_index_events, patch all the S3 calls in this test
-                "mock_object": False,
-                "mock_head": False
-            }
-        )
-
-        append_mock.assert_has_calls([
-            call(
-                "ObjectCreated:Put",
-                DocTypes.OBJECT,
-                bucket="test-bucket",
-                etag="123456",
-                ext="",
-                key=".quilt/named_packages/author/semantic/latest",
-                last_modified="2020-05-22T00:32:20.515Z",
-                size=64,
-                text="",
-                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
-            ),
-            call(
-                "ObjectCreated:Put",
-                DocTypes.PACKAGE,
-                bucket="test-bucket",
-                comment="",
-                etag="123456",
-                ext="",
-                handle="author/semantic",
-                key=".quilt/named_packages/author/semantic/latest",
-                last_modified="2020-05-22T00:32:20.515Z",
-                metadata="{}",
-                package_hash="latest",
-                package_stats=None,
-                pointer_file="latest",
-                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
-            ),
-        ])
-        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
+        self._test_index_if_package(pointer_key, append_mock)
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
