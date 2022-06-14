@@ -309,19 +309,17 @@ def index_if_package(
         return False
     try:
         manifest_timestamp = int(pointer_file)
-        is_tag = False
         if not 1451631600 <= manifest_timestamp <= 1767250800:
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
     except ValueError as err:
-        is_tag = True
         logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
     package_hash = ''
     first_dict = {}
     stats = None
-    # we only need to get manifest contents for proper create events (not latest pointers)
-    if event_type.startswith(EVENT_PREFIX["Created"]) and not is_tag:
+    # we only need to get manifest contents for proper create events
+    if event_type.startswith(EVENT_PREFIX["Created"]):
         package_hash = get_plain_text(
             bucket,
             key,
