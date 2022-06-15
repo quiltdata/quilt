@@ -16,6 +16,15 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    # XXX: split into separate PR
+    config.addinivalue_line(
+        "markers", "poppler: mark a test to run only if --poppler is indicated (poppler tools is installed)"
+    )
+    config.addinivalue_line(
+        "markers", "loffice: mark a test to run only if --loffice is indicated (LibreOffice is installed)"
+    )
+    # XXX: /split into separate pr
+
     markers_to_exclude = []
 
     if not config.option.poppler:
