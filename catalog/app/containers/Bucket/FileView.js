@@ -26,11 +26,13 @@ const useMetaInnerStyles = M.makeStyles((t) => ({
   },
 }))
 
-const HeadCell = ({ className, children }) => {
+const HeadCell = ({ className, children, title }) => {
   const classes = useMetaInnerStyles()
   return (
     <M.TableCell className={cx(classes.headCell, className)} component="th" scope="row">
-      {children}
+      <M.Tooltip title={title}>
+        <span>{children}</span>
+      </M.Tooltip>
     </M.TableCell>
   )
 }
@@ -44,23 +46,25 @@ function MetaInner({ meta, ...props }) {
   if (!value) return null
 
   return (
-    <Section icon="list" heading="Details" defaultExpanded {...props}>
+    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
       <M.Table size="small">
         <M.TableBody>
           <M.TableRow>
-            <HeadCell>Commit message:</HeadCell>
+            <HeadCell title="/message">Commit message:</HeadCell>
             <M.TableCell>
               <M.Typography>"{value.message}"</M.Typography>
             </M.TableCell>
           </M.TableRow>
           <M.TableRow>
-            <HeadCell>Metadata:</HeadCell>
+            <HeadCell title="/user_metadata">User metadata:</HeadCell>
             <M.TableCell>
               <JsonDisplay value={value.user_meta} />
             </M.TableCell>
           </M.TableRow>
           <M.TableRow>
-            <HeadCell className={classes.lastCell}>Workflow:</HeadCell>
+            <HeadCell className={classes.lastCell} title="/workflow">
+              Workflow:
+            </HeadCell>
             <M.TableCell className={classes.lastCell}>
               <JsonDisplay value={value.workflow} />
             </M.TableCell>
