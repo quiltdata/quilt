@@ -12,11 +12,11 @@ fast-moving databases and file systems.
 In addition to rendering a wide variety of images, binary files, and text 
 files, the Quilt catalog supports the following libraries for visualization and
 exploration:
-* [Vega](https://vega.github.io/vega/)
-* [Vega-lite](https://vega.github.io/vega-lite/)
-* [ECharts](https://echarts.apache.org/en/index.html)
-* [Voila](https://github.com/voila-dashboards/voila) (Developer preview)
-* [Perspective](https://perspective.finos.org)
+* [Vega](https://github.com/vega/vega#readme)
+* [Vega-lite](https://github.com/vega/vega-lite#readme)
+* [ECharts](https://github.com/apache/echarts#readme)
+* [Voila](https://github.com/voila-dashboards/voila#readme) (Developer preview)
+* [Perspective](https://github.com/finos/perspective/#readme)
 
 The above systems provide you with hundreds of charts out of the box.
 
