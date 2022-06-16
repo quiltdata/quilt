@@ -44,6 +44,7 @@
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
 * [Cross-account access](CrossAccount.md)
+* [Querying Package Metadata with AWS Athena](advanced-features/athena.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
