@@ -51,7 +51,7 @@ TBLPROPERTIES (
   'transient_lastDdlTime'='1557626200')
   ```
 
-### Package Names
+### Package-Level Metadata
 To reference package names, which are recorded in the pointer file paths, create a view using the DDL below. The `user` and `name` fields are extracted separately into their own columns.
 
 ```sql
@@ -64,11 +64,26 @@ regexp_extract("$path", '[^/]+$') as timestamp,
 FROM "named_packages_{bucket}"
 ```
 
-### Package-Level Metadata
+The following DDL creates a view to query the package-level metadata (associated with whole packages rather than individual files).
+
+```sql
+CREATE VIEW "quilt_manifests_{bucket}_view" AS
+SELECT
+  regexp_extract("$path", '[^/]+$') as tophash,
+  manifests."message"
+FROM "quilt_manifests_{bucket}" as manifests
+WHERE manifests."logical_key" IS NULL
+```
+
 Joining the two views above produces a complete picture of the package-level metadata.
 
 ```sql
-SELECT npv."user", npv."name", npv."timestamp", mv."tophash", mv."message"
+SELECT
+  npv."user",
+  npv."name",
+  npv."timestamp",
+  mv."tophash",
+  mv."message"
 FROM "quilt_named_packages_{bucket}" as npv
 JOIN "quilt_manifests_{bucket}_view" as mv
 ON npv."hash" = mv."tophash"
