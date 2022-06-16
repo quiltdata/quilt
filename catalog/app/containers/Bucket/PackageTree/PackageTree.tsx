@@ -174,7 +174,7 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: $TSFixMe[] // Crumb
-  editing: boolean
+  actions: Action[]
 }
 
 function DirDisplay({
@@ -184,10 +184,11 @@ function DirDisplay({
   hashOrTag,
   path,
   crumbs,
-  editing,
+  actions,
 }: DirDisplayProps) {
   const { desktop } = Config.use()
   const history = RRDom.useHistory()
+  const location = RRDom.useLocation()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
 
@@ -201,8 +202,24 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
+  const [initialOpen] = React.useState(actions.includes('revisePackage'))
+  const clearActions = React.useCallback(
+    (searchParams) => {
+      searchParams.delete('action')
+      history.replace({
+        search: searchParams.toString(),
+      })
+    },
+    [history],
+  )
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    if (!searchParams.has('action')) return
+    clearActions(searchParams)
+  }, [clearActions, location.search])
+
   const updateDialog = PD.usePackageCreationDialog({
-    initialOpen: editing,
+    initialOpen,
     bucket,
     src: { name, hash },
   })
@@ -755,8 +772,6 @@ function PackageTree({
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, hashOrTag, path, urls])
 
-  const editing = React.useMemo(() => actions.includes('revisePackage'), [actions])
-
   return (
     <FileView.Root>
       {/* TODO: bring back linked data after re-implementing it using graphql
@@ -813,7 +828,7 @@ function PackageTree({
                 path,
                 hashOrTag,
                 crumbs,
-                editing,
+                actions,
               }}
             />
           ) : (
