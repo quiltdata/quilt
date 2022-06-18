@@ -52,39 +52,83 @@ TBLPROPERTIES (
   ```
 
 ### Package-Level Metadata
-To reference package names, which are recorded in the pointer file paths, create a view using the DDL below. The `user` and `name` fields are extracted separately into their own columns.
+The DDL below creates a view that contains package-level information including: 
+* User
+* Package name
+* Tophash
+* Timestamp
+* Commit message
 
 ```sql
-CREATE VIEW "quilt_named_packages_{bucket}_view" AS SELECT
-"$path" as path,
-regexp_extract("$path", '^s3:\/\/([^\\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 4) as user,
-regexp_extract("$path", '^s3:\/\/([^\\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 5) as name,
-regexp_extract("$path", '[^/]+$') as timestamp,
-"{prefix}_{bucket}"."hash"
-FROM "named_packages_{bucket}"
-```
-
-The following DDL creates a view to query the package-level metadata (associated with whole packages rather than individual files).
-
-```sql
-CREATE VIEW "quilt_manifests_{bucket}_view" AS
+CREATE OR REPLACE VIEW "quilt_packages_{bucket}_view" AS
+WITH
+  npv AS (
+    SELECT
+      regexp_extract("$path", '^s3:\/\/([^\\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 4) as user,
+      regexp_extract("$path", '^s3:\/\/([^\\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 5) as name,
+      regexp_extract("$path", '[^/]+$') as timestamp,
+      "quilt_named_packages_{bucket}"."hash"
+      FROM "quilt_named_packages_{bucket}"
+  ),
+  mv AS (
+    SELECT
+      regexp_extract("$path", '[^/]+$') as tophash,
+        manifest."meta",
+        manifest."message"
+      FROM
+        "quilt_manifests_{bucket}" as manifest
+      WHERE manifest."logical_key" IS NULL
+  )
 SELECT
-  regexp_extract("$path", '[^/]+$') as tophash,
-  manifests."message"
-FROM "quilt_manifests_{bucket}" as manifests
-WHERE manifests."logical_key" IS NULL
+  npv."user",
+  npv."name",
+  npv."hash",
+  npv."timestamp",
+  mv."message",
+  mv."meta"
+FROM npv
+JOIN
+  mv
+ON
+  npv."hash" = mv."tophash" 
 ```
 
-Joining the two views above produces a complete picture of the package-level metadata.
+### Package Objects and Object-Level Metadata
+The DDL below creates a view that contains package contents, including:
+* logical_key
+* physical_keys
+* object hash
+* object metadata
 
 ```sql
+CREATE OR REPLACE VIEW "quilt_package_objects_{bucket}_view" AS
+WITH
+  mv AS (
+    SELECT
+      regexp_extract("$path", '[^/]+$') as tophash,
+      manifest."logical_key",
+      manifest."physical_keys",
+      manifest."size",
+      manifest."hash",
+      manifest."meta",
+      manifest."user_meta"
+    FROM
+      "quilt_manifests_{bucket}" as manifest
+    WHERE manifest."logical_key" IS NOT NULL
+  )
 SELECT
   npv."user",
   npv."name",
   npv."timestamp",
   mv."tophash",
-  mv."message"
-FROM "quilt_named_packages_{bucket}" as npv
-JOIN "quilt_manifests_{bucket}_view" as mv
-ON npv."hash" = mv."tophash"
+  mv."logical_key",
+  mv."physical_keys",
+  mv."hash",
+  mv."meta",
+  mv."user_meta"
+FROM mv
+JOIN
+  "quilt_packages_{bucket}_view" as npv
+ON
+  npv."hash" = mv."tophash"
 ```
