@@ -101,6 +101,11 @@ The following service role is equivalent to `AdministratorAccess`:
 }
 ```
 
+[Here](./cfn-service-role.yml)'s example CloudFormation template that defines role
+with minimal permissions to be used as CloudFormation service role for Quilt stack.
+**Note**: you should make sure this role is up-to-date before every Quilt stack update,
+otherwise stack update could fail.
+
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
 
