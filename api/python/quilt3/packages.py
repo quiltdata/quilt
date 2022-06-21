@@ -1462,7 +1462,7 @@ class Package:
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
                 return False
-            return pathlib.Path(pk.path).parent == APP_DIR_TEMPFILE_DIR
+            return pathlib.Path(pk.path).parent.resolve() == APP_DIR_TEMPFILE_DIR.resolve()
 
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
         if temp_file_logical_keys:

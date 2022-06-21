@@ -168,6 +168,17 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
           Filter and plot
         </M.Button>
       )}
+
+      {state?.rotateThemes && (
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>palette_outlined</M.Icon>}
+          size="small"
+          onClick={state?.rotateThemes}
+        >
+          Toggle theme
+        </M.Button>
+      )}
     </div>
   )
 }

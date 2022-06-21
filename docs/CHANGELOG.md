@@ -6,6 +6,9 @@
 
 ## Catalog, Lambdas
 !-->
+## Python API
+* [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
+
 ## Catalog, Lambdas
 * [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
 * [Added] Show bucket collaborators ([#2756](https://github.com/quiltdata/quilt/pull/2756))
@@ -13,10 +16,15 @@
 * [Added] Add `blocks` field to `.quilt/catalog/config.yaml` to control blocks visibility ([#2791](https://github.com/quiltdata/quilt/pull/2791))
 * [Added] Add theming with custom square logo and background color ([#2793](https://github.com/quiltdata/quilt/pull/2793))
 * [Added] Admin: new roles and policies UI ([#2819](https://github.com/quiltdata/quilt/pull/2819))
+* [Added] Deep search indexing for .pptx ([#2881](https://github.com/quiltdata/quilt/pull/2881))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
 * [Changed] Make `pkgpush` lambda directly invocable, adjust handling of parameters and errors ([#2776](https://github.com/quiltdata/quilt/pull/2776))
 * [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
+* [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
+
+## Docs
+* [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
 
 # 5.0.0 - 2022-03-14
 ## CLI

@@ -101,7 +101,6 @@ function DirContents({
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const preferences = BucketPreferences.use()
 
   const onPackageDirectoryDialogExited = React.useCallback(() => {
     setSuccessor(null)
@@ -131,22 +130,20 @@ function DirContents({
         onExited={onPackageDirectoryDialogExited}
       />
 
-      {preferences?.ui?.blocks?.browser && (
-        <Listing
-          items={items}
-          locked={locked}
-          loadMore={loadMore}
-          truncated={response.truncated}
-          prefixFilter={response.prefix}
-          toolbarContents={
-            <PrefixFilter
-              key={`${response.bucket}/${response.path}`}
-              prefix={response.prefix}
-              setPrefix={setPrefix}
-            />
-          }
-        />
-      )}
+      <Listing
+        items={items}
+        locked={locked}
+        loadMore={loadMore}
+        truncated={response.truncated}
+        prefixFilter={response.prefix}
+        toolbarContents={
+          <PrefixFilter
+            key={`${response.bucket}/${response.path}`}
+            prefix={response.prefix}
+            setPrefix={setPrefix}
+          />
+        }
+      />
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
       <Summary files={response.files} mkUrl={null} />

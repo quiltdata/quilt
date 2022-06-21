@@ -2,6 +2,7 @@
 Tests for the ES indexer. This function consumes events from SQS.
 """
 import datetime
+import io
 import json
 import os
 from copy import deepcopy
@@ -16,6 +17,7 @@ from unittest.mock import ANY, Mock, call, patch
 from urllib.parse import unquote_plus
 
 import boto3
+import pptx
 import pytest
 import responses
 from botocore import UNSIGNED
@@ -1955,3 +1957,27 @@ class TestIndex(TestCase):
                     'IfMatch': 'etag',
                 }
             )
+
+
+def test_extract_pptx():
+    lorem = "Lorem ipsum dolor sit amet, consectetur"
+
+    prs = pptx.Presentation()
+
+    blank_slide_layout = prs.slide_layouts[6]
+    left = top = width = height = pptx.util.Inches(1)
+
+    slide1 = prs.slides.add_slide(blank_slide_layout)
+    slide1.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+    slide1.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+
+    slide2 = prs.slides.add_slide(blank_slide_layout)
+    slide2.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+    slide2.shapes.add_textbox(left, top, width, height).text_frame.text = lorem
+
+    buf = io.BytesIO()
+    prs.save(buf)
+    buf.seek(0)
+    result = index.extract_pptx(buf, len(lorem) * 4 - 1)
+
+    assert result == "\n".join([lorem] * 3)

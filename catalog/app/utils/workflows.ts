@@ -187,6 +187,10 @@ function validateConfigCompoundVersion(
 
 function validateConfig(data: unknown): asserts data is WorkflowsYaml {
   const objectVersion = (data as WorkflowsYaml).version
+  if (!objectVersion)
+    throw new bucketErrors.WorkflowsConfigInvalid({
+      errors: [new Error('Provide the config version')],
+    })
   const workflowsConfigValidator = (objectVersion as WorkflowsVersion).catalog
     ? makeSchemaValidator(workflowsCatalogConfigSchema, [workflowsConfigSchema])
     : makeSchemaValidator(workflowsConfigSchema)
