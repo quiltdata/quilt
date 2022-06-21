@@ -1,14 +1,22 @@
-# Querying Package Metadata with AWS Athena
-Quilt stores package data and metadata together in S3. That makes the metadata and package specifications available for querying and analysis through Query-in-place SQL engines like AWS Athena. Users can write SQL queries to select packages (or files from within packages) using predicates based on package or object-level metadata.
+# Querying package metadata with Athena
+Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
+in a each bucket's `.quilt/` directory.
 
-## Defining Package Tables and Views in Athena
-The first step in configuring Athena to query the package contents and metadata is to define a set of tables that represent the package information, including the various columns and how they map onto the manifest files that contain the package definitions in Quilt.
 
-### Manifests Table
-In Quilt, each package's contents and metadata are stored in a manifest file in S3. The following Athena DDL will build a table of all the manifests (all packages' contents and metadata). 
+You can therefore query package metadata wth SQL engines like AWS Athena.
+Users can write SQL queries to select packages (or files from within packages)
+using predicates based on package or object-level metadata.
+
+## Defining package tables and views in Athena
+The first step in configuring Athena to query the package contents and metadata
+is to define a set of tables that represent the package metadata fields as columns.
+
+### Manifests table
+The following Athena DDL will build a table of all the manifests in a given bucket
+(all package-level and object-level metadata). 
 
 ```sql
-CREATE EXTERNAL TABLE `quilt_manifests_{bucket}`(
+CREATE EXTERNAL TABLE `quilt_manifests_YOUR_BUCKET`(
   `logical_key` string COMMENT 'from deserializer', 
   `physical_keys` array<string> COMMENT 'from deserializer', 
   `size` string COMMENT 'from deserializer', 
@@ -32,11 +40,13 @@ TBLPROPERTIES (
   'transient_lastDdlTime'='1605312102')
 ```
 
-### Package Pointers Table
-Package names and top hashes are not stored in the manifests. Instead, they're recorded in pointer files in the `.quilt/named_packages` folder in the bucket. The following DDL creates a table from these pointer files to make the package top hashes available in Athena as well.
+### Package metadata table
+Package names and top hashes are not stored in the manifests. Rather they are stored in pointer files in the `.quilt/named_packages` folder.
+The following DDL creates a table from these pointer files to make package
+top hashes available in Athena.
 
 ```sql
-CREATE EXTERNAL TABLE `quilt_named_packages_{bucket}`(
+CREATE EXTERNAL TABLE `quilt_named_packages_YOUR_BUCKET`(
   `hash` string)
 ROW FORMAT DELIMITED 
   FIELDS TERMINATED BY ',' 
@@ -49,9 +59,9 @@ LOCATION
 TBLPROPERTIES (
   'has_encrypted_data'='false', 
   'transient_lastDdlTime'='1557626200')
-  ```
+```
 
-### Package-Level Metadata
+### View of package-level metadata
 The DDL below creates a view that contains package-level information including: 
 * User
 * Package name
@@ -93,7 +103,7 @@ ON
   npv."hash" = mv."tophash" 
 ```
 
-### Package Objects and Object-Level Metadata
+### View of object-Level metadata
 The DDL below creates a view that contains package contents, including:
 * logical_key
 * physical_keys
