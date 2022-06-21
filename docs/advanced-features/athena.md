@@ -49,8 +49,7 @@ top hashes available in Athena.
 CREATE EXTERNAL TABLE `quilt_named_packages_YOUR_BUCKET`(
   `hash` string)
 ROW FORMAT DELIMITED 
-  FIELDS TERMINATED BY ',' 
-STORED AS INPUTFORMAT 
+  FIELDS TERMINATED BY ',' STORED AS INPUTFORMAT 
   'org.apache.hadoop.mapred.TextInputFormat' 
 OUTPUTFORMAT 
   'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
@@ -111,7 +110,7 @@ The DDL below creates a view that contains package contents, including:
 * object metadata
 
 ```sql
-CREATE OR REPLACE VIEW "quilt_package_objects_{bucket}_view" AS
+CREATE OR REPLACE VIEW "quilt_package_objects_YOUR_BUCKET_view" AS
 WITH
   mv AS (
     SELECT
@@ -123,7 +122,7 @@ WITH
       manifest."meta",
       manifest."user_meta"
     FROM
-      "quilt_manifests_{bucket}" as manifest
+      "quilt_manifests_YOUR_BUCKET" as manifest
     WHERE manifest."logical_key" IS NOT NULL
   )
 SELECT
@@ -141,4 +140,17 @@ JOIN
   "quilt_packages_{bucket}_view" as npv
 ON
   npv."hash" = mv."tophash"
+```
+
+## Example: query package-level metadata
+
+Suppose we wish to find all .tiff files produced by algorithm version 1.3
+with a cell index of 5.
+
+```sql
+SELECT * FROM  "quilt_package_objects_YOUR_BUCKET_view" AS
+WHERE substr(logical_key, -5)='.tiff'
+-- extract and query package-level metadata
+AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
+AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
 ```
