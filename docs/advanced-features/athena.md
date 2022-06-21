@@ -17,14 +17,14 @@ The following Athena DDL will build a table of all the manifests in a given buck
 
 ```sql
 CREATE EXTERNAL TABLE `quilt_manifests_YOUR_BUCKET`(
-  `logical_key` string COMMENT 'from deserializer', 
-  `physical_keys` array<string> COMMENT 'from deserializer', 
-  `size` string COMMENT 'from deserializer', 
-  `hash` struct<type:string,value:string> COMMENT 'from deserializer', 
-  `meta` string COMMENT 'from deserializer', 
-  `user_meta` string COMMENT 'from deserializer', 
-  `message` string COMMENT 'from deserializer', 
-  `version` string COMMENT 'from deserializer')
+  `logical_key` string, 
+  `physical_keys` array<string>, 
+  `size` string, 
+  `hash` struct<type:string,value:string>, 
+  `meta` string, 
+  `user_meta` string, 
+  `message` string, 
+  `version` string)
 ROW FORMAT SERDE 
   'org.openx.data.jsonserde.JsonSerDe' 
 WITH SERDEPROPERTIES ( 
