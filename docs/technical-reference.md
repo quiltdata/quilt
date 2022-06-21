@@ -78,28 +78,18 @@ You will need the following:
 
 1. **An AWS account**
 
-1. **IAM Permissions** to run the CloudFormation template (or Add products in
+1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-The `AdministratorAccess` policy is sufficient. (Quilt creates and manages a
-VPC, containers, S3 buckets, a database, and more.)
 
-If you wish to create an [AWS CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-for the installation, visit `IAM > Roles > Create Role > AWS service > CloudFormation`
-in the AWS console.
+We recommend that you use a
+[CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+for stack creation and updates.
 
-The following service role is equivalent to `AdministratorAccess`:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "*",
-            "Resource": "*"
-        }
-    ]
-}
-```
+See this [example service role](./cfn-service-role.yml) for minimal permissions
+to install a Quilt stack.
+
+> Ensure that your service role is up-to-date with the example before every stack
+update so as to prevent installation failures.
 
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
@@ -397,6 +387,38 @@ Note the comma after the object. Your trust relationship should now look somethi
 ```
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
+
+### S3 buckets with SSE-KMS
+In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
+the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
+and look for IAM roles with the following logical IDs:
+* `AmazonECSTaskExecutionRole`
+* `PkgEventsRole`
+* `PkgSelectLambdaRole`
+* `SearchHandlerRole`
+* `T4BucketReadRole`
+* `T4BucketWriteRole`
+
+Note the ARN for each of the above logical IDs and add an Allow statement
+similar to the following to the KMS key policy:
+
+```
+{
+    "Effect": "Allow",
+    "Principal": {
+        "AWS": [
+            "<RoleARN-1>",
+            ...
+            "<RoleARN-N>"
+        ]
+    },
+    "Action": [
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
+    ],
+    "Resource": "*"
+}
+```
 
 ## Backup and Recovery
 

@@ -162,7 +162,7 @@ def preview_csv(url, compression, max_out_size, *, delimiter: str = ","):
             invalid_row_handler=invalid_row_handler,
         ),
     )
-    output_data, output_truncated = write_data_as_arrow(t, t.schema, max_out_size)
+    output_data, output_truncated = write_data_as_arrow(t, t.schema, None)
 
     return 200, output_data, {
         "Content-Type": "application/vnd.apache.arrow.file",

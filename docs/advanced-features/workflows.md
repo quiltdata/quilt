@@ -370,6 +370,11 @@ The catalog's
 feature can be enabled by adding a `successors` property to the config.
 A *successor* is a destination bucket. 
 ```yaml
+version:
+  base: "1"
+workflows:
+  dummy:
+    name: Dummy
 successors:
   s3://bucket1:
     title: Staging
