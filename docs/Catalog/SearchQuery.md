@@ -1,9 +1,9 @@
-Out of the box, Quilt provides support for queries in the ElasticSearch DSL, as well as SQL queries in Athena (details forthcoming).
+Quilt provides support for queries in the ElasticSearch DSL, as well as SQL queries in Athena.
 
 ## ElasticSearch
 
 The objects in S3 buckets connected to Quilt are synchronized to an ElasticSearch
-cluster, which powers Quilt's search features. For custom queries, you can use the
+cluster, which provides Quilt's search features. For custom queries, you can use the
 Queries tab in the Quilt catalog to directly query ElasticSearch cluster.
 
 Quilt uses ElasticsSearch 6.7
@@ -60,16 +60,15 @@ select, edit, and execute.
 ## Athena
 
 You can park reusable Athena Queries in the Quilt catalog so that your users can
-run them.
-(We presume that you have already set up you Athena workgroup and tables per
-[AWS's documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).)
+run them. You must first set up you an Athena workgroup and Saved queries per
+[AWS's Athena documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).
 
 ### Configuration
-You can hide "Queries" tab by setting `ui > nav > queries: false` ([Learn more](./Preferences.md)).
+You can hide the "Queries" tab by setting `ui > nav > queries: false` ([learn more](./Preferences.md)).
 
 ### Basics
 "Run query" executes the selected query and waits for the result.
 ![](../imgs/athena-ui.png)
 
-Queries are idempotent, so running the same query will return identical results.
+Queries are idempotent, so running the same query returns identical results.
 ![](../imgs/athena-history.png)
