@@ -78,33 +78,18 @@ You will need the following:
 
 1. **An AWS account**
 
-1. **IAM Permissions** to run the CloudFormation template (or Add products in
+1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-The `AdministratorAccess` policy is sufficient. (Quilt creates and manages a
-VPC, containers, S3 buckets, a database, and more.)
 
-If you wish to create an [AWS CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-for the installation, visit `IAM > Roles > Create Role > AWS service > CloudFormation`
-in the AWS console.
+We recommend that you use a
+[CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+for stack creation and updates.
 
-The following service role is equivalent to `AdministratorAccess`:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "*",
-            "Resource": "*"
-        }
-    ]
-}
-```
+See this [example service role](./cfn-service-role.yml) for minimal permissions
+to install a Quilt stack.
 
-[Here](./cfn-service-role.yml)'s example CloudFormation template that defines role
-with minimal permissions to be used as CloudFormation service role for Quilt stack.
-**Note**: you should make sure this role is up-to-date before every Quilt stack update,
-otherwise stack update could fail.
+> Ensure that your service role is up-to-date with the example before every stack
+update so as to prevent installation failures.
 
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
