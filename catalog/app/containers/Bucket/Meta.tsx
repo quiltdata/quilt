@@ -33,6 +33,9 @@ const HeadCell = ({ className, children, title }: HeadCellProps) => {
 }
 
 const useMetaStyles = M.makeStyles({
+  message: {
+    paddingLeft: '4px',
+  },
   lastRowCells: {
     borderBottom: 0,
   },
@@ -61,7 +64,7 @@ function Meta({ meta, ...props }: MetaProps) {
           <M.TableRow>
             <HeadCell title="/message">Commit message:</HeadCell>
             <M.TableCell>
-              <M.Typography>"{value.message}"</M.Typography>
+              <M.Typography className={classes.message}>{value.message}</M.Typography>
             </M.TableCell>
           </M.TableRow>
           <M.TableRow>
