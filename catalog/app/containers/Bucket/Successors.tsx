@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -42,7 +41,7 @@ function ErrorSlot({ error }: ErrorSlotProps) {
       <M.Typography gutterBottom>
         Error: <code>{error.message}</code>
       </M.Typography>
-      {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
+      {error instanceof ERRORS.WorkflowsConfigInvalid && (
         <M.Typography>
           Please fix the workflows config according to{' '}
           <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
