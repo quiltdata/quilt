@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
+import AsyncResult from 'utils/AsyncResult'
 
 import Section, { SectionProps } from './Section'
 
@@ -37,15 +38,17 @@ const useMetaStyles = M.makeStyles({
   },
 })
 
-interface MetaProps extends SectionProps {
-  meta?: {
-    message: string
-    user_meta: object
-    workflow: $TSFixMe
-  }
+interface MetaData {
+  message: string
+  user_meta: object
+  workflow: $TSFixMe
 }
 
-export default function Meta({ meta, ...props }: Omit<MetaProps, 'heading'>) {
+interface MetaProps extends Partial<SectionProps> {
+  meta?: MetaData
+}
+
+function Meta({ meta, ...props }: MetaProps) {
   const classes = useMetaStyles()
   const value = React.useMemo(() => (meta && !R.isEmpty(meta) ? meta : null), [meta])
 
@@ -80,5 +83,19 @@ export default function Meta({ meta, ...props }: Omit<MetaProps, 'heading'>) {
         </M.TableBody>
       </M.Table>
     </Section>
+  )
+}
+
+interface MetaWrapperProps extends Partial<SectionProps> {
+  data: $TSFixMe
+}
+
+export default function MetaWrapper({ data, ...props }: MetaWrapperProps) {
+  return AsyncResult.case(
+    {
+      Ok: (meta: MetaData) => <Meta meta={meta} {...props} />,
+      _: () => null,
+    },
+    data,
   )
 }

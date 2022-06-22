@@ -7,22 +7,11 @@ import * as M from '@material-ui/core'
 import SelectDropdown from 'components/SelectDropdown'
 import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 
-import MetaInner from './Meta'
+export { default as Meta } from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
-
-export function Meta({ data, ...props }) {
-  return AsyncResult.case(
-    {
-      Ok: (meta) => <MetaInner meta={meta} {...props} />,
-      _: () => null,
-    },
-    data,
-  )
-}
 
 const useDownloadButtonStyles = M.makeStyles((t) => ({
   root: {
