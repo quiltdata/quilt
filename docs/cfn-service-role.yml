@@ -166,6 +166,7 @@ Resources:
                   - s3:PutBucketPolicy
                   - s3:PutBucketVersioning
                   - s3:PutLifecycleConfiguration
+                  - sns:Publish  # To publish to CFN notification topic.
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
