@@ -297,6 +297,8 @@ initially displays "Datgrid".
 
 ![](../imgs/perspective-plot.png)
 
+Click Toggle Theme to use a fixed-width font (useful for comparing strings).
+
 Use the controls along the bottom to reset, download, copy, resize the grid, and more.
 
 ### Saving and configuring the datagrid
