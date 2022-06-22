@@ -1,10 +1,8 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
 import SelectDropdown from 'components/SelectDropdown'
 import * as Auth from 'containers/Auth'
@@ -12,66 +10,9 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 
-import Section from './Section'
+import MetaInner from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
-
-const useMetaInnerStyles = M.makeStyles((t) => ({
-  lastRowCells: {
-    borderBottom: 0,
-  },
-  headCell: {
-    width: t.spacing(20),
-    borderRight: '1px solid rgba(224,224,224,1)',
-  },
-}))
-
-const HeadCell = ({ className, children, title }) => {
-  const classes = useMetaInnerStyles()
-  return (
-    <M.TableCell className={cx(classes.headCell, className)} component="th" scope="row">
-      <M.Tooltip title={title}>
-        <span>{children}</span>
-      </M.Tooltip>
-    </M.TableCell>
-  )
-}
-
-function MetaInner({ meta, ...props }) {
-  const classes = useMetaInnerStyles()
-  const value = React.useMemo(() => (meta && !R.isEmpty(meta) ? meta : null), [meta])
-
-  if (!value) return null
-
-  return (
-    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      <M.Table size="small">
-        <M.TableBody>
-          <M.TableRow>
-            <HeadCell title="/message">Commit message:</HeadCell>
-            <M.TableCell>
-              <M.Typography>"{value.message}"</M.Typography>
-            </M.TableCell>
-          </M.TableRow>
-          <M.TableRow>
-            <HeadCell title="/user_metadata">User metadata:</HeadCell>
-            <M.TableCell>
-              <JsonDisplay value={value.user_meta} />
-            </M.TableCell>
-          </M.TableRow>
-          <M.TableRow>
-            <HeadCell className={classes.lastCell} title="/workflow">
-              Workflow:
-            </HeadCell>
-            <M.TableCell className={classes.lastCell}>
-              <JsonDisplay value={value.workflow} />
-            </M.TableCell>
-          </M.TableRow>
-        </M.TableBody>
-      </M.Table>
-    </Section>
-  )
-}
 
 export function Meta({ data, ...props }) {
   return AsyncResult.case(

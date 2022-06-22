@@ -34,7 +34,7 @@ type NodeRenderer = (props: {
 
 type NodeOrFn = NodeRenderer | React.ReactNode
 
-interface SectionProps extends M.AccordionProps {
+export interface SectionProps extends M.AccordionProps {
   icon?: string
   heading: NodeOrFn
   defaultExpanded?: boolean
