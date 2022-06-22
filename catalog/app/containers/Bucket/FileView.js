@@ -39,9 +39,7 @@ const HeadCell = ({ className, children, title }) => {
 
 function MetaInner({ meta, ...props }) {
   const classes = useMetaInnerStyles()
-  const value = React.useMemo(() => {
-    return meta && !R.isEmpty(meta) ? meta : null
-  }, [meta])
+  const value = React.useMemo(() => (meta && !R.isEmpty(meta) ? meta : null), [meta])
 
   if (!value) return null
 
