@@ -19,10 +19,10 @@ import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/
 import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
-import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
+import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -128,6 +128,7 @@ function DirContents({
         open={!!successor}
         successor={successor}
         onExited={onPackageDirectoryDialogExited}
+        onSuccessor={setSuccessor}
       />
 
       <Listing
@@ -253,9 +254,13 @@ export default function Dir({
         </div>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.createPackage && (
-          <CopyButton bucket={bucket} className={classes.button} onChange={setSuccessor}>
+          <Successors.Button
+            bucket={bucket}
+            className={classes.button}
+            onChange={setSuccessor}
+          >
             Create package from directory
-          </CopyButton>
+          </Successors.Button>
         )}
         {!noDownload && !desktop && (
           <FileView.ZipDownloadForm
