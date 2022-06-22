@@ -281,12 +281,27 @@ scipy
 Quilt renders tabular data formats into a Perspective Datagrid, including the
 following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv. 
 
-For speed, Quilt loads a small preview of the rows stored in S3. You can click
-Load More to fetch up to about 6MB of zipped data. Beyond this size, click Download
-to see the entire file contents.
+For speed, Quilt loads the first few rows stored in S3. Click Load More to fetch
+up to about 6MB of zipped data. To see the entire file contents for large files,
+download the file (lower left).
 
-In order to open the analysis and visualization capabilities of Perspecitve,
-click the vertical ellipsis, upper left. To open the controls by default, set the `config.settings` property
+### Filter, plot, pivot
+
+Click Filter and Plot to open the side drawer. Drag and drop columns to Group By,
+Split By, Order By, and Where to pivot, filter, and more.
+
+![](../imgs/perspective-groupby.png)
+
+Select from a variety for visualizations by clicking the upper left menu that
+initially displays "Datgrid".
+
+![](../imgs/perspective-plot.png)
+
+Use the controls along the bottom to reset, download, copy, resize the grid, and more.
+
+### Saving and configuring the datagrid
+
+To open the drawer by default, set the `config.settings` property
 in `quilt_summarize.json` as follows:
 
 ```json
@@ -306,7 +321,8 @@ in `quilt_summarize.json` as follows:
 ]
 ```
 
-Besides `{ "settings": true }` you can provide any object previously saved from Perspective.
+You can save the state of the datagrid, as shown below. To restore a saved datagrid
+use the `config` property of `quilt_summarize.json`:
 
 ![](../imgs/perspective-save.png)
 
@@ -331,9 +347,3 @@ All filters and columns will be restored:
   }
 ]
 ```
-
-Drag columns from the left to the top to sort, filter, and pivot.
-Use the menu upper left to try different visualizations.
-Use the controls along the bottom to download, copy, resize, and more.
-
-![](../imgs/perspective.png)
