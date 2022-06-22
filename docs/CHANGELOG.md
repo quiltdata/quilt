@@ -23,6 +23,9 @@
 * [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
 * [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
 
+## Docs
+* [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
+
 # 5.0.0 - 2022-03-14
 ## CLI
 * [Added] `--force` flag for `quilt3 push` ([#2722](https://github.com/quiltdata/quilt/pull/2722))
