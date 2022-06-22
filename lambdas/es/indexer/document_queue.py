@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 from enum import Enum
 from math import floor
-from typing import Dict, List
+from typing import Dict
 
 import boto3
 from aws_requests_auth.aws_auth import AWSRequestsAuth
