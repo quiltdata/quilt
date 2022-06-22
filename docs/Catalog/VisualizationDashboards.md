@@ -12,11 +12,11 @@ fast-moving databases and file systems.
 In addition to rendering a wide variety of images, binary files, and text 
 files, the Quilt catalog supports the following libraries for visualization and
 exploration:
-* [Vega](https://github.com/vega/vega#readme)
-* [Vega-lite](https://github.com/vega/vega-lite#readme)
-* [ECharts](https://github.com/apache/echarts#readme)
-* [Voila](https://github.com/voila-dashboards/voila#readme) (Developer preview)
-* [Perspective](https://github.com/finos/perspective/#readme)
+* [Vega](#vega-and-vega-lite)
+* [Vega-lite](#vega-and-vega-lite)
+* [ECharts](#echarts)
+* [Voila](#voila) (Developer preview)
+* [Perspective](#perspective)
 
 The above systems provide you with hundreds of charts out of the box.
 
@@ -95,7 +95,7 @@ use the following extended syntax:
 At present `height` is the only supported `style` element.
 
 ## Vega and Vega-lite
-The Quilt catalog uses vega-embed, vega, and vega-lite.
+The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed), [vega](https://vega.github.io/vega/), and [vega-lite](https://vega.github.io/vega-lite/).
 See [package.json](https://github.com/quiltdata/quilt/blob/master/catalog/package.json)
 for specific library versions and compatibility.
 
@@ -134,7 +134,7 @@ alt.Chart(df).mark_area(
 ```
 
 ## ECharts
-To render an EChart, you provide a JSON file (a dictionary that
+To render an [EChart](https://echarts.apache.org/), you provide a JSON file (a dictionary that
 specifies the ECharts [option parameter](https://echarts.apache.org/en/option.html))
 and you set the `"types"` property to `[ "echarts" ]`.
 
@@ -278,7 +278,7 @@ scipy
 
 ## Perspective
 
-Quilt renders tabular data formats into a Perspective Datagrid, including the
+Quilt renders tabular data formats into a [Perspective](https://perspective.finos.org/) Datagrid, including the
 following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv. 
 
 For speed, Quilt loads a small preview of the rows stored in S3. You can click
