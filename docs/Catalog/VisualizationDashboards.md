@@ -287,8 +287,8 @@ download the file (lower left).
 
 ### Filter, plot, pivot
 
-Click Filter and Plot to open the side drawer. Drag and drop columns to Group By,
-Split By, Order By, and Where to pivot, filter, and more.
+Click Filter and Plot to open the side drawer. Drag and drop columns from the sidebar
+to Group By, Split By, Order By, and Where to pivot, filter, and more.
 
 ![](../imgs/perspective-groupby.png)
 
