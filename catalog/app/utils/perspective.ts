@@ -36,7 +36,7 @@ export async function renderTable(
   viewer: HTMLPerspectiveViewerElement,
 ) {
   const table = await worker.table(data)
-  viewer.load(table)
+  await viewer.load(table)
   return table
 }
 
