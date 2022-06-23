@@ -10,7 +10,8 @@ import Section, { SectionProps } from './Section'
 
 const useHeadCellStyles = M.makeStyles((t) => ({
   root: {
-    borderRight: `1px solid ${t.palette.divider}`,
+    paddingTop: t.spacing(1),
+    verticalAlign: 'top',
     width: t.spacing(20),
   },
 }))
@@ -64,7 +65,7 @@ function Meta({ meta, ...props }: MetaProps) {
           <M.TableRow>
             <HeadCell title="/message">Commit message:</HeadCell>
             <M.TableCell>
-              <M.Typography className={classes.message}>{value.message}</M.Typography>
+              <M.Typography className={classes.message}>"{value.message}"</M.Typography>
             </M.TableCell>
           </M.TableRow>
           <M.TableRow>
