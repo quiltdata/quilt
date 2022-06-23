@@ -846,7 +846,6 @@ interface PackageTreeQueriesProps {
   path: string
   resolvedFrom?: string
   mode?: string
-  size?: number
 }
 
 function PackageTreeQueries({
@@ -856,7 +855,6 @@ function PackageTreeQueries({
   path,
   resolvedFrom,
   mode,
-  size,
 }: PackageTreeQueriesProps) {
   const revisionQuery = useQuery({
     query: REVISION_QUERY,

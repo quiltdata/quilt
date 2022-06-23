@@ -1,12 +1,22 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Config from 'utils/Config'
+
 interface RevisionMenuProps {
   className: string
   onDelete: () => void
+  onDesktop: () => void
 }
 
-export default function RevisionMenu({ className, onDelete }: RevisionMenuProps) {
+export default function RevisionMenu({
+  className,
+  onDelete,
+  onDesktop,
+}: RevisionMenuProps) {
+  const preferences = BucketPreferences.use()
+  const { desktop }: { desktop: boolean } = Config.use()
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
 
   const handleOpen = React.useCallback(
@@ -24,6 +34,10 @@ export default function RevisionMenu({ className, onDelete }: RevisionMenuProps)
     onDelete()
     setAnchorEl(null)
   }, [onDelete, setAnchorEl])
+  const handleDesktopClick = React.useCallback(() => {
+    onDesktop()
+    setAnchorEl(null)
+  }, [onDesktop, setAnchorEl])
 
   return (
     <>
@@ -32,7 +46,12 @@ export default function RevisionMenu({ className, onDelete }: RevisionMenuProps)
       </M.IconButton>
 
       <M.Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleClose}>
-        <M.MenuItem onClick={handleDeleteClick}>Delete revision</M.MenuItem>
+        {preferences?.ui?.actions?.deleteRevision && (
+          <M.MenuItem onClick={handleDeleteClick}>Delete revision</M.MenuItem>
+        )}
+        {preferences?.ui?.actions?.openInDesktop && !desktop && (
+          <M.MenuItem onClick={handleDesktopClick}>Open in Teleport</M.MenuItem>
+        )}
       </M.Menu>
     </>
   )
