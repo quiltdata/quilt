@@ -95,7 +95,8 @@ use the following extended syntax:
 At present `height` is the only supported `style` element.
 
 ## Vega and Vega-lite
-The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed), [vega](https://vega.github.io/vega/), and [vega-lite](https://vega.github.io/vega-lite/).
+The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
+[vega](https://vega.github.io/vega/) and [vega-lite](https://vega.github.io/vega-lite/) visualizations.
 See [package.json](https://github.com/quiltdata/quilt/blob/master/catalog/package.json)
 for specific library versions and compatibility.
 
