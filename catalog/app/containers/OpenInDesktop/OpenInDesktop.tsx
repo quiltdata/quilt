@@ -4,7 +4,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as IPC from 'utils/electron/ipc-provider'
 import * as Config from 'utils/Config'
-import * as PackageUri from 'utils/PackageUri'
+import * as TeleportUri from 'utils/TeleportUri'
 import { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
@@ -34,7 +34,7 @@ export default function OpenInDesktop({
         await ipc.invoke(IPC.EVENTS.DOWNLOAD_PACKAGE, packageHandle)
         setDisabled(false)
       } else {
-        const deepLink = PackageUri.stringify(packageHandle, 'teleport')
+        const deepLink = TeleportUri.stringify(packageHandle)
         window.location.assign(deepLink)
       }
       onClose()

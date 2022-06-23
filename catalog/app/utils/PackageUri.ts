@@ -19,7 +19,6 @@ export interface PackageUri {
   path?: string
   hash?: string
   tag?: string
-  query?: URLSearchParams
 }
 
 function parsePackageSpec(spec: string, uri: string) {
@@ -74,16 +73,13 @@ export function parse(uri: string): PackageUri {
   if (!url.slashes) {
     throw new PackageUriError('missing slashes between protocol and registry.', uri)
   }
-  // NOTE: `search` is not a part of `path`, if parsed with `new URL`
-  // TODO: migrate to `new URL`
-  if (url.path && url.path !== url.search && url.path !== `/${url.search}`) {
+  if (url.path) {
     throw new PackageUriError(
       'non-bucket-root registries are not supported currently.',
       uri,
     )
   }
   const bucket = url.host
-  // TODO: migrate to `new URLSearchParams`
   const params = parseQs((url.hash || '').replace('#', ''))
   if (!params.package) {
     throw new PackageUriError('missing "package=" part.', uri)
@@ -96,24 +92,10 @@ export function parse(uri: string): PackageUri {
     throw new PackageUriError('"path=" specified multiple times.', uri)
   }
   const path = params.path ? decodeURIComponent(params.path) : undefined
-  const query = url.search ? new URLSearchParams(url.search) : undefined
-  return R.reject(R.isNil, {
-    bucket,
-    name,
-    hash,
-    tag,
-    path,
-    query,
-  }) as unknown as PackageUri
+  return R.reject(R.isNil, { bucket, name, hash, tag, path }) as unknown as PackageUri
 }
 
-// FIXME: revert changes
-//        use separate module that parses stringified PackageUri
-//        and then edits its fields: schema and query
-export function stringify(
-  { bucket, name, hash, tag, path }: PackageUri,
-  optSchema?: string, // TODO: optonal URI params to merge with
-) {
+export function stringify({ bucket, name, hash, tag, path }: PackageUri) {
   if (!bucket) throw new Error('PackageUri.stringify: missing "bucket"')
   if (!name) throw new Error('PackageUri.stringify: missing "name"')
   if (hash && tag) {
@@ -126,6 +108,5 @@ export function stringify(
     pkgSpec += `:${tag}`
   }
   const pathPart = path ? `&path=${encodeURIComponent(path)}` : ''
-  const schema = optSchema || 'quilt+s3'
-  return `${schema}://${bucket}#package=${pkgSpec}${pathPart}`
+  return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}`
 }
