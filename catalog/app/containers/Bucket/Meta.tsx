@@ -12,7 +12,7 @@ const useHeadCellStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(1),
     verticalAlign: 'top',
-    width: t.spacing(20),
+    width: t.spacing(17.5),
   },
 }))
 
@@ -65,7 +65,7 @@ function Meta({ meta, ...props }: MetaProps) {
           <M.TableRow>
             <HeadCell title="/message">Message:</HeadCell>
             <M.TableCell>
-              <M.Typography className={classes.message}>"{value.message}"</M.Typography>
+              <M.Typography className={classes.message}>{value.message}</M.Typography>
             </M.TableCell>
           </M.TableRow>
           <M.TableRow>
