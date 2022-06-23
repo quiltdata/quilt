@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 from enum import Enum
 from math import floor
-from typing import Dict, List
+from typing import Dict
 
 import boto3
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -107,7 +107,6 @@ class DocumentQueue:
             # this could the hash OR tag; to be used in _id primary key
             package_hash: str = '',
             package_stats: Dict[str, int] = None,
-            tags: List[str] = (),
             text: str = '',
             version_id=None,
             *,
@@ -183,7 +182,6 @@ class DocumentQueue:
                 "hash": package_hash,
                 "metadata": metadata,
                 "pointer_file": pointer_file,
-                "tags": ",".join(tags)
             })
             if package_stats:
                 body.update({
