@@ -395,6 +395,7 @@ function DirDisplay({
           const hasRevisionMenu =
             preferences?.ui?.actions?.deleteRevision ||
             preferences?.ui?.actions?.openInDesktop
+          // TODO: disable if nothing to revise on desktop
           const hasReviseButton = preferences?.ui?.actions?.revisePackage
 
           return (
