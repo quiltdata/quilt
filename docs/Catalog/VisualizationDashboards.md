@@ -12,11 +12,11 @@ fast-moving databases and file systems.
 In addition to rendering a wide variety of images, binary files, and text 
 files, the Quilt catalog supports the following libraries for visualization and
 exploration:
-* [Vega](https://github.com/vega/vega#readme)
-* [Vega-lite](https://github.com/vega/vega-lite#readme)
-* [ECharts](https://github.com/apache/echarts#readme)
-* [Voila](https://github.com/voila-dashboards/voila#readme) (Developer preview)
-* [Perspective](https://github.com/finos/perspective/#readme)
+* [Vega](#vega-and-vega-lite)
+* [Vega-lite](#vega-and-vega-lite)
+* [ECharts](#echarts)
+* [Voila](#voila) (Developer preview)
+* [Perspective](#perspective)
 
 The above systems provide you with hundreds of charts out of the box.
 
@@ -95,7 +95,8 @@ use the following extended syntax:
 At present `height` is the only supported `style` element.
 
 ## Vega and Vega-lite
-The Quilt catalog uses vega-embed, vega, and vega-lite.
+The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
+[vega](https://vega.github.io/vega/) and [vega-lite](https://vega.github.io/vega-lite/) visualizations.
 See [package.json](https://github.com/quiltdata/quilt/blob/master/catalog/package.json)
 for specific library versions and compatibility.
 
@@ -134,7 +135,7 @@ alt.Chart(df).mark_area(
 ```
 
 ## ECharts
-To render an EChart, you provide a JSON file (a dictionary that
+To render an [EChart](https://echarts.apache.org/), you provide a JSON file (a dictionary that
 specifies the ECharts [option parameter](https://echarts.apache.org/en/option.html))
 and you set the `"types"` property to `[ "echarts" ]`.
 
@@ -278,15 +279,32 @@ scipy
 
 ## Perspective
 
-Quilt renders tabular data formats into a Perspective Datagrid, including the
+Quilt renders tabular data formats into a [Perspective](https://perspective.finos.org/) Datagrid, including the
 following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv. 
 
-For speed, Quilt loads a small preview of the rows stored in S3. You can click
-Load More to fetch up to about 6MB of zipped data. Beyond this size, click Download
-to see the entire file contents.
+For speed, Quilt loads the first few rows stored in S3. Click Load More to fetch
+up to about 6MB of zipped data. To see the entire file contents for large files,
+download the file (lower left).
 
-In order to open the analysis and visualization capabilities of Perspecitve,
-click the vertical ellipsis, upper left. To open the controls by default, set the `config.settings` property
+### Filter, plot, pivot
+
+Click Filter and Plot to open the side drawer. Drag and drop columns from the sidebar
+to Group By, Split By, Order By, and Where to pivot, filter, and more.
+
+![](../imgs/perspective-groupby.png)
+
+Select from a variety for visualizations by clicking the upper left menu that
+initially displays "Datgrid".
+
+![](../imgs/perspective-plot.png)
+
+Click Toggle Theme to use a fixed-width font (useful for comparing strings).
+
+Use the controls along the bottom to reset, download, copy, resize the grid, and more.
+
+### Saving and configuring the datagrid
+
+To open the drawer by default, set the `config.settings` property
 in `quilt_summarize.json` as follows:
 
 ```json
@@ -306,7 +324,8 @@ in `quilt_summarize.json` as follows:
 ]
 ```
 
-Besides `{ "settings": true }` you can provide any object previously saved from Perspective.
+You can save the state of the datagrid, as shown below. To restore a saved datagrid
+use the `config` property of `quilt_summarize.json`:
 
 ![](../imgs/perspective-save.png)
 
@@ -331,9 +350,3 @@ All filters and columns will be restored:
   }
 ]
 ```
-
-Drag columns from the left to the top to sort, filter, and pivot.
-Use the menu upper left to try different visualizations.
-Use the controls along the bottom to download, copy, resize, and more.
-
-![](../imgs/perspective.png)
