@@ -9,7 +9,7 @@ import yaml from 'utils/yaml'
 export type SentryInstance = (command: 'captureMessage', message: string) => void
 
 type ActionPreferences = Record<
-  'copyPackage' | 'createPackage' | 'deleteRevision' | 'revisePackage',
+  'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
   boolean
 >
 
@@ -54,6 +54,7 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
+      openInDesktop: false,
       revisePackage: true,
     },
     blocks: {

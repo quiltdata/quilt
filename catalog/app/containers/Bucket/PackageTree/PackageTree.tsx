@@ -13,6 +13,7 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import { OpenInDesktop } from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -174,10 +175,18 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: $TSFixMe[] // Crumb
+  size?: number
 }
 
-function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
-  const { desktop } = Config.use()
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  hashOrTag,
+  path,
+  crumbs,
+  size,
+}: DirDisplayProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -220,9 +229,14 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     opened: false,
   })
 
-  const onPackageDeleteDialogOpen = React.useCallback(() => {
-    setDeletionState(R.assoc('opened', true))
-  }, [])
+  const confirmDelete = React.useCallback(
+    () => setDeletionState(R.assoc('opened', true)),
+    [],
+  )
+
+  const [confirmingDesktop, setConfirmingDesktop] = React.useState(false)
+  const confirmDesktop = React.useCallback(() => setConfirmingDesktop(true), [])
+  const unconfirmDesktop = React.useCallback(() => setConfirmingDesktop(false), [])
 
   const onPackageDeleteDialogClose = React.useCallback(() => {
     setDeletionState(
@@ -265,11 +279,15 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     [bucket, name, hash],
   )
 
-  const [expandedLocalFolder, setExpandedLocalFolder] = React.useState(false)
-  const [localFolder, setLocalFolder] = Download.useLocalFolder()
-
   return (
     <>
+      <OpenInDesktop
+        open={confirmingDesktop}
+        packageHandle={packageHandle}
+        onClose={unconfirmDesktop}
+        size={size}
+      />
+
       <PackageCopyDialog
         bucket={bucket}
         hash={hash}
@@ -298,13 +316,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
         ),
         title: 'Push package revision',
       })}
-
-      <Download.ConfirmDialog
-        localPath={localFolder}
-        onClose={() => setExpandedLocalFolder(false)}
-        open={!!localFolder && !!expandedLocalFolder}
-        packageHandle={packageHandle}
-      />
 
       {dirQuery.case({
         // TODO: skeleton placeholder
@@ -381,11 +392,15 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
           const downloadPath = path
             ? `package/${bucket}/${name}/${hash}/${path}`
             : `package/${bucket}/${name}/${hash}`
+          const hasRevisionMenu =
+            preferences?.ui?.actions?.deleteRevision ||
+            preferences?.ui?.actions?.openInDesktop
+          const hasReviseButton = preferences?.ui?.actions?.revisePackage
 
           return (
             <>
               <TopBar crumbs={crumbs}>
-                {preferences?.ui?.actions?.revisePackage && !desktop && (
+                {hasReviseButton && (
                   <M.Button
                     className={classes.button}
                     variant="contained"
@@ -409,25 +424,19 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
                 <Download.DownloadButton
                   className={classes.button}
                   label={path ? 'Download sub-package' : 'Download package'}
-                  onClick={() => setExpandedLocalFolder(true)}
+                  onClick={confirmDesktop}
                   path={downloadPath}
                 />
-                {preferences?.ui?.actions?.deleteRevision && (
+                {hasRevisionMenu && (
                   <RevisionMenu
                     className={classes.button}
-                    onDelete={onPackageDeleteDialogOpen}
+                    onDelete={confirmDelete}
+                    onDesktop={confirmDesktop}
                   />
                 )}
               </TopBar>
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
-              )}
-              {desktop && (
-                <Download.LocalFolderInput
-                  onChange={setLocalFolder}
-                  open={expandedLocalFolder}
-                  value={localFolder}
-                />
               )}
               {preferences?.ui?.blocks?.meta && (
                 <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
@@ -703,6 +712,7 @@ interface PackageTreeProps {
   mode?: string
   resolvedFrom?: string
   revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
+  size?: number
 }
 
 function PackageTree({
@@ -714,6 +724,7 @@ function PackageTree({
   mode,
   resolvedFrom,
   revisionListQuery,
+  size,
 }: PackageTreeProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -799,6 +810,7 @@ function PackageTree({
                 path,
                 hashOrTag,
                 crumbs,
+                size,
               }}
             />
           ) : (
@@ -834,6 +846,7 @@ interface PackageTreeQueriesProps {
   path: string
   resolvedFrom?: string
   mode?: string
+  size?: number
 }
 
 function PackageTreeQueries({
@@ -843,6 +856,7 @@ function PackageTreeQueries({
   path,
   resolvedFrom,
   mode,
+  size,
 }: PackageTreeQueriesProps) {
   const revisionQuery = useQuery({
     query: REVISION_QUERY,
@@ -875,6 +889,7 @@ function PackageTreeQueries({
             name,
             hashOrTag,
             hash: d.package.revision?.hash,
+            size: d.package.revision?.totalBytes || undefined,
             path,
             mode,
             resolvedFrom,
