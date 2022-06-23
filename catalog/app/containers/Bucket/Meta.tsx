@@ -63,7 +63,7 @@ function Meta({ meta, ...props }: MetaProps) {
       <M.Table size="small">
         <M.TableBody>
           <M.TableRow>
-            <HeadCell title="/message">Commit message:</HeadCell>
+            <HeadCell title="/message">Message:</HeadCell>
             <M.TableCell>
               <M.Typography className={classes.message}>"{value.message}"</M.Typography>
             </M.TableCell>
