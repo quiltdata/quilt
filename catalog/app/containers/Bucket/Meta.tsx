@@ -37,8 +37,16 @@ const useMetaStyles = M.makeStyles({
   message: {
     paddingLeft: '4px',
   },
-  lastRowCells: {
-    borderBottom: 0,
+  row: {
+    '&:last-child th, &:last-child td': {
+      borderBottom: 0,
+    },
+    '&:only-child th': {
+      paddingLeft: 0,
+    },
+  },
+  wrapper: {
+    width: '100%',
   },
 })
 
@@ -61,11 +69,11 @@ function Meta({ meta, ...props }: MetaProps) {
 
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      <div>
+      <div className={classes.wrapper}>
         <M.Table size="small">
           <M.TableBody>
             {message && (
-              <M.TableRow>
+              <M.TableRow className={classes.row}>
                 <HeadCell title="/message">Message:</HeadCell>
                 <M.TableCell>
                   <M.Typography className={classes.message}>{message}</M.Typography>
@@ -73,7 +81,7 @@ function Meta({ meta, ...props }: MetaProps) {
               </M.TableRow>
             )}
             {userMeta && (
-              <M.TableRow>
+              <M.TableRow className={classes.row}>
                 <HeadCell title="/user_metadata">User metadata:</HeadCell>
                 <M.TableCell>
                   {/* @ts-expect-error */}
@@ -82,11 +90,9 @@ function Meta({ meta, ...props }: MetaProps) {
               </M.TableRow>
             )}
             {workflow && (
-              <M.TableRow>
-                <HeadCell className={classes.lastRowCells} title="/workflow">
-                  Workflow:
-                </HeadCell>
-                <M.TableCell className={classes.lastRowCells}>
+              <M.TableRow className={classes.row}>
+                <HeadCell title="/workflow">Workflow:</HeadCell>
+                <M.TableCell>
                   {/* @ts-expect-error */}
                   <JsonDisplay value={workflow} />
                 </M.TableCell>
