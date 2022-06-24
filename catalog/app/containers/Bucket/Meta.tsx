@@ -56,7 +56,6 @@ const useMetaStyles = M.makeStyles({
 interface MetaData {
   message: string
   user_meta?: object
-  version: 'v0'
   workflow?: $TSFixMe
 }
 
@@ -67,8 +66,7 @@ interface MetaProps extends Partial<SectionProps> {
 function Meta({ meta, ...props }: MetaProps) {
   const classes = useMetaStyles()
 
-  const { message, user_meta: userMeta, workflow, version, ...rest } = meta
-  const objectMeta = React.useMemo(() => (!R.isEmpty(rest) ? rest : null), [rest])
+  const { message, user_meta: userMeta, workflow, ...objectMeta } = meta
 
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
@@ -104,7 +102,7 @@ function Meta({ meta, ...props }: MetaProps) {
           </M.TableBody>
         </M.Table>
 
-        {objectMeta && (
+        {!R.isEmpty(objectMeta) && (
           /* @ts-expect-error */
           <JsonDisplay value={objectMeta} defaultExpanded={1} />
         )}
