@@ -8,7 +8,7 @@ import * as TeleportUri from 'utils/TeleportUri'
 import { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
-export const SIZE_THRESHOLD = 1000
+const SIZE_THRESHOLD = 1024 * 1024 * 100
 
 const isNumber = (v: any) => typeof v === 'number' && !Number.isNaN(v)
 

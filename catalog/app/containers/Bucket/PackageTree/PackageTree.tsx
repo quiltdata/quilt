@@ -275,7 +275,7 @@ function DirDisplay({
     [bucket, name, hash],
   )
 
-  const openInDesktopState = OpenInDesktop.use(packageHandle)
+  const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   return (
     <>
