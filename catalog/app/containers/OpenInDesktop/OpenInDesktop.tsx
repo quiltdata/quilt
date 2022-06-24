@@ -8,6 +8,8 @@ import * as TeleportUri from 'utils/TeleportUri'
 import { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
+const SIZE_THRESHOLD = 1000
+
 const isNumber = (v: any) => typeof v === 'number' && !Number.isNaN(v)
 
 interface OpenInDesktopProps {
@@ -27,6 +29,7 @@ export default function OpenInDesktop({
   const ipc = IPC.use()
   const [error, setError] = React.useState<Error | null>(null)
   const [disabled, setDisabled] = React.useState(false)
+  // FIXME: onConfirm -> to upper level, and call it if size is smaller than threshold
   const handleConfirm = React.useCallback(async () => {
     try {
       if (desktop) {
@@ -42,6 +45,13 @@ export default function OpenInDesktop({
       if (e instanceof Error) setError(e)
     }
   }, [desktop, ipc, onClose, packageHandle])
+
+  React.useEffect(() => {
+    console.log('USE EFFECt', open, size, size > SIZE_THRESHOLD)
+    if (!open) return
+    if (!size || size < SIZE_THRESHOLD) return
+    handleConfirm()
+  }, [open, handleConfirm])
 
   return (
     <M.Dialog open={open} onClose={onClose}>
