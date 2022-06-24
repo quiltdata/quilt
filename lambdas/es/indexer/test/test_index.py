@@ -13,7 +13,7 @@ from pathlib import Path
 from string import ascii_lowercase
 from time import time
 from unittest import TestCase
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -29,9 +29,9 @@ from document_queue import EVENT_PREFIX, DocTypes, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
+    PACKAGE_INDEX_SUFFIX,
     POINTER_PREFIX_V1,
     separated_env_to_iter,
-    PACKAGE_INDEX_SUFFIX,
 )
 
 from .. import document_queue, index

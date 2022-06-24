@@ -12,10 +12,7 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
-from t4_lambda_shared.utils import (
-    get_quilt_logger,
-    separated_env_to_iter,
-)
+from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
 
 # number of bytes we take from each document before sending to elastic-search
 # DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires

@@ -86,12 +86,12 @@ from t4_lambda_shared.preview import (
 )
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
+    PACKAGE_INDEX_SUFFIX,
     POINTER_PREFIX_V1,
     get_available_memory,
     get_quilt_logger,
     query_manifest_content,
     separated_env_to_iter,
-    PACKAGE_INDEX_SUFFIX,
 )
 
 # translate events to S3 native names
