@@ -109,7 +109,6 @@ interface ObjectMetaProps {
 }
 
 function ObjectMeta({ meta }: ObjectMetaProps) {
-  console.log('ObjectMeta', meta)
   // @ts-expect-error
   return <JsonDisplay value={meta} defaultExpanded={1} />
 }
