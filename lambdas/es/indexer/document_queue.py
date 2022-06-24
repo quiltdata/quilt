@@ -157,11 +157,9 @@ class DocumentQueue:
             "_type": "_doc",
             "_id": get_id(key, version_id),
             # TODO nest fields under "document" and maybe use _type:{package, object}
-            "comment": comment,
             "etag": etag,
             "key": key,
             "last_modified": last_modified,
-            "size": size,
             "delete_marker": is_delete_marker,
             "version_id": version_id,
         }
@@ -181,6 +179,7 @@ class DocumentQueue:
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
+                "comment": comment,
                 "pointer_file": pointer_file,
             })
             if package_stats:
@@ -189,13 +188,10 @@ class DocumentQueue:
                 })
         elif doc_type == DocTypes.OBJECT:
             body.update({
-                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
-                # here we explicitly drop the comment
-                "comment": "",
+                "size": size,
                 "content": text,  # field for full-text search
                 "event": event_type,
                 "ext": ext,
-                "target": "",
                 "updated": datetime.utcnow().isoformat(),
             })
         else:
