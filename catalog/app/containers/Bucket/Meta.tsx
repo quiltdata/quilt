@@ -57,6 +57,7 @@ interface MetaData {
   message: string
   user_meta?: object
   workflow?: $TSFixMe
+  version?: $TSFixMe
 }
 
 interface MetaProps extends Partial<SectionProps> {
@@ -66,7 +67,7 @@ interface MetaProps extends Partial<SectionProps> {
 function Meta({ meta, ...props }: MetaProps) {
   const classes = useMetaStyles()
 
-  const { message, user_meta: userMeta, workflow, ...objectMeta } = meta
+  const { message, user_meta: userMeta, workflow, version, ...objectMeta } = meta
 
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
