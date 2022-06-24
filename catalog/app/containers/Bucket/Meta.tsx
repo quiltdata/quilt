@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 import AsyncResult from 'utils/AsyncResult'
@@ -103,6 +104,7 @@ export function PackageMeta({ data, ...props }: MetaWrapperProps) {
           </M.Table>
         </Section>
       ),
+      Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
       _: () => null,
     },
     data,
@@ -119,6 +121,7 @@ export function ObjectMeta({ data, ...props }: MetaWrapperProps) {
             <JsonDisplay value={meta} defaultExpanded={1} />
           </Section>
         ) : null,
+      Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
       _: () => null,
     },
     data,
