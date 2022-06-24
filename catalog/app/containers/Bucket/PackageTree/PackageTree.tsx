@@ -13,7 +13,7 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
-import { OpenInDesktop } from 'containers/OpenInDesktop'
+import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -234,10 +234,6 @@ function DirDisplay({
     [],
   )
 
-  const [confirmingDesktop, setConfirmingDesktop] = React.useState(false)
-  const confirmDesktop = React.useCallback(() => setConfirmingDesktop(true), [])
-  const unconfirmDesktop = React.useCallback(() => setConfirmingDesktop(false), [])
-
   const onPackageDeleteDialogClose = React.useCallback(() => {
     setDeletionState(
       R.mergeLeft({
@@ -279,12 +275,14 @@ function DirDisplay({
     [bucket, name, hash],
   )
 
+  const openInDesktopState = OpenInDesktop.use(packageHandle)
+
   return (
     <>
-      <OpenInDesktop
-        open={confirmingDesktop}
-        packageHandle={packageHandle}
-        onClose={unconfirmDesktop}
+      <OpenInDesktop.Dialog
+        open={openInDesktopState.confirming}
+        onClose={openInDesktopState.unconfirm}
+        onConfirm={openInDesktopState.openInDesktop}
         size={size}
       />
 
@@ -425,14 +423,14 @@ function DirDisplay({
                 <Download.DownloadButton
                   className={classes.button}
                   label={path ? 'Download sub-package' : 'Download package'}
-                  onClick={confirmDesktop}
+                  onClick={openInDesktopState.confirm}
                   path={downloadPath}
                 />
                 {hasRevisionMenu && (
                   <RevisionMenu
                     className={classes.button}
                     onDelete={confirmDelete}
-                    onDesktop={confirmDesktop}
+                    onDesktop={openInDesktopState.confirm}
                   />
                 )}
               </TopBar>

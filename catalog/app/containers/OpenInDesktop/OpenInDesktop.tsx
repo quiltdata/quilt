@@ -8,51 +8,30 @@ import * as TeleportUri from 'utils/TeleportUri'
 import { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
-const SIZE_THRESHOLD = 1000
+export const SIZE_THRESHOLD = 1000
 
 const isNumber = (v: any) => typeof v === 'number' && !Number.isNaN(v)
 
 interface OpenInDesktopProps {
   onClose: () => void
+  onConfirm: () => Promise<void>
   open: boolean
-  packageHandle: PackageHandle
   size?: number
 }
 
-export default function OpenInDesktop({
-  onClose,
-  open,
-  packageHandle,
-  size,
-}: OpenInDesktopProps) {
-  const { desktop } = Config.use()
-  const ipc = IPC.use()
+export function Dialog({ onClose, onConfirm, open, size }: OpenInDesktopProps) {
   const [error, setError] = React.useState<Error | null>(null)
   const [disabled, setDisabled] = React.useState(false)
-  // FIXME: onConfirm -> to upper level, and call it if size is smaller than threshold
   const handleConfirm = React.useCallback(async () => {
     try {
-      if (desktop) {
-        setDisabled(true)
-        await ipc.invoke(IPC.EVENTS.DOWNLOAD_PACKAGE, packageHandle)
-        setDisabled(false)
-      } else {
-        const deepLink = TeleportUri.stringify(packageHandle)
-        window.location.assign(deepLink)
-      }
+      setDisabled(true)
+      await onConfirm()
+      setDisabled(false)
       onClose()
     } catch (e) {
       if (e instanceof Error) setError(e)
     }
-  }, [desktop, ipc, onClose, packageHandle])
-
-  React.useEffect(() => {
-    console.log('USE EFFECt', open, size, size > SIZE_THRESHOLD)
-    if (!open) return
-    if (!size || size < SIZE_THRESHOLD) return
-    handleConfirm()
-  }, [open, handleConfirm])
-
+  }, [onClose, onConfirm])
   return (
     <M.Dialog open={open} onClose={onClose}>
       <M.DialogTitle>Open in Teleport</M.DialogTitle>
@@ -78,3 +57,36 @@ export default function OpenInDesktop({
     </M.Dialog>
   )
 }
+
+function useOpenInDesktop(packageHandle: PackageHandle, size?: number) {
+  const { desktop } = Config.use()
+  const ipc = IPC.use()
+
+  const [confirming, setConfirming] = React.useState(false)
+  const openInDesktop = React.useCallback(async () => {
+    if (desktop) {
+      await ipc.invoke(IPC.EVENTS.DOWNLOAD_PACKAGE, packageHandle)
+    } else {
+      const deepLink = TeleportUri.stringify(packageHandle)
+      window.location.assign(deepLink)
+    }
+  }, [desktop, ipc, packageHandle])
+  const unconfirm = React.useCallback(() => setConfirming(false), [])
+  const confirm = React.useCallback(() => {
+    if (!size || size > SIZE_THRESHOLD) {
+      setConfirming(true)
+    } else {
+      openInDesktop()
+    }
+  }, [openInDesktop, size])
+  // TODO: probably rename OpenInDesktop to something
+  //       then you can rename confirm → open, unconfirm → close
+  return {
+    confirm,
+    confirming,
+    openInDesktop,
+    unconfirm,
+  }
+}
+
+export const use = useOpenInDesktop

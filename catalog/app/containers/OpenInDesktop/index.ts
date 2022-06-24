@@ -1,1 +1,1 @@
-export { default as OpenInDesktop } from './OpenInDesktop'
+export * from './OpenInDesktop'
