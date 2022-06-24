@@ -12,7 +12,7 @@ const useHeadCellStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(1),
     verticalAlign: 'top',
-    width: t.spacing(17.5),
+    whiteSpace: 'nowrap',
   },
 }))
 
@@ -34,6 +34,9 @@ const HeadCell = ({ className, children, title }: HeadCellProps) => {
 }
 
 const useMetaStyles = M.makeStyles({
+  cell: {
+    width: '100%',
+  },
   message: {
     paddingLeft: '4px',
   },
@@ -75,7 +78,7 @@ function Meta({ meta, ...props }: MetaProps) {
             {message && (
               <M.TableRow className={classes.row}>
                 <HeadCell title="/message">Message:</HeadCell>
-                <M.TableCell>
+                <M.TableCell className={classes.cell}>
                   <M.Typography className={classes.message}>{message}</M.Typography>
                 </M.TableCell>
               </M.TableRow>
@@ -83,7 +86,7 @@ function Meta({ meta, ...props }: MetaProps) {
             {userMeta && (
               <M.TableRow className={classes.row}>
                 <HeadCell title="/user_metadata">User metadata:</HeadCell>
-                <M.TableCell>
+                <M.TableCell className={classes.cell}>
                   {/* @ts-expect-error */}
                   <JsonDisplay value={userMeta} />
                 </M.TableCell>
@@ -92,7 +95,7 @@ function Meta({ meta, ...props }: MetaProps) {
             {workflow && (
               <M.TableRow className={classes.row}>
                 <HeadCell title="/workflow">Workflow:</HeadCell>
-                <M.TableCell>
+                <M.TableCell className={classes.cell}>
                   {/* @ts-expect-error */}
                   <JsonDisplay value={workflow} />
                 </M.TableCell>
