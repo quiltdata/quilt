@@ -17,6 +17,12 @@ interface MetaData {
   version?: $TSFixMe
 }
 
+const errorHandler = (error: Error) => (
+  <Lab.Alert severity="error">{error.message}</Lab.Alert>
+)
+
+const noop = () => null
+
 const useHeadCellStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(1),
@@ -42,7 +48,7 @@ const HeadCell = ({ className, children, title }: HeadCellProps) => {
   )
 }
 
-const useMetaStyles = M.makeStyles({
+const usePackageMetaStyles = M.makeStyles({
   cell: {
     width: '100%',
   },
@@ -62,12 +68,12 @@ const useMetaStyles = M.makeStyles({
   },
 })
 
-interface MetaWrapperProps extends Partial<SectionProps> {
+interface MetaProps extends Partial<SectionProps> {
   data: $TSFixMe
 }
 
-export function PackageMeta({ data, ...props }: MetaWrapperProps) {
-  const classes = useMetaStyles()
+export function PackageMeta({ data, ...props }: MetaProps) {
+  const classes = usePackageMetaStyles()
   return AsyncResult.case(
     {
       Ok: ({ message, user_meta: userMeta, workflow }: MetaData) => (
@@ -104,14 +110,14 @@ export function PackageMeta({ data, ...props }: MetaWrapperProps) {
           </M.Table>
         </Section>
       ),
-      Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
-      _: () => null,
+      Err: errorHandler,
+      _: noop,
     },
     data,
   )
 }
 
-export function ObjectMeta({ data, ...props }: MetaWrapperProps) {
+export function ObjectMeta({ data, ...props }: MetaProps) {
   return AsyncResult.case(
     {
       Ok: (meta: Json) =>
@@ -121,8 +127,8 @@ export function ObjectMeta({ data, ...props }: MetaWrapperProps) {
             <JsonDisplay value={meta} defaultExpanded={1} />
           </Section>
         ) : null,
-      Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
-      _: () => null,
+      Err: errorHandler,
+      _: noop,
     },
     data,
   )
