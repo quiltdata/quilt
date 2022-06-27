@@ -54,7 +54,7 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
-      openInDesktop: true,
+      openInDesktop: false,
       revisePackage: true,
     },
     blocks: {
