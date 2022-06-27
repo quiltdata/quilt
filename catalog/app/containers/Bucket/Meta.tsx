@@ -12,7 +12,7 @@ const useHeadCellStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(1),
     verticalAlign: 'top',
-    width: t.spacing(17.5),
+    whiteSpace: 'nowrap',
   },
 }))
 
@@ -34,58 +34,80 @@ const HeadCell = ({ className, children, title }: HeadCellProps) => {
 }
 
 const useMetaStyles = M.makeStyles({
+  cell: {
+    width: '100%',
+  },
   message: {
     paddingLeft: '4px',
   },
-  lastRowCells: {
-    borderBottom: 0,
+  row: {
+    '&:last-child th, &:last-child td': {
+      borderBottom: 0,
+    },
+    '&:only-child th': {
+      paddingLeft: 0,
+    },
+  },
+  wrapper: {
+    width: '100%',
   },
 })
 
 interface MetaData {
   message: string
-  user_meta: object
-  workflow: $TSFixMe
+  user_meta?: object
+  workflow?: $TSFixMe
+  version?: $TSFixMe
 }
 
 interface MetaProps extends Partial<SectionProps> {
-  meta?: MetaData
+  meta: MetaData
 }
 
 function Meta({ meta, ...props }: MetaProps) {
   const classes = useMetaStyles()
-  const value = React.useMemo(() => (meta && !R.isEmpty(meta) ? meta : null), [meta])
 
-  if (!value) return null
+  const { message, user_meta: userMeta, workflow, version, ...objectMeta } = meta
 
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      <M.Table size="small">
-        <M.TableBody>
-          <M.TableRow>
-            <HeadCell title="/message">Message:</HeadCell>
-            <M.TableCell>
-              <M.Typography className={classes.message}>{value.message}</M.Typography>
-            </M.TableCell>
-          </M.TableRow>
-          <M.TableRow>
-            <HeadCell title="/user_metadata">User metadata:</HeadCell>
-            <M.TableCell>
-              {/* @ts-expect-error */}
-              <JsonDisplay value={value.user_meta} />
-            </M.TableCell>
-          </M.TableRow>
-          <M.TableRow>
-            <HeadCell className={classes.lastRowCells} title="/workflow">
-              Workflow:
-            </HeadCell>
-            <M.TableCell className={classes.lastRowCells}>
-              {/* @ts-expect-error */}
-              <JsonDisplay value={value.workflow} />
-            </M.TableCell>
-          </M.TableRow>
-        </M.TableBody>
-      </M.Table>
+      <div className={classes.wrapper}>
+        <M.Table size="small">
+          <M.TableBody>
+            {message && (
+              <M.TableRow className={classes.row}>
+                <HeadCell title="/message">Message:</HeadCell>
+                <M.TableCell className={classes.cell}>
+                  <M.Typography className={classes.message}>{message}</M.Typography>
+                </M.TableCell>
+              </M.TableRow>
+            )}
+            {userMeta && (
+              <M.TableRow className={classes.row}>
+                <HeadCell title="/user_metadata">User metadata:</HeadCell>
+                <M.TableCell className={classes.cell}>
+                  {/* @ts-expect-error */}
+                  <JsonDisplay value={userMeta} />
+                </M.TableCell>
+              </M.TableRow>
+            )}
+            {workflow && (
+              <M.TableRow className={classes.row}>
+                <HeadCell title="/workflow">Workflow:</HeadCell>
+                <M.TableCell className={classes.cell}>
+                  {/* @ts-expect-error */}
+                  <JsonDisplay value={workflow} />
+                </M.TableCell>
+              </M.TableRow>
+            )}
+          </M.TableBody>
+        </M.Table>
+
+        {!R.isEmpty(objectMeta) && (
+          /* @ts-expect-error */
+          <JsonDisplay value={objectMeta} defaultExpanded={1} />
+        )}
+      </div>
     </Section>
   )
 }
@@ -97,7 +119,8 @@ interface MetaWrapperProps extends Partial<SectionProps> {
 export default function MetaWrapper({ data, ...props }: MetaWrapperProps) {
   return AsyncResult.case(
     {
-      Ok: (meta: MetaData) => <Meta meta={meta} {...props} />,
+      Ok: (meta: MetaData) =>
+        meta && !R.isEmpty(meta) ? <Meta meta={meta} {...props} /> : null,
       _: () => null,
     },
     data,
