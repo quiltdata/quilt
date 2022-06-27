@@ -13,6 +13,25 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import ThemeEditor from './Settings/ThemeEditor'
 
+const useBetaEditorStyles = M.makeStyles((t) => ({}))
+
+function BetaEditor() {
+  const settings = CatalogSettings.use()
+  const [beta, setBeta] = React.useState(settings?.beta || false)
+  const [disabled, setDisabled] = React.useState(false)
+  const writeSettings = CatalogSettings.useWriteSettings()
+  const onChange = React.useCallback(async () => {
+    setDisabled(true)
+    setBeta(!beta)
+    await writeSettings({
+      ...settings,
+      beta: !beta,
+    })
+    setDisabled(false)
+  }, [writeSettings])
+  return <M.Switch checked={beta} onChange={onChange} disabled={disabled} />
+}
+
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
@@ -235,16 +254,18 @@ const useStyles = M.makeStyles((t) => ({
   },
   cards: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   sectionHeading: {
     marginBottom: t.spacing(1),
   },
   group: {
-    flex: '50%',
+    flex: '48%',
     padding: t.spacing(2),
-    '& + &': {
-      margin: t.spacing(0, 0, 0, 2),
+    margin: t.spacing(0, 0, 2),
+    '&:nth-child(2n)': {
+      marginLeft: t.spacing(2),
     },
   },
   title: {
@@ -277,6 +298,12 @@ export default function Settings() {
           <React.Suspense fallback={<M.CircularProgress />}>
             <ThemeEditor />
           </React.Suspense>
+        </M.Paper>
+        <M.Paper className={classes.group}>
+          <M.Typography variant="h5" className={classes.sectionHeading}>
+            Enable beta-features
+          </M.Typography>
+          <BetaEditor />
         </M.Paper>
       </div>
     </div>
