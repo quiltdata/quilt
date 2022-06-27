@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as Sentry from 'utils/Sentry'
@@ -56,11 +57,15 @@ type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 function CatalogProvider({ bucket, children }: ProviderProps) {
   const sentry = Sentry.use()
   const s3 = AWS.S3.use()
+  const settings = CatalogSettings.use()
   const data = useData(fetchBucketPreferences, { s3, sentry, bucket })
 
   // XXX: consider returning AsyncResult or using Suspense
   const preferences = data.case({
-    Ok: R.identity,
+    Ok: (prefs: BucketPreferences) =>
+      settings?.beta
+        ? R.assocPath(['ui', 'actions', 'openInDesktop'], true, prefs)
+        : prefs,
     Err: () => parse('', sentry),
     _: () => null,
   })
