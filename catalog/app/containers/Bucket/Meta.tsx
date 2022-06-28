@@ -11,10 +11,10 @@ import { Json } from 'utils/types'
 import Section, { SectionProps } from './Section'
 
 interface MetaData {
-  message: string
+  message?: string
   user_meta?: object
   workflow?: $TSFixMe
-  version?: $TSFixMe
+  version?: string
 }
 
 const errorHandler = (error: Error) => (
@@ -90,7 +90,7 @@ export function PackageMeta({ data, ...props }: MetaProps) {
               )}
               {userMeta && (
                 <M.TableRow className={classes.row}>
-                  <HeadCell title="/user_metadata">User metadata:</HeadCell>
+                  <HeadCell title="/user_meta">User metadata:</HeadCell>
                   <M.TableCell className={classes.cell}>
                     {/* @ts-expect-error */}
                     <JsonDisplay value={userMeta} />
