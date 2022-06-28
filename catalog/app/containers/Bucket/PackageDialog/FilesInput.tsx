@@ -36,45 +36,23 @@ interface FileAction {
 
 interface FileMenuProps {
   actions: FileAction[]
+  className: string
 }
 
-function FileMenu({ actions }: FileMenuProps) {
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+function FileMenu({ className, actions }: FileMenuProps) {
   return (
-    <>
-      {actions.length ? (
-        <M.IconButton
-          onClick={({ currentTarget }) => setAnchorEl(currentTarget)}
-          size="small"
+    <M.ButtonGroup className={className} size="small" variant="contained">
+      {actions.map(({ onClick, icon, text, key }) => (
+        <M.Button
+          startIcon={icon}
+          key={key}
+          onClick={onClick}
+          style={{ backgroundColor: '#fff' }}
         >
-          <M.Icon>more_horiz</M.Icon>
-        </M.IconButton>
-      ) : (
-        <M.Tooltip title="No actions available">
-          <span>
-            <M.IconButton disabled size="small">
-              <M.Icon>more_horiz</M.Icon>
-            </M.IconButton>
-          </span>
-        </M.Tooltip>
-      )}
-      {!!actions.length && (
-        <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-          {actions.map(({ onClick, icon, text, key }) => (
-            <M.MenuItem
-              onClick={() => {
-                setAnchorEl(null)
-                onClick()
-              }}
-              key={key}
-            >
-              <M.ListItemIcon>{icon}</M.ListItemIcon>
-              <M.ListItemText>{text}</M.ListItemText>
-            </M.MenuItem>
-          ))}
-        </M.Menu>
-      )}
-    </>
+          {text}
+        </M.Button>
+      ))}
+    </M.ButtonGroup>
   )
 }
 
@@ -491,6 +469,8 @@ const useEntryStyles = M.makeStyles((t) => ({
     cursor: 'default',
     display: 'flex',
     outline: 'none',
+    position: 'relative',
+    minHeight: '32px',
     '&:hover': {
       background: t.palette.background.default,
     },
@@ -506,6 +486,16 @@ const useEntryStyles = M.makeStyles((t) => ({
     '&$deleted': {
       color: COLORS.deleted,
     },
+    '&:hover $menu': {
+      opacity: 1,
+    },
+  },
+  menu: {
+    opacity: 0,
+    position: 'absolute',
+    right: 0,
+    top: '50%',
+    transform: 'translateY(-50%)',
   },
   faint: {
     opacity: 0.5,
@@ -535,6 +525,7 @@ interface EntryProps {
   faint: boolean
   actions: FileAction[]
   checkbox: React.ReactNode
+  size?: number
   children: React.ReactNode
   icon: string
   name: string
@@ -574,9 +565,11 @@ function Entry({
         {...clickableProps}
       >
         <EntryIcon state={state}>{icon}</EntryIcon>
-        <div className={classes.name}>{name}</div>
+        <div className={classes.name} title={name}>
+          {name}
+        </div>
       </div>
-      <FileMenu actions={actions} />
+      {!!actions.length && <FileMenu className={classes.menu} actions={actions} />}
       {children}
     </div>
   )
@@ -594,7 +587,8 @@ const useFileStyles = M.makeStyles((t) => ({
     cursor: 'default',
     display: 'flex',
     outline: 'none',
-    padding: '0 4px',
+    position: 'relative',
+    minHeight: '32px',
     '&:hover': {
       background: t.palette.background.default,
     },
@@ -610,6 +604,16 @@ const useFileStyles = M.makeStyles((t) => ({
     '&$deleted': {
       color: COLORS.deleted,
     },
+    '&:hover $menu': {
+      opacity: 1,
+    },
+  },
+  menu: {
+    opacity: 0,
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    right: 0,
   },
   inner: {
     alignItems: 'center',
@@ -674,7 +678,7 @@ export function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <FileMenu actions={actions} />
+      {!!actions.length && <FileMenu className={classes.menu} actions={actions} />}
       {children}
     </div>
   )
