@@ -594,6 +594,7 @@ const useFileStyles = M.makeStyles((t) => ({
     cursor: 'default',
     display: 'flex',
     outline: 'none',
+    padding: '0 4px',
     '&:hover': {
       background: t.palette.background.default,
     },
