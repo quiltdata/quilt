@@ -263,21 +263,11 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2, 0, 0),
   },
-  cards: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
   sectionHeading: {
     marginBottom: t.spacing(1),
   },
   group: {
-    flex: '48%',
     padding: t.spacing(2),
-    margin: t.spacing(0, 0, 2),
-    '&:nth-child(2n)': {
-      marginLeft: t.spacing(2),
-    },
   },
   title: {
     margin: t.spacing(0, 0, 2),
@@ -293,30 +283,36 @@ export default function Settings() {
       <M.Typography variant="h4" className={classes.title}>
         Catalog Customization
       </M.Typography>
-      <div className={classes.cards}>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Navbar link
-          </M.Typography>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <NavLinkEditor />
-          </React.Suspense>
-        </M.Paper>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Theme (logo and color)
-          </M.Typography>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <ThemeEditor />
-          </React.Suspense>
-        </M.Paper>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Enable beta features
-          </M.Typography>
-          <BetaSwitch />
-        </M.Paper>
-      </div>
+      <M.Grid container spacing={2}>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Navbar link
+            </M.Typography>
+            <React.Suspense fallback={<M.CircularProgress />}>
+              <NavLinkEditor />
+            </React.Suspense>
+          </M.Paper>
+        </M.Grid>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Theme (logo and color)
+            </M.Typography>
+            <React.Suspense fallback={<M.CircularProgress />}>
+              <ThemeEditor />
+            </React.Suspense>
+          </M.Paper>
+        </M.Grid>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Enable beta features
+            </M.Typography>
+            <BetaSwitch />
+          </M.Paper>
+        </M.Grid>
+      </M.Grid>
     </div>
   )
 }
