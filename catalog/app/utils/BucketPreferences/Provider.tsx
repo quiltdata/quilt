@@ -62,10 +62,9 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
 
   // XXX: consider returning AsyncResult or using Suspense
   const preferences = data.case({
-    Ok: (prefs: BucketPreferences) =>
-      settings?.beta
-        ? R.assocPath(['ui', 'actions', 'openInDesktop'], true, prefs)
-        : prefs,
+    Ok: settings?.beta
+      ? R.assocPath(['ui', 'actions', 'openInDesktop'], true)
+      : R.identity,
     Err: () => parse('', sentry),
     _: () => null,
   })
