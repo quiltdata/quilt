@@ -9,7 +9,7 @@ import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 
-export { default as Meta } from './Meta'
+export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 

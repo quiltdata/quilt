@@ -22,6 +22,7 @@
 * [Changed] Make `pkgpush` lambda directly invocable, adjust handling of parameters and errors ([#2776](https://github.com/quiltdata/quilt/pull/2776))
 * [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
 * [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
+* [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointers objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
 
 ## Docs
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
