@@ -1,36 +1,17 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
 import SelectDropdown from 'components/SelectDropdown'
 import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
-import pipeThru from 'utils/pipeThru'
 
-import Section from './Section'
+export { default as Meta } from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
-
-export function Meta({ data, ...props }) {
-  return pipeThru(data)(
-    AsyncResult.case({
-      Ok: (meta) =>
-        !!meta &&
-        !R.isEmpty(meta) && (
-          <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-            <JsonDisplay value={meta} defaultExpanded={1} />
-          </Section>
-        ),
-      _: () => null,
-    }),
-  )
-}
 
 const useDownloadButtonStyles = M.makeStyles((t) => ({
   root: {

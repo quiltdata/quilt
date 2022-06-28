@@ -297,7 +297,7 @@ export function CommitMessageInput({
     disabled: meta.submitting || meta.submitSucceeded,
     error,
     fullWidth: true,
-    label: 'Commit message',
+    label: 'Message',
     margin: 'normal' as const,
     placeholder: 'Enter a commit message',
     validating: meta.submitFailed && meta.validating,
