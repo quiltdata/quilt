@@ -13,7 +13,7 @@ from pathlib import Path
 from string import ascii_lowercase
 from time import time
 from unittest import TestCase
-from unittest.mock import ANY, Mock, call, patch
+from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -25,10 +25,11 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import EVENT_PREFIX, DocTypes, RetryError, get_id
+from document_queue import EVENT_PREFIX, DocTypes, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
+    PACKAGE_INDEX_SUFFIX,
     POINTER_PREFIX_V1,
     separated_env_to_iter,
 )
@@ -252,35 +253,6 @@ def _make_event(
     "event_type, doc_type, kwargs",
     [
         (
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "pointer_file": "1598026253",
-                "package_hash": "abc",
-                "package_stats": None,
-            }
-        ),
-        (
-            "FAKE:EVENT",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "package_hash": "abc",
-                "pointer_file": "1598026253",
-            }
-        ),
-        (
             "ObjectRemoved:Delete",
             DocTypes.OBJECT,
             {
@@ -290,6 +262,8 @@ def _make_event(
                 "key": "foo",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
                 "version_id": "abc",
+                "size": 0,
+                "text": "",
             }
         ),
         (
@@ -306,222 +280,17 @@ def _make_event(
                 "version_id": "abc",
             }
         ),
-        pytest.param(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "pointer_file": "1598026253",
-                "package_hash": "abc",
-                "package_stats": {"bad": "data"},
-            },
-            marks=pytest.mark.xfail(
-                raises=ValueError,
-                reason="Malformed package_stats",
-                strict=True,
-            )
-        ),
-        pytest.param(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "package_hash": "abc",
-                "pointer_file": "1598026253",
-            },
-            marks=pytest.mark.xfail(
-                raises=ValueError,
-                reason="missing bucket",
-                strict=True
-            )
-        ),
-        pytest.param(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "nice-bucket",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": "not_an_object",
-                "package_hash": "abc",
-                "pointer_file": "1598026253",
-            },
-        ),
-        pytest.param(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "nice-bucket",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "package_hash": "hijk" * 4,
-                "pointer_file": "1598026253",
-            },
-        ),
-        pytest.param(
-            "ObjectRemoved:DeleteMarkerCreated",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "nice-bucket",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "package_hash": "abcdef",
-                "pointer_file": "latest",
-            },
-        ),
-        pytest.param(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "nice-bucket",
-                "etag": "123",
-                "ext": "",
-                "handle": "pkg/usr",
-                "key": "foo",
-                "last_modified": "not_an_object",
-                "package_hash": "1" * 64,
-                "pointer_file": "",
-            },
-            marks=pytest.mark.xfail(
-                raises=ValueError,
-                reason="must have both of package_hash or pointer_file",
-                strict=True
-            )
-        ),
     ]
 )
-@patch.object(index.DocumentQueue, '_append_document')
+@patch.object(index.DocumentQueue, 'append_document')
 def test_append(_append_mock, event_type, doc_type, kwargs):
     """test document_queue.append; outside of class so we can parameterize"""
     dq = index.DocumentQueue(None)
-    dq.append(event_type, doc_type, **kwargs)
+    dq.append(event_type=event_type, **kwargs)
     if event_type == "FAKE:EVENT":
         assert not _append_mock.call_count
     else:
         assert _append_mock.call_count == 1
-
-
-def test_filter_delete():
-    """test package filter and delete which occurs before bulk send"""
-    doc_queue = index.DocumentQueue(None)
-    doc_kwargs = [
-        (
-            # should not get filtered out
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "handle": "usr/pkg",
-                "key": ".quilt/named_packages/usr/pkg/1598026253",
-                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "pointer_file": "1598026253",
-                "package_hash": "abc",
-                "package_stats": None,
-            }
-        ),
-        (
-            # should get filtered out and cause a delete
-            "ObjectRemoved:Delete",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "handle": "usr/pkg",
-                "key": ".quilt/named_packages/usr/pkg/1598026553",
-                "last_modified": datetime.datetime(2019, 6, 1, 23, 27, 29, tzinfo=tzutc()),
-                "pointer_file": "1598026553",
-                "package_hash": "abc",
-                "package_stats": None,
-            }
-        ),
-        (
-            # should not get filtered out
-            "ObjectRemoved:DeleteMarkerCreated",
-            DocTypes.PACKAGE,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "handle": "usr/pkg2",
-                "key": ".quilt/named_packages/usr/pkg2/1598026953",
-                "last_modified": datetime.datetime(2019, 8, 1, 23, 27, 29, tzinfo=tzutc()),
-                "pointer_file": "1598026553",
-                "package_hash": "abc",
-                "package_stats": None,
-            }
-        ),
-        (
-            # should not get filtered out
-            "ObjectRemoved:DeleteMarkerCreated",
-            DocTypes.OBJECT,
-            {
-                "bucket": "test",
-                "etag": "123",
-                "ext": "",
-                "key": "key/to/an/object.ext",
-                "last_modified": datetime.datetime(2019, 8, 1, 23, 27, 29, tzinfo=tzutc()),
-                "version_id": ''
-            }
-        )
-    ]
-    for event, type_, kwargs in doc_kwargs:
-        doc_queue.append(event, type_, **kwargs)
-    elastic = Mock()
-    elastic.delete_by_query = Mock()
-    doc_queue._filter_and_delete_packages(elastic)
-    elastic.delete_by_query.assert_called_once_with(
-        body={
-            'query':
-                {
-                    'bool':
-                        {
-                            'must': [
-                                {'match': {'handle': 'usr/pkg'}},
-                                {'match': {'pointer_file': '1598026553'}},
-                                {'match': {'delete_marker': False}}
-                            ]
-                        }
-                }
-            },
-        index='test_packages',
-        timeout='20s',
-    )
-    # should be two docs left, since we deleted one of three
-    assert len(doc_queue.queue) == 3
-    object_key = "key/to/an/object.ext"
-    objects = [d for d in doc_queue.queue if d.get("key") == object_key]
-    # two package docs, one object
-    assert len(objects) == 1
-    # make sure append sets the version_id when version_id is falsy
-    assert objects[0].get("version_id") == "null"
-    assert objects[0].get("_id") == get_id(object_key, "null")
-    # there should be at least one delete_marker
-    assert any(d["delete_marker"] for d in doc_queue.queue)
-    assert not all(d["delete_marker"] for d in doc_queue.queue)
-    for d in doc_queue.queue:
-        if d["delete_marker"]:
-            assert d["_op_type"] == "index"
 
 
 def test_map_event_name_and_validate():
@@ -984,8 +753,7 @@ class TestIndex(TestCase):
         get_mock.assert_called_once()
         # ensure parquet data is getting to elastic
         append_mock.assert_called_once_with(
-            'ObjectCreated:Put',
-            DocTypes.OBJECT,
+            event_type='ObjectCreated:Put',
             bucket='test-bucket',
             etag='123456',
             ext='',
@@ -1011,55 +779,166 @@ class TestIndex(TestCase):
             }
         )
 
-    @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_package_delete(self, append_mock):
-        """test manifest delete"""
-        timestamp = "1610412903"
-        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            # we're mocking append so ES will never get called
-            mock_elastic=False,
-            mock_overrides={
-                "event_kwargs": {
-                    "key": pointer_key
-                },
-                # we patch maybe_get_contents so _test_index_events doesn't need to
-                "mock_object": False,
-            }
+    @patch.object(index.DocumentQueue, 'append_document')
+    def test_index_if_package_pointer_not_exists(self, append_mock):
+        bucket = "quilt-example"
+        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+
+        self.s3_stubber.add_client_error(
+            method="get_object",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
         )
 
-        append_mock.assert_has_calls([
-            call(
-                'ObjectRemoved:DeleteMarkerCreated',
-                DocTypes.OBJECT,
-                bucket='test-bucket',
-                etag='123456',
-                ext='',
-                key=pointer_key,
-                last_modified=ANY,
-                size=0,
-                text='',
-                version_id='1313131313131.Vier50HdNbi7ZirO65',
-            ),
-            call(
-                'ObjectRemoved:DeleteMarkerCreated',
-                DocTypes.PACKAGE,
-                bucket='test-bucket',
-                comment='',
-                etag='123456',
-                ext='',
-                handle='author/semantic',
-                key=pointer_key,
-                last_modified=ANY,
-                metadata='{}',
-                package_hash=str(timestamp),
-                package_stats=None,
-                pointer_file=timestamp,
-                version_id='1313131313131.Vier50HdNbi7ZirO65',
-            )
-        ])
-        assert append_mock.call_count == 2
+        index.index_if_package(
+            self.s3_client,
+            index.DocumentQueue(None),
+            bucket=bucket,
+            key=key,
+            etag="123",
+            last_modified="faketimestamp",
+            version_id="random.version.id",
+        )
+
+        append_mock.assert_called_once_with({
+            "_index": bucket + PACKAGE_INDEX_SUFFIX,
+            "_id": key,
+            "_op_type": "delete",
+        })
+
+    @patch.object(index, "select_manifest_meta", return_value=None)
+    @patch.object(index.DocumentQueue, 'append_document')
+    def test_index_if_package_select_meta_fail(self, append_mock, select_meta_mock):
+        bucket = "quilt-example"
+        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+        pkg_hash = "a" * 64
+        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
+
+        self.s3_stubber.add_response(
+            method="get_object",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+            service_response={
+                "Body": BytesIO(pkg_hash.encode())
+            },
+        )
+
+        index.index_if_package(
+            self.s3_client,
+            index.DocumentQueue(None),
+            bucket=bucket,
+            key=key,
+            etag="123",
+            last_modified="faketimestamp",
+            version_id="random.version.id",
+        )
+
+        select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        append_mock.assert_called_once_with({
+            "_index": bucket + PACKAGE_INDEX_SUFFIX,
+            "_id": key,
+            "_op_type": "delete",
+        })
+
+    @patch.object(index, "select_package_stats", return_value=None)
+    @patch.object(index, "select_manifest_meta")
+    @patch.object(index.DocumentQueue, 'append_document')
+    def test_index_if_package_select_stats_fail(self, append_mock, select_meta_mock, select_stats_mock):
+        bucket = "quilt-example"
+        key = f"{POINTER_PREFIX_V1}author/semantic/1610412903"
+        pkg_hash = "a" * 64
+        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
+        message = "test"
+        meta = {"foo": "bar"}
+        select_meta_mock.return_value = {"message": message, "user_meta": meta}
+
+        self.s3_stubber.add_response(
+            method="get_object",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+            service_response={
+                "Body": BytesIO(pkg_hash.encode())
+            },
+        )
+
+        index.index_if_package(
+            self.s3_client,
+            index.DocumentQueue(None),
+            bucket=bucket,
+            key=key,
+            etag="123",
+            last_modified="faketimestamp",
+            version_id="random.version.id",
+        )
+
+        select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        select_stats_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        append_mock.assert_called_once_with({
+            "_index": bucket + PACKAGE_INDEX_SUFFIX,
+            "_id": key,
+            "_op_type": "delete",
+        })
+
+    @patch.object(index, "select_package_stats")
+    @patch.object(index, "select_manifest_meta")
+    @patch.object(index.DocumentQueue, 'append_document')
+    def test_index_if_package(self, append_mock, select_meta_mock, select_stats_mock):
+        bucket = "quilt-example"
+        handle = "author/semantic"
+        pointer_file = "1610412903"
+        key = f"{POINTER_PREFIX_V1}{handle}/{pointer_file}"
+        pkg_hash = "a" * 64
+        manifest_key = MANIFEST_PREFIX_V1 + pkg_hash
+        message = "test"
+        meta = {"foo": "bar"}
+        select_meta_mock.return_value = {"message": message, "user_meta": meta}
+        select_stats_mock.return_value = {"total_bytes": 42, "total_files": 42}
+
+        self.s3_stubber.add_response(
+            method="get_object",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+            service_response={
+                "Body": BytesIO(pkg_hash.encode())
+            },
+        )
+
+        index.index_if_package(
+            self.s3_client,
+            index.DocumentQueue(None),
+            bucket=bucket,
+            key=key,
+            etag="123",
+            last_modified="faketimestamp",
+            version_id="random.version.id",
+        )
+
+        select_meta_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        select_stats_mock.assert_called_once_with(self.s3_client, bucket, manifest_key)
+        append_mock.assert_called_once_with({
+            "_index": bucket + PACKAGE_INDEX_SUFFIX,
+            "_id": key,
+            "_op_type": "index",
+            "key": key,
+            "etag": "123",
+            "version_id": "random.version.id",
+            "last_modified": "faketimestamp",
+            "delete_marker": False,  # TODO: remove
+            "handle": handle,
+            "pointer_file": pointer_file,
+            "hash": pkg_hash,
+            "package_stats": select_stats_mock.return_value,
+            "metadata": json.dumps(meta),
+            "comment": message,
+        })
 
     def test_index_if_package_skip(self):
         """test cases where index_if_package ignores input for different reasons"""
@@ -1069,14 +948,11 @@ class TestIndex(TestCase):
             assert not index.index_if_package(
                 self.s3_client,
                 index.DocumentQueue(None),
-                "ObjectCreated:Put",
                 bucket="quilt-example",
                 etag="123",
-                ext="",
                 key=key,
                 last_modified="faketimestamp",
                 version_id="random.version.id",
-                size=64
             )
         # none of these should index due to bad file path
         good_timestamp = floor(time())
@@ -1092,15 +968,12 @@ class TestIndex(TestCase):
             assert not index.index_if_package(
                 self.s3_client,
                 index.DocumentQueue(None),
-                "ObjectCreated:Put",
                 bucket="quilt-example",
                 etag="123",
-                ext="",
                 # emulate a recent unix stamp from quilt3
                 key=key,
                 last_modified="faketimestamp",
                 version_id="random.version.id",
-                size=64
             )
 
     @patch.object(index.DocumentQueue, 'append')
@@ -1128,8 +1001,7 @@ class TestIndex(TestCase):
         get_mock.assert_called_once()
         index_mock.assert_called_once()
         append_mock.assert_called_once_with(
-            'ObjectCreated:Put',
-            DocTypes.OBJECT,
+            event_type='ObjectCreated:Put',
             bucket='test-bucket',
             etag='123456',
             ext='',
@@ -1139,212 +1011,6 @@ class TestIndex(TestCase):
             text=json_data,
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
-
-    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
-    @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_package_positive(self, append_mock, filter_mock):
-        """test manifest file and its indexing"""
-        timestamp = floor(time())
-        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
-        # first, handler() will head the object
-        self.s3_stubber.add_response(
-            method="head_object",
-            service_response={
-                **OBJECT_RESPONSE,
-                "ContentLength": 64
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": pointer_key,
-                "VersionId": OBJECT_RESPONSE["VersionId"],
-            }
-        )
-
-        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
-        # next, handler() calls index_if_package which gets the hash from pointer_file
-        self.s3_stubber.add_response(
-            method="get_object",
-            service_response={
-                **OBJECT_RESPONSE,
-                "ContentLength": 64,
-                "Body": BytesIO(sha_hash.encode())
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": pointer_key,
-                "VersionId": OBJECT_RESPONSE["VersionId"],
-                'Range': "bytes=0-63"
-            }
-        )
-
-        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
-        # patch select_object_content since boto can't
-        with patch.object(self.s3_client, 'select_object_content') as mock_select:
-            mock_select.side_effect = [
-                {
-                    "ResponseMetadata": ANY,
-                    "Payload": [
-                        {
-                            "Stats": {}
-                        },
-                        {
-                            "Records": {
-                                "Payload": json.dumps(MANIFEST_DATA).encode(),
-                            },
-                        },
-                        {
-                            "End": {}
-                        },
-                    ]
-                },
-                {
-                    "ResponseMetadata": ANY,
-                    "Payload": [
-                        {
-                            "Stats": {}
-                        },
-                        {
-                            "Records": {
-                                "Payload": b'{"total_bytes":292600212794000,"total_files":179066000}\n',
-                            },
-                        },
-                        {
-                            "End": {}
-                        },
-                    ]
-                },
-            ]
-
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                # we're mocking append so ES will never get called
-                mock_elastic=False,
-                mock_overrides={
-                    "event_kwargs": {
-                        "key": pointer_key,
-                        "versionId": OBJECT_RESPONSE["VersionId"]
-                    },
-                    # we, not _test_index_events, patch all the S3 calls in this test
-                    "mock_object": False,
-                    "mock_head": False
-                }
-            )
-
-            mock_select.assert_called_with(
-                Bucket="test-bucket",
-                Key=manifest_key,
-                Expression=ANY,
-                ExpressionType="SQL",
-                # copied from t4_lambda_shared > utils.py > query_manifest_content
-                InputSerialization={
-                    'JSON': {'Type': 'LINES'},
-                    'CompressionType': 'NONE'
-                },
-                OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
-            )
-            # one call for metadata, one for stats
-            assert mock_select.call_count == 2
-
-        append_mock.assert_any_call(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            bucket="test-bucket",
-            etag="123456",
-            ext="",
-            handle="author/semantic",
-            key=pointer_key,
-            last_modified=ANY,
-            package_hash=sha_hash,
-            package_stats={
-                'total_files': 179_066_000,
-                'total_bytes': 292_600_212_794_000,
-            },
-            pointer_file=ANY,
-            comment=MANIFEST_DATA["message"],
-            metadata=json.dumps(MANIFEST_DATA["user_meta"]),
-            version_id=OBJECT_RESPONSE["VersionId"],
-        )
-
-        append_mock.assert_any_call(
-            "ObjectCreated:Put",
-            DocTypes.OBJECT,
-            bucket="test-bucket",
-            key=pointer_key,
-            ext="",
-            etag="123456",
-            version_id=OBJECT_RESPONSE["VersionId"],
-            last_modified=ANY,
-            size=64,
-            text=""
-        )
-        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
-
-    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
-    @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_package_tag(self, append_mock, filter_mock):
-        """test manifest file and its indexing"""
-        timestamp = floor(time())
-        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/latest"
-        # first, handler() will head the object
-        self.s3_stubber.add_response(
-            method="head_object",
-            service_response={
-                **OBJECT_RESPONSE,
-                "ContentLength": 64
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": pointer_key,
-                "VersionId": OBJECT_RESPONSE["VersionId"],
-            }
-        )
-
-        self._test_index_events(
-            ["ObjectCreated:Put"],
-            # we're mocking append so ES will never get called
-            mock_elastic=False,
-            mock_overrides={
-                "event_kwargs": {
-                    "key": pointer_key,
-                    "versionId": OBJECT_RESPONSE["VersionId"]
-                },
-                # we, not _test_index_events, patch all the S3 calls in this test
-                "mock_object": False,
-                "mock_head": False
-            }
-        )
-
-        append_mock.assert_has_calls([
-            call(
-                "ObjectCreated:Put",
-                DocTypes.OBJECT,
-                bucket="test-bucket",
-                etag="123456",
-                ext="",
-                key=".quilt/named_packages/author/semantic/latest",
-                last_modified="2020-05-22T00:32:20.515Z",
-                size=64,
-                text="",
-                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
-            ),
-            call(
-                "ObjectCreated:Put",
-                DocTypes.PACKAGE,
-                bucket="test-bucket",
-                comment="",
-                etag="123456",
-                ext="",
-                handle="author/semantic",
-                key=".quilt/named_packages/author/semantic/latest",
-                last_modified="2020-05-22T00:32:20.515Z",
-                metadata="{}",
-                package_hash="latest",
-                package_stats=None,
-                pointer_file="latest",
-                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
-            ),
-        ])
-        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""

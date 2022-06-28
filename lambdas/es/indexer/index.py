@@ -62,7 +62,6 @@ from dateutil.tz import tzutc
 from document_queue import (
     EVENT_PREFIX,
     MAX_RETRY,
-    DocTypes,
     DocumentQueue,
     get_content_index_bytes,
     get_content_index_extensions,
@@ -87,6 +86,7 @@ from t4_lambda_shared.preview import (
 )
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
+    PACKAGE_INDEX_SUFFIX,
     POINTER_PREFIX_V1,
     get_available_memory,
     get_quilt_logger,
@@ -225,8 +225,8 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
             key=key,
             sql_stmt=SELECT_PACKAGE_META
         )
-        return raw.read()
-    except botocore.exceptions.ClientError as cle:
+        return json.load(raw)
+    except (botocore.exceptions.ClientError, json.JSONDecodeError) as cle:
         print(f"Unable to S3 select manifest: {cle}")
 
     return None
@@ -251,8 +251,7 @@ def do_index(
     # index as object (always)
     logger_.debug("%s to indexing queue (%s)", key, event_type)
     doc_queue.append(
-        event_type,
-        DocTypes.OBJECT,
+        event_type=event_type,
         bucket=bucket,
         ext=ext,
         etag=etag,
@@ -266,13 +265,10 @@ def do_index(
     if index_if_package(
         s3_client,
         doc_queue,
-        event_type,
         bucket=bucket,
         etag=etag,
-        ext=ext,
         key=key,
         last_modified=last_modified,
-        size=size,
         version_id=version_id,
     ):
         logger_.debug("%s indexed as package (%s)", key, event_type)
@@ -281,15 +277,12 @@ def do_index(
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
-        event_type: str,
         *,
         bucket: str,
         etag: str,
-        ext: str,
         key: str,
         last_modified: str,
         version_id: Optional[str],
-        size: int
 ) -> bool:
     """index manifest pointer files as package documents in ES
         Returns:
@@ -309,61 +302,50 @@ def index_if_package(
         return False
     try:
         manifest_timestamp = int(pointer_file)
-        is_tag = False
         if not 1451631600 <= manifest_timestamp <= 1767250800:
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
     except ValueError as err:
-        is_tag = True
         logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
-    package_hash = ''
-    first_dict = {}
-    stats = None
-    # we only need to get manifest contents for proper create events (not latest pointers)
-    if event_type.startswith(EVENT_PREFIX["Created"]) and not is_tag:
-        package_hash = get_plain_text(
-            bucket,
-            key,
-            size,
-            None,
-            etag=etag,
-            s3_client=s3_client,
-            version_id=version_id,
-        ).strip()
+    def get_pkg_data():
+        try:
+            package_hash = s3_client.get_object(
+                Bucket=bucket,
+                Key=key,
+            )['Body'].read().decode()
+        except botocore.exceptions.ClientError:
+            return
+
         manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
         first = select_manifest_meta(s3_client, bucket, manifest_key)
-        stats = select_package_stats(s3_client, bucket, manifest_key)
         if not first:
-            logger_.error("S3 select failed %s %s", bucket, manifest_key)
-            return False
-        try:
-            first_dict = json.loads(first)
-        except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
-            print(
-                f"{exc}\n"
-                f"\tFailed to select first line of manifest s3://{bucket}/{key}."
-                f"\tGot {first}."
-            )
-            return False
+            return
+        stats = select_package_stats(s3_client, bucket, manifest_key)
+        if not stats:
+            return
 
-    doc_queue.append(
-        event_type,
-        DocTypes.PACKAGE,
-        bucket=bucket,
-        etag=etag,
-        ext=ext,
-        handle=handle,
-        key=key,
-        last_modified=last_modified,
-        # if we don't have the hash, we're processing a tag
-        package_hash=(package_hash or pointer_file),
-        package_stats=stats,
-        pointer_file=pointer_file,
-        comment=str(first_dict.get("message", "")),
-        metadata=json.dumps(first_dict.get("user_meta", {})),
-        version_id=version_id,
-    )
+        return {
+            "key": key,
+            "etag": etag,
+            "version_id": version_id,
+            "last_modified": last_modified,
+            "delete_marker": False,  # TODO: remove
+            "handle": handle,
+            "pointer_file": pointer_file,
+            "hash": package_hash,
+            "package_stats": stats,
+            "metadata": json.dumps(first.get("user_meta", {})),
+            "comment": str(first.get("message", "")),
+        }
+
+    data = get_pkg_data() or {}
+    doc_queue.append_document({
+        "_index": bucket + PACKAGE_INDEX_SUFFIX,
+        "_id": key,
+        "_op_type": "index" if data else "delete",
+        **data,
+    })
 
     return True
 
