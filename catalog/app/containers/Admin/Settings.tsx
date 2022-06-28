@@ -301,7 +301,7 @@ export default function Settings() {
         </M.Paper>
         <M.Paper className={classes.group}>
           <M.Typography variant="h5" className={classes.sectionHeading}>
-            Enable beta-features
+            Enable beta features
           </M.Typography>
           <BetaEditor />
         </M.Paper>
