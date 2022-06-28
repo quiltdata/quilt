@@ -13,9 +13,7 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import ThemeEditor from './Settings/ThemeEditor'
 
-const useBetaEditorStyles = M.makeStyles((t) => ({}))
-
-function BetaEditor() {
+function BetaSwitch() {
   const settings = CatalogSettings.use()
   const [beta, setBeta] = React.useState(settings?.beta || false)
   const [disabled, setDisabled] = React.useState(false)
@@ -303,7 +301,7 @@ export default function Settings() {
           <M.Typography variant="h5" className={classes.sectionHeading}>
             Enable beta features
           </M.Typography>
-          <BetaEditor />
+          <BetaSwitch />
         </M.Paper>
       </div>
     </div>
