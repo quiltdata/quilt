@@ -6,14 +6,14 @@ import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 import AsyncResult from 'utils/AsyncResult'
-import { Json } from 'utils/types'
+import { JsonRecord } from 'utils/types'
 
 import Section, { SectionProps } from './Section'
 
 interface MetaData {
   message?: string
-  user_meta?: object
-  workflow?: $TSFixMe
+  user_meta?: JsonRecord
+  workflow?: JsonRecord
   version?: string
 }
 
@@ -120,7 +120,7 @@ export function PackageMeta({ data, ...props }: MetaProps) {
 export function ObjectMeta({ data, ...props }: MetaProps) {
   return AsyncResult.case(
     {
-      Ok: (meta: Json) =>
+      Ok: (meta?: JsonRecord) =>
         meta && !R.isEmpty(meta) ? (
           <Section icon="list" heading="Metadata" defaultExpanded {...props}>
             {/* @ts-expect-error */}
