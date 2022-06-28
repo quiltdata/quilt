@@ -13,21 +13,33 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import ThemeEditor from './Settings/ThemeEditor'
 
-function BetaSwitch() {
+function useBeta(): [boolean, (b: boolean) => Promise<void>] {
   const settings = CatalogSettings.use()
-  const [value, setValue] = React.useState(settings?.beta || false)
-  const [disabled, setDisabled] = React.useState(false)
   const writeSettings = CatalogSettings.useWriteSettings()
-  const handleChange = React.useCallback(async () => {
-    setDisabled(true)
-    const beta = !value
-    setValue(beta)
-    await writeSettings({
-      ...settings,
-      beta,
-    })
-    setDisabled(false)
-  }, [settings, value, writeSettings])
+  const onChange = React.useCallback(
+    (beta: boolean) =>
+      writeSettings({
+        ...settings,
+        beta,
+      }),
+    [settings, writeSettings],
+  )
+  return [settings?.beta || false, onChange]
+}
+
+function BetaSwitch() {
+  const [beta, setBeta] = useBeta()
+  const [value, setValue] = React.useState(beta)
+  const [disabled, setDisabled] = React.useState(false)
+  const handleChange = React.useCallback(
+    async (event, checked) => {
+      setDisabled(true)
+      setValue(checked)
+      await setBeta(checked)
+      setDisabled(false)
+    },
+    [setBeta],
+  )
   return <M.Switch checked={value} onChange={handleChange} disabled={disabled} />
 }
 
