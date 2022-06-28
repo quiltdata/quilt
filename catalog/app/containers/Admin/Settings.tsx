@@ -15,19 +15,20 @@ import ThemeEditor from './Settings/ThemeEditor'
 
 function BetaSwitch() {
   const settings = CatalogSettings.use()
-  const [beta, setBeta] = React.useState(settings?.beta || false)
+  const [value, setValue] = React.useState(settings?.beta || false)
   const [disabled, setDisabled] = React.useState(false)
   const writeSettings = CatalogSettings.useWriteSettings()
   const onChange = React.useCallback(async () => {
     setDisabled(true)
-    setBeta(!beta)
+    const beta = !value
+    setValue(beta)
     await writeSettings({
       ...settings,
-      beta: !beta,
+      beta,
     })
     setDisabled(false)
-  }, [writeSettings])
-  return <M.Switch checked={beta} onChange={onChange} disabled={disabled} />
+  }, [settings, value, writeSettings])
+  return <M.Switch checked={value} onChange={onChange} disabled={disabled} />
 }
 
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
