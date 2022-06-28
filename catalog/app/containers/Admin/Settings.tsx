@@ -18,7 +18,7 @@ function BetaSwitch() {
   const [value, setValue] = React.useState(settings?.beta || false)
   const [disabled, setDisabled] = React.useState(false)
   const writeSettings = CatalogSettings.useWriteSettings()
-  const onChange = React.useCallback(async () => {
+  const handleChange = React.useCallback(async () => {
     setDisabled(true)
     const beta = !value
     setValue(beta)
@@ -28,7 +28,7 @@ function BetaSwitch() {
     })
     setDisabled(false)
   }, [settings, value, writeSettings])
-  return <M.Switch checked={value} onChange={onChange} disabled={disabled} />
+  return <M.Switch checked={value} onChange={handleChange} disabled={disabled} />
 }
 
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
