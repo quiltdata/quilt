@@ -518,18 +518,24 @@ const useEntryStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     outline: 'none',
   },
+  size: {
+    ...t.typography.body2,
+    marginRight: t.spacing(0.5),
+    opacity: 0.6,
+  },
 }))
 
-interface EntryProps {
-  className?: string
-  faint: boolean
+interface EntryProps extends React.HTMLAttributes<HTMLDivElement> {
   actions: FileAction[]
   checkbox: React.ReactNode
-  size?: number
   children: React.ReactNode
+  className?: string
+  faint: boolean
   icon: string
   name: string
   onClick?: () => void
+  size?: number
+  type?: FilesEntryType
   state: FilesEntryState
 }
 
@@ -542,7 +548,10 @@ function Entry({
   icon,
   name,
   onClick,
+  size,
   state,
+  type,
+  ...props
 }: EntryProps) {
   const clickableProps = !!onClick
     ? {
@@ -554,7 +563,7 @@ function Entry({
   const classes = useEntryStyles()
 
   return (
-    <div className={cx(classes.root, classes[state], className)}>
+    <div className={cx(classes.root, classes[state], className)} {...props}>
       {checkbox}
       <div
         className={cx(
@@ -564,80 +573,19 @@ function Entry({
         )}
         {...clickableProps}
       >
-        <EntryIcon state={state}>{icon}</EntryIcon>
+        <EntryIcon state={state} overlay={type === 's3' ? 'S3' : undefined}>
+          {icon}
+        </EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
+        {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
       {!!actions.length && <FileMenu className={classes.menu} actions={actions} />}
       {children}
     </div>
   )
 }
-
-const useFileStyles = M.makeStyles((t) => ({
-  added: {},
-  modified: {},
-  hashing: {},
-  deleted: {},
-  unchanged: {},
-  root: {
-    alignItems: 'center',
-    color: COLORS.default,
-    cursor: 'default',
-    display: 'flex',
-    outline: 'none',
-    position: 'relative',
-    minHeight: '32px',
-    '&:hover': {
-      background: t.palette.background.default,
-    },
-    '&$added': {
-      color: COLORS.added,
-    },
-    '&$modified': {
-      color: COLORS.modified,
-    },
-    '&$hashing': {
-      color: COLORS.modified,
-    },
-    '&$deleted': {
-      color: COLORS.deleted,
-    },
-    '&:hover $menu': {
-      opacity: 1,
-    },
-  },
-  menu: {
-    opacity: 0,
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    right: 0,
-  },
-  inner: {
-    alignItems: 'center',
-    display: 'flex',
-    flexGrow: 1,
-    overflow: 'hidden',
-  },
-  faint: {
-    opacity: 0.5,
-  },
-  name: {
-    ...t.typography.body2,
-    flexGrow: 1,
-    marginRight: t.spacing(1),
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  size: {
-    ...t.typography.body2,
-    marginRight: t.spacing(0.5),
-    opacity: 0.6,
-  },
-}))
 
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
@@ -661,26 +609,27 @@ export function File({
   disableStateDisplay = false,
   actions,
   children,
+  onClick,
   ...props
 }: FileProps) {
-  const classes = useFileStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
   return (
-    <div className={cx(className, classes.root, classes[stateDisplay])} {...props}>
-      {checkbox}
-      <div className={cx(classes.inner, faint && classes.faint)}>
-        <EntryIcon state={stateDisplay} overlay={type === 's3' ? 'S3' : undefined}>
-          insert_drive_file
-        </EntryIcon>
-        <div className={classes.name} title={name}>
-          {name}
-        </div>
-        {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
-      </div>
-      {!!actions.length && <FileMenu className={classes.menu} actions={actions} />}
-      {children}
-    </div>
+    <Entry
+      {...{
+        actions,
+        checkbox,
+        children,
+        className,
+        faint,
+        icon: 'insert_drive_file',
+        name,
+        size,
+        state: stateDisplay,
+        type,
+        ...props,
+      }}
+    />
   )
 }
 
