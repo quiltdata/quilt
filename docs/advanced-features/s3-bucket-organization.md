@@ -15,7 +15,7 @@ look at everything that happened on a given data. And vice versa.
 
 For this reason, packages offer both metadata tags and infinite
 _logical_ views atop _physical_ locations in S3. Metadata tags prevent file names
-from getting longer and longer to spatchcock metadata.
+from getting longer and longer to hackily include metadata.
 
 With Quilt packages you can place one S3 object in a thousand packages without ever copying that object. Or you can "reorganize" S3 without moving any objects, with custom views of S3 for each team,
 by using Quilt packages and the `.set*()` API calls.
