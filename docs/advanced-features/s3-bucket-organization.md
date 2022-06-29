@@ -7,6 +7,14 @@ topic or domain.
 As discussed under [mental model](../MentalModel.md#buckets-are-branches), S3
 buckets in Quilt are like branches in git; they reflect how "done" data are. 
 
+## Don't rely on folders
+
+There's no one folder structure that works for everyone. If you organize experiments
+by `department/date` then looking at everything that happened on given date
+becomes a bear. For this reason, packages offer both metadata tags and infinite
+_logical_ views atop _physical_ locations in S3. With packages you can have
+one file in a thousand packages without ever copying that file. Or you can "reorganize" S3 without moving any objects, with custom views of S3 for each team,
+by using Quilt packages and the `.set*()` API calls.
 
 ## S3 data lifecycle
 Below is an example of how you might organize three data domains according to a three-phase data lifecycle.
