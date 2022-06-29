@@ -3,7 +3,10 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as BucketConfig from 'utils/BucketConfig'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
 
@@ -75,9 +78,31 @@ function NonStringValue({ value }) {
   return <div>{`${value}`}</div>
 }
 
+function S3UrlValue({ href, children }) {
+  const { urls } = NamedRoutes.use()
+  const isInStack = BucketConfig.useIsInStack()
+  const props = React.useMemo(() => {
+    const s3Handle = s3paths.parseS3Url(href)
+    const inStack = isInStack(s3Handle.bucket)
+    return {
+      href: inStack
+        ? urls.bucketFile(s3Handle.bucket, s3Handle.key, s3Handle.version)
+        : s3paths.handleToHttpsUri(s3Handle),
+      target: inStack ? undefined : '_blank',
+    }
+  }, [href, isInStack, urls])
+  return (
+    <div>
+      "<StyledLink {...props}>{children}</StyledLink>"
+    </div>
+  )
+}
+
 function StringValue({ value }) {
   const href = React.useMemo(() => getHref(value), [value])
-  return href ? (
+  if (!href) return <div>"{value}"</div>
+  if (s3paths.isS3Url(href)) return <S3UrlValue href={href}>{value}</S3UrlValue>
+  return (
     <div>
       "
       <StyledLink href={href} target="_blank">
@@ -85,8 +110,6 @@ function StringValue({ value }) {
       </StyledLink>
       "
     </div>
-  ) : (
-    <div>"{value}"</div>
   )
 }
 
