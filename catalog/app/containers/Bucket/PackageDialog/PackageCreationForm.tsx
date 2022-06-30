@@ -85,7 +85,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageCreationFormProps {
-  initialS3Path?: string
   bucket: string
   close: () => void
   initial?: {
@@ -93,7 +92,7 @@ interface PackageCreationFormProps {
     meta?: Types.JsonRecord
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
-    // TODO: initialS3Path?: string
+    path?: string
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -129,7 +128,6 @@ function PackageCreationForm({
   workflowsConfig,
   delayHashing,
   disableStateDisplay,
-  initialS3Path, // add to `initial`
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
@@ -554,7 +552,7 @@ function PackageCreationForm({
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
-                      initialS3Path={initialS3Path}
+                      initialS3Path={initial?.path}
                     />
                   )}
 
@@ -652,18 +650,25 @@ interface UsePackageCreationDialogProps {
   disableStateDisplay?: boolean
 }
 
+// TODO: package can be created from some `src`:
+//         * s3 directory
+//         * existing package
+//       and pushed to `dst` (or maybe just `successor`):
+//         * successor
 export function usePackageCreationDialog({
-  bucket,
+  bucket, // TODO: put it to dst; and to src if needed
   src,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
+  // TODO: put it to src
   const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+  // TODO: move to props: { dst: { successor } }
   const [successor, setSuccessor] = React.useState({
     slug: bucket,
   } as workflows.Successor)
@@ -799,8 +804,7 @@ export function usePackageCreationDialog({
                     setWorkflow,
                     workflowsConfig,
                     sourceBuckets,
-                    initial: { name: src?.name, ...manifest },
-                    initialS3Path: s3Path,
+                    initial: { name: src?.name, path: s3Path, ...manifest },
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,
