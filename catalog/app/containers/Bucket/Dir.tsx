@@ -16,6 +16,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
+import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
 import * as FileView from './FileView'
@@ -186,8 +187,6 @@ export default function Dir({
     [bucket, path, dest],
   )
 
-  // const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
-
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
   React.useLayoutEffect(() => {
@@ -220,8 +219,17 @@ export default function Dir({
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
-    initialS3Path: path,
   })
+
+  const openPackageCreationDialog = React.useCallback(
+    (successor: workflows.Successor) => {
+      packageDirectoryDialog.open({
+        path,
+        successor,
+      })
+    },
+    [packageDirectoryDialog, path],
+  )
 
   return (
     <M.Box pt={2} pb={4}>
@@ -244,7 +252,7 @@ export default function Dir({
           <Successors.Button
             bucket={bucket}
             className={classes.button}
-            onChange={packageDirectoryDialog.open}
+            onChange={openPackageCreationDialog}
           >
             Create package from directory
           </Successors.Button>

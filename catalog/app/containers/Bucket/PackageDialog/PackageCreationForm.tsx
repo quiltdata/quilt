@@ -650,7 +650,6 @@ interface UsePackageCreationDialogProps {
   }
   delayHashing?: boolean
   disableStateDisplay?: boolean
-  initialS3Path?: string
 }
 
 export function usePackageCreationDialog({
@@ -658,10 +657,10 @@ export function usePackageCreationDialog({
   src,
   delayHashing = false,
   disableStateDisplay = false,
-  initialS3Path,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
+  const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
@@ -697,7 +696,7 @@ export function usePackageCreationDialog({
                       manifest,
                       workflowsConfig,
                       sourceBuckets:
-                        typeof initialS3Path !== 'undefined'
+                        typeof s3Path !== 'undefined'
                           ? prependSourceBucket(preferences.ui.sourceBuckets, bucket)
                           : preferences.ui.sourceBuckets,
                     })
@@ -708,13 +707,23 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, initialS3Path, workflowsData, manifestResult, preferences],
+    [bucket, s3Path, workflowsData, manifestResult, preferences],
   )
 
-  const open = React.useCallback(() => {
-    setOpen(true)
-    setExited(false)
-  }, [setOpen, setExited])
+  const open = React.useCallback(
+    (initial?: { successor?: workflows.Successor; path?: string }) => {
+      if (initial?.successor) {
+        setSuccessor(initial?.successor)
+      }
+      if (initial?.path) {
+        setS3Path(initial?.path)
+      }
+
+      setOpen(true)
+      setExited(false)
+    },
+    [setOpen, setExited],
+  )
 
   const close = React.useCallback(() => {
     if (submitting) return
@@ -791,7 +800,7 @@ export function usePackageCreationDialog({
                     workflowsConfig,
                     sourceBuckets,
                     initial: { name: src?.name, ...manifest },
-                    initialS3Path,
+                    initialS3Path: s3Path,
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

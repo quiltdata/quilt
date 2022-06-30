@@ -438,6 +438,10 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     delayHashing: true,
     disableStateDisplay: true,
   })
+  const openPackageCreationDialog = React.useCallback(
+    () => createDialog.open(),
+    [createDialog],
+  )
 
   return (
     <>
@@ -496,7 +500,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                     <M.Button
                       variant="contained"
                       color="primary"
-                      onClick={createDialog.open}
+                      onClick={openPackageCreationDialog}
                     >
                       Create package
                     </M.Button>
@@ -552,7 +556,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                       size="large"
                       color="primary"
                       style={{ paddingTop: 7, paddingBottom: 7 }}
-                      onClick={createDialog.open}
+                      onClick={openPackageCreationDialog}
                     >
                       Create package
                     </M.Button>
