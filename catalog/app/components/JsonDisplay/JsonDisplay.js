@@ -3,7 +3,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
@@ -80,20 +79,13 @@ function NonStringValue({ value }) {
 
 function S3UrlValue({ href, children }) {
   const { urls } = NamedRoutes.use()
-  const isInStack = BucketConfig.useIsInStack()
-  const props = React.useMemo(() => {
-    const s3Handle = s3paths.parseS3Url(href)
-    const inStack = isInStack(s3Handle.bucket)
-    return {
-      href: inStack
-        ? urls.bucketFile(s3Handle.bucket, s3Handle.key, s3Handle.version)
-        : s3paths.handleToHttpsUri(s3Handle),
-      target: inStack ? undefined : '_blank',
-    }
-  }, [href, isInStack, urls])
+  const to = React.useMemo(() => {
+    const { bucket, key, version } = s3paths.parseS3Url(href)
+    return urls.bucketFile(bucket, key, version)
+  }, [href, urls])
   return (
     <div>
-      "<StyledLink {...props}>{children}</StyledLink>"
+      "<StyledLink to={to}>{children}</StyledLink>"
     </div>
   )
 }
