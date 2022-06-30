@@ -49,8 +49,8 @@ const HeadCell = ({ className, children, title }: HeadCellProps) => {
 }
 
 const usePackageMetaStyles = M.makeStyles({
-  cell: {
-    width: '100%',
+  headCell: {
+    width: '137px',
   },
   message: {
     paddingLeft: '4px',
@@ -62,6 +62,10 @@ const usePackageMetaStyles = M.makeStyles({
     '&:only-child th': {
       paddingLeft: 0,
     },
+  },
+  table: {
+    tableLayout: 'fixed',
+    width: '100%',
   },
   wrapper: {
     width: '100%',
@@ -78,20 +82,24 @@ export function PackageMeta({ data, ...props }: MetaProps) {
     {
       Ok: ({ message, user_meta: userMeta, workflow }: MetaData) => (
         <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-          <M.Table size="small">
+          <M.Table className={classes.table} size="small">
             <M.TableBody>
               {message && (
                 <M.TableRow className={classes.row}>
-                  <HeadCell title="/message">Message:</HeadCell>
-                  <M.TableCell className={classes.cell}>
+                  <HeadCell className={classes.headCell} title="/message">
+                    Message:
+                  </HeadCell>
+                  <M.TableCell>
                     <M.Typography className={classes.message}>{message}</M.Typography>
                   </M.TableCell>
                 </M.TableRow>
               )}
               {userMeta && (
                 <M.TableRow className={classes.row}>
-                  <HeadCell title="/user_meta">User metadata:</HeadCell>
-                  <M.TableCell className={classes.cell}>
+                  <HeadCell className={classes.headCell} title="/user_meta">
+                    User metadata:
+                  </HeadCell>
+                  <M.TableCell>
                     {/* @ts-expect-error */}
                     <JsonDisplay value={userMeta} />
                   </M.TableCell>
@@ -99,8 +107,10 @@ export function PackageMeta({ data, ...props }: MetaProps) {
               )}
               {workflow && (
                 <M.TableRow className={classes.row}>
-                  <HeadCell title="/workflow">Workflow:</HeadCell>
-                  <M.TableCell className={classes.cell}>
+                  <HeadCell className={classes.headCell} title="/workflow">
+                    Workflow:
+                  </HeadCell>
+                  <M.TableCell>
                     {/* @ts-expect-error */}
                     <JsonDisplay value={workflow} />
                   </M.TableCell>
