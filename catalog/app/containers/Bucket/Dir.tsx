@@ -16,13 +16,11 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
-import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
 import * as PD from './PackageDialog'
-import PackageDirectoryDialog from './PackageDirectoryDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -86,26 +84,12 @@ interface DirContentsProps {
   locked: boolean
   bucket: string
   path: string
-  successor: workflows.Successor | null
-  setSuccessor: (successor: workflows.Successor | null) => void
   loadMore?: () => void
 }
 
-function DirContents({
-  response,
-  locked,
-  bucket,
-  path,
-  successor,
-  setSuccessor,
-  loadMore,
-}: DirContentsProps) {
+function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
-
-  const onPackageDirectoryDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-  }, [setSuccessor])
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -119,19 +103,6 @@ function DirContents({
   // TODO: should prefix filtering affect summary?
   return (
     <>
-      {/* <PackageDirectoryDialog
-        bucket={bucket}
-        path={path}
-        files={response.files}
-        dirs={response.dirs}
-        truncated={response.truncated}
-        filtered={!!response.prefix}
-        open={!!successor}
-        successor={successor}
-        onExited={onPackageDirectoryDialogExited}
-        onSuccessor={setSuccessor}
-      /> */}
-
       <Listing
         items={items}
         locked={locked}
@@ -215,7 +186,7 @@ export default function Dir({
     [bucket, path, dest],
   )
 
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
+  // const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
@@ -300,8 +271,8 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              successor={successor}
-              setSuccessor={setSuccessor}
+              // successor={successor} // TODO: add to inital Dialog value
+              // setSuccessor={setSuccessor}
               loadMore={loadMore}
             />
           ) : (

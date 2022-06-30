@@ -708,7 +708,7 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [workflowsData, manifestResult, preferences],
+    [bucket, initialS3Path, workflowsData, manifestResult, preferences],
   )
 
   const open = React.useCallback(() => {
