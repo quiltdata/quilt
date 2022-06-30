@@ -696,9 +696,10 @@ export function usePackageCreationDialog({
                   ? AsyncResult.Ok({
                       manifest,
                       workflowsConfig,
-                      sourceBuckets: typeof initialS3Path !== 'undefined'
-                        ? prependSourceBucket(preferences.ui.sourceBuckets, bucket)
-                        : preferences.ui.sourceBuckets,
+                      sourceBuckets:
+                        typeof initialS3Path !== 'undefined'
+                          ? prependSourceBucket(preferences.ui.sourceBuckets, bucket)
+                          : preferences.ui.sourceBuckets,
                     })
                   : AsyncResult.Pending(),
               _: R.identity,

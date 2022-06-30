@@ -1430,7 +1430,9 @@ export function FilesInput({
     count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
   }
 
-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(typeof initialS3Path !== 'undefined')
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(
+    typeof initialS3Path !== 'undefined',
+  )
 
   const closeS3FilePicker = React.useCallback(
     (reason: S3FilePicker.CloseReason) => {
