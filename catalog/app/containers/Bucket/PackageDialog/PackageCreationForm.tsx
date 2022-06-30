@@ -85,6 +85,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageCreationFormProps {
+  initialS3Path?: string
   bucket: string
   close: () => void
   initial?: {
@@ -92,6 +93,7 @@ interface PackageCreationFormProps {
     meta?: Types.JsonRecord
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
+    // TODO: initialS3Path?: string
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -127,6 +129,7 @@ function PackageCreationForm({
   workflowsConfig,
   delayHashing,
   disableStateDisplay,
+  initialS3Path, // add to `initial`
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
@@ -551,6 +554,7 @@ function PackageCreationForm({
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
+                      initialS3Path={initialS3Path}
                     />
                   )}
 
@@ -599,6 +603,16 @@ function PackageCreationForm({
   )
 }
 
+function prependSourceBucket(
+  buckets: BucketPreferences.SourceBuckets,
+  bucket: string,
+): BucketPreferences.SourceBuckets {
+  return {
+    getDefault: () => bucket,
+    list: R.prepend(bucket, buckets.list),
+  }
+}
+
 const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
@@ -636,6 +650,7 @@ interface UsePackageCreationDialogProps {
   }
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  initialS3Path?: string
 }
 
 export function usePackageCreationDialog({
@@ -643,6 +658,7 @@ export function usePackageCreationDialog({
   src,
   delayHashing = false,
   disableStateDisplay = false,
+  initialS3Path,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
@@ -680,7 +696,9 @@ export function usePackageCreationDialog({
                   ? AsyncResult.Ok({
                       manifest,
                       workflowsConfig,
-                      sourceBuckets: preferences.ui.sourceBuckets,
+                      sourceBuckets: typeof initialS3Path !== 'undefined'
+                        ? prependSourceBucket(preferences.ui.sourceBuckets, bucket)
+                        : preferences.ui.sourceBuckets,
                     })
                   : AsyncResult.Pending(),
               _: R.identity,
@@ -772,6 +790,7 @@ export function usePackageCreationDialog({
                     workflowsConfig,
                     sourceBuckets,
                     initial: { name: src?.name, ...manifest },
+                    initialS3Path,
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

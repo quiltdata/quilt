@@ -21,6 +21,7 @@ import type * as workflows from 'utils/workflows'
 import Code from './Code'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
+import * as PD from './PackageDialog'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
@@ -118,7 +119,7 @@ function DirContents({
   // TODO: should prefix filtering affect summary?
   return (
     <>
-      <PackageDirectoryDialog
+      {/* <PackageDirectoryDialog
         bucket={bucket}
         path={path}
         files={response.files}
@@ -129,7 +130,7 @@ function DirContents({
         successor={successor}
         onExited={onPackageDirectoryDialogExited}
         onSuccessor={setSuccessor}
-      />
+      /> */}
 
       <Listing
         items={items}
@@ -244,9 +245,24 @@ export default function Dir({
     )
   }, [data.result])
 
+  const packageDirectoryDialog = PD.usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+    initialS3Path: path,
+  })
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
+      {packageDirectoryDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package from directory',
+      })}
 
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
@@ -257,7 +273,7 @@ export default function Dir({
           <Successors.Button
             bucket={bucket}
             className={classes.button}
-            onChange={setSuccessor}
+            onChange={packageDirectoryDialog.open}
           >
             Create package from directory
           </Successors.Button>

@@ -1279,6 +1279,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 }))
 
 interface FilesInputProps {
+  initialS3Path?: string
   input: {
     value: FilesState
     onChange: (value: FilesState) => void
@@ -1330,6 +1331,7 @@ export function FilesInput({
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
+  initialS3Path,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1428,7 +1430,7 @@ export function FilesInput({
     count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
   }
 
-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(typeof initialS3Path !== 'undefined')
 
   const closeS3FilePicker = React.useCallback(
     (reason: S3FilePicker.CloseReason) => {
@@ -1455,6 +1457,7 @@ export function FilesInput({
           selectBucket={selectBucket}
           open={s3FilePickerOpen}
           onClose={closeS3FilePicker}
+          initialPath={initialS3Path}
         />
       )}
       <Header>

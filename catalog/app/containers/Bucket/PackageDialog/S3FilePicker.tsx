@@ -121,6 +121,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DialogProps {
+  initialPath?: string
   bucket: string
   buckets?: string[]
   selectBucket?: (bucket: string) => void
@@ -128,7 +129,14 @@ interface DialogProps {
   onClose: (reason: CloseReason) => void
 }
 
-export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogProps) {
+export function Dialog({
+  bucket,
+  buckets,
+  selectBucket,
+  open,
+  onClose,
+  initialPath,
+}: DialogProps) {
   const classes = useStyles()
 
   const bucketListing = requests.useBucketListing()
@@ -168,6 +176,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrefix('')
     setSelection([])
   }, [bucket])
+
+  React.useLayoutEffect(() => {
+    if (!initialPath) return
+    setPath(initialPath)
+  }, [initialPath])
 
   const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
 
