@@ -720,7 +720,7 @@ export function usePackageCreationDialog({
       if (initial?.successor) {
         setSuccessor(initial?.successor)
       }
-      if (initial?.path) {
+      if (initial?.path !== undefined) {
         setS3Path(initial?.path)
       }
 
