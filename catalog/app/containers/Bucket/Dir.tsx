@@ -279,8 +279,6 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              // successor={successor} // TODO: add to inital Dialog value
-              // setSuccessor={setSuccessor}
               loadMore={loadMore}
             />
           ) : (
