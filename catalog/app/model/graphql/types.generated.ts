@@ -48,7 +48,6 @@ export interface BucketAddInput {
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
-  readonly setVersioning: Maybe<Scalars['Boolean']>
   readonly delayScan: Maybe<Scalars['Boolean']>
 }
 
@@ -144,7 +143,6 @@ export interface BucketUpdateInput {
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
-  readonly setVersioning: Maybe<Scalars['Boolean']>
 }
 
 export type BucketUpdateResult =
