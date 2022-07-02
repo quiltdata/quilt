@@ -10,8 +10,8 @@ import * as CatalogSettings from 'utils/CatalogSettings'
 import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
-import * as Form from './Form'
-import ThemeEditor from './Settings/ThemeEditor'
+import * as Form from '../Form'
+import ThemeEditor from './ThemeEditor'
 
 function useBeta(): [boolean, (b: boolean) => Promise<void>] {
   const settings = CatalogSettings.use()
