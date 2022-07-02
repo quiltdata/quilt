@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -17,32 +16,6 @@ const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
 const Sync = RT.mkLazy(() => import('./Sync'), SuspensePlaceholder)
 const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 
-const match = (cases) => (pathname) => {
-  // eslint-disable-next-line no-restricted-syntax
-  for (const [section, variants] of Object.entries(cases)) {
-    // eslint-disable-next-line no-restricted-syntax
-    for (const opts of variants) {
-      if (RR.matchPath(pathname, opts)) return section
-    }
-  }
-  return false
-}
-
-const sections = {
-  users: { path: 'adminUsers', exact: true },
-  buckets: { path: 'adminBuckets', exact: true },
-  sync: { path: 'adminSync', exact: true },
-  settings: { path: 'adminSettings', exact: true },
-}
-
-const getAdminSection = (paths) =>
-  match(
-    R.map(
-      (variants) => [].concat(variants).map(R.evolve({ path: (p) => paths[p] })),
-      sections,
-    ),
-  )
-
 const useTabStyles = M.makeStyles((t) => ({
   root: {
     minHeight: t.spacing(8),
@@ -50,7 +23,7 @@ const useTabStyles = M.makeStyles((t) => ({
   },
 }))
 
-function NavTab(props) {
+function NavTab(props: M.TabProps & RR.LinkProps) {
   const classes = useTabStyles()
   return <M.Tab classes={classes} component={RR.Link} {...props} />
 }
@@ -62,7 +35,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function AdminLayout({ section = false, children }) {
+type AdminLayoutProps = React.PropsWithChildren<{
+  section?: string | false
+}>
+
+function AdminLayout({ section = false, children }: AdminLayoutProps) {
   const { desktop } = Config.use()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
@@ -78,18 +55,36 @@ function AdminLayout({ section = false, children }) {
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
           </M.AppBar>
-          <M.Container maxWidth="lg">{children}</M.Container>
+          <M.Container maxWidth="lg">{children as React.ReactChild}</M.Container>
         </>
       }
     />
   )
 }
 
-export default function Admin({ location }) {
+export default function Admin({ location }: RR.RouteComponentProps) {
   const { desktop } = Config.use()
   const { paths } = NamedRoutes.use()
+
+  const sections = {
+    users: { path: paths.adminUsers, exact: true },
+    buckets: { path: paths.adminBuckets, exact: true },
+    sync: { path: paths.adminSync, exact: true },
+    settings: { path: paths.adminSettings, exact: true },
+  }
+
+  const getSection = (pathname: string) => {
+    for (const [section, maybeVariants] of Object.entries(sections)) {
+      const variants = ([] as RR.RouteProps[]).concat(maybeVariants)
+      for (const opts of variants) {
+        if (RR.matchPath(pathname, opts)) return section
+      }
+    }
+    return false
+  }
+
   return (
-    <AdminLayout section={getAdminSection(paths)(location.pathname)}>
+    <AdminLayout section={getSection(location.pathname)}>
       <RR.Switch>
         <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
         <RR.Route path={paths.adminBuckets} component={Buckets} exact />
