@@ -41,14 +41,9 @@ interface FileMenuProps {
 
 function FileMenu({ className, actions }: FileMenuProps) {
   return (
-    <M.ButtonGroup className={className} size="small" variant="contained">
+    <M.ButtonGroup className={className} size="small" variant="text">
       {actions.map(({ onClick, icon, text, key }) => (
-        <M.Button
-          startIcon={icon}
-          key={key}
-          onClick={onClick}
-          style={{ backgroundColor: '#fff' }}
-        >
+        <M.Button startIcon={icon} key={key} onClick={onClick}>
           {text}
         </M.Button>
       ))}
@@ -487,10 +482,17 @@ const useEntryStyles = M.makeStyles((t) => ({
       color: COLORS.deleted,
     },
     '&:hover $menu': {
+      background: t.palette.background.default,
+      opacity: 1,
+    },
+  },
+  menuOpened: {
+    '& $menu': {
       opacity: 1,
     },
   },
   menu: {
+    background: t.palette.common.white,
     opacity: 0,
     position: 'absolute',
     right: 0,
@@ -553,17 +555,29 @@ function Entry({
   type,
   ...props
 }: EntryProps) {
+  const [isMenuOpened, setMenuOpened] = React.useState(false)
+  const toggleMenu = React.useCallback(() => setMenuOpened(!isMenuOpened), [isMenuOpened])
   const clickableProps = !!onClick
     ? {
         onClick,
         role: 'button',
         tabIndex: 0,
       }
-    : undefined
+    : {
+        onClick: toggleMenu,
+      }
   const classes = useEntryStyles()
 
   return (
-    <div className={cx(classes.root, classes[state], className)} {...props}>
+    <div
+      className={cx(
+        classes.root,
+        classes[state],
+        isMenuOpened && classes.menuOpened,
+        className,
+      )}
+      {...props}
+    >
       {checkbox}
       <div
         className={cx(
@@ -833,12 +847,14 @@ interface DropzoneMessageProps {
   label?: React.ReactNode
   error: React.ReactNode
   warn: { upload: boolean; s3: boolean; count: boolean }
+  onClick: () => void
 }
 
 export function DropzoneMessage({
   label: defaultLabel,
   error,
   warn,
+  onClick,
 }: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
@@ -848,7 +864,7 @@ export function DropzoneMessage({
       return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
     }
     return (
-      <div>
+      <div onClick={onClick}>
         {warn.upload && (
           <p>
             Total size of local files exceeds recommended maximum of{' '}
@@ -866,7 +882,7 @@ export function DropzoneMessage({
         )}
       </div>
     )
-  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
+  }, [defaultLabel, error, warn.upload, warn.s3, warn.count, onClick])
 
   return (
     <div
@@ -1456,6 +1472,7 @@ export function FilesInput({
   const isDragging = useDragging()
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     disabled,
+    noClick: true,
     onDrop,
   })
 
@@ -1627,7 +1644,11 @@ export function FilesInput({
             </FilesContainer>
           )}
 
-          <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
+          <DropzoneMessage
+            onClick={open}
+            error={error && (errors[error] || error)}
+            warn={warn}
+          />
         </Contents>
         {submitting && <Lock progress={totalProgress} />}
       </ContentsContainer>

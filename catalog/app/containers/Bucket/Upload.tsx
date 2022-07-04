@@ -95,7 +95,8 @@ export function LocalFolderInput({
   const handleCheckbox = React.useCallback(() => onChange(''), [onChange])
 
   const isDragging = useDragging()
-  const { getRootProps, isDragActive } = useDropzone({
+  const { getRootProps, isDragActive, open } = useDropzone({
+    noClick: true,
     onDrop,
     disabled: disabledInternal,
     getFilesFromEvent,
@@ -133,6 +134,7 @@ export function LocalFolderInput({
             )}
           </FI.FilesContainer>
           <FI.DropzoneMessage
+            onClick={open}
             label="Drop directory or click to browse"
             error={error && (errors[error] || error)}
             warn={{ upload: false, s3: false, count: false }}
