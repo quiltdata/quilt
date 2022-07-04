@@ -160,7 +160,6 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('skipMetaDataIndexing'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
-  setVersioning: () => null,
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {

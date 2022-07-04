@@ -45,6 +45,7 @@
 * [S3 Events, EventBridge](EventBridge.md)
 * [Cross-account access](CrossAccount.md)
 * [Querying metadata with Athena](advanced-features/athena.md)
+* [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)

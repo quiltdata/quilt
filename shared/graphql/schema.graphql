@@ -226,7 +226,6 @@ input BucketAddInput {
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
-  setVersioning: Boolean
   delayScan: Boolean
 }
 
@@ -243,7 +242,6 @@ input BucketUpdateInput {
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
-  setVersioning: Boolean
 }
 
 type BucketAddSuccess {
@@ -351,10 +349,6 @@ type RoleNameInvalid {
   _: Boolean
 }
 
-type RoleHasTooManyPoliciesToAttach {
-  _: Boolean
-}
-
 type RoleDoesNotExist {
   _: Boolean
 }
@@ -364,6 +358,10 @@ type RoleIsManaged {
 }
 
 type RoleIsUnmanaged {
+  _: Boolean
+}
+
+type RoleHasTooManyPoliciesToAttach {
   _: Boolean
 }
 

@@ -438,7 +438,7 @@ function DirDisplay({
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
               )}
               {preferences?.ui?.blocks?.meta && (
-                <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
+                <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
               )}
               <M.Box mt={2}>
                 {preferences?.ui?.blocks?.browser && <Listing items={items} key={hash} />}
@@ -632,7 +632,7 @@ function FileDisplay({
                     <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
                   )}
                   {preferences?.ui?.blocks?.meta && (
-                    <FileView.Meta data={AsyncResult.Ok(file.metadata)} />
+                    <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
                   )}
                   <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                     {withPreview(
