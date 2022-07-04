@@ -34,16 +34,24 @@ interface FileAction {
   text: string
 }
 
+const useFileMenuStyles = M.makeStyles((t) => ({
+  button: {
+    paddingLeft: t.spacing(1.5),
+    paddingRight: t.spacing(1.5),
+  },
+}))
+
 interface FileMenuProps {
   actions: FileAction[]
   className: string
 }
 
 function FileMenu({ className, actions }: FileMenuProps) {
+  const classes = useFileMenuStyles()
   return (
     <M.ButtonGroup className={className} size="small" variant="text">
       {actions.map(({ onClick, icon, text, key }) => (
-        <M.Button startIcon={icon} key={key} onClick={onClick}>
+        <M.Button startIcon={icon} key={key} className={classes.button} onClick={onClick}>
           {text}
         </M.Button>
       ))}
