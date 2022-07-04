@@ -491,17 +491,12 @@ const useEntryStyles = M.makeStyles((t) => ({
     },
     '&:hover $menu': {
       background: t.palette.background.default,
-      opacity: 1,
-    },
-  },
-  menuOpened: {
-    '& $menu': {
-      opacity: 1,
+      visibility: 'visible',
     },
   },
   menu: {
     background: t.palette.common.white,
-    opacity: 0,
+    visibility: 'hidden',
     position: 'absolute',
     right: 0,
     top: '50%',
@@ -563,29 +558,17 @@ function Entry({
   type,
   ...props
 }: EntryProps) {
-  const [isMenuOpened, setMenuOpened] = React.useState(false)
-  const toggleMenu = React.useCallback(() => setMenuOpened(!isMenuOpened), [isMenuOpened])
   const clickableProps = !!onClick
     ? {
         onClick,
         role: 'button',
         tabIndex: 0,
       }
-    : {
-        onClick: toggleMenu,
-      }
+    : undefined
   const classes = useEntryStyles()
 
   return (
-    <div
-      className={cx(
-        classes.root,
-        classes[state],
-        isMenuOpened && classes.menuOpened,
-        className,
-      )}
-      {...props}
-    >
+    <div className={cx(classes.root, classes[state], className)} {...props}>
       {checkbox}
       <div
         className={cx(
