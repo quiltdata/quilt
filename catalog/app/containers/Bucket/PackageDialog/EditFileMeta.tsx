@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -17,7 +16,7 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface DialogProps {
+interface EditFileMetaProps {
   name: string
   onChange: (value: JsonValue) => void
   onClose: () => void
@@ -25,7 +24,15 @@ interface DialogProps {
   value: JsonValue
 }
 
-function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
+export default function EditFileMeta({
+  name,
+  onChange,
+  onClose,
+  open,
+  value,
+}: EditFileMetaProps) {
+  // TODO: show "modified" state
+  //       possible solution: store value and its state in one object `metaValue = { value, state }`
   // TODO: add button to reset innerValue
   const [innerValue, setInnerValue] = React.useState(value)
   const classes = useStyles()
@@ -68,60 +75,5 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
         </M.Button>
       </M.DialogActions>
     </M.Dialog>
-  )
-}
-
-interface MetadataIconProps {
-  color: M.PropTypes.Color | 'disabled'
-}
-
-function MetadataIcon({ color }: MetadataIconProps) {
-  return (
-    <M.Icon fontSize="inherit" color={color}>
-      list
-    </M.Icon>
-  )
-}
-
-interface EditMetaProps {
-  disabled?: boolean
-  name: string
-  onChange?: (value: JsonValue) => void
-  value: JsonValue
-}
-
-export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
-  // TODO: show "modified" state
-  //       possible solution: store value and its state in one object `metaValue = { value, state }`
-  const [open, setOpen] = React.useState(false)
-  const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
-  const openEditor = React.useCallback(() => setOpen(true), [setOpen])
-  // TODO: simplify R.isEmpty when meta will be normalized to null
-  const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
-
-  if (!onChange) return null
-
-  if (disabled) {
-    return (
-      <M.IconButton size="small" disabled>
-        <MetadataIcon color="disabled" />
-      </M.IconButton>
-    )
-  }
-
-  return (
-    <>
-      <M.IconButton onClick={openEditor} title="Edit meta" size="small">
-        <MetadataIcon color={color} />
-      </M.IconButton>
-
-      <Dialog
-        name={name}
-        onChange={onChange}
-        onClose={closeEditor}
-        open={open}
-        value={value}
-      />
-    </>
   )
 }

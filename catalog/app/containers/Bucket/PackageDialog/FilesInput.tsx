@@ -4,13 +4,12 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
+import * as Lab from '@material-ui/lab'
 
 import * as urls from 'constants/urls'
 import * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
-import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
 import useDragging from 'utils/dragging'
 import { withoutPrefix } from 'utils/s3paths'
@@ -22,6 +21,64 @@ import * as Types from 'utils/types'
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
+
+const stopPropagation = (e: React.MouseEvent) => {
+  // stop click from propagating to parent elements and triggering their handlers
+  e.stopPropagation()
+}
+
+interface FileAction {
+  icon: React.ReactNode
+  key: string
+  onClick: () => void
+  text: string
+}
+
+const useFileMenuStyles = M.makeStyles((t) => ({
+  button: {
+    paddingLeft: t.spacing(1.5),
+    paddingRight: t.spacing(1.5),
+  },
+}))
+
+interface FileMenuProps {
+  actions: FileAction[]
+  className: string
+}
+
+function FileMenu({ className, actions }: FileMenuProps) {
+  const classes = useFileMenuStyles()
+  return (
+    <M.ButtonGroup className={className} size="small" variant="text">
+      {actions.map(({ onClick, icon, text, key }) => (
+        <M.Button startIcon={icon} key={key} className={classes.button} onClick={onClick}>
+          {text}
+        </M.Button>
+      ))}
+    </M.ButtonGroup>
+  )
+}
+
+const useCheckboxStyles = M.makeStyles((t) => ({
+  root: {
+    color: `${t.palette.action.active} !important`,
+    padding: 3,
+    '&:hover': {
+      backgroundColor: `${fade(
+        t.palette.action.active,
+        t.palette.action.hoverOpacity,
+      )} !important`,
+    },
+    '& svg': {
+      fontSize: '18px',
+    },
+  },
+}))
+
+export function Checkbox({ className, ...props }: M.CheckboxProps) {
+  const classes = useCheckboxStyles()
+  return <M.Checkbox className={cx(classes.root, className)} {...props} />
+}
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -325,13 +382,6 @@ export const validateHashingComplete = (state: FilesState) => {
   return undefined
 }
 
-export const EMPTY_SELECTION = 'emptySelection'
-
-export const validateNonEmptySelection = (state: FilesSelectorState) => {
-  if (state.every(R.propEq('selected', false))) return EMPTY_SELECTION
-  return undefined
-}
-
 const useEntryIconStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -410,22 +460,22 @@ function EntryIcon({ state, overlay, children }: EntryIconProps) {
   )
 }
 
-const useFileStyles = M.makeStyles((t) => ({
+const useEntryStyles = M.makeStyles((t) => ({
   added: {},
   modified: {},
   hashing: {},
   deleted: {},
   unchanged: {},
-  interactive: {},
   root: {
     alignItems: 'center',
     color: COLORS.default,
     cursor: 'default',
     display: 'flex',
-    opacity: 0.7,
     outline: 'none',
+    position: 'relative',
+    minHeight: '32px',
     '&:hover': {
-      opacity: 1,
+      background: t.palette.background.default,
     },
     '&$added': {
       color: COLORS.added,
@@ -439,18 +489,27 @@ const useFileStyles = M.makeStyles((t) => ({
     '&$deleted': {
       color: COLORS.deleted,
     },
-    '&$interactive': {
-      cursor: 'pointer',
+    '&:hover $menu': {
+      background: t.palette.background.default,
+      visibility: 'visible',
     },
+  },
+  menu: {
+    background: t.palette.common.white,
+    visibility: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: '50%',
+    transform: 'translateY(-50%)',
+  },
+  faint: {
+    opacity: 0.5,
   },
   inner: {
     alignItems: 'center',
     display: 'flex',
     flexGrow: 1,
     overflow: 'hidden',
-  },
-  faint: {
-    opacity: 0.5,
   },
   name: {
     ...t.typography.body2,
@@ -460,6 +519,10 @@ const useFileStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  clickable: {
+    cursor: 'pointer',
+    outline: 'none',
+  },
   size: {
     ...t.typography.body2,
     marginRight: t.spacing(0.5),
@@ -467,69 +530,111 @@ const useFileStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
+interface EntryProps extends React.HTMLAttributes<HTMLDivElement> {
+  actions: FileAction[]
+  checkbox: React.ReactNode
+  children: React.ReactNode
+  className?: string
+  faint: boolean
+  icon: string
   name: string
-  state?: FilesEntryState
-  type?: FilesEntryType
+  onClick?: () => void
   size?: number
-  action?: React.ReactNode
-  meta?: Types.JsonRecord | null
-  metaDisabled?: boolean
-  onMeta?: (value: Types.JsonRecord) => void
-  interactive?: boolean
-  faint?: boolean
-  disableStateDisplay?: boolean
+  type?: FilesEntryType
+  state: FilesEntryState
 }
 
-function File({
-  name,
-  state = 'unchanged',
-  type = 'local',
-  size,
-  action,
-  meta,
-  metaDisabled,
-  onMeta,
-  interactive = false,
-  faint = false,
+function Entry({
+  actions,
+  checkbox,
+  children,
   className,
-  disableStateDisplay = false,
+  faint,
+  icon,
+  name,
+  onClick,
+  size,
+  state,
+  type,
   ...props
-}: FileProps) {
-  const classes = useFileStyles()
-  const stateDisplay = disableStateDisplay ? 'unchanged' : state
-
-  // XXX: reset EditFileMeta state when file is reverted
-  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
+}: EntryProps) {
+  const clickableProps = !!onClick
+    ? {
+        onClick,
+        role: 'button',
+        tabIndex: 0,
+      }
+    : undefined
+  const classes = useEntryStyles()
 
   return (
-    <div
-      className={cx(
-        className,
-        classes.root,
-        classes[stateDisplay],
-        interactive && classes.interactive,
-      )}
-      {...props}
-    >
-      <div className={cx(classes.inner, faint && classes.faint)}>
-        <EntryIcon state={stateDisplay} overlay={type === 's3' ? 'S3' : undefined}>
-          insert_drive_file
+    <div className={cx(classes.root, classes[state], className)} {...props}>
+      {checkbox}
+      <div
+        className={cx(
+          classes.inner,
+          faint && classes.faint,
+          onClick && classes.clickable,
+        )}
+        {...clickableProps}
+      >
+        <EntryIcon state={state} overlay={type === 's3' ? 'S3' : undefined}>
+          {icon}
         </EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta
-        disabled={metaDisabled}
-        key={metaKey}
-        name={name}
-        onChange={onMeta}
-        value={meta}
-      />
-      {action}
+      {!!actions.length && <FileMenu className={classes.menu} actions={actions} />}
+      {children}
     </div>
+  )
+}
+
+interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
+  name: string
+  state?: FilesEntryState
+  type?: FilesEntryType
+  size?: number
+  checkbox: React.ReactNode
+  actions: FileAction[]
+  faint?: boolean
+  disableStateDisplay?: boolean
+}
+
+export function File({
+  name,
+  state = 'unchanged',
+  type = 'local',
+  size,
+  checkbox,
+  faint = false,
+  className,
+  disableStateDisplay = false,
+  actions,
+  children,
+  onClick,
+  ...props
+}: FileProps) {
+  const stateDisplay = disableStateDisplay ? 'unchanged' : state
+
+  return (
+    <Entry
+      {...{
+        actions,
+        checkbox,
+        children,
+        className,
+        faint,
+        icon: 'insert_drive_file',
+        name,
+        size,
+        state: stateDisplay,
+        type,
+        ...props,
+      }}
+    />
   )
 }
 
@@ -539,21 +644,26 @@ const useDirStyles = M.makeStyles((t) => ({
   hashing: {},
   deleted: {},
   unchanged: {},
-  active: {},
+  active: {
+    '&:before': {
+      position: 'absolute',
+      content: '""',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      border: '2px dashed #333',
+    },
+  },
   root: {
-    cursor: 'pointer',
-    outline: 'none',
     position: 'relative',
   },
   head: {
     alignItems: 'center',
     color: COLORS.default,
     display: 'flex',
-    opacity: 0.7,
     outline: 'none',
-    '$active > &, &:hover': {
-      opacity: 1,
-    },
+    '$active > &, &:hover': {},
     '$added > &': {
       color: COLORS.added,
     },
@@ -569,8 +679,10 @@ const useDirStyles = M.makeStyles((t) => ({
   },
   headInner: {
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
+    outline: 'none',
     overflow: 'hidden',
   },
   faint: {
@@ -589,6 +701,7 @@ const useDirStyles = M.makeStyles((t) => ({
   },
   bar: {
     bottom: 0,
+    cursor: 'pointer',
     left: 0,
     opacity: 0.3,
     position: 'absolute',
@@ -629,28 +742,29 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
   disableStateDisplay?: boolean
-  active?: boolean
   empty?: boolean
   expanded?: boolean
   faint?: boolean
-  onChangeExpanded?: (expanded: boolean) => void
-  action?: React.ReactNode
-  onHeadClick?: React.MouseEventHandler<HTMLDivElement>
+  checkbox: React.ReactNode
+  actions: FileAction[]
+  onToggle?: () => void
+  onDropFiles?: (files: FileWithPath[]) => void
 }
 
 export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
+    checkbox,
     name,
     state = 'unchanged',
     disableStateDisplay = false,
-    active = false,
     empty = false,
     expanded = false,
     faint = false,
-    action,
+    actions,
     className,
-    onHeadClick,
+    onToggle,
     children,
+    onDropFiles: onDrop,
     ...props
   },
   ref,
@@ -658,30 +772,37 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   const classes = useDirStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
+  const { getRootProps, isDragActive } = useDropzone({
+    onDrop,
+    noDragEventsBubbling: true,
+    noClick: true,
+  })
+
   return (
     <div
+      {...getRootProps({ onClick: stopPropagation })}
       className={cx(className, classes.root, classes[stateDisplay], {
-        [classes.active]: active,
+        [classes.active]: isDragActive,
       })}
       ref={ref}
       {...props}
     >
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-      <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
-        <div className={cx(classes.headInner, faint && classes.faint)}>
-          <EntryIcon state={stateDisplay}>
-            {expanded ? 'folder_open' : 'folder'}
-          </EntryIcon>
-          <div className={classes.name}>{name}</div>
-        </div>
-        {action}
+      <Entry
+        actions={actions}
+        checkbox={checkbox}
+        faint={faint}
+        icon={expanded ? 'folder_open' : 'folder'}
+        name={name}
+        state={stateDisplay}
+        onClick={onToggle}
+      >
         {(!!children || empty) && (
           <>
-            <div className={classes.bar} />
+            <div className={classes.bar} onClick={onToggle} />
             {empty && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
           </>
         )}
-      </div>
+      </Entry>
       {(!!children || empty) && (
         <M.Collapse in={expanded} mountOnEnter unmountOnExit>
           <div className={classes.body}>
@@ -717,12 +838,14 @@ interface DropzoneMessageProps {
   label?: React.ReactNode
   error: React.ReactNode
   warn: { upload: boolean; s3: boolean; count: boolean }
+  onClick: () => void
 }
 
 export function DropzoneMessage({
   label: defaultLabel,
   error,
   warn,
+  onClick,
 }: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
@@ -732,7 +855,7 @@ export function DropzoneMessage({
       return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
     }
     return (
-      <div>
+      <div onClick={onClick}>
         {warn.upload && (
           <p>
             Total size of local files exceeds recommended maximum of{' '}
@@ -750,7 +873,7 @@ export function DropzoneMessage({
         )}
       </div>
     )
-  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
+  }, [defaultLabel, error, warn.upload, warn.s3, warn.count, onClick])
 
   return (
     <div
@@ -820,8 +943,6 @@ export function HeaderTitle({
   const classes = useHeaderTitleStyles()
   return <div className={cx(classes.root, classes[state])} {...props} />
 }
-
-const PROGRESS_EMPTY = { total: 0, loaded: 0, percent: 0 }
 
 const useLockStyles = M.makeStyles((t) => ({
   root: {
@@ -900,7 +1021,6 @@ export function Lock({
 
 const useFilesContainerStyles = M.makeStyles((t) => ({
   root: {
-    direction: 'rtl', // show the scrollbar on the left
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -912,9 +1032,6 @@ const useFilesContainerStyles = M.makeStyles((t) => ({
   },
   warn: {
     borderColor: t.palette.warning.dark,
-  },
-  inner: {
-    direction: 'ltr',
   },
 }))
 
@@ -935,7 +1052,7 @@ export function FilesContainer({ error, warn, noBorder, children }: FilesContain
         !error && warn && classes.warn,
       )}
     >
-      <div className={classes.inner}>{children}</div>
+      {children}
     </div>
   )
 }
@@ -985,9 +1102,6 @@ const useContentsStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     position: 'relative',
   },
-  interactive: {
-    cursor: 'pointer',
-  },
   active: {
     background: t.palette.action.selected,
   },
@@ -1000,14 +1114,13 @@ const useContentsStyles = M.makeStyles((t) => ({
 }))
 
 interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
-  interactive?: boolean
   active?: boolean
   error?: boolean
   warn?: boolean
 }
 
 export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
-  { interactive, active, error, warn, className, ...props },
+  { active, error, warn, className, ...props },
   ref,
 ) {
   const classes = useContentsStyles()
@@ -1016,7 +1129,6 @@ export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function
       className={cx(
         className,
         classes.root,
-        interactive && classes.interactive,
         active && classes.active,
         error && classes.err,
         !error && warn && classes.warn,
@@ -1045,61 +1157,57 @@ function FileUpload({
 }: FileUploadProps) {
   const path = (prefix || '') + name
 
-  // eslint-disable-next-line consistent-return
-  const action = React.useMemo(() => {
-    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
-      // stop click from propagating to the root element and triggering its handler
-      e.stopPropagation()
-      dispatch(a)
+  const handleCheckbox = React.useCallback(() => {
+    if (state === 'deleted') {
+      dispatch(FilesAction.Revert(path))
+    } else {
+      dispatch(FilesAction.Delete(path))
     }
-    switch (state) {
-      case 'added':
-        return {
-          hint: 'Remove',
-          icon: 'clear',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'modified':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'hashing':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'deleted':
-        return {
-          hint: 'Restore',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert(path)),
-        }
-      case 'unchanged':
-        return {
-          hint: 'Delete',
-          icon: 'clear',
-          handler: handle(FilesAction.Delete(path)),
-        }
-      default:
-        assertNever(state)
-    }
-  }, [state, dispatch, path])
+  }, [dispatch, path, state])
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
     // stop click from propagating to parent elements and triggering their handlers
     e.stopPropagation()
   }, [])
 
-  const onMeta = React.useCallback(
-    (m: Types.JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
+  const [metaOpen, setMetaOpen] = React.useState(false)
+  const handleMetaEdit = React.useCallback(
+    (m: Types.JsonRecord) => {
+      setMetaOpen(false)
+      dispatch(FilesAction.Meta({ path, meta: m }))
+    },
     [dispatch, path],
   )
 
+  // XXX: reset EditFileMeta state when file is reverted
+  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
+
+  const metaAction = React.useMemo(
+    () => ({
+      onClick: () => setMetaOpen(true),
+      icon: <M.Icon>list</M.Icon>,
+      text: R.isEmpty(meta) ? 'Add meta' : 'Edit meta',
+      key: 'meta',
+    }),
+    [meta],
+  )
+  const undoAction = React.useMemo(
+    () => ({
+      onClick: () => dispatch(FilesAction.Revert(path)),
+      icon: <M.Icon>undo</M.Icon>,
+      text: 'Revert',
+      key: 'revert',
+    }),
+    [dispatch, path],
+  )
+  const actions: FileAction[] = React.useMemo(() => {
+    const output: FileAction[] = []
+    if (state !== 'deleted') output.push(metaAction)
+    if (state === 'modified' || state === 'hashing') output.push(undoAction)
+    return output
+  }, [metaAction, undoAction, state])
+
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <File
       onClick={onClick}
       role="button"
@@ -1109,15 +1217,18 @@ function FileUpload({
       type={type}
       name={name}
       size={size}
-      meta={meta}
-      metaDisabled={state === 'deleted'}
-      onMeta={onMeta}
-      action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
-          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-        </M.IconButton>
-      }
-    />
+      checkbox={<Checkbox onChange={handleCheckbox} checked={state !== 'deleted'} />}
+      actions={actions}
+    >
+      <EditFileMeta
+        key={metaKey}
+        name={name}
+        onChange={handleMetaEdit}
+        onClose={() => setMetaOpen(false)}
+        open={metaOpen}
+        value={meta}
+      />
+    </File>
   )
 }
 
@@ -1139,23 +1250,11 @@ function DirUpload({
 }: DirUploadProps) {
   const [expanded, setExpanded] = React.useState(false)
 
-  const toggleExpanded = React.useCallback(
-    (e) => {
-      // stop click from propagating to the root element and triggering its handler
-      e.stopPropagation()
-      setExpanded((x) => !x)
-    },
-    [setExpanded],
-  )
-
-  const onClick = React.useCallback((e: React.MouseEvent) => {
-    // stop click from propagating to parent elements and triggering their handlers
-    e.stopPropagation()
-  }, [])
+  const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [setExpanded])
 
   const path = (prefix || '') + name
 
-  const onDrop = React.useCallback(
+  const onDropFiles = React.useCallback(
     (files: FileWithPath[]) => {
       // TODO: fix File ⟷ DOMFile ⟷ FileWithHash ⟷ FileWithPath interplay
       // @ts-expect-error
@@ -1164,69 +1263,39 @@ function DirUpload({
     [dispatch, path],
   )
 
-  const { getRootProps, isDragActive } = useDropzone({
-    onDrop,
-    noDragEventsBubbling: true,
-    noClick: true,
-  })
+  const handleCheckbox = React.useCallback(() => {
+    if (state === 'deleted') {
+      dispatch(FilesAction.RevertDir(path))
+    } else {
+      dispatch(FilesAction.DeleteDir(path))
+    }
+  }, [dispatch, path, state])
 
-  // eslint-disable-next-line consistent-return
-  const action = React.useMemo(() => {
-    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
-      // stop click from propagating to the root element and triggering its handler
-      e.stopPropagation()
-      dispatch(a)
-    }
-    switch (state) {
-      case 'added':
-        return {
-          hint: 'Remove',
-          icon: 'clear',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'modified':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'hashing':
-        return {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'deleted':
-        return {
-          hint: 'Restore',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir(path)),
-        }
-      case 'unchanged':
-        return {
-          hint: 'Delete',
-          icon: 'clear',
-          handler: handle(FilesAction.DeleteDir(path)),
-        }
-      default:
-        assertNever(state)
-    }
-  }, [state, dispatch, path])
+  const undoAction = React.useMemo(
+    () => ({
+      onClick: () => dispatch(FilesAction.RevertDir(path)),
+      icon: <M.Icon>undo</M.Icon>,
+      text: 'Revert',
+      key: 'revert',
+    }),
+    [dispatch, path],
+  )
+
+  const actions: FileAction[] = React.useMemo(
+    () => (state === 'modified' || state === 'hashing' ? [undoAction] : []),
+    [undoAction, state],
+  )
 
   return (
     <Dir
-      {...getRootProps({ onClick })}
-      active={isDragActive}
-      onHeadClick={toggleExpanded}
+      onToggle={toggleExpanded}
+      onDropFiles={onDropFiles}
       expanded={expanded}
       name={name}
       state={state}
       disableStateDisplay={disableStateDisplay}
-      action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
-          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-        </M.IconButton>
-      }
+      checkbox={<Checkbox onChange={handleCheckbox} checked={state !== 'deleted'} />}
+      actions={actions}
       empty={!childEntries.length}
     >
       {!!childEntries.length &&
@@ -1394,6 +1463,7 @@ export function FilesInput({
   const isDragging = useDragging()
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     disabled,
+    noClick: true,
     onDrop,
   })
 
@@ -1533,7 +1603,6 @@ export function FilesInput({
       <ContentsContainer outlined={isDragging && !ref.current.disabled}>
         <Contents
           {...getRootProps()}
-          interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
           warn={warn.upload || warn.s3 || warn.count}
@@ -1566,7 +1635,11 @@ export function FilesInput({
             </FilesContainer>
           )}
 
-          <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
+          <DropzoneMessage
+            onClick={open}
+            error={error && (errors[error] || error)}
+            warn={warn}
+          />
         </Contents>
         {submitting && <Lock progress={totalProgress} />}
       </ContentsContainer>
@@ -1598,184 +1671,6 @@ export function FilesInput({
           </Lab.Alert>
         )}
       </div>
-    </Root>
-  )
-}
-
-const useFilesSelectorStyles = M.makeStyles((t) => ({
-  checkbox: {
-    color: `${t.palette.action.active} !important`,
-    padding: 3,
-    '&:hover': {
-      backgroundColor: `${fade(
-        t.palette.action.active,
-        t.palette.action.hoverOpacity,
-      )} !important`,
-    },
-    '& svg': {
-      fontSize: '18px',
-    },
-  },
-}))
-
-interface FilesSelectorEntry {
-  type: 'dir' | 'file'
-  name: string
-  selected: boolean
-  size?: number
-  meta?: Types.JsonRecord
-}
-
-export type FilesSelectorState = FilesSelectorEntry[]
-
-interface FilesSelectorProps {
-  input: {
-    value: FilesSelectorState
-    onChange: (value: FilesSelectorState) => void
-  }
-  className?: string
-  disabled?: boolean
-  errors?: Record<string, React.ReactNode>
-  meta: {
-    submitting: boolean
-    submitSucceeded: boolean
-    submitFailed: boolean
-    dirty: boolean
-    error?: string
-    initial: FilesSelectorState
-  }
-  title: React.ReactNode
-  truncated?: boolean
-}
-
-export function FilesSelector({
-  input: { value, onChange },
-  className,
-  disabled = false,
-  errors = {},
-  meta,
-  title,
-  truncated = false,
-}: FilesSelectorProps) {
-  const classes = useFilesSelectorStyles()
-
-  const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
-
-  const selected = React.useMemo(
-    () => value.reduce((m, i) => (i.selected ? m + 1 : m), 0),
-    [value],
-  )
-
-  const toggleAll = React.useCallback(() => {
-    onChange(value.map(R.assoc('selected', selected < value.length)))
-  }, [onChange, value, selected])
-
-  const handleItemClick = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      e.stopPropagation()
-      const idx = value.findIndex(R.propEq('name', e.currentTarget.dataset.name!))
-      if (idx < 0) return
-      onChange(R.adjust(idx, R.evolve({ selected: R.not }), value))
-    },
-    [onChange, value],
-  )
-
-  return (
-    <Root className={className}>
-      <Header>
-        <HeaderTitle
-          state={
-            submitting || disabled // eslint-disable-line no-nested-ternary
-              ? 'disabled'
-              : error // eslint-disable-line no-nested-ternary
-              ? 'error'
-              : truncated
-              ? 'warn'
-              : undefined
-          }
-        >
-          {title}
-          {truncated && (
-            // TODO: adjust copy
-            <M.Tooltip title="Only the first 1000 items are shown, but the folder contains more">
-              <M.Icon style={{ marginLeft: 6 }} fontSize="small">
-                error_outline
-              </M.Icon>
-            </M.Tooltip>
-          )}
-        </HeaderTitle>
-        <M.Box flexGrow={1} />
-        {value.length > 0 && (
-          <M.Button
-            onClick={toggleAll}
-            disabled={disabled || submitting}
-            size="small"
-            endIcon={
-              <M.Icon fontSize="small">
-                {selected === value.length // eslint-disable-line no-nested-ternary
-                  ? 'check_box'
-                  : !selected
-                  ? 'check_box_outline_blank'
-                  : 'indeterminate_check_box_icon'}
-              </M.Icon>
-            }
-          >
-            Select {selected < value.length ? 'all' : 'none'}
-          </M.Button>
-        )}
-      </Header>
-
-      <ContentsContainer>
-        <Contents error={!!error} warn={truncated}>
-          {value.length ? (
-            <FilesContainer noBorder>
-              {value.map(({ type, name, selected: sel, size }) =>
-                type === 'dir' ? (
-                  <Dir
-                    key={`dir:${name}`}
-                    name={name}
-                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                    onClick={handleItemClick}
-                    data-name={name}
-                    faint={!sel}
-                  />
-                ) : (
-                  <File
-                    key={`file:${name}`}
-                    name={name}
-                    size={size}
-                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                    onClick={handleItemClick}
-                    data-name={name}
-                    faint={!sel}
-                    interactive
-                  />
-                ),
-              )}
-            </FilesContainer>
-          ) : (
-            // TODO: adjust copy
-            <M.Box
-              display="flex"
-              flexGrow={1}
-              alignItems="center"
-              justifyContent="center"
-            >
-              <M.Typography align="center" color={error ? 'error' : undefined}>
-                Current directory is empty
-              </M.Typography>
-            </M.Box>
-          )}
-          {submitting && <Lock progress={PROGRESS_EMPTY} />}
-        </Contents>
-      </ContentsContainer>
-
-      {!!error && (
-        <M.FormHelperText error margin="dense">
-          {errors[error] || error}
-        </M.FormHelperText>
-      )}
     </Root>
   )
 }
