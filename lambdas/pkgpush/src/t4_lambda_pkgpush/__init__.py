@@ -36,6 +36,7 @@ S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES'])
 
 S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS = 15 * 60  # Max lambda duration.
+S3_HASH_LAMBDA_READ_TIMEOUT = S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
 
@@ -185,7 +186,7 @@ PACKAGE_CREATE_ENTRY_SCHEMA = {
 
 
 s3 = boto3.client('s3')
-lambda_ = boto3.client('lambda')
+lambda_ = boto3.client('lambda', config=botocore.client.Config(read_timeout=S3_HASH_LAMBDA_READ_TIMEOUT))
 
 
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
