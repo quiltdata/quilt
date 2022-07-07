@@ -15,6 +15,7 @@ const UsersAndRoles = RT.mkLazy(() => import('./UsersAndRoles'), SuspensePlaceho
 const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
 const Sync = RT.mkLazy(() => import('./Sync'), SuspensePlaceholder)
 const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
+const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
 
 const useTabStyles = M.makeStyles((t) => ({
   root: {
@@ -52,6 +53,7 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
               {desktop && <NavTab label="Sync" value="sync" to={urls.adminSync()} />}
+              <NavTab label="Status" value="status" to={urls.adminStatus()} />
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
           </M.AppBar>
@@ -71,6 +73,7 @@ export default function Admin({ location }: RR.RouteComponentProps) {
     buckets: { path: paths.adminBuckets, exact: true },
     sync: { path: paths.adminSync, exact: true },
     settings: { path: paths.adminSettings, exact: true },
+    status: { path: paths.adminStatus, exact: true },
   }
 
   const getSection = (pathname: string) => {
@@ -90,6 +93,7 @@ export default function Admin({ location }: RR.RouteComponentProps) {
         <RR.Route path={paths.adminBuckets} component={Buckets} exact />
         {desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
         <RR.Route path={paths.adminSettings} component={Settings} exact />
+        <RR.Route path={paths.adminStatus} component={Status} exact />
         <RR.Route component={ThrowNotFound} />
       </RR.Switch>
     </AdminLayout>

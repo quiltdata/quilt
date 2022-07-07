@@ -1,0 +1,24 @@
+query ($window: Int) {
+  status {
+    canaries {
+      id
+      region
+      group
+      name
+      description
+      schedule
+      ok
+      lastRun
+    }
+    latestStats {
+      passed
+      failed
+      running
+    }
+    stats(window: $window) {
+      datetimes
+      passed
+      failed
+    }
+  }
+}
