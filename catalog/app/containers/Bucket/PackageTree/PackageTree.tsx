@@ -91,7 +91,8 @@ interface PkgCodeProps {
 }
 
 function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
-  const nameWithPath = JSON.stringify(s3paths.ensureNoSlash(`${name}/${path}`))
+  const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
+  const pathPy = path && `, path="${path}"`
   const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
   const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
   const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
@@ -104,14 +105,14 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
         # browse
         p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
         # download (be mindful of large packages)
-        q3.Package.install(${nameWithPath}${hashPy}, registry="s3://${bucket}", dest=".")
+        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
       `,
     },
     {
       label: 'CLI',
       hl: 'bash',
       contents: dedent`
-        quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
+        quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
       `,
     },
     {
