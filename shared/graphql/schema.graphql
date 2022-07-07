@@ -40,6 +40,36 @@ type Config {
   contentIndexingSettings: ContentIndexingSettings! @admin
 }
 
+type Canary {
+  id: String!
+  # TODO: full AWS console URL instead?
+  region: String!
+  group: String!
+  name: String!
+  description: String!
+  schedule: String!
+  ok: Boolean
+  lastRun: Datetime
+}
+
+type TestStats {
+  passed: Int!
+  failed: Int!
+  running: Int!
+}
+
+type TestStatsTimeSeries {
+  datetimes: [Datetime!]!
+  passed: [Int!]!
+  failed: [Int!]!
+}
+
+type Status {
+  canaries: [Canary!]!
+  latestStats: TestStats!
+  stats(window: Int = 30): TestStatsTimeSeries!
+}
+
 type Collaborator {
   email: String!
   username: String!
@@ -210,6 +240,7 @@ type Query {
   roles: [Role!]! @admin
   role(id: ID!): Role @admin
   defaultRole: Role @admin
+  status: Status! @admin
 }
 
 input BucketAddInput {

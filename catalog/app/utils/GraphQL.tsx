@@ -107,6 +107,9 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
+          Status: () => null,
+          TestStats: () => null,
+          TestStatsTimeSeries: () => null,
         },
         updates: {
           Mutation: {
