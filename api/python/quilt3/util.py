@@ -237,8 +237,11 @@ def fix_url(url):
     # On Windows, we ignore schemes that look like drive letters, e.g. C:/users/foo
     if not url:
         raise ValueError("Empty URL")
+    if not isinstance(url, (str, os.PathLike)):
+        raise TypeError(f"Expected a string or pathlike object, but got an instance of {type(url)}.")
 
-    url = str(url)
+    if isinstance(url, os.PathLike):
+        url = url.__fspath__()
 
     parsed = urlparse(url)
     if parsed.scheme and not os.path.splitdrive(url)[0]:
