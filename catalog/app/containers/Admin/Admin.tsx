@@ -6,6 +6,7 @@ import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import * as Config from 'utils/Config'
+import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
@@ -16,6 +17,19 @@ const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
 const Sync = RT.mkLazy(() => import('./Sync'), SuspensePlaceholder)
 const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
+
+const ErrorBoundary = createBoundary(
+  () => () =>
+    (
+      <M.Box my={4}>
+        <M.Typography variant="h4" align="center" gutterBottom>
+          Unexpected Error
+        </M.Typography>
+        <M.Typography align="center">See the console for details</M.Typography>
+      </M.Box>
+    ),
+  'AdminErrorBoundary',
+)
 
 const useTabStyles = M.makeStyles((t) => ({
   root: {
@@ -88,14 +102,16 @@ export default function Admin({ location }: RR.RouteComponentProps) {
 
   return (
     <AdminLayout section={getSection(location.pathname)}>
-      <RR.Switch>
-        <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
-        <RR.Route path={paths.adminBuckets} component={Buckets} exact />
-        {desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
-        <RR.Route path={paths.adminSettings} component={Settings} exact />
-        <RR.Route path={paths.adminStatus} component={Status} exact />
-        <RR.Route component={ThrowNotFound} />
-      </RR.Switch>
+      <ErrorBoundary key={JSON.stringify(location)}>
+        <RR.Switch>
+          <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
+          <RR.Route path={paths.adminBuckets} component={Buckets} exact />
+          {desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
+          <RR.Route path={paths.adminSettings} component={Settings} exact />
+          <RR.Route path={paths.adminStatus} component={Status} exact />
+          <RR.Route component={ThrowNotFound} />
+        </RR.Switch>
+      </ErrorBoundary>
     </AdminLayout>
   )
 }
