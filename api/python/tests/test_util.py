@@ -1,6 +1,5 @@
 """ Testing for util.py """
 
-import os
 import pathlib
 from unittest import mock
 
