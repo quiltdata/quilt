@@ -813,7 +813,7 @@ class Package:
         Args:
             lkey(string): prefix to add to every logical key,
                 use '/' for the root of the package.
-            path(string): path to scan for files to add to package.
+            path(string, os.PathLike): path to scan for files to add to package.
                 If None, lkey will be substituted in as the path.
             meta(dict): user level metadata dict to attach to lkey directory entry.
             update_policy(str): can be either 'incoming' (default) or 'existing'.
