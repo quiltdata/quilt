@@ -92,7 +92,7 @@ interface PkgCodeProps {
 
 function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
   const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
-  const pathPy = path && `, path="${path}"`
+  const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
   const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
   const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
   const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
