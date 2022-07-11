@@ -8,6 +8,7 @@
 !-->
 ## Python API
 * [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
+* [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
 
 ## Catalog, Lambdas
 * [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
@@ -18,11 +19,12 @@
 * [Added] Admin: new roles and policies UI ([#2819](https://github.com/quiltdata/quilt/pull/2819))
 * [Added] Deep search indexing for .pptx ([#2881](https://github.com/quiltdata/quilt/pull/2881))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
+* [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
 * [Changed] Make `pkgpush` lambda directly invocable, adjust handling of parameters and errors ([#2776](https://github.com/quiltdata/quilt/pull/2776))
 * [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
 * [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
-* [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointers objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
+* [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointer objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
 
 ## Docs
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
