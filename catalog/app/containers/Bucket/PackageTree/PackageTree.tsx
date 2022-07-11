@@ -407,7 +407,7 @@ function DirDisplay({
                     color="primary"
                     size="small"
                     style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                    onClick={updateDialog.open}
+                    onClick={() => updateDialog.open()}
                   >
                     Revise package
                   </M.Button>

@@ -92,6 +92,7 @@ interface PackageCreationFormProps {
     meta?: Types.JsonRecord
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
+    path?: string
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -551,6 +552,7 @@ function PackageCreationForm({
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
+                      initialS3Path={initial?.path}
                     />
                   )}
 
@@ -599,6 +601,16 @@ function PackageCreationForm({
   )
 }
 
+function prependSourceBucket(
+  buckets: BucketPreferences.SourceBuckets,
+  bucket: string,
+): BucketPreferences.SourceBuckets {
+  return {
+    getDefault: () => bucket,
+    list: R.prepend(bucket, buckets.list),
+  }
+}
+
 const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
@@ -638,17 +650,25 @@ interface UsePackageCreationDialogProps {
   disableStateDisplay?: boolean
 }
 
+// TODO: package can be created from some `src`:
+//         * s3 directory
+//         * existing package
+//       and pushed to `dst` (or maybe just `successor`):
+//         * successor
 export function usePackageCreationDialog({
-  bucket,
+  bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
   src,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
+  // TODO: put it to src as S3Handle
+  const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+  // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState({
     slug: bucket,
   } as workflows.Successor)
@@ -680,7 +700,10 @@ export function usePackageCreationDialog({
                   ? AsyncResult.Ok({
                       manifest,
                       workflowsConfig,
-                      sourceBuckets: preferences.ui.sourceBuckets,
+                      sourceBuckets:
+                        s3Path === undefined
+                          ? preferences.ui.sourceBuckets
+                          : prependSourceBucket(preferences.ui.sourceBuckets, bucket),
                     })
                   : AsyncResult.Pending(),
               _: R.identity,
@@ -689,13 +712,23 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [workflowsData, manifestResult, preferences],
+    [bucket, s3Path, workflowsData, manifestResult, preferences],
   )
 
-  const open = React.useCallback(() => {
-    setOpen(true)
-    setExited(false)
-  }, [setOpen, setExited])
+  const open = React.useCallback(
+    (initial?: { successor?: workflows.Successor; path?: string }) => {
+      if (initial?.successor) {
+        setSuccessor(initial?.successor)
+      }
+      if (initial?.path !== undefined) {
+        setS3Path(initial?.path)
+      }
+
+      setOpen(true)
+      setExited(false)
+    },
+    [setOpen, setExited],
+  )
 
   const close = React.useCallback(() => {
     if (submitting) return
@@ -771,7 +804,7 @@ export function usePackageCreationDialog({
                     setWorkflow,
                     workflowsConfig,
                     sourceBuckets,
-                    initial: { name: src?.name, ...manifest },
+                    initial: { name: src?.name, path: s3Path, ...manifest },
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

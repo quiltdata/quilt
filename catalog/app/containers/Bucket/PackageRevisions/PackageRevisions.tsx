@@ -466,7 +466,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
             variant="contained"
             color="primary"
             style={{ marginTop: -3, marginBottom: -3 }}
-            onClick={updateDialog.open}
+            onClick={() => updateDialog.open()}
           >
             Revise package
           </M.Button>

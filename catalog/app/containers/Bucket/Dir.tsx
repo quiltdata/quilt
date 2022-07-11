@@ -21,7 +21,7 @@ import type * as workflows from 'utils/workflows'
 import Code from './Code'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
-import PackageDirectoryDialog from './PackageDirectoryDialog'
+import * as PD from './PackageDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -85,26 +85,12 @@ interface DirContentsProps {
   locked: boolean
   bucket: string
   path: string
-  successor: workflows.Successor | null
-  setSuccessor: (successor: workflows.Successor | null) => void
   loadMore?: () => void
 }
 
-function DirContents({
-  response,
-  locked,
-  bucket,
-  path,
-  successor,
-  setSuccessor,
-  loadMore,
-}: DirContentsProps) {
+function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
-
-  const onPackageDirectoryDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-  }, [setSuccessor])
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -118,19 +104,6 @@ function DirContents({
   // TODO: should prefix filtering affect summary?
   return (
     <>
-      <PackageDirectoryDialog
-        bucket={bucket}
-        path={path}
-        files={response.files}
-        dirs={response.dirs}
-        truncated={response.truncated}
-        filtered={!!response.prefix}
-        open={!!successor}
-        successor={successor}
-        onExited={onPackageDirectoryDialogExited}
-        onSuccessor={setSuccessor}
-      />
-
       <Listing
         items={items}
         locked={locked}
@@ -214,8 +187,6 @@ export default function Dir({
     [bucket, path, dest],
   )
 
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
-
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
   React.useLayoutEffect(() => {
@@ -244,9 +215,33 @@ export default function Dir({
     )
   }, [data.result])
 
+  const packageDirectoryDialog = PD.usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+
+  const openPackageCreationDialog = React.useCallback(
+    (successor: workflows.Successor) => {
+      packageDirectoryDialog.open({
+        path,
+        successor,
+      })
+    },
+    [packageDirectoryDialog, path],
+  )
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
+      {packageDirectoryDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package from directory',
+      })}
 
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
@@ -257,7 +252,7 @@ export default function Dir({
           <Successors.Button
             bucket={bucket}
             className={classes.button}
-            onChange={setSuccessor}
+            onChange={openPackageCreationDialog}
           >
             Create package from directory
           </Successors.Button>
@@ -284,8 +279,6 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              successor={successor}
-              setSuccessor={setSuccessor}
               loadMore={loadMore}
             />
           ) : (
