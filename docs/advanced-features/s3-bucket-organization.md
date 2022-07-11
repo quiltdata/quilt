@@ -29,7 +29,7 @@ Below is an example of how you might organize three data domains according to a 
 | Domain2 | s3://domain2-raw | s3://domain2-refined | s3://domain2-curated |
 | Domain3 | s3://domain3-raw | s3://domain3-refined | s3://domain3-curated |
 
-## How enterprises organize intrument, scientist, ELN data
+## How enterprises organize instrument, scientist, ELN data
 
 See [Bringing Scientific Data Management Systems Into the Cloud](https://blog.quiltdata.com/bringing-scientific-data-management-systems-into-the-cloud-video-41be228a41b9)
 from Bio-IT world for a in-depth view of organizing scientific data in the cloud
