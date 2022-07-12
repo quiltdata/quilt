@@ -72,54 +72,66 @@ const usePackageMetaStyles = M.makeStyles({
   },
 })
 
-interface MetaProps extends Partial<SectionProps> {
+interface WrapperProps extends Partial<SectionProps> {
   data: $TSFixMe
 }
 
-export function PackageMeta({ data, ...props }: MetaProps) {
+interface PackageMetaProps extends Partial<SectionProps> {
+  meta: MetaData
+}
+
+function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
+  const { message, user_meta: userMeta, workflow } = meta
+  return (
+    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+      <M.Table className={classes.table} size="small">
+        <M.TableBody>
+          {message && (
+            <M.TableRow className={classes.row}>
+              <HeadCell className={classes.headCell} title="/message">
+                Message:
+              </HeadCell>
+              <M.TableCell>
+                <M.Typography className={classes.message}>{message}</M.Typography>
+              </M.TableCell>
+            </M.TableRow>
+          )}
+          {userMeta && (
+            <M.TableRow className={classes.row}>
+              <HeadCell className={classes.headCell} title="/user_meta">
+                User metadata:
+              </HeadCell>
+              <M.TableCell>
+                {/* @ts-expect-error */}
+                <JsonDisplay value={userMeta} />
+              </M.TableCell>
+            </M.TableRow>
+          )}
+          {workflow && (
+            <M.TableRow className={classes.row}>
+              <HeadCell className={classes.headCell} title="/workflow">
+                Workflow:
+              </HeadCell>
+              <M.TableCell>
+                {/* @ts-expect-error */}
+                <JsonDisplay value={workflow} />
+              </M.TableCell>
+            </M.TableRow>
+          )}
+        </M.TableBody>
+      </M.Table>
+    </Section>
+  )
+}
+
+export function PackageMeta({ data, ...props }: WrapperProps) {
   return AsyncResult.case(
     {
-      Ok: ({ message, user_meta: userMeta, workflow }: MetaData) => (
-        <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-          <M.Table className={classes.table} size="small">
-            <M.TableBody>
-              {message && (
-                <M.TableRow className={classes.row}>
-                  <HeadCell className={classes.headCell} title="/message">
-                    Message:
-                  </HeadCell>
-                  <M.TableCell>
-                    <M.Typography className={classes.message}>{message}</M.Typography>
-                  </M.TableCell>
-                </M.TableRow>
-              )}
-              {userMeta && (
-                <M.TableRow className={classes.row}>
-                  <HeadCell className={classes.headCell} title="/user_meta">
-                    User metadata:
-                  </HeadCell>
-                  <M.TableCell>
-                    {/* @ts-expect-error */}
-                    <JsonDisplay value={userMeta} />
-                  </M.TableCell>
-                </M.TableRow>
-              )}
-              {workflow && (
-                <M.TableRow className={classes.row}>
-                  <HeadCell className={classes.headCell} title="/workflow">
-                    Workflow:
-                  </HeadCell>
-                  <M.TableCell>
-                    {/* @ts-expect-error */}
-                    <JsonDisplay value={workflow} />
-                  </M.TableCell>
-                </M.TableRow>
-              )}
-            </M.TableBody>
-          </M.Table>
-        </Section>
-      ),
+      Ok: (meta?: MetaData) => {
+        if (!meta || R.isEmpty(meta)) return null
+        return <PackageMetaSection meta={meta} {...props} />
+      },
       Err: errorHandler,
       _: noop,
     },
@@ -127,16 +139,26 @@ export function PackageMeta({ data, ...props }: MetaProps) {
   )
 }
 
-export function ObjectMeta({ data, ...props }: MetaProps) {
+interface ObjectMetaProps extends Partial<SectionProps> {
+  meta: JsonRecord
+}
+
+function ObjectMetaSection({ meta, ...props }: ObjectMetaProps) {
+  return (
+    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+      {/* @ts-expect-error */}
+      <JsonDisplay value={value} defaultExpanded={1} />
+    </Section>
+  )
+}
+
+export function ObjectMeta({ data, ...props }: WrapperProps) {
   return AsyncResult.case(
     {
-      Ok: (meta?: JsonRecord) =>
-        meta && !R.isEmpty(meta) ? (
-          <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-            {/* @ts-expect-error */}
-            <JsonDisplay value={meta} defaultExpanded={1} />
-          </Section>
-        ) : null,
+      Ok: (meta?: JsonRecord) => {
+        if (!meta || R.isEmpty(meta)) return null
+        return <ObjectMetaSection meta={meta} {...props} />
+      },
       Err: errorHandler,
       _: noop,
     },
