@@ -13,6 +13,36 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import ThemeEditor from './Settings/ThemeEditor'
 
+function useBeta(): [boolean, (b: boolean) => Promise<void>] {
+  const settings = CatalogSettings.use()
+  const writeSettings = CatalogSettings.useWriteSettings()
+  const onChange = React.useCallback(
+    (beta: boolean) =>
+      writeSettings({
+        ...settings,
+        beta,
+      }),
+    [settings, writeSettings],
+  )
+  return [settings?.beta || false, onChange]
+}
+
+function BetaSwitch() {
+  const [beta, setBeta] = useBeta()
+  const [value, setValue] = React.useState(beta)
+  const [disabled, setDisabled] = React.useState(false)
+  const handleChange = React.useCallback(
+    async (event, checked) => {
+      setDisabled(true)
+      setValue(checked)
+      await setBeta(checked)
+      setDisabled(false)
+    },
+    [setBeta],
+  )
+  return <M.Switch checked={value} onChange={handleChange} disabled={disabled} />
+}
+
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
@@ -233,19 +263,11 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2, 0, 0),
   },
-  cards: {
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
   sectionHeading: {
     marginBottom: t.spacing(1),
   },
   group: {
-    flex: '50%',
     padding: t.spacing(2),
-    '& + &': {
-      margin: t.spacing(0, 0, 0, 2),
-    },
   },
   title: {
     margin: t.spacing(0, 0, 2),
@@ -261,24 +283,36 @@ export default function Settings() {
       <M.Typography variant="h4" className={classes.title}>
         Catalog Customization
       </M.Typography>
-      <div className={classes.cards}>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Navbar link
-          </M.Typography>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <NavLinkEditor />
-          </React.Suspense>
-        </M.Paper>
-        <M.Paper className={classes.group}>
-          <M.Typography variant="h5" className={classes.sectionHeading}>
-            Theme (logo and color)
-          </M.Typography>
-          <React.Suspense fallback={<M.CircularProgress />}>
-            <ThemeEditor />
-          </React.Suspense>
-        </M.Paper>
-      </div>
+      <M.Grid container spacing={2}>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Navbar link
+            </M.Typography>
+            <React.Suspense fallback={<M.CircularProgress />}>
+              <NavLinkEditor />
+            </React.Suspense>
+          </M.Paper>
+        </M.Grid>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Theme (logo and color)
+            </M.Typography>
+            <React.Suspense fallback={<M.CircularProgress />}>
+              <ThemeEditor />
+            </React.Suspense>
+          </M.Paper>
+        </M.Grid>
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Enable beta features
+            </M.Typography>
+            <BetaSwitch />
+          </M.Paper>
+        </M.Grid>
+      </M.Grid>
     </div>
   )
 }

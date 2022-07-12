@@ -15,6 +15,7 @@ export interface CatalogSettings {
   logo?: {
     url: string
   }
+  beta?: boolean
   theme?: {
     palette: {
       primary: {
