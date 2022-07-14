@@ -41,11 +41,11 @@ type Config {
 }
 
 type Canary {
-  id: String!
+  name: String!
   # TODO: full AWS console URL instead?
   region: String!
   group: String!
-  name: String!
+  title: String!
   description: String!
   schedule: String!
   ok: Boolean
