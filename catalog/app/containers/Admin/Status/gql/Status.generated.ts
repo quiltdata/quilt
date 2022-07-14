@@ -11,7 +11,14 @@ export type containers_Admin_Status_gql_StatusQuery = { readonly __typename: 'Qu
     readonly canaries: ReadonlyArray<
       { readonly __typename: 'Canary' } & Pick<
         Types.Canary,
-        'id' | 'region' | 'group' | 'name' | 'description' | 'schedule' | 'ok' | 'lastRun'
+        | 'name'
+        | 'region'
+        | 'group'
+        | 'title'
+        | 'description'
+        | 'schedule'
+        | 'ok'
+        | 'lastRun'
       >
     >
     readonly latestStats: { readonly __typename: 'TestStats' } & Pick<
@@ -54,10 +61,10 @@ export const containers_Admin_Status_gql_StatusDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'region' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'group' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                      { kind: 'Field', name: { kind: 'Name', value: 'title' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'description' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'schedule' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'ok' } },

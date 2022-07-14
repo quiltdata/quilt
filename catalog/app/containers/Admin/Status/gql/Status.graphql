@@ -1,10 +1,10 @@
 query ($window: Int) {
   status {
     canaries {
-      id
+      name
       region
       group
-      name
+      title
       description
       schedule
       ok

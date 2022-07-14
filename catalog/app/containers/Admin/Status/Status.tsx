@@ -125,18 +125,18 @@ const columns: DG.GridColumns = [
     width: 150,
   },
   {
-    field: 'name',
-    headerName: 'Name',
+    field: 'title',
+    headerName: 'Title',
     flex: 1,
     renderCell: (params: DG.GridCellParams) => {
       const c = params.row as Canary
-      const url = `https://${c.region}.console.aws.amazon.com/synthetics/cw?region=${c.region}#canary/detail/${c.id}`
+      const url = `https://${c.region}.console.aws.amazon.com/synthetics/cw?region=${c.region}#canary/detail/${c.name}`
       return (
         <M.Tooltip
           arrow
           title={
             <>
-              {c.description && (
+              {!!c.description && (
                 <>
                   {c.description}
                   <br />
@@ -226,6 +226,7 @@ const useCanariesStyles = M.makeStyles((t) => ({
       '& .MuiDataGrid-columnSeparator': {
         pointerEvents: 'none',
       },
+      // TODO: figure out why it's not working
       '&:last-child': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
@@ -266,7 +267,7 @@ function Canaries({ canaries }: CanariesProps) {
       R.sortWith(
         [
           R.ascend((c) => ({ true: 2, false: 1, null: 0 }[`${c.ok}`])),
-          R.ascend(R.prop('name')),
+          R.ascend(R.prop('title')),
         ],
         canaries,
       ),
@@ -282,6 +283,7 @@ function Canaries({ canaries }: CanariesProps) {
         className={classes.grid}
         rows={canariesSorted}
         columns={columns}
+        getRowId={(r) => r.name}
         autoHeight
         components={{ Footer }}
         getRowClassName={({ row }) => classes[`rowOk_${row.ok as boolean | null}`]}
