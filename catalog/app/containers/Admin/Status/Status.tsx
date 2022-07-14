@@ -226,7 +226,6 @@ const useCanariesStyles = M.makeStyles((t) => ({
       '& .MuiDataGrid-columnSeparator': {
         pointerEvents: 'none',
       },
-      // TODO: figure out why it's not working
       '&:last-child': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
