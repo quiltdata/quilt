@@ -93,6 +93,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           AccessCountForDate: () => null,
           AccessCounts: () => null,
           BucketConfig: (b) => b.name as string,
+          Canary: (c) => c.name as string,
           Config: () => null,
           ContentIndexingSettings: () => null,
           Package: (p) => (p.bucket && p.name ? `${p.bucket}/${p.name}` : null),
