@@ -571,7 +571,7 @@ export default {
         name: 'Canary',
         fields: [
           {
-            name: 'id',
+            name: 'name',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -607,7 +607,7 @@ export default {
             args: [],
           },
           {
-            name: 'name',
+            name: 'title',
             type: {
               kind: 'NON_NULL',
               ofType: {

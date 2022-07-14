@@ -161,10 +161,10 @@ export interface BucketUpdateSuccess {
 
 export interface Canary {
   readonly __typename: 'Canary'
-  readonly id: Scalars['String']
+  readonly name: Scalars['String']
   readonly region: Scalars['String']
   readonly group: Scalars['String']
-  readonly name: Scalars['String']
+  readonly title: Scalars['String']
   readonly description: Scalars['String']
   readonly schedule: Scalars['String']
   readonly ok: Maybe<Scalars['Boolean']>
