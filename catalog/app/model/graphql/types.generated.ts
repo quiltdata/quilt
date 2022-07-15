@@ -159,6 +159,18 @@ export interface BucketUpdateSuccess {
   readonly bucketConfig: BucketConfig
 }
 
+export interface Canary {
+  readonly __typename: 'Canary'
+  readonly name: Scalars['String']
+  readonly region: Scalars['String']
+  readonly group: Scalars['String']
+  readonly title: Scalars['String']
+  readonly description: Scalars['String']
+  readonly schedule: Scalars['String']
+  readonly ok: Maybe<Scalars['Boolean']>
+  readonly lastRun: Maybe<Scalars['Datetime']>
+}
+
 export interface Collaborator {
   readonly __typename: 'Collaborator'
   readonly email: Scalars['String']
@@ -550,6 +562,7 @@ export interface Query {
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
   readonly defaultRole: Maybe<Role>
+  readonly status: Status
 }
 
 export interface QuerybucketConfigArgs {
@@ -670,6 +683,31 @@ export interface RoleUpdateSuccess {
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface Status {
+  readonly __typename: 'Status'
+  readonly canaries: ReadonlyArray<Canary>
+  readonly latestStats: TestStats
+  readonly stats: TestStatsTimeSeries
+}
+
+export interface StatusstatsArgs {
+  window?: Maybe<Scalars['Int']>
+}
+
+export interface TestStats {
+  readonly __typename: 'TestStats'
+  readonly passed: Scalars['Int']
+  readonly failed: Scalars['Int']
+  readonly running: Scalars['Int']
+}
+
+export interface TestStatsTimeSeries {
+  readonly __typename: 'TestStatsTimeSeries'
+  readonly datetimes: ReadonlyArray<Scalars['Datetime']>
+  readonly passed: ReadonlyArray<Scalars['Int']>
+  readonly failed: ReadonlyArray<Scalars['Int']>
 }
 
 export interface UnmanagedPolicyInput {
