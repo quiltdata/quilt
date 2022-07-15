@@ -183,6 +183,32 @@ function RevisionAttributes({ className, modified, revisions }: RevisionAttribut
   )
 }
 
+const useRevisionMetaStyles = M.makeStyles((t) => ({
+  root: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2),
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+  },
+  part: {},
+}))
+
+interface RevisionMetaProps {
+  parts: (string | string[])[]
+}
+
+function RevisionMeta({ parts }: RevisionMetaProps) {
+  const classes = useRevisionMetaStyles()
+
+  return (
+    <div className={classes.root}>
+      {parts.map((part) => (
+        <div className={classes.part}>{part}</div>
+      ))}
+    </div>
+  )
+}
+
 const usePackageStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.down('xs')]: {
@@ -234,9 +260,23 @@ type PackageProps = NonNullable<
   ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
 >['page'][number]
 
-function Package({ name, modified, revisions, bucket, accessCounts }: PackageProps) {
+function Package({
+  name,
+  modified,
+  revisions,
+  bucket,
+  accessCounts,
+  revision,
+}: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
+  const meta = React.useMemo(() => {
+    const output: (string | string[])[] = []
+    if (revision?.message) {
+      output.push(revision?.message)
+    }
+    return output
+  }, [revision])
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
@@ -256,6 +296,7 @@ function Package({ name, modified, revisions, bucket, accessCounts }: PackagePro
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
+      {meta.length && <RevisionMeta parts={meta} />}
     </M.Paper>
   )
 }
