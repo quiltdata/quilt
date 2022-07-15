@@ -136,10 +136,55 @@ function Counts({ counts, total }: CountsProps) {
   )
 }
 
+const useRevisionAttributes = M.makeStyles((t) => ({
+  revisionsNumber: {
+    ...t.typography.subtitle2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+  },
+  updated: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+  },
+}))
+
+interface RevisionAttributesProps {
+  className: string
+  revisions: {
+    total: number
+  }
+  modified: Date
+}
+
+function RevisionAttributes({ className, modified, revisions }: RevisionAttributesProps) {
+  const classes = useRevisionAttributes()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  return (
+    <div className={className}>
+      <span className={classes.revisionsNumber}>
+        {revisions.total}{' '}
+        {xs ? (
+          'Rev.'
+        ) : (
+          <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
+        )}
+      </span>
+      <M.Box mr={2} component="span" />
+      <span
+        className={classes.updated}
+        title={modified ? modified.toString() : undefined}
+      >
+        {xs ? 'Upd. ' : 'Updated '}
+        {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
+      </span>
+    </div>
+  )
+}
+
 const usePackageStyles = M.makeStyles((t) => ({
   root: {
-    position: 'relative',
-
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
     },
@@ -148,15 +193,17 @@ const usePackageStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  base: {
+    padding: t.spacing(2),
+    position: 'relative',
+  },
   handleContainer: {
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 2,
     display: '-webkit-box',
     overflow: 'hidden',
     overflowWrap: 'break-word',
-    paddingLeft: t.spacing(2),
     paddingRight: t.spacing(21),
-    paddingTop: t.spacing(2),
     textOverflow: 'ellipsis',
   },
   handle: {
@@ -178,15 +225,8 @@ const usePackageStyles = M.makeStyles((t) => ({
       background: t.palette.action.hover,
     },
   },
-  revisions: {
-    ...t.typography.subtitle2,
-    color: t.palette.text.secondary,
-    position: 'relative',
-  },
-  updated: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    position: 'relative',
+  attributes: {
+    marginTop: t.spacing(1),
   },
 }))
 
@@ -197,38 +237,25 @@ type PackageProps = NonNullable<
 function Package({ name, modified, revisions, bucket, accessCounts }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <M.Paper className={classes.root}>
-      <div className={classes.handleContainer}>
-        <RRDom.Link
-          className={classes.handle}
-          to={urls.bucketPackageDetail(bucket, name)}
-        >
-          <span className={classes.handleClickArea} />
-          <span className={classes.handleText}>{name}</span>
-        </RRDom.Link>
+      <div className={classes.base}>
+        <div className={classes.handleContainer}>
+          <RRDom.Link
+            className={classes.handle}
+            to={urls.bucketPackageDetail(bucket, name)}
+          >
+            <span className={classes.handleClickArea} />
+            <span className={classes.handleText}>{name}</span>
+          </RRDom.Link>
+        </div>
+        <RevisionAttributes
+          className={classes.attributes}
+          modified={modified}
+          revisions={revisions}
+        />
+        {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      <M.Box pl={2} pb={2} pt={1}>
-        <span className={classes.revisions}>
-          {revisions.total}{' '}
-          {xs ? (
-            'Rev.'
-          ) : (
-            <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
-          )}
-        </span>
-        <M.Box mr={2} component="span" />
-        <span
-          className={classes.updated}
-          title={modified ? modified.toString() : undefined}
-        >
-          {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
-        </span>
-      </M.Box>
-      {!!accessCounts && <Counts {...accessCounts} />}
     </M.Paper>
   )
 }
