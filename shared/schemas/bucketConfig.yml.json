@@ -83,10 +83,6 @@
           "type": "object",
           "description": "Configure JSON fields to extract from revision for each revision meta",
           "minProperties": 1,
-          "propertyNames": {
-            "pattern": "\\* | (^[w-]+/[w-]+$)",
-            "maxLength": 64
-          },
           "additionalProperties": {
             "type": "object",
             "properties": {

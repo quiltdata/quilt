@@ -76,16 +76,7 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    packages: {
-      '*': {
-        message: true,
-        userMeta: ['$.Name'],
-      },
-      'abyrvalg/2020-12-02': {
-        message: true,
-        userMeta: ['$.Date', '$.Name'],
-      },
-    },
+    packages: {},
     sourceBuckets: {
       getDefault: () => '',
       list: [],
