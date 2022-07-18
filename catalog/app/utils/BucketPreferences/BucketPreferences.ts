@@ -37,11 +37,16 @@ export interface SourceBuckets {
   list: string[]
 }
 
+export interface PackagesPreferences {
+  [key: string]: string[]
+}
+
 interface UiPreferences {
   actions: ActionPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
   sourceBuckets: SourceBuckets
+  packages: PackagesPreferences
 }
 
 export interface BucketPreferences {
@@ -71,6 +76,10 @@ const defaultPreferences: BucketPreferences = {
     sourceBuckets: {
       getDefault: () => '',
       list: [],
+    },
+    packages: {
+      '*': ['$.message', '$.userMeta.Name'],
+      'abyrvalg/2020-12-02': ['$.message', '$.userMeta.Date', '$.userMeta.Name'],
     },
   },
 }

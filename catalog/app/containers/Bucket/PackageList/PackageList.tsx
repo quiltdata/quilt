@@ -1,4 +1,5 @@
 import * as dateFns from 'date-fns'
+import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -216,17 +217,14 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
         <div className={classes.section}>
           {typeof section === 'string' && section}
           {Array.isArray(section) &&
-            section.map(
-              (label) =>
-                label && (
-                  <M.Chip
-                    className={classes.tag}
-                    label={label}
-                    size="small"
-                    variant="outlined"
-                  />
-                ),
-            )}
+            section.map((label) => (
+              <M.Chip
+                className={classes.tag}
+                label={label}
+                size="small"
+                variant="outlined"
+              />
+            ))}
         </div>
       ))}
     </div>
@@ -234,23 +232,22 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
 }
 
 function usePackageMeta(
+  bucket: string,
   revision: { message: string | null; userMeta: JsonRecord | null } | null,
-) {
+): (string | string[])[] {
+  const preferences = BucketPreferences.use()
   return React.useMemo(() => {
-    const output: (string | string[])[] = []
-    if (revision?.message) {
-      output.push(revision?.message)
-    }
-    if (revision?.userMeta) {
-      if (revision?.userMeta?.Name) {
-        output.push(revision?.userMeta?.Name as string[])
-      }
-      if (revision?.userMeta?.Date) {
-        output.push(revision?.userMeta?.Date as string[])
-      }
-    }
-    return output
-  }, [revision])
+    const jsonPaths = preferences?.ui.packages[bucket] || preferences?.ui.packages['*']
+    if (!jsonPaths) return []
+    return jsonPaths
+      .map((p) => {
+        const section: string | string[] = jsonpath.value(revision, p)
+        if (typeof section === 'string') return section
+        if (Array.isArray(section)) return section.filter(Boolean)
+        return ''
+      })
+      .filter(Boolean)
+  }, [bucket, preferences, revision])
 }
 
 const usePackageStyles = M.makeStyles((t) => ({
@@ -314,7 +311,7 @@ function Package({
 }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const meta = usePackageMeta(revision)
+  const meta = usePackageMeta(bucket, revision)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
@@ -334,7 +331,7 @@ function Package({
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      {meta.length && <RevisionMeta sections={meta} />}
+      {!!meta && meta.length && <RevisionMeta sections={meta} />}
     </M.Paper>
   )
 }
