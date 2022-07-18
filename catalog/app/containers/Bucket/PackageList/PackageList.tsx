@@ -18,6 +18,7 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
+import { JsonRecord } from 'utils/types'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
@@ -209,6 +210,18 @@ function RevisionMeta({ parts }: RevisionMetaProps) {
   )
 }
 
+function usePackageMeta(
+  revision: { message: string | null; userMeta: JsonRecord | null } | null,
+) {
+  return React.useMemo(() => {
+    const output: (string | string[])[] = []
+    if (revision?.message) {
+      output.push(revision?.message)
+    }
+    return output
+  }, [revision])
+}
+
 const usePackageStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.down('xs')]: {
@@ -270,13 +283,7 @@ function Package({
 }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const meta = React.useMemo(() => {
-    const output: (string | string[])[] = []
-    if (revision?.message) {
-      output.push(revision?.message)
-    }
-    return output
-  }, [revision])
+  const meta = usePackageMeta(revision)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
