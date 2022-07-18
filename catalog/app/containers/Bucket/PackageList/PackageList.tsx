@@ -191,20 +191,43 @@ const useRevisionMetaStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
     color: t.palette.text.secondary,
   },
-  part: {},
+  section: {
+    '& + &': {
+      marginTop: t.spacing(1),
+    },
+  },
+  tag: {
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
+  },
 }))
 
 interface RevisionMetaProps {
-  parts: (string | string[])[]
+  sections: (string | string[])[]
 }
 
-function RevisionMeta({ parts }: RevisionMetaProps) {
+function RevisionMeta({ sections }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
 
   return (
     <div className={classes.root}>
-      {parts.map((part) => (
-        <div className={classes.part}>{part}</div>
+      {sections.map((section) => (
+        <div className={classes.section}>
+          {typeof section === 'string' && section}
+          {Array.isArray(section) &&
+            section.map(
+              (label) =>
+                label && (
+                  <M.Chip
+                    className={classes.tag}
+                    label={label}
+                    size="small"
+                    variant="outlined"
+                  />
+                ),
+            )}
+        </div>
       ))}
     </div>
   )
@@ -217,6 +240,14 @@ function usePackageMeta(
     const output: (string | string[])[] = []
     if (revision?.message) {
       output.push(revision?.message)
+    }
+    if (revision?.userMeta) {
+      if (revision?.userMeta?.Name) {
+        output.push(revision?.userMeta?.Name as string[])
+      }
+      if (revision?.userMeta?.Date) {
+        output.push(revision?.userMeta?.Date as string[])
+      }
     }
     return output
   }, [revision])
@@ -303,7 +334,7 @@ function Package({
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      {meta.length && <RevisionMeta parts={meta} />}
+      {meta.length && <RevisionMeta sections={meta} />}
     </M.Paper>
   )
 }
