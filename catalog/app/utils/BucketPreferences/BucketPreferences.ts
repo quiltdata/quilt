@@ -17,6 +17,12 @@ type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boole
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
+interface PackagePreferences {
+  message?: true
+  userMeta?: ReadonlyArray<string>
+}
+type PackagesListPreferences = Record<string, PackagePreferences>
+
 type DefaultSourceBucketInput = string
 type SourceBucketsInput = Record<string, null>
 
@@ -25,6 +31,7 @@ interface UiPreferencesInput {
   blocks?: Partial<BlocksPreferences>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
+  packages?: PackagesListPreferences
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -37,16 +44,12 @@ export interface SourceBuckets {
   list: string[]
 }
 
-export interface PackagesPreferences {
-  [key: string]: string[]
-}
-
 interface UiPreferences {
   actions: ActionPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
+  packages: PackagesListPreferences
   sourceBuckets: SourceBuckets
-  packages: PackagesPreferences
 }
 
 export interface BucketPreferences {
@@ -73,13 +76,19 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
+    packages: {
+      '*': {
+        message: true,
+        userMeta: ['$.Name'],
+      },
+      'abyrvalg/2020-12-02': {
+        message: true,
+        userMeta: ['$.Date', '$.Name'],
+      },
+    },
     sourceBuckets: {
       getDefault: () => '',
       list: [],
-    },
-    packages: {
-      '*': ['$.message', '$.userMeta.Name'],
-      'abyrvalg/2020-12-02': ['$.message', '$.userMeta.Date', '$.userMeta.Name'],
     },
   },
 }
@@ -119,10 +128,14 @@ function parseSourceBuckets(
   }
 }
 
-export function extendDefaults(data: BucketPreferencesInput, sentry: SentryInstance) {
+export function extendDefaults(
+  data: BucketPreferencesInput,
+  sentry: SentryInstance,
+): BucketPreferences {
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
+      packages: R.mergeRight(defaultPreferences.ui.packages, data?.ui?.packages || {}),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,

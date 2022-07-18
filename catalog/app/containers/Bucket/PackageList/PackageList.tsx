@@ -237,16 +237,17 @@ function usePackageMeta(
 ): (string | string[])[] {
   const preferences = BucketPreferences.use()
   return React.useMemo(() => {
-    const jsonPaths = preferences?.ui.packages[bucket] || preferences?.ui.packages['*']
-    if (!jsonPaths) return []
-    return jsonPaths
-      .map((p) => {
-        const section: string | string[] = jsonpath.value(revision, p)
-        if (typeof section === 'string') return section
-        if (Array.isArray(section)) return section.filter(Boolean)
-        return ''
+    const { message, userMeta } =
+      preferences?.ui.packages[bucket] || preferences?.ui.packages['*'] || {}
+    const output = []
+    if (message && revision?.message) output.push(revision.message)
+    if (userMeta && revision?.userMeta)
+      userMeta.forEach((jPath) => {
+        const section = jsonpath.value(revision.userMeta, jPath)
+        if (typeof section === 'string') output.push(section)
+        if (Array.isArray(section)) output.push(section.filter(Boolean))
       })
-      .filter(Boolean)
+    return output
   }, [bucket, preferences, revision])
 }
 
@@ -331,7 +332,7 @@ function Package({
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      {!!meta && meta.length && <RevisionMeta sections={meta} />}
+      {!!meta && !!meta.length && <RevisionMeta sections={meta} />}
     </M.Paper>
   )
 }
