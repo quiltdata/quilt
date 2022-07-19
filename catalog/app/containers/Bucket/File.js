@@ -401,9 +401,12 @@ export default function File({
 
   const handle = { bucket, key: path, version }
 
+  const [editing, setEditing] = React.useState(false)
+  const toggleEditor = React.useCallback(() => setEditing(!editing), [editing])
+
   const previewOptions = React.useMemo(
-    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
-    [viewModes.mode],
+    () => ({ context: Preview.CONTEXT.FILE, editing, mode: viewModes.mode }),
+    [editing, viewModes.mode],
   )
 
   const withPreview = (callback) =>
@@ -453,6 +456,7 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
+          <FileView.EditButton className={classes.button} onClick={toggleEditor} />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}

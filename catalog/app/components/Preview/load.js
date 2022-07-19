@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import * as Audio from './loaders/Audio'
 import * as Echarts from './loaders/Echarts'
+import * as Editor from './loaders/Editor'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
 import * as Image from './loaders/Image'
@@ -20,6 +21,7 @@ import * as fallback from './loaders/fallback'
 
 const loaderChain = [
   Fcs,
+  Editor,
   Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
   Json,
   Markdown,

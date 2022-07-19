@@ -1,25 +1,9 @@
-import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 import * as brace from 'brace'
 import * as M from '@material-ui/core'
 
-import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
-import * as Data from 'utils/Data'
-import type { S3HandleBase } from 'utils/s3paths'
-
 import 'brace/mode/markdown'
 import 'brace/theme/eclipse'
-
-interface ReadDataArgs {
-  s3: S3
-  handle: S3HandleBase
-}
-
-async function readData({ s3, handle: { bucket, key } }: ReadDataArgs) {
-  const res = await s3.getObject({ Bucket: bucket, Key: key }).promise()
-  return res.Body!.toString('utf-8')
-}
 
 const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
@@ -66,36 +50,7 @@ function EditorText({ value, onChange }: EditorTextProps) {
   )
 }
 
-interface EditorTextStateProps {
-  handle: S3HandleBase
-}
-
-function EditorTextState({ handle }: EditorTextStateProps) {
-  const s3 = AWS.S3.use()
-  const data = Data.use(readData, {
-    s3,
-    handle,
-  })
-
-  const writeData = React.useCallback(
-    async (value) => {
-      await s3
-        .putObject({ Bucket: handle.bucket, Key: handle.key, Body: value })
-        .promise()
-    },
-    [handle, s3],
-  )
-
-  return AsyncResult.case(
-    {
-      Ok: (value: string) => <EditorText value={value} onChange={writeData} />,
-      _: () => null,
-    },
-    data.result,
-  )
-}
-
 export default (
-  { handle }: EditorTextStateProps,
+  { value, onChange }: EditorTextProps,
   props: React.HTMLAttributes<HTMLDivElement>,
-) => <EditorTextState {...props} handle={handle} />
+) => <EditorText {...props} value={value} onChange={onChange} />
