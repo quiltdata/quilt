@@ -97,10 +97,6 @@ function StringValue({ value }) {
     try {
       return <S3UrlValue href={href}>{value}</S3UrlValue>
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.log('Invalid url')
-      // eslint-disable-next-line no-console
-      console.error(error)
       return <div>"{value}"</div>
     }
   }
