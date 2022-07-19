@@ -93,7 +93,13 @@ function S3UrlValue({ href, children }) {
 function StringValue({ value }) {
   const href = React.useMemo(() => getHref(value), [value])
   if (!href) return <div>"{value}"</div>
-  if (s3paths.isS3Url(href)) return <S3UrlValue href={href}>{value}</S3UrlValue>
+  if (s3paths.isS3Url(href)) {
+    try {
+      return <S3UrlValue href={href}>{value}</S3UrlValue>
+    } catch (error) {
+      return <div>"{value}"</div>
+    }
+  }
   return (
     <div>
       "
