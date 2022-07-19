@@ -236,6 +236,7 @@ function usePackageMeta(
   bucket: string,
   revision: { message: string | null; userMeta: JsonRecord | null } | null,
 ): (string | string[])[] {
+  // TODO: move visible meta calculation to the graphql
   const preferences = BucketPreferences.use()
   return React.useMemo(() => {
     const { message, userMeta } =
