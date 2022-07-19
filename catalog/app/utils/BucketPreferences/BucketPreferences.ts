@@ -76,7 +76,11 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    packages: {},
+    packages: {
+      '*': {
+        message: true,
+      },
+    },
     sourceBuckets: {
       getDefault: () => '',
       list: [],
