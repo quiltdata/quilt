@@ -10,10 +10,8 @@ import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 import * as Markdown from './Markdown'
 
-export const detect = (key: string, { editing }: { editing: boolean }) => {
-  console.log('DETECT', editing)
-  return editing && Markdown.detect(key)
-}
+export const detect = (key: string, { editing }: { editing: boolean }) =>
+  editing && Markdown.detect(key)
 
 interface MarkdownLoaderProps {
   gated: boolean
@@ -38,7 +36,7 @@ function MarkdownLoader({ gated, handle, children }: MarkdownLoaderProps) {
     data.result,
     (r: $TSFixMe) => {
       const value = r.Body.toString('utf-8')
-      return PreviewData.EditorText({ value, onChange: writeData })
+      return PreviewData.Editor({ value, onChange: writeData })
     },
     [],
   )

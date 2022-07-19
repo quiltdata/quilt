@@ -21,7 +21,7 @@ export const PreviewData = tagged([
   'Audio', // { src: string }
   'DataFrame', // { preview: string, ...PreviewStatus }
   'ECharts', // { option: object }
-  'EditorText', // { value: string }
+  'Editor', // { value: string }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
   'IFrame', // { src: string }
   'Image', // { handle: object }
