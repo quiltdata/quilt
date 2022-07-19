@@ -16,6 +16,7 @@ interface EChartsProps extends React.HTMLProps<HTMLDivElement> {
   option: echarts.EChartsOption
 }
 
+// XXX: consider using components/EChartsChart (may require some adjustments)
 function ECharts({ option, ...props }: EChartsProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
@@ -32,6 +33,7 @@ function ECharts({ option, ...props }: EChartsProps) {
       // eslint-disable-next-line no-console
       console.error(e)
       if (e instanceof Error) setError(e)
+      // XXX: should NOT set state in dispose callback
       return () => setError(null)
     }
   }, [containerRef, option])

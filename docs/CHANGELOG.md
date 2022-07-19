@@ -18,6 +18,7 @@
 * [Added] Add theming with custom square logo and background color ([#2793](https://github.com/quiltdata/quilt/pull/2793))
 * [Added] Admin: new roles and policies UI ([#2819](https://github.com/quiltdata/quilt/pull/2819))
 * [Added] Deep search indexing for .pptx ([#2881](https://github.com/quiltdata/quilt/pull/2881))
+* [Added] Stack Status Admin UI ([#2935](https://github.com/quiltdata/quilt/pull/2935))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).

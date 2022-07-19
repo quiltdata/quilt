@@ -73,6 +73,7 @@ RUN set -x \
     && make install \
     && cd .. \
     && rm -r nginx-${NGINX_VERSION} \
+    && apt-get install -y --no-install-recommends awscli \
     && apt-get purge -y --autoremove curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
     && apt-get clean
 

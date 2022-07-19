@@ -183,6 +183,10 @@ export const adminSync = {
   path: '/admin/sync',
   url: () => '/admin/sync',
 }
+export const adminStatus = {
+  path: '/admin/status',
+  url: () => '/admin/status',
+}
 
 // storybook
 export const storyBook = {

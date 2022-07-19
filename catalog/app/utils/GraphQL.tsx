@@ -93,6 +93,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           AccessCountForDate: () => null,
           AccessCounts: () => null,
           BucketConfig: (b) => b.name as string,
+          Canary: (c) => c.name as string,
           Config: () => null,
           ContentIndexingSettings: () => null,
           Package: (p) => (p.bucket && p.name ? `${p.bucket}/${p.name}` : null),
@@ -107,6 +108,9 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
+          Status: () => null,
+          TestStats: () => null,
+          TestStatsTimeSeries: () => null,
         },
         updates: {
           Mutation: {
