@@ -2,7 +2,6 @@ import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import pipeThru from 'utils/pipeThru'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
@@ -10,33 +9,34 @@ import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 import * as Markdown from './Markdown'
 
-export const detect = (key: string, { editing }: { editing: boolean }) =>
-  editing && Markdown.detect(key)
+export const detect = (key: string, { onChange }: { onChange: (v: string) => void }) =>
+  !!onChange && Markdown.detect(key)
 
-interface MarkdownLoaderProps {
-  gated: boolean
-  handle: S3HandleBase
-  children: (r: $TSFixMe) => React.ReactNode
+export function useWriteData({ bucket, key }: S3HandleBase) {
+  const s3 = AWS.S3.use()
+  return React.useCallback(
+    async (value) => {
+      await s3.putObject({ Bucket: bucket, Key: key, Body: value }).promise()
+    },
+    [bucket, key, s3],
+  )
 }
 
-function MarkdownLoader({ gated, handle, children }: MarkdownLoaderProps) {
-  const s3 = AWS.S3.use()
+interface MarkdownLoaderProps {
+  gated?: boolean
+  handle: S3HandleBase
+  children: (r: $TSFixMe) => React.ReactNode
+  onChange: (value: string) => void
+}
 
+function MarkdownLoader({ gated, handle, onChange, children }: MarkdownLoaderProps) {
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
 
-  const writeData = React.useCallback(
-    async (value) => {
-      await s3
-        .putObject({ Bucket: handle.bucket, Key: handle.key, Body: value })
-        .promise()
-    },
-    [handle, s3],
-  )
   const processed = utils.useProcessing(
     data.result,
     (r: $TSFixMe) => {
       const value = r.Body.toString('utf-8')
-      return PreviewData.Editor({ value, onChange: writeData })
+      return PreviewData.Editor({ value, onChange })
     },
     [],
   )
@@ -51,15 +51,24 @@ function MarkdownLoader({ gated, handle, children }: MarkdownLoaderProps) {
 interface LoaderProps {
   handle: S3HandleBase
   children: (r: $TSFixMe) => React.ReactNode
+  options: {
+    onChange: (value: string) => void
+  }
 }
 
-export const Loader = function GatedEditorLoader({ handle, children }: LoaderProps) {
+export const Loader = function GatedEditorLoader({
+  handle,
+  children,
+  options: { onChange },
+}: LoaderProps) {
   const data = utils.useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
-  return pipeThru(handled)(
-    AsyncResult.case({
-      _: children,
-      Ok: (gated: boolean) => <MarkdownLoader {...{ gated, handle, children }} />,
+  return AsyncResult.case({
+    _: children,
+    Err: PreviewError.case({
+      DoesNotExist: () => children(AsyncResult.Ok(PreviewData.Editor({ onChange }))),
+      _: (error: $TSFixMe) => children(AsyncResult.Err(error)),
     }),
-  )
+    Ok: (gated: boolean) => <MarkdownLoader {...{ gated, handle, children, onChange }} />,
+  })(handled)
 }

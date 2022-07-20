@@ -9,11 +9,6 @@ const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    margin: t.spacing(1, 0, 0),
-  },
   editor: {
     minHeight: t.spacing(30),
     border: `1px solid ${t.palette.divider}`,
@@ -21,31 +16,25 @@ const useEditorTextStyles = M.makeStyles((t) => ({
 }))
 
 interface EditorTextProps {
-  value: string
+  value?: string
   onChange: (value: string) => void
 }
 
-function EditorText({ value, onChange }: EditorTextProps) {
+function EditorText({ value = '', onChange }: EditorTextProps) {
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
-  const handleChange = React.useRef(() => {})
   React.useEffect(() => {
-    if (!ref.current || !value) return
+    if (!ref.current) return
     const editor = brace.edit(ref.current)
     editor.getSession().setMode('ace/mode/markdown')
     editor.setTheme('ace/theme/eclipse')
     editor.setValue(value, -1)
-    handleChange.current = () => onChange(editor.getValue())
+    editor.on('change', () => onChange(editor.getValue()))
     return () => editor.destroy()
   }, [onChange, ref, value])
   return (
     <div className={classes.root}>
       <div className={classes.editor} ref={ref} />
-      <div className={classes.actions}>
-        <M.Button variant="contained" onClick={handleChange.current} color="primary">
-          Save
-        </M.Button>
-      </div>
     </div>
   )
 }

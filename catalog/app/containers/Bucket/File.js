@@ -26,6 +26,7 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
+import { useWriteData } from 'components/Preview/loaders/Editor'
 
 import Code from './Code'
 import FileProperties from './FileProperties'
@@ -403,9 +404,15 @@ export default function File({
 
   const [editing, setEditing] = React.useState(false)
   const toggleEditor = React.useCallback(() => setEditing(!editing), [editing])
+  const [editorValue, setEditorValue] = React.useState()
+  const writeTextFile = useWriteData(handle)
 
   const previewOptions = React.useMemo(
-    () => ({ context: Preview.CONTEXT.FILE, editing, mode: viewModes.mode }),
+    () => ({
+      context: Preview.CONTEXT.FILE,
+      onChange: editing && setEditorValue,
+      mode: viewModes.mode,
+    }),
     [editing, viewModes.mode],
   )
 
@@ -456,7 +463,14 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
-          <FileView.EditButton className={classes.button} onClick={toggleEditor} />
+          {editing ? (
+            <FileView.SaveButton
+              className={classes.button}
+              onClick={() => writeTextFile(editorValue) && toggleEditor()}
+            />
+          ) : (
+            <FileView.EditButton className={classes.button} onClick={toggleEditor} />
+          )}
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
