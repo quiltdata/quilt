@@ -99,6 +99,10 @@ function validate(data: unknown): asserts data is BucketPreferencesInput {
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
+function parsePackages(packages?: PackagesListPreferences): PackagesListPreferences {
+  return R.mergeRight(defaultPreferences.ui.packages, packages || {})
+}
+
 function parseSourceBuckets(
   sentry: SentryInstance,
   sourceBuckets?: SourceBucketsInput,
@@ -130,7 +134,7 @@ export function extendDefaults(
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
-      packages: R.mergeRight(defaultPreferences.ui.packages, data?.ui?.packages || {}),
+      packages: parsePackages(data?.ui?.packages),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,
