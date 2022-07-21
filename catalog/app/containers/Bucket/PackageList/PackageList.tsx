@@ -138,7 +138,7 @@ function Counts({ counts, total }: CountsProps) {
   )
 }
 
-const useRevisionAttributes = M.makeStyles((t) => ({
+const useRevisionAttributesStyles = M.makeStyles((t) => ({
   revisionsNumber: {
     ...t.typography.subtitle2,
     color: t.palette.text.secondary,
@@ -160,7 +160,7 @@ interface RevisionAttributesProps {
 }
 
 function RevisionAttributes({ className, modified, revisions }: RevisionAttributesProps) {
-  const classes = useRevisionAttributes()
+  const classes = useRevisionAttributesStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
