@@ -90,7 +90,7 @@
                 "type": "boolean",
                 "description": "Whether to show message or not"
               },
-              "userMeta": {
+              "user_meta": {
                 "type": "array",
                 "items": {
                   "type": "string",

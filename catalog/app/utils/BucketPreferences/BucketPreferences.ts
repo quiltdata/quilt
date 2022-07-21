@@ -17,10 +17,15 @@ type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boole
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
+interface PackagePreferencesInput {
+  message?: true
+  user_meta?: ReadonlyArray<string>
+}
 interface PackagePreferences {
   message?: true
   userMeta?: ReadonlyArray<string>
 }
+type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
 type PackagesListPreferences = Record<string, PackagePreferences>
 
 type DefaultSourceBucketInput = string
@@ -31,7 +36,7 @@ interface UiPreferencesInput {
   blocks?: Partial<BlocksPreferences>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
-  packages?: PackagesListPreferences
+  packages?: PackagesListPreferencesInput
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -99,8 +104,17 @@ function validate(data: unknown): asserts data is BucketPreferencesInput {
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
-function parsePackages(packages?: PackagesListPreferences): PackagesListPreferences {
-  return R.mergeRight(defaultPreferences.ui.packages, packages || {})
+function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
+  return Object.entries(packages || {}).reduce(
+    (memo, [name, { message, user_meta }]) => ({
+      ...memo,
+      [name]: {
+        message,
+        userMeta: user_meta,
+      },
+    }),
+    defaultPreferences.ui.packages,
+  )
 }
 
 function parseSourceBuckets(
