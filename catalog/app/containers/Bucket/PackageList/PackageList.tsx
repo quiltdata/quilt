@@ -233,14 +233,14 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
 }
 
 function usePackageMeta(
-  bucket: string,
+  name: string,
   revision: { message: string | null; userMeta: JsonRecord | null } | null,
 ): (string | string[])[] {
   // TODO: move visible meta calculation to the graphql
   const preferences = BucketPreferences.use()
   return React.useMemo(() => {
     const { message, userMeta } =
-      preferences?.ui.packages[bucket] || preferences?.ui.packages['*'] || {}
+      preferences?.ui.packages[name] || preferences?.ui.packages['*'] || {}
     const output = []
     if (message && revision?.message) output.push(revision.message)
     if (userMeta && revision?.userMeta)
@@ -250,7 +250,7 @@ function usePackageMeta(
         if (Array.isArray(section)) output.push(section.filter(Boolean))
       })
     return output
-  }, [bucket, preferences, revision])
+  }, [name, preferences, revision])
 }
 
 const usePackageStyles = M.makeStyles((t) => ({
@@ -314,7 +314,7 @@ function Package({
 }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const meta = usePackageMeta(bucket, revision)
+  const meta = usePackageMeta(name, revision)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
