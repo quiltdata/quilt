@@ -63,24 +63,6 @@ export function DownloadButton({ className, handle }) {
   ))
 }
 
-export function SaveButton({ className, ...props }) {
-  return (
-    <DownloadButtonLayout
-      className={className}
-      color="primary"
-      icon="save"
-      label="Save"
-      variant="contained"
-      {...props}
-    />
-  )
-}
-export function EditButton({ className, ...props }) {
-  return (
-    <DownloadButtonLayout className={className} label="Edit" icon="edit" {...props} />
-  )
-}
-
 export function ViewModeSelector({ className, ...props }) {
   const classes = useDownloadButtonStyles()
   const t = M.useTheme()
