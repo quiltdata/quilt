@@ -58,11 +58,11 @@ export default function JsonValidationErrors({
   return (
     <div className={className}>
       {Array.isArray(error) ? (
-        error.map((e) => (
+        error.map((e, index) => (
           <SingleError
             className={classes.item}
             error={e}
-            key={(e as ErrorObject).instancePath + e.message}
+            key={(e as ErrorObject).instancePath + e.message + index}
           />
         ))
       ) : (
