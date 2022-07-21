@@ -23,6 +23,7 @@ const expectedDefaults = {
       packages: true,
       queries: true,
     },
+    packages: {},
     sourceBuckets: {
       list: [],
     },

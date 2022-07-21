@@ -79,6 +79,27 @@
             }
           }
         },
+        "packages": {
+          "type": "object",
+          "description": "Configure JSON fields to extract from revision for each revision meta",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "boolean",
+                "description": "Whether to show message or not"
+              },
+              "user_meta": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "JSONPath to string or array of strings inside user_meta"
+                }
+              }
+            }
+          }
+        },
         "sourceBuckets": {
           "type": "object",
           "description": "Buckets usable as sources for adding objects from while editing a package via web UI.",
