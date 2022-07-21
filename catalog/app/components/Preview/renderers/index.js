@@ -1,7 +1,6 @@
 export { default as Audio } from './Audio'
 export { default as DataFrame } from './DataFrame'
 export { default as ECharts } from './ECharts'
-export { default as Editor } from './Editor'
 export { default as Fcs } from './Fcs'
 export { default as IFrame } from './IFrame'
 export { default as Image } from './Image'
