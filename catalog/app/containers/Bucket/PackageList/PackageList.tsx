@@ -1,4 +1,5 @@
 import * as dateFns from 'date-fns'
+import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -18,6 +19,7 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
+import { JsonRecord } from 'utils/types'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
@@ -136,10 +138,123 @@ function Counts({ counts, total }: CountsProps) {
   )
 }
 
+const useRevisionAttributesStyles = M.makeStyles((t) => ({
+  revisionsNumber: {
+    ...t.typography.subtitle2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+  },
+  updated: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+    marginLeft: t.spacing(2),
+  },
+}))
+
+interface RevisionAttributesProps {
+  className: string
+  revisions: {
+    total: number
+  }
+  modified: Date
+}
+
+function RevisionAttributes({ className, modified, revisions }: RevisionAttributesProps) {
+  const classes = useRevisionAttributesStyles()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  return (
+    <div className={className}>
+      <span className={classes.revisionsNumber}>
+        {revisions.total}{' '}
+        {xs ? (
+          'Rev.'
+        ) : (
+          <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
+        )}
+      </span>
+      <span
+        className={classes.updated}
+        title={modified ? modified.toString() : undefined}
+      >
+        {xs ? 'Upd. ' : 'Updated '}
+        {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
+      </span>
+    </div>
+  )
+}
+
+const useRevisionMetaStyles = M.makeStyles((t) => ({
+  root: {
+    borderTop: `1px solid ${t.palette.divider}`,
+    padding: t.spacing(2),
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+  },
+  section: {
+    '& + &': {
+      marginTop: t.spacing(1),
+    },
+  },
+  tag: {
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
+  },
+}))
+
+interface RevisionMetaProps {
+  sections: (string | string[])[]
+}
+
+function RevisionMeta({ sections }: RevisionMetaProps) {
+  const classes = useRevisionMetaStyles()
+
+  return (
+    <div className={classes.root}>
+      {sections.map((section, i) => (
+        <div className={classes.section} key={`${i}+${section}`}>
+          {Array.isArray(section)
+            ? section.map((label, j) => (
+                <M.Chip
+                  className={classes.tag}
+                  label={label}
+                  key={`${j}+${label}`}
+                  size="small"
+                  variant="outlined"
+                />
+              ))
+            : section}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function usePackageMeta(
+  name: string,
+  revision: { message: string | null; userMeta: JsonRecord | null } | null,
+): (string | string[])[] {
+  // TODO: move visible meta calculation to the graphql
+  const preferences = BucketPreferences.use()
+  return React.useMemo(() => {
+    const { message, userMeta } =
+      preferences?.ui.packages[name] || preferences?.ui.packages['*'] || {}
+    const output = []
+    if (message && revision?.message) output.push(revision.message)
+    if (userMeta && revision?.userMeta)
+      userMeta.forEach((jPath) => {
+        const section = jsonpath.value(revision.userMeta, jPath)
+        if (typeof section === 'string') output.push(section)
+        if (Array.isArray(section)) output.push(section.filter(R.is(String)))
+      })
+    return output
+  }, [name, preferences, revision])
+}
+
 const usePackageStyles = M.makeStyles((t) => ({
   root: {
-    position: 'relative',
-
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
     },
@@ -148,15 +263,17 @@ const usePackageStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  base: {
+    padding: t.spacing(2),
+    position: 'relative',
+  },
   handleContainer: {
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 2,
     display: '-webkit-box',
     overflow: 'hidden',
     overflowWrap: 'break-word',
-    paddingLeft: t.spacing(2),
     paddingRight: t.spacing(21),
-    paddingTop: t.spacing(2),
     textOverflow: 'ellipsis',
   },
   handle: {
@@ -178,15 +295,8 @@ const usePackageStyles = M.makeStyles((t) => ({
       background: t.palette.action.hover,
     },
   },
-  revisions: {
-    ...t.typography.subtitle2,
-    color: t.palette.text.secondary,
-    position: 'relative',
-  },
-  updated: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    position: 'relative',
+  attributes: {
+    marginTop: t.spacing(1),
   },
 }))
 
@@ -194,41 +304,37 @@ type PackageProps = NonNullable<
   ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
 >['page'][number]
 
-function Package({ name, modified, revisions, bucket, accessCounts }: PackageProps) {
+function Package({
+  name,
+  modified,
+  revisions,
+  bucket,
+  accessCounts,
+  revision,
+}: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const meta = usePackageMeta(name, revision)
   return (
     <M.Paper className={classes.root}>
-      <div className={classes.handleContainer}>
-        <RRDom.Link
-          className={classes.handle}
-          to={urls.bucketPackageDetail(bucket, name)}
-        >
-          <span className={classes.handleClickArea} />
-          <span className={classes.handleText}>{name}</span>
-        </RRDom.Link>
+      <div className={classes.base}>
+        <div className={classes.handleContainer}>
+          <RRDom.Link
+            className={classes.handle}
+            to={urls.bucketPackageDetail(bucket, name)}
+          >
+            <span className={classes.handleClickArea} />
+            <span className={classes.handleText}>{name}</span>
+          </RRDom.Link>
+        </div>
+        <RevisionAttributes
+          className={classes.attributes}
+          modified={modified}
+          revisions={revisions}
+        />
+        {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      <M.Box pl={2} pb={2} pt={1}>
-        <span className={classes.revisions}>
-          {revisions.total}{' '}
-          {xs ? (
-            'Rev.'
-          ) : (
-            <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
-          )}
-        </span>
-        <M.Box mr={2} component="span" />
-        <span
-          className={classes.updated}
-          title={modified ? modified.toString() : undefined}
-        >
-          {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
-        </span>
-      </M.Box>
-      {!!accessCounts && <Counts {...accessCounts} />}
+      {!!meta && !!meta.length && <RevisionMeta sections={meta} />}
     </M.Paper>
   )
 }

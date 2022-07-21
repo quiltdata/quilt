@@ -17,6 +17,17 @@ type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boole
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
+interface PackagePreferencesInput {
+  message?: true
+  user_meta?: ReadonlyArray<string>
+}
+interface PackagePreferences {
+  message?: true
+  userMeta?: ReadonlyArray<string>
+}
+type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
+type PackagesListPreferences = Record<string, PackagePreferences>
+
 type DefaultSourceBucketInput = string
 type SourceBucketsInput = Record<string, null>
 
@@ -25,6 +36,7 @@ interface UiPreferencesInput {
   blocks?: Partial<BlocksPreferences>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
+  packages?: PackagesListPreferencesInput
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -41,6 +53,7 @@ interface UiPreferences {
   actions: ActionPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
+  packages: PackagesListPreferences
   sourceBuckets: SourceBuckets
 }
 
@@ -68,6 +81,11 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
+    packages: {
+      '*': {
+        message: true,
+      },
+    },
     sourceBuckets: {
       getDefault: () => '',
       list: [],
@@ -84,6 +102,19 @@ const bucketPreferencesValidator = makeSchemaValidator(bucketPreferencesSchema)
 function validate(data: unknown): asserts data is BucketPreferencesInput {
   const errors = bucketPreferencesValidator(data)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
+}
+
+function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
+  return Object.entries(packages || {}).reduce(
+    (memo, [name, { message, user_meta }]) => ({
+      ...memo,
+      [name]: {
+        message,
+        userMeta: user_meta,
+      },
+    }),
+    defaultPreferences.ui.packages,
+  )
 }
 
 function parseSourceBuckets(
@@ -110,10 +141,14 @@ function parseSourceBuckets(
   }
 }
 
-export function extendDefaults(data: BucketPreferencesInput, sentry: SentryInstance) {
+export function extendDefaults(
+  data: BucketPreferencesInput,
+  sentry: SentryInstance,
+): BucketPreferences {
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
+      packages: parsePackages(data?.ui?.packages),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,

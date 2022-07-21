@@ -240,7 +240,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const onChangeFullscreen = React.useCallback(
       (json: JsonRecord) => {
         setJsonInlineEditorKey(R.inc)
-        onChange(json)
+        // NOTE: `json` may have `target` field and make react-final-form think it's an event not value
+        //       so, let's create "event" voluntarily
+        //       https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange
+        onChange({ target: { value: json } })
       },
       [onChange],
     )
@@ -248,7 +251,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const onChangeInline = React.useCallback(
       (json: JsonRecord) => {
         setJsonFullscreenEditorKey(R.inc)
-        onChange(json)
+        // NOTE: `json` may have `target` field and make react-final-form think it's an event not value
+        //       so, let's create "event" voluntarily
+        //       https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange
+        onChange({ target: { value: json } })
       },
       [onChange],
     )
