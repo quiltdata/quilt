@@ -148,6 +148,7 @@ const useRevisionAttributesStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
     color: t.palette.text.secondary,
     position: 'relative',
+    marginLeft: t.spacing(2),
   },
 }))
 
@@ -173,7 +174,6 @@ function RevisionAttributes({ className, modified, revisions }: RevisionAttribut
           <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
         )}
       </span>
-      <M.Box mr={2} component="span" />
       <span
         className={classes.updated}
         title={modified ? modified.toString() : undefined}
