@@ -217,15 +217,18 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
         <div className={classes.section} key={`${i}+${section}`}>
           {typeof section === 'string' && section}
           {Array.isArray(section) &&
-            section.map((label, j) => (
-              <M.Chip
-                className={classes.tag}
-                label={label}
-                key={`${j}+${label}`}
-                size="small"
-                variant="outlined"
-              />
-            ))}
+            section.map(
+              (label, j) =>
+                typeof label === 'string' && (
+                  <M.Chip
+                    className={classes.tag}
+                    label={label}
+                    key={`${j}+${label}`}
+                    size="small"
+                    variant="outlined"
+                  />
+                ),
+            )}
         </div>
       ))}
     </div>
