@@ -137,7 +137,7 @@ interface ControlsProps {
   className?: string
   editing: boolean
   onEdit: () => void
-  onSubmit: () => void
+  onSave: () => void
   onCancel: () => void
 }
 
@@ -145,7 +145,7 @@ export function Controls({
   className,
   editing,
   onEdit,
-  onSubmit,
+  onSave,
   onCancel,
 }: ControlsProps) {
   if (!editing)
@@ -159,7 +159,7 @@ export function Controls({
         color="primary"
         icon="save"
         label="Save"
-        onClick={onSubmit}
+        onClick={onSave}
         variant="contained"
       />
     </M.ButtonGroup>
@@ -169,8 +169,6 @@ export function Controls({
 const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
-  },
-  editor: {
     minHeight: t.spacing(30),
     border: `1px solid ${t.palette.divider}`,
   },
@@ -193,11 +191,7 @@ function EditorText({ value = '', onChange }: EditorTextProps) {
     editor.on('change', () => onChange(editor.getValue()))
     return () => editor.destroy()
   }, [onChange, ref, value])
-  return (
-    <div className={classes.root}>
-      <div className={classes.editor} ref={ref} />
-    </div>
-  )
+  return <div className={classes.root} ref={ref} />
 }
 
 interface EditorProps {
@@ -209,6 +203,7 @@ export function Editor({ handle, onChange }: EditorProps) {
   const data = useObjectGetter(handle)
   return data.case({
     _: () => <EditorSkeleton />,
+    // TODO: Err
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
       return <EditorText value={value} onChange={onChange} />
