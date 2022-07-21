@@ -515,7 +515,22 @@ export default function File({
               )}
             </>
           ),
-          _: () => <Message headline="No Such Object" />,
+          _: () =>
+            editorState.editing ? (
+              <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                <FileEditor.Editor
+                  empty
+                  handle={handle}
+                  onChange={editorState.onChange}
+                />
+              </Section>
+            ) : (
+              <>
+                <Message headline="No Such Object">
+                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                </Message>
+              </>
+            ),
         }),
       })}
     </FileView.Root>

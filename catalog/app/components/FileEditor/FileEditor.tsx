@@ -1,10 +1,14 @@
 import * as React from 'react'
+import { useLocation } from 'react-router-dom'
 import * as brace from 'brace'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
+import parseSearch from 'utils/parseSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 import { useObjectGetter } from 'components/Preview/loaders/utils'
+import PreviewDisplay from 'components/Preview/Display'
 import Skeleton from 'components/Skeleton'
 
 import 'brace/mode/markdown'
@@ -67,8 +71,10 @@ interface EditorState {
 
 // TODO: use Provider
 export function useState(handle: S3HandleBase): EditorState {
+  const location = useLocation()
+  const { edit } = parseSearch(location.search, true)
   const [value, setValue] = React.useState<string | undefined>()
-  const [editing, setEditing] = React.useState<boolean>(false)
+  const [editing, setEditing] = React.useState<boolean>(!!edit)
   const writeFile = useWriteData(handle)
   const onSave = React.useCallback(async () => {
     await writeFile(value)
@@ -86,6 +92,18 @@ export function useState(handle: S3HandleBase): EditorState {
       value,
     }),
     [editing, onCancel, onEdit, onSave, value],
+  )
+}
+
+interface AddFileButtonProps {
+  onClick: () => void
+}
+
+export function AddFileButton({ onClick }: AddFileButtonProps) {
+  return (
+    <M.Button variant="contained" color="primary" size="large" onClick={onClick}>
+      Create file
+    </M.Button>
   )
 }
 
@@ -195,15 +213,22 @@ function EditorText({ value = '', onChange }: EditorTextProps) {
 }
 
 interface EditorProps {
+  empty?: boolean
   handle: S3HandleBase
   onChange: (value: string) => void
 }
 
-export function Editor({ handle, onChange }: EditorProps) {
-  const data = useObjectGetter(handle)
+export function Editor({ empty, handle, onChange }: EditorProps) {
+  const data = useObjectGetter(handle, { noAutoFetch: empty })
+  if (empty) return <EditorText value="" onChange={onChange} />
   return data.case({
     _: () => <EditorSkeleton />,
-    // TODO: Err
+    Err: (err: $TSFixMe) => ( // PreviewError
+      <div>
+        {/* @ts-expect-error */}
+        <PreviewDisplay data={AsyncResult.Err(err)} />
+      </div>
+    ),
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
       return <EditorText value={value} onChange={onChange} />
