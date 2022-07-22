@@ -22,7 +22,7 @@ const loadMode = (mode: Mode) => {
   if (cache[mode] === 'fullfilled') return cache[mode]
   if (cache[mode]) throw cache[mode]
 
-  cache[mode] = import(`brace/mode/${mode}`).then((a) => {
+  cache[mode] = import(`brace/mode/${mode}`).then(() => {
     cache[mode] = 'fullfilled'
   })
   throw cache[mode]
