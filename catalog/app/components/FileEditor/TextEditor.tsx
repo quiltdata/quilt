@@ -10,6 +10,7 @@ const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
     border: `1px solid ${t.palette.divider}`,
     minHeight: t.spacing(30),
+    resize: 'vertical',
     width: '100%',
   },
 }))
@@ -27,11 +28,19 @@ export default function TextEditor({ type, value = '', onChange }: TextEditorPro
   React.useEffect(() => {
     if (!ref.current) return
     const editor = brace.edit(ref.current)
+
+    const resizeObserver = new window.ResizeObserver(() => editor.resize())
+    resizeObserver.observe(ref.current)
+
     editor.getSession().setMode(`ace/mode/${type.brace}`)
     editor.setTheme('ace/theme/eclipse')
     editor.setValue(value, -1)
     editor.on('change', () => onChange(editor.getValue()))
-    return () => editor.destroy()
+
+    return () => {
+      ref.current && resizeObserver.observe(ref.current)
+      editor.destroy()
+    }
   }, [onChange, ref, type.brace, value])
 
   return <div className={classes.root} ref={ref} />
