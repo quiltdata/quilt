@@ -11,7 +11,6 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
-import * as Markdown from 'components/Preview/loaders/Markdown'
 import Sparkline from 'components/Sparkline'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
@@ -403,7 +402,6 @@ export default function File({
 
   const handle = { bucket, key: path, version }
 
-  const isEditable = Markdown.detect(path)
   const editorState = FileEditor.useState(handle)
 
   const previewOptions = React.useMemo(
@@ -461,7 +459,7 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
-          {isEditable && (
+          {!!editorState.type.brace && (
             <FileEditor.Controls
               editing={editorState.editing}
               className={classes.button}
@@ -500,7 +498,11 @@ export default function File({
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor handle={handle} onChange={editorState.onChange} />
+                  <FileEditor.Editor
+                    type={editorState.type}
+                    handle={handle}
+                    onChange={editorState.onChange}
+                  />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
@@ -519,6 +521,7 @@ export default function File({
             editorState.editing ? (
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
                 <FileEditor.Editor
+                  type={editorState.type}
                   empty
                   handle={handle}
                   onChange={editorState.onChange}

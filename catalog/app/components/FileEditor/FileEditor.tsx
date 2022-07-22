@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
 import * as brace from 'brace'
@@ -7,12 +8,33 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import parseSearch from 'utils/parseSearch'
 import type { S3HandleBase } from 'utils/s3paths'
-import { useObjectGetter } from 'components/Preview/loaders/utils'
+import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import Skeleton from 'components/Skeleton'
 
-import 'brace/mode/markdown'
+import 'brace/mode/yaml'
 import 'brace/theme/eclipse'
+
+interface EditorInputType {
+  brace: 'yaml' | null
+}
+
+const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
+const typeYaml: EditorInputType = {
+  brace: 'yaml',
+}
+
+const typeNone: EditorInputType = {
+  brace: null,
+}
+
+const detect: (path: string) => EditorInputType = R.pipe(
+  PreviewUtils.stripCompression,
+  R.cond([
+    [isYaml, R.always(typeYaml)],
+    [R.T, R.always(typeNone)],
+  ]),
+)
 
 const useSkeletonStyles = M.makeStyles((t) => ({
   root: {
@@ -66,11 +88,13 @@ interface EditorState {
   onChange: (value: string) => void
   onEdit: () => void
   onSave: () => Promise<void>
+  type: EditorInputType
   value?: string
 }
 
 // TODO: use Provider
 export function useState(handle: S3HandleBase): EditorState {
+  const type = detect(handle.key)
   const location = useLocation()
   const { edit } = parseSearch(location.search, true)
   const [value, setValue] = React.useState<string | undefined>()
@@ -89,9 +113,10 @@ export function useState(handle: S3HandleBase): EditorState {
       onChange: setValue,
       onEdit,
       onSave,
+      type,
       value,
     }),
-    [editing, onCancel, onEdit, onSave, value],
+    [editing, onCancel, onEdit, onSave, type, value],
   )
 }
 
@@ -195,20 +220,21 @@ const useEditorTextStyles = M.makeStyles((t) => ({
 interface EditorTextProps {
   value?: string
   onChange: (value: string) => void
+  type: EditorInputType
 }
 
-function EditorText({ value = '', onChange }: EditorTextProps) {
+function EditorText({ type, value = '', onChange }: EditorTextProps) {
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
   React.useEffect(() => {
     if (!ref.current) return
     const editor = brace.edit(ref.current)
-    editor.getSession().setMode('ace/mode/markdown')
+    editor.getSession().setMode(`ace/mode/${type.brace}`)
     editor.setTheme('ace/theme/eclipse')
     editor.setValue(value, -1)
     editor.on('change', () => onChange(editor.getValue()))
     return () => editor.destroy()
-  }, [onChange, ref, value])
+  }, [onChange, ref, type.brace, value])
   return <div className={classes.root} ref={ref} />
 }
 
@@ -216,14 +242,17 @@ interface EditorProps {
   empty?: boolean
   handle: S3HandleBase
   onChange: (value: string) => void
+  type: EditorInputType
 }
 
-export function Editor({ empty, handle, onChange }: EditorProps) {
-  const data = useObjectGetter(handle, { noAutoFetch: empty })
-  if (empty) return <EditorText value="" onChange={onChange} />
+export function Editor({ empty, handle, onChange, type }: EditorProps) {
+  const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
+  if (empty) return <EditorText type={type} value="" onChange={onChange} />
   return data.case({
     _: () => <EditorSkeleton />,
-    Err: (err: $TSFixMe) => ( // PreviewError
+    Err: (
+      err: $TSFixMe, // PreviewError
+    ) => (
       <div>
         {/* @ts-expect-error */}
         <PreviewDisplay data={AsyncResult.Err(err)} />
@@ -231,7 +260,7 @@ export function Editor({ empty, handle, onChange }: EditorProps) {
     ),
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
-      return <EditorText value={value} onChange={onChange} />
+      return <EditorText type={type} value={value} onChange={onChange} />
     },
   })
 }
