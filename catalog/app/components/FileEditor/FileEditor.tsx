@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
-import * as brace from 'brace'
 import * as M from '@material-ui/core'
 
 import * as AWS from 'utils/AWS'
@@ -10,15 +9,13 @@ import parseSearch from 'utils/parseSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
-import Skeleton from 'components/Skeleton'
 import { detect as isMarkdown } from 'components/Preview/loaders/Markdown'
 
-import 'brace/theme/eclipse'
+import Skeleton from './Skeleton'
+import TextEditor from './TextEditor'
+import { Mode, EditorInputType } from './types'
 
-type Mode = 'markdown' | 'text' | 'yaml'
-
-const cache: any = {}
-
+const cache: { [index in Mode]?: Promise<void> | 'fullfilled' } = {}
 const loadMode = (mode: Mode) => {
   if (cache[mode] === 'fullfilled') return cache[mode]
   if (cache[mode]) throw cache[mode]
@@ -27,10 +24,6 @@ const loadMode = (mode: Mode) => {
     cache[mode] = 'fullfilled'
   })
   throw cache[mode]
-}
-
-interface EditorInputType {
-  brace: Mode | null
 }
 
 const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
@@ -54,42 +47,6 @@ const detect: (path: string) => EditorInputType = R.pipe(
     [R.T, R.always(typeNone)],
   ]),
 )
-
-const useSkeletonStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
-    height: t.spacing(30),
-    width: '100%',
-  },
-  lineNumbers: {
-    height: '100%',
-    width: t.spacing(5),
-  },
-  content: {
-    flexGrow: 1,
-    marginLeft: t.spacing(2),
-  },
-  line: {
-    height: t.spacing(2),
-    marginBottom: t.spacing(0.5),
-  },
-}))
-
-const fakeLines = [80, 50, 100, 60, 30, 80, 50, 100, 60, 30, 20, 70]
-
-function EditorSkeleton() {
-  const classes = useSkeletonStyles()
-  return (
-    <div className={classes.root}>
-      <Skeleton className={classes.lineNumbers} height="100%" />
-      <div className={classes.content}>
-        {fakeLines.map((width, index) => (
-          <Skeleton className={classes.line} width={`${width}%`} key={width + index} />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export function useWriteData({ bucket, key }: S3HandleBase) {
   const s3 = AWS.S3.use()
@@ -151,112 +108,6 @@ export function AddFileButton({ onClick }: AddFileButtonProps) {
   )
 }
 
-interface ButtonControlProps {
-  className?: string
-  color?: 'primary'
-  icon: string
-  label: string
-  onClick: () => void
-  variant?: 'outlined' | 'contained'
-}
-
-function ButtonControl({
-  className,
-  color,
-  icon,
-  label,
-  onClick,
-  variant = 'outlined',
-}: ButtonControlProps) {
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  return sm ? (
-    <M.IconButton
-      className={className}
-      edge="end"
-      size="small"
-      onClick={onClick}
-      title={label}
-      color={color}
-    >
-      <M.Icon>{icon}</M.Icon>
-    </M.IconButton>
-  ) : (
-    <M.Button
-      className={className}
-      color={color}
-      onClick={onClick}
-      size="small"
-      startIcon={<M.Icon>{icon}</M.Icon>}
-      variant={variant}
-    >
-      {label}
-    </M.Button>
-  )
-}
-
-interface ControlsProps {
-  className?: string
-  editing: boolean
-  onEdit: () => void
-  onSave: () => void
-  onCancel: () => void
-}
-
-export function Controls({
-  className,
-  editing,
-  onEdit,
-  onSave,
-  onCancel,
-}: ControlsProps) {
-  if (!editing)
-    return (
-      <ButtonControl label="Edit" onClick={onEdit} icon="edit" className={className} />
-    )
-  return (
-    <M.ButtonGroup className={className} size="small">
-      <ButtonControl icon="undo" onClick={onCancel} label="Cancel" />
-      <ButtonControl
-        color="primary"
-        icon="save"
-        label="Save"
-        onClick={onSave}
-        variant="contained"
-      />
-    </M.ButtonGroup>
-  )
-}
-
-const useEditorTextStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
-    minHeight: t.spacing(30),
-    border: `1px solid ${t.palette.divider}`,
-  },
-}))
-
-interface EditorTextProps {
-  value?: string
-  onChange: (value: string) => void
-  type: EditorInputType
-}
-
-function EditorText({ type, value = '', onChange }: EditorTextProps) {
-  const classes = useEditorTextStyles()
-  const ref = React.useRef<HTMLDivElement | null>(null)
-  React.useEffect(() => {
-    if (!ref.current) return
-    const editor = brace.edit(ref.current)
-    editor.getSession().setMode(`ace/mode/${type.brace}`)
-    editor.setTheme('ace/theme/eclipse')
-    editor.setValue(value, -1)
-    editor.on('change', () => onChange(editor.getValue()))
-    return () => editor.destroy()
-  }, [onChange, ref, type.brace, value])
-  return <div className={classes.root} ref={ref} />
-}
-
 interface EditorProps {
   empty?: boolean
   handle: S3HandleBase
@@ -268,9 +119,9 @@ function EditorSuspended({ empty, handle, onChange, type }: EditorProps) {
   loadMode(type.brace || 'text')
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
-  if (empty) return <EditorText type={type} value="" onChange={onChange} />
+  if (empty) return <TextEditor type={type} value="" onChange={onChange} />
   return data.case({
-    _: () => <EditorSkeleton />,
+    _: () => <Skeleton />,
     Err: (
       err: $TSFixMe, // PreviewError
     ) => (
@@ -281,14 +132,14 @@ function EditorSuspended({ empty, handle, onChange, type }: EditorProps) {
     ),
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
-      return <EditorText type={type} value={value} onChange={onChange} />
+      return <TextEditor type={type} value={value} onChange={onChange} />
     },
   })
 }
 
 export function Editor(props: EditorProps) {
   return (
-    <React.Suspense fallback={<EditorSkeleton />}>
+    <React.Suspense fallback={<Skeleton />}>
       <EditorSuspended {...props} />
     </React.Suspense>
   )
