@@ -12,11 +12,24 @@ import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import Skeleton from 'components/Skeleton'
 
-import 'brace/mode/yaml'
 import 'brace/theme/eclipse'
 
+type Mode = 'yaml'
+
+const cache: any = {}
+
+const loadMode = (mode: Mode) => {
+  if (cache[mode] === 'fullfilled') return cache[mode]
+  if (cache[mode]) throw cache[mode]
+
+  cache[mode] = import(`brace/mode/${mode}`).then((a) => {
+    cache[mode] = 'fullfilled'
+  })
+  throw cache[mode]
+}
+
 interface EditorInputType {
-  brace: 'yaml' | null
+  brace: Mode | null
 }
 
 const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
@@ -245,7 +258,11 @@ interface EditorProps {
   type: EditorInputType
 }
 
-export function Editor({ empty, handle, onChange, type }: EditorProps) {
+function EditorSuspended({ empty, handle, onChange, type }: EditorProps) {
+  if (type.brace) {
+    loadMode(type.brace)
+  }
+
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty) return <EditorText type={type} value="" onChange={onChange} />
   return data.case({
@@ -263,4 +280,12 @@ export function Editor({ empty, handle, onChange, type }: EditorProps) {
       return <EditorText type={type} value={value} onChange={onChange} />
     },
   })
+}
+
+export function Editor(props: EditorProps) {
+  return (
+    <React.Suspense fallback={<EditorSkeleton />}>
+      <EditorSuspended {...props} />
+    </React.Suspense>
+  )
 }
