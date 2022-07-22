@@ -38,7 +38,7 @@ const errorDisplay = R.cond([
           Error: <code>{e.message}</code>
         </M.Typography>
         <M.Typography>
-          Please fix the workflows config according to{' '}
+          Please fix the <StyledLink>workflows config</StyledLink> according to{' '}
           <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
             the documentation
           </StyledLink>

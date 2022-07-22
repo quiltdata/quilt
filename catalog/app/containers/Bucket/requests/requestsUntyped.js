@@ -252,7 +252,7 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
   return JSON.parse(response.Body.toString('utf-8'))
 }
 
-const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+export const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 // TODO: enable this when backend is ready
 // const WORKFLOWS_CONFIG_PATH = [
 //   '.quilt/workflows/config.yaml',
