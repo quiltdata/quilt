@@ -1,6 +1,18 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+interface AddFileButtonProps {
+  onClick: () => void
+}
+
+export function AddFileButton({ onClick }: AddFileButtonProps) {
+  return (
+    <M.Button variant="contained" color="primary" size="large" onClick={onClick}>
+      Create file
+    </M.Button>
+  )
+}
+
 interface ButtonControlProps {
   className?: string
   color?: 'primary'
@@ -53,7 +65,7 @@ interface ControlsProps {
   onCancel: () => void
 }
 
-export default function Controls({
+export function Controls({
   className,
   editing,
   onEdit,
