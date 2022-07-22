@@ -26,11 +26,13 @@ export default function TextEditor({ type, value = '', onChange }: TextEditorPro
   const ref = React.useRef<HTMLDivElement | null>(null)
 
   React.useEffect(() => {
-    if (!ref.current) return
-    const editor = brace.edit(ref.current)
+    const wrapper = ref.current
+    if (!wrapper) return
+
+    const editor = brace.edit(wrapper)
 
     const resizeObserver = new window.ResizeObserver(() => editor.resize())
-    resizeObserver.observe(ref.current)
+    resizeObserver.observe(wrapper)
 
     editor.getSession().setMode(`ace/mode/${type.brace}`)
     editor.setTheme('ace/theme/eclipse')
@@ -38,7 +40,7 @@ export default function TextEditor({ type, value = '', onChange }: TextEditorPro
     editor.on('change', () => onChange(editor.getValue()))
 
     return () => {
-      ref.current && resizeObserver.observe(ref.current)
+      resizeObserver.unobserve(wrapper)
       editor.destroy()
     }
   }, [onChange, ref, type.brace, value])
