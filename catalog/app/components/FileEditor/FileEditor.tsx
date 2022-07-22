@@ -11,10 +11,11 @@ import type { S3HandleBase } from 'utils/s3paths'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import Skeleton from 'components/Skeleton'
+import { detect as isMarkdown } from 'components/Preview/loaders/Markdown'
 
 import 'brace/theme/eclipse'
 
-type Mode = 'yaml'
+type Mode = 'markdown' | 'text' | 'yaml'
 
 const cache: any = {}
 
@@ -37,6 +38,10 @@ const typeYaml: EditorInputType = {
   brace: 'yaml',
 }
 
+const typeMarkdown: EditorInputType = {
+  brace: 'markdown',
+}
+
 const typeNone: EditorInputType = {
   brace: null,
 }
@@ -44,6 +49,7 @@ const typeNone: EditorInputType = {
 const detect: (path: string) => EditorInputType = R.pipe(
   PreviewUtils.stripCompression,
   R.cond([
+    [isMarkdown, R.always(typeMarkdown)],
     [isYaml, R.always(typeYaml)],
     [R.T, R.always(typeNone)],
   ]),
@@ -107,7 +113,7 @@ interface EditorState {
 
 // TODO: use Provider
 export function useState(handle: S3HandleBase): EditorState {
-  const type = detect(handle.key)
+  const type = React.useMemo(() => detect(handle.key), [handle.key])
   const location = useLocation()
   const { edit } = parseSearch(location.search, true)
   const [value, setValue] = React.useState<string | undefined>()
@@ -259,9 +265,7 @@ interface EditorProps {
 }
 
 function EditorSuspended({ empty, handle, onChange, type }: EditorProps) {
-  if (type.brace) {
-    loadMode(type.brace)
-  }
+  loadMode(type.brace || 'text')
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty) return <EditorText type={type} value="" onChange={onChange} />
