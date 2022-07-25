@@ -53,7 +53,7 @@ buckets in this dictionary are the ones offered when the user clicks
 Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary that maps package handle regular expressions or literals to JSONPath expressions of fields to show from package metadata in the package list view.
-The key `*` matches all packages. Strings display as paragraphs. Elements of a list display as tags.
+Strings display as paragraphs. Elements of a list display as tags.
 
 #### `ui.package_description` example
   
