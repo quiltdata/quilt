@@ -147,7 +147,7 @@ function ObjectMetaSection({ meta, ...props }: ObjectMetaProps) {
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
       {/* @ts-expect-error */}
-      <JsonDisplay value={value} defaultExpanded={1} />
+      <JsonDisplay value={meta} defaultExpanded={1} />
     </Section>
   )
 }
