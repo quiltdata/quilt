@@ -95,7 +95,7 @@ export default function UriResolver({ match }: RouteComponentProps<{ uri: string
 
           {!!error && (
             <M.Box mt={2}>
-              <M.Typography color="error">
+              <M.Typography color="error" data-testid="uri-error">
                 Error parsing URI: {error.msg || `${error}`}
               </M.Typography>
             </M.Box>
