@@ -52,25 +52,25 @@ drag-and-drop or from folders in S3
 buckets in this dictionary are the ones offered when the user clicks
 Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
-* `ui.packages` - a dictionary of packages or `*` glob for all package names that map to a config specified visibility of message in the package list and JSON paths of `user_meta` (package metadata) to show
+* `ui.package_description` - a dictionary that maps package handle regular expressions or literals to JSONPath expressions of fields to show from package metadata in the package list view.
+The key `*` matches all packages. Strings display as paragraphs. Elements of a list display as tags.
 
-#### `ui.packages` example
-
-Sample config to show `message` for every package and the "namespace/packageA" package in particular.
-If you provide this metadata `{"key1": {"key2": "Lorem ipsum"}, "key3: ["tag1", "tag2"], "key4": "tagA", "tagB" }` for "namespace/packageA", then we extract it according to the following config and show:
-  * Lorem imsum
-  * tag1, tag2
-  * tagA
+#### `ui.package_description` example
+  
 
 ```
 ui:
   packages:
+    # match all packages
     *:
+      # show the message
       message: True
+      # show the .labels field
       user_meta:
-        - $.Name
-    namespace/packageA:
-      message: True
+        - $.labels
+    # for any package with a handle prefix of foo
+    foo/*:
+      # JSONPath expressions to the fields to display
       user_meta:
         - $.key1.key2
         - $.key3
