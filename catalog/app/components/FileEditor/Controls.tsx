@@ -14,6 +14,7 @@ export function AddFileButton({ onClick }: AddFileButtonProps) {
 }
 
 interface ButtonControlProps {
+  disabled?: boolean
   className?: string
   color?: 'primary'
   icon: string
@@ -23,6 +24,7 @@ interface ButtonControlProps {
 }
 
 function ButtonControl({
+  disabled,
   className,
   color,
   icon,
@@ -35,6 +37,7 @@ function ButtonControl({
   return sm ? (
     <M.IconButton
       className={className}
+      disabled={disabled}
       edge="end"
       size="small"
       onClick={onClick}
@@ -47,6 +50,7 @@ function ButtonControl({
     <M.Button
       className={className}
       color={color}
+      disabled={disabled}
       onClick={onClick}
       size="small"
       startIcon={<M.Icon>{icon}</M.Icon>}
@@ -58,6 +62,7 @@ function ButtonControl({
 }
 
 interface ControlsProps {
+  disabled?: boolean
   className?: string
   editing: boolean
   onEdit: () => void
@@ -66,6 +71,7 @@ interface ControlsProps {
 }
 
 export function Controls({
+  disabled,
   className,
   editing,
   onEdit,
@@ -74,10 +80,16 @@ export function Controls({
 }: ControlsProps) {
   if (!editing)
     return (
-      <ButtonControl label="Edit" onClick={onEdit} icon="edit" className={className} />
+      <ButtonControl
+        className={className}
+        disabled={disabled}
+        icon="edit"
+        label="Edit"
+        onClick={onEdit}
+      />
     )
   return (
-    <M.ButtonGroup className={className} size="small">
+    <M.ButtonGroup disabled={disabled} className={className} size="small">
       <ButtonControl icon="undo" onClick={onCancel} label="Cancel" />
       <ButtonControl
         color="primary"

@@ -2,6 +2,8 @@ import * as brace from 'brace'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Lock from 'components/Lock'
+
 import { EditorInputType } from './types'
 
 import 'brace/theme/eclipse'
@@ -9,19 +11,28 @@ import 'brace/theme/eclipse'
 const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
     border: `1px solid ${t.palette.divider}`,
+    width: '100%',
+    position: 'relative',
+  },
+  editor: {
     minHeight: t.spacing(50),
     resize: 'vertical',
-    width: '100%',
   },
 }))
 
 interface TextEditorProps {
+  disabled?: boolean
   onChange: (value: string) => void
   type: EditorInputType
   value?: string
 }
 
-export default function TextEditor({ type, value = '', onChange }: TextEditorProps) {
+export default function TextEditor({
+  disabled,
+  type,
+  value = '',
+  onChange,
+}: TextEditorProps) {
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
 
@@ -45,5 +56,10 @@ export default function TextEditor({ type, value = '', onChange }: TextEditorPro
     }
   }, [onChange, ref, type.brace, value])
 
-  return <div className={classes.root} ref={ref} />
+  return (
+    <div className={classes.root}>
+      <div className={classes.editor} ref={ref} />
+      {disabled && <Lock />}
+    </div>
+  )
 }

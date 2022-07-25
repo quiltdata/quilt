@@ -461,6 +461,7 @@ export default function File({
           )}
           {!!editorState.type.brace && (
             <FileEditor.Controls
+              disabled={editorState.saving}
               editing={editorState.editing}
               className={classes.button}
               onSave={editorState.onSave}
@@ -499,9 +500,10 @@ export default function File({
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
                   <FileEditor.Editor
-                    type={editorState.type}
+                    disabled={editorState.saving}
                     handle={handle}
                     onChange={editorState.onChange}
+                    type={editorState.type}
                   />
                 </Section>
               ) : (
@@ -521,6 +523,7 @@ export default function File({
             editorState.editing ? (
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
                 <FileEditor.Editor
+                  disabled={editorState.saving}
                   type={editorState.type}
                   empty
                   handle={handle}

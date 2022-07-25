@@ -48,21 +48,23 @@ export function useState(handle: S3HandleBase): EditorState {
       onChange: setValue,
       onEdit,
       onSave,
+      saving,
       type,
       value,
     }),
-    [editing, onCancel, onEdit, onSave, type, value],
+    [editing, onCancel, onEdit, onSave, saving, type, value],
   )
 }
 
 interface EditorProps {
+  disabled?: boolean
   empty?: boolean
   handle: S3HandleBase
   onChange: (value: string) => void
   type: EditorInputType
 }
 
-function EditorSuspended({ empty, handle, onChange, type }: EditorProps) {
+function EditorSuspended({ disabled, empty, handle, onChange, type }: EditorProps) {
   loadMode(type.brace || 'text')
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
@@ -79,7 +81,9 @@ function EditorSuspended({ empty, handle, onChange, type }: EditorProps) {
     ),
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
-      return <TextEditor type={type} value={value} onChange={onChange} />
+      return (
+        <TextEditor disabled={disabled} type={type} value={value} onChange={onChange} />
+      )
     },
   })
 }
