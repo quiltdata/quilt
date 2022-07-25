@@ -1,10 +1,11 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {
-    background: 'rgba(255,255,255,0.5)',
+    background: fade(t.palette.background.paper, 0.5),
     bottom: 0,
     left: 0,
     position: 'absolute',
@@ -12,7 +13,7 @@ const useStyles = M.makeStyles({
     top: 0,
     zIndex: 1,
   },
-})
+}))
 
 interface LockProps extends M.BoxProps {
   className?: string

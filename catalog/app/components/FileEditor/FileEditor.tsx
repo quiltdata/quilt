@@ -10,8 +10,8 @@ import wait from 'utils/wait'
 
 import Skeleton from './Skeleton'
 import TextEditor from './TextEditor'
-import { EditorInputType } from './types'
 import { detect, loadMode, useWriteData } from './loader'
+import { EditorInputType } from './types'
 
 interface EditorState {
   editing: boolean
