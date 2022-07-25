@@ -26,8 +26,8 @@ ui:
     browser: True
     code: True
     meta: True
-  packages:
-    *:
+  package_description:
+    .*:
       message: True
   sourceBuckets:
     s3://BUCKET_1: {}
@@ -62,7 +62,7 @@ The key `*` matches all packages. Strings display as paragraphs. Elements of a l
 ui:
   packages:
     # match all packages
-    *:
+    .*:
       # show the message
       message: True
       # show the .labels field

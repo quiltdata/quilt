@@ -239,8 +239,12 @@ function usePackageMeta(
   // TODO: move visible meta calculation to the graphql
   const preferences = BucketPreferences.use()
   return React.useMemo(() => {
+    if (!preferences?.ui.package_description) return []
+    // The last found config  wins
     const { message, userMeta } =
-      preferences?.ui.packages[name] || preferences?.ui.packages['*'] || {}
+      Object.entries(preferences?.ui.package_description)
+        .reverse()
+        .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
     const output = []
     if (message && revision?.message) output.push(revision.message)
     if (userMeta && revision?.userMeta)
