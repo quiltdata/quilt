@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
 
+import * as PreviewUtils from 'components/Preview/loaders/utils'
+import PreviewDisplay from 'components/Preview/Display'
 import AsyncResult from 'utils/AsyncResult'
 import parseSearch from 'utils/parseSearch'
 import type { S3HandleBase } from 'utils/s3paths'
-import * as PreviewUtils from 'components/Preview/loaders/utils'
-import PreviewDisplay from 'components/Preview/Display'
+import wait from 'utils/wait'
 
 import Skeleton from './Skeleton'
 import TextEditor from './TextEditor'
@@ -29,10 +30,14 @@ export function useState(handle: S3HandleBase): EditorState {
   const { edit } = parseSearch(location.search, true)
   const [value, setValue] = React.useState<string | undefined>()
   const [editing, setEditing] = React.useState<boolean>(!!edit)
+  const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
   const onSave = React.useCallback(async () => {
+    setSaving(true)
     await writeFile(value)
+    await wait(300)
     setEditing(false)
+    setSaving(false)
   }, [value, writeFile])
   const onCancel = React.useCallback(() => setEditing(false), [])
   const onEdit = React.useCallback(() => setEditing(true), [])
