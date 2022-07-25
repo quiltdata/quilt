@@ -9,7 +9,7 @@ import 'brace/theme/eclipse'
 const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
     border: `1px solid ${t.palette.divider}`,
-    minHeight: t.spacing(30),
+    minHeight: t.spacing(50),
     resize: 'vertical',
     width: '100%',
   },
