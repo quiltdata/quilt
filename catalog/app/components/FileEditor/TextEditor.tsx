@@ -15,7 +15,7 @@ const useEditorTextStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   editor: {
-    minHeight: t.spacing(50),
+    height: t.spacing(50),
     resize: 'vertical',
   },
 }))
