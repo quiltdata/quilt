@@ -15,7 +15,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface LockProps extends M.BoxProps {
+interface LockProps {
   className?: string
 }
 

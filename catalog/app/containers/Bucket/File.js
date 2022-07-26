@@ -405,10 +405,7 @@ export default function File({
   const editorState = FileEditor.useState(handle)
 
   const previewOptions = React.useMemo(
-    () => ({
-      context: Preview.CONTEXT.FILE,
-      mode: viewModes.mode,
-    }),
+    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
     [viewModes.mode],
   )
 
