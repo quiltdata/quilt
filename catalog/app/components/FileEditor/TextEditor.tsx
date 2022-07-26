@@ -48,6 +48,7 @@ export default function TextEditor({
     editor.getSession().setMode(`ace/mode/${type.brace}`)
     editor.setTheme('ace/theme/eclipse')
     editor.setValue(value, -1)
+    onChange(editor.getValue()) // initially fill the value
     editor.on('change', () => onChange(editor.getValue()))
 
     return () => {
