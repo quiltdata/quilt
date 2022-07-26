@@ -7,12 +7,23 @@ import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import type { S3HandleBase } from 'utils/s3paths'
-import wait from 'utils/wait'
 
 import Skeleton from './Skeleton'
 import TextEditor from './TextEditor'
 import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
+
+function useRedirect() {
+  const history = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
+  const location = RRDom.useLocation()
+  const { next } = parseSearch(location.search, true)
+  return React.useCallback(
+    ({ bucket, key, version }) =>
+      history.push(next || urls.bucketFile(bucket, key, version)),
+    [history, next, urls],
+  )
+}
 
 interface EditorState {
   editing: boolean
@@ -26,24 +37,17 @@ interface EditorState {
 
 // TODO: use Provider
 export function useState(handle: S3HandleBase): EditorState {
-  const { urls } = NamedRoutes.use()
   const type = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
-  const { edit, next } = parseSearch(location.search, true)
-  const history = RRDom.useHistory()
+  const { edit } = parseSearch(location.search, true)
   const [value, setValue] = React.useState<string | undefined>()
   const [editing, setEditing] = React.useState<boolean>(!!edit)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
-  const redirect = React.useCallback(
-    ({ bucket, key, version }) =>
-      history.push(next || urls.bucketFile(bucket, key, version)),
-    [history, next, urls],
-  )
+  const redirect = useRedirect()
   const onSave = React.useCallback(async () => {
     setSaving(true)
     const h = await writeFile(value || '') // TODO: Ask if user really wants to save empty file
-    await wait(300)
     setEditing(false)
     setSaving(false)
     redirect(h)
