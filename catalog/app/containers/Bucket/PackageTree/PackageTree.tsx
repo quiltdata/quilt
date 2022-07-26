@@ -887,7 +887,7 @@ function PackageTreeQueries({
             name,
             hashOrTag,
             hash: d.package.revision?.hash,
-            size: d.package.revision?.totalBytes || undefined,
+            size: d.package.revision?.totalBytes ?? undefined,
             path,
             mode,
             resolvedFrom,
