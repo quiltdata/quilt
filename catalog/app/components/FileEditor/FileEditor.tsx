@@ -36,10 +36,8 @@ export function useState(handle: S3HandleBase): EditorState {
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
   const redirect = React.useCallback(
-    ({ bucket, key, version }) => {
-      const redirectUrl = next || urls.bucketFile(bucket, key, version)
-      history.push(redirectUrl)
-    },
+    ({ bucket, key, version }) =>
+      history.push(next || urls.bucketFile(bucket, key, version)),
     [history, next, urls],
   )
   const onSave = React.useCallback(async () => {
