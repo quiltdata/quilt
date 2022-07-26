@@ -65,8 +65,8 @@ export default function SelectWorkflow({
         <M.Link href={`${docs}/advanced/workflows`} target="_blank">
           Learn about quality workflows
         </M.Link>
-        , or edit workflows{' '}
-        <WorkflowsConfigLink bucket={bucket}>config</WorkflowsConfigLink>
+        , or edit{' '}
+        <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )
