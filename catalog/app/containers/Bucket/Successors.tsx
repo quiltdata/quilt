@@ -9,14 +9,21 @@ import { useData } from 'utils/Data'
 import StyledLink from 'utils/StyledLink'
 import type * as workflows from 'utils/workflows'
 
+import WorkflowsConfigLink from './WorkflowsConfigLink'
 import * as ERRORS from './errors'
 import * as requests from './requests'
 
-function EmptySlot() {
+interface EmptySlotProps {
+  bucket: string
+}
+
+function EmptySlot({ bucket }: EmptySlotProps) {
   return (
     <M.Box px={2} py={1}>
       <M.Typography gutterBottom>
-        Add or update a config.yml file to populate this menu.
+        Add or update a{' '}
+        <WorkflowsConfigLink bucket={bucket}>config.yml</WorkflowsConfigLink> file to
+        populate this menu.
       </M.Typography>
       <M.Typography>
         <StyledLink
@@ -126,7 +133,7 @@ function SuccessorsSelect({
               </M.MenuItem>
             ))
           ) : (
-            <EmptySlot />
+            <EmptySlot bucket={bucket} />
           ),
         _: () => <MenuPlaceholder />,
         Err: (error: Error) => <ErrorSlot error={error} />,
@@ -176,8 +183,12 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   )
   const emptySlot = React.useMemo(
     () =>
-      successors instanceof Error ? <ErrorSlot error={successors} /> : <EmptySlot />,
-    [successors],
+      successors instanceof Error ? (
+        <ErrorSlot error={successors} />
+      ) : (
+        <EmptySlot bucket={bucket} />
+      ),
+    [bucket, successors],
   )
   const loading = !successors && open
 

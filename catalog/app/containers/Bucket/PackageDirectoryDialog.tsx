@@ -440,6 +440,7 @@ function DialogError({
 }: DialogErrorProps) {
   return (
     <PD.DialogError
+      bucket={bucket}
       error={error}
       skeletonElement={<PD.FormSkeleton animate={false} />}
       title={

@@ -451,6 +451,7 @@ function PackageCreationForm({
                 <Layout.LeftColumn>
                   <RF.Field
                     component={PD.WorkflowInput}
+                    bucket={bucket}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
@@ -787,6 +788,7 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
+              bucket={bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}

@@ -308,6 +308,7 @@ export function CommitMessageInput({
 }
 
 interface WorkflowInputProps {
+  bucket: string
   input: RF.FieldInputProps<workflows.Workflow>
   meta: RF.FieldMetaState<workflows.Workflow>
   workflowsConfig?: workflows.WorkflowsConfig
@@ -315,6 +316,7 @@ interface WorkflowInputProps {
 }
 
 export function WorkflowInput({
+  bucket,
   input,
   meta,
   workflowsConfig,
@@ -325,6 +327,7 @@ export function WorkflowInput({
 
   return (
     <SelectWorkflow
+      bucket={bucket}
       items={workflowsConfig ? workflowsConfig.workflows : []}
       onChange={input.onChange}
       value={input.value}

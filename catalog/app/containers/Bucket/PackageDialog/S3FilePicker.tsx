@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as DG from '@material-ui/data-grid'
 
+import Lock from 'components/Lock'
 import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
@@ -110,13 +111,8 @@ const useStyles = M.makeStyles((t) => ({
     paddingRight: t.spacing(3),
   },
   lock: {
-    background: 'rgba(255,255,255,0.5)',
     bottom: 52,
-    left: 0,
-    position: 'absolute',
-    right: 0,
     top: 56,
-    zIndex: 1,
   },
 }))
 
@@ -292,7 +288,7 @@ export function Dialog({
           )
         },
       })}
-      {locked && <div className={classes.lock} />}
+      {locked && <Lock className={classes.lock} />}
       <M.DialogActions>
         {locked ? (
           <SubmitSpinner>Adding files</SubmitSpinner>
