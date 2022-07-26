@@ -18,6 +18,7 @@ import App from 'containers/App'
 import * as Auth from 'containers/Auth'
 import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
+import * as Shopping from 'containers/Shopping'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
@@ -85,6 +86,7 @@ const render = () => {
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,
+      Shopping.Provider,
       Errors.ErrorBoundary,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],

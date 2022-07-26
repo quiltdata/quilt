@@ -1,12 +1,15 @@
 import { basename } from 'path'
 
 import dedent from 'dedent'
+import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import type * as DG from '@material-ui/data-grid'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as Shopping from 'containers/Shopping'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -26,6 +29,8 @@ import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+const limit = pLimit(5)
 
 interface RouteMap {
   bucketDir: [bucket: string, path?: string, prefix?: string]
@@ -89,8 +94,11 @@ interface DirContentsProps {
 }
 
 function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
+  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+  const [_, setShopping] = Shopping.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
+  const bucketListing = requests.useBucketListing()
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -100,6 +108,57 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
   )
 
   const items = useFormattedListing(response)
+  const onSelectionChange = React.useCallback(
+    async (selection: DG.GridRowId[]) => {
+      // TODO: reuse adding from Bucket/PackageDialog/S3FilePicker.tsx
+      const dirsByBasename = R.fromPairs(
+        response.dirs.map((name) => [
+          ensureNoSlash(withoutPrefix(response.path, name)),
+          name,
+        ]),
+      )
+      const filesByBasename = R.fromPairs(
+        response.files.map((f) => [withoutPrefix(response.path, f.key), f]),
+      )
+      const { dirs, files } = selection.reduce(
+        (acc, id) => {
+          const dir = dirsByBasename[id]
+          if (dir) return { ...acc, dirs: [...acc.dirs, dir] }
+          const file = filesByBasename[id]
+          if (file) return { ...acc, files: [...acc.files, file] }
+          return acc // shouldnt happen
+        },
+        { files: [] as requests.BucketListingFile[], dirs: [] as string[] },
+      )
+
+      const dirsPromises = dirs.map((dir) =>
+        limit(bucketListing, { bucket, path: dir, delimiter: false, drain: true }),
+      )
+
+      const dirsChildren = await Promise.all(dirsPromises)
+      const allChildren = dirsChildren.reduce(
+        (acc, res) => acc.concat(res.files),
+        [] as requests.BucketListingFile[],
+      )
+
+      const entries = files.concat(allChildren).reduce(
+        (acc, file) =>
+          R.assoc(
+            file.key,
+            {
+              physicalKey: file.key,
+              hash: '',
+              meta: null,
+              size: file.size,
+            },
+            acc,
+          ),
+        {},
+      )
+      setShopping(R.assoc('entries', entries))
+    },
+    [bucket, bucketListing, response, setShopping],
+  )
 
   // TODO: should prefix filtering affect summary?
   return (
@@ -110,6 +169,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
+        onSelectionChange={onSelectionChange}
         toolbarContents={
           <PrefixFilter
             key={`${response.bucket}/${response.path}`}

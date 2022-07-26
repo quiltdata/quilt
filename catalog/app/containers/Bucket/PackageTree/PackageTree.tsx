@@ -14,6 +14,7 @@ import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
+import * as Shopping from 'containers/Shopping'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -191,6 +192,7 @@ function DirDisplay({
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
+  const [shopping] = Shopping.use()
 
   const dirQuery = useQuery({
     query: DIR_QUERY,
@@ -204,6 +206,7 @@ function DirDisplay({
 
   const updateDialog = PD.usePackageCreationDialog({
     bucket,
+    entries: shopping?.entries,
     src: { name, hash },
   })
 

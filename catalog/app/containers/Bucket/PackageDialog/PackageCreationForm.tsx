@@ -642,6 +642,7 @@ interface PackageCreationDialogUIOptions {
 
 interface UsePackageCreationDialogProps {
   bucket: string
+  entries?: Model.PackageContentsFlatMap
   src?: {
     name: string
     hash?: string
@@ -656,6 +657,7 @@ interface UsePackageCreationDialogProps {
 //       and pushed to `dst` (or maybe just `successor`):
 //         * successor
 export function usePackageCreationDialog({
+  entries,
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
   src,
   delayHashing = false,
@@ -698,7 +700,13 @@ export function usePackageCreationDialog({
               Ok: (manifest: Manifest | undefined) =>
                 preferences
                   ? AsyncResult.Ok({
-                      manifest,
+                      manifest: {
+                        ...manifest,
+                        entries: {
+                          ...entries,
+                          ...manifest?.entries,
+                        },
+                      },
                       workflowsConfig,
                       sourceBuckets:
                         s3Path === undefined
@@ -712,7 +720,7 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, preferences],
+    [bucket, entries, s3Path, workflowsData, manifestResult, preferences],
   )
 
   const open = React.useCallback(
