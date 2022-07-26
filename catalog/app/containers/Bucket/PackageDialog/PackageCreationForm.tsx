@@ -780,6 +780,7 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
+              bucket={bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}
