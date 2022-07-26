@@ -141,20 +141,9 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         [] as requests.BucketListingFile[],
       )
 
-      const entries = files.concat(allChildren).reduce(
-        (acc, file) =>
-          R.assoc(
-            file.key,
-            {
-              physicalKey: file.key,
-              hash: '',
-              meta: null,
-              size: file.size,
-            },
-            acc,
-          ),
-        {},
-      )
+      const entries = files
+        .concat(allChildren)
+        .reduce((acc, file) => R.assoc(file.key, file, acc), {})
       setShopping(R.assoc('entries', entries))
     },
     [bucket, bucketListing, response, setShopping],
