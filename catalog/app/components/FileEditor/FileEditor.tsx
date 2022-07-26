@@ -1,9 +1,10 @@
 import * as React from 'react'
-import { useLocation } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import AsyncResult from 'utils/AsyncResult'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 import wait from 'utils/wait'
@@ -25,20 +26,30 @@ interface EditorState {
 
 // TODO: use Provider
 export function useState(handle: S3HandleBase): EditorState {
+  const { urls } = NamedRoutes.use()
   const type = React.useMemo(() => detect(handle.key), [handle.key])
-  const location = useLocation()
-  const { edit } = parseSearch(location.search, true)
+  const location = RRDom.useLocation()
+  const { edit, next } = parseSearch(location.search, true)
+  const history = RRDom.useHistory()
   const [value, setValue] = React.useState<string | undefined>()
   const [editing, setEditing] = React.useState<boolean>(!!edit)
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
+  const redirect = React.useCallback(
+    ({ bucket, key, version }) => {
+      const redirectUrl = next || urls.bucketFile(bucket, key, version)
+      history.push(redirectUrl)
+    },
+    [history, next, urls],
+  )
   const onSave = React.useCallback(async () => {
     setSaving(true)
-    await writeFile(value)
+    const h = await writeFile(value || '') // TODO: Ask if user really wants to save empty file
     await wait(300)
     setEditing(false)
     setSaving(false)
-  }, [value, writeFile])
+    redirect(h)
+  }, [redirect, value, writeFile])
   const onCancel = React.useCallback(() => setEditing(false), [])
   const onEdit = React.useCallback(() => setEditing(true), [])
   return React.useMemo(
