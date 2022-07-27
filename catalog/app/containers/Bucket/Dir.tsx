@@ -144,7 +144,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
       const entries = files
         .concat(allChildren)
         .reduce((acc, file) => R.assoc(file.key, file, acc), {})
-      setShopping(R.assoc('entries', entries))
+      setShopping(R.over(R.lensPath(['entries']), R.mergeLeft(entries)))
     },
     [bucket, bucketListing, response, setShopping],
   )
