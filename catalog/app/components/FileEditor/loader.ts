@@ -41,11 +41,17 @@ export const detect: (path: string) => EditorInputType = R.pipe(
   ]),
 )
 
-export function useWriteData({ bucket, key }: S3HandleBase) {
+export function useWriteData({
+  bucket,
+  key,
+}: S3HandleBase): (value: string) => Promise<S3HandleBase> {
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {
-      await s3.putObject({ Bucket: bucket, Key: key, Body: value }).promise()
+      const { VersionId } = await s3
+        .putObject({ Bucket: bucket, Key: key, Body: value })
+        .promise()
+      return { bucket, key, version: VersionId }
     },
     [bucket, key, s3],
   )
