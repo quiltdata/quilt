@@ -15,7 +15,29 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { getBasename } from 'utils/s3paths'
 
+import AddReadmeLink from './AddReadmeLink'
 import * as Summarize from './Summarize'
+
+const useAddReadmeSectionStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: t.spacing(2, 0),
+  },
+}))
+
+function AddReadmeSection({ packageHandle }) {
+  const classes = useAddReadmeSectionStyles()
+  return (
+    <div className={classes.root}>
+      <AddReadmeLink packageHandle={packageHandle}>
+        <M.Button size="small" color="primary" variant="outlined">
+          Add README
+        </M.Button>
+      </AddReadmeLink>
+    </div>
+  )
+}
 
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
@@ -171,12 +193,7 @@ function Thumbnails({ images, mkUrl }) {
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({
-  files,
-  whenEmpty = () => null,
-  mkUrl: mkUrlProp,
-  packageHandle,
-}) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }) {
   const { urls } = NamedRoutes.use()
   const mkUrl = React.useCallback(
     (handle) =>
@@ -187,9 +204,10 @@ export default function BucketSummary({
   )
   const { readme, images, summarize } = extractSummary(files)
 
+  const canAddReadme = false // !readme && !!packageHandle AND can open RevisePackage with url
+
   return (
     <>
-      {!readme && !summarize && !images.length && whenEmpty()}
       {readme && (
         <SummaryItemFile
           title={basename(readme.logicalKey || readme.key)}
@@ -197,6 +215,7 @@ export default function BucketSummary({
           mkUrl={mkUrl}
         />
       )}
+      {canAddReadme && <AddReadmeSection packageHandle={packageHandle} />}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested
