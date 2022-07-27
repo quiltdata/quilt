@@ -131,7 +131,7 @@ function PackageCreationForm({
   disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
-  const [shopping] = Shopping.use()
+  const shopping = Shopping.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')

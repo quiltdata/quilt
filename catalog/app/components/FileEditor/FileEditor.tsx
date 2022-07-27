@@ -1,6 +1,3 @@
-import { basename } from 'path'
-
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
@@ -19,8 +16,7 @@ import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
 function useRedirect() {
-  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
-  const [_, setShopping] = Shopping.use()
+  const shopping = Shopping.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
@@ -28,18 +24,11 @@ function useRedirect() {
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
       if (shop) {
-        setShopping(
-          R.over(
-            R.lensPath(['entries']),
-            R.mergeLeft({
-              [basename(key)]: { bucket, key, size, version },
-            }),
-          ),
-        )
+        shopping.append({ bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, version))
     },
-    [history, next, setShopping, shop, urls],
+    [history, next, shopping, shop, urls],
   )
 }
 
