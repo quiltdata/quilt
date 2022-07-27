@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -15,6 +16,13 @@ export default function WorkflowsConfigLink({
   children,
 }: WorkflowsConfigLinkProps) {
   const { urls } = NamedRoutes.use()
-  const toConfig = `${urls.bucketFile(bucket, requests.WORKFLOWS_CONFIG_PATH)}?edit=true`
+  const { pathname, search } = RRDom.useLocation()
+  const next = pathname + search
+  const toConfig = urls.bucketFileEdit(
+    bucket,
+    requests.WORKFLOWS_CONFIG_PATH,
+    undefined,
+    next,
+  )
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }
