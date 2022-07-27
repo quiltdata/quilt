@@ -110,8 +110,8 @@ export const bucketFile = {
 }
 export const bucketFileEdit = {
   path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, version, next, shop) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ edit: true, next, version, shop })}`,
+  url: (bucket, path, version, next, add) =>
+    `/b/${bucket}/tree/${encode(path)}${mkSearch({ edit: true, next, version, add })}`,
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',

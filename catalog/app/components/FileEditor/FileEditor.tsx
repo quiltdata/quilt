@@ -20,15 +20,15 @@ function useRedirect() {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
-  const { next, shop } = parseSearch(location.search, true)
+  const { add, next } = parseSearch(location.search, true)
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
-      if (shop) {
+      if (add) {
         addToPackage.append({ bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, version))
     },
-    [history, next, addToPackage, shop, urls],
+    [history, next, addToPackage, add, urls],
   )
 }
 
