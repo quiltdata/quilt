@@ -6,7 +6,7 @@ import * as RRDom from 'react-router-dom'
 
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
-import * as S3FilePicker from 'containers/Bucket/PackageDialog/S3FilePicker'
+import type * as Model from 'model'
 import * as Shopping from 'containers/Shopping'
 import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -26,7 +26,7 @@ function useRedirect() {
   const location = RRDom.useLocation()
   const { next, shop } = parseSearch(location.search, true)
   return React.useCallback(
-    ({ bucket, key, size, version }: S3FilePicker.S3File) => {
+    ({ bucket, key, size, version }: Model.S3File) => {
       if (shop) {
         setShopping(
           R.over(

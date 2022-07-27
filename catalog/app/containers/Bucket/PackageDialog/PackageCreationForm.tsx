@@ -37,7 +37,7 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
-import { isS3File, S3File } from './S3FilePicker'
+import { isS3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
@@ -54,7 +54,7 @@ export interface LocalEntry {
 
 export interface S3Entry {
   path: string
-  file: S3File
+  file: Model.S3File
 }
 
 export interface PackageCreationSuccess {

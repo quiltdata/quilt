@@ -5,7 +5,7 @@ import { detect as isMarkdown } from 'components/Preview/loaders/Markdown'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import * as AWS from 'utils/AWS'
 import type { S3HandleBase } from 'utils/s3paths'
-import type { S3File } from 'containers/Bucket/PackageDialog/S3FilePicker'
+import type * as Model from 'model'
 
 import { Mode, EditorInputType } from './types'
 
@@ -45,7 +45,7 @@ export const detect: (path: string) => EditorInputType = R.pipe(
 export function useWriteData({
   bucket,
   key,
-}: S3HandleBase): (value: string) => Promise<S3File> {
+}: S3HandleBase): (value: string) => Promise<Model.S3File> {
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {

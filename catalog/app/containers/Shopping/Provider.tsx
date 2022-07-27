@@ -1,9 +1,9 @@
 import * as React from 'react'
 
-import * as S3FilePicker from 'containers/Bucket/PackageDialog/S3FilePicker'
+import type * as Model from 'model'
 
 interface Shopping {
-  entries: Record<string, S3FilePicker.S3File>
+  entries: Record<string, Model.S3File>
 }
 
 const Ctx = React.createContext<
