@@ -912,7 +912,7 @@ function Thumbnails({ images }) {
         {pagination.paginated.map((i) => (
           <Link
             key={i.key}
-            to={urls.bucketFile(i.bucket, i.key, i.version)}
+            to={urls.bucketFile(i.bucket, i.key, { version: i.version })}
             className={classes.link}
           >
             <Thumbnail handle={i} className={classes.img} alt={i.key} title={i.key} />
