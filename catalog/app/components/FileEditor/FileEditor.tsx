@@ -1,8 +1,13 @@
+import { basename } from 'path'
+
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import * as S3FilePicker from 'containers/Bucket/PackageDialog/S3FilePicker'
+import * as Shopping from 'containers/Shopping'
 import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -14,14 +19,27 @@ import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
 function useRedirect() {
+  // eslint-disable-next-line @typescript-eslint/naming-convention, @typescript-eslint/no-unused-vars
+  const [_, setShopping] = Shopping.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
-  const { next } = parseSearch(location.search, true)
+  const { next, shop } = parseSearch(location.search, true)
   return React.useCallback(
-    ({ bucket, key, version }) =>
-      history.push(next || urls.bucketFile(bucket, key, version)),
-    [history, next, urls],
+    ({ bucket, key, size, version }: S3FilePicker.S3File) => {
+      if (shop) {
+        setShopping(
+          R.over(
+            R.lensPath(['entries']),
+            R.mergeLeft({
+              [basename(key)]: { bucket, key, size, version },
+            }),
+          ),
+        )
+      }
+      history.push(next || urls.bucketFile(bucket, key, version))
+    },
+    [history, next, setShopping, shop, urls],
   )
 }
 
@@ -47,9 +65,12 @@ export function useState(handle: S3HandleBase): EditorState {
   const redirect = useRedirect()
   const onSave = React.useCallback(async () => {
     setSaving(true)
-    const h = await writeFile(value || '') // TODO: Ask if user really wants to save empty file
+    // TODO: Ask if user really wants to save empty file
+    // TODO: try/catch, and show error
+    const h = await writeFile(value || '')
     setEditing(false)
     setSaving(false)
+    // TODO: try/catch, and show error
     redirect(h)
   }, [redirect, value, writeFile])
   const onCancel = React.useCallback(() => setEditing(false), [])
