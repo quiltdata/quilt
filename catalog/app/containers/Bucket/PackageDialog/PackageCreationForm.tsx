@@ -10,7 +10,7 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
-import * as Shopping from 'containers/Shopping'
+import * as AddToPackage from 'containers/AddToPackage'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -131,7 +131,7 @@ function PackageCreationForm({
   disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
-  const shopping = Shopping.use()
+  const addToPackage = AddToPackage.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
@@ -150,8 +150,12 @@ function PackageCreationForm({
   const existingEntries = initial?.entries ?? EMPTY_MANIFEST_ENTRIES
 
   const initialFiles: FI.FilesState = React.useMemo(
-    () => ({ existing: existingEntries, added: shopping?.entries || {}, deleted: {} }),
-    [existingEntries, shopping],
+    () => ({
+      existing: existingEntries,
+      added: addToPackage?.entries || {},
+      deleted: {},
+    }),
+    [existingEntries, addToPackage],
   )
 
   const uploads = useUploads()

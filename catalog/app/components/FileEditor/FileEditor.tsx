@@ -4,7 +4,7 @@ import * as RRDom from 'react-router-dom'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import type * as Model from 'model'
-import * as Shopping from 'containers/Shopping'
+import * as AddToPackage from 'containers/AddToPackage'
 import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -16,7 +16,7 @@ import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
 function useRedirect() {
-  const shopping = Shopping.use()
+  const addToPackage = AddToPackage.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
@@ -24,11 +24,11 @@ function useRedirect() {
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
       if (shop) {
-        shopping.append({ bucket, key, size, version })
+        addToPackage.append({ bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, version))
     },
-    [history, next, shopping, shop, urls],
+    [history, next, addToPackage, shop, urls],
   )
 }
 
