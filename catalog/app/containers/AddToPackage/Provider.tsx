@@ -29,6 +29,6 @@ export function Provider({ children }: ProviderProps) {
   return <Ctx.Provider value={{ entries, append }}>{children}</Ctx.Provider>
 }
 
-export const useShopping = () => React.useContext(Ctx)
+const useAddToPackage = () => React.useContext(Ctx)
 
-export const use = useShopping
+export const use = useAddToPackage
