@@ -28,8 +28,7 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
 function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const classes = useAddReadmeSectionStyles()
   const { urls } = NamedRoutes.use()
-  const { pathname, search } = useLocation()
-  const next = pathname + search
+  const next = urls.bucketPackageDetail(bucket, name)
   const toConfig = urls.bucketFile(bucket, path.join(name, 'README.md'), {
     next,
     add: true,
