@@ -81,7 +81,7 @@ function S3UrlValue({ href, children }) {
   const { urls } = NamedRoutes.use()
   const to = React.useMemo(() => {
     const { bucket, key, version } = s3paths.parseS3Url(href)
-    return urls.bucketFile(bucket, key, version)
+    return urls.bucketFile(bucket, key, { version })
   }, [href, urls])
   return (
     <div>
