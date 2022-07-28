@@ -23,21 +23,19 @@ function isActions(actions: string[]): actions is Action[] {
 }
 
 export default function useInitialActions(): Action[] {
-  const location = RRDom.useLocation()
   const history = RRDom.useHistory()
-  const [initialActions, setInitialActions] = React.useState<Action[]>([])
+  const location = RRDom.useLocation()
+
+  const searchParams = React.useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  )
+  const actions = searchParams.getAll('action')
+  const initialActions = React.useRef<Action[]>(isActions(actions) ? actions : [])
 
   React.useEffect(() => {
-    const searchParams = new URLSearchParams(location.search)
-    if (!searchParams.has('action')) return
+    if (searchParams.has('action')) clearActions(searchParams, history)
+  }, [history, searchParams])
 
-    const actions = searchParams.getAll('action')
-    if (isActions(actions)) {
-      setInitialActions(actions)
-    }
-
-    clearActions(searchParams, history)
-  }, [history, location.search])
-
-  return initialActions
+  return initialActions.current
 }
