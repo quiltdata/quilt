@@ -52,6 +52,7 @@ export function useViewModes(
   )
 
   const modes: ViewMode[] = React.useMemo(() => {
+    // TODO: add MODES here
     switch (extname(path)) {
       case '.ipynb':
         return !!packageHandle && voilaAvailable

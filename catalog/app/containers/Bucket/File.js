@@ -8,6 +8,7 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
@@ -401,6 +402,8 @@ export default function File({
 
   const handle = { bucket, key: path, version }
 
+  const editorState = FileEditor.useState(handle)
+
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
     [viewModes.mode],
@@ -453,6 +456,16 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
+          {!!editorState.type.brace && (
+            <FileEditor.Controls
+              disabled={editorState.saving}
+              editing={editorState.editing}
+              className={classes.button}
+              onSave={editorState.onSave}
+              onCancel={editorState.onCancel}
+              onEdit={editorState.onEdit}
+            />
+          )}
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
@@ -481,18 +494,46 @@ export default function File({
               {preferences?.ui?.blocks?.meta && (
                 <Meta bucket={bucket} path={path} version={version} />
               )}
-              <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                {versionExistsData.case({
-                  _: () => <CenteredProgress />,
-                  Err: (e) => {
-                    throw e
-                  },
-                  Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                })}
-              </Section>
+              {editorState.editing ? (
+                <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                  <FileEditor.Editor
+                    disabled={editorState.saving}
+                    handle={handle}
+                    onChange={editorState.onChange}
+                    type={editorState.type}
+                  />
+                </Section>
+              ) : (
+                <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
+                  {versionExistsData.case({
+                    _: () => <CenteredProgress />,
+                    Err: (e) => {
+                      throw e
+                    },
+                    Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                  })}
+                </Section>
+              )}
             </>
           ),
-          _: () => <Message headline="No Such Object" />,
+          _: () =>
+            editorState.editing ? (
+              <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                <FileEditor.Editor
+                  disabled={editorState.saving}
+                  type={editorState.type}
+                  empty
+                  handle={handle}
+                  onChange={editorState.onChange}
+                />
+              </Section>
+            ) : (
+              <>
+                <Message headline="No Such Object">
+                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                </Message>
+              </>
+            ),
         }),
       })}
     </FileView.Root>
