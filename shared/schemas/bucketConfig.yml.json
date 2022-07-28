@@ -79,10 +79,14 @@
             }
           }
         },
-        "packages": {
+        "package_description": {
           "type": "object",
           "description": "Configure JSON fields to extract from revision for each revision meta",
           "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "format": "regex"
+          },
           "additionalProperties": {
             "type": "object",
             "properties": {

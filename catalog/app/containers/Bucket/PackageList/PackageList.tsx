@@ -235,21 +235,30 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
 function usePackageMeta(
   name: string,
   revision: { message: string | null; userMeta: JsonRecord | null } | null,
-): (string | string[])[] {
+) {
   // TODO: move visible meta calculation to the graphql
   const preferences = BucketPreferences.use()
   return React.useMemo(() => {
-    const { message, userMeta } =
-      preferences?.ui.packages[name] || preferences?.ui.packages['*'] || {}
-    const output = []
-    if (message && revision?.message) output.push(revision.message)
-    if (userMeta && revision?.userMeta)
-      userMeta.forEach((jPath) => {
-        const section = jsonpath.value(revision.userMeta, jPath)
-        if (typeof section === 'string') output.push(section)
-        if (Array.isArray(section)) output.push(section.filter(R.is(String)))
-      })
-    return output
+    const output: (string | string[])[] = []
+    try {
+      if (!preferences?.ui.package_description) return output
+      const { message, userMeta } =
+        Object.entries(preferences?.ui.package_description)
+          .reverse() // The last found config wins
+          .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
+      if (message && revision?.message) output.push(revision.message)
+      if (userMeta && revision?.userMeta)
+        userMeta.forEach((jPath) => {
+          const section = jsonpath.value(revision.userMeta, jPath)
+          if (typeof section === 'string') output.push(section)
+          if (Array.isArray(section)) output.push(section.filter(R.is(String)))
+        })
+      return output
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error)
+      return output
+    }
   }, [name, preferences, revision])
 }
 
