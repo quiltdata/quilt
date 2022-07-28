@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
