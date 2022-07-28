@@ -34,6 +34,7 @@ function useRedirect() {
 
 interface EditorState {
   editing: boolean
+  error: Error | null
   onCancel: () => void
   onChange: (value: string) => void
   onEdit: () => void
@@ -47,6 +48,7 @@ export function useState(handle: S3HandleBase): EditorState {
   const type = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
   const { edit } = parseSearch(location.search, true)
+  const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState<string | undefined>()
   const [editing, setEditing] = React.useState<boolean>(!!edit)
   const [saving, setSaving] = React.useState<boolean>(false)
@@ -55,20 +57,27 @@ export function useState(handle: S3HandleBase): EditorState {
   const onSave = React.useCallback(async () => {
     setSaving(true)
     // TODO: Ask if user really wants to save empty file
-    // TODO: try/catch, and show error
-    const h = await writeFile(value || '')
-    setEditing(false)
-    setSaving(false)
-    // TODO: try/catch, and show error
-    redirect(h)
+    try {
+      const h = await writeFile(value || '')
+      setEditing(false)
+      setSaving(false)
+      redirect(h)
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error(`${e}`))
+    }
   }, [redirect, value, writeFile])
   const onCancel = React.useCallback(() => setEditing(false), [])
   const onEdit = React.useCallback(() => setEditing(true), [])
+  const onChange = React.useCallback((newValue: string) => {
+    setError(null)
+    setValue(newValue)
+  }, [])
   return React.useMemo(
     () => ({
       editing,
+      error,
       onCancel,
-      onChange: setValue,
+      onChange,
       onEdit,
       onSave,
       saving,
