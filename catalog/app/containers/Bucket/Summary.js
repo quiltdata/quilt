@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
@@ -26,15 +26,22 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function AddReadmeSection({ packageHandle }) {
+function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const classes = useAddReadmeSectionStyles()
+  const { urls } = NamedRoutes.use()
+  const { pathname, search } = useLocation()
+  const next = pathname + search
+  const toConfig = urls.bucketFile(bucket, path.join(name, 'README.md'), {
+    next,
+    add: true,
+  })
   return (
     <div className={classes.root}>
-      <AddReadmeLink packageHandle={packageHandle}>
+      <StyledLink to={toConfig}>
         <M.Button size="small" color="primary" variant="outlined">
           Add README
         </M.Button>
-      </AddReadmeLink>
+      </StyledLink>
     </div>
   )
 }
