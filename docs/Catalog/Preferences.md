@@ -26,6 +26,9 @@ ui:
     browser: True
     code: True
     meta: True
+  package_description:
+    .*:
+      message: True
   sourceBuckets:
     s3://BUCKET_1: {}
     s3://BUCKET_2: {}
@@ -49,3 +52,29 @@ drag-and-drop or from folders in S3
 buckets in this dictionary are the ones offered when the user clicks
 Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
+* `ui.package_description` - a dictionary that maps package handle regular expressions or literals to JSONPath expressions of fields to show from package metadata in the package list view.
+Strings display as paragraphs. Elements of a list display as tags.
+
+#### `ui.package_description` example
+  
+
+```
+ui:
+  packages:
+    # match all packages
+    .*:
+      # show the message
+      message: True
+      # show the .labels field
+      user_meta:
+        - $.labels
+    # for any package with a handle prefix of foo
+    foo/*:
+      # JSONPath expressions to the fields to display
+      user_meta:
+        - $.key1.key2
+        - $.key3
+        - $.key4[0]
+```
+
+![](../docs/imgs/package-list-selective-metadata.png)
