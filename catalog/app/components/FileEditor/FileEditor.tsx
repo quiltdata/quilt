@@ -26,7 +26,7 @@ function useRedirect() {
       if (add) {
         addToPackage.append({ bucket, key, size, version })
       }
-      history.push(next || urls.bucketFile(bucket, key, version))
+      history.push(next || urls.bucketFile(bucket, key, { version }))
     },
     [history, next, addToPackage, add, urls],
   )
