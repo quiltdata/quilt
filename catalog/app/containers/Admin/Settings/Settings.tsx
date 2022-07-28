@@ -103,7 +103,7 @@ function NavLinkEditor() {
     if (editing || removing || !settings?.customNavLink) return
     // XXX: implement custom MUI Dialog-based confirm?
     // eslint-disable-next-line no-restricted-globals, no-alert
-    if (!confirm('You are about to remove custom link')) return
+    if (!window.confirm('You are about to remove custom link')) return
     setRemoving(true)
     try {
       await writeSettings(R.dissoc('customNavLink', settings))

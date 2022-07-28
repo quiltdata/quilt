@@ -56,7 +56,9 @@ export function useState(handle: S3HandleBase): EditorState {
   const redirect = useRedirect()
   const onSave = React.useCallback(async () => {
     setSaving(true)
-    // TODO: Ask if user really wants to save empty file
+    // XXX: implement custom MUI Dialog-based confirm?
+    // eslint-disable-next-line no-restricted-globals, no-alert
+    if (!value && !window.confirm('You are about to save empty file')) return
     try {
       setError(null)
       const h = await writeFile(value || '')
