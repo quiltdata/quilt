@@ -1,6 +1,7 @@
 import * as brace from 'brace'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 
@@ -18,6 +19,9 @@ const useEditorTextStyles = M.makeStyles((t) => ({
     height: t.spacing(50),
     resize: 'vertical',
   },
+  error: {
+    marginTop: t.spacing(1),
+  },
 }))
 
 interface TextEditorProps {
@@ -25,9 +29,11 @@ interface TextEditorProps {
   onChange: (value: string) => void
   type: EditorInputType
   value?: string
+  error: Error | null
 }
 
 export default function TextEditor({
+  error,
   disabled,
   type,
   value = '',
@@ -60,6 +66,11 @@ export default function TextEditor({
   return (
     <div className={classes.root}>
       <div className={classes.editor} ref={ref} />
+      {error && (
+        <Lab.Alert severity="error" className={classes.error} variant="outlined">
+          {error.message}
+        </Lab.Alert>
+      )}
       {disabled && <Lock />}
     </div>
   )

@@ -498,6 +498,7 @@ export default function File({
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
                   <FileEditor.Editor
                     disabled={editorState.saving}
+                    error={editorState.error}
                     handle={handle}
                     onChange={editorState.onChange}
                     type={editorState.type}
@@ -521,6 +522,7 @@ export default function File({
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
                 <FileEditor.Editor
                   disabled={editorState.saving}
+                  error={editorState.error}
                   type={editorState.type}
                   empty
                   handle={handle}

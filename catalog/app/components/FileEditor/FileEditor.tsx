@@ -58,6 +58,7 @@ export function useState(handle: S3HandleBase): EditorState {
     setSaving(true)
     // TODO: Ask if user really wants to save empty file
     try {
+      setError(null)
       const h = await writeFile(value || '')
       setEditing(false)
       setSaving(false)
@@ -69,7 +70,6 @@ export function useState(handle: S3HandleBase): EditorState {
   const onCancel = React.useCallback(() => setEditing(false), [])
   const onEdit = React.useCallback(() => setEditing(true), [])
   const onChange = React.useCallback((newValue: string) => {
-    setError(null)
     setValue(newValue)
   }, [])
   return React.useMemo(
@@ -91,16 +91,24 @@ export function useState(handle: S3HandleBase): EditorState {
 interface EditorProps {
   disabled?: boolean
   empty?: boolean
+  error: Error | null
   handle: S3HandleBase
   onChange: (value: string) => void
   type: EditorInputType
 }
 
-function EditorSuspended({ disabled, empty, handle, onChange, type }: EditorProps) {
+function EditorSuspended({
+  disabled,
+  empty,
+  error,
+  handle,
+  onChange,
+  type,
+}: EditorProps) {
   loadMode(type.brace || 'text')
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
-  if (empty) return <TextEditor type={type} value="" onChange={onChange} />
+  if (empty) return <TextEditor error={error} type={type} value="" onChange={onChange} />
   return data.case({
     _: () => <Skeleton />,
     Err: (
@@ -114,7 +122,13 @@ function EditorSuspended({ disabled, empty, handle, onChange, type }: EditorProp
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
       return (
-        <TextEditor disabled={disabled} type={type} value={value} onChange={onChange} />
+        <TextEditor
+          disabled={disabled}
+          error={error}
+          onChange={onChange}
+          type={type}
+          value={value}
+        />
       )
     },
   })
