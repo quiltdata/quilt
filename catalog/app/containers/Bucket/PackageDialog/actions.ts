@@ -2,8 +2,13 @@ import type * as H from 'history'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
-// TODO: use the same action names as for UI Preferences
-type Action = 'revisePackage'
+import type { ActionPreferences } from 'utils/BucketPreferences'
+
+const Actions: Partial<ActionPreferences> = {
+  revisePackage: true,
+}
+
+type Action = keyof typeof Actions
 
 function clearActions(searchParams: URLSearchParams, history: H.History) {
   searchParams.delete('action')
@@ -13,7 +18,7 @@ function clearActions(searchParams: URLSearchParams, history: H.History) {
 }
 
 function isActions(actions: string[]): actions is Action[] {
-  const unsupportedActions = actions.filter((a) => a !== 'revisePackage')
+  const unsupportedActions = actions.filter((a) => !Actions[a as Action])
   return !unsupportedActions.length
 }
 
