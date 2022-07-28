@@ -71,22 +71,19 @@ export function useState(handle: S3HandleBase): EditorState {
   }, [redirect, value, writeFile])
   const onCancel = React.useCallback(() => setEditing(false), [])
   const onEdit = React.useCallback(() => setEditing(true), [])
-  const onChange = React.useCallback((newValue: string) => {
-    setValue(newValue)
-  }, [])
   return React.useMemo(
     () => ({
       editing,
       error,
       onCancel,
-      onChange,
+      onChange: setValue,
       onEdit,
       onSave,
       saving,
       type,
       value,
     }),
-    [editing, error, onCancel, onChange, onEdit, onSave, saving, type, value],
+    [editing, error, onCancel, onEdit, onSave, saving, type, value],
   )
 }
 
