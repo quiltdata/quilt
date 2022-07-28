@@ -15,7 +15,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { getBasename } from 'utils/s3paths'
 
-import AddReadmeLink from './AddReadmeLink'
 import * as Summarize from './Summarize'
 
 const useAddReadmeSectionStyles = M.makeStyles((t) => ({
