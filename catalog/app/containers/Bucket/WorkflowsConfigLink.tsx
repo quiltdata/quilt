@@ -11,6 +11,8 @@ interface WorkflowsConfigLinkProps {
   children: React.ReactNode
 }
 
+// TODO: add any file rather than specific add workflows config file
+//       move it to components/FileEditor directory because purpose of this link is to edit file
 export default function WorkflowsConfigLink({
   bucket,
   children,
