@@ -84,7 +84,7 @@ export function useState(handle: S3HandleBase): EditorState {
       type,
       value,
     }),
-    [editing, onCancel, onEdit, onSave, saving, type, value],
+    [editing, error, onCancel, onEdit, onSave, saving, type, value],
   )
 }
 
