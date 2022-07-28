@@ -33,5 +33,6 @@ export default function useInitialActions(): Action[] {
 
     clearActions(searchParams, history)
   }, [history, location.search])
+
   return initialActions
 }
