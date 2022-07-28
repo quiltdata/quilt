@@ -20,7 +20,7 @@ function useRedirect() {
   const { next } = parseSearch(location.search, true)
   return React.useCallback(
     ({ bucket, key, version }) =>
-      history.push(next || urls.bucketFile(bucket, key, version)),
+      history.push(next || urls.bucketFile(bucket, key, { version })),
     [history, next, urls],
   )
 }

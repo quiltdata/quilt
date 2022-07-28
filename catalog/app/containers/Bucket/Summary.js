@@ -182,7 +182,7 @@ export default function BucketSummary({
     (handle) =>
       mkUrlProp
         ? mkUrlProp(handle)
-        : urls.bucketFile(handle.bucket, handle.key, handle.version),
+        : urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
     [mkUrlProp, urls],
   )
   const { readme, images, summarize } = extractSummary(files)

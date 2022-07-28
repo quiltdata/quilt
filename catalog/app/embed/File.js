@@ -79,7 +79,7 @@ function VersionInfo({ bucket, path, version }) {
 
   const getLink = (v) =>
     overrides.s3ObjectLink.href({
-      url: urls.bucketFile(bucket, path, v.id),
+      url: urls.bucketFile(bucket, path, { version: v.id }),
       s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
       bucket,
       key: path,
@@ -97,7 +97,7 @@ function VersionInfo({ bucket, path, version }) {
     if (overrides.s3ObjectLink.emit) {
       messageParent({
         type: 's3ObjectLink',
-        url: urls.bucketFile(bucket, path, v.id),
+        url: urls.bucketFile(bucket, path, { version: v.id }),
         s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
         bucket,
         key: path,
@@ -142,7 +142,7 @@ function VersionInfo({ bucket, path, version }) {
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, v.id)}
+                  to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
                     primary={
