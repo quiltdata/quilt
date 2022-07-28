@@ -23,7 +23,11 @@ const expectedDefaults = {
       packages: true,
       queries: true,
     },
-    packages: {},
+    package_description: {
+      '.*': {
+        message: true,
+      },
+    },
     sourceBuckets: {
       list: [],
     },
