@@ -152,7 +152,7 @@ function PackageCreationForm({
   const initialFiles: FI.FilesState = React.useMemo(
     () => ({
       existing: existingEntries,
-      added: addToPackage?.entries || {},
+      added: addToPackage.entries || {},
       deleted: {},
     }),
     [existingEntries, addToPackage],

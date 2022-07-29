@@ -33,7 +33,13 @@ export function Provider({ children }: ProviderProps) {
     )
   }, [])
   const clear = React.useCallback(() => setEntries({}), [])
-  return <Ctx.Provider value={{ append, clear, entries }}>{children}</Ctx.Provider>
+
+  const value = React.useMemo(
+    () => ({ append, clear, entries }),
+    [append, clear, entries],
+  )
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
 const useAddToPackage = () => React.useContext(Ctx)
