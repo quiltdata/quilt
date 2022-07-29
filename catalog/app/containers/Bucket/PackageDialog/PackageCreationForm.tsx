@@ -152,7 +152,7 @@ function PackageCreationForm({
   const initialFiles: FI.FilesState = React.useMemo(
     () => ({
       existing: existingEntries,
-      added: addToPackage.entries || {},
+      added: addToPackage?.entries || {},
       deleted: {},
     }),
     [existingEntries, addToPackage],
@@ -339,7 +339,7 @@ function PackageCreationForm({
       }
       return await onSubmitWeb(args as SubmitWebArgs)
     } finally {
-      addToPackage.clear()
+      addToPackage?.clear()
       setSubmitting(false)
     }
   }

@@ -23,7 +23,7 @@ function useRedirect() {
   const { add, next } = parseSearch(location.search, true)
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
-      if (add) {
+      if (add && addToPackage?.append) {
         addToPackage.append({ bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, { version }))

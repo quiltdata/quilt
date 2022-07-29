@@ -5,19 +5,11 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 
-const dummy = () => {
-  throw new Error('Please initialize the Provider')
-}
-
 const Ctx = React.createContext<{
   append: (file: Model.S3File) => void
   clear: () => void
   entries: Record<string, Model.S3File>
-}>({
-  append: dummy,
-  clear: dummy,
-  entries: {},
-})
+} | null>(null)
 
 interface ProviderProps {
   children: React.ReactNode
