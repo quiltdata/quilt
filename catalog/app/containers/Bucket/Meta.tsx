@@ -85,10 +85,10 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
   const { message, user_meta: userMeta, workflow } = meta
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      <M.Table className={classes.table} size="small">
+      <M.Table className={classes.table} size="small" data-testid="package-meta">
         <M.TableBody>
           {message && (
-            <M.TableRow className={classes.row}>
+            <M.TableRow className={classes.row} data-key="message" data-value={message}>
               <HeadCell className={classes.headCell} title="/message">
                 Message:
               </HeadCell>
@@ -98,7 +98,11 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
             </M.TableRow>
           )}
           {userMeta && (
-            <M.TableRow className={classes.row}>
+            <M.TableRow
+              className={classes.row}
+              data-key="user_meta"
+              data-value={JSON.stringify(userMeta)}
+            >
               <HeadCell className={classes.headCell} title="/user_meta">
                 User metadata:
               </HeadCell>
@@ -109,7 +113,11 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
             </M.TableRow>
           )}
           {workflow && (
-            <M.TableRow className={classes.row}>
+            <M.TableRow
+              className={classes.row}
+              data-key="workflow"
+              data-value={JSON.stringify(workflow)}
+            >
               <HeadCell className={classes.headCell} title="/workflow">
                 Workflow:
               </HeadCell>
