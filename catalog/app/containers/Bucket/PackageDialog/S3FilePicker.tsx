@@ -11,7 +11,7 @@ import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
-import { JsonRecord } from 'utils/types'
+import type * as Model from 'model'
 
 import * as Listing from '../Listing'
 import { displayError } from '../errors'
@@ -21,15 +21,7 @@ import SubmitSpinner from './SubmitSpinner'
 
 const limit = pLimit(5)
 
-export interface S3File {
-  bucket: string
-  key: string
-  version?: string
-  size: number
-  meta?: JsonRecord
-}
-
-export const isS3File = (f: any): f is S3File =>
+export const isS3File = (f: any): f is Model.S3File =>
   !!f &&
   typeof f === 'object' &&
   typeof f.bucket === 'string' &&
@@ -96,7 +88,10 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
 }
 
 type MuiCloseReason = 'backdropClick' | 'escapeKeyDown'
-export type CloseReason = MuiCloseReason | 'cancel' | { path: string; files: S3File[] }
+export type CloseReason =
+  | MuiCloseReason
+  | 'cancel'
+  | { path: string; files: Model.S3File[] }
 
 const useStyles = M.makeStyles((t) => ({
   paper: {

@@ -51,3 +51,11 @@ export interface PackageEntry {
 }
 
 export type PackageContentsFlatMap = Record<string, PackageEntry>
+
+export interface S3File {
+  bucket: string
+  key: string
+  meta?: Types.JsonRecord // TODO: make it the same as in PackageEntry
+  size: number
+  version?: string
+}

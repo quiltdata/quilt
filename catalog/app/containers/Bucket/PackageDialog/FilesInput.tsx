@@ -71,11 +71,7 @@ export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
     Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
-    AddFromS3: (v: {
-      files: S3FilePicker.S3File[]
-      basePrefix: string
-      prefix?: string
-    }) => v,
+    AddFromS3: (v: { files: Model.S3File[]; basePrefix: string; prefix?: string }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Meta: (v: { path: string; meta: Types.JsonRecord }) => v,
@@ -91,7 +87,7 @@ export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 export type LocalFile = FileWithPath & FileWithHash
 
 export interface FilesState {
-  added: Record<string, LocalFile | S3FilePicker.S3File>
+  added: Record<string, LocalFile | Model.S3File>
   deleted: Record<string, true>
   existing: Record<string, Model.PackageEntry>
   // XXX: workaround used to re-trigger validation and dependent computations
@@ -100,7 +96,7 @@ export interface FilesState {
 }
 
 const addMetaToFile = (
-  file: Model.PackageEntry | LocalFile | S3FilePicker.S3File,
+  file: Model.PackageEntry | LocalFile | Model.S3File,
   meta: Types.JsonRecord,
 ) => {
   if (file instanceof window.File) {
@@ -170,14 +166,14 @@ const handleFilesAction = FilesAction.match<
     }),
   Meta: ({ path, meta }) => {
     const mkSetMeta =
-      <T extends Model.PackageEntry | LocalFile | S3FilePicker.S3File>() =>
+      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
         return R.assoc(path, addMetaToFile(file, meta), filesDict)
       }
     return R.evolve({
-      added: mkSetMeta<LocalFile | S3FilePicker.S3File>(),
+      added: mkSetMeta<LocalFile | Model.S3File>(),
       existing: mkSetMeta<Model.PackageEntry>(),
     })
   },

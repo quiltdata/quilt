@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
+import * as AddToPackage from 'containers/AddToPackage'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -36,7 +37,7 @@ import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
-import { isS3File, S3File } from './S3FilePicker'
+import { isS3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
@@ -53,7 +54,7 @@ export interface LocalEntry {
 
 export interface S3Entry {
   path: string
-  file: S3File
+  file: Model.S3File
 }
 
 export interface PackageCreationSuccess {
@@ -130,6 +131,7 @@ function PackageCreationForm({
   disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
+  const addToPackage = AddToPackage.use()
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
@@ -148,8 +150,12 @@ function PackageCreationForm({
   const existingEntries = initial?.entries ?? EMPTY_MANIFEST_ENTRIES
 
   const initialFiles: FI.FilesState = React.useMemo(
-    () => ({ existing: existingEntries, added: {}, deleted: {} }),
-    [existingEntries],
+    () => ({
+      existing: existingEntries,
+      added: addToPackage?.entries || {},
+      deleted: {},
+    }),
+    [existingEntries, addToPackage],
   )
 
   const uploads = useUploads()
