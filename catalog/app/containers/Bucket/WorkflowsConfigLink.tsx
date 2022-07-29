@@ -11,6 +11,8 @@ interface WorkflowsConfigLinkProps {
   children: React.ReactNode
 }
 
+// TODO: add any file rather than specific add workflows config file
+//       move it to components/FileEditor directory because purpose of this link is to edit file
 export default function WorkflowsConfigLink({
   bucket,
   children,
@@ -18,11 +20,6 @@ export default function WorkflowsConfigLink({
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()
   const next = pathname + search
-  const toConfig = urls.bucketFileEdit(
-    bucket,
-    requests.WORKFLOWS_CONFIG_PATH,
-    undefined,
-    next,
-  )
+  const toConfig = urls.bucketFile(bucket, requests.WORKFLOWS_CONFIG_PATH, { next })
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }

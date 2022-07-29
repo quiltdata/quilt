@@ -17,6 +17,33 @@ import { getBasename } from 'utils/s3paths'
 
 import * as Summarize from './Summarize'
 
+const useAddReadmeSectionStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    padding: t.spacing(2, 0),
+  },
+}))
+
+function AddReadmeSection({ packageHandle: { bucket, name } }) {
+  const classes = useAddReadmeSectionStyles()
+  const { urls } = NamedRoutes.use()
+  const next = urls.bucketPackageDetail(bucket, name)
+  const toConfig = urls.bucketFile(bucket, path.join(name, 'README.md'), {
+    next,
+    add: true,
+  })
+  return (
+    <div className={classes.root}>
+      <StyledLink to={toConfig}>
+        <M.Button size="small" color="primary" variant="outlined">
+          Add README
+        </M.Button>
+      </StyledLink>
+    </div>
+  )
+}
+
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
 
@@ -171,25 +198,21 @@ function Thumbnails({ images, mkUrl }) {
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({
-  files,
-  whenEmpty = () => null,
-  mkUrl: mkUrlProp,
-  packageHandle,
-}) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }) {
   const { urls } = NamedRoutes.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
         ? mkUrlProp(handle)
-        : urls.bucketFile(handle.bucket, handle.key, handle.version),
+        : urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
     [mkUrlProp, urls],
   )
   const { readme, images, summarize } = extractSummary(files)
 
+  const canAddReadme = false // !readme && !!packageHandle AND can open RevisePackage with url
+
   return (
     <>
-      {!readme && !summarize && !images.length && whenEmpty()}
       {readme && (
         <SummaryItemFile
           title={basename(readme.logicalKey || readme.key)}
@@ -197,6 +220,7 @@ export default function BucketSummary({
           mkUrl={mkUrl}
         />
       )}
+      {canAddReadme && <AddReadmeSection packageHandle={packageHandle} />}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested

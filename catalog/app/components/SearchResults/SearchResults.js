@@ -42,7 +42,7 @@ function ObjectCrumbs({ handle, showBucket = false }) {
       children: label,
     }))
     const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
+      to: urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
       children: R.last(all).label,
     }
     const bucket = showBucket
@@ -198,7 +198,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         <Nowrap>
           Version{' '}
           <StyledLink
-            to={urls.bucketFile(bucket, path, version.id)}
+            to={urls.bucketFile(bucket, path, { version: version.id })}
             className={classes.version}
           >
             {clip(version.id, 24)}
@@ -228,7 +228,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               className={classes.versionContainer}
             >
               <StyledLink
-                to={urls.bucketFile(bucket, path, v.id)}
+                to={urls.bucketFile(bucket, path, { version: v.id })}
                 className={classes.version}
               >
                 {clip(v.id, 6)}

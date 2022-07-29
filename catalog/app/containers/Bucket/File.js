@@ -119,7 +119,7 @@ function VersionInfo({ bucket, path, version }) {
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, v.id)}
+                  to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -395,7 +395,7 @@ export default function File({
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, version, m.valueOf()))
+      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
     },
     [history, urls, bucket, encodedPath, version],
   )
@@ -498,6 +498,7 @@ export default function File({
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
                   <FileEditor.Editor
                     disabled={editorState.saving}
+                    error={editorState.error}
                     handle={handle}
                     onChange={editorState.onChange}
                     type={editorState.type}
@@ -521,6 +522,7 @@ export default function File({
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
                 <FileEditor.Editor
                   disabled={editorState.saving}
+                  error={editorState.error}
                   type={editorState.type}
                   empty
                   handle={handle}

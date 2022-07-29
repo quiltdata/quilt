@@ -8,7 +8,7 @@ import yaml from 'utils/yaml'
 
 export type SentryInstance = (command: 'captureMessage', message: string) => void
 
-type ActionPreferences = Record<
+export type ActionPreferences = Record<
   'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
   boolean
 >
@@ -36,7 +36,7 @@ interface UiPreferencesInput {
   blocks?: Partial<BlocksPreferences>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
-  packages?: PackagesListPreferencesInput
+  package_description?: PackagesListPreferencesInput
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -53,7 +53,7 @@ interface UiPreferences {
   actions: ActionPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
-  packages: PackagesListPreferences
+  package_description: PackagesListPreferences
   sourceBuckets: SourceBuckets
 }
 
@@ -81,8 +81,8 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    packages: {
-      '*': {
+    package_description: {
+      '.*': {
         message: true,
       },
     },
@@ -113,7 +113,7 @@ function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPre
         userMeta: user_meta,
       },
     }),
-    defaultPreferences.ui.packages,
+    defaultPreferences.ui.package_description,
   )
 }
 
@@ -148,7 +148,7 @@ export function extendDefaults(
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
-      packages: parsePackages(data?.ui?.packages),
+      package_description: parsePackages(data?.ui?.package_description),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,
