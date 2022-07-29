@@ -1,0 +1,2 @@
+{"version": "v0", "user_meta": {"key": "value"}}
+{"logical_key": "data.csv", "physical_keys": ["file:///Users/quilt/Documents/GitHub/quilt/testdocs/data.csv"], "size": 15, "hash": null, "meta": {}}
