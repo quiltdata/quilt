@@ -5,13 +5,17 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 
+const dummy = () => {
+  throw new Error('Please initialize the Provider')
+}
+
 const Ctx = React.createContext<{
   append: (file: Model.S3File) => void
+  clear: () => void
   entries: Record<string, Model.S3File>
 }>({
-  append: () => {
-    throw new Error('Please initialize the Provider')
-  },
+  append: dummy,
+  clear: dummy,
   entries: {},
 })
 
@@ -28,7 +32,8 @@ export function Provider({ children }: ProviderProps) {
       }),
     )
   }, [])
-  return <Ctx.Provider value={{ entries, append }}>{children}</Ctx.Provider>
+  const clear = React.useCallback(() => setEntries({}), [])
+  return <Ctx.Provider value={{ append, clear, entries }}>{children}</Ctx.Provider>
 }
 
 const useAddToPackage = () => React.useContext(Ctx)
