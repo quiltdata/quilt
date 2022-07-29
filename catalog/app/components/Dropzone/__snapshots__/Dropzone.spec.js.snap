@@ -24,6 +24,7 @@ exports[`components/Dropzone/Dropzone should render 1`] = `
       onDrop={[Function]}
       onFocus={[Function]}
       onKeyDown={[Function]}
+      role="button"
       tabIndex={0}
     >
       <input
