@@ -15,14 +15,16 @@ quilt3.config()
 To trigger autoconfiguration, call with just the navigator URL:
 
 ```python
-quilt3.config('https://example.com')
+import quilt3
+quilt3.config(navigator_url='https://open.quiltdata.com/b/allencell')
 ```
 
 To set config values, call with one or more key=value pairs:
 
 ```python
-quilt3.config(navigator_url='http://example.com',
-    ...               elastic_search_url='http://example.com/queries')
+import quilt3
+quilt3.config(navigator_url='https://open.quiltdata.com/b/allencell',
+              elastic_search_url='https://open.quiltdata.com/b/allencell/queries')
 ```
 
 Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
