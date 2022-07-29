@@ -11,7 +11,7 @@ buckets in Quilt are like branches in git; they reflect how "done" data are.
 
 There's no one folder structure that works for everyone. For instance,
 if you organize experiments by `department/date` then it's tedious for users to
-look at everything that happened on a given data. And vice versa. Since
+look at everything that happened on a given date. And vice versa. Since
 there's no one folder structure that works for everyone in the business,
 files are copied so that they can be found through multiple folder paths.
 But copies reduce *uniquness*. As a result users don't know which copy of
