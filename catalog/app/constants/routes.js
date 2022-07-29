@@ -121,7 +121,8 @@ export const bucketPackageList = {
 }
 export const bucketPackageDetail = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  url: (bucket, name) => `/b/${bucket}/packages/${name}`,
+  url: (bucket, name, { action } = {}) =>
+    `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,

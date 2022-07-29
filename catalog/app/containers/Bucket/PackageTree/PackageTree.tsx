@@ -188,6 +188,7 @@ function DirDisplay({
   crumbs,
   size,
 }: DirDisplayProps) {
+  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -202,7 +203,10 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
+  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
+
   const updateDialog = PD.usePackageCreationDialog({
+    initialOpen,
     bucket,
     src: { name, hash },
   })
@@ -913,6 +917,7 @@ export default function PackageTreeWrapper({
   location,
 }: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
   const path = s3paths.decode(encodedPath)
+  // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)
   return (
     <>
