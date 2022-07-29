@@ -11,7 +11,7 @@ see the [AWS documentation](https://boto3.amazonaws.com/v1/documentation/api/lat
 ## Installation
 
 ```bash
-$ pip install quilt3[catalog]
+pip install quilt3[catalog]
 ```
 
 ## Invocation
