@@ -120,7 +120,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
       />
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
-      <Summary files={response.files} mkUrl={null} />
+      <Summary files={response.files} mkUrl={null} path={path} />
     </>
   )
 }

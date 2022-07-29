@@ -1,4 +1,4 @@
-import path from 'path'
+import { basename, join } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
@@ -29,7 +29,7 @@ function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const classes = useAddReadmeSectionStyles()
   const { urls } = NamedRoutes.use()
   const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-  const toConfig = urls.bucketFile(bucket, path.join(name, 'README.md'), {
+  const toConfig = urls.bucketFile(bucket, join(name, 'README.md'), {
     add: true,
     edit: true,
     next,
@@ -109,7 +109,7 @@ function SummaryItemFile({ handle, name, mkUrl }) {
     <Container>
       <Header>
         <StyledLink to={mkUrl(handle)}>
-          {name || path.basename(handle.logicalKey || handle.key)}
+          {name || basename(handle.logicalKey || handle.key)}
         </StyledLink>
       </Header>
       <M.CardContent>{withData(Preview.display({ renderContents }))}</M.CardContent>
@@ -171,8 +171,8 @@ function Thumbnails({ images, mkUrl }) {
                   <Thumbnail
                     handle={resolved}
                     className={classes.img}
-                    alt={path.basename(i.logicalKey || i.key)}
-                    title={path.basename(i.logicalKey || i.key)}
+                    alt={basename(i.logicalKey || i.key)}
+                    title={basename(i.logicalKey || i.key)}
                   />
                 ),
               })}
@@ -199,7 +199,7 @@ function Thumbnails({ images, mkUrl }) {
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
   const mkUrl = React.useCallback(
     (handle) =>
@@ -214,12 +214,14 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }
     <>
       {readme && (
         <SummaryItemFile
-          title={path.basename(readme.logicalKey || readme.key)}
+          title={basename(readme.logicalKey || readme.key)}
           handle={readme}
           mkUrl={mkUrl}
         />
       )}
-      {!readme && !!packageHandle && <AddReadmeSection packageHandle={packageHandle} />}
+      {!readme && !path && !!packageHandle && (
+        <AddReadmeSection packageHandle={packageHandle} />
+      )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested
