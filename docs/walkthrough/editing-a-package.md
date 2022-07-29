@@ -66,8 +66,8 @@ p.set("banner.png", "s3://quilt-example/imgs/banner.png")
 # p.set_dir("things/", "s3://path/to/things/")
 
 # create test directory
-import os
-os.mkdir("test_data")
+from pathlib import Path
+Path("test_data").mkdir(exist_ok=True)
 p.set_dir("stuff/", "./data/")
 p.set_dir("imgs/", "s3://quilt-example/imgs/")
 ```
@@ -126,12 +126,13 @@ p.set("data.csv")
 
 Another useful trick. Use `"."` to set the contents of the package to that of the current directory:
 
-<!--pytest.mark.xfail-->
+<!--pytest-codeblocks:cont-->
 ```python
 # switch to a test directory and create some test files
-import os
-%cd data/
-os.mkdir("stuff")
+from pathlib import Path
+from os import chdir
+chdir("data") # %cd data/ if in Jupyter
+Path("stuff").mkdir(exist_ok=True)
 with open("new_data.csv", "w") as f:
     f.write("id, value\na, 42")
 
