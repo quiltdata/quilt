@@ -14,6 +14,7 @@ To edit a preexisting package, we need to first make sure to install the package
 
 
 ```python
+import quilt3
 quilt3.Package.install(
     "examples/hurdat",
     "s3://quilt-example",
@@ -25,12 +26,12 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
 
 
-    
+
 
 
 Use `browse` to edit the package:
 
-
+<!--pytest-codeblocks:cont-->
 ```python
 p = quilt3.Package.browse('examples/hurdat')
 ```
@@ -45,6 +46,7 @@ For more information on accessing existing packages see the section "[Installing
 Use the `set` and `set_dir` commands to add individual files and whole directories, respectively, to a `Package`:
 
 
+<!--pytest-codeblocks:cont-->
 
 ```python
 # add entries individually using `set`
@@ -65,7 +67,7 @@ p.set("banner.png", "s3://quilt-example/imgs/banner.png")
 
 # create test directory
 import os
-os.mkdir("data")
+os.mkdir("test_data")
 p.set_dir("stuff/", "./data/")
 p.set_dir("imgs/", "s3://quilt-example/imgs/")
 ```
@@ -84,6 +86,7 @@ p.set_dir("imgs/", "s3://quilt-example/imgs/")
 
 The first parameter to these functions is the *logical key*, which will determine where the file lives within the package. So after running the commands above our package will look like this:
 
+<!--pytest-codeblocks:cont-->
 
 ```python
 p
@@ -105,6 +108,7 @@ The second parameter is the *physical key*, which states the file's actual locat
 
 If the physical key and the logical key are the same, you may omit the second argument:
 
+<!--pytest-codeblocks:cont-->
 
 ```python
 # assuming data.csv is in the current directory
@@ -122,7 +126,7 @@ p.set("data.csv")
 
 Another useful trick. Use `"."` to set the contents of the package to that of the current directory:
 
-
+<!--pytest.mark.xfail-->
 ```python
 # switch to a test directory and create some test files
 import os
@@ -148,7 +152,7 @@ p.set_dir(".", ".")
 
 Use `delete` to remove entries from a package:
 
-
+<!--pytest-codeblocks:cont-->
 ```python
 p.delete("data.csv")
 ```
@@ -168,6 +172,7 @@ Note that this will only remove this piece of data from the package. It will not
 Packages support metadata anywhere in the package. To set metadata on package entries or directories, use the `meta` argument:
 
 
+<!--pytest-codeblocks:cont-->
 ```python
 p = quilt3.Package()
 p.set("data.csv", "new_data.csv", meta={"type": "csv"})
@@ -186,6 +191,7 @@ p.set_dir("stuff/", "stuff/", meta={"origin": "unknown"})
 You can also set metadata on the package as a whole using `set_meta`.
 
 
+<!--pytest-codeblocks:cont-->
 ```python
 # set metadata on a package
 p.set_meta({"package-type": "demo"})
@@ -197,5 +203,3 @@ p.set_meta({"package-type": "demo"})
     (local Package)
      └─data.csv
      └─stuff/
-
-
