@@ -5,8 +5,8 @@ import quilt3
 
 # create a package
 p = (quilt3.Package()
-        .set_dir("foo/", "foo/")
-        .set("bar", "bar"))
+        .set_dir("dict", "/usr/share/dict/")
+        .set("words", "/usr/share/dict/words"))
 
 # element-wise transform entries, outputting a list
 # here "lk" is shorthand for "logical_key"
