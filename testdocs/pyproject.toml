@@ -7,6 +7,9 @@ authors = ["Ernest Prabhakar <ernest@quiltdata.io>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 pytest_codeblocks = "^0.16.1"
+altair = "^4.2.0"
+pandas = "^1.4.3"
+quilt3 = "^5.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
