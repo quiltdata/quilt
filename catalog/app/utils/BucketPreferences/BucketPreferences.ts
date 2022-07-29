@@ -8,7 +8,7 @@ import yaml from 'utils/yaml'
 
 export type SentryInstance = (command: 'captureMessage', message: string) => void
 
-type ActionPreferences = Record<
+export type ActionPreferences = Record<
   'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
   boolean
 >

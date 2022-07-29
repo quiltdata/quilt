@@ -653,6 +653,7 @@ interface UsePackageCreationDialogProps {
     name: string
     hash?: string
   }
+  initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
 }
@@ -665,10 +666,11 @@ interface UsePackageCreationDialogProps {
 export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
   src,
+  initialOpen,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
-  const [isOpen, setOpen] = React.useState(false)
+  const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
   // TODO: put it to src as S3Handle
   const [s3Path, setS3Path] = React.useState<string | undefined>()
