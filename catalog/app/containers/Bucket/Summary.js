@@ -21,7 +21,7 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     justifyContent: 'flex-end',
-    padding: t.spacing(2, 0),
+    margin: t.spacing(2, 0),
   },
 }))
 
