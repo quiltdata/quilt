@@ -9,7 +9,9 @@ const Ctx = React.createContext<{
   append: (file: Model.S3File) => void
   entries: Record<string, Model.S3File>
 }>({
-  append: () => {},
+  append: () => {
+    throw new Error('Please initialize the Provider')
+  },
   entries: {},
 })
 
