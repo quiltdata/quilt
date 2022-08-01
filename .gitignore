@@ -40,10 +40,6 @@ registry/dpmd
 # Doc Build
 _build
 testdocs/*.json*
-testdocs/data.csv
-testdocs/data
-testdocs/test_data
-testdocs/reef_check
+testdocs/test_workflow
 testdocs/references
 testdocs/notebooks
-testdocs/QuickStart.ipynb
