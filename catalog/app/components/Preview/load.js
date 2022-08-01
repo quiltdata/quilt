@@ -5,6 +5,7 @@ import * as Audio from './loaders/Audio'
 import * as Echarts from './loaders/Echarts'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
+import * as Igv from './loaders/Igv'
 import * as Image from './loaders/Image'
 import * as Json from './loaders/Json'
 import * as Markdown from './loaders/Markdown'
@@ -29,6 +30,7 @@ const loaderChain = [
   Pdf,
   Vcf,
   Html,
+  Igv,
   Image,
   Video,
   Audio,

@@ -9,6 +9,7 @@ import { useVoila } from 'utils/voila'
 import { PackageHandle } from 'utils/packageHandle'
 
 const MODES = {
+  igv: 'Igv',
   json: 'JSON',
   jupyter: 'Jupyter',
   vega: 'Vega',
@@ -65,7 +66,7 @@ export function useViewModes(
               isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
             Json: (json: any) =>
               isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : [],
-            _: () => [],
+            _: () => ['json', 'igv'],
             __: () => [],
           },
           previewResult,
