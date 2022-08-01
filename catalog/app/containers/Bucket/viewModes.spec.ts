@@ -161,7 +161,7 @@ describe('containers/Bucket/viewModes', () => {
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonPlain))
         })
-        expect(result.current).toMatchObject({ modes: ['json', 'igv'], mode: 'json' })
+        expect(result.current).toMatchObject({ modes: [], mode: null })
       })
 
       it('returns empty mode list and null mode for other preview data', () => {
