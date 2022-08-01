@@ -9,6 +9,7 @@ import * as Resource from 'utils/Resource'
 import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
+import * as IgvLoader from './Igv'
 
 import * as Text from './Text'
 import * as utils from './utils'
@@ -161,14 +162,25 @@ function JsonLoader({ gated, handle, children }) {
 
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
+function findLoader(mode, firstBytes) {
+  switch (mode) {
+    case 'json':
+      return JsonLoader
+    case 'igv':
+      return IgvLoader.Loader
+    default:
+      return detectSchema(firstBytes) ? VegaLoader : JsonLoader
+  }
+}
+
 export const Loader = function GatedJsonLoader({ handle, children, options }) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
-    Ok: ({ firstBytes, contentLength }) =>
-      detectSchema(firstBytes) && options.mode !== 'json' ? (
-        <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
-      ) : (
-        <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
-      ),
+    Ok: ({ firstBytes, contentLength }) => {
+      const LoaderComponent = findLoader(options.mode, firstBytes)
+      return (
+        <LoaderComponent {...{ handle, children, gated: contentLength > MAX_SIZE }} />
+      )
+    },
     _: children,
   })
 }

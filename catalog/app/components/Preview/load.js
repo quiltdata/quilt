@@ -52,6 +52,7 @@ export function getRenderProps(key, options) {
 }
 
 export function Load({ handle, children, options }) {
+  // TODO: try if loader is `gated` here to avoid code repeatance
   const key = handle.logicalKey || handle.key
   const { Loader } = React.useMemo(() => findLoader(key, options), [key, options])
   return <Loader {...{ handle, children, options }} />
