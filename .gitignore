@@ -45,3 +45,5 @@ testdocs/data
 testdocs/test_data
 testdocs/reef_check
 testdocs/references
+testdocs/notebooks
+testdocs/QuickStart.ipynb
