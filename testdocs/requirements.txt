@@ -1,0 +1,5 @@
+jupyter
+numpy
+pandas
+t4
+requests
