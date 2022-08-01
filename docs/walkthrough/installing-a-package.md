@@ -22,6 +22,7 @@ list(quilt3.list_packages())
 
 ```python
 # list remote packages
+import quilt3
 list(quilt3.list_packages("s3://quilt-example"))
 ```
 
@@ -45,6 +46,7 @@ The examples in this section use the `examples/hurdat` [demo package](https://op
 
 
 ```python
+import quilt3
 quilt3.Package.install(
     "examples/hurdat",
     "s3://quilt-example",
@@ -56,12 +58,14 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
 
 
-    
+
 
 
 Note that unless this registry is public, you will need to be logged into a user who has read access to this registry in order to install from it:
 
+<!--pytest.mark.skip-->
 ```python
+import quilt3
 # only need to run this once
 # ie quilt3.config('https://your-catalog-homepage/')
 quilt3.config('https://open.quiltdata.com/')
@@ -74,9 +78,10 @@ Data files that you download are written to a folder in your local registry by d
 
 
 ```python
+import quilt3
 quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
+    "examples/hurdat",
+    "s3://quilt-example",
     dest="./"
 )
 ```
@@ -87,16 +92,17 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
 
 
-    
+
 
 
 Finally, you can install a specific version of a package by specifying the corresponding top hash:
 
 
 ```python
+import quilt3
 quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
+    "examples/hurdat",
+    "s3://quilt-example",
     top_hash="058e62c"
 )
 ```
@@ -107,7 +113,7 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=058e62c from s3://quilt-example
 
 
-    
+
 
 
 ## Browsing a package manifest
@@ -116,6 +122,7 @@ An alternative to `install` is `browse`. `browse` downloads a package manifest w
 
 
 ```python
+import quilt3
 # load a package manifest from a remote registry
 p = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
 
