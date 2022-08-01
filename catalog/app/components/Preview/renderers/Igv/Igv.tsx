@@ -3,9 +3,7 @@ import * as M from '@material-ui/core'
 import igv from 'igv'
 
 const useStyles = M.makeStyles({
-  root: {
-    height: '400px',
-  },
+  root: {},
 })
 
 interface IgvEssential {
