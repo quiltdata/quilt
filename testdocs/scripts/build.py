@@ -74,7 +74,7 @@ atlantic_storms = atlantic_storms.replace(to_replace="", value=np.nan)
 # Fix date and location columns.
 atlantic_storms['latitude'] = atlantic_storms['latitude']\
     .map(lambda lat: lat[:-1] if lat[-1] == "N" else -lat[:-1])
-atlantic_storms['longitude']= atlantic_storms['longitude']\
+atlantic_storms['longitude'] = atlantic_storms['longitude']\
     .map(lambda long: long[:-1] if long[-1] == "E" else "-" + long[:-1])
 atlantic_storms['date'] = pd.to_datetime(atlantic_storms['date'])
 atlantic_storms['date'] = atlantic_storms\
