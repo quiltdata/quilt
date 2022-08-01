@@ -2,6 +2,8 @@ Every data package is backed by a **manifest**. A manifest is a self-contained r
 
 Every time you save a data package to a registry you also save its manifest. You can inspect the manifest yourself using the `manifest` property:
 
+
+
 ```python
 import quilt3
 import os
@@ -13,6 +15,9 @@ with open("data.csv", "w") as f:
 p = quilt3.Package().set("data.csv", "data.csv")
 list(p.manifest)
 ```
+
+
+
 
     [{'version': 'v0'},
      {'logical_key': 'data.csv',
@@ -53,8 +58,8 @@ The manifest fields are as follows:
 In almost all cases you should be using registries, `build`, and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
 
 
+
 ```python
-import quilt3
 p = quilt3.Package().set("data.csv", "data.csv")
 p.set_meta({"key": "value"})
 
@@ -62,7 +67,7 @@ p.set_meta({"key": "value"})
 with open("example.jsonl", "w") as f:
     p.dump(f)
 
-# Loading maifest
+# Loading maifest 
 p.load(open("example.jsonl", "r"))
 ```
 
@@ -74,3 +79,5 @@ p.load(open("example.jsonl", "r"))
 
     (local Package)
      └─data.csv
+
+

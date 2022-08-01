@@ -1,8 +1,8 @@
-import requests
 import io
 from collections import Counter
-import pandas as pd
 import numpy as np
+import pandas as pd
+import requests
 
 
 atlantic_raw = requests.get(
