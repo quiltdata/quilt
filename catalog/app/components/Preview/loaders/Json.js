@@ -139,8 +139,6 @@ function JsonLoader({ gated, handle, children }) {
           const lang = 'json'
           const highlighted = R.map(hl(lang), { head, tail })
           return PreviewData.Text({
-            head,
-            tail,
             lang,
             highlighted,
             note,
