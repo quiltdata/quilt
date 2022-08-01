@@ -23,7 +23,7 @@ function useRedirect() {
   const { add, next } = parseSearch(location.search, true)
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
-      if (add) {
+      if (add && addToPackage?.append) {
         addToPackage.append({ bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, { version }))
@@ -55,10 +55,10 @@ export function useState(handle: S3HandleBase): EditorState {
   const writeFile = useWriteData(handle)
   const redirect = useRedirect()
   const onSave = React.useCallback(async () => {
-    setSaving(true)
     // XXX: implement custom MUI Dialog-based confirm?
     // eslint-disable-next-line no-restricted-globals, no-alert
     if (!value && !window.confirm('You are about to save empty file')) return
+    setSaving(true)
     try {
       setError(null)
       const h = await writeFile(value || '')
@@ -67,9 +67,13 @@ export function useState(handle: S3HandleBase): EditorState {
       redirect(h)
     } catch (e) {
       setError(e instanceof Error ? e : new Error(`${e}`))
+      setSaving(false)
     }
   }, [redirect, value, writeFile])
-  const onCancel = React.useCallback(() => setEditing(false), [])
+  const onCancel = React.useCallback(() => {
+    setEditing(false)
+    setError(null)
+  }, [])
   const onEdit = React.useCallback(() => setEditing(true), [])
   return React.useMemo(
     () => ({
