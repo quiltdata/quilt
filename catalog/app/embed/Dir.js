@@ -184,7 +184,7 @@ export default function Dir({
                   />
                 }
               />
-              <Summary files={res.files} />
+              <Summary files={res.files} path={path} />
             </>
           )
         },

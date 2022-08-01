@@ -339,6 +339,7 @@ function PackageCreationForm({
       }
       return await onSubmitWeb(args as SubmitWebArgs)
     } finally {
+      addToPackage?.clear()
       setSubmitting(false)
     }
   }

@@ -7,11 +7,9 @@ import type * as Model from 'model'
 
 const Ctx = React.createContext<{
   append: (file: Model.S3File) => void
+  clear: () => void
   entries: Record<string, Model.S3File>
-}>({
-  append: () => {},
-  entries: {},
-})
+} | null>(null)
 
 interface ProviderProps {
   children: React.ReactNode
@@ -26,7 +24,14 @@ export function Provider({ children }: ProviderProps) {
       }),
     )
   }, [])
-  return <Ctx.Provider value={{ entries, append }}>{children}</Ctx.Provider>
+  const clear = React.useCallback(() => setEntries({}), [])
+
+  const value = React.useMemo(
+    () => ({ append, clear, entries }),
+    [append, clear, entries],
+  )
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
 const useAddToPackage = () => React.useContext(Ctx)
