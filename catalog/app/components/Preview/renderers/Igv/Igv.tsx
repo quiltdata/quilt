@@ -22,18 +22,18 @@ function Igv({ options, ...props }: IgvProps) {
   const classes = useStyles()
 
   React.useEffect(() => {
+    let browser: igv.IgvBrowser
     async function initIgv() {
       if (!containerRef.current) return
       try {
-        await igv.createBrowser(containerRef.current, options)
-        // FIXME
-        // return () => browser.removeBrowser(browser)
+        browser = await igv.createBrowser(containerRef.current, options)
+        return () => browser && igv.removeBrowser(browser)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error(e)
         if (e instanceof Error) setError(e)
         // XXX: should NOT set state in dispose callback
-        // return () => setError(null)
+        return () => setError(null)
       }
     }
     initIgv()
