@@ -18,8 +18,7 @@ function clearActions(searchParams: URLSearchParams, history: H.History) {
 }
 
 function isActions(actions: string[]): actions is Action[] {
-  const unsupportedActions = actions.filter((a) => !Actions[a as Action])
-  return !unsupportedActions.length
+  return actions.every((a) => !!Actions[a as Action])
 }
 
 export default function useInitialActions(): Action[] {
