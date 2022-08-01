@@ -26,9 +26,6 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
 
 
-
-
-
 Use `browse` to edit the package:
 
 <!--pytest-codeblocks:cont-->
@@ -46,9 +43,18 @@ For more information on accessing existing packages see the section "[Installing
 Use the `set` and `set_dir` commands to add individual files and whole directories, respectively, to a `Package`:
 
 
-<!--pytest-codeblocks:cont-->
-
 ```python
+# Create test directories
+import quilt3
+from pathlib import Path
+from os import chdir
+TEST_DIR="test_workflow"
+SUB_DIR="subdir"
+
+Path(TEST_DIR).mkdir(exist_ok=True)
+Path(f'{TEST_DIR}/{SUB_DIR}').mkdir(exist_ok=True)
+chdir(TEST_DIR) # %cd TEST_DIR/ if in Jupyter
+
 # add entries individually using `set`
 # ie p.set("foo.csv", "/local/path/foo.csv"),
 # p.set("bar.csv", "s3://bucket/path/bar.csv")
@@ -66,14 +72,10 @@ p.set("banner.png", "s3://quilt-example/imgs/banner.png")
 # p.set_dir("things/", "s3://path/to/things/")
 
 # create test directory
-from pathlib import Path
-Path("test_data").mkdir(exist_ok=True)
-p.set_dir("stuff/", "./data/")
+
+p.set_dir("stuff/", SUB_DIR)
 p.set_dir("imgs/", "s3://quilt-example/imgs/")
 ```
-
-
-
 
     (remote Package)
      └─banner.png
@@ -81,8 +83,6 @@ p.set_dir("imgs/", "s3://quilt-example/imgs/")
      └─imgs/
        └─banner.png
      └─stuff/
-
-
 
 The first parameter to these functions is the *logical key*, which will determine where the file lives within the package. So after running the commands above our package will look like this:
 
@@ -92,9 +92,6 @@ The first parameter to these functions is the *logical key*, which will determin
 p
 ```
 
-
-
-
     (remote Package)
      └─banner.png
      └─data.csv
@@ -102,45 +99,35 @@ p
        └─banner.png
      └─stuff/
 
-
-
 The second parameter is the *physical key*, which states the file's actual location. The physical key may point to either a local file or a remote object (with an `s3://` path).
 
 If the physical key and the logical key are the same, you may omit the second argument:
 
-<!--pytest-codeblocks:cont-->
 
 ```python
-# assuming data.csv is in the current directory
-p = quilt3.Package()
-p.set("data.csv")
+import quilt3
+from os import chdir
+TEST_DIR="test_workflow"
+#chdir(TEST_DIR) # %cd TEST_DIR/ if in Jupyter
+# assuming data.csv is in that directory
+q = quilt3.Package()
+q.set("data.csv")
 ```
-
-
-
 
     (local Package)
      └─data.csv
-
-
 
 Another useful trick. Use `"."` to set the contents of the package to that of the current directory:
 
 <!--pytest-codeblocks:cont-->
 ```python
-# switch to a test directory and create some test files
-from pathlib import Path
-from os import chdir
-chdir("data") # %cd data/ if in Jupyter
-Path("stuff").mkdir(exist_ok=True)
+# create a test file in test directory
 with open("new_data.csv", "w") as f:
     f.write("id, value\na, 42")
 
 # set the contents of the package to that of the current directory
-p.set_dir(".", ".")
+q.set_dir(".", ".")
 ```
-
-
 
 
     (local Package)
@@ -155,7 +142,7 @@ Use `delete` to remove entries from a package:
 
 <!--pytest-codeblocks:cont-->
 ```python
-p.delete("data.csv")
+q.delete("data.csv")
 ```
 
 
@@ -175,9 +162,8 @@ Packages support metadata anywhere in the package. To set metadata on package en
 
 <!--pytest-codeblocks:cont-->
 ```python
-p = quilt3.Package()
-p.set("data.csv", "new_data.csv", meta={"type": "csv"})
-p.set_dir("stuff/", "stuff/", meta={"origin": "unknown"})
+q.set("data.csv", "new_data.csv", meta={"type": "csv"})
+q.set_dir("subdir/", "subdir/", meta={"origin": "unknown"})
 ```
 
 
@@ -195,7 +181,7 @@ You can also set metadata on the package as a whole using `set_meta`.
 <!--pytest-codeblocks:cont-->
 ```python
 # set metadata on a package
-p.set_meta({"package-type": "demo"})
+q.set_meta({"package-type": "demo"})
 ```
 
 
