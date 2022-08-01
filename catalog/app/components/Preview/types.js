@@ -23,6 +23,7 @@ export const PreviewData = tagged([
   'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
   'IFrame', // { src: string }
+  'Igv', // { options: object }
   'Image', // { handle: object }
   'Json', // { rendered: object }
   'Markdown', // { rendered: string }

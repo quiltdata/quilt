@@ -22,6 +22,7 @@ import * as fallback from './loaders/fallback'
 const loaderChain = [
   Fcs,
   Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
+  Igv, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
   Json,
   Markdown,
   Ngl,
@@ -30,7 +31,6 @@ const loaderChain = [
   Pdf,
   Vcf,
   Html,
-  Igv,
   Image,
   Video,
   Audio,

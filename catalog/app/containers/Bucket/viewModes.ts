@@ -65,8 +65,8 @@ export function useViewModes(
             Vega: (json: any) =>
               isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
             Json: (json: any) =>
-              isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : [],
-            _: () => ['json', 'igv'],
+              isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : ['json', 'igv'],
+            _: () => [],
             __: () => [],
           },
           previewResult,
