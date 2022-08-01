@@ -39,3 +39,4 @@ registry/dpmd
 
 # Doc Build
 _build
+testdocs/*.json*
