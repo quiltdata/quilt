@@ -12,7 +12,8 @@ b = quilt3.Bucket("s3://quilt-example")
 
 This requires that the bucket is configured to work with Quilt 3. Unless this bucket is public, you will also first need to log into the catalog that controls this bucket:
 
-<!--pytest-codeblocks:skip-->```python
+<!--pytest.mark.skip-->
+```python
 # only need to run this once
 # ie quilt3.config('https://your-catalog-homepage/')
 quilt3.config('https://open.quiltdata.com/')
@@ -164,5 +165,3 @@ b.search("user_meta.name:'thor'")
      'timed_out': False,
      '_shards': {'total': 5, 'successful': 5, 'skipped': 0, 'failed': 0},
      'hits': {'total': 0, 'max_score': None, 'hits': []}}
-
-
