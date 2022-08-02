@@ -1,10 +1,6 @@
 import * as React from 'react'
 
-interface S3Handle {
-  bucket: string
-  key: string
-  version?: string
-}
+import type { S3Handle } from 'utils/s3paths'
 
 export interface LogicalKeyResolver {
   (logicalKey: string): S3Handle | Promise<S3Handle>
