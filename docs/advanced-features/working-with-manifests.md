@@ -60,6 +60,7 @@ In almost all cases you should be using registries, `build`, and `push` to handl
 
 
 ```python
+import quilt3
 p = quilt3.Package().set("data.csv", "data.csv")
 p.set_meta({"key": "value"})
 
@@ -67,7 +68,7 @@ p.set_meta({"key": "value"})
 with open("example.jsonl", "w") as f:
     p.dump(f)
 
-# Loading maifest 
+# Loading maifest
 p.load(open("example.jsonl", "r"))
 ```
 
@@ -79,5 +80,3 @@ p.load(open("example.jsonl", "r"))
 
     (local Package)
      └─data.csv
-
-
