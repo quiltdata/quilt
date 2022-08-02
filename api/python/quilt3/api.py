@@ -91,17 +91,19 @@ def config(*catalog_url, **config_values):
 
     To retrieve the current config, call directly, without arguments:
 
-        >>> import quilt3
-        >>> quilt3.config()
+        import quilt3
+        quilt3.config()
 
     To trigger autoconfiguration, call with just the navigator URL:
 
-        >>> quilt3.config('https://example.com')
+        import quilt3
+        quilt3.config('https://example.com')
 
     To set config values, call with one or more key=value pairs:
 
-        >>> quilt3.config(navigator_url='http://example.com',
-        ...               elastic_search_url='http://example.com/queries')
+        import quilt3
+        quilt3.config(navigator_url='http://example.com',
+                       elastic_search_url='http://example.com/queries')
 
     Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
 
