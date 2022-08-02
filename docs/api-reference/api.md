@@ -8,21 +8,22 @@ Set or read the QUILT configuration.
 To retrieve the current config, call directly, without arguments:
 
 ```python
-    >>> import quilt3
-    >>> quilt3.config()
+import quilt3
+quilt3.config()
 ```
 
 To trigger autoconfiguration, call with just the navigator URL:
 
 ```python
-    >>> quilt3.config('https://example.com')
+import quilt3
+quilt3.config(navigator_url='https://example.com')
 ```
 
 To set config values, call with one or more key=value pairs:
 
 ```python
-    >>> quilt3.config(navigator_url='http://example.com',
-    ...               elastic_search_url='http://example.com/queries')
+import quilt3
+quilt3.config(navigator_url='http://example.com', elastic_search_url='http://example.com/queries')
 ```
 
 Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
@@ -130,4 +131,3 @@ a list of objects with the following structure:
 `"_type"`: <document type>
 }, ...]
 ```
-
