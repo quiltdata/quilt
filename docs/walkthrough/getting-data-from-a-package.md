@@ -28,9 +28,9 @@ p
 ## Slicing through a package
 
 Use `dict` key selection to slice into a package tree:
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 # returns PackageEntry("requirements.txt")
 p["requirements.txt"]
@@ -40,11 +40,11 @@ p["requirements.txt"]
 
 
     PackageEntry('s3://quilt-example/aleksey/hurdat/requirements.txt?versionId=bQtxuZlaylNVHi0GmxkSMofT5qXJvP95')
+    <!--pytest-codeblocks:cont-->
 
 
 
 
-<!--pytest-codeblocks:cont-->
 ```python
 # returns (remote Package)
 p["notebooks"]
@@ -63,9 +63,9 @@ Slicing into a `Package` directory returns another `Package` rooted at that subd
 ## Downloading package data to disk
 
 To download a subset of files from a package directory to a `dest`, use `fetch`:
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 # download a subfolder
 p["notebooks"].fetch()
@@ -98,9 +98,9 @@ p.fetch()
 
 
 `fetch` will default to downloading the files to the current directory, but you can also specify an alternative path:
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 p["notebooks"]["QuickStart.ipynb"].fetch("./references/")
 ```
@@ -118,9 +118,9 @@ p["notebooks"]["QuickStart.ipynb"].fetch("./references/")
 ## Downloading package data into memory
 
 Alternatively, you can download data directly into memory:
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 p["quilt_summarize.json"].deserialize()
 ```
@@ -133,9 +133,9 @@ p["quilt_summarize.json"].deserialize()
 
 
 To apply a custom deserializer to your data, pass the function as a parameter to the function. For example, to load a hypothetical `yaml` file using `yaml.safe_load`:
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 import yaml
 # returns a dict
@@ -154,9 +154,9 @@ The deserializer should accept a byte stream as input.
 ## Getting entry locations
 
 You can get the path to a package entry or directory using `get`:
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 # returns /path/to/pkg/root/notebooks/QuickStart.ipynb
 p["notebooks"]["QuickStart.ipynb"].get()
@@ -172,9 +172,9 @@ p["notebooks"]["QuickStart.ipynb"].get()
 ## Getting metadata
 
 Metadata is available using the `meta` property.
-
-
 <!--pytest-codeblocks:cont-->
+
+
 ```python
 # get entry metadata
 p["notebooks"]["QuickStart.ipynb"].meta
