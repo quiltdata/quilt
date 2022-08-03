@@ -48,10 +48,14 @@ jobs:
           python -m pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
       - name: generate docs
         run: cd gendocs && python build.py
-      - name: show changes via cat
+      - name: show invisible changes via cat
         run: git diff | cat -A
       - name: check there are no changes
         run: git diff --exit-code
+      - name: install and run testdoc
+        run: |
+          python -m pip install poetry
+          cd testdocs && poetry install && poetry run pytest --codeblocks ../docs
 
   test-client:
     strategy:
