@@ -48,6 +48,8 @@ jobs:
           python -m pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
       - name: generate docs
         run: cd gendocs && python build.py
+      - name: show changes via cat
+        run: git diff | cat -A
       - name: check there are no changes
         run: git diff --exit-code
 
