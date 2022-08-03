@@ -125,3 +125,4 @@ a list of objects with the following structure:
 `"_type"`: <document type>
 }, ...]
 ```
+

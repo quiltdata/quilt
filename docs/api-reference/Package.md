@@ -521,3 +521,4 @@ None
 ## PackageEntry.\_\_call\_\_(self, func=None, \*\*kwargs)  {#PackageEntry.\_\_call\_\_}
 
 Shorthand for self.deserialize()
+
