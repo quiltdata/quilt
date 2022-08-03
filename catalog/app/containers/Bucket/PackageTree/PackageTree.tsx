@@ -448,6 +448,7 @@ function DirDisplay({
               <M.Box mt={2}>
                 {preferences?.ui?.blocks?.browser && <Listing items={items} key={hash} />}
                 <Summary
+                  path={path}
                   files={summaryHandles}
                   mkUrl={mkUrl}
                   packageHandle={packageHandle}
