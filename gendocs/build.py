@@ -21,6 +21,7 @@ EXPECTED_VERSION_SUFFIX = '-quilt3'
 GH_HTTPS_REV = 'quilt'
 GH_URL = f'git+https://github.com/quiltdata/pydoc-markdown.git@{GH_HTTPS_REV}'
 
+
 def generate_cli_api_reference_docs():
     # This script relies on relative paths so it should only run if the cwd is gendocs/
     subprocess.check_call(["./gen_cli_api_reference.sh"])
@@ -29,6 +30,7 @@ def generate_cli_api_reference_docs():
 def gen_walkthrough_doc():
     # This script relies on relative paths so it should only run if the cwd is gendocs/
     subprocess.check_call(["./gen_walkthrough.sh"])
+
 
 def install_pydocmd():
     try:
@@ -59,6 +61,7 @@ def install_pydocmd():
 
         print(f'Installing {GH_URL}')
         pipmain(['install', GH_URL])
+
 
 if __name__ == "__main__":
     # CLI and Walkthrough docs uses custom script to generate documentation markdown, so do that first
