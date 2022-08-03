@@ -17,6 +17,7 @@ exploration:
 * [ECharts](#echarts)
 * [Voila](#voila) (Developer preview)
 * [Perspective](#perspective)
+* [Igv](#igv)
 
 The above systems provide you with hundreds of charts out of the box.
 
@@ -72,6 +73,7 @@ or an object with one or more of the following properties:
 - `types` - a list of rendering types; currently only singleton list values are supported:
     - `["echarts"]` to render JSON as an EChart
     - `["perspective"]` to render tabular data (csv, xlsx etc.) with Perspective
+    - `["igv"]` to render JSON with Integrative Genomics Viewer
     - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
 
 If you need to control the height of an element (useful for Voila dashboards),
@@ -347,6 +349,25 @@ All filters and columns will be restored:
         }
       }
     ]
+  }
+]
+```
+
+## Igv
+
+To render an [Igv](https://igv.org/), you provide a JSON file (a dictionary that
+specifies the Igv [browser configuration options](https://github.com/igvteam/igv.js/wiki/Browser-Creation#browser-configuration-options))
+and you set the `"types"` property to `[ "igv" ]`.
+
+Alternatively, you can browse that JSON file in Quilt web and switch viewer from JSON to Igv
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "igv-options-file.json",
+    "title": "Awesome genome",
+    "types": ["igv"]
   }
 ]
 ```
