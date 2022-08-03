@@ -2,15 +2,12 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
-import * as Resource from 'utils/Resource'
-import * as s3paths from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
 
+import useSignObjectUrls from './useSignObjectUrls'
 import * as summarize from './summarize'
 import * as utils from './utils'
 
@@ -42,65 +39,6 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
     json,
   )
 
-function useUrlsSigner(handle: S3SummarizeHandle) {
-  // @ts-expect-error
-  const sign = AWS.Signer.useS3Signer({ forceProxy: true })
-  const resolveLogicalKey = useLogicalKeyResolver()
-
-  const resolvePath = React.useMemo(
-    () =>
-      resolveLogicalKey && handle.logicalKey
-        ? async (path: string) => {
-            try {
-              return await resolveLogicalKey(
-                s3paths.resolveKey(handle.logicalKey as string, path),
-              )
-            } catch (e) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                `Error resolving data url '${path}' referenced from vega spec at '${handle.logicalKey}'`,
-              )
-              // eslint-disable-next-line no-console
-              console.error(e)
-              throw PreviewError.SrcDoesNotExist({ path })
-            }
-          }
-        : (path: string) => ({
-            bucket: handle.bucket,
-            key: s3paths.resolveKey(handle.key, path),
-          }),
-    [resolveLogicalKey, handle.logicalKey, handle.key, handle.bucket],
-  )
-
-  const processUrl = React.useMemo(
-    () =>
-      R.pipe(
-        Resource.parse,
-        Resource.Pointer.case({
-          Web: async (url) => url,
-          S3: async (h) => sign(h),
-          S3Rel: async (path) => sign(await resolvePath(path)),
-          Path: async (path) => sign(await resolvePath(path)),
-        }),
-      ),
-    [sign, resolvePath],
-  )
-
-  return React.useCallback(
-    async (json: JsonRecord) => {
-      const promises: Promise<$TSFixMe>[] = []
-      // spec url in each tracks[].url and tracks[].indexURL
-      const specWithPlaceholders = traverseUrls((url: string): number => {
-        const len = promises.push(processUrl(url))
-        return len - 1
-      }, json)
-      const results = await Promise.all(promises)
-      return traverseUrls((idx: number): string => results[idx], specWithPlaceholders)
-    },
-    [processUrl],
-  )
-}
-
 export const detect = (key: string, options: summarize.File) =>
   summarize.detect('igv')(options)
 
@@ -125,7 +63,7 @@ interface PreviewResult {
 }
 
 export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderProps) {
-  const signUrls = useUrlsSigner(handle)
+  const signUrls = useSignObjectUrls(handle, traverseUrls)
 
   const { result, fetch } = utils.usePreview({
     type: 'txt',

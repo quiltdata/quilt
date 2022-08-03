@@ -2,14 +2,11 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
-import * as Resource from 'utils/Resource'
-import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 import * as IgvLoader from './Igv'
+import useSignObjectUrls from './useSignObjectUrls'
 
 import * as Text from './Text'
 import * as utils from './utils'
@@ -30,59 +27,6 @@ export const traverseUrls = (fn, spec) =>
     spec,
   )
 
-// NOTE: downloads content from urls embeded in `{ data: url-here-becomes-json }`
-function useVegaSpecSigner(handle) {
-  const sign = AWS.Signer.useS3Signer({ forceProxy: true })
-  const resolveLogicalKey = useLogicalKeyResolver()
-
-  const resolvePath = React.useMemo(
-    () =>
-      resolveLogicalKey && handle.logicalKey
-        ? (path) =>
-            resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
-              // eslint-disable-next-line no-console
-              console.warn(
-                `Error resolving data url '${path}' referenced from vega spec at '${handle.logicalKey}'`,
-              )
-              // eslint-disable-next-line no-console
-              console.error(e)
-              throw PreviewError.SrcDoesNotExist({ path })
-            })
-        : (path) => ({
-            bucket: handle.bucket,
-            key: s3paths.resolveKey(handle.key, path),
-          }),
-    [resolveLogicalKey, handle.logicalKey, handle.key, handle.bucket],
-  )
-
-  const processUrl = React.useMemo(
-    () =>
-      R.pipe(
-        Resource.parse,
-        Resource.Pointer.case({
-          Web: async (url) => url,
-          S3: async (h) => sign(h),
-          S3Rel: async (path) => sign(await resolvePath(path)),
-          Path: async (path) => sign(await resolvePath(path)),
-        }),
-      ),
-    [sign, resolvePath],
-  )
-
-  return React.useCallback(
-    async (spec) => {
-      const promises = []
-      const specWithPlaceholders = traverseUrls((url) => {
-        const len = promises.push(processUrl(url))
-        return len - 1
-      }, spec)
-      const results = await Promise.all(promises)
-      return traverseUrls((idx) => results[idx], specWithPlaceholders)
-    },
-    [processUrl],
-  )
-}
-
 const detectSchema = (txt) => {
   const m = txt.match(SCHEMA_RE)
   if (!m) return false
@@ -92,7 +36,7 @@ const detectSchema = (txt) => {
 }
 
 function VegaLoader({ handle, gated, children }) {
-  const signSpec = useVegaSpecSigner(handle)
+  const signSpec = useSignObjectUrls(handle, traverseUrls)
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
   const processed = utils.useAsyncProcessing(
     data.result,

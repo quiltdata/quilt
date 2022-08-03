@@ -1,12 +1,10 @@
 import * as React from 'react'
 
-// FIXME: re-use from summarize
-interface S3SummarizeHandle {
-  bucket: string
-  key: string
+import type { S3HandleBase } from 'utils/s3paths'
+
+export interface S3SummarizeHandle extends S3HandleBase {
   logicalKey?: string
   size?: number
-  version?: string
 }
 
 export interface LogicalKeyResolver {

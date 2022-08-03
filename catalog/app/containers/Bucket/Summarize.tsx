@@ -30,13 +30,8 @@ type SummaryFileTypeExtended = {
 type SummaryFileType = SummaryFileTypeShorthand | SummaryFileTypeExtended
 type SummaryFileTypes = SummaryFileType[]
 
-interface S3Handle {
-  bucket: string
+interface S3Handle extends LogicalKeyResolver.S3SummarizeHandle {
   error?: errors.BucketError
-  key: string
-  logicalKey?: string
-  size?: number
-  version?: string
 }
 
 interface SummarizeFile {
