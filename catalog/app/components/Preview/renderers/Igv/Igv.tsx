@@ -1,10 +1,6 @@
+import igv from 'igv'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import igv from 'igv'
-
-const useStyles = M.makeStyles({
-  root: {},
-})
 
 interface IgvEssential {
   options: igv.IgvBrowserOptions
@@ -19,7 +15,6 @@ function Igv({ options, ...props }: IgvProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
   const [error, setError] = React.useState<Error | null>(null)
-  const classes = useStyles()
 
   React.useEffect(() => {
     let browser: igv.IgvBrowser
@@ -51,7 +46,7 @@ function Igv({ options, ...props }: IgvProps) {
       </>
     )
 
-  return <div ref={containerRef} className={classes.root} {...props} />
+  return <div ref={containerRef} {...props} />
 }
 
 export default ({ options }: IgvEssential, props: React.HTMLProps<HTMLDivElement>) => (

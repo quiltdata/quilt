@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
+import { S3SummarizeHandle } from 'utils/LogicalKeyResolver'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
@@ -10,15 +11,6 @@ import { PreviewData, PreviewError } from '../types'
 import useSignObjectUrls from './useSignObjectUrls'
 import * as summarize from './summarize'
 import * as utils from './utils'
-
-// re-use from summarize
-interface S3SummarizeHandle {
-  bucket: string
-  key: string
-  logicalKey?: string
-  size?: number
-  version?: string
-}
 
 const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
   R.evolve(
@@ -76,7 +68,6 @@ export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderP
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       try {
-        // TODO: url signers, re-use useVegaSpecSigner
         const options = JSON.parse([head, tail].join('\n'))
         const auxOptions = await signUrls(options)
         return PreviewData.Igv({ options: auxOptions })
