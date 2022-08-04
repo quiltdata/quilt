@@ -368,3 +368,6 @@ or you can invoke [igv.js](https://igv.org/) in quilt_summarize, as shown below:
   }
 ]
 ```
+
+In the above example, `igv-options-file.json` is an
+[IGV browser configuration](https://github.com/igvteam/igv.js/wiki/Browser-Creation#browser-configuration-options).
