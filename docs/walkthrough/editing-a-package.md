@@ -26,7 +26,7 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
 
 
-
+    
 
 
 Use `browse` to edit the package:
@@ -124,7 +124,7 @@ import quilt3
 from os import chdir
 # assuming data.csv is in that directory
 p = quilt3.Package()
-import pudb; pudb.set_trace().set("data.csv")
+p.set("data.csv")
 ```
 
 
