@@ -339,6 +339,7 @@ function SignIn({ error, waiting }: SignInProps) {
 
 const useAppBarStyles = M.makeStyles((t) => ({
   root: {
+    background: t.palette.secondary.dark,
     zIndex: t.zIndex.appBar + 1,
   },
   bgWrapper: {
