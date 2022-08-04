@@ -26,7 +26,7 @@ quilt3.Package.install(
     Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
 
 
-    
+
 
 
 Use `browse` to edit the package:
@@ -53,12 +53,12 @@ Use the `set` and `set_dir` commands to add individual files and whole directori
 import quilt3
 from pathlib import Path
 from os import chdir
-TEST_DIR="test_workflow"
-SUB_DIR="subdir"
+TEST_DIR = "test_workflow"
+SUB_DIR = "subdir"
 
 # create test directories
 Path(TEST_DIR).mkdir(exist_ok=True)
-Path(f'{TEST_DIR}/{SUB_DIR}').mkdir(exist_ok=True)
+Path(TEST_DIR, SUB_DIR).mkdir(exist_ok=True)
 chdir(TEST_DIR) # %cd TEST_DIR/ if in Jupyter
 
 # add entries individually using `set`
@@ -94,7 +94,7 @@ p.set_dir("imgs/", "s3://quilt-example/imgs/")
 
 
 
-The first parameter to these functions is the *logical key*, which will determine where the file lives within the package.So after running the commands above our package will look like this:
+The first parameter to these functions is the *logical key*, which will determine where the file lives within the package. So after running the commands above our package will look like this:
 <!--pytest-codeblocks:cont-->
 
 
@@ -123,8 +123,8 @@ If the physical key and the logical key are the same, you may omit the second ar
 import quilt3
 from os import chdir
 # assuming data.csv is in that directory
-q = quilt3.Package()
-q.set("data.csv")
+p = quilt3.Package()
+import pudb; pudb.set_trace().set("data.csv")
 ```
 
 
@@ -145,7 +145,7 @@ with open("new_data.csv", "w") as f:
     f.write("id, value\na, 42")
 
 # set the contents of the package to that of the current directory
-q.set_dir(".", ".")
+p.set_dir(".", ".")
 ```
 
 
@@ -164,7 +164,7 @@ Use `delete` to remove entries from a package:
 
 
 ```python
-q.delete("data.csv")
+p.delete("data.csv")
 ```
 
 
