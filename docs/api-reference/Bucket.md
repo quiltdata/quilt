@@ -8,7 +8,7 @@ Creates a Bucket object.
 
 __Arguments__
 
-* __bucket_uri(str)__:  URI of bucket to target. Must start with 's3://'
+* __bucket_uri(str)__:  URI of bucket to target. Must start with 's3://'      
 
 __Returns__
 

@@ -49,7 +49,7 @@ jobs:
       - name: generate docs
         run: cd gendocs && python build.py
       - name: check there are no changes
-        run: git diff --exit-code
+        run: git diff --color --exit-code
 
   test-client:
     strategy:
