@@ -37,7 +37,7 @@ function AddReadmeSection({ packageHandle: { bucket, name } }) {
   return (
     <div className={classes.root}>
       <StyledLink to={toConfig}>
-        <M.Button size="small" color="primary" variant="outlined">
+        <M.Button size="small" color="primary" variant="contained">
           Add README
         </M.Button>
       </StyledLink>
