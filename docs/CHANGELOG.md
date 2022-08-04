@@ -11,7 +11,7 @@
 * [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
 
 ## Catalog, Lambdas
-* [Added] Add Igv renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
+* [Added] Add IGV renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
 * [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
 * [Added] Show bucket collaborators ([#2756](https://github.com/quiltdata/quilt/pull/2756))
 * [Added] Add `config` field to Perspective scope of `quilt_summarize.json` ([#2781](https://github.com/quiltdata/quilt/pull/2781))
