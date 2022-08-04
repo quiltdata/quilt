@@ -10,7 +10,7 @@ import { PackageHandle } from 'utils/packageHandle'
 import { JsonRecord } from 'utils/types'
 
 const MODES = {
-  igv: 'Igv',
+  igv: 'IGV',
   json: 'JSON',
   jupyter: 'Jupyter',
   vega: 'Vega',
