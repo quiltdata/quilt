@@ -52,6 +52,7 @@ jobs:
         run: git diff | cat -A
       - name: check there are no changes
         run: git diff --exit-code
+
   test-testdocs:
     runs-on: ubuntu-latest
     env:
