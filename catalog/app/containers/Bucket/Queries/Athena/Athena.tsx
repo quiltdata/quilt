@@ -529,37 +529,32 @@ function WorkgroupsFetcher({ children }: WorkgroupsFetcherProps) {
   return children({ handleWorkgroupsLoadMore: setPrev, workgroupsData })
 }
 
-// TODO:
-//   refactor data using these principles:
-//   there is list of items (workgroups, queries, executions, results), user can loadMore items of this list
-//   also some lists has selected one item (workgroup, queries), user can change selected item
-//   Something like this:
-//     {
-//       [T namespace]: {
-//         list: T[]
-//         selected?: T,
-//         change: (value: T) => void
-//         loadMore: (prev: T[]) => void
-//       }
-//     }
-
 interface StateRenderProps {
+  workgroups: {
+    data: requests.AsyncData<requests.athena.WorkgroupsResponse>
+    loadMore: (prev: requests.athena.WorkgroupsResponse) => void
+    selected: requests.athena.Workgroup | null
+    change: (w: requests.athena.Workgroup | null) => void
+  }
+  queries: {
+    data: requests.AsyncData<requests.athena.QueriesResponse>
+    loadMore: (prev: requests.athena.QueriesResponse) => void
+    selected: requests.athena.AthenaQuery | null
+    change: (q: requests.Query | requests.athena.AthenaQuery | null) => void
+  }
+  results: {
+    data: requests.AsyncData<requests.athena.QueryResultsResponse>
+    loadMore: (prev: requests.athena.QueryResultsResponse) => void
+  }
+  executions: {
+    data: requests.AsyncData<requests.athena.QueryExecutionsResponse>
+    loadMore: (prev: requests.athena.QueryExecutionsResponse) => void
+  }
+  // TODO: queryBody: {value, change, submit} ?
   customQueryBody: string | null
-  executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
-  handleExecutionsLoadMore: (prev: requests.athena.QueryExecutionsResponse) => void
-  handleQueriesLoadMore: (prev: requests.athena.QueriesResponse) => void
   handleQueryBodyChange: (q: string | null) => void
-  handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
-  handleQueryResultsLoadMore: (prev: requests.athena.QueryResultsResponse) => void
   handleSubmit: (q: string) => () => void
-  handleWorkgroupChange: (w: requests.athena.Workgroup | null) => void
-  handleWorkgroupsLoadMore: (prev: requests.athena.WorkgroupsResponse) => void
-  queriesData: requests.AsyncData<requests.athena.QueriesResponse>
-  queryMeta: requests.athena.AthenaQuery | null
-  queryResultsData: requests.AsyncData<requests.athena.QueryResultsResponse>
   queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
-  workgroup: requests.athena.Workgroup | null
-  workgroupsData: requests.AsyncData<requests.athena.WorkgroupsResponse>
 }
 
 interface StateProps {
@@ -604,6 +599,7 @@ function State({ children, queryExecutionId }: StateProps) {
     },
     [setQueryMeta, setWorkgroup],
   )
+  // TODO: use hooks instead of nested components
   return (
     <WorkgroupsFetcher>
       {({ handleWorkgroupsLoadMore, workgroupsData }) =>
@@ -644,22 +640,30 @@ function State({ children, queryExecutionId }: StateProps) {
                         >
                           {({ queryRunData }) =>
                             children({
+                              workgroups: {
+                                data: workgroupsData,
+                                loadMore: handleWorkgroupsLoadMore,
+                                selected: selectedWorkgroup,
+                                change: handleWorkgroupChange,
+                              },
+                              queries: {
+                                data: queriesData,
+                                loadMore: handleQueriesLoadMore,
+                                selected: queryMeta,
+                                change: handleQueryMetaChange,
+                              },
+                              results: {
+                                data: queryResultsData,
+                                loadMore: handleQueryResultsLoadMore,
+                              },
+                              executions: {
+                                data: executionsData,
+                                loadMore: handleExecutionsLoadMore,
+                              },
                               customQueryBody,
-                              executionsData,
-                              handleExecutionsLoadMore,
-                              handleQueriesLoadMore,
                               handleQueryBodyChange: setCustomQueryBody,
-                              handleQueryMetaChange,
-                              handleQueryResultsLoadMore,
                               handleSubmit,
-                              handleWorkgroupChange,
-                              handleWorkgroupsLoadMore,
-                              queriesData,
-                              queryMeta,
-                              queryResultsData,
                               queryRunData,
-                              workgroupsData,
-                              workgroup: selectedWorkgroup,
                             })
                           }
                         </QueryRunner>
@@ -748,21 +752,13 @@ export default function Athena({
     <State queryExecutionId={queryExecutionId || null}>
       {({
         customQueryBody,
-        executionsData,
-        handleExecutionsLoadMore,
-        handleQueriesLoadMore,
         handleQueryBodyChange,
-        handleQueryMetaChange,
-        handleQueryResultsLoadMore,
         handleSubmit,
-        handleWorkgroupChange,
-        handleWorkgroupsLoadMore,
-        queriesData,
-        queryMeta,
-        queryResultsData,
         queryRunData,
-        workgroupsData,
-        workgroup,
+        workgroups,
+        queries,
+        results,
+        executions,
       }) =>
         queryRunData.case({
           _: ({ value: executionData }) => {
@@ -781,27 +777,27 @@ export default function Athena({
                 <div className={classes.selects}>
                   <WorkgroupField
                     className={classes.select}
-                    workgroupsData={workgroupsData}
-                    onChange={handleWorkgroupChange}
-                    onLoadMore={handleWorkgroupsLoadMore}
-                    value={workgroup}
+                    workgroupsData={workgroups.data}
+                    onChange={workgroups.change}
+                    onLoadMore={workgroups.loadMore}
+                    value={workgroups.selected}
                   />
 
                   <QueryMetaField
                     className={classes.select}
-                    queriesData={queriesData}
-                    onChange={handleQueryMetaChange}
-                    onLoadMore={handleQueriesLoadMore}
-                    value={customQueryBody ? null : queryMeta}
+                    queriesData={queries.data}
+                    onChange={queries.change}
+                    onLoadMore={queries.loadMore}
+                    value={customQueryBody ? null : queries.selected}
                   />
                 </div>
 
                 <QueryBodyField
                   className={classes.form}
                   customQueryBody={customQueryBody}
-                  queriesData={queriesData}
-                  queryMeta={queryMeta}
-                  queryResultsData={queryResultsData}
+                  queriesData={queries.data}
+                  queryMeta={queries.selected}
+                  queryResultsData={results.data}
                   queryRunData={queryRunData}
                   onChange={handleQueryBodyChange}
                   onSubmit={handleSubmit}
@@ -809,16 +805,16 @@ export default function Athena({
 
                 <HistoryContainer
                   bucket={bucket}
-                  executionsData={executionsData}
+                  executionsData={executions.data}
                   queryExecutionId={queryExecutionId}
-                  onLoadMore={handleExecutionsLoadMore}
+                  onLoadMore={executions.loadMore}
                 />
 
                 <ResultsContainer
                   bucket={bucket}
                   className={classes.results}
-                  onLoadMore={handleQueryResultsLoadMore}
-                  queryResultsData={queryResultsData}
+                  onLoadMore={results.loadMore}
+                  queryResultsData={results.data}
                 />
               </>
             )
