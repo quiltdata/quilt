@@ -77,4 +77,4 @@ ui:
         - $.key4[0]
 ```
 
-![](../docs/imgs/package-list-selective-metadata.png)
+![](../imgs/package-list-selective-metadata.png)
