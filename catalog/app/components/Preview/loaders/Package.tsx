@@ -4,7 +4,6 @@ import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
 import type { S3HandleBase } from 'utils/s3paths'
-import { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
 
@@ -33,27 +32,6 @@ interface LoaderProps {
   handle: S3HandleBase
 }
 
-interface PackageMeta {
-  version?: string
-  workflow?: string
-  message?: string
-}
-
-interface PackageEntry {
-  logical_key: string
-  physical_keys: string[]
-  size: number
-  hash: {
-    type: string
-    value: string
-  }
-  meta: JsonRecord
-}
-
-const parseMeta = (obj: string): PackageMeta => JSON.parse(obj)
-
-const parseEntries = (obj: string): PackageEntry[] => JSON.parse(obj)
-
 export const Loader = function PackageLoader({ gated, handle, children }: LoaderProps) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
@@ -64,21 +42,27 @@ export const Loader = function PackageLoader({ gated, handle, children }: Loader
     result,
     ({ info: { data, note, warnings } }: PreviewResult) => {
       try {
-        const dataList = [...data.head, ...data.tail]
-        const packageMeta = dataList[0] ? parseMeta(dataList[0]) : {}
-        const packageEntries = R.pipe(
-          R.tail,
-          R.join(',\n'),
-          (x) => `[${x}]`,
-          parseEntries,
-          R.map(
+        const [meta, ...entries] = [...data.head, ...data.tail]
+        const packageMeta = meta ? JSON.parse(meta) : {}
+        const packageEntries = R.map(
+          R.pipe(
+            JSON.parse,
             R.evolve({
               hash: R.prop('value'),
               meta: JSON.stringify,
               physical_keys: R.join(', '),
             }),
+            R.mergeRight({
+              // null fields are for keeping order
+              logical_key: null,
+              physical_keys: '',
+              size: 0,
+              hash: null,
+              meta: null,
+            }),
           ),
-        )(dataList)
+          entries,
+        )
         return PreviewData.Perspective({ packageMeta, data: packageEntries })
       } catch (e) {
         if (e instanceof SyntaxError) {
