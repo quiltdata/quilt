@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
@@ -21,22 +21,23 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     justifyContent: 'flex-end',
-    padding: t.spacing(2, 0),
+    margin: t.spacing(2, 0),
   },
 }))
 
 function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const classes = useAddReadmeSectionStyles()
   const { urls } = NamedRoutes.use()
-  const next = urls.bucketPackageDetail(bucket, name)
-  const toConfig = urls.bucketFile(bucket, path.join(name, 'README.md'), {
-    next,
+  const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+  const toConfig = urls.bucketFile(bucket, join(name, 'README.md'), {
     add: true,
+    edit: true,
+    next,
   })
   return (
     <div className={classes.root}>
       <StyledLink to={toConfig}>
-        <M.Button size="small" color="primary" variant="outlined">
+        <M.Button size="small" color="primary" variant="contained">
           Add README
         </M.Button>
       </StyledLink>
@@ -198,7 +199,7 @@ function Thumbnails({ images, mkUrl }) {
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
   const mkUrl = React.useCallback(
     (handle) =>
@@ -209,8 +210,6 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }
   )
   const { readme, images, summarize } = extractSummary(files)
 
-  const canAddReadme = false // !readme && !!packageHandle AND can open RevisePackage with url
-
   return (
     <>
       {readme && (
@@ -220,7 +219,9 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle }
           mkUrl={mkUrl}
         />
       )}
-      {canAddReadme && <AddReadmeSection packageHandle={packageHandle} />}
+      {!readme && !path && !!packageHandle && (
+        <AddReadmeSection packageHandle={packageHandle} />
+      )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested
