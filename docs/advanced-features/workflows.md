@@ -296,7 +296,6 @@ schemas:
 ```json
 {
   "type": "array",
-  "items": {
   "contains": {
     "type": "object",
     "properties": {
