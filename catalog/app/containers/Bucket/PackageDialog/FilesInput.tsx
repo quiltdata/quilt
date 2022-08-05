@@ -1289,6 +1289,7 @@ interface FilesInputProps {
     submitFailed: boolean
     dirty: boolean
     error?: string
+    submitError?: string
     initial: FilesState
   }
   onFilesAction?: (
@@ -1346,7 +1347,7 @@ export function FilesInput({
   }
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const refProps = {
     value,
@@ -1641,6 +1642,7 @@ interface FilesSelectorProps {
     submitFailed: boolean
     dirty: boolean
     error?: string
+    submitError?: string
     initial: FilesSelectorState
   }
   title: React.ReactNode
@@ -1659,7 +1661,7 @@ export function FilesSelector({
   const classes = useFilesSelectorStyles()
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const selected = React.useMemo(
     () => value.reduce((m, i) => (i.selected ? m + 1 : m), 0),
