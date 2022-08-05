@@ -326,7 +326,6 @@ Requires a README
       }
     }
   }
- }
 }
 ```
 
