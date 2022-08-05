@@ -52,14 +52,6 @@ export const Loader = function PackageLoader({ gated, handle, children }: Loader
               meta: JSON.stringify,
               physical_keys: R.join(', '),
             }),
-            R.mergeRight({
-              // null fields are for keeping order
-              logical_key: null,
-              physical_keys: '',
-              size: 0,
-              hash: null,
-              meta: null,
-            }),
           ),
           entries,
         )
