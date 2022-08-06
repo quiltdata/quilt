@@ -593,9 +593,8 @@ function State({ children, queryExecutionId }: StateProps) {
   const workgroups = useWorkgroups()
   const results = useQueryResults(queryExecutionId)
 
-  // const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
   const handleWorkgroupChange = React.useCallback(
-    (w) => {
+    (w: string | null) => {
       workgroups.change(w)
       setQueryMeta(null)
     },
