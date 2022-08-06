@@ -439,35 +439,27 @@ function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
   )
 }
 
-interface QueryRunnerRenderProps {
-  queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
+interface QueryRunnerState {
+  data: requests.AsyncData<requests.athena.QueryRunResponse>
 }
 
-interface QueryRunnerProps {
-  children: (props: QueryRunnerRenderProps) => React.ReactElement
-  queryBody: string
-  queryExecutionId: string | null
-  workgroup: string
-}
-
-function QueryRunner({
-  children,
-  queryBody,
-  queryExecutionId,
-  workgroup,
-}: QueryRunnerProps) {
-  const queryRunData = requests.athena.useQueryRun(workgroup, queryBody)
+function useQueryRunner(
+  queryExecutionId: string | null,
+  workgroup: string,
+  queryBody: string | null,
+): QueryRunnerState {
+  const data = requests.athena.useQueryRun(workgroup, queryBody || '')
   const { push: notify } = Notifications.use()
   React.useEffect(() => {
-    queryRunData.case({
+    data.case({
       _: () => null,
       Ok: ({ id }) => {
         if (id === queryExecutionId) notify('Query execution results remain unchanged')
         return null
       },
     })
-  }, [notify, queryExecutionId, queryRunData])
-  return children({ queryRunData })
+  }, [notify, queryExecutionId, data])
+  return React.useMemo(() => ({ data }), [data])
 }
 
 interface QueryResults {
@@ -618,6 +610,8 @@ function State({ children, queryExecutionId }: StateProps) {
     [queries, setCustomQueryBody],
   )
 
+  const queryRunner = useQueryRunner(queryExecutionId, selectedWorkgroup, queryRequest)
+
   // TODO: use hooks instead of nested components
   return workgroups.data.case({
     _: (workgroupsDataResult) => {
@@ -628,33 +622,23 @@ function State({ children, queryExecutionId }: StateProps) {
       )
         return <WorkgroupsEmpty />
 
-      return (
-        <QueryRunner
-          queryBody={queryRequest || ''}
-          queryExecutionId={queryExecutionId}
-          workgroup={selectedWorkgroup}
-        >
-          {({ queryRunData }) =>
-            children({
-              workgroups: {
-                ...workgroups,
-                selected: selectedWorkgroup,
-                change: handleWorkgroupChange,
-              },
-              queries: {
-                ...queries,
-                change: handleQueryMetaChange,
-              },
-              results,
-              executions,
-              customQueryBody,
-              handleQueryBodyChange: setCustomQueryBody,
-              handleSubmit,
-              queryRunData,
-            })
-          }
-        </QueryRunner>
-      )
+      return children({
+        workgroups: {
+          ...workgroups,
+          selected: selectedWorkgroup,
+          change: handleWorkgroupChange,
+        },
+        queries: {
+          ...queries,
+          change: handleQueryMetaChange,
+        },
+        results,
+        executions,
+        customQueryBody,
+        handleQueryBodyChange: setCustomQueryBody,
+        handleSubmit,
+        queryRunData: queryRunner.data,
+      })
     },
     Err: (error) => <WorkgroupsEmpty error={error} />,
   })
