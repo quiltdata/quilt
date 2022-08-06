@@ -483,24 +483,21 @@ function useQueryResults(queryExecutionId: string | null): QueryResults {
   return React.useMemo(() => ({ data, loadMore: usePrev }), [data])
 }
 
-interface QueriesFetcherRenderProps {
-  handleQueriesLoadMore: (prev: requests.athena.QueriesResponse) => void
-  queriesData: requests.AsyncData<requests.athena.QueriesResponse>
+interface QueriesState {
+  loadMore: (prev: requests.athena.QueriesResponse) => void
+  data: requests.AsyncData<requests.athena.QueriesResponse>
 }
 
-interface QueriesFetcherProps {
-  children: (props: QueriesFetcherRenderProps) => React.ReactElement
-  workgroup: string
-}
-
-function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
-  const [prevQueries, setPrevQueries] =
-    React.useState<requests.athena.QueriesResponse | null>(null)
-  const queriesData = requests.athena.useQueries(workgroup, prevQueries)
-  return children({
-    handleQueriesLoadMore: setPrevQueries,
-    queriesData,
-  })
+function useQueries(workgroup: string): QueriesState {
+  const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
+  const data = requests.athena.useQueries(workgroup, prev)
+  return React.useMemo(
+    () => ({
+      loadMore: setPrev,
+      data,
+    }),
+    [data],
+  )
 }
 
 interface ExecutionsState {
@@ -621,6 +618,7 @@ function State({ children, queryExecutionId }: StateProps) {
   }, [workgroups, results])
 
   const executions = useExecutions(selectedWorkgroup)
+  const queries = useQueries(selectedWorkgroup)
 
   // TODO: use hooks instead of nested components
   return workgroups.data.case({
@@ -633,37 +631,33 @@ function State({ children, queryExecutionId }: StateProps) {
         return <WorkgroupsEmpty />
 
       return (
-        <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
-          {({ queriesData, handleQueriesLoadMore }) => (
-            <QueryRunner
-              queryBody={queryRequest || ''}
-              queryExecutionId={queryExecutionId}
-              workgroup={selectedWorkgroup}
-            >
-              {({ queryRunData }) =>
-                children({
-                  workgroups: {
-                    ...workgroups,
-                    selected: selectedWorkgroup,
-                    change: handleWorkgroupChange,
-                  },
-                  queries: {
-                    data: queriesData,
-                    loadMore: handleQueriesLoadMore,
-                    selected: queryMeta,
-                    change: handleQueryMetaChange,
-                  },
-                  results,
-                  executions,
-                  customQueryBody,
-                  handleQueryBodyChange: setCustomQueryBody,
-                  handleSubmit,
-                  queryRunData,
-                })
-              }
-            </QueryRunner>
-          )}
-        </QueriesFetcher>
+        <QueryRunner
+          queryBody={queryRequest || ''}
+          queryExecutionId={queryExecutionId}
+          workgroup={selectedWorkgroup}
+        >
+          {({ queryRunData }) =>
+            children({
+              workgroups: {
+                ...workgroups,
+                selected: selectedWorkgroup,
+                change: handleWorkgroupChange,
+              },
+              queries: {
+                data: queries.data,
+                loadMore: queries.loadMore,
+                selected: queryMeta,
+                change: handleQueryMetaChange,
+              },
+              results,
+              executions,
+              customQueryBody,
+              handleQueryBodyChange: setCustomQueryBody,
+              handleSubmit,
+              queryRunData,
+            })
+          }
+        </QueryRunner>
       )
     },
     Err: (error) => <WorkgroupsEmpty error={error} />,
