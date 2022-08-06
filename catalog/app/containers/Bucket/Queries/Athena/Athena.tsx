@@ -484,8 +484,6 @@ function useQueryResults(queryExecutionId: string | null): QueryResults {
 }
 
 interface QueriesFetcherRenderProps {
-  executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
-  handleExecutionsLoadMore: (prev: requests.athena.QueryExecutionsResponse) => void
   handleQueriesLoadMore: (prev: requests.athena.QueriesResponse) => void
   queriesData: requests.AsyncData<requests.athena.QueriesResponse>
 }
@@ -498,16 +496,30 @@ interface QueriesFetcherProps {
 function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
   const [prevQueries, setPrevQueries] =
     React.useState<requests.athena.QueriesResponse | null>(null)
-  const [prevExecutions, setPrevExecutions] =
-    React.useState<requests.athena.QueryExecutionsResponse | null>(null)
   const queriesData = requests.athena.useQueries(workgroup, prevQueries)
-  const executionsData = requests.athena.useQueryExecutions(workgroup, prevExecutions)
   return children({
-    executionsData,
-    handleExecutionsLoadMore: setPrevExecutions,
     handleQueriesLoadMore: setPrevQueries,
     queriesData,
   })
+}
+
+interface ExecutionsState {
+  data: requests.AsyncData<requests.athena.QueryExecutionsResponse>
+  loadMore: (prev: requests.athena.QueryExecutionsResponse) => void
+}
+
+function useExecutions(workgroup: string): ExecutionsState {
+  const [prev, setPrev] = React.useState<requests.athena.QueryExecutionsResponse | null>(
+    null,
+  )
+  const data = requests.athena.useQueryExecutions(workgroup, prev)
+  return React.useMemo(
+    () => ({
+      data,
+      loadMore: setPrev,
+    }),
+    [data],
+  )
 }
 
 interface WorkgroupsState {
@@ -536,10 +548,7 @@ interface StateRenderProps {
     change: (q: requests.Query | requests.athena.AthenaQuery | null) => void
   }
   results: QueryResults
-  executions: {
-    data: requests.AsyncData<requests.athena.QueryExecutionsResponse>
-    loadMore: (prev: requests.athena.QueryExecutionsResponse) => void
-  }
+  executions: ExecutionsState
   // TODO: queryBody: {value, change, submit} ?
   customQueryBody: string | null
   handleQueryBodyChange: (q: string | null) => void
@@ -612,6 +621,8 @@ function State({ children, queryExecutionId }: StateProps) {
     })
   }, [workgroups, results])
 
+  const executions = useExecutions(selectedWorkgroup)
+
   // TODO: use hooks instead of nested components
   return workgroups.data.case({
     _: (workgroupsDataResult) => {
@@ -624,12 +635,7 @@ function State({ children, queryExecutionId }: StateProps) {
 
       return (
         <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
-          {({
-            queriesData,
-            executionsData,
-            handleQueriesLoadMore,
-            handleExecutionsLoadMore,
-          }) => (
+          {({ queriesData, handleQueriesLoadMore }) => (
             <QueryRunner
               queryBody={queryRequest || ''}
               queryExecutionId={queryExecutionId}
@@ -649,10 +655,7 @@ function State({ children, queryExecutionId }: StateProps) {
                     change: handleQueryMetaChange,
                   },
                   results,
-                  executions: {
-                    data: executionsData,
-                    loadMore: handleExecutionsLoadMore,
-                  },
+                  executions,
                   customQueryBody,
                   handleQueryBodyChange: setCustomQueryBody,
                   handleSubmit,
