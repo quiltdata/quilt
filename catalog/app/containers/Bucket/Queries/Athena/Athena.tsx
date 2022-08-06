@@ -484,19 +484,27 @@ function useQueryResults(queryExecutionId: string | null): QueryResults {
 }
 
 interface QueriesState {
-  loadMore: (prev: requests.athena.QueriesResponse) => void
   data: requests.AsyncData<requests.athena.QueriesResponse>
+  loadMore: (prev: requests.athena.QueriesResponse) => void
+  selected: requests.athena.AthenaQuery | null
+  change: (value: requests.athena.AthenaQuery | null) => void
 }
 
 function useQueries(workgroup: string): QueriesState {
+  // Info about query: name, url, etc.
+  const [queryMeta, setQueryMeta] = React.useState<requests.athena.AthenaQuery | null>(
+    null,
+  )
   const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
   const data = requests.athena.useQueries(workgroup, prev)
   return React.useMemo(
     () => ({
       loadMore: setPrev,
       data,
+      selected: queryMeta,
+      change: setQueryMeta,
     }),
-    [data],
+    [data, queryMeta],
   )
 }
 
@@ -538,12 +546,7 @@ function useWorkgroups(): WorkgroupsState {
 
 interface StateRenderProps {
   workgroups: WorkgroupsState
-  queries: {
-    data: requests.AsyncData<requests.athena.QueriesResponse>
-    loadMore: (prev: requests.athena.QueriesResponse) => void
-    selected: requests.athena.AthenaQuery | null
-    change: (q: requests.athena.AthenaQuery | null) => void
-  }
+  queries: QueriesState
   results: QueryResults
   executions: ExecutionsState
   // TODO: queryBody: {value, change, submit} ?
@@ -559,21 +562,8 @@ interface StateProps {
 }
 
 function State({ children, queryExecutionId }: StateProps) {
-  // Info about query: name, url, etc.
-  const [queryMeta, setQueryMeta] = React.useState<requests.athena.AthenaQuery | null>(
-    null,
-  )
-
   // Custom query content, not associated with queryMeta
   const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
-
-  const handleQueryMetaChange = React.useCallback(
-    (query: requests.athena.AthenaQuery | null) => {
-      setQueryMeta(query)
-      setCustomQueryBody(null)
-    },
-    [setQueryMeta, setCustomQueryBody],
-  )
 
   // Query content requested to Athena
   const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
@@ -589,14 +579,6 @@ function State({ children, queryExecutionId }: StateProps) {
 
   const workgroups = useWorkgroups()
   const results = useQueryResults(queryExecutionId)
-
-  const handleWorkgroupChange = React.useCallback(
-    (w: string | null) => {
-      workgroups.change(w)
-      setQueryMeta(null)
-    },
-    [setQueryMeta, workgroups],
-  )
 
   const selectedWorkgroup: string = React.useMemo(() => {
     const queryExecution = (
@@ -619,6 +601,22 @@ function State({ children, queryExecutionId }: StateProps) {
 
   const executions = useExecutions(selectedWorkgroup)
   const queries = useQueries(selectedWorkgroup)
+
+  const handleWorkgroupChange = React.useCallback(
+    (w: string | null) => {
+      workgroups.change(w)
+      queries.change(null)
+    },
+    [queries, workgroups],
+  )
+
+  const handleQueryMetaChange = React.useCallback(
+    (query: requests.athena.AthenaQuery | null) => {
+      queries.change(query)
+      setCustomQueryBody(null)
+    },
+    [queries, setCustomQueryBody],
+  )
 
   // TODO: use hooks instead of nested components
   return workgroups.data.case({
@@ -644,9 +642,7 @@ function State({ children, queryExecutionId }: StateProps) {
                 change: handleWorkgroupChange,
               },
               queries: {
-                data: queries.data,
-                loadMore: queries.loadMore,
-                selected: queryMeta,
+                ...queries,
                 change: handleQueryMetaChange,
               },
               results,
