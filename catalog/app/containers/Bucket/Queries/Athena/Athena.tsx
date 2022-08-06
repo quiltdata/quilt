@@ -514,28 +514,25 @@ function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
   })
 }
 
-interface WorkgroupsFetcherRenderProps {
-  workgroupsData: requests.AsyncData<requests.athena.WorkgroupsResponse>
-  handleWorkgroupsLoadMore: (prev: requests.athena.WorkgroupsResponse) => void
+interface WorkgroupsState {
+  data: requests.AsyncData<requests.athena.WorkgroupsResponse>
+  loadMore: (prev: requests.athena.WorkgroupsResponse) => void
+  selected: requests.athena.Workgroup | null
+  change: (w: requests.athena.Workgroup | null) => void
 }
 
-interface WorkgroupsFetcherProps {
-  children: (props: WorkgroupsFetcherRenderProps) => React.ReactElement
-}
-
-function WorkgroupsFetcher({ children }: WorkgroupsFetcherProps) {
+function useWorkgroups(): WorkgroupsState {
   const [prev, setPrev] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
-  const workgroupsData = requests.athena.useWorkgroups(prev)
-  return children({ handleWorkgroupsLoadMore: setPrev, workgroupsData })
+  const data = requests.athena.useWorkgroups(prev)
+  const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
+  return React.useMemo(
+    () => ({ data, loadMore: setPrev, selected: workgroup, change: setWorkgroup }),
+    [data, workgroup],
+  )
 }
 
 interface StateRenderProps {
-  workgroups: {
-    data: requests.AsyncData<requests.athena.WorkgroupsResponse>
-    loadMore: (prev: requests.athena.WorkgroupsResponse) => void
-    selected: requests.athena.Workgroup | null
-    change: (w: requests.athena.Workgroup | null) => void
-  }
+  workgroups: WorkgroupsState
   queries: {
     data: requests.AsyncData<requests.athena.QueriesResponse>
     loadMore: (prev: requests.athena.QueriesResponse) => void
@@ -591,95 +588,90 @@ function State({ children, queryExecutionId }: StateProps) {
     setQueryRequest(null)
   }, [queryExecutionId])
 
-  const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
+  const workgroups = useWorkgroups()
+
+  // const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
   const handleWorkgroupChange = React.useCallback(
     (w) => {
-      setWorkgroup(w)
+      workgroups.change(w)
       setQueryMeta(null)
     },
-    [setQueryMeta, setWorkgroup],
+    [setQueryMeta, workgroups],
   )
   // TODO: use hooks instead of nested components
-  return (
-    <WorkgroupsFetcher>
-      {({ handleWorkgroupsLoadMore, workgroupsData }) =>
-        workgroupsData.case({
-          _: (workgroupsDataResult) =>
-            AsyncResult.Init.is(workgroupsDataResult) ||
-            AsyncResult.Pending.is(workgroupsDataResult) ||
-            workgroupsDataResult.value?.list?.length ? (
-              <QueryResultsFetcher queryExecutionId={queryExecutionId}>
-                {({ queryResultsData, handleQueryResultsLoadMore }) => {
-                  const queryExecution = (
-                    queryResultsData as requests.AsyncData<
-                      requests.athena.QueryResultsResponse,
-                      requests.athena.QueryExecution | null
-                    >
-                  ).case({
-                    _: () => null,
-                    Ok: ({ queryExecution: qE }) => qE,
-                  })
-                  const selectedWorkgroup =
-                    workgroup ||
-                    queryExecution?.workgroup ||
-                    workgroupsDataResult.value?.defaultWorkgroup ||
-                    ''
+  return workgroups.data.case({
+    _: (workgroupsDataResult) =>
+      AsyncResult.Init.is(workgroupsDataResult) ||
+      AsyncResult.Pending.is(workgroupsDataResult) ||
+      workgroupsDataResult.value?.list?.length ? (
+        <QueryResultsFetcher queryExecutionId={queryExecutionId}>
+          {({ queryResultsData, handleQueryResultsLoadMore }) => {
+            const queryExecution = (
+              queryResultsData as requests.AsyncData<
+                requests.athena.QueryResultsResponse,
+                requests.athena.QueryExecution | null
+              >
+            ).case({
+              _: () => null,
+              Ok: ({ queryExecution: qE }) => qE,
+            })
+            const selectedWorkgroup =
+              workgroups.selected ||
+              queryExecution?.workgroup ||
+              workgroupsDataResult.value?.defaultWorkgroup ||
+              ''
 
-                  return (
-                    <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
-                      {({
-                        queriesData,
-                        executionsData,
-                        handleQueriesLoadMore,
-                        handleExecutionsLoadMore,
-                      }) => (
-                        <QueryRunner
-                          queryBody={queryRequest || ''}
-                          queryExecutionId={queryExecutionId}
-                          workgroup={selectedWorkgroup}
-                        >
-                          {({ queryRunData }) =>
-                            children({
-                              workgroups: {
-                                data: workgroupsData,
-                                loadMore: handleWorkgroupsLoadMore,
-                                selected: selectedWorkgroup,
-                                change: handleWorkgroupChange,
-                              },
-                              queries: {
-                                data: queriesData,
-                                loadMore: handleQueriesLoadMore,
-                                selected: queryMeta,
-                                change: handleQueryMetaChange,
-                              },
-                              results: {
-                                data: queryResultsData,
-                                loadMore: handleQueryResultsLoadMore,
-                              },
-                              executions: {
-                                data: executionsData,
-                                loadMore: handleExecutionsLoadMore,
-                              },
-                              customQueryBody,
-                              handleQueryBodyChange: setCustomQueryBody,
-                              handleSubmit,
-                              queryRunData,
-                            })
-                          }
-                        </QueryRunner>
-                      )}
-                    </QueriesFetcher>
-                  )
-                }}
-              </QueryResultsFetcher>
-            ) : (
-              <WorkgroupsEmpty />
-            ),
-          Err: (error) => <WorkgroupsEmpty error={error} />,
-        })
-      }
-    </WorkgroupsFetcher>
-  )
+            return (
+              <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
+                {({
+                  queriesData,
+                  executionsData,
+                  handleQueriesLoadMore,
+                  handleExecutionsLoadMore,
+                }) => (
+                  <QueryRunner
+                    queryBody={queryRequest || ''}
+                    queryExecutionId={queryExecutionId}
+                    workgroup={selectedWorkgroup}
+                  >
+                    {({ queryRunData }) =>
+                      children({
+                        workgroups: {
+                          ...workgroups,
+                          selected: selectedWorkgroup,
+                          change: handleWorkgroupChange,
+                        },
+                        queries: {
+                          data: queriesData,
+                          loadMore: handleQueriesLoadMore,
+                          selected: queryMeta,
+                          change: handleQueryMetaChange,
+                        },
+                        results: {
+                          data: queryResultsData,
+                          loadMore: handleQueryResultsLoadMore,
+                        },
+                        executions: {
+                          data: executionsData,
+                          loadMore: handleExecutionsLoadMore,
+                        },
+                        customQueryBody,
+                        handleQueryBodyChange: setCustomQueryBody,
+                        handleSubmit,
+                        queryRunData,
+                      })
+                    }
+                  </QueryRunner>
+                )}
+              </QueriesFetcher>
+            )
+          }}
+        </QueryResultsFetcher>
+      ) : (
+        <WorkgroupsEmpty />
+      ),
+    Err: (error) => <WorkgroupsEmpty error={error} />,
+  })
 }
 
 const useOverrideStyles = M.makeStyles({
