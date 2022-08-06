@@ -10,4 +10,5 @@ From inside the `testdocs` directory:
 $ pip3 install poetry
 $ poetry install
 $ poetry run pytest --codeblocks ../docs
+$ zsh clean.sh # remove test files
 ```
