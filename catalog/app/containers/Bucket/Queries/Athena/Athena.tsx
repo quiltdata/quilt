@@ -441,14 +441,23 @@ function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
 
 interface QueryRunnerState {
   data: requests.AsyncData<requests.athena.QueryRunResponse>
+  submit: (body: string) => () => void
 }
 
 function useQueryRunner(
   queryExecutionId: string | null,
   workgroup: string,
-  queryBody: string | null,
 ): QueryRunnerState {
-  const data = requests.athena.useQueryRun(workgroup, queryBody || '')
+  // Query content requested to Athena
+  const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
+
+  const submit = React.useMemo(() => (body: string) => () => setQueryRequest(body), [])
+
+  React.useEffect(() => {
+    setQueryRequest(null)
+  }, [queryExecutionId])
+
+  const data = requests.athena.useQueryRun(workgroup, queryRequest || '')
   const { push: notify } = Notifications.use()
   React.useEffect(() => {
     data.case({
@@ -459,7 +468,7 @@ function useQueryRunner(
       },
     })
   }, [notify, queryExecutionId, data])
-  return React.useMemo(() => ({ data }), [data])
+  return React.useMemo(() => ({ data, submit }), [data, submit])
 }
 
 interface QueryResults {
@@ -557,18 +566,6 @@ function State({ children, queryExecutionId }: StateProps) {
   // Custom query content, not associated with queryMeta
   const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
 
-  // Query content requested to Athena
-  const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
-
-  const handleSubmit = React.useMemo(
-    () => (body: string) => () => setQueryRequest(body),
-    [setQueryRequest],
-  )
-
-  React.useEffect(() => {
-    setQueryRequest(null)
-  }, [queryExecutionId])
-
   const workgroups = useWorkgroups()
   const results = useQueryResults(queryExecutionId)
 
@@ -610,7 +607,7 @@ function State({ children, queryExecutionId }: StateProps) {
     [queries, setCustomQueryBody],
   )
 
-  const queryRunner = useQueryRunner(queryExecutionId, selectedWorkgroup, queryRequest)
+  const queryRunner = useQueryRunner(queryExecutionId, selectedWorkgroup)
 
   // TODO: use hooks instead of nested components
   return workgroups.data.case({
@@ -636,7 +633,7 @@ function State({ children, queryExecutionId }: StateProps) {
         executions,
         customQueryBody,
         handleQueryBodyChange: setCustomQueryBody,
-        handleSubmit,
+        handleSubmit: queryRunner.submit,
         queryRunData: queryRunner.data,
       })
     },
