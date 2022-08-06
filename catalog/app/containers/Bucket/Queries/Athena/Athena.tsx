@@ -67,7 +67,7 @@ function WorkgroupField({
 
 interface QueryMetaFieldProps {
   className?: string
-  onChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
+  onChange: (q: requests.athena.AthenaQuery | null) => void
   onLoadMore: (prev: requests.athena.QueriesResponse) => void
   queriesData: requests.AsyncData<requests.athena.QueriesResponse>
   value: requests.athena.AthenaQuery | null
@@ -91,7 +91,7 @@ function QueryMetaField({
                 Select query
               </M.Typography>
 
-              <QuerySelect
+              <QuerySelect<requests.athena.AthenaQuery | null>
                 onChange={onChange}
                 onLoadMore={queries.next ? () => onLoadMore(queries) : undefined}
                 queries={queries.list}
@@ -545,7 +545,7 @@ interface StateRenderProps {
     data: requests.AsyncData<requests.athena.QueriesResponse>
     loadMore: (prev: requests.athena.QueriesResponse) => void
     selected: requests.athena.AthenaQuery | null
-    change: (q: requests.Query | requests.athena.AthenaQuery | null) => void
+    change: (q: requests.athena.AthenaQuery | null) => void
   }
   results: QueryResults
   executions: ExecutionsState
@@ -571,8 +571,8 @@ function State({ children, queryExecutionId }: StateProps) {
   const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
 
   const handleQueryMetaChange = React.useCallback(
-    (query) => {
-      setQueryMeta(query as requests.athena.AthenaQuery | null)
+    (query: requests.athena.AthenaQuery | null) => {
+      setQueryMeta(query)
       setCustomQueryBody(null)
     },
     [setQueryMeta, setCustomQueryBody],
