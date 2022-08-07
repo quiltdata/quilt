@@ -440,6 +440,8 @@ function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
 }
 
 interface QueryRunnerState {
+  value: string | null
+  change: (value: string | null) => void
   data: requests.AsyncData<requests.athena.QueryRunResponse>
   submit: (body: string) => () => void
 }
@@ -448,6 +450,9 @@ function useQueryRunner(
   queryExecutionId: string | null,
   workgroup: string,
 ): QueryRunnerState {
+  // Custom query content, not associated with queryMeta
+  const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
+
   // Query content requested to Athena
   const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
 
@@ -468,7 +473,10 @@ function useQueryRunner(
       },
     })
   }, [notify, queryExecutionId, data])
-  return React.useMemo(() => ({ data, submit }), [data, submit])
+  return React.useMemo(
+    () => ({ data, value: customQueryBody, change: setCustomQueryBody, submit }),
+    [customQueryBody, data, submit],
+  )
 }
 
 interface QueryResults {
@@ -551,10 +559,7 @@ interface StateRenderProps {
   results: QueryResults
   executions: ExecutionsState
   // TODO: queryBody: {value, change, submit} ?
-  customQueryBody: string | null
-  handleQueryBodyChange: (q: string | null) => void
-  handleSubmit: (q: string) => () => void
-  queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
+  queryRunner: QueryRunnerState
 }
 
 interface StateProps {
@@ -563,9 +568,6 @@ interface StateProps {
 }
 
 function State({ children, queryExecutionId }: StateProps) {
-  // Custom query content, not associated with queryMeta
-  const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
-
   const workgroups = useWorkgroups()
   const results = useQueryResults(queryExecutionId)
 
@@ -599,15 +601,15 @@ function State({ children, queryExecutionId }: StateProps) {
     [queries, workgroups],
   )
 
+  const queryRunner = useQueryRunner(queryExecutionId, selectedWorkgroup)
+
   const handleQueryMetaChange = React.useCallback(
     (query: requests.athena.AthenaQuery | null) => {
       queries.change(query)
-      setCustomQueryBody(null)
+      queryRunner.change(null)
     },
-    [queries, setCustomQueryBody],
+    [queries, queryRunner],
   )
-
-  const queryRunner = useQueryRunner(queryExecutionId, selectedWorkgroup)
 
   // TODO: use hooks instead of nested components
   return workgroups.data.case({
@@ -631,10 +633,7 @@ function State({ children, queryExecutionId }: StateProps) {
         },
         results,
         executions,
-        customQueryBody,
-        handleQueryBodyChange: setCustomQueryBody,
-        handleSubmit: queryRunner.submit,
-        queryRunData: queryRunner.data,
+        queryRunner,
       })
     },
     Err: (error) => <WorkgroupsEmpty error={error} />,
@@ -709,17 +708,8 @@ export default function Athena({
 
   return (
     <State queryExecutionId={queryExecutionId || null}>
-      {({
-        customQueryBody,
-        handleQueryBodyChange,
-        handleSubmit,
-        queryRunData,
-        workgroups,
-        queries,
-        results,
-        executions,
-      }) =>
-        queryRunData.case({
+      {({ workgroups, queries, results, executions, queryRunner }) =>
+        queryRunner.data.case({
           _: ({ value: executionData }) => {
             if (executionData?.id && executionData?.id !== queryExecutionId) {
               return (
@@ -747,19 +737,19 @@ export default function Athena({
                     queriesData={queries.data}
                     onChange={queries.change}
                     onLoadMore={queries.loadMore}
-                    value={customQueryBody ? null : queries.selected}
+                    value={queryRunner.value ? null : queries.selected}
                   />
                 </div>
 
                 <QueryBodyField
                   className={classes.form}
-                  customQueryBody={customQueryBody}
+                  customQueryBody={queryRunner.value}
                   queriesData={queries.data}
                   queryMeta={queries.selected}
                   queryResultsData={results.data}
-                  queryRunData={queryRunData}
-                  onChange={handleQueryBodyChange}
-                  onSubmit={handleSubmit}
+                  queryRunData={queryRunner.data}
+                  onChange={queryRunner.change}
+                  onSubmit={queryRunner.submit}
                 />
 
                 <HistoryContainer
