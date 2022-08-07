@@ -495,7 +495,7 @@ function useQueryResults(queryExecutionId: string | null): QueryResults {
 interface QueriesState {
   data: requests.AsyncData<requests.athena.QueriesResponse>
   loadMore: (prev: requests.athena.QueriesResponse) => void
-  selected: requests.athena.AthenaQuery | null
+  value: requests.athena.AthenaQuery | null
   change: (value: requests.athena.AthenaQuery | null) => void
 }
 
@@ -510,7 +510,7 @@ function useQueries(workgroup: string): QueriesState {
     () => ({
       loadMore: setPrev,
       data,
-      selected: queryMeta,
+      value: queryMeta,
       change: setQueryMeta,
     }),
     [data, queryMeta],
@@ -539,7 +539,7 @@ function useExecutions(workgroup: string): ExecutionsState {
 interface WorkgroupsState {
   data: requests.AsyncData<requests.athena.WorkgroupsResponse>
   loadMore: (prev: requests.athena.WorkgroupsResponse) => void
-  selected: requests.athena.Workgroup | null
+  value: requests.athena.Workgroup | null
   change: (w: requests.athena.Workgroup | null) => void
 }
 
@@ -548,7 +548,7 @@ function useWorkgroups(): WorkgroupsState {
   const data = requests.athena.useWorkgroups(prev)
   const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
   return React.useMemo(
-    () => ({ data, loadMore: setPrev, selected: workgroup, change: setWorkgroup }),
+    () => ({ data, loadMore: setPrev, value: workgroup, change: setWorkgroup }),
     [data, workgroup],
   )
 }
@@ -584,9 +584,9 @@ function State({ children, queryExecutionId }: StateProps) {
     return (
       workgroups.data as requests.AsyncData<requests.athena.WorkgroupsResponse, $TSFixMe>
     ).case({
-      _: () => workgroups.selected || queryExecution?.workgroup || '',
+      _: () => workgroups.value || queryExecution?.workgroup || '',
       Ok: ({ defaultWorkgroup }) =>
-        workgroups.selected || queryExecution?.workgroup || defaultWorkgroup || '',
+        workgroups.value || queryExecution?.workgroup || defaultWorkgroup || '',
     })
   }, [workgroups, results])
 
@@ -624,7 +624,7 @@ function State({ children, queryExecutionId }: StateProps) {
       return children({
         workgroups: {
           ...workgroups,
-          selected: selectedWorkgroup,
+          value: selectedWorkgroup,
           change: handleWorkgroupChange,
         },
         queries: {
@@ -729,7 +729,7 @@ export default function Athena({
                     workgroupsData={workgroups.data}
                     onChange={workgroups.change}
                     onLoadMore={workgroups.loadMore}
-                    value={workgroups.selected}
+                    value={workgroups.value}
                   />
 
                   <QueryMetaField
@@ -737,7 +737,7 @@ export default function Athena({
                     queriesData={queries.data}
                     onChange={queries.change}
                     onLoadMore={queries.loadMore}
-                    value={queryRunner.value ? null : queries.selected}
+                    value={queryRunner.value ? null : queries.value}
                   />
                 </div>
 
@@ -745,7 +745,7 @@ export default function Athena({
                   className={classes.form}
                   customQueryBody={queryRunner.value}
                   queriesData={queries.data}
-                  queryMeta={queries.selected}
+                  queryMeta={queries.value}
                   queryResultsData={results.data}
                   queryRunData={queryRunner.data}
                   onChange={queryRunner.change}
