@@ -133,42 +133,47 @@ function QueryBodyField({
     () => customQueryBody || queryMeta?.body,
     [customQueryBody, queryMeta],
   )
+  const value = React.useMemo(
+    () =>
+      userEnteredValue ||
+      queryResultsData.case({
+        Ok: (queryResults) => queryResults?.queryExecution?.query,
+        _: () => '',
+      }) ||
+      '',
+    [userEnteredValue, queryResultsData],
+  )
+  const isLoading = React.useMemo(
+    () =>
+      queryResultsData.case({
+        Pending: R.T,
+        _: R.F,
+      }),
+    [queryResultsData],
+  )
+  const error = React.useMemo(
+    () =>
+      queryResultsData.case({
+        Err: R.identity,
+        _: R.F,
+      }),
+    [queryResultsData],
+  )
+  if (isLoading) return <FormSkeleton />
+  if (error) return makeAsyncDataErrorHandler('Query Body')(error)
 
   return (
     <div className={className}>
-      {userEnteredValue ? (
-        <Form
-          disabled={isButtonDisabled(userEnteredValue, queryRunData, null)}
-          onChange={onChange}
-          onSubmit={onSubmit}
-          error={(queryRunData as $TSFixMe).case({
-            Err: R.identity,
-            _: () => undefined,
-          })}
-          value={userEnteredValue}
-        />
-      ) : (
-        queryResultsData.case({
-          Ok: (queryResults) => (
-            <Form
-              disabled={isButtonDisabled(
-                queryResults?.queryExecution?.query || '',
-                queryRunData,
-                null,
-              )}
-              onChange={onChange}
-              onSubmit={onSubmit}
-              error={(queryRunData as $TSFixMe).case({
-                Err: R.identity,
-                _: () => undefined,
-              })}
-              value={queryResults?.queryExecution?.query || ''}
-            />
-          ),
-          Err: makeAsyncDataErrorHandler('Query Body'),
-          _: () => <FormSkeleton />,
-        })
-      )}
+      <Form
+        disabled={isButtonDisabled(value, queryRunData, null)}
+        onChange={onChange}
+        onSubmit={onSubmit}
+        error={(queryRunData as $TSFixMe).case({
+          Err: R.identity,
+          _: () => undefined,
+        })}
+        value={value}
+      />
     </div>
   )
 }
