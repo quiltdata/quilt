@@ -151,13 +151,19 @@ export const bucketESQueries = {
 }
 
 export const bucketAthenaQueries = {
-  path: '/b/:bucket/queries/athena',
+  path: '/b/:bucket/queries/athena/',
   url: (bucket) => `/b/${bucket}/queries/athena`,
 }
 
-export const bucketAthenaQueryExecution = {
-  path: '/b/:bucket/queries/athena/:queryExecutionId',
-  url: (bucket, queryExecutionId) => `/b/${bucket}/queries/athena/${queryExecutionId}`,
+export const bucketAthenaWorkgroup = {
+  path: '/b/:bucket/queries/athena/:workgroup',
+  url: (bucket, workgroup) => `/b/${bucket}/queries/athena/${workgroup}`,
+}
+
+export const bucketAthenaExecution = {
+  path: '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
+  url: (bucket, workgroup, queryExecutionId) =>
+    `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 }
 
 // legacy stuff
