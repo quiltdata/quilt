@@ -17,7 +17,7 @@ import { Section, makeAsyncDataErrorHandler } from './Components'
 import QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
-import AthenaWorkgroups from './WorkgroupSelect'
+import AthenaWorkgroups from './Workgroups'
 
 interface QueryMetaFieldProps {
   className?: string
@@ -619,7 +619,9 @@ export default function AthenaContainer({
   return (
     <>
       <M.Typography variant="h6">Athena SQL</M.Typography>
+
       <AthenaWorkgroups bucket={bucket} workgroup={workgroup || null} />
+
       {workgroup && (
         <Athena
           bucket={bucket}
