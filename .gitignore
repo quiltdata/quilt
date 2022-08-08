@@ -43,3 +43,4 @@ testdocs/*.json*
 testdocs/test_workflow
 testdocs/references
 testdocs/notebooks
+testdocs/scripts
