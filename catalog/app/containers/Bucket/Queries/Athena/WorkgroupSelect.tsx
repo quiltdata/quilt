@@ -1,12 +1,16 @@
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
+import Skeleton from 'components/Skeleton'
+import * as NamedRoutes from 'utils/NamedRoutes'
 // TODO: use it
 // import SelectDropdown from 'components/SelectDropdown'
-import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as requests from '../requests'
+
+import { Alert, Section } from './Components'
 
 interface WorkgroupSelectProps {
   onLoadMore: (workgroups: requests.athena.WorkgroupsResponse) => void
@@ -26,7 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 
 const LOAD_MORE = 'load-more'
 
-export default function WorkgroupSelect({
+function WorkgroupSelect({
   bucket,
   workgroups,
   onLoadMore,
@@ -81,4 +85,77 @@ export default function WorkgroupSelect({
       </M.FormControl>
     </M.Paper>
   )
+}
+
+interface WorkgroupsEmptyProps {
+  error?: Error
+}
+
+function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
+  return (
+    <>
+      {error ? (
+        <Alert title={error.name} error={error} />
+      ) : (
+        <Lab.Alert severity="info">
+          <Lab.AlertTitle>No workgroups configured</Lab.AlertTitle>
+        </Lab.Alert>
+      )}
+
+      {/* <M.Typography> // TODO: uncomment on docs deploy
+        Check{' '}
+        <StyledLink href={`${urls.docs}/catalog/queries#athena`}>
+          Athena Queries docs
+        </StyledLink>{' '}
+        on correct usage
+      </M.Typography> */}
+    </>
+  )
+}
+
+interface RedirectToDefaultWorkgroupProps {
+  bucket: string
+  workgroups: requests.athena.WorkgroupsResponse
+}
+
+function RedirectToDefaultWorkgroup({
+  bucket,
+  workgroups,
+}: RedirectToDefaultWorkgroupProps) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <RRDom.Redirect
+      to={urls.bucketAthenaWorkgroup(bucket, workgroups.defaultWorkgroup)}
+    />
+  )
+}
+
+interface AthenaWorkgroupsProps {
+  bucket: string
+  workgroup: requests.athena.Workgroup | null
+}
+
+export default function AthenaWorkgroups({ bucket, workgroup }: AthenaWorkgroupsProps) {
+  const [prev, setPrev] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
+  const data = requests.athena.useWorkgroups(prev)
+  return data.case({
+    Ok: (workgroups) => {
+      if (!workgroup && workgroups.defaultWorkgroup)
+        return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
+      return (
+        <Section title="Select workgroup" empty={<WorkgroupsEmpty />}>
+          {workgroups.list.length && (
+            <WorkgroupSelect
+              bucket={bucket}
+              onLoadMore={setPrev}
+              value={workgroup}
+              workgroups={workgroups}
+            />
+          )}
+        </Section>
+      )
+    },
+    Err: (error) => <WorkgroupsEmpty error={error} />,
+    _: () => <Skeleton height={24} width={128} animate />,
+  })
 }

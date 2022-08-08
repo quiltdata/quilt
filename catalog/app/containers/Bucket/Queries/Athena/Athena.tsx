@@ -8,41 +8,16 @@ import * as Lab from '@material-ui/lab'
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
-// import * as urls from 'constants/urls' // TODO: uncomment on docs deploy
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Sentry from 'utils/Sentry'
-// import StyledLink from 'utils/StyledLink' // TODO: uncomment on docs deploy
 
 import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
 
+import { Section, makeAsyncDataErrorHandler } from './Components'
 import QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
-import WorkgroupSelect from './WorkgroupSelect'
-
-const useSectionStyles = M.makeStyles((t) => ({
-  header: {
-    margin: t.spacing(0, 0, 1),
-  },
-}))
-
-interface SectionProps {
-  children: React.ReactNode
-  empty: string
-  title: string
-}
-
-function Section({ empty, title, children }: SectionProps) {
-  const classes = useSectionStyles()
-  if (!children) return <M.Typography className={classes.header}>{empty}</M.Typography>
-  return (
-    <div>
-      <M.Typography className={classes.header}>{title}</M.Typography>
-      {children}
-    </div>
-  )
-}
+import AthenaWorkgroups from './WorkgroupSelect'
 
 interface QueryMetaFieldProps {
   className?: string
@@ -236,32 +211,6 @@ function ResultsContainer({
   })
 }
 
-interface WorkgroupsEmptyProps {
-  error?: Error
-}
-
-function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
-  return (
-    <>
-      {error ? (
-        <Alert title={error.name} error={error} />
-      ) : (
-        <Lab.Alert severity="info">
-          <Lab.AlertTitle>No workgroups configured</Lab.AlertTitle>
-        </Lab.Alert>
-      )}
-
-      {/* <M.Typography> // TODO: uncomment on docs deploy
-        Check{' '}
-        <StyledLink href={`${urls.docs}/catalog/queries#athena`}>
-          Athena Queries docs
-        </StyledLink>{' '}
-        on correct usage
-      </M.Typography> */}
-    </>
-  )
-}
-
 function SelectSkeleton() {
   return (
     <>
@@ -328,30 +277,6 @@ function TableSkeleton({ size }: TableSkeletonProps) {
       ))}
     </>
   )
-}
-
-interface AlertProps {
-  error: Error
-  title: string
-}
-
-function Alert({ error, title }: AlertProps) {
-  const sentry = Sentry.use()
-
-  React.useEffect(() => {
-    sentry('captureException', error)
-  }, [error, sentry])
-
-  return (
-    <Lab.Alert severity="error">
-      <Lab.AlertTitle>{title}</Lab.AlertTitle>
-      {error.message}
-    </Lab.Alert>
-  )
-}
-
-function makeAsyncDataErrorHandler(title: string) {
-  return (error: Error) => <Alert error={error} title={title} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -524,10 +449,7 @@ interface PageState {
   queryRunner: QueryRunnerState
 }
 
-function useState(
-  workgroup: string,
-  queryExecutionId: string | null,
-): PageState | null | Error {
+function useState(workgroup: string, queryExecutionId: string | null): PageState {
   const results = useQueryResults(queryExecutionId)
 
   const executions = useExecutions(workgroup)
@@ -624,10 +546,6 @@ function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
 
   const state = useState(workgroup, queryExecutionId || null)
 
-  if (state instanceof Error) return <WorkgroupsEmpty error={state} />
-
-  if (!state) return <WorkgroupsEmpty />
-
   const { queries, results, executions, queryRunner } = state
 
   return queryRunner.data.case({
@@ -683,48 +601,6 @@ function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
         </>
       )
     },
-  })
-}
-
-interface RedirectToDefaultWorkgroupProps {
-  bucket: string
-  workgroups: requests.athena.WorkgroupsResponse
-}
-function RedirectToDefaultWorkgroup({
-  bucket,
-  workgroups,
-}: RedirectToDefaultWorkgroupProps) {
-  const { urls } = NamedRoutes.use()
-  return <Redirect to={urls.bucketAthenaWorkgroup(bucket, workgroups.defaultWorkgroup)} />
-}
-
-interface AthenaWorkgroupsProps {
-  bucket: string
-  workgroup: requests.athena.Workgroup | null
-}
-
-function AthenaWorkgroups({ bucket, workgroup }: AthenaWorkgroupsProps) {
-  const [prev, setPrev] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
-  const data = requests.athena.useWorkgroups(prev)
-  return data.case({
-    Ok: (workgroups) => {
-      if (!workgroup && workgroups.defaultWorkgroup)
-        return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
-      return (
-        <Section title="Select workgroup" empty="There are no workgroups.">
-          {workgroups.list.length && (
-            <WorkgroupSelect
-              bucket={bucket}
-              onLoadMore={setPrev}
-              value={workgroup}
-              workgroups={workgroups}
-            />
-          )}
-        </Section>
-      )
-    },
-    Err: makeAsyncDataErrorHandler('Workgroups Data'),
-    _: () => <SelectSkeleton />,
   })
 }
 

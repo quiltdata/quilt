@@ -307,8 +307,12 @@ export function useQueryResults(
   )
 }
 
+function normalizeQueryBody(str: string): string {
+  return str.trim().replace(/\s+/g, ' ')
+}
+
 async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
-  const normalizedStr = (workgroup + queryBody).trim().replace(/\s+/g, ' ')
+  const normalizedStr = workgroup + normalizeQueryBody(queryBody)
   const msgUint8 = new TextEncoder().encode(normalizedStr)
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -336,7 +340,7 @@ async function runQuery({
     const { QueryExecutionId } = await athena
       .startQueryExecution({
         ClientRequestToken: hashDigest,
-        QueryString: queryBody,
+        QueryString: normalizeQueryBody(queryBody), // But if error, skip ClientRequestToken and try one more
         ResultConfiguration: {
           EncryptionConfiguration: {
             EncryptionOption: 'SSE_S3',
