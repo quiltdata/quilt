@@ -131,7 +131,7 @@ function QueryBodyField({
 }: QueryBodyProps) {
   const userEnteredValue = React.useMemo(
     () => customQueryBody || queryMeta?.body,
-    [customQueryBody, queryMeta, queryResultsData],
+    [customQueryBody, queryMeta],
   )
 
   return (
