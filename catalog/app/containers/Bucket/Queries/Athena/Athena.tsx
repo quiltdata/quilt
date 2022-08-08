@@ -21,36 +21,25 @@ import Results from './Results'
 import History from './History'
 import WorkgroupSelect from './WorkgroupSelect'
 
-interface WorkgroupsFieldProps {
-  bucket: string
-  className?: string
-  onLoadMore: (prev: requests.athena.WorkgroupsResponse) => void
-  value: requests.athena.Workgroup | null
-  workgroups: requests.athena.WorkgroupsResponse
+const useSectionStyles = M.makeStyles((t) => ({
+  header: {
+    margin: t.spacing(0, 0, 1),
+  },
+}))
+
+interface SectionProps {
+  children: React.ReactNode
+  empty: string
+  title: string
 }
 
-function WorkgroupsField({
-  bucket,
-  className,
-  onLoadMore,
-  value,
-  workgroups,
-}: WorkgroupsFieldProps) {
-  const classes = useStyles()
+function Section({ empty, title, children }: SectionProps) {
+  const classes = useSectionStyles()
+  if (!children) return <M.Typography className={classes.header}>{empty}</M.Typography>
   return (
-    <div className={className}>
-      <M.Typography className={classes.sectionHeader}>Select workgroup</M.Typography>
-
-      {workgroups.list.length ? (
-        <WorkgroupSelect
-          bucket={bucket}
-          onLoadMore={onLoadMore}
-          value={value}
-          workgroups={workgroups}
-        />
-      ) : (
-        <M.FormHelperText>There are no workgroups.</M.FormHelperText>
-      )}
+    <div>
+      <M.Typography className={classes.header}>{title}</M.Typography>
+      {children}
     </div>
   )
 }
@@ -70,29 +59,21 @@ function QueryMetaField({
   queriesData,
   value,
 }: QueryMetaFieldProps) {
-  const classes = useStyles()
   return (
     <div className={className}>
       {queriesData.case({
-        Ok: (queries) =>
-          queries.list.length ? (
-            <>
-              <M.Typography className={classes.sectionHeader} variant="body1">
-                Select query
-              </M.Typography>
-
+        Ok: (queries) => (
+          <Section title="Select query" empty="There are no saved queries.">
+            {queries.list.length && (
               <QuerySelect<requests.athena.AthenaQuery | null>
                 onChange={onChange}
                 onLoadMore={queries.next ? () => onLoadMore(queries) : undefined}
                 queries={queries.list}
                 value={value}
               />
-            </>
-          ) : (
-            <M.Typography className={classes.emptySelect} variant="body1">
-              There are no saved queries.
-            </M.Typography>
-          ),
+            )}
+          </Section>
+        ),
         Err: makeAsyncDataErrorHandler('Select query'),
         _: () => <SelectSkeleton />,
       })}
@@ -374,9 +355,6 @@ function makeAsyncDataErrorHandler(title: string) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  emptySelect: {
-    margin: t.spacing(5.5, 0, 0),
-  },
   form: {
     margin: t.spacing(0, 0, 4),
   },
@@ -386,13 +364,8 @@ const useStyles = M.makeStyles((t) => ({
   sectionHeader: {
     margin: t.spacing(0, 0, 1),
   },
-  select: {
-    flexBasis: '40%',
-    '& + &': {
-      flexBasis: '60%',
-      marginLeft: t.spacing(3),
-      marginBottom: t.spacing(-3), // counterpart for Select's optional description
-    },
+  queries: {
+    margin: t.spacing(3, 0, 0),
   },
 }))
 
@@ -543,25 +516,7 @@ function useExecutions(workgroup: string): ExecutionsState {
   )
 }
 
-interface WorkgroupsState {
-  data: requests.AsyncData<requests.athena.WorkgroupsResponse>
-  loadMore: (prev: requests.athena.WorkgroupsResponse) => void
-  value: requests.athena.Workgroup | null
-  change: (w: requests.athena.Workgroup | null) => void
-}
-
-function useWorkgroups(): WorkgroupsState {
-  const [prev, setPrev] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
-  const data = requests.athena.useWorkgroups(prev)
-  const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
-  return React.useMemo(
-    () => ({ data, loadMore: setPrev, value: workgroup, change: setWorkgroup }),
-    [data, workgroup],
-  )
-}
-
 interface PageState {
-  // workgroups: WorkgroupsState
   queries: QueriesState
   results: QueryResults
   executions: ExecutionsState
@@ -573,38 +528,10 @@ function useState(
   workgroup: string,
   queryExecutionId: string | null,
 ): PageState | null | Error {
-  // const workgroups = useWorkgroups()
   const results = useQueryResults(queryExecutionId)
-
-  // const selectedWorkgroup: string = React.useMemo(() => {
-  //   const queryExecution = (
-  //     results.data as requests.AsyncData<
-  //       requests.athena.QueryResultsResponse,
-  //       requests.athena.QueryExecution | null
-  //     >
-  //   ).case({
-  //     _: () => null,
-  //     Ok: ({ queryExecution: qE }) => qE,
-  //   })
-  //   return (
-  //     workgroups.data as requests.AsyncData<requests.athena.WorkgroupsResponse, $TSFixMe>
-  //   ).case({
-  //     _: () => workgroups.value || queryExecution?.workgroup || '',
-  //     Ok: ({ defaultWorkgroup }) =>
-  //       workgroups.value || queryExecution?.workgroup || defaultWorkgroup || '',
-  //   })
-  // }, [workgroups, results])
 
   const executions = useExecutions(workgroup)
   const queries = useQueries(workgroup)
-
-  // const handleWorkgroupChange = React.useCallback(
-  //   (w: string | null) => {
-  //     workgroups.change(w)
-  //     queries.change(null)
-  //   },
-  //   [queries, workgroups],
-  // )
 
   const queryRunner = useQueryRunner(queryExecutionId, workgroup)
 
@@ -616,7 +543,6 @@ function useState(
     [queries, queryRunner],
   )
 
-  // TODO: use hooks instead of nested components
   return React.useMemo(
     () => ({
       queries: {
@@ -717,7 +643,7 @@ function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
       return (
         <>
           <QueryMetaField
-            className={classes.select}
+            className={classes.queries}
             queriesData={queries.data}
             onChange={queries.change}
             onLoadMore={queries.loadMore}
@@ -774,33 +700,32 @@ function RedirectToDefaultWorkgroup({
 
 interface AthenaWorkgroupsProps {
   bucket: string
-  className?: string
   workgroup: requests.athena.Workgroup | null
 }
 
-function AthenaWorkgroups({ bucket, className, workgroup }: AthenaWorkgroupsProps) {
-  const workgroupsState = useWorkgroups()
-  return (
-    <>
-      {workgroupsState.data.case({
-        Ok: (workgroups) => {
-          if (!workgroup && workgroups.defaultWorkgroup)
-            return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
-          return (
-            <WorkgroupsField
+function AthenaWorkgroups({ bucket, workgroup }: AthenaWorkgroupsProps) {
+  const [prev, setPrev] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
+  const data = requests.athena.useWorkgroups(prev)
+  return data.case({
+    Ok: (workgroups) => {
+      if (!workgroup && workgroups.defaultWorkgroup)
+        return <RedirectToDefaultWorkgroup bucket={bucket} workgroups={workgroups} />
+      return (
+        <Section title="Select workgroup" empty="There are no workgroups.">
+          {workgroups.list.length && (
+            <WorkgroupSelect
               bucket={bucket}
-              className={className}
-              onLoadMore={workgroupsState.loadMore}
+              onLoadMore={setPrev}
               value={workgroup}
               workgroups={workgroups}
             />
-          )
-        },
-        Err: makeAsyncDataErrorHandler('Workgroups Data'),
-        _: () => <SelectSkeleton />,
-      })}
-    </>
-  )
+          )}
+        </Section>
+      )
+    },
+    Err: makeAsyncDataErrorHandler('Workgroups Data'),
+    _: () => <SelectSkeleton />,
+  })
 }
 
 interface AthenaContainerProps
