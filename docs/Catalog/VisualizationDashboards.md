@@ -127,7 +127,7 @@ import altair as alt
 # Create Dataframe with two columns of random values
 scores = random.randint(60, 100, size=5)
 densities = random.random_sample(5)
-df = pd.DataFrame({'score': scores,'density':densities})
+df = pd.DataFrame({'score': scores, 'density': densities})
 
 # Create Chart with two Quantitative axes
 
