@@ -115,7 +115,6 @@ interface QueryBodyProps {
   customQueryBody: string | null
   onChange: (q: string | null) => void
   onSubmit: (q: string) => () => void
-  queriesData: requests.AsyncData<requests.athena.QueriesResponse>
   queryMeta: requests.athena.AthenaQuery | null
   queryResultsData: requests.AsyncData<requests.athena.QueryResultsResponse>
   queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
@@ -126,24 +125,34 @@ function QueryBodyField({
   customQueryBody,
   onChange,
   onSubmit,
-  queriesData,
   queryMeta,
   queryResultsData,
   queryRunData,
 }: QueryBodyProps) {
+  const userEnteredValue = React.useMemo(
+    () => customQueryBody || queryMeta?.body,
+    [customQueryBody, queryMeta, queryResultsData],
+  )
+
   return (
     <div className={className}>
-      {queryResultsData.case({
-        _: ({ value: queryResults }) => {
-          const areQueriesLoaded = queriesData.case({ Ok: R.T, _: R.F })
-          if (!areQueriesLoaded) return <FormSkeleton />
-          return (
+      {userEnteredValue ? (
+        <Form
+          disabled={isButtonDisabled(userEnteredValue, queryRunData, null)}
+          onChange={onChange}
+          onSubmit={onSubmit}
+          error={(queryRunData as $TSFixMe).case({
+            Err: R.identity,
+            _: () => undefined,
+          })}
+          value={userEnteredValue}
+        />
+      ) : (
+        queryResultsData.case({
+          Ok: (queryResults) => (
             <Form
               disabled={isButtonDisabled(
-                customQueryBody ||
-                  queryResults?.queryExecution?.query ||
-                  queryMeta?.body ||
-                  '',
+                queryResults?.queryExecution?.query || '',
                 queryRunData,
                 null,
               )}
@@ -153,18 +162,13 @@ function QueryBodyField({
                 Err: R.identity,
                 _: () => undefined,
               })}
-              value={
-                customQueryBody ||
-                queryResults?.queryExecution?.query ||
-                queryMeta?.body ||
-                ''
-              }
+              value={queryResults?.queryExecution?.query || ''}
             />
-          )
-        },
-        Err: makeAsyncDataErrorHandler('Query Body'),
-        Pending: () => <FormSkeleton />,
-      })}
+          ),
+          Err: makeAsyncDataErrorHandler('Query Body'),
+          _: () => <FormSkeleton />,
+        })
+      )}
     </div>
   )
 }
@@ -753,16 +757,20 @@ export default function Athena({
             />
           </div>
 
-          <QueryBodyField
-            className={classes.form}
-            customQueryBody={queryRunner.value}
-            queriesData={queries.data}
-            queryMeta={queries.value}
-            queryResultsData={results.data}
-            queryRunData={queryRunner.data}
-            onChange={queryRunner.change}
-            onSubmit={queryRunner.submit}
-          />
+          {queries.data.case({
+            Ok: () => (
+              <QueryBodyField
+                className={classes.form}
+                customQueryBody={queryRunner.value}
+                queryMeta={queries.value}
+                queryResultsData={results.data}
+                queryRunData={queryRunner.data}
+                onChange={queryRunner.change}
+                onSubmit={queryRunner.submit}
+              />
+            ),
+            _: () => <FormSkeleton />,
+          })}
 
           <HistoryContainer
             bucket={bucket}
