@@ -121,8 +121,6 @@ If the physical key and the logical key are the same, you may omit the second ar
 
 ```python
 import quilt3
-from os import chdir
-# assuming data.csv is in that directory
 p = quilt3.Package()
 p.set("data.csv")
 ```
@@ -194,7 +192,7 @@ p.set_dir("subdir/", "subdir/", meta={"origin": "unknown"})
 
     (local Package)
      └─data.csv
-     └─stuff/
+     └─subdir/
 
 
 
@@ -212,6 +210,6 @@ p.set_meta({"package-type": "demo"})
 
     (local Package)
      └─data.csv
-     └─stuff/
+     └─subdir/
 
 
