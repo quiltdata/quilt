@@ -446,6 +446,7 @@ interface QueryRunnerState {
   submit: (body: string) => () => void
 }
 
+// TODO: split queryBody and queryRunner
 function useQueryRunner(
   queryExecutionId: string | null,
   workgroup: string,
@@ -553,7 +554,7 @@ function useWorkgroups(): WorkgroupsState {
   )
 }
 
-interface StateRenderProps {
+interface PageState {
   workgroups: WorkgroupsState
   queries: QueriesState
   results: QueryResults
@@ -562,12 +563,7 @@ interface StateRenderProps {
   queryRunner: QueryRunnerState
 }
 
-interface StateProps {
-  children: (props: StateRenderProps) => React.ReactElement
-  queryExecutionId: string | null
-}
-
-function State({ children, queryExecutionId }: StateProps) {
+function useState(queryExecutionId: string | null): PageState | null | Error {
   const workgroups = useWorkgroups()
   const results = useQueryResults(queryExecutionId)
 
@@ -612,32 +608,45 @@ function State({ children, queryExecutionId }: StateProps) {
   )
 
   // TODO: use hooks instead of nested components
-  return workgroups.data.case({
-    _: (workgroupsDataResult) => {
-      if (
-        !AsyncResult.Init.is(workgroupsDataResult) &&
-        !AsyncResult.Pending.is(workgroupsDataResult) &&
-        !workgroupsDataResult.value?.list?.length
-      )
-        return <WorkgroupsEmpty />
+  return React.useMemo(
+    () =>
+      workgroups.data.case({
+        _: (workgroupsDataResult) => {
+          if (
+            !AsyncResult.Init.is(workgroupsDataResult) &&
+            !AsyncResult.Pending.is(workgroupsDataResult) &&
+            !workgroupsDataResult.value?.list?.length
+          )
+            return null
 
-      return children({
-        workgroups: {
-          ...workgroups,
-          value: selectedWorkgroup,
-          change: handleWorkgroupChange,
+          return {
+            workgroups: {
+              ...workgroups,
+              value: selectedWorkgroup,
+              change: handleWorkgroupChange,
+            },
+            queries: {
+              ...queries,
+              change: handleQueryMetaChange,
+            },
+            results,
+            executions,
+            queryRunner,
+          }
         },
-        queries: {
-          ...queries,
-          change: handleQueryMetaChange,
-        },
-        results,
-        executions,
-        queryRunner,
-      })
-    },
-    Err: (error) => <WorkgroupsEmpty error={error} />,
-  })
+        Err: R.identity,
+      }),
+    [
+      executions,
+      handleQueryMetaChange,
+      handleWorkgroupChange,
+      queries,
+      queryRunner,
+      results,
+      selectedWorkgroup,
+      workgroups,
+    ],
+  )
 }
 
 const useOverrideStyles = M.makeStyles({
@@ -706,70 +715,70 @@ export default function Athena({
 
   const { urls } = NamedRoutes.use()
 
-  return (
-    <State queryExecutionId={queryExecutionId || null}>
-      {({ workgroups, queries, results, executions, queryRunner }) =>
-        queryRunner.data.case({
-          _: ({ value: executionData }) => {
-            if (executionData?.id && executionData?.id !== queryExecutionId) {
-              return (
-                <Redirect
-                  to={urls.bucketAthenaQueryExecution(bucket, executionData?.id)}
-                />
-              )
-            }
+  const state = useState(queryExecutionId || null)
 
-            return (
-              <>
-                <M.Typography variant="h6">Athena SQL</M.Typography>
+  if (state instanceof Error) return <WorkgroupsEmpty error={state} />
 
-                <div className={classes.selects}>
-                  <WorkgroupField
-                    className={classes.select}
-                    workgroupsData={workgroups.data}
-                    onChange={workgroups.change}
-                    onLoadMore={workgroups.loadMore}
-                    value={workgroups.value}
-                  />
+  if (!state) return <WorkgroupsEmpty />
 
-                  <QueryMetaField
-                    className={classes.select}
-                    queriesData={queries.data}
-                    onChange={queries.change}
-                    onLoadMore={queries.loadMore}
-                    value={queryRunner.value ? null : queries.value}
-                  />
-                </div>
+  const { workgroups, queries, results, executions, queryRunner } = state
 
-                <QueryBodyField
-                  className={classes.form}
-                  customQueryBody={queryRunner.value}
-                  queriesData={queries.data}
-                  queryMeta={queries.value}
-                  queryResultsData={results.data}
-                  queryRunData={queryRunner.data}
-                  onChange={queryRunner.change}
-                  onSubmit={queryRunner.submit}
-                />
-
-                <HistoryContainer
-                  bucket={bucket}
-                  executionsData={executions.data}
-                  queryExecutionId={queryExecutionId}
-                  onLoadMore={executions.loadMore}
-                />
-
-                <ResultsContainer
-                  bucket={bucket}
-                  className={classes.results}
-                  onLoadMore={results.loadMore}
-                  queryResultsData={results.data}
-                />
-              </>
-            )
-          },
-        })
+  return queryRunner.data.case({
+    _: ({ value: executionData }) => {
+      if (executionData?.id && executionData?.id !== queryExecutionId) {
+        return (
+          <Redirect to={urls.bucketAthenaQueryExecution(bucket, executionData?.id)} />
+        )
       }
-    </State>
-  )
+
+      return (
+        <>
+          <M.Typography variant="h6">Athena SQL</M.Typography>
+
+          <div className={classes.selects}>
+            <WorkgroupField
+              className={classes.select}
+              workgroupsData={workgroups.data}
+              onChange={workgroups.change}
+              onLoadMore={workgroups.loadMore}
+              value={workgroups.value}
+            />
+
+            <QueryMetaField
+              className={classes.select}
+              queriesData={queries.data}
+              onChange={queries.change}
+              onLoadMore={queries.loadMore}
+              value={queryRunner.value ? null : queries.value}
+            />
+          </div>
+
+          <QueryBodyField
+            className={classes.form}
+            customQueryBody={queryRunner.value}
+            queriesData={queries.data}
+            queryMeta={queries.value}
+            queryResultsData={results.data}
+            queryRunData={queryRunner.data}
+            onChange={queryRunner.change}
+            onSubmit={queryRunner.submit}
+          />
+
+          <HistoryContainer
+            bucket={bucket}
+            executionsData={executions.data}
+            queryExecutionId={queryExecutionId}
+            onLoadMore={executions.loadMore}
+          />
+
+          <ResultsContainer
+            bucket={bucket}
+            className={classes.results}
+            onLoadMore={results.loadMore}
+            queryResultsData={results.data}
+          />
+        </>
+      )
+    },
+  })
 }
