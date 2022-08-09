@@ -363,13 +363,13 @@ export async function runQuery({
   }
 }
 
-export function useQueryRun(
-  workgroup: string,
-  queryBody: string,
-): () => Promise<QueryRunResponse> {
+export function useQueryRun(workgroup: string): (q: string) => Promise<QueryRunResponse> {
   const athena = AWS.Athena.use()
-  return React.useCallback(() => {
-    if (!athena) return Promise.reject(new Error('No Athena available'))
-    return runQuery({ athena, queryBody, workgroup })
-  }, [athena, queryBody, workgroup])
+  return React.useCallback(
+    (queryBody: string) => {
+      if (!athena) return Promise.reject(new Error('No Athena available'))
+      return runQuery({ athena, queryBody, workgroup })
+    },
+    [athena, workgroup],
+  )
 }

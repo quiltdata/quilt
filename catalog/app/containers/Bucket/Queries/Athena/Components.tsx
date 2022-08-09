@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -12,15 +13,17 @@ const useSectionStyles = M.makeStyles((t) => ({
 
 interface SectionProps {
   children: React.ReactNode
-  empty: React.ReactNode
+  className?: string
+  empty?: React.ReactNode
   title: string
 }
 
-export function Section({ empty, title, children }: SectionProps) {
+export function Section({ className, empty, title, children }: SectionProps) {
   const classes = useSectionStyles()
-  if (!children) return <M.Typography className={classes.header}>{empty}</M.Typography>
+  if (!children && empty)
+    return <M.Typography className={cx(classes.header, className)}>{empty}</M.Typography>
   return (
-    <div>
+    <div className={className}>
       <M.Typography className={classes.header}>{title}</M.Typography>
       {children}
     </div>
