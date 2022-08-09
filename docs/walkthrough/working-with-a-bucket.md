@@ -12,6 +12,7 @@ b = quilt3.Bucket("s3://quilt-example")
 
 This requires that the bucket is configured to work with Quilt 3. Unless this bucket is public, you will also first need to log into the catalog that controls this bucket:
 
+<!--pytest.mark.skip-->
 ```python
 # only need to run this once
 # ie quilt3.config('https://your-catalog-homepage/')
@@ -24,6 +25,7 @@ quilt3.login()
 ## Introspecting a bucket
 
 To see the contents of a `Bucket`, use `keys`:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -34,6 +36,7 @@ b.keys()
 ## Reading from a bucket
 
 To download a file or folder from a bucket use `fetch`:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -49,6 +52,7 @@ b.fetch("README.md", "./read.md")
 ## Writing to a bucket
 
 You can write data to a bucket.
+<!--pytest-codeblocks:cont-->
 
 ```python
 # put a file to a bucket
@@ -61,6 +65,7 @@ b.put_dir("stuff", "./aleksey")
 Note that `set` operations on a `Package` are `put` operations on a `Bucket`.
 
 ## Deleting objects in a bucket
+<!--pytest-codeblocks:cont-->
 
 ```python
 # always be careful when deleting
@@ -77,6 +82,7 @@ b.delete_dir("stuff/")
 You can search for individual objects using `search`.
 
 Note that this feature is currently only supported for buckets backed by a Quilt catalog instance. Before performing a search you must first configure a connection to that instance using `quilt3.config`.
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -103,6 +109,7 @@ quilt3.config(navigator_url="https://open.quiltdata.com")
 
 
 Quilt supports unstructured search:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -143,6 +150,7 @@ b.search("thor")
 
 
 As well as structured search on metadata (note that this feature is experimental):
+<!--pytest-codeblocks:cont-->
 
 
 ```python
