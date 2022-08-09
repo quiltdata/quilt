@@ -33,7 +33,6 @@ interface QueryMetaFieldProps {
   workgroup: requests.athena.Workgroup
 }
 
-// TODO: maybe upload query body only on button click?
 function AthenaQueries({
   bucket,
   queryExecutionId,
@@ -80,7 +79,6 @@ function AthenaQueries({
           />
         ),
         Pending: () => <FormSkeleton />,
-        Err: makeAsyncDataErrorHandler('Query Body'),
       })}
     </div>
   )
