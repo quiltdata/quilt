@@ -19,6 +19,12 @@ import Results from './Results'
 import History from './History'
 import AthenaWorkgroups from './Workgroups'
 
+function safeAdd(a?: string, b?: string): string | undefined {
+  if (!a) return b
+  if (!b) return a
+  return a + b
+}
+
 interface QueryMetaFieldProps {
   bucket: string
   className?: string
@@ -43,28 +49,16 @@ function AthenaQueries({
     <div className={className}>
       {data.case({
         Ok: (queries) => (
-          <>
-            <Section title="Select query" empty="There are no saved queries.">
-              {queries.list.length && (
-                <QuerySelect<requests.athena.AthenaQuery | null>
-                  onChange={setQuery}
-                  onLoadMore={queries.next ? () => setPrev(queries) : undefined}
-                  queries={queries.list}
-                  value={query}
-                />
-              )}
-            </Section>
-
-            <QueryBodyField
-              bucket={bucket}
-              workgroup={workgroup}
-              queryExecutionId={queryExecutionId}
-              initialValue={query?.body || null}
-              className={classes.form}
-              queryResultsData={results.data}
-              key={query?.key}
-            />
-          </>
+          <Section title="Select query" empty="There are no saved queries.">
+            {queries.list.length && (
+              <QuerySelect<requests.athena.AthenaQuery | null>
+                onChange={setQuery}
+                onLoadMore={queries.next ? () => setPrev(queries) : undefined}
+                queries={queries.list}
+                value={query}
+              />
+            )}
+          </Section>
         ),
         Err: makeAsyncDataErrorHandler('Select query'),
         _: () => (
@@ -73,6 +67,20 @@ function AthenaQueries({
             <FormSkeleton />
           </>
         ),
+      })}
+      {results.data.case({
+        _: ({ value: resultsResponse }) => (
+          <QueryBodyField
+            bucket={bucket}
+            workgroup={workgroup}
+            queryExecutionId={queryExecutionId}
+            initialValue={resultsResponse?.queryExecution?.query || query?.body || null}
+            className={classes.form}
+            key={safeAdd(query?.key, resultsResponse?.queryExecution?.query)}
+          />
+        ),
+        Pending: () => <FormSkeleton />,
+        Err: makeAsyncDataErrorHandler('Query Body'),
       })}
     </div>
   )
@@ -119,35 +127,6 @@ function QueryBodyField({
       setLoading(false)
     }
   }, [bucket, history, notify, runQuery, queryExecutionId, urls, workgroup])
-
-  // const value = React.useMemo(
-  //   () =>
-  //     userEnteredValue ||
-  //     queryResultsData.case({
-  //       Ok: (queryResults) => queryResults?.queryExecution?.query,
-  //       _: () => '',
-  //     }) ||
-  //     '',
-  //   [userEnteredValue, queryResultsData],
-  // )
-  // const isLoading = React.useMemo(
-  //   () =>
-  //     queryResultsData.case({
-  //       Pending: R.T,
-  //       _: R.F,
-  //     }),
-  //   [queryResultsData],
-  // )
-  // const error = React.useMemo(
-  //   () =>
-  //     queryResultsData.case({
-  //       Err: R.identity,
-  //       _: R.F,
-  //     }),
-  //   [queryResultsData],
-  // )
-  // if (isLoading) return <FormSkeleton />
-  // if (error) return makeAsyncDataErrorHandler('Query Body')(error)
 
   return (
     <div className={className}>
@@ -383,27 +362,12 @@ interface QueryResults {
   loadMore: (prev: requests.athena.QueryResultsResponse) => void
 }
 
-function useQueryResults(queryExecutionId: string | null): QueryResults {
+function useQueryResults(queryExecutionId?: string): QueryResults {
   const [prev, usePrev] = React.useState<requests.athena.QueryResultsResponse | null>(
     null,
   )
-  const data = requests.athena.useQueryResults(queryExecutionId, prev)
+  const data = requests.athena.useQueryResults(queryExecutionId || null, prev)
   return React.useMemo(() => ({ data, loadMore: usePrev }), [data])
-}
-
-interface PageState {
-  results: QueryResults
-}
-
-function useState(queryExecutionId: string | null): PageState {
-  const results = useQueryResults(queryExecutionId)
-
-  return React.useMemo(
-    () => ({
-      results,
-    }),
-    [results],
-  )
 }
 
 const useOverrideStyles = M.makeStyles({
@@ -463,9 +427,7 @@ interface AthenaProps {
 function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
   const classes = useStyles()
 
-  const state = useState(queryExecutionId || null)
-
-  const { results } = state
+  const results = useQueryResults(queryExecutionId)
 
   return (
     <>
