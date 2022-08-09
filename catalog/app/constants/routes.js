@@ -150,8 +150,8 @@ export const bucketESQueries = {
   url: (bucket) => `/b/${bucket}/queries/es`,
 }
 
-export const bucketAthenaQueries = {
-  path: '/b/:bucket/queries/athena/',
+export const bucketAthena = {
+  path: '/b/:bucket/queries/athena',
   url: (bucket) => `/b/${bucket}/queries/athena`,
 }
 
