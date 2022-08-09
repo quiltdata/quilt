@@ -96,6 +96,10 @@ function useQueryRun(
   const [error, setError] = React.useState<Error | undefined>()
   const runQuery = requests.athena.useQueryRun(workgroup)
   const { push: notify } = Notifications.use()
+  const goToExecution = React.useCallback(
+    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
+    [bucket, history, urls, workgroup],
+  )
   const onSubmit = React.useCallback(
     async (value: string) => {
       setLoading(true)
@@ -103,16 +107,16 @@ function useQueryRun(
       try {
         const { id } = await runQuery(value)
         if (id === queryExecutionId) notify('Query execution results remain unchanged')
-        history.push(urls.bucketAthenaExecution(bucket, workgroup, id))
+        setLoading(false)
+        goToExecution(id)
       } catch (e) {
         if (e instanceof Error) {
           setError(e)
         }
-      } finally {
         setLoading(false)
       }
     },
-    [bucket, history, notify, runQuery, queryExecutionId, urls, workgroup],
+    [goToExecution, notify, runQuery, queryExecutionId],
   )
   return React.useMemo(
     () => ({
