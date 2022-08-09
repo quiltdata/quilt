@@ -21,36 +21,65 @@ import AthenaWorkgroups from './Workgroups'
 
 interface QueryMetaFieldProps {
   className?: string
-  onChange: (q: requests.athena.AthenaQuery | null) => void
-  onLoadMore: (prev: requests.athena.QueriesResponse) => void
-  queriesData: requests.AsyncData<requests.athena.QueriesResponse>
-  value: requests.athena.AthenaQuery | null
+  results: QueryResults
+  queryRunner: QueryRunnerState
+  workgroup: requests.athena.Workgroup
 }
 
-function QueryMetaField({
+// TODO: maybe upload query body only on button click?
+function AthenaQueries({
   className,
-  onChange,
-  onLoadMore,
-  queriesData,
-  value,
+  results,
+  queryRunner,
+  workgroup,
 }: QueryMetaFieldProps) {
+  const [query, setQuery] = React.useState<requests.athena.AthenaQuery | null>(null)
+  const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
+  const data = requests.athena.useQueries(workgroup, prev)
+
+  const classes = useStyles()
+
+  const handleQueryChange = React.useCallback(
+    (q: requests.athena.AthenaQuery | null) => {
+      setQuery(q)
+      queryRunner.change(null)
+    },
+    [queryRunner],
+  )
   return (
     <div className={className}>
-      {queriesData.case({
+      {data.case({
         Ok: (queries) => (
-          <Section title="Select query" empty="There are no saved queries.">
-            {queries.list.length && (
-              <QuerySelect<requests.athena.AthenaQuery | null>
-                onChange={onChange}
-                onLoadMore={queries.next ? () => onLoadMore(queries) : undefined}
-                queries={queries.list}
-                value={value}
-              />
-            )}
-          </Section>
+          <>
+            <Section title="Select query" empty="There are no saved queries.">
+              {queries.list.length && (
+                <QuerySelect<requests.athena.AthenaQuery | null>
+                  onChange={handleQueryChange}
+                  onLoadMore={queries.next ? () => setPrev(queries) : undefined}
+                  queries={queries.list}
+                  value={queryRunner.value ? null : query}
+                />
+              )}
+            </Section>
+
+            <QueryBodyField
+              className={classes.form}
+              customQueryBody={queryRunner.value}
+              queryMeta={query}
+              queryResultsData={results.data}
+              queryRunData={queryRunner.data}
+              onChange={queryRunner.change}
+              onSubmit={queryRunner.submit}
+            />
+          </>
         ),
         Err: makeAsyncDataErrorHandler('Select query'),
-        _: () => <SelectSkeleton />,
+        _: () => (
+          <>
+            <SelectSkeleton />
+            <FormSkeleton />
+          </>
+        ),
       })}
     </div>
   )
@@ -126,41 +155,33 @@ function QueryBodyField({
 
 interface HistoryContainerProps {
   bucket: string
-  executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
-  onLoadMore: (prev: requests.athena.QueryExecutionsResponse) => void
-  queryExecutionId?: string
   workgroup: requests.athena.Workgroup
 }
 
-function HistoryContainer({
-  bucket,
-  executionsData,
-  queryExecutionId,
-  onLoadMore,
-  workgroup,
-}: HistoryContainerProps) {
+function HistoryContainer({ bucket, workgroup }: HistoryContainerProps) {
   const classes = useStyles()
+  const [prev, setPrev] = React.useState<requests.athena.QueryExecutionsResponse | null>(
+    null,
+  )
+  const data = requests.athena.useQueryExecutions(workgroup, prev)
   return (
     <div>
-      <HistoryHeader
-        bucket={bucket}
-        className={classes.sectionHeader}
-        queryExecutionId={queryExecutionId}
-      />
+      <M.Typography className={classes.sectionHeader} color="textPrimary">
+        Query executions
+      </M.Typography>
 
-      {!queryExecutionId &&
-        executionsData.case({
-          Ok: (executions) => (
-            <History
-              bucket={bucket}
-              executions={executions.list}
-              onLoadMore={executions.next ? () => onLoadMore(executions) : undefined}
-              workgroup={workgroup}
-            />
-          ),
-          Err: makeAsyncDataErrorHandler('Executions Data'),
-          _: () => <TableSkeleton size={4} />,
-        })}
+      {data.case({
+        Ok: (executions) => (
+          <History
+            bucket={bucket}
+            executions={executions.list}
+            onLoadMore={executions.next ? () => setPrev(executions) : undefined}
+            workgroup={workgroup}
+          />
+        ),
+        Err: makeAsyncDataErrorHandler('Executions Data'),
+        _: () => <TableSkeleton size={4} />,
+      })}
     </div>
   )
 }
@@ -185,12 +206,19 @@ function ResultsContainer({
     Ok: (queryResults) => {
       if (queryResults.rows.length) {
         return (
-          <Results
-            className={className}
-            rows={queryResults.rows}
-            columns={queryResults.columns}
-            onLoadMore={queryResults.next ? () => onLoadMore(queryResults) : undefined}
-          />
+          <>
+            <ResultsBreadcrumbs
+              bucket={bucket}
+              queryExecutionId={queryResults.queryExecution?.id}
+              workgroup={workgroup}
+            />
+            <Results
+              className={className}
+              rows={queryResults.rows}
+              columns={queryResults.columns}
+              onLoadMore={queryResults.next ? () => onLoadMore(queryResults) : undefined}
+            />
+          </>
         )
       }
       if (queryResults.queryExecution) {
@@ -397,54 +425,8 @@ function useQueryResults(queryExecutionId: string | null): QueryResults {
   return React.useMemo(() => ({ data, loadMore: usePrev }), [data])
 }
 
-interface QueriesState {
-  data: requests.AsyncData<requests.athena.QueriesResponse>
-  loadMore: (prev: requests.athena.QueriesResponse) => void
-  value: requests.athena.AthenaQuery | null
-  change: (value: requests.athena.AthenaQuery | null) => void
-}
-
-function useQueries(workgroup: string): QueriesState {
-  // Info about query: name, url, etc.
-  const [queryMeta, setQueryMeta] = React.useState<requests.athena.AthenaQuery | null>(
-    null,
-  )
-  const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
-  const data = requests.athena.useQueries(workgroup, prev)
-  return React.useMemo(
-    () => ({
-      loadMore: setPrev,
-      data,
-      value: queryMeta,
-      change: setQueryMeta,
-    }),
-    [data, queryMeta],
-  )
-}
-
-interface ExecutionsState {
-  data: requests.AsyncData<requests.athena.QueryExecutionsResponse>
-  loadMore: (prev: requests.athena.QueryExecutionsResponse) => void
-}
-
-function useExecutions(workgroup: string): ExecutionsState {
-  const [prev, setPrev] = React.useState<requests.athena.QueryExecutionsResponse | null>(
-    null,
-  )
-  const data = requests.athena.useQueryExecutions(workgroup, prev)
-  return React.useMemo(
-    () => ({
-      data,
-      loadMore: setPrev,
-    }),
-    [data],
-  )
-}
-
 interface PageState {
-  queries: QueriesState
   results: QueryResults
-  executions: ExecutionsState
   // TODO: queryBody: {value, change, submit} ?
   queryRunner: QueryRunnerState
 }
@@ -452,30 +434,14 @@ interface PageState {
 function useState(workgroup: string, queryExecutionId: string | null): PageState {
   const results = useQueryResults(queryExecutionId)
 
-  const executions = useExecutions(workgroup)
-  const queries = useQueries(workgroup)
-
   const queryRunner = useQueryRunner(queryExecutionId, workgroup)
-
-  const handleQueryMetaChange = React.useCallback(
-    (query: requests.athena.AthenaQuery | null) => {
-      queries.change(query)
-      queryRunner.change(null)
-    },
-    [queries, queryRunner],
-  )
 
   return React.useMemo(
     () => ({
-      queries: {
-        ...queries,
-        change: handleQueryMetaChange,
-      },
       results,
-      executions,
       queryRunner,
     }),
-    [executions, handleQueryMetaChange, queries, queryRunner, results],
+    [queryRunner, results],
   )
 }
 
@@ -497,28 +463,28 @@ const useHistoryHeaderStyles = M.makeStyles({
 })
 
 interface HistoryHeaderProps {
-  queryExecutionId?: string | null
   bucket: string
-  className: string
+  className?: string
+  queryExecutionId?: string | null
+  workgroup: requests.athena.Workgroup
 }
 
-function HistoryHeader({ bucket, className, queryExecutionId }: HistoryHeaderProps) {
+function ResultsBreadcrumbs({
+  bucket,
+  className,
+  queryExecutionId,
+  workgroup,
+}: HistoryHeaderProps) {
   const classes = useHistoryHeaderStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
-  const rootTitle = 'Query Executions'
-  if (!queryExecutionId) {
-    return (
-      <M.Typography className={className} color="textPrimary">
-        {rootTitle}
-      </M.Typography>
-    )
-  }
-
   return (
     <M.Breadcrumbs className={className} classes={overrideClasses}>
-      <Link className={classes.breadcrumb} to={urls.bucketAthenaQueries(bucket)}>
-        {rootTitle}
+      <Link
+        className={classes.breadcrumb}
+        to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
+      >
+        Query Executions
       </Link>
       <M.Typography className={classes.breadcrumb} color="textPrimary">
         Results for <Code>{queryExecutionId}</Code>
@@ -546,7 +512,7 @@ function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
 
   const state = useState(workgroup, queryExecutionId || null)
 
-  const { queries, results, executions, queryRunner } = state
+  const { results, queryRunner } = state
 
   return queryRunner.data.case({
     _: ({ value: executionData }) => {
@@ -560,44 +526,25 @@ function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
 
       return (
         <>
-          <QueryMetaField
+          <AthenaQueries
             className={classes.queries}
-            queriesData={queries.data}
-            onChange={queries.change}
-            onLoadMore={queries.loadMore}
-            value={queryRunner.value ? null : queries.value}
-          />
-
-          {queries.data.case({
-            Ok: () => (
-              <QueryBodyField
-                className={classes.form}
-                customQueryBody={queryRunner.value}
-                queryMeta={queries.value}
-                queryResultsData={results.data}
-                queryRunData={queryRunner.data}
-                onChange={queryRunner.change}
-                onSubmit={queryRunner.submit}
-              />
-            ),
-            _: () => <FormSkeleton />,
-          })}
-
-          <HistoryContainer
-            bucket={bucket}
-            executionsData={executions.data}
-            queryExecutionId={queryExecutionId}
-            onLoadMore={executions.loadMore}
+            key={workgroup}
+            queryRunner={queryRunner}
+            results={results}
             workgroup={workgroup}
           />
 
-          <ResultsContainer
-            bucket={bucket}
-            className={classes.results}
-            onLoadMore={results.loadMore}
-            queryResultsData={results.data}
-            workgroup={workgroup}
-          />
+          {queryExecutionId ? (
+            <ResultsContainer
+              bucket={bucket}
+              className={classes.results}
+              onLoadMore={results.loadMore}
+              queryResultsData={results.data}
+              workgroup={workgroup}
+            />
+          ) : (
+            <HistoryContainer bucket={bucket} workgroup={workgroup} />
+          )}
         </>
       )
     },

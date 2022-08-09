@@ -340,7 +340,7 @@ async function runQuery({
     const { QueryExecutionId } = await athena
       .startQueryExecution({
         ClientRequestToken: hashDigest,
-        QueryString: normalizeQueryBody(queryBody), // But if error, skip ClientRequestToken and try one more
+        QueryString: normalizeQueryBody(queryBody), // FIXME: But if error, skip ClientRequestToken and try one more
         ResultConfiguration: {
           EncryptionConfiguration: {
             EncryptionOption: 'SSE_S3',
