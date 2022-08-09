@@ -19,6 +19,7 @@ EXPECTED_VERSION_SUFFIX = '-quilt3'
 # Github HTTPS Revision
 # Just the branch name right now, but anything following '@' in a github repo URL
 GH_HTTPS_REV = 'quilt'
+GH_URL = f'git+https://github.com/quiltdata/pydoc-markdown.git@{GH_HTTPS_REV}'
 
 
 def generate_cli_api_reference_docs():
@@ -31,11 +32,7 @@ def gen_walkthrough_doc():
     subprocess.check_call(["./gen_walkthrough.sh"])
 
 
-if __name__ == "__main__":
-    # CLI and Walkthrough docs uses custom script to generate documentation markdown, so do that first
-    generate_cli_api_reference_docs()
-    gen_walkthrough_doc()
-
+def install_pydocmd():
     try:
         pydocmd_dist = pkg_resources.get_distribution('pydoc-markdown')  # install name, not module name
         version = pydocmd_dist.version
@@ -61,7 +58,16 @@ if __name__ == "__main__":
 
         if version:
             pipmain(['uninstall', 'pydoc-markdown'])
-        pipmain(['install', f'git+https://github.com/quiltdata/pydoc-markdown.git@{GH_HTTPS_REV}'])
+
+        print(f'Installing {GH_URL}')
+        pipmain(['install', GH_URL])
+
+
+if __name__ == "__main__":
+    # CLI and Walkthrough docs uses custom script to generate documentation markdown, so do that first
+    generate_cli_api_reference_docs()
+    gen_walkthrough_doc()
+    install_pydocmd()
 
     import pydocmd
 
@@ -74,11 +80,16 @@ if __name__ == "__main__":
     # hacky, but we should maintain the same interpreter, and we're dependent on how
     # pydocmd calls mkdocs.
     if sys.argv[-1].endswith('build.py'):
+        print("Using standard args for mkdocs.")
         sys.argv.append('build')
     else:
         print("Using custom args for mkdocs.")
 
+    print("\nStarting pydocmd_main...")
+
     pydocmd_main()
+
+    print("...finished pydocmd_main")
 
     # report where stuff is
     with open('pydocmd.yml', encoding='utf-8') as f:

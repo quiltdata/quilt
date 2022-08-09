@@ -26,7 +26,7 @@ Yes, to find bugs and prioritize features.
 
 You can disable anonymous usage collection with an environment variable:
 ```
-$ export QUILT_DISABLE_USAGE_METRICS=true
+export QUILT_DISABLE_USAGE_METRICS=true
 ```
 
 Or call `quilt3.disable_telemetry()`
@@ -62,4 +62,3 @@ a local machine or foreign region)—I/O is much faster.
 
 1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
-
