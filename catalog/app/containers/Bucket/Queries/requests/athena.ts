@@ -1,4 +1,5 @@
 import Athena from 'aws-sdk/clients/athena'
+import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -330,7 +331,7 @@ interface RunQueryArgs {
   workgroup: string
 }
 
-async function runQuery({
+export async function runQuery({
   athena,
   queryBody,
   workgroup,
@@ -365,7 +366,10 @@ async function runQuery({
 export function useQueryRun(
   workgroup: string,
   queryBody: string,
-): AsyncData<QueryRunResponse> {
+): () => Promise<QueryRunResponse> {
   const athena = AWS.Athena.use()
-  return useData(runQuery, { athena, queryBody, workgroup }, { noAutoFetch: !queryBody })
+  return React.useCallback(() => {
+    if (!athena) return Promise.reject(new Error('No Athena available'))
+    return runQuery({ athena, queryBody, workgroup })
+  }, [athena, queryBody, workgroup])
 }

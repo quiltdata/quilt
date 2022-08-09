@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
-import { Link, Redirect } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -20,32 +20,25 @@ import History from './History'
 import AthenaWorkgroups from './Workgroups'
 
 interface QueryMetaFieldProps {
+  bucket: string
   className?: string
+  queryExecutionId?: string
   results: QueryResults
-  queryRunner: QueryRunnerState
   workgroup: requests.athena.Workgroup
 }
 
 // TODO: maybe upload query body only on button click?
 function AthenaQueries({
+  bucket,
+  queryExecutionId,
   className,
   results,
-  queryRunner,
   workgroup,
 }: QueryMetaFieldProps) {
   const [query, setQuery] = React.useState<requests.athena.AthenaQuery | null>(null)
   const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
   const data = requests.athena.useQueries(workgroup, prev)
-
   const classes = useStyles()
-
-  const handleQueryChange = React.useCallback(
-    (q: requests.athena.AthenaQuery | null) => {
-      setQuery(q)
-      queryRunner.change(null)
-    },
-    [queryRunner],
-  )
   return (
     <div className={className}>
       {data.case({
@@ -54,22 +47,22 @@ function AthenaQueries({
             <Section title="Select query" empty="There are no saved queries.">
               {queries.list.length && (
                 <QuerySelect<requests.athena.AthenaQuery | null>
-                  onChange={handleQueryChange}
+                  onChange={setQuery}
                   onLoadMore={queries.next ? () => setPrev(queries) : undefined}
                   queries={queries.list}
-                  value={queryRunner.value ? null : query}
+                  value={query}
                 />
               )}
             </Section>
 
             <QueryBodyField
+              bucket={bucket}
+              workgroup={workgroup}
+              queryExecutionId={queryExecutionId}
+              initialValue={query?.body || null}
               className={classes.form}
-              customQueryBody={queryRunner.value}
-              queryMeta={query}
               queryResultsData={results.data}
-              queryRunData={queryRunner.data}
-              onChange={queryRunner.change}
-              onSubmit={queryRunner.submit}
+              key={query?.key}
             />
           </>
         ),
@@ -86,68 +79,84 @@ function AthenaQueries({
 }
 
 interface QueryBodyProps {
+  bucket: string
   className?: string
-  customQueryBody: string | null
-  onChange: (q: string | null) => void
-  onSubmit: (q: string) => () => void
-  queryMeta: requests.athena.AthenaQuery | null
-  queryResultsData: requests.AsyncData<requests.athena.QueryResultsResponse>
-  queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
+  initialValue: string | null
+  queryExecutionId?: string
+  queryResultsData?: requests.AsyncData<requests.athena.QueryResultsResponse>
+  workgroup: requests.athena.Workgroup
 }
 
 function QueryBodyField({
+  bucket,
   className,
-  customQueryBody,
-  onChange,
-  onSubmit,
-  queryMeta,
-  queryResultsData,
-  queryRunData,
+  // queryResultsData,
+  initialValue,
+  workgroup,
+  queryExecutionId,
 }: QueryBodyProps) {
-  const userEnteredValue = React.useMemo(
-    () => customQueryBody || queryMeta?.body,
-    [customQueryBody, queryMeta],
-  )
-  const value = React.useMemo(
-    () =>
-      userEnteredValue ||
-      queryResultsData.case({
-        Ok: (queryResults) => queryResults?.queryExecution?.query,
-        _: () => '',
-      }) ||
-      '',
-    [userEnteredValue, queryResultsData],
-  )
-  const isLoading = React.useMemo(
-    () =>
-      queryResultsData.case({
-        Pending: R.T,
-        _: R.F,
-      }),
-    [queryResultsData],
-  )
-  const error = React.useMemo(
-    () =>
-      queryResultsData.case({
-        Err: R.identity,
-        _: R.F,
-      }),
-    [queryResultsData],
-  )
-  if (isLoading) return <FormSkeleton />
-  if (error) return makeAsyncDataErrorHandler('Query Body')(error)
+  // Custom query content, not associated with queryMeta
+  const [value, setValue] = React.useState<string | null>(initialValue)
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<Error | undefined>()
+
+  const { urls } = NamedRoutes.use()
+  const history = useHistory()
+  const runQuery = requests.athena.useQueryRun(workgroup, value || '')
+  const { push: notify } = Notifications.use()
+  const handleSubmit = React.useCallback(async () => {
+    setLoading(true)
+    setError(undefined)
+    try {
+      const { id } = await runQuery()
+      if (id === queryExecutionId) notify('Query execution results remain unchanged')
+      history.push(urls.bucketAthenaExecution(bucket, workgroup, id))
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [bucket, history, notify, runQuery, queryExecutionId, urls, workgroup])
+
+  // const value = React.useMemo(
+  //   () =>
+  //     userEnteredValue ||
+  //     queryResultsData.case({
+  //       Ok: (queryResults) => queryResults?.queryExecution?.query,
+  //       _: () => '',
+  //     }) ||
+  //     '',
+  //   [userEnteredValue, queryResultsData],
+  // )
+  // const isLoading = React.useMemo(
+  //   () =>
+  //     queryResultsData.case({
+  //       Pending: R.T,
+  //       _: R.F,
+  //     }),
+  //   [queryResultsData],
+  // )
+  // const error = React.useMemo(
+  //   () =>
+  //     queryResultsData.case({
+  //       Err: R.identity,
+  //       _: R.F,
+  //     }),
+  //   [queryResultsData],
+  // )
+  // if (isLoading) return <FormSkeleton />
+  // if (error) return makeAsyncDataErrorHandler('Query Body')(error)
 
   return (
     <div className={className}>
       <Form
-        disabled={isButtonDisabled(value, queryRunData, null)}
-        onChange={onChange}
-        onSubmit={onSubmit}
-        error={(queryRunData as $TSFixMe).case({
-          Err: R.identity,
-          _: () => undefined,
-        })}
-        value={value}
+        disabled={!value || loading}
+        onChange={setValue}
+        onSubmit={handleSubmit}
+        error={error}
+        value={value || ''}
       />
     </div>
   )
@@ -338,14 +347,12 @@ interface FormProps {
   disabled: boolean
   error?: Error
   onChange: (value: string) => void
-  onSubmit: (value: string) => () => void
+  onSubmit: () => void
   value: string | null
 }
 
 function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
   const classes = useFormStyles()
-
-  const handleSubmit = React.useMemo(() => onSubmit(value || ''), [onSubmit, value])
 
   return (
     <div>
@@ -362,53 +369,12 @@ function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
           variant="contained"
           color="primary"
           disabled={disabled}
-          onClick={handleSubmit}
+          onClick={onSubmit}
         >
           Run query
         </M.Button>
       </div>
     </div>
-  )
-}
-
-interface QueryRunnerState {
-  value: string | null
-  change: (value: string | null) => void
-  data: requests.AsyncData<requests.athena.QueryRunResponse>
-  submit: (body: string) => () => void
-}
-
-// TODO: split queryBody and queryRunner
-function useQueryRunner(
-  queryExecutionId: string | null,
-  workgroup: string,
-): QueryRunnerState {
-  // Custom query content, not associated with queryMeta
-  const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
-
-  // Query content requested to Athena
-  const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
-
-  const submit = React.useMemo(() => (body: string) => () => setQueryRequest(body), [])
-
-  React.useEffect(() => {
-    setQueryRequest(null)
-  }, [queryExecutionId])
-
-  const data = requests.athena.useQueryRun(workgroup, queryRequest || '')
-  const { push: notify } = Notifications.use()
-  React.useEffect(() => {
-    data.case({
-      _: () => null,
-      Ok: ({ id }) => {
-        if (id === queryExecutionId) notify('Query execution results remain unchanged')
-        return null
-      },
-    })
-  }, [notify, queryExecutionId, data])
-  return React.useMemo(
-    () => ({ data, value: customQueryBody, change: setCustomQueryBody, submit }),
-    [customQueryBody, data, submit],
   )
 }
 
@@ -427,21 +393,16 @@ function useQueryResults(queryExecutionId: string | null): QueryResults {
 
 interface PageState {
   results: QueryResults
-  // TODO: queryBody: {value, change, submit} ?
-  queryRunner: QueryRunnerState
 }
 
-function useState(workgroup: string, queryExecutionId: string | null): PageState {
+function useState(queryExecutionId: string | null): PageState {
   const results = useQueryResults(queryExecutionId)
-
-  const queryRunner = useQueryRunner(queryExecutionId, workgroup)
 
   return React.useMemo(
     () => ({
       results,
-      queryRunner,
     }),
-    [queryRunner, results],
+    [results],
   )
 }
 
@@ -493,12 +454,6 @@ function ResultsBreadcrumbs({
   )
 }
 
-const isButtonDisabled = (
-  queryContent: string,
-  queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>,
-  error: Error | null,
-): boolean => !!error || !queryContent || !!queryRunData.case({ Pending: R.T, _: R.F })
-
 interface AthenaProps {
   bucket: string
   queryExecutionId?: string
@@ -508,47 +463,36 @@ interface AthenaProps {
 function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
   const classes = useStyles()
 
-  const { urls } = NamedRoutes.use()
+  const state = useState(queryExecutionId || null)
 
-  const state = useState(workgroup, queryExecutionId || null)
+  const { results } = state
 
-  const { results, queryRunner } = state
+  return (
+    <>
+      <AthenaQueries
+        bucket={bucket}
+        className={classes.queries}
+        key={workgroup}
+        queryExecutionId={queryExecutionId}
+        results={results}
+        workgroup={workgroup}
+      />
 
-  return queryRunner.data.case({
-    _: ({ value: executionData }) => {
-      if (executionData?.id && executionData?.id !== queryExecutionId) {
-        return (
-          <Redirect
-            to={urls.bucketAthenaExecution(bucket, workgroup, executionData?.id)}
-          />
-        )
-      }
-
-      return (
-        <>
-          <AthenaQueries
-            className={classes.queries}
-            key={workgroup}
-            queryRunner={queryRunner}
-            results={results}
-            workgroup={workgroup}
-          />
-
-          {queryExecutionId ? (
-            <ResultsContainer
-              bucket={bucket}
-              className={classes.results}
-              onLoadMore={results.loadMore}
-              queryResultsData={results.data}
-              workgroup={workgroup}
-            />
-          ) : (
-            <HistoryContainer bucket={bucket} workgroup={workgroup} />
-          )}
-        </>
-      )
-    },
-  })
+      {queryExecutionId ? (
+        <ResultsContainer
+          bucket={bucket}
+          className={classes.results}
+          onLoadMore={results.loadMore}
+          queryResultsData={results.data}
+          workgroup={workgroup}
+        />
+      ) : (
+        <HistoryContainer bucket={bucket} workgroup={workgroup} />
+      )}
+    </>
+  )
+  //   },
+  // })
 }
 
 interface AthenaContainerProps
