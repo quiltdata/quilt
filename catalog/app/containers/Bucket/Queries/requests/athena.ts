@@ -329,19 +329,21 @@ interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
+  skipHashing?: boolean
 }
 
 export async function runQuery({
   athena,
   queryBody,
   workgroup,
+  skipHashing,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const hashDigest = await hashQueryBody(queryBody, workgroup)
+    const hashDigest = skipHashing ? undefined : await hashQueryBody(queryBody, workgroup)
     const { QueryExecutionId } = await athena
       .startQueryExecution({
         ClientRequestToken: hashDigest,
-        QueryString: normalizeQueryBody(queryBody), // FIXME: But if error, skip ClientRequestToken and try one more
+        QueryString: queryBody,
         ResultConfiguration: {
           EncryptionConfiguration: {
             EncryptionOption: 'SSE_S3',
@@ -355,6 +357,18 @@ export async function runQuery({
       id: QueryExecutionId,
     }
   } catch (e) {
+    if (
+      e instanceof Error &&
+      e.name === 'InvalidRequestException' &&
+      e.message === 'Idempotent parameters do not match'
+    ) {
+      return runQuery({
+        athena,
+        queryBody,
+        workgroup,
+        skipHashing: true,
+      })
+    }
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
