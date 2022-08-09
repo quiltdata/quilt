@@ -177,54 +177,58 @@ function HistoryContainer({ bucket, workgroup }: HistoryContainerProps) {
 interface ResultsContainerProps {
   bucket: string
   className: string
-  onLoadMore: (prev: requests.athena.QueryResultsResponse) => void
-  queryResultsData: requests.AsyncData<requests.athena.QueryResultsResponse>
+  queryExecutionId: string
+  results: QueryResults
   workgroup: requests.athena.Workgroup
 }
 
 function ResultsContainer({
   bucket,
   className,
-  onLoadMore,
-  queryResultsData,
+  queryExecutionId,
+  results,
   workgroup,
 }: ResultsContainerProps) {
-  return queryResultsData.case({
-    Init: () => null,
-    Ok: (queryResults) => {
-      if (queryResults.rows.length) {
-        return (
-          <>
-            <ResultsBreadcrumbs
-              bucket={bucket}
-              queryExecutionId={queryResults.queryExecution?.id}
-              workgroup={workgroup}
-            />
-            <Results
-              className={className}
-              rows={queryResults.rows}
-              columns={queryResults.columns}
-              onLoadMore={queryResults.next ? () => onLoadMore(queryResults) : undefined}
-            />
-          </>
-        )
-      }
-      if (queryResults.queryExecution) {
-        return (
-          <History
-            bucket={bucket}
-            executions={[queryResults.queryExecution!]}
-            workgroup={workgroup}
-          />
-        )
-      }
-      return makeAsyncDataErrorHandler('Query Results Data')(
-        new Error("Couldn't fetch query results"),
-      )
-    },
-    Err: makeAsyncDataErrorHandler('Query Results Data'),
-    _: () => <TableSkeleton size={10} />,
-  })
+  return (
+    <div className={className}>
+      <ResultsBreadcrumbs
+        bucket={bucket}
+        queryExecutionId={queryExecutionId}
+        workgroup={workgroup}
+      />
+      {results.data.case({
+        Init: () => null,
+        Ok: (queryResults) => {
+          if (queryResults.rows.length) {
+            return (
+              <Results
+                className={className}
+                rows={queryResults.rows}
+                columns={queryResults.columns}
+                onLoadMore={
+                  queryResults.next ? () => results.loadMore(queryResults) : undefined
+                }
+              />
+            )
+          }
+          if (queryResults.queryExecution) {
+            return (
+              <History
+                bucket={bucket}
+                executions={[queryResults.queryExecution!]}
+                workgroup={workgroup}
+              />
+            )
+          }
+          return makeAsyncDataErrorHandler('Query Results Data')(
+            new Error("Couldn't fetch query results"),
+          )
+        },
+        Err: makeAsyncDataErrorHandler('Query Results Data'),
+        _: () => <TableSkeleton size={10} />,
+      })}
+    </div>
+  )
 }
 
 function SelectSkeleton() {
@@ -390,7 +394,7 @@ const useHistoryHeaderStyles = M.makeStyles({
 interface HistoryHeaderProps {
   bucket: string
   className?: string
-  queryExecutionId?: string | null
+  queryExecutionId?: string
   workgroup: requests.athena.Workgroup
 }
 
@@ -444,9 +448,9 @@ function Athena({ bucket, queryExecutionId, workgroup }: AthenaProps) {
         <ResultsContainer
           bucket={bucket}
           className={classes.results}
-          onLoadMore={results.loadMore}
-          queryResultsData={results.data}
+          results={results}
           workgroup={workgroup}
+          queryExecutionId={queryExecutionId}
         />
       ) : (
         <HistoryContainer bucket={bucket} workgroup={workgroup} />
