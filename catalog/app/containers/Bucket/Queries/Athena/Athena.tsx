@@ -1,13 +1,11 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router'
-import { Link, useHistory } from 'react-router-dom'
+import type { RouteComponentProps } from 'react-router'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
-import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -27,7 +25,7 @@ function safeAdd(a?: string, b?: string): string | undefined {
 
 const useAthenaQueriesStyles = M.makeStyles((t) => ({
   form: {
-    margin: t.spacing(1, 0, 0),
+    margin: t.spacing(3, 0, 0),
   },
 }))
 
@@ -70,121 +68,17 @@ function AthenaQueries({
       })}
       {results.data.case({
         _: ({ value: resultsResponse }) => (
-          <QueryBodyField
+          <QueryEditor
             bucket={bucket}
-            workgroup={workgroup}
-            queryExecutionId={queryExecutionId}
-            initialValue={resultsResponse?.queryExecution?.query || query?.body || null}
             className={classes.form}
+            initialValue={resultsResponse?.queryExecution?.query || query?.body || null}
+            queryExecutionId={queryExecutionId}
+            workgroup={workgroup}
             key={safeAdd(query?.key, resultsResponse?.queryExecution?.query)}
           />
         ),
         Pending: () => <FormSkeleton />,
       })}
-    </div>
-  )
-}
-
-function useQueryRun(
-  bucket: string,
-  workgroup: requests.athena.Workgroup,
-  queryExecutionId?: string,
-) {
-  const { urls } = NamedRoutes.use()
-  const history = useHistory()
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<Error | undefined>()
-  const runQuery = requests.athena.useQueryRun(workgroup)
-  const { push: notify } = Notifications.use()
-  const goToExecution = React.useCallback(
-    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
-    [bucket, history, urls, workgroup],
-  )
-  const onSubmit = React.useCallback(
-    async (value: string) => {
-      setLoading(true)
-      setError(undefined)
-      try {
-        const { id } = await runQuery(value)
-        if (id === queryExecutionId) notify('Query execution results remain unchanged')
-        setLoading(false)
-        goToExecution(id)
-      } catch (e) {
-        if (e instanceof Error) {
-          setError(e)
-        }
-        setLoading(false)
-      }
-    },
-    [goToExecution, notify, runQuery, queryExecutionId],
-  )
-  return React.useMemo(
-    () => ({
-      loading,
-      error,
-      onSubmit,
-    }),
-    [loading, error, onSubmit],
-  )
-}
-
-const useQueryBodyFieldStyles = M.makeStyles((t) => ({
-  actions: {
-    margin: t.spacing(2, 0),
-  },
-  error: {
-    margin: t.spacing(1, 0, 0),
-  },
-  viewer: {
-    margin: t.spacing(3, 0, 0),
-  },
-}))
-
-interface QueryBodyProps {
-  bucket: string
-  className?: string
-  initialValue: string | null
-  queryExecutionId?: string
-  workgroup: requests.athena.Workgroup
-}
-
-function QueryBodyField({
-  bucket,
-  className,
-  initialValue,
-  workgroup,
-  queryExecutionId,
-}: QueryBodyProps) {
-  const classes = useQueryBodyFieldStyles()
-  // Custom query content, not associated with queryMeta
-  const [value, setValue] = React.useState<string | null>(initialValue)
-
-  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
-  const handleSubmit = React.useCallback(() => {
-    if (!value) return
-    onSubmit(value)
-  }, [onSubmit, value])
-
-  return (
-    <div className={className}>
-      <QueryEditor className={classes.viewer} onChange={setValue} query={value || ''} />
-
-      {error && (
-        <Lab.Alert className={classes.error} severity="error">
-          {error.message}
-        </Lab.Alert>
-      )}
-
-      <div className={classes.actions}>
-        <M.Button
-          variant="contained"
-          color="primary"
-          disabled={!value || loading}
-          onClick={handleSubmit}
-        >
-          Run query
-        </M.Button>
-      </div>
     </div>
   )
 }
@@ -398,12 +292,12 @@ function ResultsBreadcrumbs({
   const { urls } = NamedRoutes.use()
   return (
     <M.Breadcrumbs className={className} classes={overrideClasses}>
-      <Link
+      <RRDom.Link
         className={classes.breadcrumb}
         to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
       >
         Query Executions
-      </Link>
+      </RRDom.Link>
       <M.Typography className={classes.breadcrumb} color="textPrimary">
         Results for <Code>{queryExecutionId}</Code>
       </M.Typography>
@@ -412,14 +306,8 @@ function ResultsBreadcrumbs({
 }
 
 const useAthenaStyles = M.makeStyles((t) => ({
-  history: {
-    margin: t.spacing(4, 0, 0),
-  },
-  queries: {
+  section: {
     margin: t.spacing(3, 0, 0),
-  },
-  results: {
-    margin: t.spacing(4, 0, 0),
   },
 }))
 
@@ -439,7 +327,7 @@ function Athena({ className, bucket, queryExecutionId, workgroup }: AthenaProps)
     <div className={className}>
       <AthenaQueries
         bucket={bucket}
-        className={classes.queries}
+        className={classes.section}
         key={workgroup}
         queryExecutionId={queryExecutionId}
         results={results}
@@ -449,7 +337,7 @@ function Athena({ className, bucket, queryExecutionId, workgroup }: AthenaProps)
       {queryExecutionId ? (
         <ResultsContainer
           bucket={bucket}
-          className={classes.results}
+          className={classes.section}
           results={results}
           workgroup={workgroup}
           queryExecutionId={queryExecutionId}
@@ -457,7 +345,7 @@ function Athena({ className, bucket, queryExecutionId, workgroup }: AthenaProps)
       ) : (
         <HistoryContainer
           bucket={bucket}
-          className={classes.history}
+          className={classes.section}
           workgroup={workgroup}
         />
       )}
@@ -467,24 +355,11 @@ function Athena({ className, bucket, queryExecutionId, workgroup }: AthenaProps)
 
 const useStyles = M.makeStyles((t) => ({
   header: {
-    margin: t.spacing(0, 0, 1),
+    margin: t.spacing(0, 0, 2),
   },
   content: {
     margin: t.spacing(1, 0, 0),
   },
-
-  // form: {
-  //   margin: t.spacing(0, 0, 4),
-  // },
-  // results: {
-  //   margin: t.spacing(4, 0, 0),
-  // },
-  // sectionHeader: {
-  //   margin: t.spacing(0, 0, 1),
-  // },
-  // queries: {
-  //   margin: t.spacing(3, 0, 0),
-  // },
 }))
 
 interface AthenaContainerProps
