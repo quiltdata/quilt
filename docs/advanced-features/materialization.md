@@ -1,3 +1,5 @@
+<!--pytest-codeblocks:skipfile-->
+
 ## `build` versus `push`
 
 `build` and `push` have the following behaviors:

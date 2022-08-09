@@ -9,7 +9,7 @@ This means that all of your reports are backed by immutable, versioned data, pro
 a common frame of reference that is lacking in BI applications that read from
 fast-moving databases and file systems.
 
-In addition to rendering a wide variety of images, binary files, and text 
+In addition to rendering a wide variety of images, binary files, and text
 files, the Quilt catalog supports the following libraries for visualization and
 exploration:
 * [Vega](#vega-and-vega-lite)
@@ -120,9 +120,16 @@ The easiest way to create Vega-lite visualizations for Quilt packages is with
 
 Here's a simple example:
 ```python
+import pandas as pd
+from numpy import random
 import altair as alt
 
-df = pd.read_csv("file.csv")
+# Create Dataframe with two columns of random values
+scores = random.randint(60, 100, size=5)
+densities = random.random_sample(5)
+df = pd.DataFrame({'score': scores, 'density': densities})
+
+# Create Chart with two Quantitative axes
 
 alt.Chart(df).mark_area(
     color="gray",
@@ -251,14 +258,15 @@ import os
 
 import pandas as pd
 import quilt3 as q3
+# https://open.quiltdata.com/b/allencell/packages/aics/data_handoff_4dn/tree/260c3a46581a324e3a495570886e07b62cb4ff54f20b334c5d73a5a370e678c1/
 
-bucket = os.environ.get("QUILT_PKG_BUCKET")
-handle = os.environ.get("QUILT_PKG_NAME")
-top_hash = os.environ.get("QUILT_PKG_TOP_HASH")
+bucket = os.environ.get("QUILT_PKG_BUCKET") or "allencell"
+handle = os.environ.get("QUILT_PKG_NAME") or "aics/data_handoff_4dn"
+top_hash = os.environ.get("QUILT_PKG_TOP_HASH") or "260c3a46581a324e3a495570886e07b62cb4ff54f20b334c5d73a5a370e678c1"
 
-pkg = q3.browse(handle, registry=f"s3://{bucket}", top_hash=top_hash)
+pkg = q3.Package.browse(handle, registry=f"s3://{bucket}", top_hash=top_hash)
 # Read data.csv from the current package from Voila
-df = pkg["data.csv"].deserialize()
+df = pkg["metadata.csv"].deserialize()
 ```
 
 
@@ -280,7 +288,7 @@ scipy
 ## Perspective
 
 Quilt renders tabular data formats into a [Perspective](https://perspective.finos.org/) Datagrid, including the
-following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv. 
+following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv.
 
 For speed, Quilt loads the first few rows stored in S3. Click Load More to fetch
 up to about 6MB of zipped data. To see the entire file contents for large files,
