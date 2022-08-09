@@ -27,7 +27,6 @@ interface WorkgroupSelectProps {
   workgroups: requests.athena.WorkgroupsResponse
 }
 
-// TODO: use 'components/SelectDropdown'
 function WorkgroupSelect({
   bucket,
   onLoadMore,
