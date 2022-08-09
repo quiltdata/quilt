@@ -9,13 +9,6 @@ import * as requests from '../requests'
 
 import { Alert, Section } from './Components'
 
-interface WorkgroupSelectProps {
-  onLoadMore: (workgroups: requests.athena.WorkgroupsResponse) => void
-  value: requests.athena.Workgroup | null
-  workgroups: requests.athena.WorkgroupsResponse
-  bucket: string
-}
-
 const useStyles = M.makeStyles((t) => ({
   selectWrapper: {
     width: '100%',
@@ -27,12 +20,19 @@ const useStyles = M.makeStyles((t) => ({
 
 const LOAD_MORE = 'load-more'
 
-// TODO: use it 'components/SelectDropdown'
+interface WorkgroupSelectProps {
+  bucket: string
+  onLoadMore: (workgroups: requests.athena.WorkgroupsResponse) => void
+  value: requests.athena.Workgroup | null
+  workgroups: requests.athena.WorkgroupsResponse
+}
+
+// TODO: use 'components/SelectDropdown'
 function WorkgroupSelect({
   bucket,
-  workgroups,
   onLoadMore,
   value,
+  workgroups,
 }: WorkgroupSelectProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

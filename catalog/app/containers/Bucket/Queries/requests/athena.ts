@@ -308,12 +308,8 @@ export function useQueryResults(
   )
 }
 
-function normalizeQueryBody(str: string): string {
-  return str.trim().replace(/\s+/g, ' ')
-}
-
 async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
-  const normalizedStr = workgroup + normalizeQueryBody(queryBody)
+  const normalizedStr = (workgroup + queryBody).trim().replace(/\s+/g, ' ')
   const msgUint8 = new TextEncoder().encode(normalizedStr)
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
   const hashArray = Array.from(new Uint8Array(hashBuffer))

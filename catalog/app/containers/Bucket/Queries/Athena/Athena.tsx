@@ -64,7 +64,12 @@ function QueryConstructor({
           </Section>
         ),
         Err: makeAsyncDataErrorHandler('Select query'),
-        _: () => <SelectSkeleton />,
+        _: () => (
+          <>
+            <Skeleton height={24} width={128} animate />
+            <Skeleton height={48} mt={1} animate />
+          </>
+        ),
       })}
       {results.data.case({
         _: ({ value: resultsResponse }) => (
@@ -173,15 +178,6 @@ function ResultsContainer({
         _: () => <TableSkeleton size={10} />,
       })}
     </div>
-  )
-}
-
-function SelectSkeleton() {
-  return (
-    <>
-      <Skeleton height={24} width={128} animate />
-      <Skeleton height={48} mt={1} animate />
-    </>
   )
 }
 

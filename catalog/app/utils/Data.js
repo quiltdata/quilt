@@ -29,7 +29,7 @@ const reducer = Action.reducer({
 })
 
 // Use it to test AsyncResult states
-// `createResult(AsyncResult.Err(new Error('Expected')))`
+// example: `createResult(AsyncResult.Err(new Error('Expected')))`
 export function createResult(result) {
   return {
     case: (cases, ...args) => AsyncResult.case(cases, result, ...args),
