@@ -29,7 +29,7 @@ const useAthenaQueriesStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface QueryMetaFieldProps {
+interface QueryConstructorProps {
   bucket: string
   className?: string
   queryExecutionId?: string
@@ -37,13 +37,13 @@ interface QueryMetaFieldProps {
   workgroup: requests.athena.Workgroup
 }
 
-function AthenaQueries({
+function QueryConstructor({
   bucket,
   queryExecutionId,
   className,
   results,
   workgroup,
-}: QueryMetaFieldProps) {
+}: QueryConstructorProps) {
   const [query, setQuery] = React.useState<requests.athena.AthenaQuery | null>(null)
   const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
   const data = requests.athena.useQueries(workgroup, prev)
@@ -305,60 +305,15 @@ function ResultsBreadcrumbs({
   )
 }
 
-const useAthenaStyles = M.makeStyles((t) => ({
-  section: {
-    margin: t.spacing(3, 0, 0),
-  },
-}))
-
-interface AthenaProps {
-  className: string
-  bucket: string
-  queryExecutionId?: string
-  workgroup: requests.athena.Workgroup
-}
-
-function Athena({ className, bucket, queryExecutionId, workgroup }: AthenaProps) {
-  const classes = useAthenaStyles()
-
-  const results = useQueryResults(queryExecutionId)
-
-  return (
-    <div className={className}>
-      <AthenaQueries
-        bucket={bucket}
-        className={classes.section}
-        key={workgroup}
-        queryExecutionId={queryExecutionId}
-        results={results}
-        workgroup={workgroup}
-      />
-
-      {queryExecutionId ? (
-        <ResultsContainer
-          bucket={bucket}
-          className={classes.section}
-          results={results}
-          workgroup={workgroup}
-          queryExecutionId={queryExecutionId}
-        />
-      ) : (
-        <HistoryContainer
-          bucket={bucket}
-          className={classes.section}
-          workgroup={workgroup}
-        />
-      )}
-    </div>
-  )
-}
-
 const useStyles = M.makeStyles((t) => ({
   header: {
     margin: t.spacing(0, 0, 2),
   },
   content: {
     margin: t.spacing(1, 0, 0),
+  },
+  section: {
+    margin: t.spacing(3, 0, 0),
   },
 }))
 
@@ -375,6 +330,7 @@ export default function AthenaContainer({
   },
 }: AthenaContainerProps) {
   const classes = useStyles()
+  const results = useQueryResults(queryExecutionId)
   return (
     <>
       <M.Typography className={classes.header} variant="h6">
@@ -384,12 +340,32 @@ export default function AthenaContainer({
       <Workgroups bucket={bucket} workgroup={workgroup || null} />
 
       {workgroup && (
-        <Athena
-          className={classes.content}
-          bucket={bucket}
-          queryExecutionId={queryExecutionId}
-          workgroup={workgroup}
-        />
+        <div className={classes.content}>
+          <QueryConstructor
+            bucket={bucket}
+            className={classes.section}
+            key={workgroup}
+            queryExecutionId={queryExecutionId}
+            results={results}
+            workgroup={workgroup}
+          />
+
+          {queryExecutionId ? (
+            <ResultsContainer
+              bucket={bucket}
+              className={classes.section}
+              queryExecutionId={queryExecutionId}
+              results={results}
+              workgroup={workgroup}
+            />
+          ) : (
+            <HistoryContainer
+              bucket={bucket}
+              className={classes.section}
+              workgroup={workgroup}
+            />
+          )}
+        </div>
       )}
     </>
   )
