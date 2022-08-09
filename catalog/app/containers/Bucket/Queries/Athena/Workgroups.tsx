@@ -156,6 +156,11 @@ export default function AthenaWorkgroups({ bucket, workgroup }: AthenaWorkgroups
       )
     },
     Err: (error) => <WorkgroupsEmpty error={error} />,
-    _: () => <Skeleton height={24} width={128} animate />,
+    _: () => (
+      <>
+        <Skeleton height={24} width={128} animate />
+        <Skeleton height={48} mt={1} animate />
+      </>
+    ),
   })
 }

@@ -77,7 +77,7 @@ function QueryConstructor({
             key={safeAdd(query?.key, resultsResponse?.queryExecution?.query)}
           />
         ),
-        Pending: () => <FormSkeleton />,
+        Pending: () => <FormSkeleton className={classes.form} />,
       })}
     </div>
   )
@@ -214,10 +214,14 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FormSkeleton() {
+interface FormSkeletonProps {
+  className: string
+}
+
+function FormSkeleton({ className }: FormSkeletonProps) {
   const classes = useFormSkeletonStyles()
   return (
-    <>
+    <div className={className}>
       <Skeleton className={classes.title} animate />
       <div className={classes.editor}>
         <Skeleton className={classes.numbers} animate />
@@ -225,7 +229,7 @@ function FormSkeleton() {
       </div>
       <Skeleton className={classes.helper} animate />
       <Skeleton className={classes.button} animate />
-    </>
+    </div>
   )
 }
 
