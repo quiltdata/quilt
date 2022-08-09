@@ -67,9 +67,7 @@ function WorkgroupSelect({
         >
           {workgroups.list.map((name) => (
             <M.MenuItem key={name} value={name}>
-              <RRDom.Link to={urls.bucketAthenaWorkgroup(bucket, name)}>
-                <M.ListItemText>{name}</M.ListItemText>
-              </RRDom.Link>
+              <M.ListItemText>{name}</M.ListItemText>
             </M.MenuItem>
           ))}
           {workgroups.next && (
