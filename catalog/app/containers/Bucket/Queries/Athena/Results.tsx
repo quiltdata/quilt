@@ -18,7 +18,11 @@ function Empty() {
   )
 }
 
-const config = { settings: true }
+const useResultsStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+}))
 
 interface ResultsProps {
   columns: requests.athena.QueryResultsColumns
@@ -27,6 +31,7 @@ interface ResultsProps {
 }
 
 export default function Results({ columns, rows, onLoadMore }: ResultsProps) {
+  const classes = useResultsStyles()
   const data = React.useMemo(
     () =>
       rows.map((row) =>
@@ -44,11 +49,8 @@ export default function Results({ columns, rows, onLoadMore }: ResultsProps) {
   if (!data.length) return <Empty />
 
   return (
-    <Perspective
-      config={config}
-      data={data}
-      onLoadMore={onLoadMore}
-      truncated={!!onLoadMore}
-    />
+    <M.Paper className={classes.root}>
+      <Perspective data={data} onLoadMore={onLoadMore} truncated={!!onLoadMore} />
+    </M.Paper>
   )
 }
