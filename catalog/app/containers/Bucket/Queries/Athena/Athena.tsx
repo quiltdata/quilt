@@ -12,7 +12,7 @@ import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
 
 import { Section, makeAsyncDataErrorHandler } from './Components'
-import QueryEditor from './QueryEditor'
+import * as QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
 import Workgroups from './Workgroups'
@@ -73,7 +73,7 @@ function QueryConstructor({
       })}
       {results.data.case({
         _: ({ value: resultsResponse }) => (
-          <QueryEditor
+          <QueryEditor.Form
             bucket={bucket}
             className={classes.form}
             initialValue={resultsResponse?.queryExecution?.query || query?.body || null}
@@ -82,7 +82,7 @@ function QueryConstructor({
             key={safeAdd(query?.key, resultsResponse?.queryExecution?.query)}
           />
         ),
-        Pending: () => <FormSkeleton className={classes.form} />,
+        Pending: () => <QueryEditor.Skeleton className={classes.form} />,
       })}
     </div>
   )
@@ -177,54 +177,6 @@ function ResultsContainer({
         Err: makeAsyncDataErrorHandler('Query Results Data'),
         _: () => <TableSkeleton size={10} />,
       })}
-    </div>
-  )
-}
-
-const useFormSkeletonStyles = M.makeStyles((t) => ({
-  button: {
-    height: t.spacing(4),
-    marginTop: t.spacing(2),
-    width: t.spacing(14),
-  },
-  canvas: {
-    flexGrow: 1,
-    height: t.spacing(27),
-    marginLeft: t.spacing(1),
-  },
-  editor: {
-    display: 'flex',
-    marginTop: t.spacing(1),
-  },
-  helper: {
-    height: t.spacing(2),
-    marginTop: t.spacing(1),
-  },
-  numbers: {
-    height: t.spacing(27),
-    width: t.spacing(5),
-  },
-  title: {
-    height: t.spacing(3),
-    width: t.spacing(16),
-  },
-}))
-
-interface FormSkeletonProps {
-  className: string
-}
-
-function FormSkeleton({ className }: FormSkeletonProps) {
-  const classes = useFormSkeletonStyles()
-  return (
-    <div className={className}>
-      <Skeleton className={classes.title} animate />
-      <div className={classes.editor}>
-        <Skeleton className={classes.numbers} animate />
-        <Skeleton className={classes.canvas} animate />
-      </div>
-      <Skeleton className={classes.helper} animate />
-      <Skeleton className={classes.button} animate />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import * as Lab from '@material-ui/lab'
 import 'ace-builds/src-noconflict/mode-sql'
 import 'ace-builds/src-noconflict/theme-eclipse'
 
+import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -24,13 +25,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface QueryEditorProps {
+interface EditorFieldProps {
   className?: string
   onChange: (value: string) => void
   query: string
 }
 
-function QueryEditor({ className, query, onChange }: QueryEditorProps) {
+function EditorField({ className, query, onChange }: EditorFieldProps) {
   const classes = useStyles()
 
   return (
@@ -103,7 +104,57 @@ function useQueryRun(
   )
 }
 
-const useQueryBodyFieldStyles = M.makeStyles((t) => ({
+const useFormSkeletonStyles = M.makeStyles((t) => ({
+  button: {
+    height: t.spacing(4),
+    marginTop: t.spacing(2),
+    width: t.spacing(14),
+  },
+  canvas: {
+    flexGrow: 1,
+    height: t.spacing(27),
+    marginLeft: t.spacing(1),
+  },
+  editor: {
+    display: 'flex',
+    marginTop: t.spacing(1),
+  },
+  helper: {
+    height: t.spacing(2),
+    marginTop: t.spacing(1),
+  },
+  numbers: {
+    height: t.spacing(27),
+    width: t.spacing(5),
+  },
+  title: {
+    height: t.spacing(3),
+    width: t.spacing(16),
+  },
+}))
+
+interface FormSkeletonProps {
+  className: string
+}
+
+function FormSkeleton({ className }: FormSkeletonProps) {
+  const classes = useFormSkeletonStyles()
+  return (
+    <div className={className}>
+      <Skeleton className={classes.title} animate />
+      <div className={classes.editor}>
+        <Skeleton className={classes.numbers} animate />
+        <Skeleton className={classes.canvas} animate />
+      </div>
+      <Skeleton className={classes.helper} animate />
+      <Skeleton className={classes.button} animate />
+    </div>
+  )
+}
+
+export { FormSkeleton as Skeleton }
+
+const useFormStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(2, 0),
   },
@@ -112,7 +163,7 @@ const useQueryBodyFieldStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface QueryBodyProps {
+interface FormProps {
   bucket: string
   className?: string
   initialValue: string | null
@@ -120,14 +171,14 @@ interface QueryBodyProps {
   workgroup: requests.athena.Workgroup
 }
 
-export default function Form({
+export function Form({
   bucket,
   className,
   initialValue,
   workgroup,
   queryExecutionId,
-}: QueryBodyProps) {
-  const classes = useQueryBodyFieldStyles()
+}: FormProps) {
+  const classes = useFormStyles()
   const [value, setValue] = React.useState<string | null>(initialValue)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
@@ -138,7 +189,7 @@ export default function Form({
 
   return (
     <div className={className}>
-      <QueryEditor onChange={setValue} query={value || ''} />
+      <EditorField onChange={setValue} query={value || ''} />
 
       {error && (
         <Lab.Alert className={classes.error} severity="error">
