@@ -70,6 +70,7 @@ export const Loader = function TextLoader({ handle, forceLang, children }) {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
+      // TODO: move highlightjs call to renderer
       const highlighted = R.map(hl(lang), { head, tail })
       return PreviewData.Text({ head, tail, lang, highlighted, note, warnings })
     },
