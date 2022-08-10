@@ -26,6 +26,7 @@ export const PreviewData = tagged([
   'Image', // { handle: object }
   'Json', // { rendered: object }
   'Markdown', // { rendered: string }
+  'NamedPackage', // { bucket: string, hash: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Ngl', // { blob: Blob([Uint8Array|string]) }
   'Pdf', // { handle: object, pages: number, firstPageBlob: Blob, type: 'pdf' | 'pptx' }

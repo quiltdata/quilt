@@ -8,6 +8,7 @@ import * as Html from './loaders/Html'
 import * as Image from './loaders/Image'
 import * as Json from './loaders/Json'
 import * as Markdown from './loaders/Markdown'
+import * as NamedPackage from './loaders/NamedPackage'
 import * as Ngl from './loaders/Ngl'
 import * as Notebook from './loaders/Notebook'
 import * as Package from './loaders/Package'
@@ -26,6 +27,7 @@ const loaderChain = [
   Markdown,
   Ngl,
   Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
+  NamedPackage,
   Notebook,
   Package,
   Pdf,
