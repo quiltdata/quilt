@@ -96,6 +96,8 @@ function EChartsLoader({ gated, handle, children }) {
     handle,
   })
 
+  // TODO: use useSignObjectUrls (and rename it),
+  //       but besides signing also fetch resources
   const resolveDatasetUrl = useDatasetResolver(handle)
   const loadDataset = useDataSetLoader() // TODO: pass gated
 
