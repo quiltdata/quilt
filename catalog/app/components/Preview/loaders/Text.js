@@ -52,10 +52,7 @@ const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (n
   langPairs.find(([, re]) => re.test(name)),
 )
 
-export const detect = R.either(
-  R.pipe(findLang, Boolean),
-  R.startsWith('.quilt/named_packages/'), // TODO: use Preview/loaders/NamedPackage
-)
+export const detect = R.pipe(findLang, Boolean)
 
 const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
 
