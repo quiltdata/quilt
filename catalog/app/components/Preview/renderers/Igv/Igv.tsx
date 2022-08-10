@@ -2,6 +2,13 @@ import igv from 'igv'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+const useStyles = M.makeStyles(() => ({
+  root: {
+    position: 'relative',
+    zIndex: 1,
+  },
+}))
+
 interface IgvEssential {
   options: igv.IgvBrowserOptions
 }
@@ -13,6 +20,7 @@ export interface IgvProps extends React.HTMLProps<HTMLDivElement> {
 // XXX: consider using components/EChartsChart (may require some adjustments)
 function Igv({ options, ...props }: IgvProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const classes = useStyles()
 
   const [error, setError] = React.useState<Error | null>(null)
 
@@ -46,7 +54,7 @@ function Igv({ options, ...props }: IgvProps) {
       </>
     )
 
-  return <div ref={containerRef} {...props} />
+  return <div className={classes.root} ref={containerRef} {...props} />
 }
 
 export default ({ options }: IgvEssential, props: React.HTMLProps<HTMLDivElement>) => (
