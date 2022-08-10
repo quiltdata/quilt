@@ -32,7 +32,7 @@ interface LoaderProps {
   handle: S3HandleBase
 }
 
-export const Loader = function PackageLoader({ gated, handle, children }: LoaderProps) {
+export const Loader = function ManifestLoader({ gated, handle, children }: LoaderProps) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,

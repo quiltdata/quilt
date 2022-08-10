@@ -7,11 +7,11 @@ import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
 import * as Image from './loaders/Image'
 import * as Json from './loaders/Json'
+import * as Manifest from './loaders/Manifest'
 import * as Markdown from './loaders/Markdown'
 import * as NamedPackage from './loaders/NamedPackage'
 import * as Ngl from './loaders/Ngl'
 import * as Notebook from './loaders/Notebook'
-import * as Package from './loaders/Package'
 import * as Pdf from './loaders/Pdf'
 import * as Tabular from './loaders/Tabular'
 import * as Text from './loaders/Text'
@@ -24,12 +24,12 @@ const loaderChain = [
   Fcs,
   Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
   Json,
+  Manifest,
   Markdown,
   Ngl,
   Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
   NamedPackage,
   Notebook,
-  Package,
   Pdf,
   Vcf,
   Html,
