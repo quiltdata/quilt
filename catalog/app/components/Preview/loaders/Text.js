@@ -52,9 +52,12 @@ const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (n
   langPairs.find(([, re]) => re.test(name)),
 )
 
-export const detect = R.pipe(findLang, Boolean)
+export const detect = R.either(
+  R.pipe(findLang, Boolean),
+  R.startsWith('.quilt/named_packages/'), // TODO: use Preview/loaders/NamedPackage
+)
 
-const getLang = R.pipe(findLang, ([lang] = []) => lang)
+const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
