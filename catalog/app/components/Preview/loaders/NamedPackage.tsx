@@ -20,15 +20,12 @@ interface PreviewResult {
   }
 }
 
-interface NamedPackageLoaderProps {
+interface LoaderProps {
   handle: S3HandleBase
   children: (result: $TSFixMe) => React.ReactNode
 }
 
-export const Loader = function NamedPackageLoader({
-  handle,
-  children,
-}: NamedPackageLoaderProps) {
+export const Loader = function NamedPackageLoader({ handle, children }: LoaderProps) {
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
