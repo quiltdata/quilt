@@ -103,7 +103,7 @@ function JsonLoader({ gated, handle, children }) {
 }
 
 // TODO: !Igv.detect(key, options) && !Echarts.detect(key, options)
-export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
+export const detect = utils.extIs('.json')
 
 function findLoader(mode, firstBytes) {
   switch (mode) {

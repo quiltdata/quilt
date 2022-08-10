@@ -123,7 +123,7 @@ interface LoadTabularDataArgs {
 
 interface TabularDataOutput {
   csv: ArrayBuffer | string
-  meta: ParquetMetadata | null
+  parquetMeta: ParquetMetadata | null
   size: number | null
   truncated: boolean
 }
@@ -157,7 +157,7 @@ const loadTabularData = async ({
 
     return {
       csv,
-      meta: quiltInfo?.meta ? parseParquetData(quiltInfo?.meta) : null,
+      parquetMeta: quiltInfo?.meta ? parseParquetData(quiltInfo?.meta) : null,
       size: contentLength,
       truncated: !!quiltInfo?.truncated,
     }
@@ -213,11 +213,11 @@ export const Loader = function TabularLoader({
   // TODO: get correct sizes from API
   const processed = utils.useProcessing(
     data.result,
-    ({ csv, meta, truncated }: TabularDataOutput) =>
+    ({ csv, parquetMeta, truncated }: TabularDataOutput) =>
       PreviewData.Perspective({
         data: csv,
         handle,
-        meta,
+        parquetMeta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
       }),
