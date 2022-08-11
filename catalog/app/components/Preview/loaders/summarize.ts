@@ -2,6 +2,7 @@ import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
 
 export type TypeShorthand =
   | 'echarts'
+  | 'igv'
   | 'json'
   | 'jupyter'
   | 'perspective'
