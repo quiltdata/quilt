@@ -25,49 +25,62 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
+const variants = ['README.md', 'README.txt', 'README']
+
 function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const classes = useAddReadmeSectionStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
-  const options = ['README.md', 'README.txt', 'README']
-  const [selectedOption, setSelectedOption] = React.useState(options[0])
-  const toConfig = React.useMemo(() => {
-    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-    return urls.bucketFile(bucket, join(name, selectedOption), {
-      add: true,
-      edit: true,
-      next,
-    })
-  }, [bucket, name, selectedOption, urls])
-  const handleClick = React.useCallback(() => {
-    const url = toConfig
-    history.push(url)
-  }, [history, toConfig])
-  const anchorRef = React.useRef(null)
-  const handleToggle = React.useCallback(() => setAnchorEl(anchorRef.current), [])
-  const [anchorEl, setAnchorEl] = React.useState()
-  const handleSelect = React.useCallback(
-    (option) => () => {
-      setSelectedOption(option)
-      setAnchorEl(null)
+  const toConfig = React.useCallback(
+    (index) => {
+      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+      return urls.bucketFile(bucket, join(name, variants[index]), {
+        add: true,
+        edit: true,
+        next,
+      })
     },
-    [],
+    [bucket, name, urls],
   )
-
+  const [selected, setSelected] = React.useState(0)
+  const handleClick = React.useCallback(() => {
+    const url = toConfig(selected)
+    history.push(url)
+  }, [history, toConfig, selected])
+  const options = React.useMemo(() => variants.map((x) => `Add ${x}`), [])
   return (
     <div className={classes.root}>
+      <SplitButton options={options} onClick={handleClick} onChange={setSelected}>
+        {options[selected]}
+      </SplitButton>
+    </div>
+  )
+}
+
+function SplitButton({ onClick, children, onChange, options }) {
+  const anchorRef = React.useRef(null)
+  const [anchorEl, setAnchorEl] = React.useState(null)
+  const handleSelect = React.useCallback(
+    (index) => () => {
+      onChange(index)
+      setAnchorEl(null)
+    },
+    [onChange],
+  )
+  return (
+    <>
       <M.ButtonGroup variant="contained" ref={anchorRef} color="primary">
-        <M.Button onClick={handleClick}>Add {option}</M.Button>
-        <M.Button size="small" onClick={handleToggle}>
+        <M.Button onClick={onClick}>{children}</M.Button>
+        <M.Button size="small" onClick={() => setAnchorEl(anchorRef.current)}>
           <M.Icon fontSize="small">arrow_drop_down</M.Icon>
         </M.Button>
       </M.ButtonGroup>
       <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-        {options.map((option) => (
-          <M.MenuItem onClick={handleSelect(option)}>Add {option}</M.MenuItem>
+        {options.map((option, i) => (
+          <M.MenuItem onClick={handleSelect(i)}>{option}</M.MenuItem>
         ))}
       </M.Menu>
-    </div>
+    </>
   )
 }
 
