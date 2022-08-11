@@ -69,10 +69,10 @@ function SplitButton({ onClick, children, onChange, options }) {
   )
   return (
     <>
-      <M.ButtonGroup variant="contained" ref={anchorRef} color="primary">
+      <M.ButtonGroup ref={anchorRef} color="primary" size="small" variant="contained">
         <M.Button onClick={onClick}>{children}</M.Button>
-        <M.Button size="small" onClick={() => setAnchorEl(anchorRef.current)}>
-          <M.Icon fontSize="small">arrow_drop_down</M.Icon>
+        <M.Button onClick={() => setAnchorEl(anchorRef.current)}>
+          <M.Icon>arrow_drop_down</M.Icon>
         </M.Button>
       </M.ButtonGroup>
       <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
