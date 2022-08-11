@@ -94,3 +94,5 @@ in the navbar.
 
 ## Further settings
 See [Prefences](Preferences.md) for further control over the catalog user interface.
+
+See [Athena](../advanced-features/athena.md) for instructions to setup Athena policies.

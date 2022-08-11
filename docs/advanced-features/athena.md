@@ -128,6 +128,8 @@ Steps required to do this:
 3. Add "un-managed" Athena policy to Quilt catalog. Go to http://your-quilt-stack/admin, scroll to "Policies", click on "+" button. Click "Manually set ARN" and enter ARN of Athena policy
 4. Attach policy to an existing Quilt role, or create a new role and attach policy to it.
 
+See [Users and roles](../Catalog/Admin.md) for detailed overview on access control management in Quilt.
+
 ## Defining package tables and views in Athena
 The first step in configuring Athena to query the package contents and metadata
 is to define a set of tables that represent the package metadata fields as columns.
