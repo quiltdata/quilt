@@ -165,7 +165,7 @@ function ResultsContainer({
             return (
               <History
                 bucket={bucket}
-                executions={[queryResults.queryExecution!]}
+                executions={[queryResults.queryExecution]}
                 workgroup={workgroup}
               />
             )
