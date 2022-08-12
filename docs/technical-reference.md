@@ -402,7 +402,7 @@ and look for IAM roles with the following logical IDs:
 Note the ARN for each of the above logical IDs and add an Allow statement
 similar to the following to the KMS key policy:
 
-```
+```json
 {
     "Effect": "Allow",
     "Principal": {
