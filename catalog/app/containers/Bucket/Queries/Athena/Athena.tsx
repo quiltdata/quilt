@@ -202,11 +202,11 @@ interface QueryResults {
 }
 
 function useQueryResults(queryExecutionId?: string): QueryResults {
-  const [prev, usePrev] = React.useState<requests.athena.QueryResultsResponse | null>(
+  const [prev, setPrev] = React.useState<requests.athena.QueryResultsResponse | null>(
     null,
   )
   const data = requests.athena.useQueryResults(queryExecutionId || null, prev)
-  return React.useMemo(() => ({ data, loadMore: usePrev }), [data])
+  return React.useMemo(() => ({ data, loadMore: setPrev }), [data])
 }
 
 const useOverrideStyles = M.makeStyles({
