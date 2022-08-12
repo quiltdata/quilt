@@ -1,4 +1,5 @@
 ## How do I sync my notebook and all of its data and models to S3 as a package?
+<!--pytest.mark.skip-->
 ```python
 p = quilt3.Package()
 p.set_dir(".", ".")
@@ -36,7 +37,7 @@ to persistently disable anonymous usage statistics.
 
 Yes:
 ```bash
-$ export QUILT_MINIMIZE_STDOUT=true
+export QUILT_MINIMIZE_STDOUT=true
 ```
 
 ## Which version of Quilt are you on?
