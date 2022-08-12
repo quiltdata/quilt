@@ -1,5 +1,5 @@
 ## How do I sync my notebook and all of its data and models to S3 as a package?
-```
+```python
 p = quilt3.Package()
 p.set_dir(".", ".")
 p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
@@ -25,7 +25,7 @@ and use [`quilt`](https://pypi.org/project/quilt/) on PyPI.
 Yes, to find bugs and prioritize features.
 
 You can disable anonymous usage collection with an environment variable:
-```
+```bash
 export QUILT_DISABLE_USAGE_METRICS=true
 ```
 
@@ -35,7 +35,7 @@ to persistently disable anonymous usage statistics.
 ## Can I turn off TQDM progress bars for log files?
 
 Yes:
-```
+```bash
 $ export QUILT_MINIMIZE_STDOUT=true
 ```
 
