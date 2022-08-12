@@ -44,7 +44,7 @@
 
     "typeShorthand": {
       "type": "string",
-      "enum": ["echarts", "json", "jupyter", "perspective", "vega", "voila"]
+      "enum": ["echarts", "igv", "json", "jupyter", "perspective", "vega", "voila"]
     },
 
     "typeExtended": {

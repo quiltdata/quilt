@@ -7,8 +7,10 @@ import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 import { useVoila } from 'utils/voila'
 import { PackageHandle } from 'utils/packageHandle'
+import { JsonRecord } from 'utils/types'
 
 const MODES = {
+  igv: 'IGV',
   json: 'JSON',
   jupyter: 'Jupyter',
   vega: 'Vega',
@@ -16,6 +18,8 @@ const MODES = {
 }
 
 export type ViewMode = keyof typeof MODES
+
+const isIgvTracks = (json: JsonRecord) => Array.isArray(json?.tracks)
 
 const isVegaSchema = (schema: string) => {
   if (!schema) return false
@@ -63,8 +67,11 @@ export function useViewModes(
           {
             Vega: (json: any) =>
               isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
-            Json: (json: any) =>
-              isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : [],
+            Json: (json: any) => {
+              if (isVegaSchema(json.rendered?.$schema)) return ['vega', 'json']
+              if (isIgvTracks(json.rendered)) return ['json', 'igv']
+              return []
+            },
             _: () => [],
             __: () => [],
           },

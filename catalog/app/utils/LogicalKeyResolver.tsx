@@ -1,13 +1,14 @@
 import * as React from 'react'
 
-interface S3Handle {
-  bucket: string
-  key: string
-  version?: string
+import type { S3HandleBase } from 'utils/s3paths'
+
+export interface S3SummarizeHandle extends S3HandleBase {
+  logicalKey?: string
+  size?: number
 }
 
 export interface LogicalKeyResolver {
-  (logicalKey: string): S3Handle | Promise<S3Handle>
+  (logicalKey: string): S3SummarizeHandle | Promise<S3SummarizeHandle>
 }
 
 const Ctx = React.createContext<LogicalKeyResolver | null>(null)
