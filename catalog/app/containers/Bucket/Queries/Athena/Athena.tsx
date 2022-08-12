@@ -53,7 +53,7 @@ function QueryConstructor({
       {data.case({
         Ok: (queries) => (
           <Section title="Select query" empty="There are no saved queries.">
-            {queries.list.length && (
+            {!!queries.list.length && (
               <QuerySelect<requests.athena.AthenaQuery | null>
                 onChange={setQuery}
                 onLoadMore={queries.next ? () => setPrev(queries) : undefined}
