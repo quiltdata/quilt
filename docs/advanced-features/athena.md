@@ -13,7 +13,7 @@ To get enable Athena, you need to set up a role with policy allowing Athena.
 Steps required to do this:
 
 1. Create Athena policy. Go to console.aws.amazon.com/iam, and create new policy with this JSON.
-```
+```json
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -124,7 +124,7 @@ Steps required to do this:
     ]
 }
 ```
-2. Attach ARN of this policy to your stack's template in CloudFormation. Go to CloudFormation, click "Update", and fill ARN address to "ManagedUserRoleExtraPolicies" field
+2. Attach this policy to your CloudFormation stack. Go to CloudFormation console, select stack, click "Update", and fill ARN to "ManagedUserRoleExtraPolicies" field
 3. Add "un-managed" Athena policy to Quilt catalog. Go to http://your-quilt-stack/admin, scroll to "Policies", click on "+" button. Click "Manually set ARN" and enter ARN of Athena policy
 4. Attach policy to an existing Quilt role, or create a new role and attach policy to it.
 
