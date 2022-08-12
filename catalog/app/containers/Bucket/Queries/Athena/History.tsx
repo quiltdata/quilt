@@ -38,9 +38,10 @@ const useExecutionStyles = M.makeStyles((t) => ({
 interface ExecutionProps {
   bucket: string
   queryExecution: requests.athena.QueryExecution
+  workgroup: requests.athena.Workgroup
 }
 
-function Execution({ bucket, queryExecution }: ExecutionProps) {
+function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
   const classes = useExecutionStyles()
 
   const { urls } = NamedRoutes.use()
@@ -82,7 +83,7 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
         </M.TableCell>
         <M.TableCell className={cx(classes.cell, classes.date)}>
           {queryExecution.status === 'SUCCEEDED' ? (
-            <Link to={urls.bucketAthenaQueryExecution(bucket, queryExecution.id)}>
+            <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
               {completed}
             </Link>
           ) : (
@@ -131,9 +132,7 @@ const useStyles = M.makeStyles((t) => ({
     marginLeft: 'auto',
   },
   table: {
-    [t.breakpoints.down('sm')]: {
-      tableLayout: 'fixed',
-    },
+    tableLayout: 'fixed',
   },
 }))
 
@@ -141,9 +140,15 @@ interface HistoryProps {
   bucket: string
   executions: requests.athena.QueryExecution[]
   onLoadMore?: () => void
+  workgroup: requests.athena.Workgroup
 }
 
-export default function History({ bucket, executions, onLoadMore }: HistoryProps) {
+export default function History({
+  bucket,
+  executions,
+  onLoadMore,
+  workgroup,
+}: HistoryProps) {
   const classes = useStyles()
 
   const pageSize = 10
@@ -187,6 +192,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
               bucket={bucket}
               queryExecution={queryExecution}
               key={queryExecution.id}
+              workgroup={workgroup}
             />
           ))}
           {!executions.length && (
