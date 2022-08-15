@@ -28,6 +28,15 @@ const reducer = Action.reducer({
     }),
 })
 
+// Use it to test AsyncResult states
+// example: `createResult(AsyncResult.Err(new Error('Expected')))`
+export function createResult(result) {
+  return {
+    case: (cases, ...args) => AsyncResult.case(cases, result, ...args),
+    result,
+  }
+}
+
 export function useData(request, params, { noAutoFetch = false } = {}) {
   // TODO: accept custom key extraction fn (params => key for comparison)
   const [state, setState] = React.useState(initial)
