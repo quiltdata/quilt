@@ -1,13 +1,17 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as requests from './requests'
+interface AbstractQuery {
+  key: string
+  name: string
+  description?: string
+}
 
-interface QuerySelectProps {
-  onChange: (value: requests.Query | requests.athena.AthenaQuery | null) => void
+interface QuerySelectProps<T> {
+  onChange: (value: T | null) => void
   onLoadMore?: () => void
-  queries: (requests.Query | requests.athena.AthenaQuery)[]
-  value: requests.Query | requests.athena.AthenaQuery | null
+  queries: T[]
+  value: T | null
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -24,12 +28,12 @@ const useStyles = M.makeStyles((t) => ({
 
 const LOAD_MORE = 'load-more'
 
-export default function QuerySelect({
+export default function QuerySelect<T>({
   queries,
   onChange,
   onLoadMore,
   value,
-}: QuerySelectProps) {
+}: QuerySelectProps<T & AbstractQuery>) {
   const classes = useStyles()
 
   const handleChange = React.useCallback(
