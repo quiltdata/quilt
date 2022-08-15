@@ -6,7 +6,7 @@ the panel via a dropdown menu under username in the navbar.
 
 The admin page is only accessible to designated administrators. The first admin
 is set during the CloudFormation installation. Subsequent admins may be designated
-through the panel. Only admins may create other admins. 
+through the panel. Only admins may create other admins.
 
 Quilt requires at least one admin account per stack.
 
@@ -67,7 +67,7 @@ provided by the policies attached to that role.
 ## Buckets
 
 Here you can add or remove buckets from Quilt and configure bucket indexing and
-display settings. 
+display settings.
 <!--TODO explain sub sections of bucket editor !-->
 
 ![](../imgs/admin-buckets.png)
@@ -94,3 +94,5 @@ in the navbar.
 
 ## Further settings
 See [Prefences](Preferences.md) for further control over the catalog user interface.
+
+See [Athena](../advanced-features/athena.md) to enable querying metadata via Athena SQL.
