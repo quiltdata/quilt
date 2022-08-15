@@ -10,7 +10,7 @@ per-bucket. The config file's path is `s3://BUCKET/.quilt/catalog/config.yaml`.
 If there is no config.yaml, or your config.yaml file does not override the `ui`
 key, then the following defaults are used:
 
-```
+```yaml
 ui:
   nav:
     files: True
@@ -58,7 +58,7 @@ Strings display as paragraphs. Elements of a list display as tags.
 #### `ui.package_description` example
   
 
-```
+```yaml
 ui:
   packages:
     # match all packages
@@ -77,4 +77,4 @@ ui:
         - $.key4[0]
 ```
 
-![](../docs/imgs/package-list-selective-metadata.png)
+![](../imgs/package-list-selective-metadata.png)

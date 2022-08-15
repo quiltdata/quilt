@@ -23,9 +23,11 @@ export const PreviewData = tagged([
   'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
   'IFrame', // { src: string }
+  'Igv', // { options: object }
   'Image', // { handle: object }
   'Json', // { rendered: object }
   'Markdown', // { rendered: string }
+  'NamedPackage', // { bucket: string, hash: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Ngl', // { blob: Blob([Uint8Array|string]) }
   'Pdf', // { handle: object, pages: number, firstPageBlob: Blob, type: 'pdf' | 'pptx' }
