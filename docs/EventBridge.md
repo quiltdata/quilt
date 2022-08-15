@@ -47,7 +47,7 @@ that you created above.
     ![](./imgs/event-target.png)
 1. Specify the Input transformer as follows:
     #### Input Path
-    ```
+    ```json
     {
         "awsRegion": "$.detail.awsRegion",
         "bucketName": "$.detail.requestParameters.bucketName",
@@ -59,7 +59,7 @@ that you created above.
     }
     ```
     #### Input Template
-    ```
+    ```json
     {
         "Records": [
             {
