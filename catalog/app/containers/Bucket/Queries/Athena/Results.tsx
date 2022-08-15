@@ -5,13 +5,9 @@ import Perspective from 'components/Preview/renderers/Perspective'
 
 import * as requests from '../requests'
 
-interface EmptyProps {
-  className: string
-}
-
-function Empty({ className }: EmptyProps) {
+function Empty() {
   return (
-    <M.Paper className={className}>
+    <M.Paper>
       <M.Box p={3} textAlign="center">
         <M.Typography variant="h6">No results for this query</M.Typography>
         <M.Typography>
@@ -22,16 +18,20 @@ function Empty({ className }: EmptyProps) {
   )
 }
 
-const config = { settings: true }
+const useResultsStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2),
+  },
+}))
 
 interface ResultsProps {
-  className: string
   columns: requests.athena.QueryResultsColumns
   onLoadMore?: () => void
   rows: requests.athena.QueryResultsRows
 }
 
-export default function Results({ className, columns, rows, onLoadMore }: ResultsProps) {
+export default function Results({ columns, rows, onLoadMore }: ResultsProps) {
+  const classes = useResultsStyles()
   const data = React.useMemo(
     () =>
       rows.map((row) =>
@@ -46,15 +46,11 @@ export default function Results({ className, columns, rows, onLoadMore }: Result
     [columns, rows],
   )
 
-  if (!data.length) return <Empty className={className} />
+  if (!data.length) return <Empty />
 
   return (
-    <Perspective
-      className={className}
-      config={config}
-      data={data}
-      onLoadMore={onLoadMore}
-      truncated={!!onLoadMore}
-    />
+    <M.Paper className={classes.root}>
+      <Perspective data={data} onLoadMore={onLoadMore} truncated={!!onLoadMore} />
+    </M.Paper>
   )
 }

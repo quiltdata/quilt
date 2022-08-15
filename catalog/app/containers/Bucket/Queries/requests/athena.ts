@@ -1,4 +1,5 @@
 import Athena from 'aws-sdk/clients/athena'
+import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -217,8 +218,9 @@ async function waitForQueryStatus(
     // eslint-disable-next-line no-await-in-loop
     const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
     const status = statusData?.QueryExecution?.Status?.State
+    const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
     if (status === 'FAILED' || status === 'CANCELLED') {
-      throw new Error(status)
+      throw new Error(`${status}: ${reason}`)
     }
 
     if (!status) {
@@ -323,15 +325,17 @@ interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
+  skipHashing?: boolean
 }
 
-async function runQuery({
+export async function runQuery({
   athena,
   queryBody,
   workgroup,
+  skipHashing,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const hashDigest = await hashQueryBody(queryBody, workgroup)
+    const hashDigest = skipHashing ? undefined : await hashQueryBody(queryBody, workgroup)
     const { QueryExecutionId } = await athena
       .startQueryExecution({
         ClientRequestToken: hashDigest,
@@ -349,6 +353,18 @@ async function runQuery({
       id: QueryExecutionId,
     }
   } catch (e) {
+    if (
+      e instanceof Error &&
+      e.name === 'InvalidRequestException' &&
+      e.message === 'Idempotent parameters do not match'
+    ) {
+      return runQuery({
+        athena,
+        queryBody,
+        workgroup,
+        skipHashing: true,
+      })
+    }
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
@@ -357,10 +373,13 @@ async function runQuery({
   }
 }
 
-export function useQueryRun(
-  workgroup: string,
-  queryBody: string,
-): AsyncData<QueryRunResponse> {
+export function useQueryRun(workgroup: string): (q: string) => Promise<QueryRunResponse> {
   const athena = AWS.Athena.use()
-  return useData(runQuery, { athena, queryBody, workgroup }, { noAutoFetch: !queryBody })
+  return React.useCallback(
+    (queryBody: string) => {
+      if (!athena) return Promise.reject(new Error('No Athena available'))
+      return runQuery({ athena, queryBody, workgroup })
+    },
+    [athena, workgroup],
+  )
 }
