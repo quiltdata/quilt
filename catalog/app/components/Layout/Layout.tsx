@@ -3,6 +3,7 @@ import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as NavBar from 'containers/NavBar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -49,6 +50,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
       {!!children && <M.Box p={4}>{children}</M.Box>}
       <M.Box flexGrow={1} />
       {!!isHomepage && isHomepage.isExact && <Footer />}
+      <Bookmarks.Sidebar />
     </Root>
   )
 }

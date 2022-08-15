@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -7,6 +7,7 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -91,6 +92,7 @@ interface DirContentsProps {
 function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
+  const bookmarks = Bookmarks.use()
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -101,6 +103,29 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
 
   const items = useFormattedListing(response)
 
+  const [selection, setSelection] = React.useState([])
+  const handleSelectionModelChange = React.useCallback(
+    (ids) => {
+      const idsToAdd = R.without(selection, ids)
+      const idsToRemove = R.without(ids, selection)
+      // bookmarks?.append(file)
+      idsToAdd.forEach((id) => {
+        bookmarks?.append('bookmarks', {
+          bucket,
+          key: join(path, id),
+        })
+      })
+      idsToRemove.forEach((id) => {
+        bookmarks?.remove('bookmarks', {
+          bucket,
+          key: join(path, id),
+        })
+      })
+      setSelection(ids)
+    },
+    [bucket, path, bookmarks, selection],
+  )
+
   // TODO: should prefix filtering affect summary?
   return (
     <>
@@ -110,6 +135,8 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
+        onSelectionChange={handleSelectionModelChange}
+        selection={selection}
         toolbarContents={
           <PrefixFilter
             key={`${response.bucket}/${response.path}`}
@@ -158,7 +185,6 @@ export default function Dir({
   const { prefix } = parseSearch(l.search)
   const path = decode(encodedPath)
   const dest = path ? basename(path) : bucket
-
   const code = React.useMemo(
     () => [
       {

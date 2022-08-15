@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -137,6 +138,7 @@ function UserDropdown() {
   const cfg = Config.useConfig()
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
+  const bookmarks = Bookmarks.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
   const isAdmin = !!useRoute(paths.admin).match
   const [anchor, setAnchor] = React.useState(null)
@@ -160,6 +162,9 @@ function UserDropdown() {
 
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+          <Item onClick={bookmarks?.show} divider>
+            <M.Icon fontSize="small">bookmarks_outlined</M.Icon>&nbsp;Bookmarks
+          </Item>
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings
