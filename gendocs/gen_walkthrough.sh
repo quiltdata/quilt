@@ -7,6 +7,7 @@ gen_cmd_docs () {
     jupyter nbconvert --to markdown "${file}".ipynb
 }
 
+gen_cmd_docs '../docs/advanced-features/athena'
 gen_cmd_docs '../docs/advanced-features/working-with-manifests'
 gen_cmd_docs '../docs/walkthrough/editing-a-package'
 gen_cmd_docs '../docs/walkthrough/getting-data-from-a-package'
