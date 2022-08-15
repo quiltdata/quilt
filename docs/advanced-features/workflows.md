@@ -304,7 +304,7 @@ workflows:
     name: My workflow №1
     entries_schema: must-contain-readme
   myworkflow-2:
-    name: My workflow №2
+    name: 'My workflow #2'
     entries_schema: must-contain-readme-summarize-at-least-1byte
     description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
 schemas:
