@@ -301,7 +301,7 @@ objects known as *package entries*. Each package entry defines a logical key
 ```yaml
 workflows:
   myworkflow-1:
-    name: My workflow №1
+    name: 'My workflow #1'
     entries_schema: must-contain-readme
   myworkflow-2:
     name: 'My workflow #2'
