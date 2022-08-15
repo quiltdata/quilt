@@ -107,7 +107,7 @@ async function fetchWorkgroups({
     )
     const list = (prev?.list || []).concat(parsed)
     return {
-      defaultWorkgroup: preferences?.defaultWorkflow || list[0], // TODO: get default from config
+      defaultWorkgroup: preferences?.defaultWorkflow || list[0],
       list,
       next: workgroupsOutput.NextToken,
     }
