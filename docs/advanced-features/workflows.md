@@ -266,6 +266,7 @@ catalog:
     packages: analysis/
 workflows:
   my-workflow:
+    name: My workflow
     catalog:
       # defaults for my-workflow, different for each tab
       package_handle:
@@ -284,6 +285,7 @@ You can validate package names with `WORKFLOW.handle_pattern`, which accepts
 
 ```yaml
 workflows:
+  name: My workflow
   my-workflow:
     handle_pattern: ^(employee1|employee2)/(production|staging)$
 ```
@@ -299,8 +301,10 @@ objects known as *package entries*. Each package entry defines a logical key
 ```yaml
 workflows:
   myworkflow-1:
+    name: 'My workflow #1'
     entries_schema: must-contain-readme
   myworkflow-2:
+    name: 'My workflow #2'
     entries_schema: must-contain-readme-summarize-at-least-1byte
     description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
 schemas:
