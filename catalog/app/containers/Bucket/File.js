@@ -400,7 +400,10 @@ export default function File({
     [history, urls, bucket, encodedPath, version],
   )
 
-  const handle = { bucket, key: path, version }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version }),
+    [bucket, path, version],
+  )
 
   const editorState = FileEditor.useState(handle)
 
