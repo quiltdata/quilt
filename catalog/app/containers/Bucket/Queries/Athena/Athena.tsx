@@ -53,7 +53,7 @@ function QueryConstructor({
       {data.case({
         Ok: (queries) => (
           <Section title="Select query" empty="There are no saved queries.">
-            {queries.list.length && (
+            {!!queries.list.length && (
               <QuerySelect<requests.athena.AthenaQuery | null>
                 onChange={setQuery}
                 onLoadMore={queries.next ? () => setPrev(queries) : undefined}
@@ -165,7 +165,7 @@ function ResultsContainer({
             return (
               <History
                 bucket={bucket}
-                executions={[queryResults.queryExecution!]}
+                executions={[queryResults.queryExecution]}
                 workgroup={workgroup}
               />
             )
@@ -202,11 +202,11 @@ interface QueryResults {
 }
 
 function useQueryResults(queryExecutionId?: string): QueryResults {
-  const [prev, usePrev] = React.useState<requests.athena.QueryResultsResponse | null>(
+  const [prev, setPrev] = React.useState<requests.athena.QueryResultsResponse | null>(
     null,
   )
   const data = requests.athena.useQueryResults(queryExecutionId || null, prev)
-  return React.useMemo(() => ({ data, loadMore: usePrev }), [data])
+  return React.useMemo(() => ({ data, loadMore: setPrev }), [data])
 }
 
 const useOverrideStyles = M.makeStyles({

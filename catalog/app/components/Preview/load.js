@@ -5,9 +5,12 @@ import * as Audio from './loaders/Audio'
 import * as Echarts from './loaders/Echarts'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
+import * as Igv from './loaders/Igv'
 import * as Image from './loaders/Image'
 import * as Json from './loaders/Json'
+import * as Manifest from './loaders/Manifest'
 import * as Markdown from './loaders/Markdown'
+import * as NamedPackage from './loaders/NamedPackage'
 import * as Ngl from './loaders/Ngl'
 import * as Notebook from './loaders/Notebook'
 import * as Pdf from './loaders/Pdf'
@@ -21,10 +24,13 @@ import * as fallback from './loaders/fallback'
 const loaderChain = [
   Fcs,
   Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
+  Igv, // should be before Json, or TODO: add "type is not 'igv'" to Json.detect
   Json,
+  Manifest,
   Markdown,
   Ngl,
   Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
+  NamedPackage,
   Notebook,
   Pdf,
   Vcf,
@@ -50,6 +56,7 @@ export function getRenderProps(key, options) {
 }
 
 export function Load({ handle, children, options }) {
+  // TODO: try if loader is `gated` here to avoid code repeatance
   const key = handle.logicalKey || handle.key
   const { Loader } = React.useMemo(() => findLoader(key, options), [key, options])
   return <Loader {...{ handle, children, options }} />

@@ -290,7 +290,7 @@ workflows:
 
 ### Package file validation
 You can validate the names and sizes of files in the package with
-`WORkFLOW.entries_schema`. The provided schema runs against an array of
+`WORKFLOW.entries_schema`. The provided schema runs against an array of
 objects known as *package entries*. Each package entry defines a logical key
 (its relative path and name in the parent package) and size (in bytes).
 

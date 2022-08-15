@@ -86,10 +86,12 @@ function useQueryRun(
         setLoading(false)
         goToExecution(id)
       } catch (e) {
+        setLoading(false)
         if (e instanceof Error) {
           setError(e)
+        } else {
+          throw e
         }
-        setLoading(false)
       }
     },
     [goToExecution, notify, runQuery, queryExecutionId],

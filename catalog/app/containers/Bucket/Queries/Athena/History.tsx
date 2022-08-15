@@ -132,9 +132,7 @@ const useStyles = M.makeStyles((t) => ({
     marginLeft: 'auto',
   },
   table: {
-    [t.breakpoints.down('sm')]: {
-      tableLayout: 'fixed',
-    },
+    tableLayout: 'fixed',
   },
 }))
 
