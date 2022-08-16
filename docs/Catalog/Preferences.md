@@ -51,7 +51,7 @@ Revise Package > Add files from Bucket; if the dictionary is not set or is empty
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary that maps package handle regular expressions or literals to JSONPath expressions of fields to show from package metadata in the package list view.
 Strings display as paragraphs. Elements of a list display as tags.
-* `ui.athena` - a dictionary
+* `ui.athena.defaultWorkflow` - default workflow to select on the Athena page
 
 #### `ui.sourceBuckets` example
 
