@@ -65,8 +65,11 @@ function useHandlesToS3Files(
   )
 }
 
-// TODO: bucket
-export default function Sidebar() {
+interface SidebarProps {
+  bucket: string
+}
+
+export default function Sidebar({ bucket }: SidebarProps) {
   const bookmarks = useBookmarks()
   const classes = useSidebarStyles()
   const addToPackage = AddToPackage.use()
@@ -79,7 +82,7 @@ export default function Sidebar() {
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
   const createDialog = usePackageCreationDialog({
-    bucket: 'fiskus-sandbox-dev',
+    bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })

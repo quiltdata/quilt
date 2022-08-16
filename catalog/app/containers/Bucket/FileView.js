@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 // import Message from 'components/Message'
 import SelectDropdown from 'components/SelectDropdown'
-import * as Auth from 'containers/Auth'
+import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 
@@ -76,7 +76,7 @@ export function ViewModeSelector({ className, ...props }) {
 
 export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
   const { s3Proxy, noDownload } = Config.use()
-  const { token } = redux.useSelector(Auth.selectors.tokens) || {}
+  const { token } = redux.useSelector(tokensSelector) || {}
   if (!token || noDownload) return null
   const action = `${s3Proxy}/zip/${suffix}`
   return (
