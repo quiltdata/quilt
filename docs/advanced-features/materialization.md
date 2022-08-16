@@ -1,5 +1,5 @@
-<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
 
 ## `build` versus `push`
 

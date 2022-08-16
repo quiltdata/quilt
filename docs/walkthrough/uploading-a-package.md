@@ -1,5 +1,5 @@
-<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
 Once your package is ready it's time to save and distribute it.
 
 ## Saving a package manifest locally

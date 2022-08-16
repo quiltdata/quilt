@@ -1,5 +1,5 @@
-<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
 
 [S3 Select](https://aws.amazon.com/blogs/aws/s3-glacier-select/) is an S3 feature that allows you to operate on JSON, CSV, and Parquet files in a row-based manner using SQL syntax. QUILT features experimental support for S3 Select queries as part of the `Bucket` interface:
 
