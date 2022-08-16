@@ -31,8 +31,13 @@ type PackagesListPreferences = Record<string, PackagePreferences>
 type DefaultSourceBucketInput = string
 type SourceBucketsInput = Record<string, null>
 
+export interface AthenaPreferences {
+  defaultWorkflow?: string
+}
+
 interface UiPreferencesInput {
   actions?: Partial<ActionPreferences>
+  athena?: AthenaPreferences
   blocks?: Partial<BlocksPreferences>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
@@ -51,6 +56,7 @@ export interface SourceBuckets {
 
 interface UiPreferences {
   actions: ActionPreferences
+  athena: AthenaPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
   package_description: PackagesListPreferences
@@ -70,6 +76,7 @@ const defaultPreferences: BucketPreferences = {
       openInDesktop: false,
       revisePackage: true,
     },
+    athena: {},
     blocks: {
       analytics: true,
       browser: true,
