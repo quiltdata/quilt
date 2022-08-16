@@ -10,7 +10,7 @@ import { fade } from '@material-ui/core/styles'
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
 import * as Bookmarks from 'containers/Bookmarks'
-import type { S3HandleBase } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -27,7 +27,7 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
-  handle?: S3HandleBase
+  handle?: s3paths.S3HandleBase
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
@@ -81,11 +81,15 @@ function Header({ items, onClearSelection, selection }: HeaderProps) {
   const classes = useHeaderStyles()
   const count = selection?.length || 0
   const bookmarks = Bookmarks.use()
-  const bookmarkItems: S3HandleBase[] = React.useMemo(() => {
-    const handles: S3HandleBase[] = []
-    items.some(({ name, handle }) => {
+  const bookmarkItems: s3paths.S3HandleBase[] = React.useMemo(() => {
+    const handles: s3paths.S3HandleBase[] = []
+    items.some(({ name, handle, type }) => {
       if (!selection?.length) return true
-      if (selection?.includes(name) && handle) handles.push(handle)
+      if (selection?.includes(name) && handle)
+        handles.push({
+          ...handle,
+          key: type === 'dir' ? s3paths.ensureSlash(handle.key) : handle.key,
+        })
       if (handles.length === selection?.length) return true
       return false
     })
