@@ -11,14 +11,38 @@ buckets in Quilt are like branches in git; they reflect how "done" data are.
 
 There's no one folder structure that works for everyone. For instance,
 if you organize experiments by `department/date` then it's tedious for users to
-look at everything that happened on a given data. And vice versa.
+look at everything that happened on a given date. And vice versa. Since
+there's no one folder structure that works for everyone in the business,
+files are copied so that they can be found through multiple folder paths.
+But copies reduce *uniquness*. As a result users don't know which copy of
+the file to trust. These copies then diverge, further reducing trust in data.
 
-For this reason, packages offer both metadata tags and infinite
+### Folder names are not metadata
+
+As users try to keep files organized they put metadata in the file names and
+paths. This is fragile. First, files and folders can be moved, thus
+severing their connection to metadata stored in the path. Second, file names
+with metadata can only get so long before they become unusable. Finally,
+metadata and folder-naming conventions vary across users, making metadata in
+the path of low consistency, low quality, and low trust.
+
+We call file paths _physical_ views because they are fixed addresses for data
+on disk or in blob storage.
+
+# Package logical views are more flexible than fixed physical views
+
+For the above reasons reason, packages offer both metadata tags and infinite
 _logical_ views atop _physical_ locations in S3. Metadata tags prevent file names
 from getting longer and longer to hackily include metadata.
 
-With Quilt packages you can place one S3 object in a thousand packages without ever copying that object. Or you can "reorganize" S3 without moving any objects, with custom views of S3 for each team,
-by using Quilt packages and the `.set*()` API calls.
+With Quilt packages, you can include a given S3 object in as many
+packages without ever copying that object. Or you can organize multiple S3 buckets
+into single packages under any logical folder structure that you wish (by using the Quilt
+catalog or the `.set*()` APIs).
+
+Since packages separate metadata from logical view paths, but include metadata
+and data in the package manifest, data and metadata can never be accidentally
+separted. File paths also become simpler and easier to trust.
 
 ## S3 data lifecycle
 Below is an example of how you might organize three data domains according to a three-phase data lifecycle.
@@ -28,6 +52,10 @@ Below is an example of how you might organize three data domains according to a 
 | Domain1 | s3://domain1-raw | s3://domain1-refined | s3://domain1-curated |
 | Domain2 | s3://domain2-raw | s3://domain2-refined | s3://domain2-curated |
 | Domain3 | s3://domain3-raw | s3://domain3-refined | s3://domain3-curated |
+
+In addition to the three lifecycle phases above it is useful to have on or more
+"sandbox" buckets where users can create experimental packages without fear of
+overwriting or disrupting business data.
 
 ## How enterprises organize instrument, scientist, ELN data
 
