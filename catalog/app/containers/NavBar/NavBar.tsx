@@ -134,6 +134,29 @@ const userDisplay = (user: $TSFixMe) => (
   </>
 )
 
+const useBadgeStyles = M.makeStyles({
+  root: {
+    top: '4px',
+  },
+})
+
+interface BadgeProps extends M.BadgeProps {}
+
+function Badge({ children, color, invisible, ...props }: BadgeProps) {
+  const classes = useBadgeStyles()
+  return (
+    <M.Badge
+      color={color}
+      variant="dot"
+      invisible={invisible}
+      className={classes.root}
+      {...props}
+    >
+      {children}
+    </M.Badge>
+  )
+}
+
 function UserDropdown() {
   const cfg = Config.useConfig()
   const user = redux.useSelector(selectUser)
@@ -142,6 +165,7 @@ function UserDropdown() {
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
   const isAdmin = !!useRoute(paths.admin).match
   const [anchor, setAnchor] = React.useState(null)
+  const [invisible, setInvisible] = React.useState(true)
 
   const open = React.useCallback(
     (evt) => {
@@ -151,19 +175,35 @@ function UserDropdown() {
   )
 
   const close = React.useCallback(() => {
+    setInvisible(true)
     setAnchor(null)
   }, [setAnchor])
+
+  const showBookmarks = React.useCallback(() => {
+    bookmarks?.show()
+    close()
+  }, [bookmarks, close])
+
+  React.useEffect(() => {
+    if (bookmarks?.groups.bookmarks?.entries) setInvisible(false)
+  }, [bookmarks?.groups.bookmarks?.entries])
 
   return (
     <>
       <M.Button variant="text" color="inherit" onClick={open}>
-        {userDisplay(user)} <M.Icon>expand_more</M.Icon>
+        <Badge color="primary" invisible={invisible}>
+          {userDisplay(user)}
+        </Badge>{' '}
+        <M.Icon>expand_more</M.Icon>
       </M.Button>
 
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
-          <Item onClick={bookmarks?.show} divider>
-            <M.Icon fontSize="small">bookmarks_outlined</M.Icon>&nbsp;Bookmarks
+          <Item onClick={showBookmarks} divider>
+            <Badge color="secondary" invisible={invisible}>
+              <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
+            </Badge>
+            &nbsp;Bookmarks
           </Item>
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
