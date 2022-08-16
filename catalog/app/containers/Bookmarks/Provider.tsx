@@ -29,6 +29,7 @@ interface ProviderProps {
 export function Provider({ children }: ProviderProps) {
   const [isOpened, setOpened] = React.useState(false)
   const [groups, setGroups] = React.useState({})
+  // TODO: append s3File[] too
   const append = React.useCallback((groupName: string, s3File: S3HandleBase) => {
     setGroups(R.set(R.lensPath([groupName, 'entries', basename(s3File.key)]), s3File))
   }, [])

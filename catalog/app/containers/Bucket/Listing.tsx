@@ -9,6 +9,8 @@ import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
+import * as Bookmarks from 'containers/Bookmarks'
+import type { S3HandleBase } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -25,6 +27,7 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
+  handle?: S3HandleBase
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
@@ -46,6 +49,82 @@ const computeStats = R.reduce(
     modified: undefined as Date | undefined,
   },
 )
+
+const useHeaderStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'baseline',
+    borderBottom: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    justifyContent: 'center',
+    padding: t.spacing(0.5, 0),
+  },
+  button: {
+    fontSize: 11,
+    lineHeight: '22px',
+    margin: t.spacing(0, 1),
+  },
+  count: {
+    marginRight: t.spacing(1),
+  },
+  wrapper: {
+    width: '100%',
+  },
+}))
+
+interface HeaderProps {
+  items: Item[]
+  onClearSelection: () => void
+  selection?: DG.GridRowId[]
+}
+
+function Header({ items, onClearSelection, selection }: HeaderProps) {
+  const classes = useHeaderStyles()
+  const count = selection?.length || 0
+  const bookmarks = Bookmarks.use()
+  const bookmarkItems: S3HandleBase[] = React.useMemo(() => {
+    const handles: S3HandleBase[] = []
+    items.some(({ name, handle }) => {
+      if (!selection?.length) return true
+      if (selection?.includes(name) && handle) handles.push(handle)
+      if (handles.length === selection?.length) return true
+      return false
+    })
+    return handles
+  }, [items, selection])
+  const handleClick = React.useCallback(() => {
+    bookmarkItems?.forEach((handle) => {
+      bookmarks?.append('bookmarks', handle)
+    })
+    onClearSelection()
+  }, [bookmarks, bookmarkItems, onClearSelection])
+  return (
+    <M.Collapse in={!!count} className={classes.wrapper} timeout={100}>
+      <div className={classes.root}>
+        <M.Typography className={classes.count} variant="body2">
+          {count > 1 ? `${count} items are selected` : `${count} item is selected`}
+        </M.Typography>
+        <M.Button
+          className={classes.button}
+          color="primary"
+          size="small"
+          variant="outlined"
+          onClick={handleClick}
+        >
+          Add to bookmarks
+        </M.Button>
+        or
+        <M.Button
+          className={classes.button}
+          color="primary"
+          size="small"
+          onClick={onClearSelection}
+        >
+          Clear selection
+        </M.Button>
+      </div>
+    </M.Collapse>
+  )
+}
 
 interface WrappedAutosizeInputProps extends Omit<AutosizeInputProps, 'ref'> {
   className?: string
@@ -412,6 +491,8 @@ interface ToolbarProps {
   locked?: boolean
   loadMore?: () => void
   items: Item[]
+  selection?: DG.GridRowId[]
+  onClearSelection: () => void
 }
 
 function Toolbar({
@@ -420,10 +501,13 @@ function Toolbar({
   loadMore,
   items,
   children,
+  selection,
+  onClearSelection,
 }: ToolbarProps) {
   const classes = useToolbarStyles()
   return (
     <div className={classes.root}>
+      <Header items={items} selection={selection} onClearSelection={onClearSelection} />
       {children}
       {truncated && (
         <div className={classes.truncated}>
@@ -1034,6 +1118,10 @@ export function Listing({
     [onSelectionChange],
   )
 
+  const onClearSelection = React.useCallback(() => {
+    if (onSelectionChange) onSelectionChange([])
+  }, [onSelectionChange])
+
   // TODO: control page, pageSize, filtering and sorting via props
   return (
     <RootComponent className={cx(classes.root, className)}>
@@ -1045,7 +1133,15 @@ export function Listing({
         autoHeight
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
-          toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
+          toolbar: {
+            truncated,
+            locked,
+            loadMore,
+            items,
+            children: toolbarContents,
+            selection,
+            onClearSelection,
+          },
           footer: { truncated, locked, loadMore, items },
         }}
         getRowId={(row) => row.name.replaceAll("'", "\\'")}

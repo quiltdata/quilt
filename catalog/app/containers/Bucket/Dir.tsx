@@ -1,4 +1,4 @@
-import { basename, join } from 'path'
+import { basename } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -7,7 +7,6 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -54,6 +53,10 @@ function useFormattedListing(r: requests.BucketListingResult) {
       type: 'dir' as const,
       name: ensureNoSlash(withoutPrefix(r.path, name)),
       to: urls.bucketDir(r.bucket, name),
+      handle: {
+        bucket: r.bucket,
+        key: name,
+      },
     }))
     const files = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
@@ -62,6 +65,10 @@ function useFormattedListing(r: requests.BucketListingResult) {
       size,
       modified,
       archived,
+      handle: {
+        bucket: r.bucket,
+        key,
+      },
     }))
     const items = [
       ...(r.path !== '' && !r.prefix
@@ -92,7 +99,6 @@ interface DirContentsProps {
 function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const bookmarks = Bookmarks.use()
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -104,27 +110,8 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
   const items = useFormattedListing(response)
 
   const [selection, setSelection] = React.useState([])
-  const handleSelectionModelChange = React.useCallback(
-    (ids) => {
-      const idsToAdd = R.without(selection, ids)
-      const idsToRemove = R.without(ids, selection)
-      // bookmarks?.append(file)
-      idsToAdd.forEach((id) => {
-        bookmarks?.append('bookmarks', {
-          bucket,
-          key: join(path, id),
-        })
-      })
-      idsToRemove.forEach((id) => {
-        bookmarks?.remove('bookmarks', {
-          bucket,
-          key: join(path, id),
-        })
-      })
-      setSelection(ids)
-    },
-    [bucket, path, bookmarks, selection],
-  )
+  const handleSelectionModelChange = React.useCallback((ids) => setSelection(ids), [])
+  React.useEffect(() => setSelection([]), [bucket, path])
 
   // TODO: should prefix filtering affect summary?
   return (
