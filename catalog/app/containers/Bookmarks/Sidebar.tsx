@@ -2,6 +2,8 @@ import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as AddToPackage from 'containers/AddToPackage'
+import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import {
   useBucketListing,
   BucketListingResult,
@@ -11,6 +13,8 @@ import type { S3HandleBase } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import { useBookmarks } from './Provider'
+
+// TODO: endsWith → s3paths.isDir
 
 const useSidebarStyles = M.makeStyles((t) => ({
   root: {
@@ -61,9 +65,11 @@ function useHandlesToS3Files(
   )
 }
 
+// TODO: bucket
 export default function Sidebar() {
   const bookmarks = useBookmarks()
   const classes = useSidebarStyles()
+  const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.bookmarks?.entries
   const list: S3HandleBase[] = React.useMemo(
     () => (entries ? Object.values(entries) : []),
@@ -72,10 +78,18 @@ export default function Sidebar() {
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
+  const createDialog = usePackageCreationDialog({
+    bucket: 'fiskus-sandbox-dev',
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
   const handleSubmit = React.useCallback(async () => {
+    if (!addToPackage) throw new Error('Add to Package is not ready')
     const files = await handlesToS3Files(list)
-    console.log({ files })
-  }, [handlesToS3Files, list])
+    files.forEach(addToPackage?.append)
+    createDialog.open()
+    // bookmarks?.hide() // TODO: move handleSubmit outside M.Drawer
+  }, [addToPackage, createDialog, handlesToS3Files, list])
   const isOpened = bookmarks?.isOpened
   return (
     <M.Drawer anchor="left" open={isOpened} onClose={bookmarks?.hide}>
@@ -99,6 +113,14 @@ export default function Sidebar() {
         <M.Button color="primary" variant="contained" onClick={handleSubmit}>
           Create package
         </M.Button>
+
+        {createDialog.render({
+          successTitle: 'Package created',
+          successRenderMessage: ({ packageLink }) => (
+            <>Package {packageLink} successfully created</>
+          ),
+          title: 'Create package',
+        })}
       </div>
     </M.Drawer>
   )
