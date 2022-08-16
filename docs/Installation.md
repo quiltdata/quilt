@@ -1,3 +1,5 @@
+<!--pytest-codeblocks:skipfile-->
+
 # Installation
 
 Quilt has two user-facing components:

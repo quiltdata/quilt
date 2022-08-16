@@ -9,7 +9,7 @@ This means that all of your reports are backed by immutable, versioned data, pro
 a common frame of reference that is lacking in BI applications that read from
 fast-moving databases and file systems.
 
-In addition to rendering a wide variety of images, binary files, and text 
+In addition to rendering a wide variety of images, binary files, and text
 files, the Quilt catalog supports the following libraries for visualization and
 exploration:
 * [Vega](#vega-and-vega-lite)
@@ -17,6 +17,7 @@ exploration:
 * [ECharts](#echarts)
 * [Voila](#voila) (Developer preview)
 * [Perspective](#perspective)
+* [IGV](#igv)
 
 The above systems provide you with hundreds of charts out of the box.
 
@@ -69,9 +70,10 @@ or an object with one or more of the following properties:
 - `description` - description in markdown format
 - `expand` - Display the file (`true`) or display a preview in an expandable box (`false`, default)
 - `width` - column width either in pixels or ratio (default is ratio `1`)
-- `types` - a list of rendering types; currently only singleton list values are supported:
+- `types` - a list of render types (at present only singleton lists are supported):
     - `["echarts"]` to render JSON as an EChart
     - `["perspective"]` to render tabular data (csv, xlsx etc.) with Perspective
+    - `["igv"]` to render JSON with Integrative Genomics Viewer
     - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
 
 If you need to control the height of an element (useful for Voila dashboards),
@@ -120,9 +122,16 @@ The easiest way to create Vega-lite visualizations for Quilt packages is with
 
 Here's a simple example:
 ```python
+import pandas as pd
+from numpy import random
 import altair as alt
 
-df = pd.read_csv("file.csv")
+# Create Dataframe with two columns of random values
+scores = random.randint(60, 100, size=5)
+densities = random.random_sample(5)
+df = pd.DataFrame({'score': scores, 'density': densities})
+
+# Create Chart with two Quantitative axes
 
 alt.Chart(df).mark_area(
     color="gray",
@@ -251,14 +260,15 @@ import os
 
 import pandas as pd
 import quilt3 as q3
+# https://open.quiltdata.com/b/allencell/packages/aics/data_handoff_4dn/tree/260c3a46581a324e3a495570886e07b62cb4ff54f20b334c5d73a5a370e678c1/
 
-bucket = os.environ.get("QUILT_PKG_BUCKET")
-handle = os.environ.get("QUILT_PKG_NAME")
-top_hash = os.environ.get("QUILT_PKG_TOP_HASH")
+bucket = os.environ.get("QUILT_PKG_BUCKET") or "allencell"
+handle = os.environ.get("QUILT_PKG_NAME") or "aics/data_handoff_4dn"
+top_hash = os.environ.get("QUILT_PKG_TOP_HASH") or "260c3a46581a324e3a495570886e07b62cb4ff54f20b334c5d73a5a370e678c1"
 
-pkg = q3.browse(handle, registry=f"s3://{bucket}", top_hash=top_hash)
+pkg = q3.Package.browse(handle, registry=f"s3://{bucket}", top_hash=top_hash)
 # Read data.csv from the current package from Voila
-df = pkg["data.csv"].deserialize()
+df = pkg["metadata.csv"].deserialize()
 ```
 
 
@@ -280,7 +290,7 @@ scipy
 ## Perspective
 
 Quilt renders tabular data formats into a [Perspective](https://perspective.finos.org/) Datagrid, including the
-following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv. 
+following file extensions: .csv, .xls, .xlsx, .jsonl, .parquet, and .tsv.
 
 For speed, Quilt loads the first few rows stored in S3. Click Load More to fetch
 up to about 6MB of zipped data. To see the entire file contents for large files,
@@ -350,3 +360,22 @@ All filters and columns will be restored:
   }
 ]
 ```
+
+## Integrative Genomics Viewer (IGV)
+
+To render genome tracks, you can select "View as IGV" in the catalog,
+or you can invoke [igv.js](https://igv.org/) in quilt_summarize, as shown below:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "igv-options-file.json",
+    "title": "Awesome genome",
+    "types": ["igv"]
+  }
+]
+```
+
+In the above example, `igv-options-file.json` is an
+[IGV browser configuration](https://github.com/igvteam/igv.js/wiki/Browser-Creation#browser-configuration-options).
