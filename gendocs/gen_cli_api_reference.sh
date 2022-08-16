@@ -12,6 +12,7 @@ gen_cmd_docs () {
     echo '```' >> cli.md
 }
 
+echo "<!-- markdownlint-disable -->" >> cli.md
 echo "# Quilt3 CLI and environment" >> cli.md
 echo "" >> cli.md
 
