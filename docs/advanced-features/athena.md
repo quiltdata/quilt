@@ -1,5 +1,6 @@
 # Querying package metadata with Athena
-Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file in each bucket's `.quilt/` directory.
+Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
+in each bucket's `.quilt/` directory.
 
 You can therefore query package metadata wth SQL engines like AWS Athena.
 Users can write SQL queries to select packages (or files from within packages)
@@ -26,9 +27,8 @@ This allows you to configure AWS services by calling Python objects:
 
 
 ```python
-import boto3,json,os,re,time
-DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION') or 'us-east-1'
-os.environ['AWS_DEFAULT_REGION'] = DEFAULT_REGION
+import boto3, json, re, time
+
 SESSION = boto3.session.Session()
 print(SESSION)
 REGION=SESSION.region_name
