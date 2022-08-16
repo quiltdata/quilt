@@ -51,7 +51,7 @@ Later we will explicitly grant Quilt access to that Bucket.
 ```python
 COMPANY="mycompany"
 ATHENA_BUCKET=f"{COMPANY}-quilt-athena-output"
-ATHENA_DATABASE="quilt_metadata"
+ATHENA_DB="quilt_metadata"
 ATHENA_URL="s3://"+ATHENA_BUCKET
 ATHENA_WORKGROUP="QuiltQueries"
 
@@ -60,11 +60,8 @@ ARN_ATHENA=ARN_PREFIX+ATHENA_BUCKET
 
 # Create bucket in default region
 
-location = {'LocationConstraint': REGION} if REGION != 'us-east-1' else {}
-bucket = S3.create_bucket(
-    Bucket=ATHENA_BUCKET,
-    #CreateBucketConfiguration=location,
-)
+bucket = S3.create_bucket(Bucket=ATHENA_BUCKET) if REGION == 'us-east-1'\
+else S3.create_bucket(Bucket=ATHENA_BUCKET, CreateBucketConfiguration=location) 
 stat(bucket)
 #print(bucket)
 
@@ -91,7 +88,7 @@ stat(uwg)
 # Create new GLUE Database
 
 sqe = ATHENA.start_query_execution(
-    QueryString=f'create database {ATHENA_DATABASE}',
+    QueryString=f'create database {ATHENA_DB}',
     ResultConfiguration={'OutputLocation': ATHENA_URL+'/queries/'})
 stat(sqe)
 ```
@@ -107,15 +104,13 @@ By default, Quilt runs with very conservative permissions that do not allow acce
 
 1. Create a new Athena policy.
 
-The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/policies/arn:aws:iam::aws:policy/AmazonAthenaFullAccess) policy is more permissive than necessary.  For production usage, we recommend creating a policy limited to only the above Database:
+The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/policies/arn:aws:iam::aws:policy/AmazonAthenaFullAccess) policy is more permissive than necessary.  For production usage, we recommend creating a policy limited to only the above Bucket:
 <!--pytest-codeblocks:cont-->
 
 
 ```python
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.ServiceResource.create_policy
 # https://docs.aws.amazon.com/athena/latest/ug/workgroups-access.html
-
-# TODO: Replace aws-athena-query-results-*
 
 AthenaQuiltAccess={
             "Version": "2012-10-17",
@@ -239,7 +234,7 @@ The following Athena DDL will build a table of all the manifests in that bucket
 
 ```python
 DDL[MANIFEST_TABLE] = f"""
-CREATE EXTERNAL TABLE IF NOT EXISTS `{MANIFEST_TABLE}`(
+CREATE EXTERNAL TABLE IF NOT EXISTS `{ATHENA_DB}.{MANIFEST_TABLE}`(
   `logical_key` string,
   `physical_keys` array<string>,
   `size` string,
@@ -273,7 +268,7 @@ top hashes available in Athena.
 
 ```python
 DDL[PACKAGES_TABLE] = f"""
-CREATE EXTERNAL TABLE IF NOT EXISTS `{PACKAGES_TABLE}`(
+CREATE EXTERNAL TABLE IF NOT EXISTS `{ATHENA_DB}.{PACKAGES_TABLE}`(
   `hash` string)
 ROW FORMAT DELIMITED
   FIELDS TERMINATED BY ',' STORED AS INPUTFORMAT
@@ -303,7 +298,7 @@ SLASH=r'\/([^\/]+)'
 S1=r'\/'
 S3_MATCH=f'^s3:{S1}{SLASH}{SLASH}{SLASH}{SLASH}'
 DDL[PACKAGES_VIEW] = f"""
-CREATE OR REPLACE VIEW {PACKAGES_VIEW} AS
+CREATE OR REPLACE VIEW {ATHENA_DB}.{PACKAGES_VIEW} AS
 WITH
   npv AS (
     SELECT
@@ -349,7 +344,7 @@ The DDL below creates a view that contains package contents, including:
 
 ```python
 DDL[OBJECTS_VIEW] = f"""
-CREATE OR REPLACE VIEW {OBJECTS_VIEW} AS
+CREATE OR REPLACE VIEW {ATHENA_DB}.{OBJECTS_VIEW} AS
 WITH
   mv AS (
     SELECT
@@ -412,7 +407,7 @@ with a cell index of 5.
 
 ```python
 ATHENA_TEST = f"""
-SELECT * FROM {OBJECTS_VIEW}
+SELECT * FROM {ATHENA_DB}.{OBJECTS_VIEW}
 WHERE substr(logical_key, -5)='.tiff'
 -- extract and query package-level metadata
 AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
