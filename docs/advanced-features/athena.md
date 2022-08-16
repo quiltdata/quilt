@@ -102,7 +102,7 @@ stat(sqe)
 
 By default, Quilt runs with very conservative permissions that do not allow access to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html). To enable Athena SQL queries by your Quilt users, you must:
 
-1. Create a new Athena policy.
+### A. Create a new Athena policy.
 
 The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/policies/arn:aws:iam::aws:policy/AmazonAthenaFullAccess) policy is more permissive than necessary.  For production usage, we recommend creating a policy limited to only the above Bucket:
 <!--pytest-codeblocks:cont-->
@@ -173,38 +173,38 @@ except:
     Policy AthenaQuiltAccess already exists
 
 
-2. Attach this policy to your CloudFormation stack.
+### B. Attach this policy to your CloudFormation stack.
  
 This needs to be done manually by your AWS Administrator:
 
-    a. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation)
-    b. Select the Quilt stack
-    c. Click "Update"
-    d. Add the above ARN to the "ManagedUserRoleExtraPolicies" field.
-    e. Save
+1. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation)
+2. Select the Quilt stack
+3. Click "Update"
+4. Add the above ARN to the "ManagedUserRoleExtraPolicies" field.
+5. Save
     
-3. Add that AWS policy as a Quilt catalog Policy
+### C. Add that AWS policy as a Quilt catalog Policy
 
 This needs to be done manually by a Quilt Administrator:
 
-    a. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
-    b. Click on "Admin Settings" in the upper right
-    c. Scroll down to the "Policies" section on the bottom
-    d. Click on the "+" to create a new Policy
-    e. Set Title to "AthenaQuiltAccess"
-    f. Check "Manually set ARN" and enter ARN of Athena policy.
-    f. Click "Create"
+1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
+2. Click on "Admin Settings" in the upper right
+3. Scroll down to the "Policies" section on the bottom
+4. Click on the "+" to create a new Policy
+5. Set Title to "AthenaQuiltAccess"
+6. Check "Manually set ARN" and enter ARN of Athena policy.
+7. Click "Create"
     
-4. Attach that Policy to a (new) Quilt Role
+### D. Attach that Policy to a (new) Quilt Role
 
 You cannot attach a policy to the "Custom" Roles, so you will usually need to first create a new Role:
 
-    a. From "Admin Settings", scroll to "Roles"
-    b. Click on the "+" to create a new Role
-    c. Set Name to e.g., "AthenaAccessRole"
-    d. Click on "No policies attached.  Attach a policy…"
-    e. Select the "AthenaQuiltAccess" policy from before
-    f. Click "Create"
+1. From "Admin Settings", scroll to "Roles"
+2. Click on the "+" to create a new Role
+3. Set Name to e.g., "AthenaAccessRole"
+4. Click on "No policies attached.  Attach a policy…"
+5. Select the "AthenaQuiltAccess" policy from before
+6. Click "Create"
 
 See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 
