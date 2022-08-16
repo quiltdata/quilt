@@ -96,6 +96,11 @@ sqe = ATHENA.start_query_execution(
 stat(sqe)
 ```
 
+    200
+    200
+    200
+
+
 ## II. Granting Access to Athena
 
 By default, Quilt runs with very conservative permissions that do not allow access to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html). To enable Athena SQL queries by your Quilt users, you must:
@@ -202,7 +207,7 @@ You cannot attach a policy to the "Custom" Roles, so you will usually need to fi
     a. From "Admin Settings", scroll to "Roles"
     b. Click on the "+" to create a new Role
     c. Set Name to e.g., "AthenaAccessRole"
-    d. Click on "No policies attached.  Attach a policy..."
+    d. Click on "No policies attached.  Attach a policy…"
     e. Select the "AthenaQuiltAccess" policy from before
     f. Click "Create"
 
@@ -294,13 +299,16 @@ The DDL below creates a view that contains package-level information including:
 
 
 ```python
+SLASH=r'\/([^\/]+)'
+S1=r'\/'
+S3_MATCH=f'^s3:{S1}{SLASH}{SLASH}{SLASH}{SLASH}'
 DDL[PACKAGES_VIEW] = f"""
 CREATE OR REPLACE VIEW {PACKAGES_VIEW} AS
 WITH
   npv AS (
     SELECT
-      regexp_extract("$path", '^s3:\/\/([^\\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 4) as user,
-      regexp_extract("$path", '^s3:\/\/([^\\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 5) as name,
+      regexp_extract("$path", '{S3_MATCH}', 4) as user,
+      regexp_extract("$path", '{S3_MATCH}{SLASH}', 5) as name,
       regexp_extract("$path", '[^/]+$') as timestamp,
       {PACKAGES_TABLE}."hash"
       FROM {PACKAGES_TABLE}
@@ -419,6 +427,7 @@ You can enter that Query directly in the Athena Query Editor using the QuiltWork
 ```python
 # https://www.ilkkapeltola.fi/2018/04/simple-way-to-query-amazon-athena-in.html
 QUERY_ID='QueryExecutionId'
+TAIL_PATH=re.compile(r'.*\/(.*)')
 
 def athena_await(resp, max_execution = 10):
     id = resp[QUERY_ID]
@@ -435,7 +444,7 @@ def athena_await(resp, max_execution = 10):
             elif state == 'SUCCEEDED':
                 s3_path = response['QueryExecution']['ResultConfiguration']['OutputLocation']
                 print('athena_await.s3_path:', s3_path)
-                filename = re.findall('.*\/(.*)', s3_path)[0]
+                filename = TAIL_PATH.findall(s3_path)[0]
                 return filename
         print(f"\tathena_await[{max_execution}]={state}")
         time.sleep(1)
@@ -466,7 +475,16 @@ print('results')
 print(results)
 ```
 
+    
+    Test Athena Query:
+    WorkGroup QuiltQueries
+    	athena_await[9]=QUEUED
+    	athena_await[8]=RUNNING
+    	athena_await[7]=RUNNING
+    	athena_await[6]=RUNNING
+    	athena_await[5]=RUNNING
+    athena_await.s3_path: s3://mycompany-quilt-athena-output/21de87e8-88cc-4b6b-ace6-7d213f9a707c.csv
+    athena_await 21de87e8-88cc-4b6b-ace6-7d213f9a707c.csv
+    results
+    (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
 
-```python
-
-```
