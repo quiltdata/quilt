@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Visualization and Dashboards with the Quilt catalog
 
 Quilt packages are not only reproducible units of data and metadata, but units of

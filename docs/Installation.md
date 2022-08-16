@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
 
 # Installation

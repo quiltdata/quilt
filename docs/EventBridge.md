@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Using Quilt with other services that consume S3 events
 
 By default, when you connect a bucket to Quilt, Quilt will create an S3

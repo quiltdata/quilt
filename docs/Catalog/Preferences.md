@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Configuration
 
 ## Show and hide features in the Quilt catalog

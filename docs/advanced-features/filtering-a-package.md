@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
 
 `quilt3` provides a handful of functions for operating on the contents of a package in an entry-by-entry manner. These are helpful for performing more complicated parsing operations on the package:

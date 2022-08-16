@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
 Once your package is ready it's time to save and distribute it.
 

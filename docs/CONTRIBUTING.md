@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
 
 Quilt is an open source project, and we welcome contributions from the community.

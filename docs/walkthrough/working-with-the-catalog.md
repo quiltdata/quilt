@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 The Quilt Catalog is the second half of Quilt. It provides an interface on top of your S3 bucket that brings Quilt features like data packages and search to the web.
 
 **[For a hands-on demo, check out the public demo catalog](https://open.quiltdata.com/b/quilt-example).**

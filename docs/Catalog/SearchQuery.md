@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 Quilt provides support for queries in the ElasticSearch DSL, as well as SQL queries in Athena.
 
 ## ElasticSearch

@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--template:
 # unreleased - YYYY-MM-DD
 ## Python API

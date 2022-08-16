@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Querying package metadata with Athena
 Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
 in a each bucket's `.quilt/` directory.

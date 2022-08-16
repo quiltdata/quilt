@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--pytest-codeblocks:skipfile-->
 
 You can securely and privately run the Quilt catalog in "single-player mode" on your machine.

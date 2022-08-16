@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Summary
 
 * [Introduction](README.md)
