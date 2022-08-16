@@ -6,7 +6,9 @@ Users can write SQL queries to select packages (or files from within packages)
 using predicates based on package or object-level metadata.
 
 ## Note: Executing Documentation Code  
-If you import your AWS credentials for use by `boto3`, you can edit and execute code directly from the notebook version of this document. You can alternatively copy and paste it into your Python editor.
+If you import your AWS credentials for use by `boto3`, you can edit and execute code directly from the notebook version of this document.
+You can alternatively copy and paste it into your Python editor.
+<!--pytest.mark.skip-->
 
 
 ```python
@@ -43,6 +45,7 @@ Quilt expects a dedicated bucket for the output from Athena queries, which is be
 3. Create an Athena Database `quilt-metadata` for that Workgroup
 
 Later we will explicitly grant Quilt access to that Bucket.
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -54,10 +57,7 @@ ATHENA_WORKGROUP="QuiltQueries"
 
 ARN_PREFIX="arn:aws:s3:::"
 ARN_ATHENA=ARN_PREFIX+ATHENA_BUCKET
-```
 
-
-```python
 # Create bucket in default region
 
 location = {'LocationConstraint': REGION} if REGION != 'us-east-1' else {}
@@ -67,13 +67,7 @@ bucket = S3.create_bucket(
 )
 stat(bucket)
 #print(bucket)
-```
 
-    200
-
-
-
-```python
 # Create Workgroup which outputs to that Bucket (if needed)
 
 lwg = ATHENA.list_work_groups()
@@ -82,10 +76,7 @@ wgs = [ wg['Name'] for wg in lwg['WorkGroups'] ]
 if ATHENA_WORKGROUP not in wgs:
     cwg = ATHENA.create_work_group(Name=ATHENA_WORKGROUP, Description='Quilt uses this for Athena SQL Queries')
     stat(cwg)
-```
 
-
-```python
 # Configure Workgroup to use that Bucket
 uwg = ATHENA.update_work_group(
     WorkGroup=ATHENA_WORKGROUP,
@@ -96,13 +87,7 @@ uwg = ATHENA.update_work_group(
     },
 )
 stat(uwg)
-```
 
-    200
-
-
-
-```python
 # Create new GLUE Database
 
 sqe = ATHENA.start_query_execution(
@@ -111,9 +96,6 @@ sqe = ATHENA.start_query_execution(
 stat(sqe)
 ```
 
-    200
-
-
 ## II. Granting Access to Athena
 
 By default, Quilt runs with very conservative permissions that do not allow access to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html). To enable Athena SQL queries by your Quilt users, you must:
@@ -121,6 +103,7 @@ By default, Quilt runs with very conservative permissions that do not allow acce
 1. Create a new Athena policy.
 
 The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/policies/arn:aws:iam::aws:policy/AmazonAthenaFullAccess) policy is more permissive than necessary.  For production usage, we recommend creating a policy limited to only the above Database:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -228,6 +211,7 @@ See [Users and roles](../Catalog/Admin.md) for more details on access control ma
 ## III. Defining Per-Bucket Metadata Tables in Athena
 The next step is enabling Athena to query the package contents and metadata
 for a specific Quilt bucket, by creating proxy tables and views that represent those files:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -244,7 +228,8 @@ DDL = {}
 
 ### A. Manifests table
 The following Athena DDL will build a table of all the manifests in that bucket
-(all package-level and object-level metadata). 
+(all package-level and object-level metadata).
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -278,6 +263,7 @@ TBLPROPERTIES (
 Package names and top hashes are not stored in the manifests. Rather they are stored in pointer files in the `.quilt/named_packages` folder.
 The following DDL creates a table from these pointer files to make package
 top hashes available in Athena.
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -304,6 +290,7 @@ The DDL below creates a view that contains package-level information including:
 * Tophash
 * Timestamp
 * Commit message
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -349,6 +336,7 @@ The DDL below creates a view that contains package contents, including:
 * physical_keys
 * object hash
 * object metadata
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -387,6 +375,7 @@ ON
 ```
 
 You can run the following Python code to create the preceding tables and views:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -410,6 +399,7 @@ for key in DDL:
 
 Suppose we wish to find all .tiff files produced by algorithm version 1.3
 with a cell index of 5.
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -423,6 +413,7 @@ AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
 ```
 
 You can enter that Query directly in the Athena Query Editor using the QuiltWorkgroup, from the Queries -> Athena SQL tab, or using the following Python code:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -462,10 +453,6 @@ def athena_results(resp):
     else:
         return "Query in progress..."
 
-```
-
-
-```python
 print("\nTest Athena Query:")
 print('WorkGroup', ATHENA_WORKGROUP)
 resp = ATHENA.start_query_execution(
@@ -478,20 +465,6 @@ results = athena_results(resp)
 print('results')
 print(results)
 ```
-
-    
-    Test Athena Query:
-    WorkGroup QuiltQueries
-    	athena_await[9]=QUEUED
-    	athena_await[8]=RUNNING
-    	athena_await[7]=RUNNING
-    	athena_await[6]=RUNNING
-    	athena_await[5]=RUNNING
-    athena_await.s3_path: s3://mycompany-quilt-athena-output/fad16f2b-0475-4016-97f2-037220639de7.csv
-    athena_await fad16f2b-0475-4016-97f2-037220639de7.csv
-    results
-    (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
-
 
 
 ```python
