@@ -2,6 +2,7 @@ import Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import wait from 'utils/wait'
 
@@ -89,11 +90,13 @@ export interface WorkgroupsResponse {
 interface WorkgroupsArgs {
   athena: Athena
   prev: WorkgroupsResponse | null
+  preferences?: BucketPreferences.AthenaPreferences
 }
 
 async function fetchWorkgroups({
   athena,
   prev,
+  preferences,
 }: WorkgroupsArgs): Promise<WorkgroupsResponse> {
   try {
     const workgroupsOutput = await athena
@@ -103,8 +106,12 @@ async function fetchWorkgroups({
       ({ Name }) => Name || 'Unknown',
     )
     const list = (prev?.list || []).concat(parsed)
+    const defaultWorkgroup =
+      preferences?.defaultWorkflow && list.includes(preferences?.defaultWorkflow)
+        ? preferences?.defaultWorkflow
+        : list[0]
     return {
-      defaultWorkgroup: list[0], // TODO: get default from config
+      defaultWorkgroup,
       list,
       next: workgroupsOutput.NextToken,
     }
@@ -121,7 +128,8 @@ export function useWorkgroups(
   prev: WorkgroupsResponse | null,
 ): AsyncData<WorkgroupsResponse> {
   const athena = AWS.Athena.use()
-  return useData(fetchWorkgroups, { athena, prev })
+  const preferences = BucketPreferences.use()
+  return useData(fetchWorkgroups, { athena, prev, preferences: preferences?.ui.athena })
 }
 
 export interface QueryExecution {
