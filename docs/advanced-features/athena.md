@@ -13,7 +13,7 @@ You can alternatively copy and paste it into your Python editor.
 
 ```python
 %%capture
-#%env AWS_PROFILE=default
+%env AWS_DEFAULT_REGION=us-east-1
 %pip install boto3
 ```
 
@@ -21,7 +21,14 @@ This allows you to configure AWS services by calling Python objects:
 
 
 ```python
-import boto3,json,re,time
+
+```
+
+
+```python
+import boto3,json,os,re,time
+DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION') or 'us-east-1'
+os.environ['AWS_DEFAULT_REGION'] = DEFAULT_REGION
 SESSION = boto3.session.Session()
 print(SESSION)
 REGION=SESSION.region_name
@@ -478,8 +485,8 @@ print(results)
     	athena_await[7]=RUNNING
     	athena_await[6]=RUNNING
     	athena_await[5]=RUNNING
-    athena_await.s3_path: s3://mycompany-quilt-athena-output/21de87e8-88cc-4b6b-ace6-7d213f9a707c.csv
-    athena_await 21de87e8-88cc-4b6b-ace6-7d213f9a707c.csv
+    athena_await.s3_path: s3://mycompany-quilt-athena-output/774469b7-9c84-43c4-9126-f4b859442b24.csv
+    athena_await 774469b7-9c84-43c4-9126-f4b859442b24.csv
     results
     (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
 
