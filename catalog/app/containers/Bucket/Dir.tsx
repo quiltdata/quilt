@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -59,29 +59,38 @@ const useHeaderStyles = M.makeStyles((t) => ({
 }))
 
 interface HeaderProps {
+  bucket: string
   items: Item[]
   onClearSelection: () => void
+  path: string
   selection?: DG.GridRowId[]
 }
 
-function Header({ items, onClearSelection, selection }: HeaderProps) {
+function Header({ bucket, items, onClearSelection, path, selection }: HeaderProps) {
   const classes = useHeaderStyles()
   const count = selection?.length || 0
   const bookmarks = Bookmarks.use()
   const bookmarkItems: S3HandleBase[] = React.useMemo(() => {
     const handles: S3HandleBase[] = []
+    if (selection?.includes('..')) {
+      handles.push({
+        bucket,
+        key: ensureSlash(join(path, '..')),
+      })
+    }
     items.some(({ name, handle, type }) => {
       if (!selection?.length) return true
-      if (selection?.includes(name) && handle)
+      if (selection?.includes(name) && handle) {
         handles.push({
           ...handle,
           key: type === 'dir' ? ensureSlash(handle.key) : handle.key,
         })
+      }
       if (handles.length === selection?.length) return true
       return false
     })
     return handles
-  }, [items, selection])
+  }, [bucket, path, items, selection])
   const handleClick = React.useCallback(() => {
     bookmarkItems?.forEach((handle) => {
       bookmarks?.append('bookmarks', handle)
@@ -218,9 +227,11 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         toolbarContents={
           <>
             <Header
+              bucket={bucket}
               items={items}
-              selection={selection}
               onClearSelection={() => setSelection([])}
+              path={path}
+              selection={selection}
             />
             <PrefixFilter
               key={`${response.bucket}/${response.path}`}
