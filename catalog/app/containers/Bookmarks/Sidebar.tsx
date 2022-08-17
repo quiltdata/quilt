@@ -8,15 +8,13 @@ import {
   useBucketListing,
   BucketListingResult,
 } from 'containers/Bucket/requests/bucketListing'
-import * as AWS from 'utils/AWS'
-import type { S3HandleBase } from 'utils/s3paths'
 import type * as Model from 'model'
+import * as AWS from 'utils/AWS'
+import * as s3paths from 'utils/s3paths'
 
 import { useBookmarks } from './Provider'
 
-// TODO: endsWith → s3paths.isDir
-
-const useSidebarStyles = M.makeStyles((t) => ({
+const useDrawerStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(1, 2),
   },
@@ -25,7 +23,7 @@ const useSidebarStyles = M.makeStyles((t) => ({
 function useHeadFile() {
   const s3: S3 = AWS.S3.use()
   return React.useCallback(
-    async ({ bucket, key, version }: S3HandleBase): Promise<Model.S3File> => {
+    async ({ bucket, key, version }: s3paths.S3HandleBase): Promise<Model.S3File> => {
       const { ContentLength: size } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId: version })
         .promise()
@@ -43,12 +41,12 @@ function isBucketListingResult(
 
 function useHandlesToS3Files(
   bucketListing: (r: $TSFixMe) => Promise<BucketListingResult>,
-  headFile: (h: S3HandleBase) => Promise<Model.S3File>,
+  headFile: (h: s3paths.S3HandleBase) => Promise<Model.S3File>,
 ) {
   return React.useCallback(
-    async (handles: S3HandleBase[]) => {
+    async (handles: s3paths.S3HandleBase[]) => {
       const requests = handles.map((handle) =>
-        handle.key.endsWith('/')
+        s3paths.isDir(handle.key)
           ? bucketListing({ bucket: handle.bucket, path: handle.key })
           : headFile(handle),
       )
@@ -65,16 +63,49 @@ function useHandlesToS3Files(
   )
 }
 
+interface DrawerProps {
+  handles: s3paths.S3HandleBase[]
+  onClose?: () => void
+  onPackage: () => void
+  open?: boolean
+}
+
+function Drawer({ handles, onClose, onPackage, open }: DrawerProps) {
+  const classes = useDrawerStyles()
+  return (
+    <M.Drawer anchor="left" open={open} onClose={onClose}>
+      <div className={classes.root}>
+        <M.List>
+          {handles.map(({ bucket, key }) => (
+            <M.ListItem>
+              <M.ListItemIcon>
+                <M.Icon>
+                  {s3paths.isDir(key) ? 'folder_outlined' : 'insert_drive_file_outlined'}
+                </M.Icon>
+              </M.ListItemIcon>
+              <M.ListItemText>
+                s3://{bucket}/{key}
+              </M.ListItemText>
+            </M.ListItem>
+          ))}
+        </M.List>
+        <M.Button color="primary" variant="contained" onClick={onPackage}>
+          Create package
+        </M.Button>
+      </div>
+    </M.Drawer>
+  )
+}
+
 interface SidebarProps {
   bucket: string
 }
 
 export default function Sidebar({ bucket }: SidebarProps) {
   const bookmarks = useBookmarks()
-  const classes = useSidebarStyles()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.bookmarks?.entries
-  const list: S3HandleBase[] = React.useMemo(
+  const list: s3paths.S3HandleBase[] = React.useMemo(
     () => (entries ? Object.values(entries) : []),
     [entries],
   )
@@ -91,40 +122,24 @@ export default function Sidebar({ bucket }: SidebarProps) {
     const files = await handlesToS3Files(list)
     files.forEach(addToPackage?.append)
     createDialog.open()
-    // bookmarks?.hide() // TODO: move handleSubmit outside M.Drawer
-  }, [addToPackage, createDialog, handlesToS3Files, list])
+    bookmarks?.hide()
+  }, [addToPackage, bookmarks, createDialog, handlesToS3Files, list])
   const isOpened = bookmarks?.isOpened
   return (
-    <M.Drawer anchor="left" open={isOpened} onClose={bookmarks?.hide}>
-      <div className={classes.root}>
-        <M.List>
-          {list.map((file) => (
-            <M.ListItem>
-              <M.ListItemIcon>
-                <M.Icon>
-                  {file.key.endsWith('/')
-                    ? 'folder_outlined'
-                    : 'insert_drive_file_outlined'}
-                </M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText>
-                s3://{file.bucket}/{file.key}
-              </M.ListItemText>
-            </M.ListItem>
-          ))}
-        </M.List>
-        <M.Button color="primary" variant="contained" onClick={handleSubmit}>
-          Create package
-        </M.Button>
-
-        {createDialog.render({
-          successTitle: 'Package created',
-          successRenderMessage: ({ packageLink }) => (
-            <>Package {packageLink} successfully created</>
-          ),
-          title: 'Create package',
-        })}
-      </div>
-    </M.Drawer>
+    <>
+      <Drawer
+        open={isOpened}
+        onClose={bookmarks?.hide}
+        handles={list}
+        onPackage={handleSubmit}
+      />
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+    </>
   )
 }
