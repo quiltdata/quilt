@@ -36,6 +36,8 @@ export function Provider({ children }: ProviderProps) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
+/** @deprecated Use useBookmarks and 'addToPackage' GroupName */
 const useAddToPackage = () => React.useContext(Ctx)
 
+/** @deprecated Use Bookmarks.use and 'addToPackage' GroupName */
 export const use = useAddToPackage
