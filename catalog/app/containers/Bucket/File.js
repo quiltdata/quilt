@@ -476,7 +476,7 @@ export default function File({
             color="primary"
             icon="turned_in_not"
             label="Add to bookmarks"
-            onClick={() => bookmarks?.append('bookmarks', handle)}
+            onClick={() => bookmarks?.append('main', handle)}
           />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />

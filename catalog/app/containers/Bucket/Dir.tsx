@@ -83,7 +83,7 @@ function Header({ bucket, items, onClearSelection, path, selection }: HeaderProp
     return handles
   }, [bucket, path, items, selection])
   const handleClick = React.useCallback(() => {
-    bookmarks?.append('bookmarks', bookmarkItems)
+    bookmarks?.append('main', bookmarkItems)
     onClearSelection()
   }, [bookmarks, bookmarkItems, onClearSelection])
   return (

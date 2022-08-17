@@ -5,20 +5,22 @@ import * as React from 'react'
 
 import type { S3HandleBase } from 'utils/s3paths'
 
+type GroupName = 'main'
+
 interface BookmarksGroup {
   entries: Record<string, S3HandleBase>
 }
 
-type BookmarksGroups = Record<string, BookmarksGroup>
+type BookmarksGroups = Record<GroupName, BookmarksGroup>
 
 const Ctx = React.createContext<{
-  append: (groupName: string, file: S3HandleBase | S3HandleBase[]) => void
-  clear: (groupName: string) => void
+  append: (groupName: GroupName, file: S3HandleBase | S3HandleBase[]) => void
+  clear: (groupName: GroupName) => void
   groups: BookmarksGroups
   hasUpdates: boolean
   hide: () => void
   isOpened: boolean
-  remove: (groupName: string, file: S3HandleBase) => void
+  remove: (groupName: GroupName, file: S3HandleBase) => void
   show: () => void
 } | null>(null)
 
@@ -29,9 +31,9 @@ interface ProviderProps {
 export function Provider({ children }: ProviderProps) {
   const [hasUpdates, setUpdates] = React.useState(false)
   const [isOpened, setOpened] = React.useState(false)
-  const [groups, setGroups] = React.useState({})
+  const [groups, setGroups] = React.useState({ main: { entries: {} } })
   const append = React.useCallback(
-    (groupName: string, s3File: S3HandleBase | S3HandleBase[]) => {
+    (groupName: GroupName, s3File: S3HandleBase | S3HandleBase[]) => {
       if (Array.isArray(s3File)) {
         const entries = s3File.reduce(
           (memo, entry) => ({
@@ -49,7 +51,7 @@ export function Provider({ children }: ProviderProps) {
     [isOpened],
   )
   const remove = React.useCallback(
-    (groupName: string, s3File: Pick<S3HandleBase, 'key'>) => {
+    (groupName: GroupName, s3File: Pick<S3HandleBase, 'key'>) => {
       setGroups(
         R.over(R.lensPath([groupName, 'entries']), R.dissoc(basename(s3File.key))),
       )
@@ -58,7 +60,7 @@ export function Provider({ children }: ProviderProps) {
     [isOpened],
   )
   const clear = React.useCallback(
-    (groupName: string) => {
+    (groupName: GroupName) => {
       setGroups(R.assocPath([groupName, 'entries'], {}))
       if (!isOpened) setUpdates(true)
     },

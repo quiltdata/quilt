@@ -245,7 +245,7 @@ interface SidebarProps {
 export default function Sidebar({ bucket = '' }: SidebarProps) {
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
-  const entries = bookmarks?.groups.bookmarks?.entries
+  const entries = bookmarks?.groups.main.entries
   const handles: s3paths.S3HandleBase[] = React.useMemo(
     () => (entries ? Object.values(entries) : []),
     [entries],
@@ -263,13 +263,13 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
   const handleRemove = React.useCallback(
     (handle: s3paths.S3HandleBase) => {
       const isLastBookmark = handles.length === 1
-      bookmarks?.remove('bookmarks', handle)
+      bookmarks?.remove('main', handle)
       if (isLastBookmark) bookmarks?.hide()
     },
     [bookmarks, handles],
   )
   const handleClear = React.useCallback(() => {
-    bookmarks?.clear('bookmarks')
+    bookmarks?.clear('main')
     bookmarks?.hide()
   }, [bookmarks])
   const handleSubmit = React.useCallback(async () => {
