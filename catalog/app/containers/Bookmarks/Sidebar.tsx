@@ -60,10 +60,15 @@ function useHandlesToS3Files(
 
 const useDrawerStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(1, 2),
+    padding: t.spacing(4),
   },
   actions: {
-    margin: t.spacing(2, 0, 0),
+    margin: t.spacing(3, 0, 0),
+  },
+  button: {
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
   },
   error: {
     margin: t.spacing(1, 0, 2),
@@ -72,7 +77,9 @@ const useDrawerStyles = M.makeStyles((t) => ({
     minWidth: t.spacing(4),
   },
   listWrapper: {
-    margin: t.spacing(1, 0, 0),
+    margin: t.spacing(2, 0, 0),
+    maxHeight: '80vh',
+    overflowY: 'auto',
   },
 }))
 
@@ -84,12 +91,14 @@ interface DrawerProps {
   onPackage: () => void
   open?: boolean
   onRemove: (handle: s3paths.S3HandleBase) => void
+  onClear: () => void
 }
 
 function Drawer({
   error,
   handles,
   loading,
+  onClear,
   onClose,
   onPackage,
   onRemove,
@@ -126,6 +135,16 @@ function Drawer({
         )}
         <div className={classes.actions}>
           <M.Button
+            className={classes.button}
+            color="primary"
+            disabled={loading || !handles.length}
+            onClick={onClear}
+            variant="outlined"
+          >
+            Clear bookmarks
+          </M.Button>
+          <M.Button
+            className={classes.button}
             color="primary"
             disabled={loading}
             onClick={onPackage}
@@ -163,13 +182,17 @@ export default function Sidebar({ bucket }: SidebarProps) {
     disableStateDisplay: true,
   })
   const handleRemove = React.useCallback(
-    (handle) => {
+    (handle: s3paths.S3HandleBase) => {
       const isLastBookmark = list.length === 1
       bookmarks?.remove('bookmarks', handle)
       if (isLastBookmark) bookmarks?.hide()
     },
     [bookmarks, list],
   )
+  const handleClear = React.useCallback(() => {
+    bookmarks?.clear('bookmarks')
+    bookmarks?.hide()
+  }, [bookmarks])
   const handleSubmit = React.useCallback(async () => {
     if (!addToPackage) throw new Error('Add to Package is not ready')
     setTraversing(true)
@@ -198,6 +221,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
         onClose={bookmarks?.hide}
         onPackage={handleSubmit}
         onRemove={handleRemove}
+        onClear={handleClear}
         open={isOpened}
       />
       {createDialog.render({
