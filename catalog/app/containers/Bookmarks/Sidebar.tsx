@@ -177,7 +177,7 @@ interface DrawerProps {
   handles: s3paths.S3HandleBase[]
   loading: boolean
   onClose?: () => void
-  onPackage: () => void
+  onPackage?: () => void
   open?: boolean
   onRemove: (handle: s3paths.S3HandleBase) => void
   onClear: () => void
@@ -224,7 +224,7 @@ function Drawer({
           <M.Button
             className={classes.button}
             color="primary"
-            disabled={loading || !handles.length}
+            disabled={loading || !handles.length || !onPackage}
             onClick={onPackage}
             startIcon={loading && <M.CircularProgress size={16} />}
             variant="contained"
@@ -238,10 +238,10 @@ function Drawer({
 }
 
 interface SidebarProps {
-  bucket: string
+  bucket?: string
 }
 
-export default function Sidebar({ bucket }: SidebarProps) {
+export default function Sidebar({ bucket = '' }: SidebarProps) {
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.bookmarks?.entries
@@ -297,7 +297,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
         handles={handles}
         loading={traversing}
         onClose={bookmarks?.hide}
-        onPackage={handleSubmit}
+        onPackage={bucket ? handleSubmit : undefined}
         onRemove={handleRemove}
         onClear={handleClear}
         open={isOpened}

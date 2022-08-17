@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-import * as Bookmarks from 'containers/Bookmarks'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -85,7 +84,6 @@ function BucketLayout({ bucket, section = false, children }) {
               _: () => <Placeholder color="text.secondary" />,
             })}
           </M.Container>
-          <Bookmarks.Sidebar bucket={bucket} />
         </>
       }
     />

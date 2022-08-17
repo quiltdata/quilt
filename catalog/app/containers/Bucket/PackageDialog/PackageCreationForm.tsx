@@ -684,7 +684,11 @@ export function usePackageCreationDialog({
   } as workflows.Successor)
 
   const s3 = AWS.S3.use()
-  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket: successor.slug })
+  const workflowsData = Data.use(
+    requests.workflowsConfig,
+    { s3, bucket: successor.slug },
+    { noAutoFetch: !bucket },
+  )
   // XXX: use AsyncResult
   const preferences = BucketPreferences.use()
 
