@@ -12,6 +12,7 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -426,6 +427,7 @@ export default function File({
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
+  const bookmarks = Bookmarks.use()
 
   return (
     <FileView.Root>
@@ -469,6 +471,13 @@ export default function File({
               onEdit={editorState.onEdit}
             />
           )}
+          <FileView.DownloadButtonLayout
+            className={classes.button}
+            color="primary"
+            icon="turned_in_not"
+            label="Add to bookmarks"
+            onClick={() => bookmarks?.append('bookmarks', handle)}
+          />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
