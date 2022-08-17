@@ -16,6 +16,7 @@ interface ProviderProps {
   children: React.ReactNode
 }
 
+/** @deprecated Use Bookmarks.Provider and 'addToPackage' GroupName */
 export function Provider({ children }: ProviderProps) {
   const [entries, setEntries] = React.useState({})
   const append = React.useCallback((s3File) => {
