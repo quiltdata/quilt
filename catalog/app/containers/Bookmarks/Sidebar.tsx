@@ -65,12 +65,13 @@ function useHandlesToS3Files(
 
 interface DrawerProps {
   handles: s3paths.S3HandleBase[]
+  loading: boolean
   onClose?: () => void
   onPackage: () => void
   open?: boolean
 }
 
-function Drawer({ handles, onClose, onPackage, open }: DrawerProps) {
+function Drawer({ handles, loading, onClose, onPackage, open }: DrawerProps) {
   const classes = useDrawerStyles()
   return (
     <M.Drawer anchor="left" open={open} onClose={onClose}>
@@ -89,7 +90,13 @@ function Drawer({ handles, onClose, onPackage, open }: DrawerProps) {
             </M.ListItem>
           ))}
         </M.List>
-        <M.Button color="primary" variant="contained" onClick={onPackage}>
+        <M.Button
+          color="primary"
+          disabled={loading}
+          onClick={onPackage}
+          startIcon={loading && <M.CircularProgress size={16} />}
+          variant="contained"
+        >
           Create package
         </M.Button>
       </div>
@@ -109,6 +116,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
     () => (entries ? Object.values(entries) : []),
     [entries],
   )
+  const [traversing, setTraversing] = React.useState(false)
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
@@ -119,8 +127,10 @@ export default function Sidebar({ bucket }: SidebarProps) {
   })
   const handleSubmit = React.useCallback(async () => {
     if (!addToPackage) throw new Error('Add to Package is not ready')
+    setTraversing(true)
     const files = await handlesToS3Files(list)
     files.forEach(addToPackage?.append)
+    setTraversing(false)
     createDialog.open()
     bookmarks?.hide()
   }, [addToPackage, bookmarks, createDialog, handlesToS3Files, list])
@@ -128,6 +138,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
   return (
     <>
       <Drawer
+        loading={traversing}
         open={isOpened}
         onClose={bookmarks?.hide}
         handles={list}
