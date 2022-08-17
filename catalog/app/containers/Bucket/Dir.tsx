@@ -40,21 +40,13 @@ import * as requests from './requests'
 const useHeaderStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
-    borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    justifyContent: 'center',
-    padding: t.spacing(0.5, 0),
+    marginLeft: t.spacing(2),
   },
   button: {
     fontSize: 11,
     lineHeight: '22px',
     margin: t.spacing(0, 1),
-  },
-  count: {
-    marginRight: t.spacing(1),
-  },
-  wrapper: {
-    width: '100%',
   },
 }))
 
@@ -68,7 +60,6 @@ interface HeaderProps {
 
 function Header({ bucket, items, onClearSelection, path, selection }: HeaderProps) {
   const classes = useHeaderStyles()
-  const count = selection?.length || 0
   const bookmarks = Bookmarks.use()
   const bookmarkItems: S3HandleBase[] = React.useMemo(() => {
     const handles: S3HandleBase[] = []
@@ -96,11 +87,8 @@ function Header({ bucket, items, onClearSelection, path, selection }: HeaderProp
     onClearSelection()
   }, [bookmarks, bookmarkItems, onClearSelection])
   return (
-    <M.Collapse in={!!count} className={classes.wrapper} timeout={100}>
+    <M.Slide direction="down" in={!!selection?.length}>
       <div className={classes.root}>
-        <M.Typography className={classes.count} variant="body2">
-          {count > 1 ? `${count} items are selected` : `${count} item is selected`}
-        </M.Typography>
         <M.Button
           className={classes.button}
           color="primary"
@@ -108,19 +96,10 @@ function Header({ bucket, items, onClearSelection, path, selection }: HeaderProp
           variant="outlined"
           onClick={handleClick}
         >
-          Add to bookmarks
-        </M.Button>
-        or
-        <M.Button
-          className={classes.button}
-          color="primary"
-          size="small"
-          onClick={onClearSelection}
-        >
-          Clear selection
+          Add selected items to bookmarks
         </M.Button>
       </div>
-    </M.Collapse>
+    </M.Slide>
   )
 }
 
@@ -224,17 +203,17 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         selection={selection}
         toolbarContents={
           <>
+            <PrefixFilter
+              key={`${response.bucket}/${response.path}`}
+              prefix={response.prefix}
+              setPrefix={setPrefix}
+            />
             <Header
               bucket={bucket}
               items={items}
               onClearSelection={() => setSelection([])}
               path={path}
               selection={selection}
-            />
-            <PrefixFilter
-              key={`${response.bucket}/${response.path}`}
-              prefix={response.prefix}
-              setPrefix={setPrefix}
             />
           </>
         }
