@@ -11,15 +11,47 @@ import {
 } from 'containers/Bucket/requests/bucketListing'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
+import { trimCenter } from 'utils/string'
 
 import { useBookmarks } from './Provider'
 
-const useBookmarksListStyles = M.makeStyles((t) => ({
+const useBookmarksItemStyles = M.makeStyles((t) => ({
   iconWrapper: {
     minWidth: t.spacing(4),
   },
 }))
+
+interface BookmarkItemProps {
+  handle: s3paths.S3HandleBase
+  onRemove: () => void
+}
+
+function BookmarkItem({ handle, onRemove }: BookmarkItemProps) {
+  const classes = useBookmarksItemStyles()
+  const { urls } = NamedRoutes.use()
+  const to = urls.bucketFile(handle.bucket, handle.key)
+  const title = `s3://${handle.bucket}/${handle.key}`
+  return (
+    <M.ListItem>
+      <M.ListItemIcon className={classes.iconWrapper}>
+        <M.Icon fontSize="small">
+          {s3paths.isDir(handle.key) ? 'folder_open' : 'insert_drive_file'}
+        </M.Icon>
+      </M.ListItemIcon>
+      <M.ListItemText>
+        <StyledLink to={to}>{trimCenter(title, 70)}</StyledLink>
+      </M.ListItemText>
+      <M.ListItemSecondaryAction>
+        <M.IconButton size="small" edge="end" onClick={onRemove}>
+          <M.Icon fontSize="inherit">clear</M.Icon>
+        </M.IconButton>
+      </M.ListItemSecondaryAction>
+    </M.ListItem>
+  )
+}
 
 interface BookmarksListProps {
   handles: s3paths.S3HandleBase[]
@@ -27,23 +59,10 @@ interface BookmarksListProps {
 }
 
 function BookmarksList({ handles, onRemove }: BookmarksListProps) {
-  const classes = useBookmarksListStyles()
   return (
     <M.List dense>
-      {handles.map((h) => (
-        <M.ListItem>
-          <M.ListItemIcon className={classes.iconWrapper}>
-            <M.Icon fontSize="small">
-              {s3paths.isDir(h.key) ? 'folder_open' : 'insert_drive_file'}
-            </M.Icon>
-          </M.ListItemIcon>
-          <M.ListItemText primary={`s3://${h.bucket}/${h.key}`} />
-          <M.ListItemSecondaryAction>
-            <M.IconButton size="small" edge="end" onClick={() => onRemove(h)}>
-              <M.Icon fontSize="inherit">clear</M.Icon>
-            </M.IconButton>
-          </M.ListItemSecondaryAction>
-        </M.ListItem>
+      {handles.map((handle) => (
+        <BookmarkItem handle={handle} onRemove={() => onRemove(handle)} />
       ))}
     </M.List>
   )
