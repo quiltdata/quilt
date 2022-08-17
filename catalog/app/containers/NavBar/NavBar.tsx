@@ -185,6 +185,7 @@ function UserDropdown() {
   }, [bookmarks, close])
 
   React.useEffect(() => {
+    // TOOD: bookmarks?.hasNew or bookmarks?.notified
     if (bookmarks?.groups.bookmarks?.entries) setInvisible(false)
   }, [bookmarks?.groups.bookmarks?.entries])
 
