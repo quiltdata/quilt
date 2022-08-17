@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as style from 'constants/style'
 import * as AddToPackage from 'containers/AddToPackage'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import {
@@ -291,7 +292,7 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
   }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
   const isOpened = bookmarks?.isOpened
   return (
-    <>
+    <M.MuiThemeProvider theme={style.appTheme}>
       <Drawer
         error={error}
         handles={handles}
@@ -309,6 +310,6 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
         ),
         title: 'Create package',
       })}
-    </>
+    </M.MuiThemeProvider>
   )
 }
