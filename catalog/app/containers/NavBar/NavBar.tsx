@@ -185,9 +185,8 @@ function UserDropdown() {
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    // TOOD: bookmarks?.hasNew or bookmarks?.notified
-    if (bookmarks?.groups.bookmarks?.entries) setInvisible(false)
-  }, [bookmarks?.groups.bookmarks?.entries])
+    if (bookmarks?.hasUpdates) setInvisible(false)
+  }, [bookmarks?.hasUpdates])
 
   return (
     <>
@@ -200,7 +199,7 @@ function UserDropdown() {
 
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
-          <Item onClick={showBookmarks} divider>
+          <Item onClick={showBookmarks}>
             <Badge color="secondary" invisible={invisible}>
               <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
             </Badge>
