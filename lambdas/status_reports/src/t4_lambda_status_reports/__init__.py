@@ -2,6 +2,7 @@ import asyncio
 import functools
 import itertools
 import os
+import typing as T
 
 import aiobotocore.session
 
@@ -33,16 +34,16 @@ AWS_REGION = os.getenv("AWS_REGION")
 #     return wrapper
 
 
-async def list_canaries(cfn) -> list[str]:
+async def list_canaries(cfn) -> T.List[str]:
     result = []
     async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=STACK_NAME):
         for r in page["StackResourceSummaries"]:
             if r["ResourceType"] == "AWS::Synthetics::Canary":
                 result.append(r["PhysicalResourceId"])
-    return []
+    return result
 
 
-async def drain(syn, method: str, key: str, names: list[str]) -> list[dict]:
+async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
     chunks = [
         names[i:i + CANARIES_PER_REQUEST]
         for i in range(0, len(names), CANARIES_PER_REQUEST)
