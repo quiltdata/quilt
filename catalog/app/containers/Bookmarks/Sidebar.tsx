@@ -1,6 +1,7 @@
 import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as AddToPackage from 'containers/AddToPackage'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
@@ -13,12 +14,6 @@ import * as AWS from 'utils/AWS'
 import * as s3paths from 'utils/s3paths'
 
 import { useBookmarks } from './Provider'
-
-const useDrawerStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(1, 2),
-  },
-}))
 
 function useHeadFile() {
   const s3: S3 = AWS.S3.use()
@@ -63,7 +58,17 @@ function useHandlesToS3Files(
   )
 }
 
+const useDrawerStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(1, 2),
+  },
+  error: {
+    margin: t.spacing(1, 0, 2),
+  },
+}))
+
 interface DrawerProps {
+  error: Error | null
   handles: s3paths.S3HandleBase[]
   loading: boolean
   onClose?: () => void
@@ -71,7 +76,7 @@ interface DrawerProps {
   open?: boolean
 }
 
-function Drawer({ handles, loading, onClose, onPackage, open }: DrawerProps) {
+function Drawer({ error, handles, loading, onClose, onPackage, open }: DrawerProps) {
   const classes = useDrawerStyles()
   return (
     <M.Drawer anchor="left" open={open} onClose={onClose}>
@@ -90,6 +95,11 @@ function Drawer({ handles, loading, onClose, onPackage, open }: DrawerProps) {
             </M.ListItem>
           ))}
         </M.List>
+        {error && (
+          <Lab.Alert className={classes.error} severity="error">
+            {error.message}
+          </Lab.Alert>
+        )}
         <M.Button
           color="primary"
           disabled={loading}
@@ -116,6 +126,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
     () => (entries ? Object.values(entries) : []),
     [entries],
   )
+  const [error, setError] = React.useState<Error | null>(null)
   const [traversing, setTraversing] = React.useState(false)
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
@@ -128,21 +139,31 @@ export default function Sidebar({ bucket }: SidebarProps) {
   const handleSubmit = React.useCallback(async () => {
     if (!addToPackage) throw new Error('Add to Package is not ready')
     setTraversing(true)
-    const files = await handlesToS3Files(list)
-    files.forEach(addToPackage?.append)
-    setTraversing(false)
-    createDialog.open()
-    bookmarks?.hide()
+    try {
+      const files = await handlesToS3Files(list)
+      files.forEach(addToPackage?.append)
+      setTraversing(false)
+      createDialog.open()
+      bookmarks?.hide()
+    } catch (e) {
+      if (e instanceof Error) {
+        setTraversing(false)
+        setError(e)
+      } else {
+        throw e
+      }
+    }
   }, [addToPackage, bookmarks, createDialog, handlesToS3Files, list])
   const isOpened = bookmarks?.isOpened
   return (
     <>
       <Drawer
-        loading={traversing}
-        open={isOpened}
-        onClose={bookmarks?.hide}
+        error={error}
         handles={list}
+        loading={traversing}
+        onClose={bookmarks?.hide}
         onPackage={handleSubmit}
+        open={isOpened}
       />
       {createDialog.render({
         successTitle: 'Package created',
