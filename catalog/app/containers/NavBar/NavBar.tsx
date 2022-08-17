@@ -136,6 +136,9 @@ const userDisplay = (user: $TSFixMe) => (
 
 const useBadgeStyles = M.makeStyles({
   root: {
+    alignItems: 'inherit',
+  },
+  badge: {
     top: '4px',
   },
 })
@@ -146,10 +149,10 @@ function Badge({ children, color, invisible, ...props }: BadgeProps) {
   const classes = useBadgeStyles()
   return (
     <M.Badge
+      classes={classes}
       color={color}
       variant="dot"
       invisible={invisible}
-      className={classes.root}
       {...props}
     >
       {children}
