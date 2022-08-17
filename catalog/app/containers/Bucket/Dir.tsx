@@ -158,6 +158,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
       handle: {
         bucket: r.bucket,
         key,
+        // size,
       },
     }))
     const items = [

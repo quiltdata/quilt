@@ -62,8 +62,17 @@ const useDrawerStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(1, 2),
   },
+  actions: {
+    margin: t.spacing(2, 0, 0),
+  },
   error: {
     margin: t.spacing(1, 0, 2),
+  },
+  iconWrapper: {
+    minWidth: t.spacing(4),
+  },
+  listWrapper: {
+    margin: t.spacing(1, 0, 0),
   },
 }))
 
@@ -74,41 +83,58 @@ interface DrawerProps {
   onClose?: () => void
   onPackage: () => void
   open?: boolean
+  onRemove: (handle: s3paths.S3HandleBase) => void
 }
 
-function Drawer({ error, handles, loading, onClose, onPackage, open }: DrawerProps) {
+function Drawer({
+  error,
+  handles,
+  loading,
+  onClose,
+  onPackage,
+  onRemove,
+  open,
+}: DrawerProps) {
   const classes = useDrawerStyles()
   return (
     <M.Drawer anchor="left" open={open} onClose={onClose}>
       <div className={classes.root}>
-        <M.List>
-          {handles.map(({ bucket, key }) => (
-            <M.ListItem>
-              <M.ListItemIcon>
-                <M.Icon>
-                  {s3paths.isDir(key) ? 'folder_outlined' : 'insert_drive_file_outlined'}
-                </M.Icon>
-              </M.ListItemIcon>
-              <M.ListItemText>
-                s3://{bucket}/{key}
-              </M.ListItemText>
-            </M.ListItem>
-          ))}
-        </M.List>
+        <M.Typography variant="h4">Bookmarks</M.Typography>
+        <M.Paper className={classes.listWrapper}>
+          <M.List dense>
+            {handles.map((h) => (
+              <M.ListItem>
+                <M.ListItemIcon className={classes.iconWrapper}>
+                  <M.Icon fontSize="small">
+                    {s3paths.isDir(h.key) ? 'folder_open' : 'insert_drive_file'}
+                  </M.Icon>
+                </M.ListItemIcon>
+                <M.ListItemText primary={`s3://${h.bucket}/${h.key}`} />
+                <M.ListItemSecondaryAction>
+                  <M.IconButton size="small" edge="end" onClick={() => onRemove(h)}>
+                    <M.Icon fontSize="inherit">clear</M.Icon>
+                  </M.IconButton>
+                </M.ListItemSecondaryAction>
+              </M.ListItem>
+            ))}
+          </M.List>
+        </M.Paper>
         {error && (
           <Lab.Alert className={classes.error} severity="error">
             {error.message}
           </Lab.Alert>
         )}
-        <M.Button
-          color="primary"
-          disabled={loading}
-          onClick={onPackage}
-          startIcon={loading && <M.CircularProgress size={16} />}
-          variant="contained"
-        >
-          Create package
-        </M.Button>
+        <div className={classes.actions}>
+          <M.Button
+            color="primary"
+            disabled={loading}
+            onClick={onPackage}
+            startIcon={loading && <M.CircularProgress size={16} />}
+            variant="contained"
+          >
+            Create package
+          </M.Button>
+        </div>
       </div>
     </M.Drawer>
   )
@@ -136,6 +162,14 @@ export default function Sidebar({ bucket }: SidebarProps) {
     delayHashing: true,
     disableStateDisplay: true,
   })
+  const handleRemove = React.useCallback(
+    (handle) => {
+      const isLastBookmark = list.length === 1
+      bookmarks?.remove('bookmarks', handle)
+      if (isLastBookmark) bookmarks?.hide()
+    },
+    [bookmarks, list],
+  )
   const handleSubmit = React.useCallback(async () => {
     if (!addToPackage) throw new Error('Add to Package is not ready')
     setTraversing(true)
@@ -163,6 +197,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
         loading={traversing}
         onClose={bookmarks?.hide}
         onPackage={handleSubmit}
+        onRemove={handleRemove}
         open={isOpened}
       />
       {createDialog.render({
