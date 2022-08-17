@@ -191,6 +191,7 @@ function Drawer({
         </M.Paper>
         {error && (
           <Lab.Alert className={classes.error} severity="error">
+            <Lab.AlertTitle>{error.name}</Lab.AlertTitle>
             {error.message}
           </Lab.Alert>
         )}
