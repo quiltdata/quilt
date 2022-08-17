@@ -5,33 +5,18 @@ import os
 import typing as T
 
 import aiobotocore.session
+import jinja2
 
-# import boto3
-
-# from t4_lambda_shared.utils import LAMBDA_TMP_SPACE, get_quilt_logger
 from t4_lambda_shared.utils import get_quilt_logger
 
 
 CANARIES_PER_REQUEST = 5
 
-# event_bridge = boto3.client('events')
-# s3 = boto3.client('s3')
 logger = get_quilt_logger()
 
 # XXX: assert?
 STACK_NAME = os.getenv("STACK_NAME")
 AWS_REGION = os.getenv("AWS_REGION")
-
-
-# def exception_handler(f):
-#     @functools.wraps(f)
-#     def wrapper(event, _context):
-#         try:
-#             return {"result": f(event)}
-#         except PkgpushException as e:
-#             traceback.print_exc()
-#             return {"error": e.asdict()}
-#     return wrapper
 
 
 async def list_canaries(cfn) -> T.List[str]:
@@ -55,7 +40,7 @@ async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
     return list(itertools.chain(*[p[key] for p in pages]))
 
 
-async def query_status(syn, cfn) -> dict:
+async def get_data(syn, cfn) -> dict:
     names = await list_canaries(cfn)
     describe_result, describe_last_run_result = await asyncio.gather(
         drain(syn, "describe_canaries", "Canaries", names),
@@ -64,6 +49,7 @@ async def query_status(syn, cfn) -> dict:
 
     canary_map = {}
     for c in describe_result:
+        # XXX: use dataclasses?
         canary_map[c["Name"]] = {
             "name": c["Name"],
             "region": AWS_REGION,
@@ -115,6 +101,58 @@ async def query_status(syn, cfn) -> dict:
     }
 
 
+jenv = jinja2.Environment(autoescape=jinja2.select_autoescape())
+tmpl = jenv.from_string(
+"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Status Report</title>
+</head>
+<body>
+    <h1>Status Report</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Group / Title </th>
+                <th>Schedule</th>
+                <th>State</th>
+                <th>Last Run</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for canary in canaries %}
+                <tr>
+                    <td>{{ canary.group }} / {{ canary.title }}</td>
+                    <td>{{ canary.schedule }}</td>
+                    <td>
+                        {% if canary.ok %}
+                            Passed
+                        {% elif canary.ok == False %}
+                            Failed
+                        {% else %}
+                            Running
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if canary.lastRun %}
+                            {{ canary.lastRun }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
+"""
+)
+
+
 def async_handler(f):
     @functools.wraps(f)
     def wrapper(event, context):
@@ -123,11 +161,9 @@ def async_handler(f):
     return wrapper
 
 
-# XXX: figure out input parameters
-# XXX: what env vars to use?
-# XXX: types of event and context?
+# XXX: figure out input parameters (are they even necessary?)
 @async_handler
-async def generate_status_reports(event, _context):
+async def generate_status_reports(*_):
     session = aiobotocore.session.get_session()
     async with \
         session.create_client("s3") as s3, \
@@ -135,6 +171,7 @@ async def generate_status_reports(event, _context):
         session.create_client("cloudwatch", region_name=AWS_REGION) as cw, \
         session.create_client("synthetics", region_name=AWS_REGION) as syn:
 
-        # XXX
-        status = await query_status(syn, cfn)
-        return status
+        data = await get_data(syn, cfn)
+        html = tmpl.render(data)
+        # TODO: write html file to service bucket
+        return html
