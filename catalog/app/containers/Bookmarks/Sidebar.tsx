@@ -135,7 +135,7 @@ function useHandlesToS3Files(
             ? response.files.reduce(
                 (acc, file) => ({
                   ...acc,
-                  [path.relative(path.join(file.key, '../..'), file.key)]: file,
+                  [path.relative(path.join(response.path, '..'), file.key)]: file,
                 }),
                 memo,
               )
