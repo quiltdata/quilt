@@ -3,7 +3,6 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 
-// import type * as Model from 'model'
 import type { S3HandleBase } from 'utils/s3paths'
 
 interface BookmarksGroup {
@@ -13,7 +12,7 @@ interface BookmarksGroup {
 type BookmarksGroups = Record<string, BookmarksGroup>
 
 const Ctx = React.createContext<{
-  append: (groupName: string, file: S3HandleBase) => void
+  append: (groupName: string, file: S3HandleBase | S3HandleBase[]) => void
   clear: (groupName: string) => void
   groups: BookmarksGroups
   hide: () => void
@@ -29,10 +28,23 @@ interface ProviderProps {
 export function Provider({ children }: ProviderProps) {
   const [isOpened, setOpened] = React.useState(false)
   const [groups, setGroups] = React.useState({})
-  // TODO: append s3File[] too
-  const append = React.useCallback((groupName: string, s3File: S3HandleBase) => {
-    setGroups(R.set(R.lensPath([groupName, 'entries', basename(s3File.key)]), s3File))
-  }, [])
+  const append = React.useCallback(
+    (groupName: string, s3File: S3HandleBase | S3HandleBase[]) => {
+      if (Array.isArray(s3File)) {
+        const entries = s3File.reduce(
+          (memo, entry) => ({
+            ...memo,
+            [basename(entry.key)]: entry,
+          }),
+          {},
+        )
+        setGroups(R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries)))
+      } else {
+        setGroups(R.set(R.lensPath([groupName, 'entries', basename(s3File.key)]), s3File))
+      }
+    },
+    [],
+  )
   const remove = React.useCallback(
     (groupName: string, s3File: Pick<S3HandleBase, 'key'>) => {
       setGroups(
