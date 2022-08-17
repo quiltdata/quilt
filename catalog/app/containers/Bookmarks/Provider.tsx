@@ -4,6 +4,14 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import type { S3HandleBase } from 'utils/s3paths'
+import mkStorage from 'utils/storage'
+
+const STORAGE_KEYS = {
+  BOOKMARKS: 'BOOKMARKS',
+}
+const storage = mkStorage({
+  [STORAGE_KEYS.BOOKMARKS]: STORAGE_KEYS.BOOKMARKS,
+})
 
 type GroupName = 'main'
 
@@ -28,10 +36,28 @@ interface ProviderProps {
   children: React.ReactNode
 }
 
+const initialBookmarks = { main: { entries: {} } }
+
 export function Provider({ children }: ProviderProps) {
   const [hasUpdates, setUpdates] = React.useState(false)
   const [isOpened, setOpened] = React.useState(false)
-  const [groups, setGroups] = React.useState({ main: { entries: {} } })
+  const [groups, setGroups] = React.useState(() => {
+    try {
+      return storage.get(STORAGE_KEYS.BOOKMARKS) || initialBookmarks
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return initialBookmarks
+    }
+  })
+  const updateGroups = React.useCallback(
+    (updater) => {
+      const newGroups = updater(groups)
+      setGroups(newGroups)
+      storage.set(STORAGE_KEYS.BOOKMARKS, newGroups)
+    },
+    [groups],
+  )
   const append = React.useCallback(
     (groupName: GroupName, s3File: S3HandleBase | S3HandleBase[]) => {
       if (Array.isArray(s3File)) {
@@ -42,29 +68,31 @@ export function Provider({ children }: ProviderProps) {
           }),
           {},
         )
-        setGroups(R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries)))
+        updateGroups(R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries)))
       } else {
-        setGroups(R.set(R.lensPath([groupName, 'entries', basename(s3File.key)]), s3File))
+        updateGroups(
+          R.set(R.lensPath([groupName, 'entries', basename(s3File.key)]), s3File),
+        )
       }
       if (!isOpened) setUpdates(true)
     },
-    [isOpened],
+    [isOpened, updateGroups],
   )
   const remove = React.useCallback(
     (groupName: GroupName, s3File: Pick<S3HandleBase, 'key'>) => {
-      setGroups(
+      updateGroups(
         R.over(R.lensPath([groupName, 'entries']), R.dissoc(basename(s3File.key))),
       )
       if (!isOpened) setUpdates(true)
     },
-    [isOpened],
+    [isOpened, updateGroups],
   )
   const clear = React.useCallback(
     (groupName: GroupName) => {
-      setGroups(R.assocPath([groupName, 'entries'], {}))
+      updateGroups(R.assocPath([groupName, 'entries'], {}))
       if (!isOpened) setUpdates(true)
     },
-    [isOpened],
+    [isOpened, updateGroups],
   )
   const hide = React.useCallback(() => {
     setOpened(false)
