@@ -1,3 +1,5 @@
+import path from 'path'
+
 import type { S3 } from 'aws-sdk'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -117,16 +119,30 @@ function useHandlesToS3Files(
     async (handles: s3paths.S3HandleBase[]) => {
       const requests = handles.map((handle) =>
         s3paths.isDir(handle.key)
-          ? bucketListing({ bucket: handle.bucket, path: handle.key })
+          ? bucketListing({
+              bucket: handle.bucket,
+              path: s3paths.ensureNoSlash(handle.key),
+              delimiter: false,
+              drain: true,
+            })
           : headFile(handle),
       )
       const responses = await Promise.all(requests)
       return responses.reduce(
         (memo, response) =>
           isBucketListingResult(response)
-            ? [...memo, ...response.files]
-            : [...memo, response],
-        [] as Model.S3File[],
+            ? response.files.reduce(
+                (acc, file) => ({
+                  ...acc,
+                  [path.relative(path.join(file.key, '../..'), file.key)]: file,
+                }),
+                memo,
+              )
+            : {
+                ...memo,
+                [path.basename(response.key)]: response,
+              },
+        {} as Record<string, Model.S3File>,
       )
     },
     [bucketListing, headFile],
@@ -260,7 +276,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
     setTraversing(true)
     try {
       const files = await handlesToS3Files(handles)
-      files.forEach(addToPackage?.append)
+      addToPackage?.merge(files)
       setTraversing(false)
       createDialog.open()
       bookmarks?.hide()

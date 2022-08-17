@@ -9,6 +9,7 @@ const Ctx = React.createContext<{
   append: (file: Model.S3File) => void
   clear: () => void
   entries: Record<string, Model.S3File>
+  merge: (entries: Record<string, Model.S3File>) => void
 } | null>(null)
 
 interface ProviderProps {
@@ -25,10 +26,11 @@ export function Provider({ children }: ProviderProps) {
     )
   }, [])
   const clear = React.useCallback(() => setEntries({}), [])
+  const merge = React.useCallback((files) => setEntries(R.mergeLeft(files)), [])
 
   const value = React.useMemo(
-    () => ({ append, clear, entries }),
-    [append, clear, entries],
+    () => ({ append, clear, entries, merge }),
+    [append, clear, entries, merge],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
