@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import functools
 import itertools
 import os
@@ -14,9 +15,14 @@ CANARIES_PER_REQUEST = 5
 
 logger = get_quilt_logger()
 
-# XXX: assert?
 STACK_NAME = os.getenv("STACK_NAME")
 AWS_REGION = os.getenv("AWS_REGION")
+SERVICE_BUCKET = os.getenv("SERVICE_BUCKET")
+REPORTS_PREFIX = os.getenv("REPORTS_PREFIX")
+assert STACK_NAME
+assert AWS_REGION
+assert SERVICE_BUCKET
+assert REPORTS_PREFIX
 
 
 async def list_canaries(cfn) -> T.List[str]:
@@ -129,7 +135,7 @@ tmpl = jenv.from_string(
                     <td>
                         {% if canary.ok %}
                             Passed
-                        {% elif canary.ok == False %}
+                        {% elif canary.ok is false %}
                             Failed
                         {% else %}
                             Running
@@ -166,12 +172,21 @@ def async_handler(f):
 async def generate_status_reports(*_):
     session = aiobotocore.session.get_session()
     async with \
-        session.create_client("s3") as s3, \
-        session.create_client("cloudformation", region_name=AWS_REGION) as cfn, \
-        session.create_client("cloudwatch", region_name=AWS_REGION) as cw, \
-        session.create_client("synthetics", region_name=AWS_REGION) as syn:
+            session.create_client("s3") as s3, \
+            session.create_client("cloudformation", region_name=AWS_REGION) as cfn, \
+            session.create_client("cloudwatch", region_name=AWS_REGION) as cw, \
+            session.create_client("synthetics", region_name=AWS_REGION) as syn:
 
+        now = datetime.datetime.utcnow()
+        key = REPORTS_PREFIX + now.strftime("/%Y/%m/%d/%H-%M-%S.html")
         data = await get_data(syn, cfn)
-        html = tmpl.render(data)
-        # TODO: write html file to service bucket
+        html = tmpl.render(**data, now=now)
+        resp = await s3.put_object(
+            Bucket=SERVICE_BUCKET,
+            Key=key,
+            Body=html,
+            ContentType="text/html",
+        )
+        logger.warn(f"report written to {key}", resp)
+        # XXX: dont return anything
         return html
