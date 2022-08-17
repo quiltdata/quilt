@@ -15,6 +15,62 @@ import * as s3paths from 'utils/s3paths'
 
 import { useBookmarks } from './Provider'
 
+const useBookmarksListStyles = M.makeStyles((t) => ({
+  iconWrapper: {
+    minWidth: t.spacing(4),
+  },
+}))
+
+interface BookmarksListProps {
+  handles: s3paths.S3HandleBase[]
+  onRemove: (handle: s3paths.S3HandleBase) => void
+}
+
+function BookmarksList({ handles, onRemove }: BookmarksListProps) {
+  const classes = useBookmarksListStyles()
+  return (
+    <M.List dense>
+      {handles.map((h) => (
+        <M.ListItem>
+          <M.ListItemIcon className={classes.iconWrapper}>
+            <M.Icon fontSize="small">
+              {s3paths.isDir(h.key) ? 'folder_open' : 'insert_drive_file'}
+            </M.Icon>
+          </M.ListItemIcon>
+          <M.ListItemText primary={`s3://${h.bucket}/${h.key}`} />
+          <M.ListItemSecondaryAction>
+            <M.IconButton size="small" edge="end" onClick={() => onRemove(h)}>
+              <M.Icon fontSize="inherit">clear</M.Icon>
+            </M.IconButton>
+          </M.ListItemSecondaryAction>
+        </M.ListItem>
+      ))}
+    </M.List>
+  )
+}
+
+const useNoBookmarksStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(2, 3),
+  },
+  desc: {
+    marginTop: t.spacing(1),
+  },
+}))
+
+function NoBookmarks() {
+  const classes = useNoBookmarksStyles()
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="h5">No bookmarks selected</M.Typography>
+      <M.Typography className={classes.desc}>
+        For topping up bookmarks you can navigate to "Bucket" tab, select files or
+        directories and click "Add to bookmarks"
+      </M.Typography>
+    </div>
+  )
+}
+
 function useHeadFile() {
   const s3: S3 = AWS.S3.use()
   return React.useCallback(
@@ -60,6 +116,7 @@ function useHandlesToS3Files(
 
 const useDrawerStyles = M.makeStyles((t) => ({
   root: {
+    maxWidth: '60vw',
     padding: t.spacing(4),
   },
   actions: {
@@ -72,9 +129,6 @@ const useDrawerStyles = M.makeStyles((t) => ({
   },
   error: {
     margin: t.spacing(1, 0, 2),
-  },
-  iconWrapper: {
-    minWidth: t.spacing(4),
   },
   listWrapper: {
     margin: t.spacing(2, 0, 0),
@@ -110,23 +164,11 @@ function Drawer({
       <div className={classes.root}>
         <M.Typography variant="h4">Bookmarks</M.Typography>
         <M.Paper className={classes.listWrapper}>
-          <M.List dense>
-            {handles.map((h) => (
-              <M.ListItem>
-                <M.ListItemIcon className={classes.iconWrapper}>
-                  <M.Icon fontSize="small">
-                    {s3paths.isDir(h.key) ? 'folder_open' : 'insert_drive_file'}
-                  </M.Icon>
-                </M.ListItemIcon>
-                <M.ListItemText primary={`s3://${h.bucket}/${h.key}`} />
-                <M.ListItemSecondaryAction>
-                  <M.IconButton size="small" edge="end" onClick={() => onRemove(h)}>
-                    <M.Icon fontSize="inherit">clear</M.Icon>
-                  </M.IconButton>
-                </M.ListItemSecondaryAction>
-              </M.ListItem>
-            ))}
-          </M.List>
+          {handles.length ? (
+            <BookmarksList handles={handles} onRemove={onRemove} />
+          ) : (
+            <NoBookmarks />
+          )}
         </M.Paper>
         {error && (
           <Lab.Alert className={classes.error} severity="error">
@@ -146,7 +188,7 @@ function Drawer({
           <M.Button
             className={classes.button}
             color="primary"
-            disabled={loading}
+            disabled={loading || !handles.length}
             onClick={onPackage}
             startIcon={loading && <M.CircularProgress size={16} />}
             variant="contained"
@@ -167,7 +209,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.bookmarks?.entries
-  const list: s3paths.S3HandleBase[] = React.useMemo(
+  const handles: s3paths.S3HandleBase[] = React.useMemo(
     () => (entries ? Object.values(entries) : []),
     [entries],
   )
@@ -183,11 +225,11 @@ export default function Sidebar({ bucket }: SidebarProps) {
   })
   const handleRemove = React.useCallback(
     (handle: s3paths.S3HandleBase) => {
-      const isLastBookmark = list.length === 1
+      const isLastBookmark = handles.length === 1
       bookmarks?.remove('bookmarks', handle)
       if (isLastBookmark) bookmarks?.hide()
     },
-    [bookmarks, list],
+    [bookmarks, handles],
   )
   const handleClear = React.useCallback(() => {
     bookmarks?.clear('bookmarks')
@@ -197,7 +239,7 @@ export default function Sidebar({ bucket }: SidebarProps) {
     if (!addToPackage) throw new Error('Add to Package is not ready')
     setTraversing(true)
     try {
-      const files = await handlesToS3Files(list)
+      const files = await handlesToS3Files(handles)
       files.forEach(addToPackage?.append)
       setTraversing(false)
       createDialog.open()
@@ -210,13 +252,13 @@ export default function Sidebar({ bucket }: SidebarProps) {
         throw e
       }
     }
-  }, [addToPackage, bookmarks, createDialog, handlesToS3Files, list])
+  }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
   const isOpened = bookmarks?.isOpened
   return (
     <>
       <Drawer
         error={error}
-        handles={list}
+        handles={handles}
         loading={traversing}
         onClose={bookmarks?.hide}
         onPackage={handleSubmit}
