@@ -30,7 +30,8 @@ REGION = SESSION.region_name
 ATHENA = boto3.client("athena")
 IAM = boto3.resource("iam")
 S3 = boto3.client("s3")
-
+STS = boto3.client("sts")
+ACCOUNT_ID = STS.get_caller_identity()["Account"]
 
 def stat(response):
     print(response["ResponseMetadata"]["HTTPStatusCode"])
@@ -58,8 +59,8 @@ ATHENA_DB = "quilt_metadata"
 ATHENA_URL = "s3://" + ATHENA_BUCKET
 ATHENA_WORKGROUP = "QuiltQueries"
 
-ARN_PREFIX = "arn:aws:s3:::"
-ARN_ATHENA = ARN_PREFIX + ATHENA_BUCKET
+ARN_ATHENA = f"arn:aws:s3:::{ATHENA_BUCKET}"
+ARN_WORKGROUP = f"arn:aws:athena:{REGION}:{ACCOUNT_ID}:workgroup/{ATHENA_WORKGROUP}"
 
 # Create bucket in default region
 
@@ -121,14 +122,12 @@ The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/p
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.ServiceResource.create_policy
 # https://docs.aws.amazon.com/athena/latest/ug/workgroups-access.html
 
-STS = boto3.client("sts")
-ACCOUNT_ID = STS.get_caller_identity()["Account"]
 ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
 
 AthenaQuiltAccess = {
     "Version": "2012-10-17",
     "Statement": [
-        {"Effect": "Allow", "Action": ["athena:*"], "Resource": ["*"]},
+        {"Effect": "Allow", "Action": ["athena:*"], "Resource": [ARN_WORKGROUP]},
         {
             "Effect": "Allow",
             "Action": [
@@ -140,7 +139,7 @@ AthenaQuiltAccess = {
                 "glue:GetTable",
                 "glue:GetTables",
             ],
-            "Resource": ["*"],
+            "Resource": [ARN_WORKGROUP],
         },
         {
             "Effect": "Allow",
@@ -170,7 +169,7 @@ except:
     print("Policy `AthenaQuiltAccess` already exists: " + ARN_POLICY)
 ```
 
-    Policy `AthenaQuiltAccess` already exists: arn:aws:iam::712023778557:policy/AthenaQuiltAccess
+    iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
 
 
 ### B. Attach this policy to your CloudFormation stack.
@@ -513,9 +512,8 @@ if success:
     	athena_await[7]=RUNNING
     	athena_await[6]=RUNNING
     	athena_await[5]=RUNNING
-    	athena_await[4]=RUNNING
-    athena_await.s3_path: s3://mycompany-quilt-athena-output/76071d9a-6c14-4e24-a952-56cdec5833a2.csv
-    athena_await 76071d9a-6c14-4e24-a952-56cdec5833a2.csv
+    athena_await.s3_path: s3://mycompany-quilt-athena-output/3ac1d9b1-1702-47db-aa84-e3f9e321513c.csv
+    athena_await 3ac1d9b1-1702-47db-aa84-e3f9e321513c.csv
     results
     (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
 
