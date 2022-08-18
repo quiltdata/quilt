@@ -144,7 +144,6 @@ function useFormattedListing(r: requests.BucketListingResult) {
       handle: {
         bucket: r.bucket,
         key,
-        // size,
       },
     }))
     const items = [
@@ -258,6 +257,7 @@ export default function Dir({
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
+
   const code = React.useMemo(
     () => [
       {

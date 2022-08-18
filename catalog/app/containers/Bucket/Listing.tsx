@@ -1047,13 +1047,7 @@ export function Listing({
         autoHeight
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
-          toolbar: {
-            truncated,
-            locked,
-            loadMore,
-            items,
-            children: toolbarContents,
-          },
+          toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
           footer: { truncated, locked, loadMore, items },
         }}
         getRowId={(row) => row.name.replaceAll("'", "\\'")}
