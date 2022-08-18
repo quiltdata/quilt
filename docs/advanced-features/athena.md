@@ -2,13 +2,13 @@
 Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
 in each bucket's `.quilt/` directory.
 
-You can therefore query package metadata wth SQL engines like AWS Athena.
+You can therefore query package metadata wth SQL engines like [AWS Athena](https://aws.amazon.com/athena/).
 Users can write SQL queries to select packages (or files from within packages)
 using predicates based on package or object-level metadata.
 
 ## Note: Executing Documentation Code  
-If you launch Jupyter from a shell containing your AWS credentials, you can edit and execute code directly from the [notebook version of this document.
-You can alternatively copy and paste it into your Python editor.
+If you launch Jupyter from a shell containing your AWS credentials, you can edit and execute code directly from the [notebook version](https://github.com/quiltdata/quilt/blob/master/docs/advanced-features/athena.ipynb) of this document.
+You can alternatively copy and paste code blocks into your Python editor.
 <!--pytest.mark.skip-->
 
 
@@ -118,18 +118,6 @@ The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/p
 
 
 ```python
-
-```
-
-
-
-
-    '712023778557'
-
-
-
-
-```python
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.ServiceResource.create_policy
 # https://docs.aws.amazon.com/athena/latest/ug/workgroups-access.html
 
@@ -193,7 +181,7 @@ This needs to be done manually by your AWS Administrator:
 2. Select the Quilt stack
 3. Click "Update"
 4. Select "Use current template" and click "Next"
-5. Add the above ARN to the "ManagedUserRoleExtraPolicies" field.
+5. Add the above ARN to the "ManagedUserRoleExtraPolicies" field
 6. Click "Next" to configure stack options
 7. Check "I acknowledge that AWS CloudFormation might create IAM resources with custom names"
 5. Click "Update stack" to save changes
@@ -207,7 +195,7 @@ This needs to be done manually by a Quilt Administrator:
 3. Scroll down to the "Policies" section on the bottom
 4. Click on the "+" to create a new Policy
 5. Set Title to "AthenaQuiltAccess"
-6. Check "Manually set ARN" and enter ARN of Athena policy.
+6. Check "Manually set ARN" and enter ARN of Athena policy
 7. Click "Create"
     
 ### D. Attach that Policy to a (new) Quilt Role
@@ -311,7 +299,7 @@ TBLPROPERTIES (
 The DDL below creates a view that contains package-level information including: 
 * User
 * Package name
-* Tophash
+* Top hash
 * Timestamp
 * Commit message
 <!--pytest-codeblocks:cont-->
@@ -360,8 +348,8 @@ ON
 
 ### D. View of object-Level metadata
 The DDL below creates a view that contains package contents, including:
-* logical_key
-* physical_keys
+* logical key
+* physical keys
 * object hash
 * object metadata
 <!--pytest-codeblocks:cont-->
