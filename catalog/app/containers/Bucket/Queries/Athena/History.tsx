@@ -5,8 +5,10 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
+import copyToClipboard from 'utils/clipboard'
 
 import * as requests from '../requests'
 
@@ -14,11 +16,8 @@ const useExecutionStyles = M.makeStyles((t) => ({
   date: {
     whiteSpace: 'nowrap',
   },
-  cell: {
+  queryCell: {
     width: '40%',
-    '& + &': {
-      width: 'auto',
-    },
   },
   collapsedCell: {
     borderBottom: 0,
@@ -26,6 +25,17 @@ const useExecutionStyles = M.makeStyles((t) => ({
   expandingCell: {
     paddingBottom: 0,
     paddingTop: 0,
+  },
+  toggle: {
+    transition: 'ease transform .15s',
+  },
+  actionCell: {
+    width: '46px',
+    paddingLeft: t.spacing(2),
+    paddingRight: 0,
+  },
+  expandedToggle: {
+    transform: 'rotate(90deg)',
   },
   expandedQuery: {
     maxHeight: t.spacing(30),
@@ -43,6 +53,7 @@ interface ExecutionProps {
 
 function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
   const classes = useExecutionStyles()
+  const { push } = Notifications.use()
 
   const { urls } = NamedRoutes.use()
 
@@ -67,21 +78,35 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
     [queryExecution.completed],
   )
 
+  const handleCopy = React.useCallback(() => {
+    if (queryExecution.query) {
+      copyToClipboard(queryExecution.query)
+      push('Query has been copied to clipboard')
+    }
+  }, [push, queryExecution.query])
+
   return (
     <>
       <M.TableRow>
-        <M.TableCell className={classes.cell} onClick={onToggle}>
-          {trimmedQuery}
+        <M.TableCell className={classes.actionCell}>
+          <M.IconButton
+            onClick={onToggle}
+            size="small"
+            className={cx(classes.toggle, { [classes.expandedToggle]: expanded })}
+          >
+            <M.Icon>keyboard_arrow_right</M.Icon>
+          </M.IconButton>
         </M.TableCell>
-        <M.TableCell className={classes.cell}>
+        <M.TableCell className={classes.queryCell}>{trimmedQuery}</M.TableCell>
+        <M.TableCell>
           <abbr title={queryExecution.id}>{queryExecution.status}</abbr>
         </M.TableCell>
-        <M.TableCell className={cx(classes.cell, classes.date)}>
+        <M.TableCell className={classes.date}>
           {queryExecution.created
             ? dateFns.format(queryExecution.created, 'MMM do, HH:mm:ss')
             : null}
         </M.TableCell>
-        <M.TableCell className={cx(classes.cell, classes.date)}>
+        <M.TableCell className={classes.date}>
           {queryExecution.status === 'SUCCEEDED' ? (
             <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
               {completed}
@@ -92,6 +117,19 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
         </M.TableCell>
       </M.TableRow>
       <M.TableRow>
+        <M.TableCell
+          className={cx(classes.actionCell, classes.expandingCell, {
+            [classes.collapsedCell]: !expanded,
+          })}
+        >
+          <M.Collapse in={expanded}>
+            {queryExecution.query && (
+              <M.IconButton onClick={handleCopy} size="small">
+                <M.Icon>content_copy</M.Icon>
+              </M.IconButton>
+            )}
+          </M.Collapse>
+        </M.TableCell>
         <M.TableCell
           colSpan={4}
           className={cx(classes.expandingCell, { [classes.collapsedCell]: !expanded })}
@@ -115,11 +153,13 @@ function Empty() {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  cell: {
+  queryCell: {
     width: '40%',
-    '& + &': {
-      width: 'auto',
-    },
+  },
+  actionCell: {
+    width: '46px',
+    paddingLeft: t.spacing(2),
+    paddingRight: 0,
   },
   header: {
     margin: t.spacing(0, 0, 1),
@@ -180,10 +220,11 @@ export default function History({
       <M.Table size="small" className={classes.table}>
         <M.TableHead>
           <M.TableRow>
-            <M.TableCell className={classes.cell}>Query</M.TableCell>
-            <M.TableCell className={classes.cell}>Status</M.TableCell>
-            <M.TableCell className={classes.cell}>Date created</M.TableCell>
-            <M.TableCell className={classes.cell}>Date completed</M.TableCell>
+            <M.TableCell className={classes.actionCell} />
+            <M.TableCell className={classes.queryCell}>Query</M.TableCell>
+            <M.TableCell>Status</M.TableCell>
+            <M.TableCell>Date created</M.TableCell>
+            <M.TableCell>Date completed</M.TableCell>
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
