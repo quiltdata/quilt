@@ -101,9 +101,14 @@ export function Provider({ children }: ProviderProps) {
   const remove = React.useCallback(
     (groupName: GroupName, s3File: S3HandleBase) => {
       updateGroups(createRemoveUpdater(groupName, s3File))
-      if (!isOpened) setUpdates(true)
+      const wasLastBookmark = R.pathSatisfies(R.isEmpty, [groupName, 'entries'], groups)
+      if (wasLastBookmark) {
+        setUpdates(false)
+      } else if (!isOpened) {
+        setUpdates(true)
+      }
     },
-    [isOpened, updateGroups],
+    [groups, isOpened, updateGroups],
   )
   const clear = React.useCallback(
     (groupName: GroupName) => {
@@ -118,14 +123,11 @@ export function Provider({ children }: ProviderProps) {
     [groups],
   )
   const toggle = React.useCallback(
-    (groupName: GroupName, s3File: S3HandleBase) => {
-      const updater = isBookmarked(groupName, s3File)
-        ? createRemoveUpdater
-        : createAppendUpdater
-      updateGroups(updater(groupName, s3File))
-      if (!isOpened) setUpdates(true)
-    },
-    [isBookmarked, isOpened, updateGroups],
+    (groupName: GroupName, s3File: S3HandleBase) =>
+      isBookmarked(groupName, s3File)
+        ? remove(groupName, s3File)
+        : append(groupName, s3File),
+    [isBookmarked, remove, append],
   )
   const hide = React.useCallback(() => {
     setOpened(false)
