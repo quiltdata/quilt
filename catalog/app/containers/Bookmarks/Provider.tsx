@@ -1,9 +1,8 @@
-import { basename } from 'path'
-
 import * as R from 'ramda'
 import * as React from 'react'
 
-import type { S3HandleBase } from 'utils/s3paths'
+// TODO: rename all variables 'file' to 'handle'
+import { S3HandleBase, handleToS3Url } from 'utils/s3paths'
 import mkStorage from 'utils/storage'
 
 const STORAGE_KEYS = {
@@ -40,6 +39,8 @@ interface ProviderProps {
 
 const initialBookmarks = { main: { entries: {} } }
 
+const keyResolver = (file: S3HandleBase) => handleToS3Url(file)
+
 type StateUpdaterFunction = (input: BookmarksGroups) => BookmarksGroups
 
 function createAppendUpdater(
@@ -50,20 +51,20 @@ function createAppendUpdater(
     const entries = s3File.reduce(
       (memo, entry) => ({
         ...memo,
-        [basename(entry.key)]: entry,
+        [keyResolver(entry)]: entry,
       }),
       {},
     )
     return R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries))
   }
-  return R.set(R.lensPath([groupName, 'entries', basename(s3File.key)]), s3File)
+  return R.set(R.lensPath([groupName, 'entries', keyResolver(s3File)]), s3File)
 }
 
 function createRemoveUpdater(
   groupName: GroupName,
   s3File: S3HandleBase,
 ): StateUpdaterFunction {
-  return R.over(R.lensPath([groupName, 'entries']), R.dissoc(basename(s3File.key)))
+  return R.over(R.lensPath([groupName, 'entries']), R.dissoc(keyResolver(s3File)))
 }
 
 function createClearUpdater(groupName: GroupName): StateUpdaterFunction {
@@ -113,7 +114,7 @@ export function Provider({ children }: ProviderProps) {
   )
   const isBookmarked = React.useCallback(
     (groupName: GroupName, s3File: S3HandleBase) =>
-      R.hasPath([groupName, 'entries', basename(s3File.key)], groups),
+      R.hasPath([groupName, 'entries', keyResolver(s3File)], groups),
     [groups],
   )
   const toggle = React.useCallback(
