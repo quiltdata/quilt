@@ -122,8 +122,8 @@ The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/p
 # https://docs.aws.amazon.com/athena/latest/ug/workgroups-access.html
 
 STS = boto3.client("sts")
-ACCOUNT_ID=STS.get_caller_identity()['Account']
-ARN_POLICY=f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
+ACCOUNT_ID = STS.get_caller_identity()["Account"]
+ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
 
 AthenaQuiltAccess = {
     "Version": "2012-10-17",
@@ -167,7 +167,7 @@ try:
     )
     print(AthenaQuiltPolicy)
 except:
-    print("Policy `AthenaQuiltAccess` already exists: "+ARN_POLICY)
+    print("Policy `AthenaQuiltAccess` already exists: " + ARN_POLICY)
 ```
 
     Policy `AthenaQuiltAccess` already exists: arn:aws:iam::712023778557:policy/AthenaQuiltAccess
@@ -349,7 +349,7 @@ ON
 ### D. View of object-Level metadata
 The DDL below creates a view that contains package contents, including:
 * logical key
-* physical keys
+* physical key
 * object hash
 * object metadata
 <!--pytest-codeblocks:cont-->
@@ -380,7 +380,7 @@ SELECT
   npv."timestamp",
   mv."tophash",
   mv."logical_key",
-  mv."physical_keys",
+  mv."physical_keys[1]" as "physical_key",
   mv."hash",
   mv."meta",
   mv."user_meta"
@@ -442,7 +442,7 @@ TAIL_PATH = re.compile(r".*\/(.*)")
 
 def athena_await(resp, max_execution=10):
     id = resp[QUERY_ID]
-    state = "RUNNING"
+    state = "QUEUED"
     while max_execution > 0 and state in ["RUNNING", "QUEUED"]:
         max_execution = max_execution - 1
         response = ATHENA.get_query_execution(QueryExecutionId=id)
@@ -453,6 +453,7 @@ def athena_await(resp, max_execution=10):
         ):
             state = response["QueryExecution"]["Status"]["State"]
             if state == "FAILED":
+                print(response["QueryExecution"]["Status"])
                 return False
             elif state == "SUCCEEDED":
                 s3_path = response["QueryExecution"]["ResultConfiguration"][
@@ -482,28 +483,44 @@ def athena_results(resp):
 
 
 print("\nTest Athena Query:")
+print(ATHENA_TEST)
 print("WorkGroup", ATHENA_WORKGROUP)
 resp = ATHENA.start_query_execution(
     WorkGroup=ATHENA_WORKGROUP,
     QueryString=ATHENA_TEST,
     ResultConfiguration={"OutputLocation": ATHENA_URL},
 )
-print("athena_await", athena_await(resp))
-results = athena_results(resp)
-print("results")
-print(results)
+success = athena_await(resp)
+print("athena_await", success)
+if success:
+    results = athena_results(resp)
+    print("results")
+    print(results)
 ```
 
     
     Test Athena Query:
+    
+    SELECT * FROM quilt_metadata.quilt_example_quilt_objects_view
+    WHERE substr(logical_key, -5)='.tiff'
+    -- extract and query package-level metadata
+    AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
+    AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
+    
     WorkGroup QuiltQueries
     	athena_await[9]=QUEUED
     	athena_await[8]=RUNNING
     	athena_await[7]=RUNNING
     	athena_await[6]=RUNNING
     	athena_await[5]=RUNNING
-    athena_await.s3_path: s3://mycompany-quilt-athena-output/f2a2697b-fe26-4978-a88f-7923f9da5a13.csv
-    athena_await f2a2697b-fe26-4978-a88f-7923f9da5a13.csv
+    	athena_await[4]=RUNNING
+    athena_await.s3_path: s3://mycompany-quilt-athena-output/76071d9a-6c14-4e24-a952-56cdec5833a2.csv
+    athena_await 76071d9a-6c14-4e24-a952-56cdec5833a2.csv
     results
     (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
 
+
+
+```python
+
+```
