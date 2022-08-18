@@ -188,8 +188,8 @@ function UserDropdown() {
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks?.hasUpdates) setInvisible(false)
-  }, [bookmarks?.hasUpdates])
+    if (bookmarks?.hasUpdates === invisible) setInvisible(!bookmarks?.hasUpdates)
+  }, [bookmarks?.hasUpdates, invisible])
 
   return (
     <>

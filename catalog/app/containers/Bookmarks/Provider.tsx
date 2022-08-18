@@ -100,9 +100,10 @@ export function Provider({ children }: ProviderProps) {
   )
   const remove = React.useCallback(
     (groupName: GroupName, s3File: S3HandleBase) => {
+      const isLastBookmark =
+        R.pipe(R.path([groupName, 'entries']), R.keys, R.length)(groups) === 1
       updateGroups(createRemoveUpdater(groupName, s3File))
-      const wasLastBookmark = R.pathSatisfies(R.isEmpty, [groupName, 'entries'], groups)
-      if (wasLastBookmark) {
+      if (isLastBookmark) {
         setUpdates(false)
       } else if (!isOpened) {
         setUpdates(true)
