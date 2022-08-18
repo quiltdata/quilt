@@ -29,7 +29,7 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const useHeaderStyles = M.makeStyles((t) => ({
+const useAddToBookmarksStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'baseline',
     display: 'flex',
@@ -42,7 +42,7 @@ const useHeaderStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface HeaderProps {
+interface AddToBookmarksProps {
   bucket: string
   items: Item[]
   onClearSelection: () => void
@@ -50,8 +50,16 @@ interface HeaderProps {
   selection?: DG.GridRowId[]
 }
 
-function Header({ bucket, items, onClearSelection, path, selection }: HeaderProps) {
-  const classes = useHeaderStyles()
+// TODO: rather then select and add list of selected entries to bookmarks
+//       add bookmark button to each entry
+function AddToBookmarks({
+  bucket,
+  items,
+  onClearSelection,
+  path,
+  selection,
+}: AddToBookmarksProps) {
+  const classes = useAddToBookmarksStyles()
   const bookmarks = Bookmarks.use()
   const bookmarkItems: s3paths.S3HandleBase[] = React.useMemo(() => {
     const handles: s3paths.S3HandleBase[] = []
@@ -200,7 +208,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
               prefix={response.prefix}
               setPrefix={setPrefix}
             />
-            <Header
+            <AddToBookmarks
               bucket={bucket}
               items={items}
               onClearSelection={() => setSelection([])}
