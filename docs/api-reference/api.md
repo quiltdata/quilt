@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 
 # quilt3
 Quilt API

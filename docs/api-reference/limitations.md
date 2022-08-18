@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 ## Size 
 
 By design, Quilt is backed by Amazon S3 and scales to billions of objects and

@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 # Quilt3 CLI and environment
 
 ## `catalog`

@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 
 # Package(self)  {#Package}
 In-memory representation of a package

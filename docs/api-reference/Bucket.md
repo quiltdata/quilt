@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 
 # Bucket(self, bucket\_uri)  {#Bucket}
 Bucket interface for Quilt.
