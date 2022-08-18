@@ -45,7 +45,7 @@ function BookmarkItem({ handle, onRemove }: BookmarkItemProps) {
         </M.Icon>
       </M.ListItemIcon>
       <M.ListItemText>
-        <StyledLink to={to}>{trimCenter(title, 70)}</StyledLink>
+        <StyledLink to={to}>{trimCenter(title, 66)}</StyledLink>
       </M.ListItemText>
       <M.ListItemSecondaryAction>
         <M.IconButton size="small" edge="end" onClick={onRemove}>
