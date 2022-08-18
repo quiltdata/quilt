@@ -24,7 +24,7 @@ const useDownloadButtonStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function DownloadButtonLayout({ className, label, icon, ...props }) {
+export function AdaptiveButtonLayout({ className, label, icon, ...props }) {
   const classes = useDownloadButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -53,7 +53,7 @@ export function DownloadButtonLayout({ className, label, icon, ...props }) {
 
 export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
-    <DownloadButtonLayout
+    <AdaptiveButtonLayout
       className={className}
       href={url}
       download
@@ -87,7 +87,7 @@ export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <DownloadButtonLayout
+      <AdaptiveButtonLayout
         className={className}
         label={label}
         icon="archive"

@@ -471,7 +471,7 @@ export default function File({
               onEdit={editorState.onEdit}
             />
           )}
-          <FileView.DownloadButtonLayout
+          <FileView.AdaptiveButtonLayout
             className={classes.button}
             color="primary"
             icon="turned_in_not"
