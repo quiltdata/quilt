@@ -7,14 +7,13 @@ Users can write SQL queries to select packages (or files from within packages)
 using predicates based on package or object-level metadata.
 
 ## Note: Executing Documentation Code  
-If you import your AWS credentials for use by `boto3`, you can edit and execute code directly from the notebook version of this document.
+If you launch Jupyter from a shell containing your AWS credentials, you can edit and execute code directly from the [notebook version of this document.
 You can alternatively copy and paste it into your Python editor.
 <!--pytest.mark.skip-->
 
 
 ```python
 %%capture
-%env AWS_DEFAULT_REGION=us-east-1
 %pip install boto3
 ```
 
@@ -225,11 +224,7 @@ You cannot attach a policy to the "Custom" Roles, so you will usually need to fi
 ### E. Attach that Role to Quilt Users
 1. From "Admin Settings", scroll to "Users"
 2. Find the User(s) who need Athena Access (may need to page through or increase "Rows per page")
-3. Set "R
-
-
-
-7. Attach that Role to any Users that need to access Athena
+3. Set Role to "AthenaAccessRole"
 
 See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 
