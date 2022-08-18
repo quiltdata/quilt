@@ -36,5 +36,4 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '16.11'
-          cache: 'npm'
       - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md
