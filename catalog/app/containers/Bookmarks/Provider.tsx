@@ -84,7 +84,7 @@ export function Provider({ children }: ProviderProps) {
     }
   })
   const updateGroups = React.useCallback(
-    (updater) => {
+    (updater: StateUpdaterFunction) => {
       const newGroups = updater(groups)
       setGroups(newGroups)
       storage.set(STORAGE_KEYS.BOOKMARKS, newGroups)

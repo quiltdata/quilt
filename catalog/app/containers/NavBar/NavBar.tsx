@@ -188,7 +188,7 @@ function UserDropdown() {
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks?.hasUpdates !== visible) setVisible(bookmarks?.hasUpdates)
+    if (bookmarks?.hasUpdates !== visible) setVisible(!!bookmarks?.hasUpdates)
   }, [bookmarks?.hasUpdates, visible])
 
   return (

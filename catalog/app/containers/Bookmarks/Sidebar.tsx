@@ -56,21 +56,6 @@ function BookmarkItem({ handle, onRemove }: BookmarkItemProps) {
   )
 }
 
-interface BookmarksListProps {
-  handles: s3paths.S3HandleBase[]
-  onRemove: (handle: s3paths.S3HandleBase) => void
-}
-
-function BookmarksList({ handles, onRemove }: BookmarksListProps) {
-  return (
-    <M.List dense>
-      {handles.map((handle) => (
-        <BookmarkItem handle={handle} onRemove={() => onRemove(handle)} />
-      ))}
-    </M.List>
-  )
-}
-
 const useNoBookmarksStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(2, 3),
@@ -93,6 +78,7 @@ function NoBookmarks() {
   )
 }
 
+// TODO: add entry with size from <Listing /> but try to re-use existing types
 function useHeadFile() {
   const s3: S3 = AWS.S3.use()
   return React.useCallback(
@@ -141,7 +127,7 @@ function useHandlesToS3Files(
               )
             : {
                 ...memo,
-                // TODO: handle same key from another bucket
+                // TODO: handle the same key from another bucket
                 [path.basename(response.key)]: response,
               },
         {} as Record<string, Model.S3File>,
@@ -202,7 +188,11 @@ function Drawer({
         <M.Typography variant="h4">Bookmarks</M.Typography>
         <M.Paper className={classes.listWrapper}>
           {handles.length ? (
-            <BookmarksList handles={handles} onRemove={onRemove} />
+            <M.List dense>
+              {handles.map((handle) => (
+                <BookmarkItem handle={handle} onRemove={() => onRemove(handle)} />
+              ))}
+            </M.List>
           ) : (
             <NoBookmarks />
           )}
@@ -291,7 +281,6 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
       }
     }
   }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
-  const isOpened = bookmarks?.isOpened
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <Drawer
@@ -302,7 +291,7 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
         onPackage={bucket ? handleSubmit : undefined}
         onRemove={handleRemove}
         onClear={handleClear}
-        open={isOpened}
+        open={bookmarks?.isOpened}
       />
       {createDialog.render({
         successTitle: 'Package created',
