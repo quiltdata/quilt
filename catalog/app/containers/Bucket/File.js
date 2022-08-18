@@ -428,6 +428,10 @@ export default function File({
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
   const bookmarks = Bookmarks.use()
+  const isBookmarked = React.useMemo(
+    () => bookmarks?.isBookmarked('main', handle),
+    [bookmarks, handle],
+  )
 
   return (
     <FileView.Root>
@@ -473,10 +477,9 @@ export default function File({
           )}
           <FileView.AdaptiveButtonLayout
             className={classes.button}
-            color="primary"
-            icon="turned_in_not"
-            label="Add to bookmarks"
-            onClick={() => bookmarks?.append('main', handle)}
+            icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
+            label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+            onClick={() => bookmarks?.toggle('main', handle)}
           />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
