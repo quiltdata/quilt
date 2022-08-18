@@ -52,7 +52,6 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
       {!!children && <M.Box p={4}>{children}</M.Box>}
       <M.Box flexGrow={1} />
       {!!isHomepage && isHomepage.isExact && <Footer />}
-      {}
       <Bookmarks.Sidebar bucket={bucket} />
     </Root>
   )

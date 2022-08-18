@@ -17,15 +17,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
-import {
-  S3HandleBase,
-  decode,
-  ensureNoSlash,
-  ensureSlash,
-  getBreadCrumbs,
-  up,
-  withoutPrefix,
-} from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
@@ -61,12 +53,12 @@ interface HeaderProps {
 function Header({ bucket, items, onClearSelection, path, selection }: HeaderProps) {
   const classes = useHeaderStyles()
   const bookmarks = Bookmarks.use()
-  const bookmarkItems: S3HandleBase[] = React.useMemo(() => {
-    const handles: S3HandleBase[] = []
+  const bookmarkItems: s3paths.S3HandleBase[] = React.useMemo(() => {
+    const handles: s3paths.S3HandleBase[] = []
     if (selection?.includes('..')) {
       handles.push({
         bucket,
-        key: ensureSlash(join(path, '..')),
+        key: s3paths.ensureSlash(join(path, '..')),
       })
     }
     items.some(({ name, handle, type }) => {
@@ -74,7 +66,7 @@ function Header({ bucket, items, onClearSelection, path, selection }: HeaderProp
       if (selection?.includes(name) && handle) {
         handles.push({
           ...handle,
-          key: type === 'dir' ? ensureSlash(handle.key) : handle.key,
+          key: type === 'dir' ? s3paths.ensureSlash(handle.key) : handle.key,
         })
       }
       if (handles.length === selection?.length) return true
@@ -113,7 +105,7 @@ type Urls = NamedRoutes.Urls<RouteMap>
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
   ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
-    [{ label: bucket, path: '' }, ...getBreadCrumbs(path)].map(
+    [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)].map(
       ({ label, path: segPath }) =>
         Crumb.Segment({
           label,
@@ -127,7 +119,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
   return React.useMemo(() => {
     const dirs = r.dirs.map((name) => ({
       type: 'dir' as const,
-      name: ensureNoSlash(withoutPrefix(r.path, name)),
+      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
       to: urls.bucketDir(r.bucket, name),
       handle: {
         bucket: r.bucket,
@@ -136,7 +128,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
     }))
     const files = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
-      name: withoutPrefix(r.path, key),
+      name: s3paths.withoutPrefix(r.path, key),
       to: urls.bucketFile(r.bucket, key),
       size,
       modified,
@@ -153,7 +145,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
             {
               type: 'dir' as const,
               name: '..',
-              to: urls.bucketDir(r.bucket, up(r.path)),
+              to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
             },
           ]
         : []),
@@ -256,7 +248,7 @@ export default function Dir({
   const s3 = AWS.S3.use()
   const preferences = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
-  const path = decode(encodedPath)
+  const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
   const code = React.useMemo(
     () => [
