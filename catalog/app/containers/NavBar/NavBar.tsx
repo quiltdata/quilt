@@ -168,7 +168,7 @@ function UserDropdown() {
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
   const isAdmin = !!useRoute(paths.admin).match
   const [anchor, setAnchor] = React.useState(null)
-  const [invisible, setInvisible] = React.useState(true)
+  const [visible, setVisible] = React.useState(true)
 
   const open = React.useCallback(
     (evt) => {
@@ -178,7 +178,7 @@ function UserDropdown() {
   )
 
   const close = React.useCallback(() => {
-    setInvisible(true)
+    setVisible(false)
     setAnchor(null)
   }, [setAnchor])
 
@@ -188,13 +188,13 @@ function UserDropdown() {
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks?.hasUpdates === invisible) setInvisible(!bookmarks?.hasUpdates)
-  }, [bookmarks?.hasUpdates, invisible])
+    if (bookmarks?.hasUpdates !== visible) setVisible(bookmarks?.hasUpdates)
+  }, [bookmarks?.hasUpdates, visible])
 
   return (
     <>
       <M.Button variant="text" color="inherit" onClick={open}>
-        <Badge color="primary" invisible={invisible}>
+        <Badge color="primary" invisible={!visible}>
           {userDisplay(user)}
         </Badge>{' '}
         <M.Icon>expand_more</M.Icon>
@@ -203,7 +203,7 @@ function UserDropdown() {
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           <Item onClick={showBookmarks}>
-            <Badge color="secondary" invisible={invisible}>
+            <Badge color="secondary" invisible={!visible}>
               <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
             </Badge>
             &nbsp;Bookmarks
