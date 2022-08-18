@@ -55,7 +55,8 @@ export const readableBytes = (bytes, extra) =>
 
 export const trimCenter = (str, maxLength) => {
   if (str.length <= maxLength) return str
-  const to = (maxLength - 3) / 2
-  const from = str.length - (maxLength - 3) / 2
-  return `${str.substring(0, to)} … ${str.substring(from, str.length)}`
+  const divider = ' … '
+  const to = (maxLength - divider.length) / 2
+  const from = str.length - (maxLength - divider.length) / 2
+  return str.substring(0, to) + divider + str.substring(from, str.length)
 }
