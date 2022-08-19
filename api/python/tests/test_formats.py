@@ -28,7 +28,7 @@ def test_buggy_parquet(parquet_handler):
 def test_formats_for_obj():
     arr = np.ndarray(3)
 
-    fmt = FormatRegistry.for_obj(arr)[0]
+    [fmt] = FormatRegistry.for_obj(arr)
 
     assert 'npz' in fmt.handled_extensions
     assert FormatRegistry.for_ext('npy')[0] is fmt
@@ -48,8 +48,8 @@ def test_formats_for_ext():
 
 
 def test_formats_for_meta():
-    bytes_fmt = FormatRegistry.for_meta({'target': 'bytes'})[0]
-    json_fmt = FormatRegistry.for_meta({'target': 'json'})[0]
+    [bytes_fmt] = FormatRegistry.for_meta({'target': 'bytes'})
+    [json_fmt] = FormatRegistry.for_meta({'target': 'json'})
 
     some_bytes = b'["phlipper", "piglet"]'
     assert bytes_fmt.serialize(some_bytes)[0] == some_bytes
@@ -57,8 +57,8 @@ def test_formats_for_meta():
 
 
 def test_formats_for_format():
-    bytes_fmt = FormatRegistry.for_format('bytes')[0]
-    json_fmt = FormatRegistry.for_format('json')[0]
+    [bytes_fmt] = FormatRegistry.for_format('bytes')
+    [json_fmt] = FormatRegistry.for_format('json')
 
     some_bytes = b'["phlipper", "piglet"]'
     assert bytes_fmt.serialize(some_bytes)[0] == some_bytes
@@ -152,21 +152,15 @@ def test_formats_anndata():
     ad_file = data_dir / 'test.h5ad'
 
 
-
-def test_formats_search_fail_notfound():
-    # a search that finds nothing should raise with an explanation.
-    class Foo:
-        pass
-
-    bad_kwargs = [
-        dict(obj_type=Foo, meta=None, ext=None),
-        dict(obj_type=None, meta={}, ext=None),
-        dict(obj_type=None, meta=None, ext='.fizz'),
-    ]
-
-    for args in bad_kwargs:
-        with pytest.raises(QuiltException):
-            FormatRegistry.search(**args)
+@pytest.mark.parametrize('args', [
+    dict(obj_type=type('Foo', (), {}), meta=None, ext=None),
+    dict(obj_type=None, meta={}, ext=None),
+    dict(obj_type=None, meta=None, ext='.fizz'),
+])
+def test_formats_search_fail_notfound(args):
+    """a search that finds nothing should raise with an explanation."""
+    with pytest.raises(QuiltException):
+        FormatRegistry.search(**args)
 
 
 def test_formats_search_order():
