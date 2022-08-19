@@ -12,6 +12,79 @@ import copyToClipboard from 'utils/clipboard'
 
 import * as requests from '../requests'
 
+const useToggleButtonStyles = M.makeStyles({
+  root: {
+    transition: 'ease transform .15s',
+  },
+  expanded: {
+    transform: 'rotate(90deg)',
+  },
+})
+
+interface ToggleButtonProps {
+  expanded: boolean
+  onClick: () => void
+}
+
+function ToggleButton({ expanded, onClick }: ToggleButtonProps) {
+  const classes = useToggleButtonStyles()
+  return (
+    <M.IconButton
+      onClick={onClick}
+      size="small"
+      className={cx(classes.root, { [classes.expanded]: expanded })}
+    >
+      <M.Icon>keyboard_arrow_right</M.Icon>
+    </M.IconButton>
+  )
+}
+
+interface QueryDateCompletedProps {
+  bucket: string
+  queryExecution: requests.athena.QueryExecution
+  workgroup: requests.athena.Workgroup
+}
+
+function QueryDateCompleted({
+  bucket,
+  queryExecution,
+  workgroup,
+}: QueryDateCompletedProps) {
+  const { urls } = NamedRoutes.use()
+  const date = React.useMemo(
+    () =>
+      queryExecution.completed
+        ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
+        : null,
+    [queryExecution.completed],
+  )
+  if (queryExecution.status !== 'SUCCEEDED') return <>{date}</>
+  return (
+    <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
+      {date}
+    </Link>
+  )
+}
+
+interface CopyButtonProps {
+  queryExecution: requests.athena.QueryExecution
+}
+
+function CopyButton({ queryExecution }: CopyButtonProps) {
+  const { push } = Notifications.use()
+  const handleCopy = React.useCallback(() => {
+    if (queryExecution.query) {
+      copyToClipboard(queryExecution.query)
+      push('Query has been copied to clipboard')
+    }
+  }, [push, queryExecution.query])
+  return (
+    <M.IconButton onClick={handleCopy} size="small">
+      <M.Icon>content_copy</M.Icon>
+    </M.IconButton>
+  )
+}
+
 const useExecutionStyles = M.makeStyles((t) => ({
   date: {
     whiteSpace: 'nowrap',
@@ -26,14 +99,8 @@ const useExecutionStyles = M.makeStyles((t) => ({
     paddingBottom: 0,
     paddingTop: 0,
   },
-  toggle: {
-    transition: 'ease transform .15s',
-  },
   actionCell: {
     width: '24px',
-  },
-  expandedToggle: {
-    transform: 'rotate(90deg)',
   },
   expandedQuery: {
     maxHeight: t.spacing(30),
@@ -50,12 +117,7 @@ interface ExecutionProps {
 
 function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
   const classes = useExecutionStyles()
-  const { push } = Notifications.use()
-
-  const { urls } = NamedRoutes.use()
-
   const [expanded, setExpanded] = React.useState(false)
-
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
   const trimmedQuery = React.useMemo(
     () =>
@@ -67,32 +129,11 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
     [queryExecution.query],
   )
 
-  const completed = React.useMemo(
-    () =>
-      queryExecution.completed
-        ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
-        : null,
-    [queryExecution.completed],
-  )
-
-  const handleCopy = React.useCallback(() => {
-    if (queryExecution.query) {
-      copyToClipboard(queryExecution.query)
-      push('Query has been copied to clipboard')
-    }
-  }, [push, queryExecution.query])
-
   return (
     <>
       <M.TableRow>
         <M.TableCell padding="checkbox" className={classes.actionCell}>
-          <M.IconButton
-            onClick={onToggle}
-            size="small"
-            className={cx(classes.toggle, { [classes.expandedToggle]: expanded })}
-          >
-            <M.Icon>keyboard_arrow_right</M.Icon>
-          </M.IconButton>
+          <ToggleButton expanded={expanded} onClick={onToggle} />
         </M.TableCell>
         <M.TableCell className={classes.queryCell}>{trimmedQuery}</M.TableCell>
         <M.TableCell>
@@ -104,13 +145,11 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
             : null}
         </M.TableCell>
         <M.TableCell className={classes.date}>
-          {queryExecution.status === 'SUCCEEDED' ? (
-            <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
-              {completed}
-            </Link>
-          ) : (
-            completed
-          )}
+          <QueryDateCompleted
+            queryExecution={queryExecution}
+            bucket={bucket}
+            workgroup={workgroup}
+          />
         </M.TableCell>
       </M.TableRow>
       {queryExecution.query && (
@@ -121,11 +160,7 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
               [classes.collapsedCell]: !expanded,
             })}
           >
-            {!!expanded && (
-              <M.IconButton onClick={handleCopy} size="small">
-                <M.Icon>content_copy</M.Icon>
-              </M.IconButton>
-            )}
+            {!!expanded && <CopyButton queryExecution={queryExecution} />}
           </M.TableCell>
           <M.TableCell
             colSpan={4}
