@@ -75,9 +75,7 @@ setup(
         ],
         'anndata': ['anndata>=0.8.0'],
         'tests': [
-            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
-            'pandas>=0.19.2',
-            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'quilt3[pyarrow,anndata]',
             'pytest==6.*',
             'pytest-cov',
             'coverage==6.4',

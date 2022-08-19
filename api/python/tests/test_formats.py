@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 import pytest
+from anndata import AnnData
 
 from quilt3.formats import FormatRegistry
 from quilt3.util import QuiltException
@@ -149,7 +150,11 @@ def test_formats_csv_roundtrip():
 
 
 def test_formats_anndata():
+    meta = {'format': {'name': 'h5ad'}}
     ad_file = data_dir / 'test.h5ad'
+    ad = FormatRegistry.deserialize(ad_file.read_bytes(), meta)
+
+    assert isinstance(ad, AnnData)
 
 
 @pytest.mark.parametrize('args', [
