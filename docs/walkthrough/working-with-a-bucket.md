@@ -7,6 +7,7 @@ To connect to an S3 `Bucket`:
 
 ```python
 import quilt3
+
 b = quilt3.Bucket("s3://quilt-example")
 ```
 

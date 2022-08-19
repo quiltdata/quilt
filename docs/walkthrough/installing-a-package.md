@@ -4,7 +4,8 @@ As explained in ["Uploading a Package"](uploading-a-package.md), packages are ma
 
 
 ```python
-import quilt3 # list local packages
+import quilt3  # list local packages
+
 list(quilt3.list_packages())
 ```
 
@@ -19,7 +20,8 @@ list(quilt3.list_packages())
 
 
 ```python
-import quilt3 # list remote packages
+import quilt3  # list remote packages
+
 list(quilt3.list_packages("s3://quilt-example"))
 ```
 
@@ -43,7 +45,8 @@ The examples in this section use the `examples/hurdat` [demo package](https://op
 
 
 ```python
-import quilt3 # install package
+import quilt3  # install package
+
 quilt3.Package.install(
     "examples/hurdat",
     "s3://quilt-example",
@@ -74,11 +77,8 @@ Data files that you download are written to a folder in your local registry by d
 
 ```python
 import quilt3  # install package into a specific folder
-quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
-    dest="./"
-)
+
+quilt3.Package.install("examples/hurdat", "s3://quilt-example", dest="./")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9027.77entries/s]
@@ -95,11 +95,8 @@ Finally, you can install a specific version of a package by specifying the corre
 
 ```python
 import quilt3  # install specific version of package
-quilt3.Package.install(
-    "examples/hurdat", 
-    "s3://quilt-example", 
-    top_hash="058e62c"
-)
+
+quilt3.Package.install("examples/hurdat", "s3://quilt-example", top_hash="058e62c")
 ```
 
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 11491.24entries/s]
@@ -117,7 +114,8 @@ An alternative to `install` is `browse`. `browse` downloads a package manifest w
 
 
 ```python
-import quilt3 # load a package manifest from a remote registry
+import quilt3  # load a package manifest from a remote registry
+
 p = quilt3.Package.browse("examples/hurdat", "s3://quilt-example")
 
 # load a package manifest from the default remote registry

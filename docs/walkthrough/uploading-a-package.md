@@ -8,6 +8,7 @@ To save a package to your local disk use `build`.
 
 ```python
 import quilt3
+
 p = quilt3.Package()
 
 top_hash = p.build("aneesh/test_data")

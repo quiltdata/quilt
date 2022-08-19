@@ -33,6 +33,7 @@ S3 = boto3.client("s3")
 STS = boto3.client("sts")
 ACCOUNT_ID = STS.get_caller_identity()["Account"]
 
+
 def stat(response):
     print(response["ResponseMetadata"]["HTTPStatusCode"])
 ```
@@ -169,11 +170,11 @@ AthenaQuiltAccess = {
                 "s3:PutBucketPublicAccessBlock",
             ],
             "Resource": [
-                '*',
+                "*",
                 ARN_ATHENA,
                 ARN_ATHENA + "/*",
                 ARN_QUILT,
-                ARN_QUILT + "/*"
+                ARN_QUILT + "/*",
             ],
         },
     ],
@@ -249,7 +250,6 @@ for a specific Quilt bucket, by creating proxy tables and views that represent t
 
 
 ```python
-
 BUCKET_ID = QUILT_BUCKET.replace("-", "_")
 MANIFEST_TABLE = f"{BUCKET_ID}_quilt_manifests"
 PACKAGES_TABLE = f"{BUCKET_ID}_quilt_packages"
