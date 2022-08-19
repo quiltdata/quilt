@@ -99,29 +99,49 @@ function CopyButton({ queryExecution }: CopyButtonProps) {
   )
 }
 
-const useExecutionStyles = M.makeStyles((t) => ({
-  date: {
-    whiteSpace: 'nowrap',
-  },
-  queryCell: {
-    width: '40%',
-  },
-  collapsedCell: {
-    borderBottom: 0,
-  },
-  expandingCell: {
+const useFullQueryRowStyles = M.makeStyles((t) => ({
+  cell: {
     paddingBottom: 0,
     paddingTop: 0,
   },
-  actionCell: {
-    width: '24px',
+  collapsed: {
+    borderBottom: 0,
   },
-  expandedQuery: {
+  query: {
     maxHeight: t.spacing(30),
     maxWidth: '100%',
     overflow: 'auto',
   },
 }))
+
+interface FullQueryRowProps {
+  expanded: boolean
+  queryExecution: requests.athena.QueryExecution
+}
+
+function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
+  const classes = useFullQueryRowStyles()
+  return (
+    <M.TableRow>
+      <M.TableCell
+        padding="checkbox"
+        className={cx(classes.cell, {
+          [classes.collapsed]: !expanded,
+        })}
+      >
+        {!!expanded && <CopyButton queryExecution={queryExecution} />}
+      </M.TableCell>
+      <M.TableCell
+        colSpan={4}
+        className={cx(classes.cell, { [classes.collapsed]: !expanded })}
+      >
+        <M.Collapse in={expanded}>
+          <pre className={classes.query}>{queryExecution.query}</pre>
+        </M.Collapse>
+      </M.TableCell>
+    </M.TableRow>
+  )
+}
 
 interface ExecutionProps {
   bucket: string
@@ -130,26 +150,23 @@ interface ExecutionProps {
 }
 
 function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
-  const classes = useExecutionStyles()
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
 
   return (
     <>
       <M.TableRow>
-        <M.TableCell padding="checkbox" className={classes.actionCell}>
+        <M.TableCell padding="checkbox">
           <ToggleButton expanded={expanded} onClick={onToggle} />
         </M.TableCell>
-        <M.TableCell className={classes.queryCell}>
-          {trimCenter(queryExecution.query, 50)}
-        </M.TableCell>
+        <M.TableCell>{trimCenter(queryExecution.query, 50)}</M.TableCell>
         <M.TableCell>
           <abbr title={queryExecution.id}>{queryExecution.status}</abbr>
         </M.TableCell>
-        <M.TableCell className={classes.date}>
+        <M.TableCell>
           <Date date={queryExecution.created} />
         </M.TableCell>
-        <M.TableCell className={classes.date}>
+        <M.TableCell>
           <QueryDateCompleted
             queryExecution={queryExecution}
             bucket={bucket}
@@ -158,24 +175,7 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
         </M.TableCell>
       </M.TableRow>
       {queryExecution.query && (
-        <M.TableRow>
-          <M.TableCell
-            padding="checkbox"
-            className={cx(classes.actionCell, classes.expandingCell, {
-              [classes.collapsedCell]: !expanded,
-            })}
-          >
-            {!!expanded && <CopyButton queryExecution={queryExecution} />}
-          </M.TableCell>
-          <M.TableCell
-            colSpan={4}
-            className={cx(classes.expandingCell, { [classes.collapsedCell]: !expanded })}
-          >
-            <M.Collapse in={expanded}>
-              <pre className={classes.expandedQuery}>{queryExecution.query}</pre>
-            </M.Collapse>
-          </M.TableCell>
-        </M.TableRow>
+        <FullQueryRow expanded={expanded} queryExecution={queryExecution} />
       )}
     </>
   )
