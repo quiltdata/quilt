@@ -12,6 +12,7 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -426,6 +427,11 @@ export default function File({
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
+  const bookmarks = Bookmarks.use()
+  const isBookmarked = React.useMemo(
+    () => bookmarks?.isBookmarked('main', handle),
+    [bookmarks, handle],
+  )
 
   return (
     <FileView.Root>
@@ -469,6 +475,12 @@ export default function File({
               onEdit={editorState.onEdit}
             />
           )}
+          <FileView.AdaptiveButtonLayout
+            className={classes.button}
+            icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
+            label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+            onClick={() => bookmarks?.toggle('main', handle)}
+          />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
