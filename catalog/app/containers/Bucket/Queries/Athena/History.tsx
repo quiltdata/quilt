@@ -30,9 +30,7 @@ const useExecutionStyles = M.makeStyles((t) => ({
     transition: 'ease transform .15s',
   },
   actionCell: {
-    width: '46px',
-    paddingLeft: t.spacing(2),
-    paddingRight: 0,
+    width: '24px',
   },
   expandedToggle: {
     transform: 'rotate(90deg)',
@@ -41,7 +39,6 @@ const useExecutionStyles = M.makeStyles((t) => ({
     maxHeight: t.spacing(30),
     maxWidth: '100%',
     overflow: 'auto',
-    padding: t.spacing(1),
   },
 }))
 
@@ -88,7 +85,7 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
   return (
     <>
       <M.TableRow>
-        <M.TableCell className={classes.actionCell}>
+        <M.TableCell padding="checkbox" className={classes.actionCell}>
           <M.IconButton
             onClick={onToggle}
             size="small"
@@ -116,29 +113,30 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
           )}
         </M.TableCell>
       </M.TableRow>
-      <M.TableRow>
-        <M.TableCell
-          className={cx(classes.actionCell, classes.expandingCell, {
-            [classes.collapsedCell]: !expanded,
-          })}
-        >
-          <M.Collapse in={expanded}>
-            {queryExecution.query && (
+      {queryExecution.query && (
+        <M.TableRow>
+          <M.TableCell
+            padding="checkbox"
+            className={cx(classes.actionCell, classes.expandingCell, {
+              [classes.collapsedCell]: !expanded,
+            })}
+          >
+            {!!expanded && (
               <M.IconButton onClick={handleCopy} size="small">
                 <M.Icon>content_copy</M.Icon>
               </M.IconButton>
             )}
-          </M.Collapse>
-        </M.TableCell>
-        <M.TableCell
-          colSpan={4}
-          className={cx(classes.expandingCell, { [classes.collapsedCell]: !expanded })}
-        >
-          <M.Collapse in={expanded}>
-            <pre className={classes.expandedQuery}>{queryExecution.query}</pre>
-          </M.Collapse>
-        </M.TableCell>
-      </M.TableRow>
+          </M.TableCell>
+          <M.TableCell
+            colSpan={4}
+            className={cx(classes.expandingCell, { [classes.collapsedCell]: !expanded })}
+          >
+            <M.Collapse in={expanded}>
+              <pre className={classes.expandedQuery}>{queryExecution.query}</pre>
+            </M.Collapse>
+          </M.TableCell>
+        </M.TableRow>
+      )}
     </>
   )
 }
@@ -157,9 +155,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '40%',
   },
   actionCell: {
-    width: '46px',
-    paddingLeft: t.spacing(2),
-    paddingRight: 0,
+    width: '24px',
   },
   header: {
     margin: t.spacing(0, 0, 1),
