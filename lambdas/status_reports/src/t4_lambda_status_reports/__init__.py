@@ -8,26 +8,27 @@ import typing as T
 import aiobotocore.session
 import jinja2
 
-from t4_lambda_shared.utils import get_quilt_logger
-
 
 CANARIES_PER_REQUEST = 5
 
-logger = get_quilt_logger()
-
-STACK_NAME = os.getenv("STACK_NAME")
 AWS_REGION = os.getenv("AWS_REGION")
-SERVICE_BUCKET = os.getenv("SERVICE_BUCKET")
-REPORTS_PREFIX = os.getenv("REPORTS_PREFIX")
-assert STACK_NAME
 assert AWS_REGION
-assert SERVICE_BUCKET
-assert REPORTS_PREFIX
 
 
-async def list_canaries(cfn) -> T.List[str]:
+session = aiobotocore.session.get_session()
+
+
+def create_cfn():
+    return session.create_client("cloudformation", region_name=AWS_REGION)
+
+
+def create_syn():
+    return session.create_client("synthetics", region_name=AWS_REGION)
+
+
+async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
     result = []
-    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=STACK_NAME):
+    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
         for r in page["StackResourceSummaries"]:
             if r["ResourceType"] == "AWS::Synthetics::Canary":
                 result.append(r["PhysicalResourceId"])
@@ -46,8 +47,8 @@ async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
     return list(itertools.chain(*[p[key] for p in pages]))
 
 
-async def get_data(syn, cfn) -> dict:
-    names = await list_canaries(cfn)
+async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
+    names = await list_stack_canaries(cfn, stack_name)
     describe_result, describe_last_run_result = await asyncio.gather(
         drain(syn, "describe_canaries", "Canaries", names),
         drain(syn, "describe_canaries_last_run", "CanariesLastRun", names),
@@ -97,17 +98,24 @@ async def get_data(syn, cfn) -> dict:
         else:
             c.update(ok=state == "PASSED", lastRun=prev["Timeline"]["Completed"])
 
-    return {
-        "canaries": canaries,
-        "latestStats": {
-            "passed": len([c for c in canaries if c["ok"] is True]),
-            "failed": len([c for c in canaries if c["ok"] is False]),
-            "running": len([c for c in canaries if c["ok"] is None]),
-        },
-    }
+    return canaries
+
+
+async def get_resources(cfn, stack_name: str) -> T.List[dict]:
+    result = []
+    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
+        for r in page["StackResourceSummaries"]:
+            result.append(r)
+    return result
+
+
+async def get_stack_data(cfn, stack_name: str) -> dict:
+    resp = await cfn.describe_stacks(StackName=stack_name)
+    return resp["Stacks"][0]
 
 
 jenv = jinja2.Environment(autoescape=jinja2.select_autoescape())
+# TODO: inline CSS
 tmpl = jenv.from_string(
 """
 <!DOCTYPE html>
@@ -117,11 +125,21 @@ tmpl = jenv.from_string(
     <title>Status Report</title>
 </head>
 <body>
-    <h1>Status Report</h1>
+    <h1>Quilt Status Report</h1>
+    <dl>
+        <dt>CloudFormation Stack:</dt>
+        <dd>{{ stack_name }}</dd>
+        <dt>AWS Region:</dt>
+        <dd>{{ aws_region }}</dd>
+        <dt>Timestamp:</dt>
+        <dd>{{ now.isoformat() }}</dd>
+    </dl>
+
+    <h2>Operational Qualification</h2>
     <table>
         <thead>
             <tr>
-                <th>Group / Title </th>
+                <th>Test</th>
                 <th>Schedule</th>
                 <th>State</th>
                 <th>Last Run</th>
@@ -153,10 +171,93 @@ tmpl = jenv.from_string(
             {% endfor %}
         </tbody>
     </table>
+
+    <h2>Installation Qualification</h2>
+
+    <h3>Stack Resources</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Logical ID</th>
+                <th>Physical ID</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Last Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in resources %}
+                <tr>
+                    <td>{{ r.LogicalResourceId }}</td>
+                    <td>{{ r.PhysicalResourceId }}</td>
+                    <td>{{ r.ResourceType }}</td>
+                    <td>{{ r.ResourceStatus }}</td>
+                    <td>{{ r.LastUpdatedTimestamp.isoformat() }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Stack Outputs</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Output Key</th>
+                <th>Value</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in stack_data.Outputs %}
+                <tr>
+                    <td>{{ o.OutputKey }}</td>
+                    <td>{{ o.OutputValue }}</td>
+                    <td>{{ o.Description }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3>Stack Parameters</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Parameter Key</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in stack_data.Parameters %}
+                <tr>
+                    <td>{{ p.ParameterKey }}</td>
+                    <td>{{ p.ParameterValue }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </body>
 </html>
 """
 )
+
+
+async def generate_status_report(stack_name: str):
+    async with create_cfn() as cfn, create_syn() as syn:
+        now = datetime.datetime.utcnow()
+        canaries, resources, stack_data = await asyncio.gather(
+            get_canaries(syn, cfn, stack_name),
+            get_resources(cfn, stack_name),
+            get_stack_data(cfn, stack_name),
+        )
+        html = tmpl.render(
+            stack_name=stack_name,
+            aws_region=AWS_REGION,
+            now=now,
+            canaries=canaries,
+            resources=resources,
+            stack_data=stack_data,
+        )
+        return now, html
 
 
 def async_handler(f):
@@ -167,26 +268,29 @@ def async_handler(f):
     return wrapper
 
 
-# XXX: figure out input parameters (are they even necessary?)
 @async_handler
-async def generate_status_reports(*_):
-    session = aiobotocore.session.get_session()
-    async with \
-            session.create_client("s3") as s3, \
-            session.create_client("cloudformation", region_name=AWS_REGION) as cfn, \
-            session.create_client("cloudwatch", region_name=AWS_REGION) as cw, \
-            session.create_client("synthetics", region_name=AWS_REGION) as syn:
+async def lambda_handler(*_):
+    stack_name = os.getenv("STACK_NAME")
+    assert stack_name
+    bucket = os.getenv("SERVICE_BUCKET")
+    assert bucket
 
-        now = datetime.datetime.utcnow()
-        key = REPORTS_PREFIX + now.strftime("/%Y/%m/%d/%H-%M-%S.html")
-        data = await get_data(syn, cfn)
-        html = tmpl.render(**data, now=now)
-        resp = await s3.put_object(
-            Bucket=SERVICE_BUCKET,
+    now, html = await generate_status_report(stack_name)
+    async with session.create_client("s3") as s3:
+        prefix = os.getenv("REPORTS_PREFIX") or "status-reports"
+        key = prefix + now.strftime("/%Y/%m/%d/%H-%M-%S.html")
+        await s3.put_object(
+            Bucket=bucket,
             Key=key,
             Body=html,
             ContentType="text/html",
         )
-        logger.warn(f"report written to {key}", resp)
-        # XXX: dont return anything
-        return html
+
+
+if __name__ == "__main__":
+    import sys
+    args = sys.argv[1:]
+    stack_name = args[0] if len(args) >= 1 else os.getenv("STACK_NAME")
+    assert stack_name
+    now, html = asyncio.run(generate_status_report(stack_name))
+    print(html)
