@@ -9,18 +9,20 @@ from quilt3.util import QuiltException
 
 # Constants
 
+data_dir = pathlib.Path(__file__).parent / 'data'
+
 
 # Code
-def test_buggy_parquet():
+@pytest.mark.parametrize('parquet_handler', FormatRegistry.for_format('parquet'))
+def test_buggy_parquet(parquet_handler):
     """
     Test that Quilt avoids crashing on bad Pandas metadata from
     old pyarrow libaries.
     """
-    path = pathlib.Path(__file__).parent
-    for parquet_handler in FormatRegistry.for_format('parquet'):
-        with open(path / 'data' / 'buggy_parquet.parquet', 'rb') as bad_parq:
-            # Make sure this doesn't crash.
-            parquet_handler.deserialize(bad_parq.read())
+    path = data_dir / 'buggy_parquet.parquet'
+    data = path.read_bytes()
+    # Make sure this doesn't crash.
+    parquet_handler.deserialize(data)
 
 
 def test_formats_for_obj():
@@ -91,7 +93,7 @@ def test_formats_serdes():
 
 
 def test_formats_csv_read():
-    csv_file = pathlib.Path(__file__).parent / 'data' / 'csv.csv'
+    csv_file = data_dir / 'csv.csv'
 
     meta = {'format': {'name': 'csv'}}
     expected_bytes = b'a,b,c,d\n1,2,3,4\n5,6,7,8\n'
@@ -144,6 +146,11 @@ def test_formats_csv_roundtrip():
 
     assert test_data == bin
     assert df1.equals(df2)
+
+
+def test_formats_anndata():
+    ad_file = data_dir / 'test.h5ad'
+
 
 
 def test_formats_search_fail_notfound():
