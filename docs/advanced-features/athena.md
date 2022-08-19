@@ -24,8 +24,8 @@ This allows you to configure AWS services by calling Python objects:
 import boto3, json, re, time
 
 SESSION = boto3.session.Session()
-print(SESSION)
 REGION = SESSION.region_name
+print(SESSION)
 
 ATHENA = boto3.client("athena")
 IAM = boto3.resource("iam")
@@ -53,13 +53,19 @@ Later we will explicitly grant Quilt access to that Bucket.
 
 
 ```python
+QUILT_BUCKET = "quilt-example"  # Use your own
 COMPANY = "mycompany"
 ATHENA_BUCKET = f"{COMPANY}-quilt-athena-output"
+QUILT_URL = "s3://" + QUILT_BUCKET  # With S3 Prefix
+
+
 ATHENA_DB = "quilt_metadata"
 ATHENA_URL = "s3://" + ATHENA_BUCKET
 ATHENA_WORKGROUP = "QuiltQueries"
 
 ARN_ATHENA = f"arn:aws:s3:::{ATHENA_BUCKET}"
+ARN_CATALOG = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:catalog"
+ARN_QUILT = f"arn:aws:s3:::{QUILT_BUCKET}"
 ARN_WORKGROUP = f"arn:aws:athena:{REGION}:{ACCOUNT_ID}:workgroup/{ATHENA_WORKGROUP}"
 
 # Create bucket in default region
@@ -108,6 +114,14 @@ stat(sqe)
     200
 
 
+
+```python
+print(ATHENA_URL)
+```
+
+    s3://mycompany-quilt-athena-output
+
+
 ## II. Granting Access to Athena
 
 By default, Quilt runs with very conservative permissions that do not allow access to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html). To enable Athena SQL queries by your Quilt users, you must:
@@ -127,7 +141,7 @@ ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
 AthenaQuiltAccess = {
     "Version": "2012-10-17",
     "Statement": [
-        {"Effect": "Allow", "Action": ["athena:*"], "Resource": [ARN_WORKGROUP]},
+        {"Effect": "Allow", "Action": ["athena:*"], "Resource": ["*"]},
         {
             "Effect": "Allow",
             "Action": [
@@ -139,7 +153,7 @@ AthenaQuiltAccess = {
                 "glue:GetTable",
                 "glue:GetTables",
             ],
-            "Resource": [ARN_WORKGROUP],
+            "Resource": ["*"],
         },
         {
             "Effect": "Allow",
@@ -154,7 +168,13 @@ AthenaQuiltAccess = {
                 "s3:PutObject",
                 "s3:PutBucketPublicAccessBlock",
             ],
-            "Resource": [ARN_ATHENA],
+            "Resource": [
+                '*',
+                ARN_ATHENA,
+                ARN_ATHENA + "/*",
+                ARN_QUILT,
+                ARN_QUILT + "/*"
+            ],
         },
     ],
 }
@@ -172,7 +192,15 @@ except:
     iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
 
 
-### B. Attach this policy to your CloudFormation stack.
+
+```python
+print(ARN_CATALOG)
+```
+
+    arn:aws:glue:us-east-1:712023778557:catalog
+
+
+### B. Add this policy to your CloudFormation stack.
  
 This needs to be done manually by your AWS Administrator:
 
@@ -181,13 +209,12 @@ This needs to be done manually by your AWS Administrator:
 3. Click "Update"
 4. Select "Use current template" and click "Next"
 5. Add the above ARN to the "ManagedUserRoleExtraPolicies" field
-6. Click "Next" to configure stack options
+6. Click "Next" (possibly twice) to configure stack options
 7. Check "I acknowledge that AWS CloudFormation might create IAM resources with custom names"
 5. Click "Update stack" to save changes
     
-### C. Add that AWS policy as a Quilt catalog Policy
+### C. Create a new AWS Role with that + existing Policies
 
-This needs to be done manually by a Quilt Administrator:
 
 1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
 2. Click on "Admin Settings" in the upper right, under your Profile name
@@ -197,9 +224,9 @@ This needs to be done manually by a Quilt Administrator:
 6. Check "Manually set ARN" and enter ARN of Athena policy
 7. Click "Create"
     
-### D. Attach that Policy to a (new) Quilt Role
+### D. Create a Quilt Role using that AWS Role 
 
-You cannot attach a policy to the "Custom" Roles, so you will usually need to first create a new Role:
+This needs to be done manually by a Quilt Administrator:
 
 1. From "Admin Settings", scroll to "Roles"
 2. Click on the "+" to create a new Role
@@ -222,8 +249,6 @@ for a specific Quilt bucket, by creating proxy tables and views that represent t
 
 
 ```python
-QUILT_BUCKET = "quilt-example"  # Use your own
-QUILT_URL = "s3://" + QUILT_BUCKET  # With S3 Prefix
 
 BUCKET_ID = QUILT_BUCKET.replace("-", "_")
 MANIFEST_TABLE = f"{BUCKET_ID}_quilt_manifests"
@@ -512,8 +537,8 @@ if success:
     	athena_await[7]=RUNNING
     	athena_await[6]=RUNNING
     	athena_await[5]=RUNNING
-    athena_await.s3_path: s3://mycompany-quilt-athena-output/3ac1d9b1-1702-47db-aa84-e3f9e321513c.csv
-    athena_await 3ac1d9b1-1702-47db-aa84-e3f9e321513c.csv
+    athena_await.s3_path: s3://mycompany-quilt-athena-output/94eaf940-8c44-4ccb-a2af-60f55124f43f.csv
+    athena_await 94eaf940-8c44-4ccb-a2af-60f55124f43f.csv
     results
     (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
 
