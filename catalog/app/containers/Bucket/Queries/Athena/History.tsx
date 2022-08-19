@@ -9,6 +9,7 @@ import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
+import { trimCenter } from 'utils/string'
 
 import * as requests from '../requests'
 
@@ -39,6 +40,24 @@ function ToggleButton({ expanded, onClick }: ToggleButtonProps) {
   )
 }
 
+const useDateStyles = M.makeStyles({
+  root: {
+    whiteSpace: 'nowrap',
+  },
+})
+interface DateProps {
+  date?: Date
+}
+
+function Date({ date }: DateProps) {
+  const classes = useDateStyles()
+  const formatted = React.useMemo(
+    () => (date ? dateFns.format(date, 'MMM do, HH:mm:ss') : null),
+    [date],
+  )
+  return <span className={classes.root}>{formatted}</span>
+}
+
 interface QueryDateCompletedProps {
   bucket: string
   queryExecution: requests.athena.QueryExecution
@@ -51,17 +70,12 @@ function QueryDateCompleted({
   workgroup,
 }: QueryDateCompletedProps) {
   const { urls } = NamedRoutes.use()
-  const date = React.useMemo(
-    () =>
-      queryExecution.completed
-        ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
-        : null,
-    [queryExecution.completed],
-  )
-  if (queryExecution.status !== 'SUCCEEDED') return <>{date}</>
+  if (queryExecution.status !== 'SUCCEEDED') {
+    return <Date date={queryExecution.completed} />
+  }
   return (
     <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
-      {date}
+      <Date date={queryExecution.completed} />
     </Link>
   )
 }
@@ -119,15 +133,6 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
   const classes = useExecutionStyles()
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
-  const trimmedQuery = React.useMemo(
-    () =>
-      !queryExecution.query || queryExecution.query.length <= 30
-        ? queryExecution.query
-        : `${queryExecution.query?.substring(0, 30)} … ${queryExecution.query?.substr(
-            -20,
-          )}`,
-    [queryExecution.query],
-  )
 
   return (
     <>
@@ -135,14 +140,14 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
         <M.TableCell padding="checkbox" className={classes.actionCell}>
           <ToggleButton expanded={expanded} onClick={onToggle} />
         </M.TableCell>
-        <M.TableCell className={classes.queryCell}>{trimmedQuery}</M.TableCell>
+        <M.TableCell className={classes.queryCell}>
+          {trimCenter(queryExecution.query, 50)}
+        </M.TableCell>
         <M.TableCell>
           <abbr title={queryExecution.id}>{queryExecution.status}</abbr>
         </M.TableCell>
         <M.TableCell className={classes.date}>
-          {queryExecution.created
-            ? dateFns.format(queryExecution.created, 'MMM do, HH:mm:ss')
-            : null}
+          <Date date={queryExecution.created} />
         </M.TableCell>
         <M.TableCell className={classes.date}>
           <QueryDateCompleted
