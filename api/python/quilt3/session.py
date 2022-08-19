@@ -9,9 +9,12 @@ import stat
 import subprocess
 import sys
 import time
+try:
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
 
 import botocore.session
-import pkg_resources
 import requests
 from botocore.credentials import (
     CredentialProvider,
@@ -23,33 +26,33 @@ from .util import BASE_PATH, QuiltException, get_from_config
 
 AUTH_PATH = BASE_PATH / 'auth.json'
 CREDENTIALS_PATH = BASE_PATH / 'credentials.json'
-VERSION = pkg_resources.require('quilt3')[0].version
+VERSION = metadata.version('quilt3')
 
 
 def _load_auth():
     if AUTH_PATH.exists():
-        with open(AUTH_PATH, encoding='utf-8') as fd:
+        with AUTH_PATH.open(encoding='utf-8') as fd:
             return json.load(fd)
     return {}
 
 
 def _save_auth(cfg):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
-    with open(AUTH_PATH, 'w', encoding='utf-8') as fd:
+    with AUTH_PATH.open('w', encoding='utf-8') as fd:
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
 
 def _load_credentials():
     if CREDENTIALS_PATH.exists():
-        with open(CREDENTIALS_PATH, encoding='utf-8') as fd:
+        with CREDENTIALS_PATH.open(encoding='utf-8') as fd:
             return json.load(fd)
     return {}
 
 
 def _save_credentials(creds):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
-    with open(CREDENTIALS_PATH, 'w', encoding='utf-8') as fd:
+    with CREDENTIALS_PATH.open('w', encoding='utf-8') as fd:
         CREDENTIALS_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(creds, fd)
 

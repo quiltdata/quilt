@@ -2,8 +2,10 @@
 
 import subprocess
 import sys
-
-import pkg_resources
+try:
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
 
 try:
     from pip._internal import main as pipmain
@@ -34,10 +36,9 @@ def gen_walkthrough_doc():
 
 def install_pydocmd():
     try:
-        pydocmd_dist = pkg_resources.get_distribution('pydoc-markdown')  # install name, not module name
-        version = pydocmd_dist.version
-    except pkg_resources.DistributionNotFound:
-        version = ''
+        version = metadata.version('pydoc-markdown')  # install name, not module name
+    except metadata.PackageNotFoundError:
+        version = None
 
     if not version.endswith(EXPECTED_VERSION_SUFFIX):
         valid_input = ['y', 'n', 'yes', 'no']
