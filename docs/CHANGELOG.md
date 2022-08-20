@@ -29,6 +29,7 @@
 * [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
 * [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
 * [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointer objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
+* [Changed] Remove ClientRequestToken (idempotency token) for making Athena queries ([#2992](https://github.com/quiltdata/quilt/pull/2992))
 
 ## Docs
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
