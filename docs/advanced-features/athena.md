@@ -17,7 +17,16 @@ You can alternatively copy and paste code blocks into your Python editor.
 %pip install boto3
 ```
 
+You should set COMPANY_NAME and QUILT_BUCKET so the examples work in your enviornment
+
+
+```python
+COMPANY_NAME = "mycompany"
+QUILT_BUCKET = "quilt-example"  # Use one of your own, without the S3 URL prefix
+```
+
 This allows you to configure AWS services by calling Python objects:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
@@ -34,35 +43,29 @@ STS = boto3.client("sts")
 ACCOUNT_ID = STS.get_caller_identity()["Account"]
 
 
-def stat(response):
+def stat(response, label='response'):
+    print(label+": ", end='')
     print(response["ResponseMetadata"]["HTTPStatusCode"])
 ```
 
-    Session(region_name='us-east-1')
-
-
 ## I. Create Athena Configuration: Workgroup, Bucket, and Database
 
-Quilt expects a dedicated bucket for the output from Athena queries, which is best to setup in its own workgroup and database.
+Quilt expects a dedicated bucket for the output from Athena queries, which is best to setup in its own workgroup and database:
 
-1. Create the output Bucket `<mycompany>-quilt-athena-output`
-2. Create a `QuiltWorkgroup` that uses that Bucket
-3. Create an Athena Database `quilt-metadata` for that Workgroup
+1. Create the output Bucket `<mycompany>-quilt-query-results`
+2. Create a `quilt-query` workgroup that uses that Bucket
+3. Create a `quilt_query` Athena Database for that Workgroup
 
 Later we will explicitly grant Quilt access to that Bucket.
 <!--pytest-codeblocks:cont-->
 
 
 ```python
-QUILT_BUCKET = "quilt-example"  # Use your own
-COMPANY = "mycompany"
-ATHENA_BUCKET = f"{COMPANY}-quilt-athena-output"
-QUILT_URL = "s3://" + QUILT_BUCKET  # With S3 Prefix
-
-
-ATHENA_DB = "quilt_metadata"
+ATHENA_DB = "quilt_query"
+ATHENA_WORKGROUP = ATHENA_DB.replace("_","-")
+ATHENA_BUCKET = f"{COMPANY_NAME}-{ATHENA_WORKGROUP}-results"
 ATHENA_URL = "s3://" + ATHENA_BUCKET
-ATHENA_WORKGROUP = "QuiltQueries"
+QUILT_URL = "s3://" + QUILT_BUCKET  # Adds S3 Prefix
 
 ARN_ATHENA = f"arn:aws:s3:::{ATHENA_BUCKET}"
 ARN_CATALOG = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:catalog"
@@ -76,22 +79,22 @@ bucket = (
     if REGION == "us-east-1"
     else S3.create_bucket(Bucket=ATHENA_BUCKET, CreateBucketConfiguration=location)
 )
-stat(bucket)
+stat(bucket, ATHENA_BUCKET)
 # print(bucket)
 
 # Create Workgroup which outputs to that Bucket (if needed)
 
-lwg = ATHENA.list_work_groups()
-wgs = [wg["Name"] for wg in lwg["WorkGroups"]]
+wg_list = ATHENA.list_work_groups()
+wg_names = [wg["Name"] for wg in wg_list["WorkGroups"]]
 
-if ATHENA_WORKGROUP not in wgs:
-    cwg = ATHENA.create_work_group(
+if ATHENA_WORKGROUP not in wg_names:
+    wg_create = ATHENA.create_work_group(
         Name=ATHENA_WORKGROUP, Description="Quilt uses this for Athena SQL Queries"
     )
-    stat(cwg)
+    stat(wg_create)
 
 # Configure Workgroup to use that Bucket
-uwg = ATHENA.update_work_group(
+wg_update = ATHENA.update_work_group(
     WorkGroup=ATHENA_WORKGROUP,
     ConfigurationUpdates={
         "ResultConfigurationUpdates": {
@@ -99,29 +102,17 @@ uwg = ATHENA.update_work_group(
         },
     },
 )
-stat(uwg)
+stat(wg_update, 'wg_update')
 
 # Create new GLUE Database
 
-sqe = ATHENA.start_query_execution(
+db_create = ATHENA.start_query_execution(
     QueryString=f"create database {ATHENA_DB}",
     ResultConfiguration={"OutputLocation": ATHENA_URL + "/queries/"},
 )
-stat(sqe)
+stat(db_create, 'db_create')
+#print(ATHENA_URL)
 ```
-
-    200
-    200
-    200
-
-
-
-```python
-print(ATHENA_URL)
-```
-
-    s3://mycompany-quilt-athena-output
-
 
 ## II. Granting Access to Athena
 
@@ -136,8 +127,6 @@ The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/p
 ```python
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.ServiceResource.create_policy
 # https://docs.aws.amazon.com/athena/latest/ug/workgroups-access.html
-
-ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
 
 AthenaQuiltAccess = {
     "Version": "2012-10-17",
@@ -179,27 +168,45 @@ AthenaQuiltAccess = {
         },
     ],
 }
-try:
-    AthenaQuiltPolicy = IAM.create_policy(
-        PolicyName="AthenaQuiltAccess",
-        PolicyDocument=json.dumps(AthenaQuiltAccess),
-        Description="Minimal Athena Access policy for Quilt",
-    )
-    print(AthenaQuiltPolicy)
-except:
-    print("Policy `AthenaQuiltAccess` already exists: " + ARN_POLICY)
+
 ```
 
-    iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
-
+If you have used that policy before, you should detatch and delete it before creating a new one:
+<!--pytest-codeblocks:cont-->
 
 
 ```python
-print(ARN_CATALOG)
+def find_role(role_id):
+    for role in IAM.roles.all():
+        if role_id in role.role_name: return role.role_name
+    return False
+
+ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
+ROLE_ID="ReadWriteQuiltV2"
+QUILT_ROLE = find_role(ROLE_ID)
+print(QUILT_ROLE)
+
+try:
+    old_policy = IAM.Policy(ARN_POLICY)
+    old_policy.detach_role(RoleName=QUILT_ROLE)
+except BaseException as err:
+    print(f"Policy not found or not in Role: {QUILT_ROLE}")
+    print(err)
+
+try:
+    old_policy.delete()
+except BaseException as err:
+    print(f"Cannot delete Policy: {ARN_POLICY}")
+    print(err)
+
+    
+AthenaQuiltPolicy = IAM.create_policy(
+    PolicyName="AthenaQuiltAccess",
+    PolicyDocument=json.dumps(AthenaQuiltAccess),
+    Description="Minimal Athena Access policy for Quilt",
+)
+print(AthenaQuiltPolicy)
 ```
-
-    arn:aws:glue:us-east-1:712023778557:catalog
-
 
 ### B. Add this policy to your CloudFormation stack.
  
@@ -214,38 +221,43 @@ This needs to be done manually by your AWS Administrator:
 7. Check "I acknowledge that AWS CloudFormation might create IAM resources with custom names"
 5. Click "Update stack" to save changes
     
-### C. Create a new AWS Role with that + existing Policies
+### C. Attach that Policy to the AWS ReadWrite Role for Quilt
 
+1. Find the "ReadWriteQuiltV2" Role for your Quilt stack
+2. Attach the "AthenaQuiltPolicy" to that Role
+3. Do the same for any other AWS-Sourced ("Custom") Roles used by your users
+<!--pytest-codeblocks:cont-->
+
+
+```python
+AthenaQuiltPolicy.attach_role(RoleName=QUILT_ROLE)
+```
+
+### D. (Optional) Attach that Policy to the Quilt Roles
+
+If you have Users on other, Quilt-managed Roles that need to access Athena, you will need to login to Quilt to add this Policy and attach it to those Roles:
 
 1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
 2. Click on "Admin Settings" in the upper right, under your Profile name
 3. Scroll down to the "Policies" section on the bottom
 4. Click on the "+" to create a new Policy
-5. Set Title to "AthenaQuiltAccess"
+5. Set Title to "AthenaQuiltPolicy"
 6. Check "Manually set ARN" and enter ARN of Athena policy
 7. Click "Create"
-    
-### D. Create a Quilt Role using that AWS Role 
+8. Scroll back up to "Roles"
+9. Choose a "Source=Quilt" Role and click the pencil icon to Edit
+10. Click "Attach a policy..."
+11. Select "AthenaQuiltPolicy"
+12. Click "SAVE"
+13. Click "Go to bucket" in the upper-right to leave "Admin Settings"
 
-This needs to be done manually by a Quilt Administrator:
-
-1. From "Admin Settings", scroll to "Roles"
-2. Click on the "+" to create a new Role
-3. Set Name to e.g., "AthenaAccessRole"
-4. Click on "No policies attached.  Attach a policy…"
-5. Select the "AthenaQuiltAccess" policy from before
-6. Click "Create"
-
-### E. Attach that Role to Quilt Users
-1. From "Admin Settings", scroll to "Users"
-2. Find the User(s) who need Athena Access (may need to page through or increase "Rows per page")
-3. Set Role to "AthenaAccessRole"
 
 See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 
 ## III. Defining Per-Bucket Metadata Tables in Athena
-The next step is enabling Athena to query the package contents and metadata
-for a specific Quilt bucket, by creating proxy tables and views that represent those files:
+
+For each Bucket you want to query with Athena, you need to create proxy tables and views for that package contents and metadata.  You can also create custom views that join across many such tables.
+
 <!--pytest-codeblocks:cont-->
 
 
@@ -404,7 +416,7 @@ SELECT
   npv."timestamp",
   mv."tophash",
   mv."logical_key",
-  mv."physical_keys[1]" as "physical_key",
+  mv."physical_keys",
   mv."hash",
   mv."meta",
   mv."user_meta"
@@ -416,28 +428,93 @@ ON
 """
 ```
 
-You can run the following Python code to create the preceding tables and views:
+## IV. Calling Athena
+
+In order to call Athena, you must submit a query then wait for it to complete
+<!--pytest-codeblocks:cont-->
+
+
+```python
+# https://www.ilkkapeltola.fi/2018/04/simple-way-to-query-amazon-athena-in.html
+QUERY_ID = "QueryExecutionId"
+TAIL_PATH = re.compile(r".*\/(.*)")
+
+
+def athena_await(resp, max_execution=10):
+    id = resp[QUERY_ID]
+    state = "QUEUED"
+    while max_execution > 0 and state in ["RUNNING", "QUEUED"]:
+        max_execution = max_execution - 1
+        response = ATHENA.get_query_execution(QueryExecutionId=id)
+        if (
+            "QueryExecution" in response
+            and "Status" in response["QueryExecution"]
+            and "State" in response["QueryExecution"]["Status"]
+        ):
+            status = response["QueryExecution"]["Status"]
+            state = status["State"]
+            print(f"\t#{max_execution} athena_await[{id}]={state}")
+
+            if state == "FAILED":
+                print(status)
+                return False
+            elif state == "SUCCEEDED":
+                s3_path = response["QueryExecution"]["ResultConfiguration"][
+                    "OutputLocation"
+                ]
+                print("athena_await[{id}].s3_path:", s3_path)
+                filename = TAIL_PATH.findall(s3_path)[0]
+                return filename
+        time.sleep(1)
+
+    return False
+
+
+def athena_results(resp):
+    id = resp[QUERY_ID]
+    raw = ATHENA.get_query_results(QueryExecutionId=id)
+    if raw.get("ResponseMetadata", {}).get(
+        "HTTPStatusCode"
+    ) == 200 and "Rows" in raw.get("ResultSet", {}):
+        data = [x["Data"] for x in raw["ResultSet"]["Rows"]]
+        if data and len(data)> 0:
+            cols = [d.get("VarCharValue") for d in data[0]]
+            rows = [[d.get("VarCharValue") for d in row] for row in data[1:]]
+            return (cols, rows)
+        else:
+            return raw["ResultSet"]
+    else:
+        return f"Query {id} in progress..."
+
+    
+def athena_run(query):
+    resp = ATHENA.start_query_execution(
+        WorkGroup=ATHENA_WORKGROUP,
+        QueryString=query,
+        ResultConfiguration={"OutputLocation": ATHENA_URL},
+    )
+    success = athena_await(resp)
+    print("\tathena_await", success)
+    return athena_results(resp) if success else False
+
+```
+
+### A. Creating Athena Tables and Views
+
+For example, you can run the following Python code to create the preceding tables and views:
 <!--pytest-codeblocks:cont-->
 
 
 ```python
 print(f"\nCreate Athena Tables and Views for {QUILT_BUCKET}:\n")
 for key in DDL:
-    resp = ATHENA.start_query_execution(QueryString=DDL[key])
-    print(f" - {key}: ", end="")
-    stat(resp)
+    print(key)
+    status = athena_run(DDL[key])
+    if not status: print("FAILED:\n", DDL[key])
+
 ```
 
-    
-    Create Athena Tables and Views for quilt-example:
-    
-     - quilt_example_quilt_manifests: 200
-     - quilt_example_quilt_packages: 200
-     - quilt_example_quilt_packages_view: 200
-     - quilt_example_quilt_objects_view: 200
-
-
-## Example: Querying package-level metadata
+### B. Querying package-level metadata
 
 Suppose we wish to find all .tiff files produced by algorithm version 1.3
 with a cell index of 5.
@@ -459,89 +536,14 @@ You can enter that Query directly in the Athena Query Editor using the QuiltWork
 
 
 ```python
-# https://www.ilkkapeltola.fi/2018/04/simple-way-to-query-amazon-athena-in.html
-QUERY_ID = "QueryExecutionId"
-TAIL_PATH = re.compile(r".*\/(.*)")
-
-
-def athena_await(resp, max_execution=10):
-    id = resp[QUERY_ID]
-    state = "QUEUED"
-    while max_execution > 0 and state in ["RUNNING", "QUEUED"]:
-        max_execution = max_execution - 1
-        response = ATHENA.get_query_execution(QueryExecutionId=id)
-        if (
-            "QueryExecution" in response
-            and "Status" in response["QueryExecution"]
-            and "State" in response["QueryExecution"]["Status"]
-        ):
-            state = response["QueryExecution"]["Status"]["State"]
-            if state == "FAILED":
-                print(response["QueryExecution"]["Status"])
-                return False
-            elif state == "SUCCEEDED":
-                s3_path = response["QueryExecution"]["ResultConfiguration"][
-                    "OutputLocation"
-                ]
-                print("athena_await.s3_path:", s3_path)
-                filename = TAIL_PATH.findall(s3_path)[0]
-                return filename
-        print(f"\tathena_await[{max_execution}]={state}")
-        time.sleep(1)
-
-    return False
-
-
-def athena_results(resp):
-    id = resp[QUERY_ID]
-    raw = ATHENA.get_query_results(QueryExecutionId=id)
-    if raw.get("ResponseMetadata", {}).get(
-        "HTTPStatusCode"
-    ) == 200 and "Rows" in raw.get("ResultSet", {}):
-        data = [x["Data"] for x in raw["ResultSet"]["Rows"]]
-        cols = [d.get("VarCharValue") for d in data[0]]
-        rows = [[d.get("VarCharValue") for d in row] for row in data[1:]]
-        return (cols, rows)
-    else:
-        return "Query in progress..."
-
-
 print("\nTest Athena Query:")
 print(ATHENA_TEST)
 print("WorkGroup", ATHENA_WORKGROUP)
-resp = ATHENA.start_query_execution(
-    WorkGroup=ATHENA_WORKGROUP,
-    QueryString=ATHENA_TEST,
-    ResultConfiguration={"OutputLocation": ATHENA_URL},
-)
-success = athena_await(resp)
-print("athena_await", success)
-if success:
-    results = athena_results(resp)
+results = athena_run(ATHENA_TEST)
+if results:
     print("results")
     print(results)
 ```
-
-    
-    Test Athena Query:
-    
-    SELECT * FROM quilt_metadata.quilt_example_quilt_objects_view
-    WHERE substr(logical_key, -5)='.tiff'
-    -- extract and query package-level metadata
-    AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
-    AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
-    
-    WorkGroup QuiltQueries
-    	athena_await[9]=QUEUED
-    	athena_await[8]=RUNNING
-    	athena_await[7]=RUNNING
-    	athena_await[6]=RUNNING
-    	athena_await[5]=RUNNING
-    athena_await.s3_path: s3://mycompany-quilt-athena-output/94eaf940-8c44-4ccb-a2af-60f55124f43f.csv
-    athena_await 94eaf940-8c44-4ccb-a2af-60f55124f43f.csv
-    results
-    (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
-
 
 
 ```python
