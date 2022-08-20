@@ -31,28 +31,28 @@ VERSION = metadata.version('quilt3')
 
 def _load_auth():
     if AUTH_PATH.exists():
-        with AUTH_PATH.open(encoding='utf-8') as fd:
+        with open(AUTH_PATH, encoding='utf-8') as fd:
             return json.load(fd)
     return {}
 
 
 def _save_auth(cfg):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
-    with AUTH_PATH.open('w', encoding='utf-8') as fd:
+    with open(AUTH_PATH, 'w', encoding='utf-8') as fd:
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
 
 def _load_credentials():
     if CREDENTIALS_PATH.exists():
-        with CREDENTIALS_PATH.open(encoding='utf-8') as fd:
+        with open(CREDENTIALS_PATH, encoding='utf-8') as fd:
             return json.load(fd)
     return {}
 
 
 def _save_credentials(creds):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
-    with CREDENTIALS_PATH.open('w', encoding='utf-8') as fd:
+    with open(CREDENTIALS_PATH, 'w', encoding='utf-8') as fd:
         CREDENTIALS_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(creds, fd)
 
