@@ -40,28 +40,30 @@ def install_pydocmd():
     except metadata.PackageNotFoundError:
         version = None
 
-    if not version.endswith(EXPECTED_VERSION_SUFFIX):
-        valid_input = ['y', 'n', 'yes', 'no']
-        response = ''
+    if version and version.endswith(EXPECTED_VERSION_SUFFIX):
+        return
 
-        while response not in valid_input:
-            print("\nUsing {!r}:".format(sys.executable))
-            if version:
-                print("This will uninstall the existing version of pydoc-markdown ({}) first."
-                      .format(version))
-            sys.stdout.flush()
-            sys.stderr.flush()
-            response = input("    Install quilt-specific pydoc-markdown? (y/n): ").lower()
+    valid_input = ['y', 'n', 'yes', 'no']
+    response = ''
 
-        if response in ['n', 'no']:
-            print("exiting..")
-            exit()
-
+    while response not in valid_input:
+        print("\nUsing {!r}:".format(sys.executable))
         if version:
-            pipmain(['uninstall', 'pydoc-markdown'])
+            print("This will uninstall the existing version of pydoc-markdown ({}) first."
+                  .format(version))
+        sys.stdout.flush()
+        sys.stderr.flush()
+        response = input("    Install quilt-specific pydoc-markdown? (y/n): ").lower()
 
-        print(f'Installing {GH_URL}')
-        pipmain(['install', GH_URL])
+    if response in ['n', 'no']:
+        print("exiting..")
+        exit()
+
+    if version:
+        pipmain(['uninstall', 'pydoc-markdown'])
+
+    print(f'Installing {GH_URL}')
+    pipmain(['install', GH_URL])
 
 
 if __name__ == "__main__":
