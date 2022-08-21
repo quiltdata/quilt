@@ -22,7 +22,7 @@ You should set COMPANY_NAME and QUILT_BUCKET so the examples work in your envior
 
 ```python
 COMPANY_NAME = "mycompany"
-QUILT_BUCKET = "quilt-example"  # Use one of your own, without the S3 URL prefix
+QUILT_BUCKET = "allen-cell"  # Use one of your own, without the S3 URL prefix
 ```
 
 This allows you to configure AWS services by calling Python objects:
@@ -43,10 +43,13 @@ STS = boto3.client("sts")
 ACCOUNT_ID = STS.get_caller_identity()["Account"]
 
 
-def stat(response, label='response'):
-    print(label+": ", end='')
+def stat(response, label="response"):
+    print(label + ": ", end="")
     print(response["ResponseMetadata"]["HTTPStatusCode"])
 ```
+
+    Session(region_name='us-east-1')
+
 
 ## I. Create Athena Configuration: Workgroup, Bucket, and Database
 
@@ -62,7 +65,7 @@ Later we will explicitly grant Quilt access to that Bucket.
 
 ```python
 ATHENA_DB = "quilt_query"
-ATHENA_WORKGROUP = ATHENA_DB.replace("_","-")
+ATHENA_WORKGROUP = ATHENA_DB.replace("_", "-")
 ATHENA_BUCKET = f"{COMPANY_NAME}-{ATHENA_WORKGROUP}-results"
 ATHENA_URL = "s3://" + ATHENA_BUCKET
 QUILT_URL = "s3://" + QUILT_BUCKET  # Adds S3 Prefix
@@ -102,7 +105,7 @@ wg_update = ATHENA.update_work_group(
         },
     },
 )
-stat(wg_update, 'wg_update')
+stat(wg_update, "wg_update")
 
 # Create new GLUE Database
 
@@ -110,9 +113,14 @@ db_create = ATHENA.start_query_execution(
     QueryString=f"create database {ATHENA_DB}",
     ResultConfiguration={"OutputLocation": ATHENA_URL + "/queries/"},
 )
-stat(db_create, 'db_create')
-#print(ATHENA_URL)
+stat(db_create, "db_create")
+# print(ATHENA_URL)
 ```
+
+    mycompany-quilt-query-results: 200
+    wg_update: 200
+    db_create: 200
+
 
 ## II. Granting Access to Athena
 
@@ -168,7 +176,6 @@ AthenaQuiltAccess = {
         },
     ],
 }
-
 ```
 
 If you have used that policy before, you should detatch and delete it before creating a new one:
@@ -178,11 +185,13 @@ If you have used that policy before, you should detatch and delete it before cre
 ```python
 def find_role(role_id):
     for role in IAM.roles.all():
-        if role_id in role.role_name: return role.role_name
+        if role_id in role.role_name:
+            return role.role_name
     return False
 
+
 ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
-ROLE_ID="ReadWriteQuiltV2"
+ROLE_ID = "ReadWriteQuiltV2"
 QUILT_ROLE = find_role(ROLE_ID)
 print(QUILT_ROLE)
 
@@ -199,7 +208,7 @@ except BaseException as err:
     print(f"Cannot delete Policy: {ARN_POLICY}")
     print(err)
 
-    
+
 AthenaQuiltPolicy = IAM.create_policy(
     PolicyName="AthenaQuiltAccess",
     PolicyDocument=json.dumps(AthenaQuiltAccess),
@@ -207,6 +216,10 @@ AthenaQuiltPolicy = IAM.create_policy(
 )
 print(AthenaQuiltPolicy)
 ```
+
+    ReadWriteQuiltV2-aneesh-dev-aug
+    iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
+
 
 ### B. Add this policy to your CloudFormation stack.
  
@@ -232,6 +245,19 @@ This needs to be done manually by your AWS Administrator:
 ```python
 AthenaQuiltPolicy.attach_role(RoleName=QUILT_ROLE)
 ```
+
+
+
+
+    {'ResponseMetadata': {'RequestId': '8b557fb8-64d1-4316-94f1-54cd0ec37046',
+      'HTTPStatusCode': 200,
+      'HTTPHeaders': {'x-amzn-requestid': '8b557fb8-64d1-4316-94f1-54cd0ec37046',
+       'content-type': 'text/xml',
+       'content-length': '212',
+       'date': 'Sun, 21 Aug 2022 01:09:30 GMT'},
+      'RetryAttempts': 0}}
+
+
 
 ### D. (Optional) Attach that Policy to the Quilt Roles
 
@@ -477,7 +503,7 @@ def athena_results(resp):
         "HTTPStatusCode"
     ) == 200 and "Rows" in raw.get("ResultSet", {}):
         data = [x["Data"] for x in raw["ResultSet"]["Rows"]]
-        if data and len(data)> 0:
+        if data and len(data) > 0:
             cols = [d.get("VarCharValue") for d in data[0]]
             rows = [[d.get("VarCharValue") for d in row] for row in data[1:]]
             return (cols, rows)
@@ -486,7 +512,7 @@ def athena_results(resp):
     else:
         return f"Query {id} in progress..."
 
-    
+
 def athena_run(query):
     resp = ATHENA.start_query_execution(
         WorkGroup=ATHENA_WORKGROUP,
@@ -496,7 +522,6 @@ def athena_run(query):
     success = athena_await(resp)
     print("\tathena_await", success)
     return athena_results(resp) if success else False
-
 ```
 
 ### A. Creating Athena Tables and Views
@@ -510,9 +535,104 @@ print(f"\nCreate Athena Tables and Views for {QUILT_BUCKET}:\n")
 for key in DDL:
     print(key)
     status = athena_run(DDL[key])
-    if not status: print("FAILED:\n", DDL[key])
-
+    if not status:
+        print("FAILED:\n", DDL[key])
 ```
+
+    
+    Create Athena Tables and Views for allen-cell:
+    
+    allen_cell_quilt_manifests
+    	#9 athena_await[4437cdf0-3372-445e-b5e8-e650998cb61c]=RUNNING
+    	#8 athena_await[4437cdf0-3372-445e-b5e8-e650998cb61c]=RUNNING
+    	#7 athena_await[4437cdf0-3372-445e-b5e8-e650998cb61c]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/4437cdf0-3372-445e-b5e8-e650998cb61c.txt
+    	athena_await 4437cdf0-3372-445e-b5e8-e650998cb61c.txt
+    allen_cell_quilt_packages
+    	#9 athena_await[736731c8-de84-4f72-b6de-1fa9506269a3]=RUNNING
+    	#8 athena_await[736731c8-de84-4f72-b6de-1fa9506269a3]=RUNNING
+    	#7 athena_await[736731c8-de84-4f72-b6de-1fa9506269a3]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/736731c8-de84-4f72-b6de-1fa9506269a3.txt
+    	athena_await 736731c8-de84-4f72-b6de-1fa9506269a3.txt
+    allen_cell_quilt_packages_view
+    	#9 athena_await[9d300c44-7469-4f7c-a8cd-6d40b8feb9ff]=RUNNING
+    	#8 athena_await[9d300c44-7469-4f7c-a8cd-6d40b8feb9ff]=RUNNING
+    	#7 athena_await[9d300c44-7469-4f7c-a8cd-6d40b8feb9ff]=FAILED
+    {'State': 'FAILED', 'StateChangeReason': 'line 9:12: Table 712023778557.default.allen_cell_quilt_packages does not exist', 'SubmissionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 36, 649000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 38, 152000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 1, 'ErrorType': 1502, 'Retryable': False, 'ErrorMessage': 'line 9:12: Table 712023778557.default.allen_cell_quilt_packages does not exist'}}
+    	athena_await False
+    FAILED:
+     
+    CREATE OR REPLACE VIEW quilt_query.allen_cell_quilt_packages_view AS
+    WITH
+      npv AS (
+        SELECT
+          regexp_extract("$path", '^s3:\/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 4) as user,
+          regexp_extract("$path", '^s3:\/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 5) as name,
+          regexp_extract("$path", '[^/]+$') as timestamp,
+          allen_cell_quilt_packages."hash"
+          FROM allen_cell_quilt_packages
+      ),
+      mv AS (
+        SELECT
+          regexp_extract("$path", '[^/]+$') as tophash,
+            manifest."meta",
+            manifest."message"
+          FROM
+            allen_cell_quilt_manifests as manifest
+          WHERE manifest."logical_key" IS NULL
+      )
+    SELECT
+      npv."user",
+      npv."name",
+      npv."hash",
+      npv."timestamp",
+      mv."message",
+      mv."meta"
+    FROM npv
+    JOIN
+      mv
+    ON
+      npv."hash" = mv."tophash"
+    
+    allen_cell_quilt_objects_view
+    	#9 athena_await[8e7d5cd7-3a6e-4193-89a9-461177535bda]=RUNNING
+    	#8 athena_await[8e7d5cd7-3a6e-4193-89a9-461177535bda]=FAILED
+    {'State': 'FAILED', 'StateChangeReason': 'line 13:7: Table 712023778557.default.allen_cell_quilt_manifests does not exist', 'SubmissionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 39, 98000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 39, 563000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 1, 'ErrorType': 1502, 'Retryable': False, 'ErrorMessage': 'line 13:7: Table 712023778557.default.allen_cell_quilt_manifests does not exist'}}
+    	athena_await False
+    FAILED:
+     
+    CREATE OR REPLACE VIEW quilt_query.allen_cell_quilt_objects_view AS
+    WITH
+      mv AS (
+        SELECT
+          regexp_extract("$path", '[^/]+$') as tophash,
+          manifest."logical_key",
+          manifest."physical_keys",
+          manifest."size",
+          manifest."hash",
+          manifest."meta",
+          manifest."user_meta"
+        FROM
+          allen_cell_quilt_manifests as manifest
+        WHERE manifest."logical_key" IS NOT NULL
+      )
+    SELECT
+      npv."user",
+      npv."name",
+      npv."timestamp",
+      mv."tophash",
+      mv."logical_key",
+      mv."physical_keys",
+      mv."hash",
+      mv."meta",
+      mv."user_meta"
+    FROM mv
+    JOIN
+      allen_cell_quilt_packages_view as npv
+    ON
+      npv."hash" = mv."tophash"
+    
+
 
 ### B. Querying package-level metadata
 
@@ -544,6 +664,22 @@ if results:
     print("results")
     print(results)
 ```
+
+    
+    Test Athena Query:
+    
+    SELECT * FROM quilt_query.allen_cell_quilt_objects_view
+    WHERE substr(logical_key, -5)='.tiff'
+    -- extract and query package-level metadata
+    AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
+    AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
+    
+    WorkGroup quilt-query
+    	#9 athena_await[829cc638-0353-4602-a6b1-a6f39941a25a]=QUEUED
+    	#8 athena_await[829cc638-0353-4602-a6b1-a6f39941a25a]=FAILED
+    {'State': 'FAILED', 'StateChangeReason': 'SYNTAX_ERROR: line 1:15: Table awsdatacatalog.quilt_query.allen_cell_quilt_objects_view does not exist', 'SubmissionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 40, 470000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 40, 894000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 2, 'ErrorType': 1006, 'Retryable': False, 'ErrorMessage': 'line 1:15: Table awsdatacatalog.quilt_query.allen_cell_quilt_objects_view does not exist'}}
+    	athena_await False
+
 
 
 ```python
