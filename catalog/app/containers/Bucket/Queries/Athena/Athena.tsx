@@ -324,13 +324,13 @@ const useOverrideStyles = M.makeStyles({
   },
 })
 
-const useHistoryHeaderStyles = M.makeStyles({
+const useResultsBreadcrumbsStyles = M.makeStyles({
   breadcrumb: {
     display: 'flex',
   },
 })
 
-interface HistoryHeaderProps {
+interface ResultsBreadcrumbsProps {
   bucket: string
   className?: string
   queryExecutionId?: string
@@ -342,8 +342,8 @@ function ResultsBreadcrumbs({
   className,
   queryExecutionId,
   workgroup,
-}: HistoryHeaderProps) {
-  const classes = useHistoryHeaderStyles()
+}: ResultsBreadcrumbsProps) {
+  const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
   return (
