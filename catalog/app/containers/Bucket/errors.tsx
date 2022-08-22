@@ -5,7 +5,7 @@ import { Route, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
-import * as Auth from 'containers/Auth'
+import { authenticated as authenticatedSelector } from 'containers/Auth/selectors'
 import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -92,7 +92,7 @@ interface WhenAuthProps {
 }
 
 function WhenAuth({ cases }: WhenAuthProps) {
-  const authenticated = redux.useSelector(Auth.selectors.authenticated)
+  const authenticated = redux.useSelector(authenticatedSelector)
   return cases[`${authenticated}` as 'true' | 'false']()
 }
 

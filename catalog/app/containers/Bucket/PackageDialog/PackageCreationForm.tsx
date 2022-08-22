@@ -682,9 +682,14 @@ export function usePackageCreationDialog({
   const [successor, setSuccessor] = React.useState({
     slug: bucket,
   } as workflows.Successor)
+  const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
-  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket: successor.slug })
+  const workflowsData = Data.use(
+    requests.workflowsConfig,
+    { s3, bucket: successor.slug },
+    { noAutoFetch: !bucket },
+  )
   // XXX: use AsyncResult
   const preferences = BucketPreferences.use()
 
@@ -744,7 +749,8 @@ export function usePackageCreationDialog({
     if (submitting) return
     setOpen(false)
     setWorkflow(undefined) // TODO: is this necessary?
-  }, [submitting, setOpen])
+    addToPackage?.clear()
+  }, [addToPackage, submitting, setOpen])
 
   const handleExited = React.useCallback(() => {
     setExited(true)
