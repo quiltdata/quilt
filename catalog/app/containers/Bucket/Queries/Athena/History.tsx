@@ -5,35 +5,143 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
+import copyToClipboard from 'utils/clipboard'
+import { trimCenter } from 'utils/string'
 
 import * as requests from '../requests'
 
-const useExecutionStyles = M.makeStyles((t) => ({
-  date: {
+const useToggleButtonStyles = M.makeStyles({
+  root: {
+    transition: 'ease transform .15s',
+  },
+  expanded: {
+    transform: 'rotate(90deg)',
+  },
+})
+
+interface ToggleButtonProps {
+  expanded: boolean
+  onClick: () => void
+}
+
+function ToggleButton({ expanded, onClick }: ToggleButtonProps) {
+  const classes = useToggleButtonStyles()
+  return (
+    <M.IconButton
+      onClick={onClick}
+      size="small"
+      className={cx(classes.root, { [classes.expanded]: expanded })}
+    >
+      <M.Icon>keyboard_arrow_right</M.Icon>
+    </M.IconButton>
+  )
+}
+
+const useDateStyles = M.makeStyles({
+  root: {
     whiteSpace: 'nowrap',
   },
+})
+interface DateProps {
+  date?: Date
+}
+
+function Date({ date }: DateProps) {
+  const classes = useDateStyles()
+  const formatted = React.useMemo(
+    () => (date ? dateFns.format(date, 'MMM do, HH:mm:ss') : null),
+    [date],
+  )
+  return <span className={classes.root}>{formatted}</span>
+}
+
+interface QueryDateCompletedProps {
+  bucket: string
+  queryExecution: requests.athena.QueryExecution
+  workgroup: requests.athena.Workgroup
+}
+
+function QueryDateCompleted({
+  bucket,
+  queryExecution,
+  workgroup,
+}: QueryDateCompletedProps) {
+  const { urls } = NamedRoutes.use()
+  if (queryExecution.status !== 'SUCCEEDED') {
+    return <Date date={queryExecution.completed} />
+  }
+  return (
+    <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
+      <Date date={queryExecution.completed} />
+    </Link>
+  )
+}
+
+interface CopyButtonProps {
+  queryExecution: requests.athena.QueryExecution
+}
+
+function CopyButton({ queryExecution }: CopyButtonProps) {
+  const { push } = Notifications.use()
+  const handleCopy = React.useCallback(() => {
+    if (queryExecution.query) {
+      copyToClipboard(queryExecution.query)
+      push('Query has been copied to clipboard')
+    }
+  }, [push, queryExecution.query])
+  return (
+    <M.IconButton onClick={handleCopy} size="small">
+      <M.Icon>content_copy</M.Icon>
+    </M.IconButton>
+  )
+}
+
+const useFullQueryRowStyles = M.makeStyles((t) => ({
   cell: {
-    width: '40%',
-    '& + &': {
-      width: 'auto',
-    },
-  },
-  collapsedCell: {
-    borderBottom: 0,
-  },
-  expandingCell: {
     paddingBottom: 0,
     paddingTop: 0,
   },
-  expandedQuery: {
+  collapsed: {
+    borderBottom: 0,
+  },
+  query: {
     maxHeight: t.spacing(30),
     maxWidth: '100%',
     overflow: 'auto',
-    padding: t.spacing(1),
   },
 }))
+
+interface FullQueryRowProps {
+  expanded: boolean
+  queryExecution: requests.athena.QueryExecution
+}
+
+function FullQueryRow({ expanded, queryExecution }: FullQueryRowProps) {
+  const classes = useFullQueryRowStyles()
+  return (
+    <M.TableRow>
+      <M.TableCell
+        padding="checkbox"
+        className={cx(classes.cell, {
+          [classes.collapsed]: !expanded,
+        })}
+      >
+        {!!expanded && <CopyButton queryExecution={queryExecution} />}
+      </M.TableCell>
+      <M.TableCell
+        colSpan={4}
+        className={cx(classes.cell, { [classes.collapsed]: !expanded })}
+      >
+        <M.Collapse in={expanded}>
+          <pre className={classes.query}>{queryExecution.query}</pre>
+        </M.Collapse>
+      </M.TableCell>
+    </M.TableRow>
+  )
+}
 
 interface ExecutionProps {
   bucket: string
@@ -42,65 +150,33 @@ interface ExecutionProps {
 }
 
 function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
-  const classes = useExecutionStyles()
-
-  const { urls } = NamedRoutes.use()
-
   const [expanded, setExpanded] = React.useState(false)
-
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
-  const trimmedQuery = React.useMemo(
-    () =>
-      !queryExecution.query || queryExecution.query.length <= 30
-        ? queryExecution.query
-        : `${queryExecution.query?.substring(0, 30)} … ${queryExecution.query?.substr(
-            -20,
-          )}`,
-    [queryExecution.query],
-  )
-
-  const completed = React.useMemo(
-    () =>
-      queryExecution.completed
-        ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
-        : null,
-    [queryExecution.completed],
-  )
 
   return (
     <>
       <M.TableRow>
-        <M.TableCell className={classes.cell} onClick={onToggle}>
-          {trimmedQuery}
+        <M.TableCell padding="checkbox">
+          <ToggleButton expanded={expanded} onClick={onToggle} />
         </M.TableCell>
-        <M.TableCell className={classes.cell}>
+        <M.TableCell>{trimCenter(queryExecution.query, 50)}</M.TableCell>
+        <M.TableCell>
           <abbr title={queryExecution.id}>{queryExecution.status}</abbr>
         </M.TableCell>
-        <M.TableCell className={cx(classes.cell, classes.date)}>
-          {queryExecution.created
-            ? dateFns.format(queryExecution.created, 'MMM do, HH:mm:ss')
-            : null}
+        <M.TableCell>
+          <Date date={queryExecution.created} />
         </M.TableCell>
-        <M.TableCell className={cx(classes.cell, classes.date)}>
-          {queryExecution.status === 'SUCCEEDED' ? (
-            <Link to={urls.bucketAthenaExecution(bucket, workgroup, queryExecution.id)}>
-              {completed}
-            </Link>
-          ) : (
-            completed
-          )}
+        <M.TableCell>
+          <QueryDateCompleted
+            queryExecution={queryExecution}
+            bucket={bucket}
+            workgroup={workgroup}
+          />
         </M.TableCell>
       </M.TableRow>
-      <M.TableRow>
-        <M.TableCell
-          colSpan={4}
-          className={cx(classes.expandingCell, { [classes.collapsedCell]: !expanded })}
-        >
-          <M.Collapse in={expanded}>
-            <pre className={classes.expandedQuery}>{queryExecution.query}</pre>
-          </M.Collapse>
-        </M.TableCell>
-      </M.TableRow>
+      {queryExecution.query && (
+        <FullQueryRow expanded={expanded} queryExecution={queryExecution} />
+      )}
     </>
   )
 }
@@ -115,11 +191,11 @@ function Empty() {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  cell: {
+  queryCell: {
     width: '40%',
-    '& + &': {
-      width: 'auto',
-    },
+  },
+  actionCell: {
+    width: '24px',
   },
   header: {
     margin: t.spacing(0, 0, 1),
@@ -180,10 +256,11 @@ export default function History({
       <M.Table size="small" className={classes.table}>
         <M.TableHead>
           <M.TableRow>
-            <M.TableCell className={classes.cell}>Query</M.TableCell>
-            <M.TableCell className={classes.cell}>Status</M.TableCell>
-            <M.TableCell className={classes.cell}>Date created</M.TableCell>
-            <M.TableCell className={classes.cell}>Date completed</M.TableCell>
+            <M.TableCell className={classes.actionCell} />
+            <M.TableCell className={classes.queryCell}>Query</M.TableCell>
+            <M.TableCell>Status</M.TableCell>
+            <M.TableCell>Date created</M.TableCell>
+            <M.TableCell>Date completed</M.TableCell>
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
