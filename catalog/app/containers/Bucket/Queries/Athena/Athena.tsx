@@ -11,7 +11,6 @@ import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/Packag
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
-import { JsonRecord } from 'utils/types'
 
 import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
@@ -22,37 +21,72 @@ import Results from './Results'
 import History from './History'
 import Workgroups from './Workgroups'
 
-function parseQueryResults(rows: string[][]): Record<string, Model.S3File> {
-  const [head, ...tail] = rows
-  const manifestEntries = tail.reduce((memo, row) => {
-    const entry: JsonRecord = row.reduce((acc, value, index) => {
-      if (!head[index]) return acc
-      return {
-        ...acc,
-        [head[index]]: value,
-      }
-    }, {})
-    return memo.concat(entry)
-  }, [] as JsonRecord[])
-  return manifestEntries.reduce((memo, entry) => {
-    if (!entry.logical_key) return memo
-    if (!entry.physical_keys) return memo
-    try {
-      const handle = s3paths.parseS3Url(
-        entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''),
-      )
-      return {
-        ...memo,
-        [entry.logical_key]: {
-          ...handle,
-          size: Number(entry.size),
-        },
-      }
-    } catch (e) {
-      console.error(e)
-      return memo
+type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
+type ManifestEntryStringified = Record<ManifestKey, string>
+
+function areQueryResultsContainMainefstEntries(
+  rows: string[][],
+): rows is [ManifestKey[], ...string[][]] {
+  const [head] = rows
+  return (
+    head.includes('size') &&
+    head.includes('physical_keys') &&
+    head.includes('logical_key')
+  )
+}
+
+function rowToManifestEntryStringified(
+  row: string[],
+  head: ManifestKey[],
+): ManifestEntryStringified {
+  return row.reduce((acc, value, index) => {
+    if (!head[index]) return acc
+    return {
+      ...acc,
+      [head[index]]: value,
     }
-  }, {})
+  }, {} as ManifestEntryStringified)
+}
+
+function parseManifenstEntryStringified(entry: ManifestEntryStringified): {
+  [key: string]: Model.S3File
+} | null {
+  if (!entry.logical_key) return null
+  if (!entry.physical_keys) return null
+  try {
+    const handle = s3paths.parseS3Url(
+      entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''),
+    )
+    const sizeParsed = Number(entry.size)
+    const size = Number.isNaN(sizeParsed) ? 0 : sizeParsed
+    return {
+      [entry.logical_key]: {
+        ...handle,
+        size,
+      },
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e)
+    return null
+  }
+}
+
+function parseQueryResults(
+  rows: [ManifestKey[], ...string[][]],
+): Record<string, Model.S3File> {
+  const [head, ...tail] = rows
+  const manifestEntries: ManifestEntryStringified[] = tail.reduce(
+    (memo, row) => memo.concat(rowToManifestEntryStringified(row, head)),
+    [] as ManifestEntryStringified[],
+  )
+  return manifestEntries.reduce(
+    (memo, entry) => ({
+      ...memo,
+      ...parseManifenstEntryStringified(entry),
+    }),
+    {},
+  )
 }
 
 function safeAdd(a?: string, b?: string): string | undefined {
@@ -184,9 +218,9 @@ function ResultsContainer({
     disableStateDisplay: true,
   })
   const onPackage = React.useCallback(
-    (files) => {
-      console.log(files)
-      addToPackage?.merge(files)
+    (rows) => {
+      const entries = parseQueryResults(rows)
+      addToPackage?.merge(entries)
       createDialog.open()
     },
     [addToPackage, createDialog],
@@ -210,16 +244,17 @@ function ResultsContainer({
         Init: () => null,
         Ok: (queryResults) => {
           if (queryResults.rows.length) {
-            const entries = parseQueryResults(queryResults.rows)
             return (
               <>
-                <M.Button
-                  color="primary"
-                  onClick={() => onPackage(entries)}
-                  variant="contained"
-                >
-                  Create package
-                </M.Button>
+                {areQueryResultsContainMainefstEntries(queryResults.rows) && (
+                  <M.Button
+                    color="primary"
+                    onClick={() => onPackage(queryResults.rows)}
+                    variant="contained"
+                  >
+                    Create package
+                  </M.Button>
+                )}
                 <Results
                   rows={queryResults.rows}
                   columns={queryResults.columns}
