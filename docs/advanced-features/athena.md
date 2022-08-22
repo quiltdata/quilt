@@ -2,10 +2,14 @@
 Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
 in a each bucket's `.quilt/` directory.
 
-
 You can therefore query package metadata wth SQL engines like AWS Athena.
 Users can write SQL queries to select packages (or files from within packages)
 using predicates based on package or object-level metadata.
+
+Packages can be created from the resulting tabular data.
+To be able to create a package,
+the table must contain the columns `logical_key`, `physical_keys` and `size`.
+(See also [Mental Model](https://docs.quiltdata.com/mentalmodel))
 
 ## Defining package tables and views in Athena
 The first step in configuring Athena to query the package contents and metadata
