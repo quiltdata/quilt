@@ -11,6 +11,18 @@ import * as requests from '../requests'
 type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
 type ManifestEntryStringified = Record<ManifestKey, string>
 
+function SeeDocsForCreatingPackage() {
+  return (
+    <M.Tooltip title="You can create package from query results. Click to see docs">
+      <a href="https://docs.quiltdata.com/advanced/athena" target="_blank">
+        <M.IconButton>
+          <M.Icon>help_outline</M.Icon>
+        </M.IconButton>
+      </a>
+    </M.Tooltip>
+  )
+}
+
 function areQueryResultsContainMainefstEntries(
   rows: string[][],
 ): rows is [ManifestKey[], ...string[][]] {
@@ -97,7 +109,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
     createDialog.open()
   }, [addToPackage, createDialog, rows])
 
-  if (!areQueryResultsContainMainefstEntries(rows)) return null
+  if (!areQueryResultsContainMainefstEntries(rows)) return <SeeDocsForCreatingPackage />
 
   return (
     <>
