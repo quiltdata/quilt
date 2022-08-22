@@ -85,7 +85,7 @@
     "igv": "^2.12.6",
     "immutable": "^3.8.2",
     "invariant": "^2.2.4",
-    "io-ts": "^2.2.16",
+    "io-ts": "^2.2.17",
     "io-ts-reporters": "^1.2.2",
     "io-ts-types": "^0.5.16",
     "js-yaml": "^4.1.0",
