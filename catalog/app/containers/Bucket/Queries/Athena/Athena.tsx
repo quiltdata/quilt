@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import type { RouteComponentProps } from 'react-router'
@@ -6,88 +7,17 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
-import * as AddToPackage from 'containers/AddToPackage'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
-import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as s3paths from 'utils/s3paths'
 
 import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
 
 import { Section, makeAsyncDataErrorHandler } from './Components'
+import CreatePackage from './CreatePackage'
 import * as QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
 import Workgroups from './Workgroups'
-
-type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
-type ManifestEntryStringified = Record<ManifestKey, string>
-
-function areQueryResultsContainMainefstEntries(
-  rows: string[][],
-): rows is [ManifestKey[], ...string[][]] {
-  const [head] = rows
-  return (
-    head.includes('size') &&
-    head.includes('physical_keys') &&
-    head.includes('logical_key')
-  )
-}
-
-function rowToManifestEntryStringified(
-  row: string[],
-  head: ManifestKey[],
-): ManifestEntryStringified {
-  return row.reduce((acc, value, index) => {
-    if (!head[index]) return acc
-    return {
-      ...acc,
-      [head[index]]: value,
-    }
-  }, {} as ManifestEntryStringified)
-}
-
-function parseManifenstEntryStringified(entry: ManifestEntryStringified): {
-  [key: string]: Model.S3File
-} | null {
-  if (!entry.logical_key) return null
-  if (!entry.physical_keys) return null
-  try {
-    const handle = s3paths.parseS3Url(
-      entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''),
-    )
-    const sizeParsed = Number(entry.size)
-    const size = Number.isNaN(sizeParsed) ? 0 : sizeParsed
-    return {
-      [entry.logical_key]: {
-        ...handle,
-        size,
-      },
-    }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return null
-  }
-}
-
-function parseQueryResults(
-  rows: [ManifestKey[], ...string[][]],
-): Record<string, Model.S3File> {
-  const [head, ...tail] = rows
-  const manifestEntries: ManifestEntryStringified[] = tail.reduce(
-    (memo, row) => memo.concat(rowToManifestEntryStringified(row, head)),
-    [] as ManifestEntryStringified[],
-  )
-  return manifestEntries.reduce(
-    (memo, entry) => ({
-      ...memo,
-      ...parseManifenstEntryStringified(entry),
-    }),
-    {},
-  )
-}
 
 function safeAdd(a?: string, b?: string): string | undefined {
   if (!a) return b
@@ -211,20 +141,6 @@ function ResultsContainer({
   workgroup,
 }: ResultsContainerProps) {
   const classes = useResultsContainerStyles()
-  const addToPackage = AddToPackage.use()
-  const createDialog = usePackageCreationDialog({
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
-  const onPackage = React.useCallback(
-    (rows) => {
-      const entries = parseQueryResults(rows)
-      addToPackage?.merge(entries)
-      createDialog.open()
-    },
-    [addToPackage, createDialog],
-  )
   return (
     <div className={className}>
       <ResultsBreadcrumbs
@@ -232,37 +148,28 @@ function ResultsContainer({
         className={classes.breadcrumbs}
         queryExecutionId={queryExecutionId}
         workgroup={workgroup}
-      />
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
+      >
+        {results.data.case({
+          _: () => null,
+          Pending: () => <Skeleton height={24} width={144} animate />,
+          Ok: (queryResults) =>
+            !!queryResults.rows.length && (
+              <CreatePackage bucket={bucket} rows={queryResults.rows} />
+            ),
+        })}
+      </ResultsBreadcrumbs>
       {results.data.case({
         Init: () => null,
         Ok: (queryResults) => {
           if (queryResults.rows.length) {
             return (
-              <>
-                {areQueryResultsContainMainefstEntries(queryResults.rows) && (
-                  <M.Button
-                    color="primary"
-                    onClick={() => onPackage(queryResults.rows)}
-                    variant="contained"
-                  >
-                    Create package
-                  </M.Button>
-                )}
-                <Results
-                  rows={queryResults.rows}
-                  columns={queryResults.columns}
-                  onLoadMore={
-                    queryResults.next ? () => results.loadMore(queryResults) : undefined
-                  }
-                />
-              </>
+              <Results
+                rows={queryResults.rows}
+                columns={queryResults.columns}
+                onLoadMore={
+                  queryResults.next ? () => results.loadMore(queryResults) : undefined
+                }
+              />
             )
           }
           if (queryResults.queryExecution) {
@@ -325,6 +232,13 @@ const useOverrideStyles = M.makeStyles({
 })
 
 const useResultsBreadcrumbsStyles = M.makeStyles({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  actions: {
+    marginLeft: 'auto',
+  },
   breadcrumb: {
     display: 'flex',
   },
@@ -335,6 +249,7 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
 
 interface ResultsBreadcrumbsProps {
   bucket: string
+  children: React.ReactNode
   className?: string
   queryExecutionId?: string
   workgroup: requests.athena.Workgroup
@@ -342,6 +257,7 @@ interface ResultsBreadcrumbsProps {
 
 function ResultsBreadcrumbs({
   bucket,
+  children,
   className,
   queryExecutionId,
   workgroup,
@@ -350,17 +266,21 @@ function ResultsBreadcrumbs({
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
   return (
-    <M.Breadcrumbs className={className} classes={overrideClasses}>
-      <RRDom.Link
-        className={classes.breadcrumb}
-        to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
-      >
-        Query Executions
-      </RRDom.Link>
-      <M.Typography className={classes.breadcrumb} color="textPrimary">
-        Results for<Code className={classes.id}>{queryExecutionId}</Code>
-      </M.Typography>
-    </M.Breadcrumbs>
+    <div className={cx(classes.root, className)}>
+      <M.Breadcrumbs classes={overrideClasses}>
+        <RRDom.Link
+          className={classes.breadcrumb}
+          to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
+        >
+          Query Executions
+        </RRDom.Link>
+        <M.Typography className={classes.breadcrumb} color="textPrimary">
+          Results for<Code className={classes.id}>{queryExecutionId}</Code>
+        </M.Typography>
+      </M.Breadcrumbs>
+
+      <div className={classes.actions}>{children}</div>
+    </div>
   )
 }
 
