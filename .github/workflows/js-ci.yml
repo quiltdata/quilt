@@ -1,4 +1,10 @@
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
 jobs:
   test-catalog:
     runs-on: ubuntu-latest
