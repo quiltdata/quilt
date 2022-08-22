@@ -6,7 +6,12 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
+import * as AddToPackage from 'containers/AddToPackage'
+import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as s3paths from 'utils/s3paths'
+import { JsonRecord } from 'utils/types'
 
 import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
@@ -16,6 +21,39 @@ import * as QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
 import Workgroups from './Workgroups'
+
+function parseQueryResults(rows: string[][]): Record<string, Model.S3File> {
+  const [head, ...tail] = rows
+  const manifestEntries = tail.reduce((memo, row) => {
+    const entry: JsonRecord = row.reduce((acc, value, index) => {
+      if (!head[index]) return acc
+      return {
+        ...acc,
+        [head[index]]: value,
+      }
+    }, {})
+    return memo.concat(entry)
+  }, [] as JsonRecord[])
+  return manifestEntries.reduce((memo, entry) => {
+    if (!entry.logical_key) return memo
+    if (!entry.physical_keys) return memo
+    try {
+      const handle = s3paths.parseS3Url(
+        entry.physical_keys.replace(/^\[/, '').replace(/\]$/, ''),
+      )
+      return {
+        ...memo,
+        [entry.logical_key]: {
+          ...handle,
+          size: Number(entry.size),
+        },
+      }
+    } catch (e) {
+      console.error(e)
+      return memo
+    }
+  }, {})
+}
 
 function safeAdd(a?: string, b?: string): string | undefined {
   if (!a) return b
@@ -139,6 +177,20 @@ function ResultsContainer({
   workgroup,
 }: ResultsContainerProps) {
   const classes = useResultsContainerStyles()
+  const addToPackage = AddToPackage.use()
+  const createDialog = usePackageCreationDialog({
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+  const onPackage = React.useCallback(
+    (files) => {
+      console.log(files)
+      addToPackage?.merge(files)
+      createDialog.open()
+    },
+    [addToPackage, createDialog],
+  )
   return (
     <div className={className}>
       <ResultsBreadcrumbs
@@ -147,18 +199,35 @@ function ResultsContainer({
         queryExecutionId={queryExecutionId}
         workgroup={workgroup}
       />
+      {createDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
       {results.data.case({
         Init: () => null,
         Ok: (queryResults) => {
           if (queryResults.rows.length) {
+            const entries = parseQueryResults(queryResults.rows)
             return (
-              <Results
-                rows={queryResults.rows}
-                columns={queryResults.columns}
-                onLoadMore={
-                  queryResults.next ? () => results.loadMore(queryResults) : undefined
-                }
-              />
+              <>
+                <M.Button
+                  color="primary"
+                  onClick={() => onPackage(entries)}
+                  variant="contained"
+                >
+                  Create package
+                </M.Button>
+                <Results
+                  rows={queryResults.rows}
+                  columns={queryResults.columns}
+                  onLoadMore={
+                    queryResults.next ? () => results.loadMore(queryResults) : undefined
+                  }
+                />
+              </>
             )
           }
           if (queryResults.queryExecution) {
