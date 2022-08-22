@@ -191,7 +191,7 @@ def find_role(role_id):
 
 
 ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
-ROLE_ID = "ReadWriteQuiltV2"
+ROLE_ID = "ReadWriteQuiltV2-quilt-t4"
 QUILT_ROLE = find_role(ROLE_ID)
 print(QUILT_ROLE)
 
@@ -217,7 +217,9 @@ AthenaQuiltPolicy = IAM.create_policy(
 print(AthenaQuiltPolicy)
 ```
 
-    ReadWriteQuiltV2-aneesh-dev-aug
+    ReadWriteQuiltV2-quilt-t4-staging
+    Policy not found or not in Role: ReadWriteQuiltV2-quilt-t4-staging
+    An error occurred (NoSuchEntity) when calling the DetachRolePolicy operation: Policy arn:aws:iam::712023778557:policy/AthenaQuiltAccess was not found.
     iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
 
 
@@ -249,12 +251,12 @@ AthenaQuiltPolicy.attach_role(RoleName=QUILT_ROLE)
 
 
 
-    {'ResponseMetadata': {'RequestId': '8b557fb8-64d1-4316-94f1-54cd0ec37046',
+    {'ResponseMetadata': {'RequestId': 'a5083bf5-7511-480d-a60d-ed5b8c4d9706',
       'HTTPStatusCode': 200,
-      'HTTPHeaders': {'x-amzn-requestid': '8b557fb8-64d1-4316-94f1-54cd0ec37046',
+      'HTTPHeaders': {'x-amzn-requestid': 'a5083bf5-7511-480d-a60d-ed5b8c4d9706',
        'content-type': 'text/xml',
        'content-length': '212',
-       'date': 'Sun, 21 Aug 2022 01:09:30 GMT'},
+       'date': 'Mon, 22 Aug 2022 18:40:07 GMT'},
       'RetryAttempts': 0}}
 
 
@@ -539,101 +541,6 @@ for key in DDL:
         print("FAILED:\n", DDL[key])
 ```
 
-    
-    Create Athena Tables and Views for allen-cell:
-    
-    allen_cell_quilt_manifests
-    	#9 athena_await[4437cdf0-3372-445e-b5e8-e650998cb61c]=RUNNING
-    	#8 athena_await[4437cdf0-3372-445e-b5e8-e650998cb61c]=RUNNING
-    	#7 athena_await[4437cdf0-3372-445e-b5e8-e650998cb61c]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/4437cdf0-3372-445e-b5e8-e650998cb61c.txt
-    	athena_await 4437cdf0-3372-445e-b5e8-e650998cb61c.txt
-    allen_cell_quilt_packages
-    	#9 athena_await[736731c8-de84-4f72-b6de-1fa9506269a3]=RUNNING
-    	#8 athena_await[736731c8-de84-4f72-b6de-1fa9506269a3]=RUNNING
-    	#7 athena_await[736731c8-de84-4f72-b6de-1fa9506269a3]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/736731c8-de84-4f72-b6de-1fa9506269a3.txt
-    	athena_await 736731c8-de84-4f72-b6de-1fa9506269a3.txt
-    allen_cell_quilt_packages_view
-    	#9 athena_await[9d300c44-7469-4f7c-a8cd-6d40b8feb9ff]=RUNNING
-    	#8 athena_await[9d300c44-7469-4f7c-a8cd-6d40b8feb9ff]=RUNNING
-    	#7 athena_await[9d300c44-7469-4f7c-a8cd-6d40b8feb9ff]=FAILED
-    {'State': 'FAILED', 'StateChangeReason': 'line 9:12: Table 712023778557.default.allen_cell_quilt_packages does not exist', 'SubmissionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 36, 649000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 38, 152000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 1, 'ErrorType': 1502, 'Retryable': False, 'ErrorMessage': 'line 9:12: Table 712023778557.default.allen_cell_quilt_packages does not exist'}}
-    	athena_await False
-    FAILED:
-     
-    CREATE OR REPLACE VIEW quilt_query.allen_cell_quilt_packages_view AS
-    WITH
-      npv AS (
-        SELECT
-          regexp_extract("$path", '^s3:\/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 4) as user,
-          regexp_extract("$path", '^s3:\/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 5) as name,
-          regexp_extract("$path", '[^/]+$') as timestamp,
-          allen_cell_quilt_packages."hash"
-          FROM allen_cell_quilt_packages
-      ),
-      mv AS (
-        SELECT
-          regexp_extract("$path", '[^/]+$') as tophash,
-            manifest."meta",
-            manifest."message"
-          FROM
-            allen_cell_quilt_manifests as manifest
-          WHERE manifest."logical_key" IS NULL
-      )
-    SELECT
-      npv."user",
-      npv."name",
-      npv."hash",
-      npv."timestamp",
-      mv."message",
-      mv."meta"
-    FROM npv
-    JOIN
-      mv
-    ON
-      npv."hash" = mv."tophash"
-    
-    allen_cell_quilt_objects_view
-    	#9 athena_await[8e7d5cd7-3a6e-4193-89a9-461177535bda]=RUNNING
-    	#8 athena_await[8e7d5cd7-3a6e-4193-89a9-461177535bda]=FAILED
-    {'State': 'FAILED', 'StateChangeReason': 'line 13:7: Table 712023778557.default.allen_cell_quilt_manifests does not exist', 'SubmissionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 39, 98000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 39, 563000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 1, 'ErrorType': 1502, 'Retryable': False, 'ErrorMessage': 'line 13:7: Table 712023778557.default.allen_cell_quilt_manifests does not exist'}}
-    	athena_await False
-    FAILED:
-     
-    CREATE OR REPLACE VIEW quilt_query.allen_cell_quilt_objects_view AS
-    WITH
-      mv AS (
-        SELECT
-          regexp_extract("$path", '[^/]+$') as tophash,
-          manifest."logical_key",
-          manifest."physical_keys",
-          manifest."size",
-          manifest."hash",
-          manifest."meta",
-          manifest."user_meta"
-        FROM
-          allen_cell_quilt_manifests as manifest
-        WHERE manifest."logical_key" IS NOT NULL
-      )
-    SELECT
-      npv."user",
-      npv."name",
-      npv."timestamp",
-      mv."tophash",
-      mv."logical_key",
-      mv."physical_keys",
-      mv."hash",
-      mv."meta",
-      mv."user_meta"
-    FROM mv
-    JOIN
-      allen_cell_quilt_packages_view as npv
-    ON
-      npv."hash" = mv."tophash"
-    
-
-
 ### B. Querying package-level metadata
 
 Suppose we wish to find all .tiff files produced by algorithm version 1.3
@@ -664,22 +571,6 @@ if results:
     print("results")
     print(results)
 ```
-
-    
-    Test Athena Query:
-    
-    SELECT * FROM quilt_query.allen_cell_quilt_objects_view
-    WHERE substr(logical_key, -5)='.tiff'
-    -- extract and query package-level metadata
-    AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
-    AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
-    
-    WorkGroup quilt-query
-    	#9 athena_await[829cc638-0353-4602-a6b1-a6f39941a25a]=QUEUED
-    	#8 athena_await[829cc638-0353-4602-a6b1-a6f39941a25a]=FAILED
-    {'State': 'FAILED', 'StateChangeReason': 'SYNTAX_ERROR: line 1:15: Table awsdatacatalog.quilt_query.allen_cell_quilt_objects_view does not exist', 'SubmissionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 40, 470000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 20, 18, 9, 40, 894000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 2, 'ErrorType': 1006, 'Retryable': False, 'ErrorMessage': 'line 1:15: Table awsdatacatalog.quilt_query.allen_cell_quilt_objects_view does not exist'}}
-    	athena_await False
-
 
 
 ```python
