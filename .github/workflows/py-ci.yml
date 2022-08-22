@@ -1,4 +1,10 @@
-on: push
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
 jobs:
   linter:
     runs-on: ubuntu-latest
