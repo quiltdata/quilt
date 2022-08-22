@@ -328,6 +328,9 @@ const useResultsBreadcrumbsStyles = M.makeStyles({
   breadcrumb: {
     display: 'flex',
   },
+  id: {
+    marginLeft: '6px',
+  },
 })
 
 interface ResultsBreadcrumbsProps {
@@ -355,7 +358,7 @@ function ResultsBreadcrumbs({
         Query Executions
       </RRDom.Link>
       <M.Typography className={classes.breadcrumb} color="textPrimary">
-        Results for <Code>{queryExecutionId}</Code>
+        Results for<Code className={classes.id}>{queryExecutionId}</Code>
       </M.Typography>
     </M.Breadcrumbs>
   )
