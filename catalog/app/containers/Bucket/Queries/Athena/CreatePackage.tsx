@@ -91,6 +91,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
   const onPackage = React.useCallback(() => {
     if (!areQueryResultsContainMainefstEntries(rows)) return
 
+    // TODO: make it lazy, and disable button
     const entries = parseQueryResults(rows)
     addToPackage?.merge(entries)
     createDialog.open()
@@ -107,7 +108,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
         ),
         title: 'Create package',
       })}
-      <M.Button color="primary" onClick={onPackage} variant="outlined" size="small">
+      <M.Button color="primary" onClick={onPackage} size="small" variant="outlined">
         Create package
       </M.Button>
     </>
