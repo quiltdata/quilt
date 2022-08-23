@@ -22,7 +22,9 @@ You should set COMPANY_NAME and QUILT_BUCKET so the examples work in your envior
 
 ```python
 COMPANY_NAME = "mycompany"
-QUILT_BUCKET = "allen-cell"  # Use one of your own, without the S3 URL prefix
+QUILT_BUCKET = (
+    "quilt-allencell-manifests"  # Use one of your own, without the S3 URL prefix
+)
 ```
 
 This allows you to configure AWS services by calling Python objects:
@@ -32,23 +34,38 @@ This allows you to configure AWS services by calling Python objects:
 ```python
 import boto3, json, re, time
 
-SESSION = boto3.session.Session()
-REGION = SESSION.region_name
-print(SESSION)
-
-ATHENA = boto3.client("athena")
-IAM = boto3.resource("iam")
-S3 = boto3.client("s3")
-STS = boto3.client("sts")
-ACCOUNT_ID = STS.get_caller_identity()["Account"]
-
 
 def stat(response, label="response"):
     print(label + ": ", end="")
     print(response["ResponseMetadata"]["HTTPStatusCode"])
+
+
+def find_role(role_id):
+    for role in IAM.roles.all():
+        if role_id in role.role_name:
+            return role.role_name
+    return False
+
+
+SESSION = boto3.session.Session()
+REGION = SESSION.region_name
+print(SESSION)
+
+ATHENA = SESSION.client("athena", region_name=REGION)
+IAM = SESSION.resource("iam")
+S3 = SESSION.client("s3")
+STS = SESSION.client("sts")
+ACCOUNT_ID = STS.get_caller_identity()["Account"]
+
+ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
+ROLE_ID = "ReadWriteQuiltV2-quilt-t4"
+QUILT_ROLE = find_role(ROLE_ID)
+print(QUILT_ROLE)
+ARN_ROLE = f"arn:aws:iam::712023778557:role/{QUILT_ROLE}"
 ```
 
     Session(region_name='us-east-1')
+    ReadWriteQuiltV2-quilt-t4-staging
 
 
 ## I. Create Athena Configuration: Workgroup, Bucket, and Database
@@ -72,6 +89,8 @@ QUILT_URL = "s3://" + QUILT_BUCKET  # Adds S3 Prefix
 
 ARN_ATHENA = f"arn:aws:s3:::{ATHENA_BUCKET}"
 ARN_CATALOG = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:catalog"
+ARN_DATABASE = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:database/{ATHENA_DB}"
+ARN_TABLE = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:table/{ATHENA_DB}"
 ARN_QUILT = f"arn:aws:s3:::{QUILT_BUCKET}"
 ARN_WORKGROUP = f"arn:aws:athena:{REGION}:{ACCOUNT_ID}:workgroup/{ATHENA_WORKGROUP}"
 
@@ -114,12 +133,15 @@ db_create = ATHENA.start_query_execution(
     ResultConfiguration={"OutputLocation": ATHENA_URL + "/queries/"},
 )
 stat(db_create, "db_create")
-# print(ATHENA_URL)
+print(ATHENA_URL)
+print(ARN_DATABASE)
 ```
 
     mycompany-quilt-query-results: 200
     wg_update: 200
     db_create: 200
+    s3://mycompany-quilt-query-results
+    arn:aws:glue:us-east-1:712023778557:database/quilt_query
 
 
 ## II. Granting Access to Athena
@@ -139,21 +161,76 @@ The standard [AmazonAthenaFullAccess](https://console.aws.amazon.com/iam/home#/p
 AthenaQuiltAccess = {
     "Version": "2012-10-17",
     "Statement": [
-        {"Effect": "Allow", "Action": ["athena:*"], "Resource": ["*"]},
         {
+            "Sid": "GrantQuiltAthenaAccess",
+            "Effect": "Allow",
+            "Action": [
+                "athena:Create*",
+                "athena:Get*",
+                "athena:List*",
+                "athena:StartQueryExecution",
+                #                "athena:Update*",
+            ],
+            "Resource": [
+                ARN_WORKGROUP,
+                ARN_CATALOG,
+            ],
+        },
+        {
+            "Sid": "GrantQuiltGlueAccess",
             "Effect": "Allow",
             "Action": [
                 "glue:GetDatabase",
                 "glue:GetDatabases",
-                "glue:CreateTable",
-                "glue:DeleteTable",
-                "glue:UpdateTable",
                 "glue:GetTable",
                 "glue:GetTables",
             ],
-            "Resource": ["*"],
+            "Resource": [
+                "*",
+                ARN_DATABASE,
+                ARN_TABLE + "/*",
+            ],
         },
         {
+            "Sid": "GrantQuiltGlueWriteAccess",
+            "Effect": "Allow",
+            "Action": [
+                "glue:CreateTable",
+                "glue:DeleteTable",
+                "glue:UpdateTable",
+            ],
+            "Resource": [
+                ARN_CATALOG,
+                ARN_DATABASE,
+                ARN_TABLE + "/*_quilt_*",
+            ],
+        },
+        {
+            "Sid": "GrantQuiltAthenaBucketAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListBucket",
+                "s3:ListBucketMultipartUploads",
+                "s3:ListMultipartUploadParts",
+            ],
+            "Resource": [
+                "*",
+            ],
+        },
+        {
+            "Sid": "GrantQuiltAthenaInputAccess",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+            ],
+            "Resource": [
+                "arn:aws:s3:::*",
+                "arn:aws:s3:::*/.quilt/*",
+            ],
+        },
+        {
+            "Sid": "GrantQuiltAthenaOutputAccess",
             "Effect": "Allow",
             "Action": [
                 "s3:GetBucketLocation",
@@ -167,11 +244,8 @@ AthenaQuiltAccess = {
                 "s3:PutBucketPublicAccessBlock",
             ],
             "Resource": [
-                "*",
                 ARN_ATHENA,
                 ARN_ATHENA + "/*",
-                ARN_QUILT,
-                ARN_QUILT + "/*",
             ],
         },
     ],
@@ -183,18 +257,6 @@ If you have used that policy before, you should detatch and delete it before cre
 
 
 ```python
-def find_role(role_id):
-    for role in IAM.roles.all():
-        if role_id in role.role_name:
-            return role.role_name
-    return False
-
-
-ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
-ROLE_ID = "ReadWriteQuiltV2-quilt-t4"
-QUILT_ROLE = find_role(ROLE_ID)
-print(QUILT_ROLE)
-
 try:
     old_policy = IAM.Policy(ARN_POLICY)
     old_policy.detach_role(RoleName=QUILT_ROLE)
@@ -217,9 +279,6 @@ AthenaQuiltPolicy = IAM.create_policy(
 print(AthenaQuiltPolicy)
 ```
 
-    ReadWriteQuiltV2-quilt-t4-staging
-    Policy not found or not in Role: ReadWriteQuiltV2-quilt-t4-staging
-    An error occurred (NoSuchEntity) when calling the DetachRolePolicy operation: Policy arn:aws:iam::712023778557:policy/AthenaQuiltAccess was not found.
     iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
 
 
@@ -251,12 +310,12 @@ AthenaQuiltPolicy.attach_role(RoleName=QUILT_ROLE)
 
 
 
-    {'ResponseMetadata': {'RequestId': 'a5083bf5-7511-480d-a60d-ed5b8c4d9706',
+    {'ResponseMetadata': {'RequestId': 'f389de87-01b2-4d26-99bd-e6d241390bfd',
       'HTTPStatusCode': 200,
-      'HTTPHeaders': {'x-amzn-requestid': 'a5083bf5-7511-480d-a60d-ed5b8c4d9706',
+      'HTTPHeaders': {'x-amzn-requestid': 'f389de87-01b2-4d26-99bd-e6d241390bfd',
        'content-type': 'text/xml',
        'content-length': '212',
-       'date': 'Mon, 22 Aug 2022 18:40:07 GMT'},
+       'date': 'Tue, 23 Aug 2022 01:37:40 GMT'},
       'RetryAttempts': 0}}
 
 
@@ -295,6 +354,7 @@ MANIFEST_TABLE = f"{BUCKET_ID}_quilt_manifests"
 PACKAGES_TABLE = f"{BUCKET_ID}_quilt_packages"
 PACKAGES_VIEW = f"{BUCKET_ID}_quilt_packages_view"
 OBJECTS_VIEW = f"{BUCKET_ID}_quilt_objects_view"
+
 DDL = {}
 ```
 
@@ -383,8 +443,8 @@ WITH
       regexp_extract("$path", '{S3_MATCH}', 4) as user,
       regexp_extract("$path", '{S3_MATCH}{SLASH}', 5) as name,
       regexp_extract("$path", '[^/]+$') as timestamp,
-      {PACKAGES_TABLE}."hash"
-      FROM {PACKAGES_TABLE}
+      {ATHENA_DB}.{PACKAGES_TABLE}."hash"
+      FROM {ATHENA_DB}.{PACKAGES_TABLE}
   ),
   mv AS (
     SELECT
@@ -392,7 +452,7 @@ WITH
         manifest."meta",
         manifest."message"
       FROM
-        {MANIFEST_TABLE} as manifest
+        {ATHENA_DB}.{MANIFEST_TABLE} as manifest
       WHERE manifest."logical_key" IS NULL
   )
 SELECT
@@ -435,7 +495,7 @@ WITH
       manifest."meta",
       manifest."user_meta"
     FROM
-      {MANIFEST_TABLE} as manifest
+      {ATHENA_DB}.{MANIFEST_TABLE} as manifest
     WHERE manifest."logical_key" IS NOT NULL
   )
 SELECT
@@ -450,13 +510,27 @@ SELECT
   mv."user_meta"
 FROM mv
 JOIN
-  {PACKAGES_VIEW} as npv
+  {ATHENA_DB}.{PACKAGES_VIEW} as npv
 ON
   npv."hash" = mv."tophash"
 """
 ```
 
 ## IV. Calling Athena
+
+The best way to test this is to create a new Session using a profile with that role (note that it may take a minute for the new Policy to propagate). For example:
+<!--pytest-codeblocks:cont-->
+
+
+```python
+print(boto3.session.Session().available_profiles)
+# new_session = boto3.session.Session(profile_name='quilt')
+# ATHENA = new_session.client("athena", region_name=REGION)
+```
+
+    ['default', 'quilt', 'managed', 'aneesh', 'ernest']
+
+
 
 In order to call Athena, you must submit a query then wait for it to complete
 <!--pytest-codeblocks:cont-->
@@ -541,6 +615,32 @@ for key in DDL:
         print("FAILED:\n", DDL[key])
 ```
 
+    
+    Create Athena Tables and Views for quilt-allencell-manifests:
+    
+    quilt_allencell_manifests_quilt_manifests
+    	#9 athena_await[265eb6a2-fb6d-44a5-bdd4-8989596acec5]=RUNNING
+    	#8 athena_await[265eb6a2-fb6d-44a5-bdd4-8989596acec5]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/265eb6a2-fb6d-44a5-bdd4-8989596acec5.txt
+    	athena_await 265eb6a2-fb6d-44a5-bdd4-8989596acec5.txt
+    quilt_allencell_manifests_quilt_packages
+    	#9 athena_await[8f10813e-e08f-4492-81b3-b045757e0884]=RUNNING
+    	#8 athena_await[8f10813e-e08f-4492-81b3-b045757e0884]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/8f10813e-e08f-4492-81b3-b045757e0884.txt
+    	athena_await 8f10813e-e08f-4492-81b3-b045757e0884.txt
+    quilt_allencell_manifests_quilt_packages_view
+    	#9 athena_await[60802180-5db5-4e0e-9c65-4c2cd905cadc]=RUNNING
+    	#8 athena_await[60802180-5db5-4e0e-9c65-4c2cd905cadc]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/60802180-5db5-4e0e-9c65-4c2cd905cadc.txt
+    	athena_await 60802180-5db5-4e0e-9c65-4c2cd905cadc.txt
+    quilt_allencell_manifests_quilt_objects_view
+    	#9 athena_await[857563f2-32bf-4675-93c1-6d14b94bdf94]=RUNNING
+    	#8 athena_await[857563f2-32bf-4675-93c1-6d14b94bdf94]=RUNNING
+    	#7 athena_await[857563f2-32bf-4675-93c1-6d14b94bdf94]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/857563f2-32bf-4675-93c1-6d14b94bdf94.txt
+    	athena_await 857563f2-32bf-4675-93c1-6d14b94bdf94.txt
+
+
 ### B. Querying package-level metadata
 
 Suppose we wish to find all .tiff files produced by algorithm version 1.3
@@ -571,6 +671,27 @@ if results:
     print("results")
     print(results)
 ```
+
+    
+    Test Athena Query:
+    
+    SELECT * FROM quilt_query.quilt_allencell_manifests_quilt_objects_view
+    WHERE substr(logical_key, -5)='.tiff'
+    -- extract and query package-level metadata
+    AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
+    AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
+    
+    WorkGroup quilt-query
+    	#9 athena_await[5dcf2412-6e5e-4f84-baee-932a4c864082]=QUEUED
+    	#8 athena_await[5dcf2412-6e5e-4f84-baee-932a4c864082]=RUNNING
+    	#7 athena_await[5dcf2412-6e5e-4f84-baee-932a4c864082]=RUNNING
+    	#6 athena_await[5dcf2412-6e5e-4f84-baee-932a4c864082]=RUNNING
+    	#5 athena_await[5dcf2412-6e5e-4f84-baee-932a4c864082]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/5dcf2412-6e5e-4f84-baee-932a4c864082.csv
+    	athena_await 5dcf2412-6e5e-4f84-baee-932a4c864082.csv
+    results
+    (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
+
 
 
 ```python
