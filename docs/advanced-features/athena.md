@@ -271,12 +271,13 @@ except BaseException as err:
     print(err)
 
 
-AthenaQuiltPolicy = IAM.create_policy(
+policy = IAM.create_policy(
     PolicyName="AthenaQuiltAccess",
     PolicyDocument=json.dumps(AthenaQuiltAccess),
     Description="Minimal Athena Access policy for Quilt",
 )
-print(AthenaQuiltPolicy)
+print(policy)
+#policy.attach_role(RoleName=QUILT_ROLE)
 ```
 
     iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
@@ -294,17 +295,41 @@ This needs to be done manually by your AWS Administrator:
 6. Click "Next" (possibly twice) to configure stack options
 7. Check "I acknowledge that AWS CloudFormation might create IAM resources with custom names"
 5. Click "Update stack" to save changes
-    
-### C. Attach that Policy to the AWS ReadWrite Role for Quilt
 
-1. Find the "ReadWriteQuiltV2" Role for your Quilt stack
-2. Attach the "AthenaQuiltPolicy" to that Role
-3. Do the same for any other AWS-Sourced ("Custom") Roles used by your users
+### C. Add this Policy to Quilt
+
+Next, login to Quilt to add this Policy and attach it to those Roles:
+
+1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
+2. Click on "Admin Settings" in the upper right, under your Profile name
+3. Scroll down to the "Policies" section on the bottom
+4. Click on the "+" to create a new Policy
+5. Set Title to "AthenaQuiltAccess"
+6. Check "Manually set ARN" and enter ARN of Athena policy (from above)
+7. Click "Create"
+
+### D. Add that Policy to a Role
+
+1. Scroll back up to "Roles"
+2. Choose a "Source=Quilt" Role and click the pencil icon to Edit (or create a new one with "+")
+3. Click "Attach a policy..."
+4. Select "AthenaQuiltAccess"
+5. Click "SAVE"
+
+### E. Add that Role to a User
+
+1. Scroll back up to "Users"
+2. Next to each User, select the "AthenaQuiltAccess" Role
+3. Click "Go to bucket" in the upper-right and select a Bucket to leave "Admin Settings"
+4. If you are logged in as that User, log out and back in.
+5. After the below steps, click on  "Queries" -> "Athena SQL" to test Athena
+
+See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 <!--pytest-codeblocks:cont-->
 
 
 ```python
-AthenaQuiltPolicy.attach_role(RoleName=QUILT_ROLE)
+
 ```
 
 
@@ -320,26 +345,7 @@ AthenaQuiltPolicy.attach_role(RoleName=QUILT_ROLE)
 
 
 
-### D. (Optional) Attach that Policy to the Quilt Roles
 
-If you have Users on other, Quilt-managed Roles that need to access Athena, you will need to login to Quilt to add this Policy and attach it to those Roles:
-
-1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
-2. Click on "Admin Settings" in the upper right, under your Profile name
-3. Scroll down to the "Policies" section on the bottom
-4. Click on the "+" to create a new Policy
-5. Set Title to "AthenaQuiltPolicy"
-6. Check "Manually set ARN" and enter ARN of Athena policy
-7. Click "Create"
-8. Scroll back up to "Roles"
-9. Choose a "Source=Quilt" Role and click the pencil icon to Edit
-10. Click "Attach a policy..."
-11. Select "AthenaQuiltPolicy"
-12. Click "SAVE"
-13. Click "Go to bucket" in the upper-right to leave "Admin Settings"
-
-
-See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 
 ## III. Defining Per-Bucket Metadata Tables in Athena
 
