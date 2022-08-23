@@ -9,6 +9,7 @@ import stat
 import subprocess
 import sys
 import time
+
 try:
     from importlib import metadata
 except ImportError:

@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+
 try:
     from importlib import metadata
 except ImportError:
