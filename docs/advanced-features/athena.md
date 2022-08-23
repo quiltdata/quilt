@@ -152,12 +152,8 @@ AthenaQuiltAccess = {
         {
             "Sid": "GrantQuiltAthenaFullAccess",
             "Effect": "Allow",
-            "Action": [
-                "athena:ListWorkGroups",
-            ],
-            "Resource": [
-                "*",
-            ],
+            "Action": "athena:ListWorkGroups",
+            "Resource": "*",
         },
         {
             "Sid": "GrantQuiltAthenaAccess",
@@ -186,9 +182,7 @@ AthenaQuiltAccess = {
                 "glue:GetTable",
                 "glue:GetTables",
             ],
-            "Resource": [
-                "*",
-            ],
+            "Resource": "*",
         },
         {
             "Sid": "GrantQuiltGlueWriteAccess",
@@ -213,9 +207,7 @@ AthenaQuiltAccess = {
                 "s3:ListBucketMultipartUploads",
                 "s3:ListMultipartUploadParts",
             ],
-            "Resource": [
-                "*",
-            ],
+            "Resource": "*",
         },
         {
             "Sid": "GrantQuiltAthenaInputAccess",
