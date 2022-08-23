@@ -9,6 +9,12 @@
 # 3. Detach Policy from quilt-t4-staging-ManagedUserRole-4J11ONMBPVM1
 # 4. Delete AWS Policy
 
+# AthenaError': {'ErrorCategory': 2, 'ErrorType': 1500, 'Retryable': False, 'ErrorMessage': 'User:
+#arn:aws:sts::712023778557:assumed-role/ReadWriteQuiltV2-quilt-t4-staging/botocore-session-1661204787 is not authorized to perform:
+#glue:UpdateTable on resource:
+#arn:aws:glue:us-east-1:712023778557:catalog because no identity-based policy allows the
+#glue:UpdateTable action (Service: AmazonDataCatalog; Status Code: 400; Error Code: AccessDeniedException; Request ID: cd1adecc-29d3-41b5-bc6b-f49c7b5f3d3f; Proxy: null)'}}
+
 POLICY_FULL=arn:aws:iam::aws:policy/AmazonAthenaFullAccess
 POLICY_ARN=arn:aws:iam::712023778557:policy/AthenaQuiltAccess
 ROLE_NAME=ReadWriteQuiltV2-quilt-t4-staging
