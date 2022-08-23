@@ -138,7 +138,6 @@ export function makeSchemaValidator(
     }
   }
   const schemas = optSchemas ? [mainSchema, ...optSchemas] : [mainSchema]
-  console.log(schemas)
 
   const { $id } = schemas[0]
   const options: Options = {
