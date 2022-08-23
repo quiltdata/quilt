@@ -70,6 +70,4 @@ You can hide the "Queries" tab by setting `ui > nav > queries: false` ([learn mo
 ### Basics
 "Run query" executes the selected query and waits for the result.
 ![](../imgs/athena-ui.png)
-
-Queries are idempotent, so running the same query returns identical results.
 ![](../imgs/athena-history.png)
