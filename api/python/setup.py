@@ -66,6 +66,7 @@ setup(
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
+        'importlib_metadata; python_version < "3.8"',
     ],
     extras_require={
         'pyarrow': [
