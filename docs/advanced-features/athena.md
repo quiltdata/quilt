@@ -30,7 +30,7 @@ This allows you to configure AWS services by calling Python objects:
 
 
 ```python
-import boto3, json, re, time
+import boto3, json, pprint, re, time
 
 
 def stat(response, label="response"):
@@ -216,7 +216,6 @@ AthenaQuiltAccess = {
                 "s3:GetObject",
             ],
             "Resource": [
-                "arn:aws:s3:::*",
                 "arn:aws:s3:::*/.quilt/*",
             ],
         },
@@ -267,6 +266,11 @@ policy = IAM.create_policy(
 print(policy)
 ```
 
+    iam.Role(name='ReadWriteQuiltV2-aneesh-dev-aug')
+    iam.Role(name='ReadWriteQuiltV2-quilt-dima')
+    iam.Role(name='ReadWriteQuiltV2-test-staging-internal')
+    iam.Role(name='ReadWriteQuiltV2-quilt-t4-staging')
+    iam.Role(name='ReadWriteQuiltV2-quilt-kevin-dev')
     iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
 
 
@@ -540,7 +544,7 @@ def athena_await(resp, max_execution=10):
                 s3_path = response["QueryExecution"]["ResultConfiguration"][
                     "OutputLocation"
                 ]
-                print("athena_await[{id}].s3_path:", s3_path)
+                print(f"athena_await[{id}].s3_path:", s3_path)
                 filename = TAIL_PATH.findall(s3_path)[0]
                 return filename
         time.sleep(1)
@@ -585,37 +589,38 @@ For example, you can run the following Python code to create the preceding table
 ```python
 print(f"\nCreate Athena Tables and Views for {QUILT_BUCKET}:\n")
 for key in DDL:
-    print(key)
+    pprint.pprint(key)
     status = athena_run(DDL[key])
     if not status:
-        print("FAILED:\n", DDL[key])
+        print(
+            "FAILED:\n",
+        )
+        pprint.pprint(DDL[key])
 ```
 
     
-    Create Athena Tables and Views for quilt-bio-products:
+    Create Athena Tables and Views for quilt-ernest-staging:
     
-    quilt_bio_products_quilt_manifests
-    	#9 athena_await[4d3723aa-0b75-4261-a7cd-05dcebf37c30]=RUNNING
-    	#8 athena_await[4d3723aa-0b75-4261-a7cd-05dcebf37c30]=RUNNING
-    	#7 athena_await[4d3723aa-0b75-4261-a7cd-05dcebf37c30]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/4d3723aa-0b75-4261-a7cd-05dcebf37c30.txt
-    	athena_await 4d3723aa-0b75-4261-a7cd-05dcebf37c30.txt
-    quilt_bio_products_quilt_packages
-    	#9 athena_await[e5ccb199-5aa7-42f6-896b-fda94e6bdf96]=RUNNING
-    	#8 athena_await[e5ccb199-5aa7-42f6-896b-fda94e6bdf96]=RUNNING
-    	#7 athena_await[e5ccb199-5aa7-42f6-896b-fda94e6bdf96]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/e5ccb199-5aa7-42f6-896b-fda94e6bdf96.txt
-    	athena_await e5ccb199-5aa7-42f6-896b-fda94e6bdf96.txt
-    quilt_bio_products_quilt_packages_view
-    	#9 athena_await[393c269e-a7a7-49fc-9d93-b4be2621a57e]=RUNNING
-    	#8 athena_await[393c269e-a7a7-49fc-9d93-b4be2621a57e]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/393c269e-a7a7-49fc-9d93-b4be2621a57e.txt
-    	athena_await 393c269e-a7a7-49fc-9d93-b4be2621a57e.txt
-    quilt_bio_products_quilt_objects_view
-    	#9 athena_await[f38d2a58-dd81-43bf-a475-e6624f82e94d]=RUNNING
-    	#8 athena_await[f38d2a58-dd81-43bf-a475-e6624f82e94d]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/f38d2a58-dd81-43bf-a475-e6624f82e94d.txt
-    	athena_await f38d2a58-dd81-43bf-a475-e6624f82e94d.txt
+    'quilt_ernest_staging_quilt_manifests'
+    	#9 athena_await[d3ade14e-5e5a-419d-b430-a35bb9ddb164]=RUNNING
+    	#8 athena_await[d3ade14e-5e5a-419d-b430-a35bb9ddb164]=SUCCEEDED
+    athena_await[d3ade14e-5e5a-419d-b430-a35bb9ddb164].s3_path: s3://mycompany-quilt-query-results/d3ade14e-5e5a-419d-b430-a35bb9ddb164.txt
+    	athena_await d3ade14e-5e5a-419d-b430-a35bb9ddb164.txt
+    'quilt_ernest_staging_quilt_packages'
+    	#9 athena_await[1a9c9021-8bae-409b-8ff1-597db38a10ee]=RUNNING
+    	#8 athena_await[1a9c9021-8bae-409b-8ff1-597db38a10ee]=SUCCEEDED
+    athena_await[1a9c9021-8bae-409b-8ff1-597db38a10ee].s3_path: s3://mycompany-quilt-query-results/1a9c9021-8bae-409b-8ff1-597db38a10ee.txt
+    	athena_await 1a9c9021-8bae-409b-8ff1-597db38a10ee.txt
+    'quilt_ernest_staging_quilt_packages_view'
+    	#9 athena_await[ad58df33-a7f2-4756-a6b0-67257377201c]=RUNNING
+    	#8 athena_await[ad58df33-a7f2-4756-a6b0-67257377201c]=SUCCEEDED
+    athena_await[ad58df33-a7f2-4756-a6b0-67257377201c].s3_path: s3://mycompany-quilt-query-results/ad58df33-a7f2-4756-a6b0-67257377201c.txt
+    	athena_await ad58df33-a7f2-4756-a6b0-67257377201c.txt
+    'quilt_ernest_staging_quilt_objects_view'
+    	#9 athena_await[134901c5-c1df-4d20-8634-cf7dd7e225bf]=RUNNING
+    	#8 athena_await[134901c5-c1df-4d20-8634-cf7dd7e225bf]=SUCCEEDED
+    athena_await[134901c5-c1df-4d20-8634-cf7dd7e225bf].s3_path: s3://mycompany-quilt-query-results/134901c5-c1df-4d20-8634-cf7dd7e225bf.txt
+    	athena_await 134901c5-c1df-4d20-8634-cf7dd7e225bf.txt
 
 
 ### B. Querying package-level metadata
@@ -646,24 +651,28 @@ print("WorkGroup", ATHENA_WORKGROUP)
 results = athena_run(ATHENA_TEST)
 if results:
     print("results")
-    print(results)
+    pprint.pprint(results)
 ```
 
     
     Test Athena Query:
     
-    SELECT * FROM quilt_query.quilt_bio_products_quilt_objects_view
+    SELECT * FROM quilt_query.quilt_ernest_staging_quilt_objects_view
     WHERE substr(logical_key, -5)='.tiff'
     -- extract and query package-level metadata
     AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
     AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
     
     WorkGroup quilt-query
-    	#9 athena_await[7c315a69-19af-4784-9299-bf2b020ad165]=QUEUED
-    	#8 athena_await[7c315a69-19af-4784-9299-bf2b020ad165]=RUNNING
-    	#7 athena_await[7c315a69-19af-4784-9299-bf2b020ad165]=FAILED
-    {'State': 'FAILED', 'StateChangeReason': 'com.amazonaws.services.s3.model.AmazonS3Exception: The specified bucket does not exist (Service: Amazon S3; Status Code: 404; Error Code: NoSuchBucket; Request ID: NWNXJA7Y7TMPFPD6; S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M=; Proxy: null), S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M= (Path: s3://quilt-bio-products/.quilt/packages)', 'SubmissionDateTime': datetime.datetime(2022, 8, 23, 8, 30, 16, 706000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 23, 8, 30, 18, 77000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 2, 'ErrorType': 1306, 'Retryable': False, 'ErrorMessage': 'com.amazonaws.services.s3.model.AmazonS3Exception: The specified bucket does not exist (Service: Amazon S3; Status Code: 404; Error Code: NoSuchBucket; Request ID: NWNXJA7Y7TMPFPD6; S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M=; Proxy: null), S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M= (Path: s3://quilt-bio-products/.quilt/packages)'}}
-    	athena_await False
+    	#9 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=QUEUED
+    	#8 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=RUNNING
+    	#7 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=RUNNING
+    	#6 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=RUNNING
+    	#5 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=SUCCEEDED
+    athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f].s3_path: s3://mycompany-quilt-query-results/1a95caae-4acd-48a5-8ce2-f0fc6ab6246f.csv
+    	athena_await 1a95caae-4acd-48a5-8ce2-f0fc6ab6246f.csv
+    results
+    (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
 
 
 
