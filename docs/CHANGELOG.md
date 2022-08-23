@@ -9,6 +9,7 @@
 ## Python API
 * [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
 * [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
+* [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
 
 ## Catalog, Lambdas
 * [Added] Add IGV renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
