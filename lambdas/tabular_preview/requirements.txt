@@ -36,7 +36,7 @@ multidict==6.0.2
     # via
     #   aiohttp
     #   yarl
-numpy==1.21.5
+numpy==1.22.0
     # via
     #   pandas
     #   pyarrow
