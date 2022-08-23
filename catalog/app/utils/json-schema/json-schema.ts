@@ -153,11 +153,16 @@ export function makeSchemaValidator(
     addFormats(ajv, ['date', 'regex', 'uri'])
     ajv.addKeyword('dateformat')
 
+    // TODO: show warning if $schema !== '…draft-07…'
     // TODO: fail early, return Error instead of callback
     if (!$id) return () => [new Error('$id is not provided')]
 
-    return (obj: any): ErrorObject[] => {
-      ajv.validate($id, R.clone(obj))
+    return (obj: any): (Error | ErrorObject)[] => {
+      try {
+        ajv.validate($id, R.clone(obj))
+      } catch (e) {
+        return e instanceof Error ? [e] : []
+      }
       // TODO: add custom errors
       return ajv.errors || []
     }
