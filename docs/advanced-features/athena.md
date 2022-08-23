@@ -22,9 +22,7 @@ You should set COMPANY_NAME and QUILT_BUCKET so the examples work in your envior
 
 ```python
 COMPANY_NAME = "mycompany"
-QUILT_BUCKET = (
-    "quilt-bio-products"  # Use one of your own, without the S3 URL prefix
-)
+QUILT_BUCKET = "quilt-ernest-staging"  # Use one of your own, without the S3 URL prefix
 ```
 
 This allows you to configure AWS services by calling Python objects:
@@ -40,13 +38,6 @@ def stat(response, label="response"):
     print(response["ResponseMetadata"]["HTTPStatusCode"])
 
 
-def find_role(role_id):
-    for role in IAM.roles.all():
-        if role_id in role.role_name:
-            return role.role_name
-    return False
-
-
 SESSION = boto3.session.Session()
 REGION = SESSION.region_name
 print(SESSION)
@@ -58,14 +49,9 @@ STS = SESSION.client("sts")
 ACCOUNT_ID = STS.get_caller_identity()["Account"]
 
 ARN_POLICY = f"arn:aws:iam::{ACCOUNT_ID}:policy/AthenaQuiltAccess"
-ROLE_ID = "ReadWriteQuiltV2-quilt-t4"
-QUILT_ROLE = find_role(ROLE_ID)
-print(QUILT_ROLE)
-ARN_ROLE = f"arn:aws:iam::712023778557:role/{QUILT_ROLE}"
 ```
 
     Session(region_name='us-east-1')
-    ReadWriteQuiltV2-quilt-t4-staging
 
 
 ## I. Create Athena Configuration: Workgroup, Bucket, and Database
@@ -89,7 +75,7 @@ QUILT_URL = "s3://" + QUILT_BUCKET  # Adds S3 Prefix
 
 ARN_ATHENA = f"arn:aws:s3:::{ATHENA_BUCKET}"
 ARN_CATALOG = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:catalog"
-#arn:aws:athena:us-east-1:712023778557:datacatalog/*
+# arn:aws:athena:us-east-1:712023778557:datacatalog/*
 ARN_DATACATALOG = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:datacatalog/*"
 ARN_DATABASE = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:database/{ATHENA_DB}"
 ARN_TABLE = f"arn:aws:glue:{REGION}:{ACCOUNT_ID}:table/{ATHENA_DB}"
@@ -264,11 +250,8 @@ AthenaQuiltAccess = {
         },
     ],
 }
-#print(AthenaQuiltAccess)
+# print(AthenaQuiltAccess)
 ```
-
-    {'Version': '2012-10-17', 'Statement': [{'Sid': 'GrantQuiltAthenaFullAccess', 'Effect': 'Allow', 'Action': ['athena:ListWorkGroups'], 'Resource': ['*']}, {'Sid': 'GrantQuiltAthenaAccess', 'Effect': 'Allow', 'Action': ['athena:Create*', 'athena:Get*', 'athena:ListDatabases', 'athena:ListNamedQueries', 'athena:ListPreparedStatements', 'athena:ListQueryExecutions', 'athena:StartQueryExecution'], 'Resource': ['arn:aws:glue:us-east-1:712023778557:catalog', 'arn:aws:glue:us-east-1:712023778557:datacatalog/*', 'arn:aws:athena:us-east-1:712023778557:workgroup/quilt-query']}, {'Sid': 'GrantQuiltGlueAccess', 'Effect': 'Allow', 'Action': ['glue:GetDatabase', 'glue:GetDatabases', 'glue:GetTable', 'glue:GetTables'], 'Resource': ['*']}, {'Sid': 'GrantQuiltGlueWriteAccess', 'Effect': 'Allow', 'Action': ['glue:CreateTable', 'glue:DeleteTable', 'glue:UpdateTable'], 'Resource': ['arn:aws:glue:us-east-1:712023778557:catalog', 'arn:aws:glue:us-east-1:712023778557:database/quilt_query', 'arn:aws:glue:us-east-1:712023778557:table/quilt_query/*_quilt_*']}, {'Sid': 'GrantQuiltAthenaBucketAccess', 'Effect': 'Allow', 'Action': ['s3:GetBucketLocation', 's3:ListBucket', 's3:ListBucketMultipartUploads', 's3:ListMultipartUploadParts'], 'Resource': ['*']}, {'Sid': 'GrantQuiltAthenaInputAccess', 'Effect': 'Allow', 'Action': ['s3:GetObject'], 'Resource': ['arn:aws:s3:::*', 'arn:aws:s3:::*/.quilt/*']}, {'Sid': 'GrantQuiltAthenaOutputAccess', 'Effect': 'Allow', 'Action': ['s3:GetBucketLocation', 's3:GetObject', 's3:ListBucket', 's3:ListBucketMultipartUploads', 's3:ListMultipartUploadParts', 's3:AbortMultipartUpload', 's3:CreateBucket', 's3:PutObject', 's3:PutBucketPublicAccessBlock'], 'Resource': ['arn:aws:s3:::mycompany-quilt-query-results', 'arn:aws:s3:::mycompany-quilt-query-results/*']}]}
-
 
 If you have used that policy before, you should detatch and delete it before creating a new one:
 <!--pytest-codeblocks:cont-->
@@ -277,17 +260,13 @@ If you have used that policy before, you should detatch and delete it before cre
 ```python
 try:
     old_policy = IAM.Policy(ARN_POLICY)
-    old_policy.detach_role(RoleName=QUILT_ROLE)
-except BaseException as err:
-    print(f"Policy not found or not in Role: {QUILT_ROLE}")
-    print(err)
-
-try:
+    for role in old_policy.attached_roles.all():
+        print(role)
+        old_policy.detach_role(RoleName=role.role_name)
     old_policy.delete()
 except BaseException as err:
-    print(f"Cannot delete Policy: {ARN_POLICY}")
+    print(f"Policy not found: {ARN_POLICY}")
     print(err)
-
 
 policy = IAM.create_policy(
     PolicyName="AthenaQuiltAccess",
@@ -295,23 +274,9 @@ policy = IAM.create_policy(
     Description="Minimal Athena Access policy for Quilt",
 )
 print(policy)
-#policy.attach_role(RoleName=QUILT_ROLE)
 ```
 
     iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
-
-
-
-
-
-    {'ResponseMetadata': {'RequestId': 'a09ea305-cc52-4c09-b12b-90ea3b1a802e',
-      'HTTPStatusCode': 200,
-      'HTTPHeaders': {'x-amzn-requestid': 'a09ea305-cc52-4c09-b12b-90ea3b1a802e',
-       'content-type': 'text/xml',
-       'content-length': '212',
-       'date': 'Tue, 23 Aug 2022 04:54:09 GMT'},
-      'RetryAttempts': 0}}
-
 
 
 ### B. Add this policy to your CloudFormation stack.
@@ -327,9 +292,9 @@ This needs to be done manually by your AWS Administrator:
 7. Check "I acknowledge that AWS CloudFormation might create IAM resources with custom names"
 5. Click "Update stack" to save changes
 
-### C. Add this Policy to Quilt
+### C. Add this Policy to Quilt and relevant Roles
 
-Next, login to Quilt to add this Policy and attach it to those Roles:
+It is strongly recomended that you use the Quilt UI to create Roles that explicitly control which buckets your users can access. If you have done that, you can import the new Policy and attach it to those Roles.
 
 1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
 2. Click on "Admin Settings" in the upper right, under your Profile name
@@ -337,26 +302,29 @@ Next, login to Quilt to add this Policy and attach it to those Roles:
 4. Click on the "+" to create a new Policy
 5. Set Title to "AthenaQuiltAccess"
 6. Check "Manually set ARN" and enter ARN of Athena policy (from above)
-7. Click "Create"
+7. Click "No associated roles. Attach current policy to roles…" and select the appropriate Roles
+8. Click "Create"
 
-### D. Add that Policy to a Role
+### D. (Optional) Manage Policies using AWS
 
-1. Scroll back up to "Roles"
-2. Choose a "Source=Quilt" Role and click the pencil icon to Edit (or create a new one with "+")
-3. Click "Attach a policy..."
-4. Select "AthenaQuiltAccess"
-5. Click "SAVE"
+If you have not setup appropriate "Quilt" Roles, then your users will default to using "Custom" Roles defined by AWS.  If necessary, you can attach the AWS Policy directly to those AWS Roles (as shown below).  However, we encourage you to move to Quilt Roles as soon as possible, both for greater security and because AWS only allows you to attach a few such Policies.
 
-### E. Add that Role to a User
-
-1. Scroll back up to "Users"
-2. Next to each User, select the "AthenaQuiltAccess" Role
-3. Click "Go to bucket" in the upper-right and select a Bucket to leave "Admin Settings"
-4. If you are logged in as that User, log out and back in.
-5. After the below steps, click on  "Queries" -> "Athena SQL" to test Athena
+Also, you can only attach to Buckets you own (not, e.g., buckets from https://open.quiltdata.com).
 
 See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 <!--pytest-codeblocks:cont-->
+
+
+```python
+def attach_policy_to_roles_matching(athena_policy, role_prefix):
+    for role in IAM.roles.all():
+        if role_prefix in role.role_name:
+            athena_policy.attach_role(RoleName=role.role_name)
+
+
+# For example, the default read-write Role starts with 'ReadWriteQuiltV2'
+attach_policy_to_roles_matching(policy, "ReadWriteQuiltV2")
+```
 
 ## III. Defining Per-Bucket Metadata Tables in Athena
 
@@ -636,26 +604,27 @@ for key in DDL:
     Create Athena Tables and Views for quilt-bio-products:
     
     quilt_bio_products_quilt_manifests
-    	#9 athena_await[7288b33a-aa4d-41db-9ee3-3278397d8612]=QUEUED
-    	#8 athena_await[7288b33a-aa4d-41db-9ee3-3278397d8612]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/7288b33a-aa4d-41db-9ee3-3278397d8612.txt
-    	athena_await 7288b33a-aa4d-41db-9ee3-3278397d8612.txt
+    	#9 athena_await[4d3723aa-0b75-4261-a7cd-05dcebf37c30]=RUNNING
+    	#8 athena_await[4d3723aa-0b75-4261-a7cd-05dcebf37c30]=RUNNING
+    	#7 athena_await[4d3723aa-0b75-4261-a7cd-05dcebf37c30]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/4d3723aa-0b75-4261-a7cd-05dcebf37c30.txt
+    	athena_await 4d3723aa-0b75-4261-a7cd-05dcebf37c30.txt
     quilt_bio_products_quilt_packages
-    	#9 athena_await[8fd2710b-8f23-40b2-a967-28ec11bb1f0f]=RUNNING
-    	#8 athena_await[8fd2710b-8f23-40b2-a967-28ec11bb1f0f]=RUNNING
-    	#7 athena_await[8fd2710b-8f23-40b2-a967-28ec11bb1f0f]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/8fd2710b-8f23-40b2-a967-28ec11bb1f0f.txt
-    	athena_await 8fd2710b-8f23-40b2-a967-28ec11bb1f0f.txt
+    	#9 athena_await[e5ccb199-5aa7-42f6-896b-fda94e6bdf96]=RUNNING
+    	#8 athena_await[e5ccb199-5aa7-42f6-896b-fda94e6bdf96]=RUNNING
+    	#7 athena_await[e5ccb199-5aa7-42f6-896b-fda94e6bdf96]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/e5ccb199-5aa7-42f6-896b-fda94e6bdf96.txt
+    	athena_await e5ccb199-5aa7-42f6-896b-fda94e6bdf96.txt
     quilt_bio_products_quilt_packages_view
-    	#9 athena_await[40e49937-8579-42ea-9e29-971b9101126a]=RUNNING
-    	#8 athena_await[40e49937-8579-42ea-9e29-971b9101126a]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/40e49937-8579-42ea-9e29-971b9101126a.txt
-    	athena_await 40e49937-8579-42ea-9e29-971b9101126a.txt
+    	#9 athena_await[393c269e-a7a7-49fc-9d93-b4be2621a57e]=RUNNING
+    	#8 athena_await[393c269e-a7a7-49fc-9d93-b4be2621a57e]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/393c269e-a7a7-49fc-9d93-b4be2621a57e.txt
+    	athena_await 393c269e-a7a7-49fc-9d93-b4be2621a57e.txt
     quilt_bio_products_quilt_objects_view
-    	#9 athena_await[b7137d15-4891-48cb-99e3-4dd9dbb4d047]=RUNNING
-    	#8 athena_await[b7137d15-4891-48cb-99e3-4dd9dbb4d047]=SUCCEEDED
-    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/b7137d15-4891-48cb-99e3-4dd9dbb4d047.txt
-    	athena_await b7137d15-4891-48cb-99e3-4dd9dbb4d047.txt
+    	#9 athena_await[f38d2a58-dd81-43bf-a475-e6624f82e94d]=RUNNING
+    	#8 athena_await[f38d2a58-dd81-43bf-a475-e6624f82e94d]=SUCCEEDED
+    athena_await[{id}].s3_path: s3://mycompany-quilt-query-results/f38d2a58-dd81-43bf-a475-e6624f82e94d.txt
+    	athena_await f38d2a58-dd81-43bf-a475-e6624f82e94d.txt
 
 
 ### B. Querying package-level metadata
@@ -699,10 +668,10 @@ if results:
     AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
     
     WorkGroup quilt-query
-    	#9 athena_await[d5db6df2-ade7-48e0-906e-efaba8bd377f]=QUEUED
-    	#8 athena_await[d5db6df2-ade7-48e0-906e-efaba8bd377f]=RUNNING
-    	#7 athena_await[d5db6df2-ade7-48e0-906e-efaba8bd377f]=FAILED
-    {'State': 'FAILED', 'StateChangeReason': 'com.amazonaws.services.s3.model.AmazonS3Exception: The specified bucket does not exist (Service: Amazon S3; Status Code: 404; Error Code: NoSuchBucket; Request ID: FBTNYWCZ6NVBZ63Y; S3 Extended Request ID: wqcKCHD/JIXdLXZjM7RjZkhn8vFJ/DkOqYwYwyEZ1QlXjmrXHo2E7QsChUiBlb6cbjP1MSvUpGQ=; Proxy: null), S3 Extended Request ID: wqcKCHD/JIXdLXZjM7RjZkhn8vFJ/DkOqYwYwyEZ1QlXjmrXHo2E7QsChUiBlb6cbjP1MSvUpGQ= (Path: s3://quilt-bio-products/.quilt/packages)', 'SubmissionDateTime': datetime.datetime(2022, 8, 22, 21, 54, 18, 346000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 22, 21, 54, 19, 771000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 2, 'ErrorType': 1306, 'Retryable': False, 'ErrorMessage': 'com.amazonaws.services.s3.model.AmazonS3Exception: The specified bucket does not exist (Service: Amazon S3; Status Code: 404; Error Code: NoSuchBucket; Request ID: FBTNYWCZ6NVBZ63Y; S3 Extended Request ID: wqcKCHD/JIXdLXZjM7RjZkhn8vFJ/DkOqYwYwyEZ1QlXjmrXHo2E7QsChUiBlb6cbjP1MSvUpGQ=; Proxy: null), S3 Extended Request ID: wqcKCHD/JIXdLXZjM7RjZkhn8vFJ/DkOqYwYwyEZ1QlXjmrXHo2E7QsChUiBlb6cbjP1MSvUpGQ= (Path: s3://quilt-bio-products/.quilt/packages)'}}
+    	#9 athena_await[7c315a69-19af-4784-9299-bf2b020ad165]=QUEUED
+    	#8 athena_await[7c315a69-19af-4784-9299-bf2b020ad165]=RUNNING
+    	#7 athena_await[7c315a69-19af-4784-9299-bf2b020ad165]=FAILED
+    {'State': 'FAILED', 'StateChangeReason': 'com.amazonaws.services.s3.model.AmazonS3Exception: The specified bucket does not exist (Service: Amazon S3; Status Code: 404; Error Code: NoSuchBucket; Request ID: NWNXJA7Y7TMPFPD6; S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M=; Proxy: null), S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M= (Path: s3://quilt-bio-products/.quilt/packages)', 'SubmissionDateTime': datetime.datetime(2022, 8, 23, 8, 30, 16, 706000, tzinfo=tzlocal()), 'CompletionDateTime': datetime.datetime(2022, 8, 23, 8, 30, 18, 77000, tzinfo=tzlocal()), 'AthenaError': {'ErrorCategory': 2, 'ErrorType': 1306, 'Retryable': False, 'ErrorMessage': 'com.amazonaws.services.s3.model.AmazonS3Exception: The specified bucket does not exist (Service: Amazon S3; Status Code: 404; Error Code: NoSuchBucket; Request ID: NWNXJA7Y7TMPFPD6; S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M=; Proxy: null), S3 Extended Request ID: zql9sBQ7JblYs9es43/xLSCMvh7H1WTFyNL4t7i1IfgATVyU4Hnx1Ya3nuvudMMpqEBgzP6DM2M= (Path: s3://quilt-bio-products/.quilt/packages)'}}
     	athena_await False
 
 
