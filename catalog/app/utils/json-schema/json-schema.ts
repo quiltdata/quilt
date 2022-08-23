@@ -138,6 +138,7 @@ export function makeSchemaValidator(
     }
   }
   const schemas = optSchemas ? [mainSchema, ...optSchemas] : [mainSchema]
+  console.log(schemas)
 
   const { $id } = schemas[0]
   const options: Options = {
@@ -153,6 +154,7 @@ export function makeSchemaValidator(
     addFormats(ajv, ['date', 'regex', 'uri'])
     ajv.addKeyword('dateformat')
 
+    // TODO: show warning if $schema !== '…draft-07…'
     // TODO: fail early, return Error instead of callback
     if (!$id) return () => [new Error('$id is not provided')]
 
