@@ -170,7 +170,6 @@ AthenaQuiltAccess = {
                 "athena:ListPreparedStatements",
                 "athena:ListQueryExecutions",
                 "athena:StartQueryExecution",
-                #                "athena:Update*",
             ],
             "Resource": [
                 ARN_CATALOG,
