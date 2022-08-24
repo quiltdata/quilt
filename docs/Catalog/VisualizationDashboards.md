@@ -379,3 +379,21 @@ or you can invoke [igv.js](https://igv.org/) in quilt_summarize, as shown below:
 
 In the above example, `igv-options-file.json` is an
 [IGV browser configuration](https://github.com/igvteam/igv.js/wiki/Browser-Creation#browser-configuration-options).
+
+You may specify relative paths to package files or absolute S3 URLs as data sources, and the Quilt catalog will resolve them.
+HTTP URLs will remain unchanged.
+
+```json
+// igv-options-file.json
+{
+  "tracks": [{
+    "name": "Absolute URL track",
+    "url": "s3://bucket/file" // will be resolved
+  }, {
+    "name": "Relative path track",
+    "url": "./file" // will be resolved
+  }, {
+    "name": "HTTP URL track",
+    "url": "https://some-url-even-url-to-s3-file" // will stay intact
+  }]
+}
