@@ -485,6 +485,7 @@ SELECT
   mv."tophash",
   mv."logical_key",
   mv."physical_keys",
+  mv."size",
   mv."hash",
   mv."meta",
   mv."user_meta"
