@@ -152,7 +152,7 @@ Suppose we wish to find all .tiff files produced by algorithm version 1.3
 with a cell index of 5.
 
 ```sql
-SELECT * FROM  "quilt_package_objects_YOUR_BUCKET_view" AS
+SELECT * FROM  "quilt_package_objects_YOUR_BUCKET_view"
 WHERE substr(logical_key, -5)='.tiff'
 -- extract and query package-level metadata
 AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
