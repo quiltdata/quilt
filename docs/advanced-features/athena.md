@@ -159,7 +159,7 @@ AthenaQuiltAccess = {
             "Sid": "GrantQuiltAthenaFullAccess",
             "Effect": "Allow",
             "Action": "athena:ListWorkGroups",
-            "Resource": "*",
+            "Resource": "*"
         },
         {
             "Sid": "GrantQuiltAthenaAccess",
@@ -171,12 +171,12 @@ AthenaQuiltAccess = {
                 "athena:ListNamedQueries",
                 "athena:ListPreparedStatements",
                 "athena:ListQueryExecutions",
-                "athena:StartQueryExecution",
+                "athena:StartQueryExecution"
             ],
             "Resource": [
                 ARN_CATALOG,
                 ARN_DATACATALOG,
-                ARN_WORKGROUP,
+                ARN_WORKGROUP
             ],
         },
         {
@@ -186,9 +186,9 @@ AthenaQuiltAccess = {
                 "glue:GetDatabase",
                 "glue:GetDatabases",
                 "glue:GetTable",
-                "glue:GetTables",
+                "glue:GetTables"
             ],
-            "Resource": "*",
+            "Resource": "*"
         },
         {
             "Sid": "GrantQuiltGlueWriteAccess",
@@ -196,12 +196,12 @@ AthenaQuiltAccess = {
             "Action": [
                 "glue:CreateTable",
                 "glue:DeleteTable",
-                "glue:UpdateTable",
+                "glue:UpdateTable"
             ],
             "Resource": [
                 ARN_CATALOG,
                 ARN_DATABASE,
-                ARN_TABLE + "/*_quilt_*",
+                ARN_TABLE + "/*_quilt_*"
             ],
         },
         {
@@ -211,19 +211,19 @@ AthenaQuiltAccess = {
                 "s3:GetBucketLocation",
                 "s3:ListBucket",
                 "s3:ListBucketMultipartUploads",
-                "s3:ListMultipartUploadParts",
+                "s3:ListMultipartUploadParts"
             ],
-            "Resource": "*",
+            "Resource": "*"
         },
         {
             "Sid": "GrantQuiltAthenaInputAccess",
             "Effect": "Allow",
             "Action": [
-                "s3:GetObject",
+                "s3:GetObject"
             ],
             "Resource": [
-                "arn:aws:s3:::*/.quilt/*",
-            ],
+                "arn:aws:s3:::*/.quilt/*"
+            ]
         },
         {
             "Sid": "GrantQuiltAthenaOutputAccess",
@@ -237,11 +237,11 @@ AthenaQuiltAccess = {
                 "s3:AbortMultipartUpload",
                 "s3:CreateBucket",
                 "s3:PutObject",
-                "s3:PutBucketPublicAccessBlock",
+                "s3:PutBucketPublicAccessBlock"
             ],
             "Resource": [
                 ARN_ATHENA,
-                ARN_ATHENA + "/*",
+                ARN_ATHENA + "/*"
             ],
         },
     ],
@@ -375,7 +375,7 @@ LOCATION
   '{QUILT_URL}/.quilt/packages'
 TBLPROPERTIES (
   'has_encrypted_data'='false',
-  'transient_lastDdlTime'='1605312102')
+  'transient_lastDdlTime'='1605312102');
 """
 ```
 
@@ -401,7 +401,7 @@ LOCATION
   '{QUILT_URL}/.quilt/named_packages'
 TBLPROPERTIES (
   'has_encrypted_data'='false',
-  'transient_lastDdlTime'='1557626200')
+  'transient_lastDdlTime'='1557626200');
 """
 ```
 
@@ -452,7 +452,7 @@ FROM npv
 JOIN
   mv
 ON
-  npv."hash" = mv."tophash"
+  npv."hash" = mv."tophash";
 """
 ```
 
@@ -499,7 +499,7 @@ FROM mv
 JOIN
   {ATHENA_DB}.{PACKAGES_VIEW} as npv
 ON
-  npv."hash" = mv."tophash"
+  npv."hash" = mv."tophash";
 """
 ```
 
@@ -596,38 +596,147 @@ For example, you can run the following Python code to create the preceding table
 ```python
 print(f"\nCreate Athena Tables and Views for {QUILT_BUCKET}:\n")
 for key in DDL:
-    pprint.pprint(key)
+    print("\n-- "+key)
+    print(DDL[key])
     status = athena_run(DDL[key])
     if not status:
         print(
             "FAILED:\n",
         )
-        pprint.pprint(DDL[key])
+        #pprint.pprint(DDL[key])
 ```
 
     
     Create Athena Tables and Views for quilt-ernest-staging:
     
-    'quilt_ernest_staging_quilt_manifests'
-    	#9 athena_await[d3ade14e-5e5a-419d-b430-a35bb9ddb164]=RUNNING
-    	#8 athena_await[d3ade14e-5e5a-419d-b430-a35bb9ddb164]=SUCCEEDED
-    athena_await[d3ade14e-5e5a-419d-b430-a35bb9ddb164].s3_path: s3://mycompany-quilt-query-results/d3ade14e-5e5a-419d-b430-a35bb9ddb164.txt
-    	athena_await d3ade14e-5e5a-419d-b430-a35bb9ddb164.txt
-    'quilt_ernest_staging_quilt_packages'
-    	#9 athena_await[1a9c9021-8bae-409b-8ff1-597db38a10ee]=RUNNING
-    	#8 athena_await[1a9c9021-8bae-409b-8ff1-597db38a10ee]=SUCCEEDED
-    athena_await[1a9c9021-8bae-409b-8ff1-597db38a10ee].s3_path: s3://mycompany-quilt-query-results/1a9c9021-8bae-409b-8ff1-597db38a10ee.txt
-    	athena_await 1a9c9021-8bae-409b-8ff1-597db38a10ee.txt
-    'quilt_ernest_staging_quilt_packages_view'
-    	#9 athena_await[ad58df33-a7f2-4756-a6b0-67257377201c]=RUNNING
-    	#8 athena_await[ad58df33-a7f2-4756-a6b0-67257377201c]=SUCCEEDED
-    athena_await[ad58df33-a7f2-4756-a6b0-67257377201c].s3_path: s3://mycompany-quilt-query-results/ad58df33-a7f2-4756-a6b0-67257377201c.txt
-    	athena_await ad58df33-a7f2-4756-a6b0-67257377201c.txt
-    'quilt_ernest_staging_quilt_objects_view'
-    	#9 athena_await[134901c5-c1df-4d20-8634-cf7dd7e225bf]=RUNNING
-    	#8 athena_await[134901c5-c1df-4d20-8634-cf7dd7e225bf]=SUCCEEDED
-    athena_await[134901c5-c1df-4d20-8634-cf7dd7e225bf].s3_path: s3://mycompany-quilt-query-results/134901c5-c1df-4d20-8634-cf7dd7e225bf.txt
-    	athena_await 134901c5-c1df-4d20-8634-cf7dd7e225bf.txt
+    
+    -- quilt_ernest_staging_quilt_manifests
+    
+    CREATE EXTERNAL TABLE IF NOT EXISTS `quilt_query.quilt_ernest_staging_quilt_manifests`(
+      `logical_key` string,
+      `physical_keys` array<string>,
+      `size` string,
+      `hash` struct<type:string,value:string>,
+      `meta` string,
+      `user_meta` string,
+      `message` string,
+      `version` string)
+    ROW FORMAT SERDE
+      'org.openx.data.jsonserde.JsonSerDe'
+    WITH SERDEPROPERTIES (
+      'ignore.malformed.json'='true')
+    STORED AS INPUTFORMAT
+      'org.apache.hadoop.mapred.TextInputFormat'
+    OUTPUTFORMAT
+      'org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat'
+    LOCATION
+      's3://quilt-ernest-staging/.quilt/packages'
+    TBLPROPERTIES (
+      'has_encrypted_data'='false',
+      'transient_lastDdlTime'='1605312102');
+    
+    	#9 athena_await[5ed9a797-6970-4b15-ae24-c3fa57216ca3]=RUNNING
+    	#8 athena_await[5ed9a797-6970-4b15-ae24-c3fa57216ca3]=SUCCEEDED
+    athena_await[5ed9a797-6970-4b15-ae24-c3fa57216ca3].s3_path: s3://mycompany-quilt-query-results/5ed9a797-6970-4b15-ae24-c3fa57216ca3.txt
+    	athena_await 5ed9a797-6970-4b15-ae24-c3fa57216ca3.txt
+    
+    -- quilt_ernest_staging_quilt_packages
+    
+    CREATE EXTERNAL TABLE IF NOT EXISTS `quilt_query.quilt_ernest_staging_quilt_packages`(
+      `hash` string)
+    ROW FORMAT DELIMITED
+      FIELDS TERMINATED BY ',' STORED AS INPUTFORMAT
+      'org.apache.hadoop.mapred.TextInputFormat'
+    OUTPUTFORMAT
+      'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+    LOCATION
+      's3://quilt-ernest-staging/.quilt/named_packages'
+    TBLPROPERTIES (
+      'has_encrypted_data'='false',
+      'transient_lastDdlTime'='1557626200');
+    
+    	#9 athena_await[93278852-9834-4245-badf-b88dfd67d220]=RUNNING
+    	#8 athena_await[93278852-9834-4245-badf-b88dfd67d220]=SUCCEEDED
+    athena_await[93278852-9834-4245-badf-b88dfd67d220].s3_path: s3://mycompany-quilt-query-results/93278852-9834-4245-badf-b88dfd67d220.txt
+    	athena_await 93278852-9834-4245-badf-b88dfd67d220.txt
+    
+    -- quilt_ernest_staging_quilt_packages_view
+    
+    CREATE OR REPLACE VIEW quilt_query.quilt_ernest_staging_quilt_packages_view AS
+    WITH
+      npv AS (
+        SELECT
+          regexp_extract("$path", '^s3:\/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 4) as user,
+          regexp_extract("$path", '^s3:\/\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)', 5) as name,
+          regexp_extract("$path", '[^/]+$') as timestamp,
+          quilt_query.quilt_ernest_staging_quilt_packages."hash"
+          FROM quilt_query.quilt_ernest_staging_quilt_packages
+      ),
+      mv AS (
+        SELECT
+          regexp_extract("$path", '[^/]+$') as tophash,
+            manifest."meta",
+            manifest."message"
+          FROM
+            quilt_query.quilt_ernest_staging_quilt_manifests as manifest
+          WHERE manifest."logical_key" IS NULL
+      )
+    SELECT
+      npv."user",
+      npv."name",
+      npv."hash",
+      npv."timestamp",
+      mv."message",
+      mv."meta"
+    FROM npv
+    JOIN
+      mv
+    ON
+      npv."hash" = mv."tophash";
+    
+    	#9 athena_await[be8d7982-7280-423e-a470-f9d58c87b068]=RUNNING
+    	#8 athena_await[be8d7982-7280-423e-a470-f9d58c87b068]=SUCCEEDED
+    athena_await[be8d7982-7280-423e-a470-f9d58c87b068].s3_path: s3://mycompany-quilt-query-results/be8d7982-7280-423e-a470-f9d58c87b068.txt
+    	athena_await be8d7982-7280-423e-a470-f9d58c87b068.txt
+    
+    -- quilt_ernest_staging_quilt_objects_view
+    
+    CREATE OR REPLACE VIEW quilt_query.quilt_ernest_staging_quilt_objects_view AS
+    WITH
+      mv AS (
+        SELECT
+          regexp_extract("$path", '[^/]+$') as tophash,
+          manifest."logical_key",
+          manifest."physical_keys",
+          manifest."size",
+          manifest."hash",
+          manifest."meta",
+          manifest."user_meta"
+        FROM
+          quilt_query.quilt_ernest_staging_quilt_manifests as manifest
+        WHERE manifest."logical_key" IS NOT NULL
+      )
+    SELECT
+      npv."user",
+      npv."name",
+      npv."timestamp",
+      mv."tophash",
+      mv."logical_key",
+      mv."physical_keys",
+      mv."size",
+      mv."hash",
+      mv."meta",
+      mv."user_meta"
+    FROM mv
+    JOIN
+      quilt_query.quilt_ernest_staging_quilt_packages_view as npv
+    ON
+      npv."hash" = mv."tophash";
+    
+    	#9 athena_await[68094f38-23d9-47b1-923b-9af6f60e76d8]=RUNNING
+    	#8 athena_await[68094f38-23d9-47b1-923b-9af6f60e76d8]=SUCCEEDED
+    athena_await[68094f38-23d9-47b1-923b-9af6f60e76d8].s3_path: s3://mycompany-quilt-query-results/68094f38-23d9-47b1-923b-9af6f60e76d8.txt
+    	athena_await 68094f38-23d9-47b1-923b-9af6f60e76d8.txt
 
 
 ### B. Querying package-level metadata
@@ -671,15 +780,25 @@ if results:
     AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
     
     WorkGroup quilt-query
-    	#9 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=QUEUED
-    	#8 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=RUNNING
-    	#7 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=RUNNING
-    	#6 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=RUNNING
-    	#5 athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f]=SUCCEEDED
-    athena_await[1a95caae-4acd-48a5-8ce2-f0fc6ab6246f].s3_path: s3://mycompany-quilt-query-results/1a95caae-4acd-48a5-8ce2-f0fc6ab6246f.csv
-    	athena_await 1a95caae-4acd-48a5-8ce2-f0fc6ab6246f.csv
+    	#9 athena_await[70220ebc-626f-44c0-bde3-bd5f3d2d2a31]=QUEUED
+    	#8 athena_await[70220ebc-626f-44c0-bde3-bd5f3d2d2a31]=RUNNING
+    	#7 athena_await[70220ebc-626f-44c0-bde3-bd5f3d2d2a31]=RUNNING
+    	#6 athena_await[70220ebc-626f-44c0-bde3-bd5f3d2d2a31]=RUNNING
+    	#5 athena_await[70220ebc-626f-44c0-bde3-bd5f3d2d2a31]=SUCCEEDED
+    athena_await[70220ebc-626f-44c0-bde3-bd5f3d2d2a31].s3_path: s3://mycompany-quilt-query-results/70220ebc-626f-44c0-bde3-bd5f3d2d2a31.csv
+    	athena_await 70220ebc-626f-44c0-bde3-bd5f3d2d2a31.csv
     results
-    (['user', 'name', 'timestamp', 'tophash', 'logical_key', 'physical_keys', 'hash', 'meta', 'user_meta'], [])
+    (['user',
+      'name',
+      'timestamp',
+      'tophash',
+      'logical_key',
+      'physical_keys',
+      'size',
+      'hash',
+      'meta',
+      'user_meta'],
+     [])
 
 
 
