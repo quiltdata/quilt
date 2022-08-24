@@ -29,6 +29,16 @@ const typeMarkdown: EditorInputType = {
   brace: 'markdown',
 }
 
+const isJson = PreviewUtils.extIn(['.json'])
+const typeJson: EditorInputType = {
+  brace: 'json',
+}
+
+const isText = PreviewUtils.extIn(['.txt', ''])
+const typeText: EditorInputType = {
+  brace: 'text',
+}
+
 const typeNone: EditorInputType = {
   brace: null,
 }
@@ -36,7 +46,9 @@ const typeNone: EditorInputType = {
 export const detect: (path: string) => EditorInputType = R.pipe(
   PreviewUtils.stripCompression,
   R.cond([
+    [isJson, R.always(typeJson)],
     [isMarkdown, R.always(typeMarkdown)],
+    [isText, R.always(typeText)],
     [isYaml, R.always(typeYaml)],
     [R.T, R.always(typeNone)],
   ]),
