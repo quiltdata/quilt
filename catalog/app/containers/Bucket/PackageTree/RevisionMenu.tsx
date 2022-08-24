@@ -36,5 +36,7 @@ export default function RevisionMenu({
     return menu
   }, [desktop, onDelete, onDesktop, preferences])
 
+  if (!items.length) return null
+
   return <Menu className={className} items={items} />
 }
