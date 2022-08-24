@@ -137,6 +137,7 @@ export interface QueryExecution {
   completed?: Date
   created?: Date
   db?: string
+  error?: Error
   id?: string
   outputBucket?: string
   query?: string
@@ -169,6 +170,15 @@ function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecut
   }
 }
 
+function parseQueryExecutionError(
+  error: Athena.UnprocessedQueryExecutionId,
+): QueryExecution {
+  return {
+    error: new Error(error?.ErrorMessage || 'Unknown'),
+    id: error?.QueryExecutionId,
+  }
+}
+
 async function fetchQueryExecutions({
   athena,
   prev,
@@ -189,7 +199,13 @@ async function fetchQueryExecutions({
     const executionsOutput = await athena
       ?.batchGetQueryExecution({ QueryExecutionIds: ids })
       .promise()
-    const parsed = (executionsOutput.QueryExecutions || []).map(parseQueryExecution)
+    const parsed = (executionsOutput.QueryExecutions || [])
+      .map(parseQueryExecution)
+      .concat(
+        (executionsOutput.UnprocessedQueryExecutionIds || []).map(
+          parseQueryExecutionError,
+        ),
+      )
     const list = (prev?.list || []).concat(parsed)
     return {
       list,

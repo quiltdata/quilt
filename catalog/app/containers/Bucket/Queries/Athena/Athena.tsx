@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import type { RouteComponentProps } from 'react-router'
@@ -12,6 +13,7 @@ import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
 
 import { Section, makeAsyncDataErrorHandler } from './Components'
+import CreatePackage from './CreatePackage'
 import * as QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
@@ -146,7 +148,16 @@ function ResultsContainer({
         className={classes.breadcrumbs}
         queryExecutionId={queryExecutionId}
         workgroup={workgroup}
-      />
+      >
+        {results.data.case({
+          _: () => null,
+          Pending: () => <Skeleton height={24} width={144} animate />,
+          Ok: (queryResults) =>
+            !!queryResults.rows.length && (
+              <CreatePackage bucket={bucket} rows={queryResults.rows} />
+            ),
+        })}
+      </ResultsBreadcrumbs>
       {results.data.case({
         Init: () => null,
         Ok: (queryResults) => {
@@ -220,14 +231,25 @@ const useOverrideStyles = M.makeStyles({
   },
 })
 
-const useHistoryHeaderStyles = M.makeStyles({
+const useResultsBreadcrumbsStyles = M.makeStyles({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  actions: {
+    marginLeft: 'auto',
+  },
   breadcrumb: {
     display: 'flex',
   },
+  id: {
+    marginLeft: '6px',
+  },
 })
 
-interface HistoryHeaderProps {
+interface ResultsBreadcrumbsProps {
   bucket: string
+  children: React.ReactNode
   className?: string
   queryExecutionId?: string
   workgroup: requests.athena.Workgroup
@@ -235,25 +257,30 @@ interface HistoryHeaderProps {
 
 function ResultsBreadcrumbs({
   bucket,
+  children,
   className,
   queryExecutionId,
   workgroup,
-}: HistoryHeaderProps) {
-  const classes = useHistoryHeaderStyles()
+}: ResultsBreadcrumbsProps) {
+  const classes = useResultsBreadcrumbsStyles()
   const overrideClasses = useOverrideStyles()
   const { urls } = NamedRoutes.use()
   return (
-    <M.Breadcrumbs className={className} classes={overrideClasses}>
-      <RRDom.Link
-        className={classes.breadcrumb}
-        to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
-      >
-        Query Executions
-      </RRDom.Link>
-      <M.Typography className={classes.breadcrumb} color="textPrimary">
-        Results for <Code>{queryExecutionId}</Code>
-      </M.Typography>
-    </M.Breadcrumbs>
+    <div className={cx(classes.root, className)}>
+      <M.Breadcrumbs classes={overrideClasses}>
+        <RRDom.Link
+          className={classes.breadcrumb}
+          to={urls.bucketAthenaWorkgroup(bucket, workgroup)}
+        >
+          Query Executions
+        </RRDom.Link>
+        <M.Typography className={classes.breadcrumb} color="textPrimary">
+          Results for<Code className={classes.id}>{queryExecutionId}</Code>
+        </M.Typography>
+      </M.Breadcrumbs>
+
+      <div className={classes.actions}>{children}</div>
+    </div>
   )
 }
 
