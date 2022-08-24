@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -7,6 +7,8 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import type * as DG from 'components/DataGrid'
+import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -15,17 +17,91 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
 import * as FileView from './FileView'
-import { Listing, PrefixFilter } from './Listing'
+import { Item, Listing, PrefixFilter } from './Listing'
 import * as PD from './PackageDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+const useAddToBookmarksStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'baseline',
+    display: 'flex',
+    marginLeft: t.spacing(2),
+  },
+  button: {
+    fontSize: 11,
+    lineHeight: '22px',
+    margin: t.spacing(0, 1),
+  },
+}))
+
+interface AddToBookmarksProps {
+  bucket: string
+  items: Item[]
+  onClearSelection: () => void
+  path: string
+  selection?: DG.GridRowId[]
+}
+
+// TODO: rather then select and add list of selected entries to bookmarks
+//       add bookmark button to each entry
+function AddToBookmarks({
+  bucket,
+  items,
+  onClearSelection,
+  path,
+  selection,
+}: AddToBookmarksProps) {
+  const classes = useAddToBookmarksStyles()
+  const bookmarks = Bookmarks.use()
+  const bookmarkItems: s3paths.S3HandleBase[] = React.useMemo(() => {
+    const handles: s3paths.S3HandleBase[] = []
+    if (selection?.includes('..')) {
+      handles.push({
+        bucket,
+        key: s3paths.ensureSlash(join(path, '..')),
+      })
+    }
+    items.some(({ name, handle, type }) => {
+      if (!selection?.length) return true
+      if (selection?.includes(name) && handle) {
+        handles.push({
+          ...handle,
+          key: type === 'dir' ? s3paths.ensureSlash(handle.key) : handle.key,
+        })
+      }
+      if (handles.length === selection?.length) return true
+      return false
+    })
+    return handles
+  }, [bucket, path, items, selection])
+  const handleClick = React.useCallback(() => {
+    bookmarks?.append('main', bookmarkItems)
+    onClearSelection()
+  }, [bookmarks, bookmarkItems, onClearSelection])
+  return (
+    <M.Slide direction="down" in={!!selection?.length}>
+      <div className={classes.root}>
+        <M.Button
+          className={classes.button}
+          color="primary"
+          size="small"
+          variant="outlined"
+          onClick={handleClick}
+        >
+          Add selected items to bookmarks
+        </M.Button>
+      </div>
+    </M.Slide>
+  )
+}
 
 interface RouteMap {
   bucketDir: [bucket: string, path?: string, prefix?: string]
@@ -37,7 +113,7 @@ type Urls = NamedRoutes.Urls<RouteMap>
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
   ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
-    [{ label: bucket, path: '' }, ...getBreadCrumbs(path)].map(
+    [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)].map(
       ({ label, path: segPath }) =>
         Crumb.Segment({
           label,
@@ -51,16 +127,24 @@ function useFormattedListing(r: requests.BucketListingResult) {
   return React.useMemo(() => {
     const dirs = r.dirs.map((name) => ({
       type: 'dir' as const,
-      name: ensureNoSlash(withoutPrefix(r.path, name)),
+      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
       to: urls.bucketDir(r.bucket, name),
+      handle: {
+        bucket: r.bucket,
+        key: name,
+      },
     }))
     const files = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
-      name: withoutPrefix(r.path, key),
+      name: s3paths.withoutPrefix(r.path, key),
       to: urls.bucketFile(r.bucket, key),
       size,
       modified,
       archived,
+      handle: {
+        bucket: r.bucket,
+        key,
+      },
     }))
     const items = [
       ...(r.path !== '' && !r.prefix
@@ -68,7 +152,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
             {
               type: 'dir' as const,
               name: '..',
-              to: urls.bucketDir(r.bucket, up(r.path)),
+              to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
             },
           ]
         : []),
@@ -101,6 +185,10 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
 
   const items = useFormattedListing(response)
 
+  const [selection, setSelection] = React.useState([])
+  const handleSelectionModelChange = React.useCallback((ids) => setSelection(ids), [])
+  React.useEffect(() => setSelection([]), [bucket, path])
+
   // TODO: should prefix filtering affect summary?
   return (
     <>
@@ -110,12 +198,23 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
+        onSelectionChange={handleSelectionModelChange}
+        selection={selection}
         toolbarContents={
-          <PrefixFilter
-            key={`${response.bucket}/${response.path}`}
-            prefix={response.prefix}
-            setPrefix={setPrefix}
-          />
+          <>
+            <PrefixFilter
+              key={`${response.bucket}/${response.path}`}
+              prefix={response.prefix}
+              setPrefix={setPrefix}
+            />
+            <AddToBookmarks
+              bucket={bucket}
+              items={items}
+              onClearSelection={() => setSelection([])}
+              path={path}
+              selection={selection}
+            />
+          </>
         }
       />
       {/* Remove TS workaround when Summary will be converted to .tsx */}
@@ -156,7 +255,7 @@ export default function Dir({
   const s3 = AWS.S3.use()
   const preferences = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
-  const path = decode(encodedPath)
+  const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
 
   const code = React.useMemo(

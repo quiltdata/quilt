@@ -2,6 +2,7 @@ import Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import wait from 'utils/wait'
 
@@ -89,11 +90,13 @@ export interface WorkgroupsResponse {
 interface WorkgroupsArgs {
   athena: Athena
   prev: WorkgroupsResponse | null
+  preferences?: BucketPreferences.AthenaPreferences
 }
 
 async function fetchWorkgroups({
   athena,
   prev,
+  preferences,
 }: WorkgroupsArgs): Promise<WorkgroupsResponse> {
   try {
     const workgroupsOutput = await athena
@@ -103,8 +106,12 @@ async function fetchWorkgroups({
       ({ Name }) => Name || 'Unknown',
     )
     const list = (prev?.list || []).concat(parsed)
+    const defaultWorkgroup =
+      preferences?.defaultWorkflow && list.includes(preferences?.defaultWorkflow)
+        ? preferences?.defaultWorkflow
+        : list[0]
     return {
-      defaultWorkgroup: list[0], // TODO: get default from config
+      defaultWorkgroup,
       list,
       next: workgroupsOutput.NextToken,
     }
@@ -121,7 +128,8 @@ export function useWorkgroups(
   prev: WorkgroupsResponse | null,
 ): AsyncData<WorkgroupsResponse> {
   const athena = AWS.Athena.use()
-  return useData(fetchWorkgroups, { athena, prev })
+  const preferences = BucketPreferences.use()
+  return useData(fetchWorkgroups, { athena, prev, preferences: preferences?.ui.athena })
 }
 
 export interface QueryExecution {
@@ -308,15 +316,6 @@ export function useQueryResults(
   )
 }
 
-async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
-  const normalizedStr = (workgroup + queryBody).trim().replace(/\s+/g, ' ')
-  const msgUint8 = new TextEncoder().encode(normalizedStr)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  return hashHex
-}
-
 export interface QueryRunResponse {
   id: string
 }
@@ -325,20 +324,16 @@ interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
-  skipHashing?: boolean
 }
 
 export async function runQuery({
   athena,
   queryBody,
   workgroup,
-  skipHashing,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const hashDigest = skipHashing ? undefined : await hashQueryBody(queryBody, workgroup)
     const { QueryExecutionId } = await athena
       .startQueryExecution({
-        ClientRequestToken: hashDigest,
         QueryString: queryBody,
         ResultConfiguration: {
           EncryptionConfiguration: {
@@ -353,18 +348,6 @@ export async function runQuery({
       id: QueryExecutionId,
     }
   } catch (e) {
-    if (
-      e instanceof Error &&
-      e.name === 'InvalidRequestException' &&
-      e.message === 'Idempotent parameters do not match'
-    ) {
-      return runQuery({
-        athena,
-        queryBody,
-        workgroup,
-        skipHashing: true,
-      })
-    }
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console

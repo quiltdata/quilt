@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -133,13 +134,41 @@ const userDisplay = (user: $TSFixMe) => (
   </>
 )
 
+const useBadgeStyles = M.makeStyles({
+  root: {
+    alignItems: 'inherit',
+  },
+  badge: {
+    top: '4px',
+  },
+})
+
+interface BadgeProps extends M.BadgeProps {}
+
+function Badge({ children, color, invisible, ...props }: BadgeProps) {
+  const classes = useBadgeStyles()
+  return (
+    <M.Badge
+      classes={classes}
+      color={color}
+      variant="dot"
+      invisible={invisible}
+      {...props}
+    >
+      {children}
+    </M.Badge>
+  )
+}
+
 function UserDropdown() {
   const cfg = Config.useConfig()
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
+  const bookmarks = Bookmarks.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
   const isAdmin = !!useRoute(paths.admin).match
   const [anchor, setAnchor] = React.useState(null)
+  const [visible, setVisible] = React.useState(true)
 
   const open = React.useCallback(
     (evt) => {
@@ -149,17 +178,36 @@ function UserDropdown() {
   )
 
   const close = React.useCallback(() => {
+    setVisible(false)
     setAnchor(null)
   }, [setAnchor])
+
+  const showBookmarks = React.useCallback(() => {
+    bookmarks?.show()
+    close()
+  }, [bookmarks, close])
+
+  React.useEffect(() => {
+    if (bookmarks?.hasUpdates !== visible) setVisible(!!bookmarks?.hasUpdates)
+  }, [bookmarks?.hasUpdates, visible])
 
   return (
     <>
       <M.Button variant="text" color="inherit" onClick={open}>
-        {userDisplay(user)} <M.Icon>expand_more</M.Icon>
+        <Badge color="primary" invisible={!visible}>
+          {userDisplay(user)}
+        </Badge>{' '}
+        <M.Icon>expand_more</M.Icon>
       </M.Button>
 
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+          <Item onClick={showBookmarks}>
+            <Badge color="secondary" invisible={!visible}>
+              <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
+            </Badge>
+            &nbsp;Bookmarks
+          </Item>
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings

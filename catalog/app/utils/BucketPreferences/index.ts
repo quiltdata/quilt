@@ -1,5 +1,6 @@
 export type {
   ActionPreferences,
+  AthenaPreferences,
   BucketPreferences,
   NavPreferences,
   SourceBuckets,

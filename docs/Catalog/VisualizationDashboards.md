@@ -17,7 +17,7 @@ exploration:
 * [ECharts](#echarts)
 * [Voila](#voila) (Developer preview)
 * [Perspective](#perspective)
-* [IGV](#igv)
+* [IGV](#integrative-genomics-viewer-igv)
 
 The above systems provide you with hundreds of charts out of the box.
 
