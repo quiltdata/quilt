@@ -23,11 +23,13 @@ import type * as workflows from 'utils/workflows'
 import Code from './Code'
 import * as FileView from './FileView'
 import { Item, Listing, PrefixFilter } from './Listing'
+import Menu from './Menu'
 import * as PD from './PackageDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+import { createFilterOptions } from '@material-ui/lab'
 
 const useAddToBookmarksStyles = M.makeStyles((t) => ({
   root: {
@@ -105,7 +107,17 @@ function AddToBookmarks({
 
 interface RouteMap {
   bucketDir: [bucket: string, path?: string, prefix?: string]
-  bucketFile: [bucket: string, path: string, version?: string]
+  bucketFile: [
+    bucket: string,
+    path: string,
+    options?: {
+      add?: boolean
+      edit?: boolean
+      mode?: string
+      next?: string
+      version?: string
+    },
+  ]
 }
 
 type Urls = NamedRoutes.Urls<RouteMap>
@@ -254,6 +266,7 @@ export default function Dir({
   const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
   const preferences = BucketPreferences.use()
+  const history = RRDom.useHistory()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -330,6 +343,21 @@ export default function Dir({
     [packageDirectoryDialog, path],
   )
 
+  const createFile = React.useCallback(() => {
+    const name = window.prompt('Enter file name')
+    if (!name) return
+    history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
+  }, [bucket, history, urls])
+  const menuItems = React.useMemo(
+    () => [
+      {
+        onClick: createFile,
+        title: 'Create file',
+      },
+    ],
+    [createFile],
+  )
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
@@ -363,6 +391,7 @@ export default function Dir({
             label="Download directory"
           />
         )}
+        <Menu className={classes.button} items={menuItems} />
       </M.Box>
 
       {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
