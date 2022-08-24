@@ -139,6 +139,7 @@ SELECT
   mv."hash",
   mv."meta",
   mv."user_meta"
+  mv."size"
 FROM mv
 JOIN
   "quilt_packages_{bucket}_view" as npv
