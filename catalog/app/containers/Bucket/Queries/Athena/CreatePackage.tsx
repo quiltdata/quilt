@@ -23,7 +23,7 @@ function SeeDocsForCreatingPackage() {
   )
 }
 
-function doQueryResultsContainMainefstEntries(
+function doQueryResultsContainManifestEntries(
   rows: string[][],
 ): rows is [ManifestKey[], ...string[][]] {
   const [head] = rows
@@ -101,7 +101,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
     disableStateDisplay: true,
   })
   const onPackage = React.useCallback(() => {
-    if (!doQueryResultsContainMainefstEntries(rows)) return
+    if (!doQueryResultsContainManifestEntries(rows)) return
 
     // TODO: make it lazy, and disable button
     const entries = parseQueryResults(rows)
@@ -109,7 +109,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
     createDialog.open()
   }, [addToPackage, createDialog, rows])
 
-  if (!doQueryResultsContainMainefstEntries(rows)) return <SeeDocsForCreatingPackage />
+  if (!doQueryResultsContainManifestEntries(rows)) return <SeeDocsForCreatingPackage />
 
   return (
     <>
