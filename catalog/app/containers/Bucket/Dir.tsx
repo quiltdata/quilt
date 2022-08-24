@@ -29,7 +29,6 @@ import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
-import { createFilterOptions } from '@material-ui/lab'
 
 const useAddToBookmarksStyles = M.makeStyles((t) => ({
   root: {
@@ -347,7 +346,7 @@ export default function Dir({
     const name = window.prompt('Enter file name')
     if (!name) return
     history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
-  }, [bucket, history, urls])
+  }, [bucket, history, path, urls])
   const menuItems = React.useMemo(
     () => [
       {
