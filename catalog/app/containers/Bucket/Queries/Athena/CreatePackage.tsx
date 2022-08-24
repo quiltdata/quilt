@@ -23,7 +23,7 @@ function SeeDocsForCreatingPackage() {
   )
 }
 
-function areQueryResultsContainMainefstEntries(
+function doQueryResultsContainMainefstEntries(
   rows: string[][],
 ): rows is [ManifestKey[], ...string[][]] {
   const [head] = rows
@@ -47,7 +47,7 @@ function rowToManifestEntryStringified(
   }, {} as ManifestEntryStringified)
 }
 
-function parseManifenstEntryStringified(entry: ManifestEntryStringified): {
+function parseManifestEntryStringified(entry: ManifestEntryStringified): {
   [key: string]: Model.S3File
 } | null {
   if (!entry.logical_key) return null
@@ -82,7 +82,7 @@ function parseQueryResults(
   return manifestEntries.reduce(
     (memo, entry) => ({
       ...memo,
-      ...parseManifenstEntryStringified(entry),
+      ...parseManifestEntryStringified(entry),
     }),
     {},
   )
@@ -101,7 +101,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
     disableStateDisplay: true,
   })
   const onPackage = React.useCallback(() => {
-    if (!areQueryResultsContainMainefstEntries(rows)) return
+    if (!doQueryResultsContainMainefstEntries(rows)) return
 
     // TODO: make it lazy, and disable button
     const entries = parseQueryResults(rows)
@@ -109,7 +109,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
     createDialog.open()
   }, [addToPackage, createDialog, rows])
 
-  if (!areQueryResultsContainMainefstEntries(rows)) return <SeeDocsForCreatingPackage />
+  if (!doQueryResultsContainMainefstEntries(rows)) return <SeeDocsForCreatingPackage />
 
   return (
     <>
