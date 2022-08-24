@@ -6,6 +6,12 @@ You can therefore query package metadata wth SQL engines like [AWS Athena](https
 Users can write SQL queries to select packages (or files from within packages)
 using predicates based on package or object-level metadata.
 
+Packages can be created from the resulting tabular data. 
+To be able to create a package,
+the table must contain the columns `logical_key`, `physical_keys` and `size` as shown below.
+(See also [Mental Model](https://docs.quiltdata.com/mentalmodel))
+
+
 ## Note: Executing Documentation Code  
 If you launch Jupyter from a shell containing your AWS credentials, you can edit and execute code directly from the [notebook version](https://github.com/quiltdata/quilt/blob/master/docs/advanced-features/athena.ipynb) of this document.
 You can alternatively copy and paste code blocks into your Python editor.
