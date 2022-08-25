@@ -9,6 +9,7 @@ import * as M from '@material-ui/core'
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
 import * as Dialog from 'components/Dialog'
+import { detect } from 'components/FileEditor/loader'
 import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -30,6 +31,51 @@ import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+interface DirectoryMenuProps {
+  bucket: string
+  className?: string
+  path: string
+}
+
+function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const history = RRDom.useHistory()
+
+  const createFile = React.useCallback(
+    (name: string) => {
+      if (!name) return
+      history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
+    },
+    [bucket, history, path, urls],
+  )
+  const validateFileName = React.useCallback((value: string) => {
+    if (!detect(value).brace) {
+      return new Error('Suppored file formats are JSON, Markdown, YAML and text')
+    }
+  }, [])
+  const prompt = Dialog.usePrompt({
+    onSubmit: createFile,
+    title: 'Enter file name',
+    validate: validateFileName,
+  })
+  const menuItems = React.useMemo(
+    () => [
+      {
+        onClick: prompt.open,
+        title: 'Create file',
+      },
+    ],
+    [prompt.open],
+  )
+
+  return (
+    <>
+      {prompt.render()}
+      <Menu className={className} items={menuItems} />
+    </>
+  )
+}
 
 const useAddToBookmarksStyles = M.makeStyles((t) => ({
   root: {
@@ -266,7 +312,6 @@ export default function Dir({
   const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
   const preferences = BucketPreferences.use()
-  const history = RRDom.useHistory()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -343,30 +388,9 @@ export default function Dir({
     [packageDirectoryDialog, path],
   )
 
-  const createFile = React.useCallback(
-    (name: string) => {
-      // TODO: if name endsWith unsupported ext
-      if (!name) return
-      history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
-    },
-    [bucket, history, path, urls],
-  )
-  const prompt = Dialog.usePrompt({ title: 'Enter file name', onSubmit: createFile })
-  const menuItems = React.useMemo(
-    () => [
-      {
-        onClick: prompt.open,
-        title: 'Create file',
-      },
-    ],
-    [prompt.open],
-  )
-
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
-
-      {prompt.render()}
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
@@ -397,7 +421,7 @@ export default function Dir({
             label="Download directory"
           />
         )}
-        <Menu className={classes.button} items={menuItems} />
+        <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
       </M.Box>
 
       {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
