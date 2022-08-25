@@ -94,7 +94,7 @@ export function usePrompt({ initialValue, title, onSubmit, validate }: PromptPro
         }}
       />
     ),
-    [close, opened, onSubmit, title, validate],
+    [initialValue, key, close, handleSubmit, opened, title, validate],
   )
   return React.useMemo(
     () => ({
