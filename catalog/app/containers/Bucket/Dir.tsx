@@ -54,11 +54,13 @@ function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
       return new Error('File name is required')
     }
     if (!detect(value).brace || extname(value) === '.' || !extname(value)) {
+      // TODO: get list of supported extensions from FileEditor
       return new Error('Suppored file formats are JSON, Markdown, YAML and text')
     }
   }, [])
   const prompt = Dialog.usePrompt({
     onSubmit: createFile,
+    initialValue: 'README.md',
     title: 'Enter file name',
     validate: validateFileName,
   })
