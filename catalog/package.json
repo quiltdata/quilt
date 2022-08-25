@@ -77,7 +77,7 @@
     "dompurify": "^2.3.10",
     "echarts": "^5.3.3",
     "final-form": "^4.20.7",
-    "fontfaceobserver": "^2.1.0",
+    "fontfaceobserver": "^2.3.0",
     "fp-ts": "^2.12.2",
     "graphql": "^15.8.0",
     "highlight.js": "^11.5.1",
