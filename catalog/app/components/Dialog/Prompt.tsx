@@ -41,12 +41,12 @@ interface PromptProps {
 }
 export function usePrompt({ title, onSubmit }: PromptProps) {
   const [opened, setOpened] = React.useState(false)
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
   const render = React.useCallback(
     () => <Dialog title={title} open={opened} onCancel={close} onSubmit={onSubmit} />,
     [close, opened, onSubmit, title],
   )
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => setOpened(false), [])
   return React.useMemo(
     () => ({
       close,
