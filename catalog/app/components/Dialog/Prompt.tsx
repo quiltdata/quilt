@@ -24,10 +24,14 @@ function Dialog({
   const [submited, setSubmited] = React.useState(false)
   const error = React.useMemo(() => validate(value), [validate, value])
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
-  const handleSubmit = React.useCallback(() => {
-    setSubmited(true)
-    if (!error) onSubmit(value)
-  }, [error, onSubmit, value])
+  const handleSubmit = React.useCallback(
+    (event) => {
+      event.preventDefault()
+      setSubmited(true)
+      if (!error) onSubmit(value)
+    },
+    [error, onSubmit, value],
+  )
   return (
     <M.Dialog open={open} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit}>
