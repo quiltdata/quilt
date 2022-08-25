@@ -30,30 +30,34 @@ function Dialog({
   }, [error, onSubmit, value])
   return (
     <M.Dialog open={open} fullWidth maxWidth="sm">
-      <M.DialogTitle>{title}</M.DialogTitle>
-      <M.DialogContent>
-        <M.TextField
-          autoFocus
-          fullWidth
-          margin="dense"
-          onChange={handleChange}
-          value={value}
-        />
-        {!!error && !!submited && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={onCancel} color="primary" variant="outlined">
-          Cancel
-        </M.Button>
-        <M.Button
-          color="primary"
-          disabled={!!error && !!submited}
-          onClick={handleSubmit}
-          variant="contained"
-        >
-          Submit
-        </M.Button>
-      </M.DialogActions>
+      <form onSubmit={handleSubmit}>
+        <M.DialogTitle>{title}</M.DialogTitle>
+        <M.DialogContent>
+          <M.TextField
+            autoFocus
+            fullWidth
+            margin="dense"
+            onChange={handleChange}
+            value={value}
+          />
+          {!!error && !!submited && (
+            <Lab.Alert severity="error">{error.message}</Lab.Alert>
+          )}
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={onCancel} color="primary" variant="outlined">
+            Cancel
+          </M.Button>
+          <M.Button
+            color="primary"
+            disabled={!!error && !!submited}
+            onClick={handleSubmit}
+            variant="contained"
+          >
+            Submit
+          </M.Button>
+        </M.DialogActions>
+      </form>
     </M.Dialog>
   )
 }
