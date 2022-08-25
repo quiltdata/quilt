@@ -13,9 +13,13 @@ interface DialogProps {
 // TODO: default value
 function Dialog({ open, onCancel, onSubmit, title, validate }: DialogProps) {
   const [value, setValue] = React.useState('Readme.md')
+  const [submited, setSubmited] = React.useState(false)
   const error = React.useMemo(() => validate(value), [validate, value])
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
-  const handleSubmit = React.useCallback(() => onSubmit(value), [onSubmit, value])
+  const handleSubmit = React.useCallback(() => {
+    setSubmited(true)
+    if (!error) onSubmit(value)
+  }, [error, onSubmit, value])
   return (
     <M.Dialog open={open} fullWidth maxWidth="sm">
       <M.DialogTitle>{title}</M.DialogTitle>
@@ -27,7 +31,7 @@ function Dialog({ open, onCancel, onSubmit, title, validate }: DialogProps) {
           onChange={handleChange}
           value={value}
         />
-        {!!error && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
+        {!!error && !!submited && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onCancel} color="primary" variant="outlined">

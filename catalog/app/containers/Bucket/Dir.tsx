@@ -1,4 +1,4 @@
-import { basename, join } from 'path'
+import { basename, join, extname } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -50,7 +50,10 @@ function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
     [bucket, history, path, urls],
   )
   const validateFileName = React.useCallback((value: string) => {
-    if (!detect(value).brace) {
+    if (!value) {
+      return new Error('File name is required')
+    }
+    if (!detect(value).brace || extname(value) === '.' || !extname(value)) {
       return new Error('Suppored file formats are JSON, Markdown, YAML and text')
     }
   }, [])
