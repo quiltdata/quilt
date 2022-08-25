@@ -344,6 +344,7 @@ export default function Dir({
 
   const createFile = React.useCallback(() => {
     const name = window.prompt('Enter file name')
+    // TODO: if name endsWith unsupported ext
     if (!name) return
     history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
   }, [bucket, history, path, urls])
