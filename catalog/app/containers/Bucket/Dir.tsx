@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
+import * as Dialog from 'components/Dialog'
 import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -342,25 +343,30 @@ export default function Dir({
     [packageDirectoryDialog, path],
   )
 
-  const createFile = React.useCallback(() => {
-    const name = window.prompt('Enter file name')
-    // TODO: if name endsWith unsupported ext
-    if (!name) return
-    history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
-  }, [bucket, history, path, urls])
+  const createFile = React.useCallback(
+    (name: string) => {
+      // TODO: if name endsWith unsupported ext
+      if (!name) return
+      history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
+    },
+    [bucket, history, path, urls],
+  )
+  const prompt = Dialog.usePrompt({ title: 'Enter file name', onSubmit: createFile })
   const menuItems = React.useMemo(
     () => [
       {
-        onClick: createFile,
+        onClick: prompt.open,
         title: 'Create file',
       },
     ],
-    [createFile],
+    [prompt.open],
   )
 
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
+      {prompt.render()}
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
