@@ -111,9 +111,18 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
     {
       label: 'CLI',
       hl: 'bash',
-      contents: dedent`
-        quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
-      `,
+      contents:
+        dedent`
+          # Download package
+          quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
+        ` +
+        (!path
+          ? dedent`\n
+              # Upload package
+              echo "Hello World" > README.md
+              quilt3 push "${name}" --registry s3://${bucket} --dir .
+            `
+          : ''),
     },
     {
       label: 'URI',
