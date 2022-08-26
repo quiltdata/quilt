@@ -276,24 +276,16 @@ This needs to be done manually by your AWS Administrator:
 
 ### C. Add this Policy to Quilt and relevant Roles
 
-It is strongly recomended that you use the Quilt UI to create Roles that explicitly control which buckets your users can access. If you have done that, you can import the new Policy and attach it to those Roles.
-
+You must have already created a Source=Quilt role in order to be able to add policies.See 'Extending built-in roles' in the [Users and roles](../Catalog/Admin.md) documentation for how to create a new role with access to all registered buckets, as the built-in Source=Custom roles have.
 1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
 2. Click on "Admin Settings" in the upper right, under your Profile name
 3. Scroll down to the "Policies" section on the bottom
 4. Click on the "+" to create a new Policy
 5. Set Title to "AthenaQuiltAccess"
 6. Check "Manually set ARN" and enter ARN of Athena policy (from above)
-7. Click "No associated roles. Attach current policy to roles…" and select the appropriate Roles
+7. Click "No associated roles. Attach current policy to roles…" and select the appropriate role(s)
 8. Click "Create"
 
-### D. (Optional) Manage Policies using AWS
-
-If you have not setup appropriate "Quilt" Roles, then your users will default to using "Custom" Roles defined by AWS.  If necessary, you can attach the AWS Policy directly to those AWS Roles (as shown below).  However, we encourage you to move to Quilt Roles as soon as possible, both for greater security and because AWS only allows you to attach a few such Policies.
-
-Also, you can only attach to Buckets you own (not, e.g., buckets from https://open.quiltdata.com).
-
-See [Users and roles](../Catalog/Admin.md) for more details on access control management in Quilt.
 <!--pytest-codeblocks:cont-->
 
 
