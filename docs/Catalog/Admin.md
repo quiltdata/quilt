@@ -94,13 +94,20 @@ While still in the Roles section of Admin Settings:
 1. Find 'Custom' role "ReadWriteQuiltBucket"
 2. Click "Open in AWS Console" (square-with-arrow icon) on the right
 
+![](../imgs/admin-policy-aws-open.png)
+
 A new browser tab will open.
 You will see (at least) three polices, whose names include:
 * BucketReadPolicy
 * BucketWritePolicy
 * ReadQuiltPolicy
 
-3. Command-click those names to open each policy in its own tab.
+![](../imgs/admin-policy-aws-list.png)
+
+3. Command-click those names to open each policy in its own tab, so you can copy the Policy ARN
+
+![](../imgs/admin-policy-arn.png)
+
 
 ## C. Import and attach policy ARNs
 
@@ -114,6 +121,9 @@ In the initial window, while still in Admin Settings:
 6. If NOT `BucketWritePolicy`: a) Click on "No associated role. Attach policy to roles..."; b) Select `UserReadQuiltBucket`; c) Click "Attach"
 7. Click "Create"
 8. Repeat until you have created all three policies
+
+![](../imgs/admin-policy-create.png)
+
 
 ## D. Assign users to this new Role
 
