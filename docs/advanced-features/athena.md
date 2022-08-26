@@ -229,15 +229,17 @@ If you have used that policy before, you should detatch and delete it before cre
 
 
 ```python
-try:
-    old_policy = IAM.Policy(ARN_POLICY)
-    for role in old_policy.attached_roles.all():
-        print(role)
-        old_policy.detach_role(RoleName=role.role_name)
-    old_policy.delete()
-except BaseException as err:
-    print(f"Policy not found: {ARN_POLICY}")
-    print(err)
+def delete_policy():
+    try:
+        old_policy = IAM.Policy(ARN_POLICY)
+        for role in old_policy.attached_roles.all():
+            print(role)
+            old_policy.detach_role(RoleName=role.role_name)
+        old_policy.delete()
+    except BaseException as err:
+        print(f"Policy not found: {ARN_POLICY}")
+        print(err)
+
 
 policy = IAM.create_policy(
     PolicyName="AthenaQuiltAccess",
