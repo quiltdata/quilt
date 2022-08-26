@@ -42,6 +42,11 @@ Alternatively, you may provide your own IAM roles via ARN:
 
 ![](../imgs/admin-role-unmanaged-create.png)
 
+However, these 'Custom' Roles are managed by AWS, not Quilt,
+so you cannot attach policies to them using the Admin Settings UI.
+
+## Policies
+
 You may create policies providing access to a selected set of buckets:
 
 ![](../imgs/admin-policy-managed-create.png)
@@ -63,6 +68,63 @@ You may also provide custom policies via ARN:
 The resulting permission set is equivalent to a union of all permissions
 provided by the policies attached to that role.
 
+
+### Extending built-in roles
+
+The initial "Source=Custom" roles defined by Quilt (`ReadQuiltBucket`, `ReadWriteQuiltBucket`) are locked to AWS ARNs, and thus cannot be extended by Quilt policies.  If you want a "Source=Quilt" UI-managed role that automatically has access to all registered buckets, you need to first import those specific polices.
+
+
+## A. Create a Source=Quilt role
+
+For concreteness, we will create a new `UserReadQuiltBucket` read-only role to which we can add Quilt policies.
+
+1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
+2. Click on "Admin Settings" in the upper right, under your Profile name
+3. Scroll down to the "Roles" section on the bottom
+4. Click "+" to define a new role
+5. Name it `UserReadQuiltBucket`
+6. Save
+
+You can also create a `UserReadWriteQuiltBucket` if you want grant full permissions
+
+## B. Display existing policies in AWS Console
+
+While still in the Roles section of Admin Settings:
+
+1. Find 'Custom' role "ReadWriteQuiltBucket"
+2. Click "Open in AWS Console" (square-with-arrow icon) on the right
+
+A new browser tab will open.
+You will see (at least) three polices, whose names include:
+* BucketReadPolicy
+* BucketWritePolicy
+* ReadQuiltPolicy
+
+3. Command-click those names to open each policy in its own tab.
+
+## C. Import and attach policy ARNs
+
+In the initial window, while still in Admin Settings:
+
+1. Scroll down to Policies
+2. Click "+" to create a new policy
+3. Set Title to one of: `BucketReadPolicy` | `BucketWritePolicy` | `ReadQuiltPolicy`
+4. Click "set existing policy via ARN"
+5. For 'ARN' paste in "Policy ARN" from the corresponding browser tab (above)
+6. If NOT `BucketWritePolicy`: a) Click on "No associated role. Attach policy to roles..."; b) Select `UserReadQuiltBucket`; c) Click "Attach"
+7. Click "Create"
+8. Repeat until you have created all three policies
+
+## D. Assign users to this new Role
+
+While still in Admin Settings:
+
+1. Scroll up to Users
+2. Find the user(s) you want to edit (may want to set "Rows per page" to 100)
+3. Click on the pop-up in the Role column
+4. Repeat for all users
+
+When finished, click on "Q" in the upper-right to exit Admin settings
 
 ## Buckets
 
