@@ -74,7 +74,7 @@ provided by the policies attached to that role.
 The initial "Source=Custom" roles defined by Quilt (`ReadQuiltBucket`, `ReadWriteQuiltBucket`) are locked to AWS ARNs, and thus cannot be extended by Quilt policies.  If you want a "Source=Quilt" UI-managed role that automatically has access to all registered buckets, you need to first import those specific polices.
 
 
-## A. Create a Source=Quilt role
+#### A. Create a Source=Quilt role
 
 For concreteness, we will create a new `UserReadQuiltBucket` read-only role to which we can add Quilt policies.
 
@@ -87,7 +87,7 @@ For concreteness, we will create a new `UserReadQuiltBucket` read-only role to w
 
 You can also create a `UserReadWriteQuiltBucket` if you want grant full permissions
 
-## B. Display existing policies in AWS Console
+#### B. Display existing policies in AWS Console
 
 While still in the Roles section of Admin Settings:
 
@@ -109,7 +109,7 @@ You will see (at least) three polices, whose names include:
 ![](../imgs/admin-policy-arn.png)
 
 
-## C. Import and attach policy ARNs
+#### C. Import and attach policy ARNs
 
 In the initial window, while still in Admin Settings:
 
@@ -125,7 +125,7 @@ In the initial window, while still in Admin Settings:
 ![](../imgs/admin-policy-create.png)
 
 
-## D. Assign users to this new Role
+#### D. Assign users to this new Role
 
 While still in Admin Settings:
 
