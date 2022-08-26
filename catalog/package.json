@@ -164,7 +164,7 @@
     "@types/jest": "^27.4.1",
     "@types/js-yaml": "^4.0.5",
     "@types/jsonpath": "^0.2.0",
-    "@types/lodash": "^4.14.182",
+    "@types/lodash": "^4.14.184",
     "@types/mime-types": "^2.1.1",
     "@types/ramda": "^0.27.44",
     "@types/react": "^17.0.34",
