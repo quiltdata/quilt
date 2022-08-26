@@ -19,7 +19,7 @@ export function DownloadButton({ className, label, onClick, path }: DownloadButt
 
   if (desktop) {
     return (
-      <FileView.DownloadButtonLayout
+      <FileView.AdaptiveButtonLayout
         className={className}
         label={label}
         icon="archive"

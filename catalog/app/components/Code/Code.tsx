@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -12,8 +13,12 @@ const useCodeStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Code({ children }: React.PropsWithChildren<{}>) {
-  const classes = useCodeStyles()
+interface CodeProps {
+  children: React.ReactNode
+  className?: string
+}
 
-  return <code className={classes.root}>{children}</code>
+export default function Code({ className, children }: CodeProps) {
+  const classes = useCodeStyles()
+  return <code className={cx(classes.root, className)}>{children}</code>
 }

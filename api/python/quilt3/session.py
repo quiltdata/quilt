@@ -10,8 +10,12 @@ import subprocess
 import sys
 import time
 
+try:
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
+
 import botocore.session
-import pkg_resources
 import requests
 from botocore.credentials import (
     CredentialProvider,
@@ -23,7 +27,7 @@ from .util import BASE_PATH, QuiltException, get_from_config
 
 AUTH_PATH = BASE_PATH / 'auth.json'
 CREDENTIALS_PATH = BASE_PATH / 'credentials.json'
-VERSION = pkg_resources.require('quilt3')[0].version
+VERSION = metadata.version('quilt3')
 
 
 def _load_auth():

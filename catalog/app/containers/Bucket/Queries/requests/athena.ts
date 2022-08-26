@@ -137,6 +137,7 @@ export interface QueryExecution {
   completed?: Date
   created?: Date
   db?: string
+  error?: Error
   id?: string
   outputBucket?: string
   query?: string
@@ -169,6 +170,15 @@ function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecut
   }
 }
 
+function parseQueryExecutionError(
+  error: Athena.UnprocessedQueryExecutionId,
+): QueryExecution {
+  return {
+    error: new Error(error?.ErrorMessage || 'Unknown'),
+    id: error?.QueryExecutionId,
+  }
+}
+
 async function fetchQueryExecutions({
   athena,
   prev,
@@ -189,7 +199,13 @@ async function fetchQueryExecutions({
     const executionsOutput = await athena
       ?.batchGetQueryExecution({ QueryExecutionIds: ids })
       .promise()
-    const parsed = (executionsOutput.QueryExecutions || []).map(parseQueryExecution)
+    const parsed = (executionsOutput.QueryExecutions || [])
+      .map(parseQueryExecution)
+      .concat(
+        (executionsOutput.UnprocessedQueryExecutionIds || []).map(
+          parseQueryExecutionError,
+        ),
+      )
     const list = (prev?.list || []).concat(parsed)
     return {
       list,
@@ -316,15 +332,6 @@ export function useQueryResults(
   )
 }
 
-async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
-  const normalizedStr = (workgroup + queryBody).trim().replace(/\s+/g, ' ')
-  const msgUint8 = new TextEncoder().encode(normalizedStr)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  return hashHex
-}
-
 export interface QueryRunResponse {
   id: string
 }
@@ -333,20 +340,16 @@ interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
-  skipHashing?: boolean
 }
 
 export async function runQuery({
   athena,
   queryBody,
   workgroup,
-  skipHashing,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const hashDigest = skipHashing ? undefined : await hashQueryBody(queryBody, workgroup)
     const { QueryExecutionId } = await athena
       .startQueryExecution({
-        ClientRequestToken: hashDigest,
         QueryString: queryBody,
         ResultConfiguration: {
           EncryptionConfiguration: {
@@ -361,18 +364,6 @@ export async function runQuery({
       id: QueryExecutionId,
     }
   } catch (e) {
-    if (
-      e instanceof Error &&
-      e.name === 'InvalidRequestException' &&
-      e.message === 'Idempotent parameters do not match'
-    ) {
-      return runQuery({
-        athena,
-        queryBody,
-        workgroup,
-        skipHashing: true,
-      })
-    }
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
