@@ -21,13 +21,13 @@ function Dialog({
   validate,
 }: DialogProps) {
   const [value, setValue] = React.useState(initialValue || '')
-  const [submited, setSubmited] = React.useState(false)
+  const [submitted, setSubmitted] = React.useState(false)
   const error = React.useMemo(() => validate(value), [validate, value])
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   const handleSubmit = React.useCallback(
     (event) => {
       event.preventDefault()
-      setSubmited(true)
+      setSubmitted(true)
       if (!error) onSubmit(value)
     },
     [error, onSubmit, value],
@@ -44,7 +44,7 @@ function Dialog({
             onChange={handleChange}
             value={value}
           />
-          {!!error && !!submited && (
+          {!!error && !!submitted && (
             <Lab.Alert severity="error">{error.message}</Lab.Alert>
           )}
         </M.DialogContent>
@@ -54,7 +54,7 @@ function Dialog({
           </M.Button>
           <M.Button
             color="primary"
-            disabled={!!error && !!submited}
+            disabled={!!error && !!submitted}
             onClick={handleSubmit}
             variant="contained"
           >
