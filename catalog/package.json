@@ -161,7 +161,7 @@
     "@types/fontfaceobserver": "^2.1.0",
     "@types/history": "^4.7.11",
     "@types/invariant": "^2.2.35",
-    "@types/jest": "^27.4.1",
+    "@types/jest": "^27.5.2",
     "@types/js-yaml": "^4.0.5",
     "@types/jsonpath": "^0.2.0",
     "@types/lodash": "^4.14.184",
