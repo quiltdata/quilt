@@ -80,7 +80,7 @@
     "fontfaceobserver": "^2.3.0",
     "fp-ts": "^2.12.2",
     "graphql": "^15.8.0",
-    "highlight.js": "^11.5.1",
+    "highlight.js": "^11.6.0",
     "history": "^4.10.1",
     "igv": "^2.12.6",
     "immutable": "^3.8.2",
