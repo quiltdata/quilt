@@ -76,11 +76,11 @@ interface PromptProps {
 export function usePrompt({ initialValue, title, onSubmit, validate }: PromptProps) {
   const [key, setKey] = React.useState(0)
   const [opened, setOpened] = React.useState(false)
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => {
-    setOpened(false)
+  const open = React.useCallback(() => {
     setKey(R.inc)
+    setOpened(true)
   }, [])
+  const close = React.useCallback(() => setOpened(false), [])
   const handleSubmit = React.useCallback(
     (value: string) => {
       onSubmit(value)
