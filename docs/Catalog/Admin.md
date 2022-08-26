@@ -121,6 +121,7 @@ In the initial window, while still in Admin Settings:
 6. If NOT `BucketWritePolicy`: a) Click on "No associated role. Attach policy to roles..."; b) Select `UserReadQuiltBucket`; c) Click "Attach"
 7. Click "Create"
 8. Repeat until you have created all three policies
+9. Note: you may need to also add other company-specific policies from the default ReadWrite role.
 
 ![](../imgs/admin-policy-create.png)
 
