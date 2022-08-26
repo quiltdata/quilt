@@ -1,20 +1,28 @@
 # Querying package metadata with Athena
-Quilt stores package data and metadata in S3. Metadata lives in a per-package manifest file
-in each bucket's `.quilt/` directory.
 
+Quilt stores package data and metadata in S3. Each package revision is serialized 
+as a manifest object that lives under the prefix `s3://YOUR_BUCKET/.quilt/`. This
+prefix is reserved by Quilt and must not edited by humans.
+
+> See [Mental Model](https://docs.quiltdata.com/mentalmodel) for more on Quilt manifests.
+
+Any query engine that can read from S3  can create a single, query-able table
+of all Quilt manifests in a given bucket by "stacking" all manifest files.
 You can therefore query package metadata wth SQL engines like [AWS Athena](https://aws.amazon.com/athena/).
-Users can write SQL queries to select packages (or files from within packages)
-using predicates based on package or object-level metadata.
 
-Packages can be created from the resulting tabular data. 
-To be able to create a package,
-the table must contain the columns `logical_key`, `physical_keys` and `size` as shown below.
-(See also [Mental Model](https://docs.quiltdata.com/mentalmodel))
+Quilt catalog users can write or run SQL queries to select packages
+(or files from within packages) using standard SQL predicates that select on package or object-level metadata.
+
+<!-- TODO: link to package- object-level metadata docs page -->
 
 
-## Note: Executing Documentation Code  
-If you launch Jupyter from a shell containing your AWS credentials, you can edit and execute code directly from the [notebook version](https://github.com/quiltdata/quilt/blob/master/docs/advanced-features/athena.ipynb) of this document.
-You can alternatively copy and paste code blocks into your Python editor.
+## Setting up Athena (with an optional script)
+
+> Note: If you launch Jupyter from a shell containing your AWS credentials,
+you can edit and execute code directly from the [notebook version](https://github.com/quiltdata/quilt/blob/master/docs/advanced-features/athena.ipynb) of this document.
+
+> Note: Select the right AWS profile with `export AWS_PROFILE=YOUR_PROFILE` or
+with the magic `%env AWS_PROFILE=YOUR_PROFILE`.
 <!--pytest.mark.skip-->
 
 
@@ -23,12 +31,10 @@ You can alternatively copy and paste code blocks into your Python editor.
 %pip install boto3
 ```
 
-You should set COMPANY_NAME and QUILT_BUCKET so the examples work in your enviornment
-
 
 ```python
-COMPANY_NAME = "mycompany"
-QUILT_BUCKET = "quilt-ernest-staging"  # Use one of your own, without the S3 URL prefix
+COMPANY_NAME = "your_company"
+QUILT_BUCKET = "your-bucket"  # Use one of your own, without the S3 URL prefix
 ```
 
 This allows you to configure AWS services by calling Python objects:
@@ -138,9 +144,14 @@ print(ARN_DATABASE)
     arn:aws:glue:us-east-1:712023778557:database/quilt_query
 
 
+<!-- TODO I suggest getting rid of I, II, A. etc. - it's non-standard -->
 ## II. Granting Access to Athena
 
-By default, Quilt runs with very conservative permissions that do not allow access to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html). To enable Athena SQL queries by your Quilt users, you must:
+By default, Quilt runs with very conservative permissions that do not allow access to [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/what-is.html). To enable Athena SQL queries in the Quilt catalg you must create a Quilt policy,
+attach it to a Quilt user, and your CloudFormation admin must extend the Quilt
+permission boundary by setting `ManagedUserRoleExtraPolicies`.
+
+<!-- TODO: link some of above section to  Admin.md -->
 
 ### A. Create a new Athena policy.
 
@@ -254,30 +265,23 @@ print(policy)
     iam.Role(name='ReadWriteQuiltV2-test-staging-internal')
     iam.Role(name='ReadWriteQuiltV2-quilt-t4-staging')
     iam.Role(name='ReadWriteQuiltV2-quilt-kevin-dev')
-    iam.Policy(arn='arn:aws:iam::712023778557:policy/AthenaQuiltAccess')
+<!--TODO - we should not now or ever expose account numbers in docs -->
 
 
 ### B. Add this policy to your CloudFormation stack.
  
-This needs to be done manually by your AWS Administrator:
+The following step should be performed in AWS Consle by your Administrator.
 
-1. Go to the [CloudFormation console](https://console.aws.amazon.com/cloudformation)
-2. Select the Quilt stack
-3. Click "Update"
-4. Select "Use current template" and click "Next"
-5. Add the above ARN to the "ManagedUserRoleExtraPolicies" field
-6. Click "Next" (possibly twice) to configure stack options
-7. Check "I acknowledge that AWS CloudFormation might create IAM resources with custom names"
-5. Click "Update stack" to save changes
+<!-- TODO: link to existing stack updated docs instead of repeating here; call attention to the MangedUserRolesExtraPolicies parameter -->
+
 
 ### C. Add this Policy to Quilt and relevant Roles
 
-You must have already created a Source=Quilt role in order to be able to add policies.See 'Extending built-in roles' in the [Users and roles](../Catalog/Admin.md) documentation for how to create a new role with access to all registered buckets, as the built-in Source=Custom roles have.
-1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
-2. Click on "Admin Settings" in the upper right, under your Profile name
-3. Scroll down to the "Policies" section on the bottom
-4. Click on the "+" to create a new Policy
-5. Set Title to "AthenaQuiltAccess"
+1. Login to your Quilt instance at, e.g. https://quilt.your-company.com
+2. Click Admin Settings in the upper right, under your Profile name
+3. Scroll down to Policies
+4. Click + to create a new Policy
+5. Set Title to "AthenaQuiltAccess" or similar
 6. Check "Manually set ARN" and enter ARN of Athena policy (from above)
 7. Click "No associated roles. Attach current policy to roles…" and select the appropriate role(s)
 8. Click "Create"
@@ -464,6 +468,8 @@ ON
 
 The best way to test this is to create a new Session using a profile with that role (note that it may take a minute for the new Policy to propagate). For example:
 <!--pytest-codeblocks:cont-->
+
+<!-- TODO: link to quiltdata/examples/Athena/somenotebook.ipynb that has a bunch of convience fxns for the follwing -->
 
 
 ```python

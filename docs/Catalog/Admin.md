@@ -1,12 +1,12 @@
 The Quilt catalog includes an admin panel that allows you to manage
-users and buckets in Quilt, as well as customize the Quilt catalog. You can access
+users and buckets in Quilt, as well as customize the Quilt catalog. Admins can access
 the panel via a dropdown menu under username in the navbar.
 
 ![](../imgs/admin-dropdown.png)
 
-The admin page is only accessible to designated administrators. The first admin
+The first admin
 is set during the CloudFormation installation. Subsequent admins may be designated
-through the panel. Only admins may create other admins.
+through the panel. Only admins can create other admins.
 
 Quilt requires at least one admin account per stack.
 
@@ -25,12 +25,18 @@ functions:
 
 You may invite new users to your Quilt stack by clicking the + button, upper right.
 
-You must select the default role for all new users, else they will not be able
-to sign in to the Quilt catalog. The default role is shown in bold.
+> Note: An admin must set the default role for all new users in order for new
+users to be able to sign in to the Quilt catalog. Admin Settings shows the current
+default role in bold.
 
 ![](../imgs/default-role.png)
 
-You may create roles for different groups of users by combining up to 5 policies.
+Each user in Quilt has one and only one Quilt user role at any given time.
+Admins can create and assign new roles. In order for Quilt user roles to function,
+you must attach one or more Quilt user policies.
+
+> Note: You can attach a maximum of 5 policies to each Quilt role.
+
 With the exception of administrators, users of managed roles can only see, list,
 and search buckets for which they are explicitly granted read access.
 
@@ -42,12 +48,10 @@ Alternatively, you may provide your own IAM roles via ARN:
 
 ![](../imgs/admin-role-unmanaged-create.png)
 
-However, these 'Custom' Roles are managed by AWS, not Quilt,
-so you cannot attach policies to them using the Admin Settings UI.
-
 ## Policies
 
-You may create policies providing access to a selected set of buckets:
+Quilt policies can grant Read or ReadWrite access to buckets in the same account
+as Quilt. You can designate the permissions of a Quilt policy as follows:
 
 ![](../imgs/admin-policy-managed-create.png)
 
@@ -57,35 +61,51 @@ You may create policies providing access to a selected set of buckets:
 
 ![](../imgs/admin-policy-managed-bucket-access-change.png)
 
-You may attach policies to managed roles from policy edit and create screens:
+You may attach policies to managed roles from the UI either in the policy editor or in the Quilt role editor.
+
+> Note: 'Custom' Quilt Roles are managed by AWS, not Quilt,
+so you cannot attach policies to Custom roles via Admin Settings.
+
 
 ![](../imgs/admin-policy-attach-to-role.png)
 
-You may also provide custom policies via ARN:
+If you already have a suitable policy in AWS IAM, you can provide the policy's ARN 
+to a Quilt policy.
+
 
 ![](../imgs/admin-policy-unmanaged-create.png)
 
-The resulting permission set is equivalent to a union of all permissions
-provided by the policies attached to that role.
+Quilt roles have permissions equivalent to to the union of all attached Quilt roles.
+
+**Quilt user policies for services other than Amazon S3 have no effect until and
+unless a CloudFormation administrator for the Quilt stack sets the
+`ManagedUserRoleExtraPolicies` parameter to include a superset of the permissions
+needed by Quilt users**.
+
+> `ManagedUserRoleExtraPolicies` is a security feature that prevents Quilt
+admins and users from escalating their permissions beyond what they can do in
+the AWS console.
 
 
 ### Extending built-in roles
 
-The initial "Source=Custom" roles defined by Quilt (`ReadQuiltBucket`, `ReadWriteQuiltBucket`) are locked to AWS ARNs, and thus cannot be extended by Quilt policies.  If you want a "Source=Quilt" UI-managed role that automatically has access to all registered buckets, you need to first import those specific polices.
+The initial "Source=Custom" roles defined by Quilt (`ReadQuiltBucket`, `ReadWriteQuiltBucket`)
+are backed by AWS-managed ARNs. You therefore cannot be attach Quilt policies
+to Custom roles.
 
 
 #### A. Create a Source=Quilt role
 
-For concreteness, we will create a new `UserReadQuiltBucket` read-only role to which we can add Quilt policies.
+To illustrate Quilt roles and permissions, below we create a read-only `UserReadQuiltBucket`
+role.
 
-1. Login to your Quilt instance at, e.g. https://quilt.mycompany.com
-2. Click on "Admin Settings" in the upper right, under your Profile name
-3. Scroll down to the "Roles" section on the bottom
-4. Click "+" to define a new role
+1. Login to your Quilt instance at, e.g. https://quilt.your-company.com
+2. Click on Admin Settings under your login name (upper right)
+3. Scroll down to Roles under the Users and Roles tab
+4. Click "+" to create a new Quilt role
 5. Name it `UserReadQuiltBucket`
-6. Save
+6. Save the Quilt role
 
-You can also create a `UserReadWriteQuiltBucket` if you want grant full permissions
 
 #### B. Display existing policies in AWS Console
 
@@ -109,9 +129,7 @@ You will see (at least) three polices, whose names include:
 ![](../imgs/admin-policy-arn.png)
 
 
-#### C. Import and attach policy ARNs
-
-In the initial window, while still in Admin Settings:
+#### C. Create and attach Quilt roles from AWS roles
 
 1. Scroll down to Policies
 2. Click "+" to create a new policy
@@ -130,11 +148,11 @@ In the initial window, while still in Admin Settings:
 While still in Admin Settings:
 
 1. Scroll up to Users
-2. Find the user(s) you want to edit (may want to set "Rows per page" to 100)
-3. Click on the pop-up in the Role column
+2. Find the user you wish to edit
+    > Tip: Increase "Rows per page" to minimize pagination.
+3. Select an item from the Role dropdown next to the username in question
 4. Repeat for all users
 
-When finished, click on "Q" in the upper-right to exit Admin settings
 
 ## Buckets
 
