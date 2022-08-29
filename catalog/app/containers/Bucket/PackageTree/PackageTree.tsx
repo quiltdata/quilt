@@ -102,9 +102,16 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
       hl: 'python',
       contents: dedent`
         import quilt3 as q3
-        # browse
+        # Browse
         p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # download (be mindful of large packages)
+        # and add individual files
+        p.set("data.csv", "data.csv")
+        # or whole directories
+        p.set_dir("subdir", "subdir")
+        # and push changes
+        q3.Package.push("${name}", registry="s3://${bucket}", message="Hello World")
+
+        # Download (be mindful of large packages)
         q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
       `,
     },
