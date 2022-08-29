@@ -98,7 +98,7 @@ for your company's domain.
 For example, to make your Quilt catalog available at `https://quilt.mycompany.com`,
 you require a certificate for either `*.mycompany.com` *or* for the following 3 domains:
 `quilt.mycompany.com`, `quilt-registry.mycompany.com` and `quilt-s3-proxy.mycompany.com`
-in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/). 
+in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/).
 You may either [create a new certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html), or
 [import an existing certificate](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
 The ARN for this certificate or set of certificates is required for use as the `CertificateArnELB` CloudFormation parameter.
@@ -135,7 +135,7 @@ You can install Quilt via AWS Marketplace. As indicated above, we recommend that
 ### AWS Service Catalog
 
 1. Email [contact@quiltdata.io](mailto:contact@quiltdata.io)
-with your AWS account ID to request access to Quilt through the 
+with your AWS account ID to request access to Quilt through the
 AWS Service Catalog and to obtain a license key.
 
 1. Click the service catalog link that you received from Quilt. Arrive at the Service Catalog.
@@ -203,9 +203,9 @@ your CloudFormation stack.
 
     | CNAME | Value |
     |------|-------|
-    | _QuiltWebHost Key_  | _LoadBalancerDNSName_ | 
+    | _QuiltWebHost Key_  | _LoadBalancerDNSName_ |
     | _RegistryHostName Key_  | _LoadBalancerDNSName_ |
-    | _S3ProxyHost Key_  | _LoadBalancerDNSName_ | 
+    | _S3ProxyHost Key_  | _LoadBalancerDNSName_ |
 
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
@@ -242,7 +242,7 @@ covers advanced customization options.
 
 ### Setting the default role
 
-**The Quilt admin must log in and set the default role** in order for new 
+**The Quilt admin must log in and set the default role** in order for new
 users to be able to sign up.
 
 ![](imgs/default-role.png)
@@ -277,9 +277,9 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 [Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
 and
 [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
-for further details. 
+for further details.
 1. Go to App registrations > Your Quilt app > Authentication > Implicit grants
-and hybrid flows, and check the box to issue ID tokens 
+and hybrid flows, and check the box to issue ID tokens
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ![](./imgs/active-directory.png)
@@ -288,7 +288,7 @@ and hybrid flows, and check the box to issue ID tokens
 
 1. Go to Okta > Admin > Applications
 1. Click `Add Application`
-1. Select type `Web` 
+1. Select type `Web`
 1. Name the app `Quilt` or something similar
 1. Configure the app as shown below
 1. Add `<QuiltWebHost>` to `Login redirect URIs` and
@@ -341,7 +341,7 @@ Use current template > Next > Specify stack details), set the following paramete
 
 ### Preparing an AWS Role for use with Quilt
 
-These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now. For guidance creating IAM roles, see: [IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html), and the [Principle of Least Privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege) 
+These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now. For guidance creating IAM roles, see: [IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html), and the [Principle of Least Privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege)
 
 Go to your Quilt stack in CloudFormation. Go to `Outputs`, then find `RegistryRoleARN` and copy its value. It should look something like this: `arn:aws:iam::000000000000:role/stackname-ecsTaskExecutionRole`.
 
@@ -389,6 +389,39 @@ Note the comma after the object. Your trust relationship should now look somethi
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
 
 ### S3 buckets with SSE-KMS
+
+In order for Quilt to access and index buckets encrypted with SSE-KMS, you must do three things:
+
+1. Add KMS Key Usage to Quilt Permission Boundary
+2. Add Quilt Principals to KMS Key Policy
+3. Add KMS Key Access to Quilt Role
+
+#### 1. Add KMS Key Usage to Quilt Permission Boundary
+
+By default, AWS does not allow anything in your account to access KMS. If you haven't done so already,  create an IAM policy that explicitly enables KMS access.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": [
+      "kms:Encrypt",
+      "kms:Decrypt"
+    ],
+    "Resource": "arn:aws:kms:us-west-2:111122223333:key/*"
+  }
+}
+```
+
+Go to CloudFormation > Your Quilt Stack -> Update -> Parameters and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` at the bottom of the page:
+
+![](../imgs/ManagedUserRoleExtraPolicies.png)
+
+If other policies are already in that field, you will need to add a comma before appending the ARN.
+
+#### 2. Add Quilt Principals to KMS Key Policy
+
 In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
 the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
 and look for IAM roles with the following logical IDs:
@@ -419,6 +452,31 @@ similar to the following to the KMS key policy:
     "Resource": "*"
 }
 ```
+
+#### 3. Add KMS Key Access to Quilt Role
+
+Finally, you need create a restricted policy that gives a Quilt role access to the keys for specific buckets, e.g:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": [
+      "kms:Encrypt",
+      "kms:Decrypt"
+    ],
+    "Resource": [
+      "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+      "arn:aws:kms:us-west-2:111122223333:key/0987dcba-09fe-87dc-65ba-ab0987654321"
+    ]
+  }
+}
+```
+
+You can now create a Quilt Policy from this policy (using the Catalog's admin panel, or `quilt3.admin.create_policy`).
+Afterwards, you can attach that Policy to a user-defined Quilt Role (which has Source=Quilt in the Roles panel, as opposed to system-defind Source=Custom Roles).
+If you have not yet created such a Role, please see "Extending built-in roles" in the [Users and Roles](./Config/Admin.md) documentation.
 
 ## Backup and Recovery
 
