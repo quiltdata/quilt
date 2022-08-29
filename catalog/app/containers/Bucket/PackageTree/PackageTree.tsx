@@ -104,7 +104,7 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
         import quilt3 as q3
         # Browse
         p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # and add individual files
+        # make changes to package adding individual files
         p.set("data.csv", "data.csv")
         # or whole directories
         p.set_dir("subdir", "subdir")
