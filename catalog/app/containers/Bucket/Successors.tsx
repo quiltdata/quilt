@@ -223,6 +223,7 @@ interface ButtonInnerProps {
   onClick: React.MouseEventHandler<HTMLButtonElement>
 }
 
+// TODO: Replace by FileView.AdaptiveButtonLayout
 function ButtonInner({ children, className, onClick }: ButtonInnerProps) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))

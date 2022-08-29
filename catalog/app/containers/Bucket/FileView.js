@@ -13,7 +13,7 @@ export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-const useDownloadButtonStyles = M.makeStyles((t) => ({
+const useAdaptiveButtonStyles = M.makeStyles((t) => ({
   root: {
     flexShrink: 0,
     marginBottom: -3,
@@ -25,7 +25,7 @@ const useDownloadButtonStyles = M.makeStyles((t) => ({
 }))
 
 export function AdaptiveButtonLayout({ className, label, icon, ...props }) {
-  const classes = useDownloadButtonStyles()
+  const classes = useAdaptiveButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
@@ -64,7 +64,7 @@ export function DownloadButton({ className, handle }) {
 }
 
 export function ViewModeSelector({ className, ...props }) {
-  const classes = useDownloadButtonStyles()
+  const classes = useAdaptiveButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
