@@ -81,6 +81,23 @@ export function useQueries(
 
 export type Workgroup = string
 
+interface WorkgroupArgs {
+  athena: Athena
+  workgroup: Workgroup
+}
+
+async function fetchWorkgroup({
+  athena,
+  workgroup,
+}: WorkgroupArgs): Promise<Workgroup | null> {
+  const workgroupOutput = await athena.getWorkGroup({ WorkGroup: workgroup }).promise()
+  return workgroupOutput?.WorkGroup?.Configuration?.ResultConfiguration?.OutputLocation &&
+    workgroupOutput?.WorkGroup?.State === 'ENABLED' &&
+    workgroupOutput?.WorkGroup?.Name
+    ? workgroupOutput.WorkGroup.Name
+    : null
+}
+
 export interface WorkgroupsResponse {
   defaultWorkgroup: Workgroup
   list: Workgroup[]
@@ -105,7 +122,10 @@ async function fetchWorkgroups({
     const parsed = (workgroupsOutput.WorkGroups || []).map(
       ({ Name }) => Name || 'Unknown',
     )
-    const list = (prev?.list || []).concat(parsed)
+    const available = (
+      await Promise.all(parsed.map((workgroup) => fetchWorkgroup({ athena, workgroup })))
+    ).filter(Boolean)
+    const list = (prev?.list || []).concat(available as Workgroup[])
     const defaultWorkgroup =
       preferences?.defaultWorkflow && list.includes(preferences?.defaultWorkflow)
         ? preferences?.defaultWorkflow
