@@ -395,9 +395,6 @@ function DirDisplay({
           const downloadPath = path
             ? `package/${bucket}/${name}/${hash}/${path}`
             : `package/${bucket}/${name}/${hash}`
-          const hasRevisionMenu =
-            preferences?.ui?.actions?.deleteRevision ||
-            preferences?.ui?.actions?.openInDesktop
           // TODO: disable if nothing to revise on desktop
           const hasReviseButton = preferences?.ui?.actions?.revisePackage
 
@@ -431,13 +428,11 @@ function DirDisplay({
                   onClick={openInDesktopState.confirm}
                   path={downloadPath}
                 />
-                {hasRevisionMenu && (
-                  <RevisionMenu
-                    className={classes.button}
-                    onDelete={confirmDelete}
-                    onDesktop={openInDesktopState.confirm}
-                  />
-                )}
+                <RevisionMenu
+                  className={classes.button}
+                  onDelete={confirmDelete}
+                  onDesktop={openInDesktopState.confirm}
+                />
               </TopBar>
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />

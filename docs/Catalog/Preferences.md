@@ -4,7 +4,7 @@
 
 You can use the configuration file to show or hide certain
 tabs and buttons in the Quilt catalog. This gives you fine-grained control
-over how users interact with the Quilt catalog. There is one catalog config file 
+over how users interact with the Quilt catalog. There is one catalog config file
 per-bucket. The config file's path is `s3://BUCKET/.quilt/catalog/config.yaml`.
 
 If there is no config.yaml, or your config.yaml file does not override the `ui`
@@ -29,9 +29,6 @@ ui:
   package_description:
     .*:
       message: True
-  sourceBuckets:
-    s3://BUCKET_1: {}
-    s3://BUCKET_2: {}
 ```
 
 ### Properties
@@ -54,6 +51,18 @@ Revise Package > Add files from Bucket; if the dictionary is not set or is empty
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
 * `ui.package_description` - a dictionary that maps package handle regular expressions or literals to JSONPath expressions of fields to show from package metadata in the package list view.
 Strings display as paragraphs. Elements of a list display as tags.
+* `ui.athena.defaultWorkflow` - default workflow to select on the Athena page
+
+#### `ui.sourceBuckets` example
+
+```yaml
+ui:
+  sourceBuckets:
+    s3://bucket-a: {}
+    s3://bucket-b: {}
+    s3://bucket-c: {}
+  defaultSourceBucket: s3://bucket-b
+```
 
 #### `ui.package_description` example
   
@@ -77,4 +86,12 @@ ui:
         - $.key4[0]
 ```
 
-![](../imgs/package-list-selective-metadata.png)
+![Example of package_description use](../imgs/package-list-selective-metadata.png)
+
+#### `ui.athena` example
+
+```yaml
+ui:
+  athena:
+    defaultWorkflow: primary
+```
