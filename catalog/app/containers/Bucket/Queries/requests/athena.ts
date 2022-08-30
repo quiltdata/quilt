@@ -262,13 +262,13 @@ async function waitForQueryStatus(
     // eslint-disable-next-line no-await-in-loop
     const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
     const status = statusData?.QueryExecution?.Status?.State
-    const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
     const parsed = statusData?.QueryExecution
       ? parseQueryExecution(statusData?.QueryExecution)
       : {
           id: QueryExecutionId,
         }
     if (status === 'FAILED' || status === 'CANCELLED') {
+      const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
       return {
         ...parsed,
         error: new Error(`${status}: ${reason}`),
