@@ -172,6 +172,11 @@ function ResultsContainer({
               />
             )
           }
+          if (queryResults.queryExecution.error) {
+            return makeAsyncDataErrorHandler('Query Results Data')(
+              queryResults.queryExecution.error,
+            )
+          }
           if (queryResults.queryExecution) {
             return (
               <History
