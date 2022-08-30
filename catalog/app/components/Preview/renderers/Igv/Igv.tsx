@@ -2,6 +2,8 @@ import igv from 'igv'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
+
 const useStyles = M.makeStyles(() => ({
   root: {
     position: 'relative',
@@ -34,7 +36,11 @@ function Igv({ options, ...props }: IgvProps) {
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error(e)
-        if (e instanceof Error) setError(e)
+        if (e instanceof Error) {
+          setError(e)
+        } else {
+          setError(new Error('Unexpected'))
+        }
         // XXX: should NOT set state in dispose callback
         return () => setError(null)
       }
@@ -44,14 +50,19 @@ function Igv({ options, ...props }: IgvProps) {
 
   if (error)
     return (
-      <>
+      <div key="igv-error">
         <M.Typography variant="h6" gutterBottom>
           Unexpected Error
         </M.Typography>
         <M.Typography variant="body1" gutterBottom>
           Something went wrong while loading preview
         </M.Typography>
-      </>
+        {error.message !== 'Unexpected' && (
+          <M.Typography variant="body1" gutterBottom>
+            <Code>{error.message}</Code>
+          </M.Typography>
+        )}
+      </div>
     )
 
   return <div className={classes.root} ref={containerRef} {...props} />
