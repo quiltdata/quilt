@@ -255,24 +255,35 @@ export function useQueryExecutions(
 async function waitForQueryStatus(
   athena: Athena,
   QueryExecutionId: string,
-): Promise<Athena.QueryExecution | null> {
+): Promise<QueryExecution> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // NOTE: await is used to intentionally pause loop and make requests in series
     // eslint-disable-next-line no-await-in-loop
     const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
     const status = statusData?.QueryExecution?.Status?.State
-    const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
+    const parsed = statusData?.QueryExecution
+      ? parseQueryExecution(statusData?.QueryExecution)
+      : {
+          id: QueryExecutionId,
+        }
     if (status === 'FAILED' || status === 'CANCELLED') {
-      throw new Error(`${status}: ${reason}`)
+      const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
+      return {
+        ...parsed,
+        error: new Error(`${status}: ${reason}`),
+      }
     }
 
     if (!status) {
-      throw new Error('Unknown query execution status')
+      return {
+        ...parsed,
+        error: new Error('Unknown query execution status'),
+      }
     }
 
     if (status === 'SUCCEEDED') {
-      return statusData?.QueryExecution || null
+      return parsed
     }
 
     // eslint-disable-next-line no-await-in-loop
@@ -294,7 +305,7 @@ export type QueryResultsRows = Row[]
 export interface QueryResultsResponse {
   columns: QueryResultsColumns
   next?: string
-  queryExecution: QueryExecution | null
+  queryExecution: QueryExecution
   rows: QueryResultsRows
 }
 
@@ -314,29 +325,47 @@ async function fetchQueryResults({
   prev,
 }: QueryResultsArgs): Promise<QueryResultsResponse> {
   const queryExecution = await waitForQueryStatus(athena, queryExecutionId)
+  if (queryExecution.error) {
+    return {
+      rows: emptyList,
+      columns: emptyColumns,
+      queryExecution,
+    }
+  }
 
-  const queryResultsOutput = await athena
-    .getQueryResults({
-      QueryExecutionId: queryExecutionId,
-      NextToken: prev?.next,
-    })
-    .promise()
-  const parsed =
-    queryResultsOutput.ResultSet?.Rows?.map(
-      (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
-    ) || emptyList
-  const rows = [...(prev?.rows || emptyList), ...parsed]
-  return {
-    rows,
-    columns:
-      queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
-        ({ Name, Type }) => ({
-          name: Name,
-          type: Type,
-        }),
-      ) || emptyColumns,
-    next: queryResultsOutput.NextToken,
-    queryExecution: queryExecution ? parseQueryExecution(queryExecution) : null,
+  try {
+    const queryResultsOutput = await athena
+      .getQueryResults({
+        QueryExecutionId: queryExecutionId,
+        NextToken: prev?.next,
+      })
+      .promise()
+    const parsed =
+      queryResultsOutput.ResultSet?.Rows?.map(
+        (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
+      ) || emptyList
+    const rows = [...(prev?.rows || emptyList), ...parsed]
+    return {
+      rows,
+      columns:
+        queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
+          ({ Name, Type }) => ({
+            name: Name,
+            type: Type,
+          }),
+        ) || emptyColumns,
+      next: queryResultsOutput.NextToken,
+      queryExecution,
+    }
+  } catch (error) {
+    return {
+      rows: emptyList,
+      columns: emptyColumns,
+      queryExecution: {
+        ...queryExecution,
+        error: error instanceof Error ? error : new Error(`${error}`),
+      },
+    }
   }
 }
 
