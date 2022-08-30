@@ -75,8 +75,8 @@ export default function Queries({
   const { paths, urls } = NamedRoutes.use()
 
   const [tab, setTab] = React.useState(() => {
-    if (matchPath(location.pathname, urls.bucketAthena(bucket))) return Section.ATHENA
-    return Section.ES
+    if (matchPath(location.pathname, urls.bucketESQueries(bucket))) return Section.ES
+    return Section.ATHENA
   })
 
   const onTab = (event: React.ChangeEvent<{}>, newTab: Section) => {
@@ -105,16 +105,16 @@ export default function Queries({
         centered={sm}
       >
         <NavTab
-          label="ElasticSearch"
-          value={Section.ES}
-          classes={tabClasses}
-          to={urls.bucketESQueries(bucket)}
-        />
-        <NavTab
           label="Athena SQL"
           value={Section.ATHENA}
           classes={tabClasses}
           to={urls.bucketAthena(bucket)}
+        />
+        <NavTab
+          label="ElasticSearch"
+          value={Section.ES}
+          classes={tabClasses}
+          to={urls.bucketESQueries(bucket)}
         />
       </M.Tabs>
 
@@ -125,7 +125,7 @@ export default function Queries({
           <Route path={paths.bucketAthenaWorkgroup} component={Athena} exact />
           <Route path={paths.bucketAthenaExecution} component={Athena} exact />
           <Route>
-            <Redirect to={urls.bucketESQueries(bucket)} />
+            <Redirect to={urls.bucketAthena(bucket)} />
           </Route>
         </Switch>
       </div>
