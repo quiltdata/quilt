@@ -123,13 +123,19 @@ const useDialogStyles = M.makeStyles((t) => ({
 interface DialogProps {
   open: boolean
   onClose: () => void
-  onChange: (value: requests.athena.Database) => void
+  onChange: (value: requests.athena.ExecutionContext) => void
 }
 
 function Dialog({ open, onChange, onClose }: DialogProps) {
   const classes = useDialogStyles()
   const [catalogName, setCatalogName] =
     React.useState<requests.athena.CatalogName | null>(null)
+  const [database, setDatabase] = React.useState<requests.athena.Database | null>(null)
+  const handleSubmit = React.useCallback(() => {
+    if (!catalogName || !database) return
+    onChange({ catalogName, database })
+    onClose()
+  }, [catalogName, database, onChange, onClose])
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <M.DialogTitle>Select data catalog and database</M.DialogTitle>
@@ -139,7 +145,7 @@ function Dialog({ open, onChange, onClose }: DialogProps) {
         </div>
         {catalogName && (
           <div className={classes.select}>
-            <SelectDatabase catalogName={catalogName} onChange={onChange} />
+            <SelectDatabase catalogName={catalogName} onChange={setDatabase} />
           </div>
         )}
       </M.DialogContent>
@@ -147,7 +153,12 @@ function Dialog({ open, onChange, onClose }: DialogProps) {
         <M.Button color="primary" variant="outlined" onClick={onClose}>
           Cancel
         </M.Button>
-        <M.Button color="primary" variant="contained" onClick={onClose}>
+        <M.Button
+          color="primary"
+          disabled={!catalogName || !database}
+          onClick={handleSubmit}
+          variant="contained"
+        >
           Submit
         </M.Button>
       </M.DialogActions>
@@ -167,7 +178,7 @@ const useChangeButtonStyles = M.makeStyles((t) => ({
 
 interface ChangeButtonProps {
   className?: string
-  database: requests.athena.Database | null
+  database?: requests.athena.Database
   onClick: () => void
 }
 
@@ -191,8 +202,8 @@ function ChangeButton({ className, database, onClick }: ChangeButtonProps) {
 
 interface DatabaseProps {
   className?: string
-  value: requests.athena.Database | null
-  onChange: (value: string) => void
+  value: requests.athena.ExecutionContext | null
+  onChange: (value: requests.athena.ExecutionContext) => void
 }
 
 export default function Database({ className, value, onChange }: DatabaseProps) {
@@ -202,7 +213,7 @@ export default function Database({ className, value, onChange }: DatabaseProps) 
       <Dialog open={open} onChange={onChange} onClose={() => setOpen(false)} />
       <ChangeButton
         className={className}
-        database={value}
+        database={value?.database}
         onClick={() => setOpen(true)}
       />
     </>

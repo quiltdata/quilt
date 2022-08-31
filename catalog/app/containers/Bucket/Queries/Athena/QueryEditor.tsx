@@ -79,11 +79,11 @@ function useQueryRun(
     [bucket, history, urls, workgroup],
   )
   const onSubmit = React.useCallback(
-    async (value: string) => {
+    async (value: string, executionContext?: requests.athena.ExecutionContext) => {
       setLoading(true)
       setError(undefined)
       try {
-        const { id } = await runQuery(value)
+        const { id } = await runQuery(value, executionContext)
         if (id === queryExecutionId) notify('Query execution results remain unchanged')
         setLoading(false)
         goToExecution(id)
@@ -187,13 +187,14 @@ export function Form({
 }: FormProps) {
   const classes = useFormStyles()
   const [value, setValue] = React.useState<string | null>(initialValue)
-  const [database, setDatabase] = React.useState<requests.athena.Database | null>(null)
+  const [executionContext, setExecutionContext] =
+    React.useState<requests.athena.ExecutionContext | null>(null)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
     if (!value) return
-    onSubmit(value)
-  }, [onSubmit, value])
+    onSubmit(value, executionContext || undefined)
+  }, [executionContext, onSubmit, value])
 
   return (
     <div className={className}>
@@ -206,7 +207,7 @@ export function Form({
       )}
 
       <div className={classes.actions}>
-        <Database onChange={setDatabase} value={database} />
+        <Database onChange={setExecutionContext} value={executionContext} />
         <M.Button
           variant="contained"
           color="primary"

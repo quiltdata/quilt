@@ -385,29 +385,41 @@ export interface QueryRunResponse {
   id: string
 }
 
+export interface ExecutionContext {
+  catalogName: CatalogName
+  database: Database
+}
+
 interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
+  executionContext?: ExecutionContext
 }
 
 export async function runQuery({
   athena,
   queryBody,
   workgroup,
+  executionContext,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const { QueryExecutionId } = await athena
-      .startQueryExecution({
-        QueryString: queryBody,
-        ResultConfiguration: {
-          EncryptionConfiguration: {
-            EncryptionOption: 'SSE_S3',
-          },
+    const options: Athena.Types.StartQueryExecutionInput = {
+      QueryString: queryBody,
+      ResultConfiguration: {
+        EncryptionConfiguration: {
+          EncryptionOption: 'SSE_S3',
         },
-        WorkGroup: workgroup,
-      })
-      .promise()
+      },
+      WorkGroup: workgroup,
+    }
+    if (executionContext) {
+      options.QueryExecutionContext = {
+        Catalog: executionContext.catalogName,
+        Database: executionContext.database,
+      }
+    }
+    const { QueryExecutionId } = await athena.startQueryExecution(options).promise()
     if (!QueryExecutionId) throw new Error('No execution id')
     return {
       id: QueryExecutionId,
@@ -421,12 +433,14 @@ export async function runQuery({
   }
 }
 
-export function useQueryRun(workgroup: string): (q: string) => Promise<QueryRunResponse> {
+export function useQueryRun(
+  workgroup: string,
+): (q: string, execCtx?: ExecutionContext) => Promise<QueryRunResponse> {
   const athena = AWS.Athena.use()
   return React.useCallback(
-    (queryBody: string) => {
+    (queryBody: string, executionContext?: ExecutionContext) => {
       if (!athena) return Promise.reject(new Error('No Athena available'))
-      return runQuery({ athena, queryBody, workgroup })
+      return runQuery({ athena, queryBody, workgroup, executionContext })
     },
     [athena, workgroup],
   )
