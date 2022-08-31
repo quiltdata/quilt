@@ -386,7 +386,7 @@ Note the comma after the object. Your trust relationship should now look somethi
 }
 ```
 
-You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
+You can now configure a Quilt Role with this role using the Catalog's admin panel.
 
 ### S3 buckets with SSE-KMS
 
@@ -474,8 +474,8 @@ Finally, you need create a restricted policy that gives a Quilt role access to t
 }
 ```
 
-You can now create a Quilt Policy from this policy (using the Catalog's admin panel, or `quilt3.admin.create_policy`).
-Afterwards, you can attach that Policy to a user-defined Quilt Role (which has Source=Quilt in the Roles panel, as opposed to system-defind Source=Custom Roles).
+You can now create a Quilt Policy from this policy using the Catalog's admin panel.
+Afterwards, you can attach that Policy to a user-defined Quilt Role (which has Source=Quilt in the Roles panel, as opposed to system-defined Source=Custom Roles).
 If you have not yet created such a Role, please see "Extending built-in roles" in the [Users and Roles](./Config/Admin.md) documentation.
 
 ## Backup and Recovery
