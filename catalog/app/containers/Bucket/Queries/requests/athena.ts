@@ -431,3 +431,78 @@ export function useQueryRun(workgroup: string): (q: string) => Promise<QueryRunR
     [athena, workgroup],
   )
 }
+
+export type CatalogName = string
+export interface CatalogNamesResponse {
+  list: CatalogName[]
+  next?: string
+}
+
+interface CatalogNamesArgs {
+  athena: Athena
+  prev?: CatalogNamesResponse
+}
+
+async function fetchCatalogNames({
+  athena,
+  prev,
+}: CatalogNamesArgs): Promise<CatalogNamesResponse> {
+  const catalogsOutput = await athena
+    ?.listDataCatalogs({ NextToken: prev?.next })
+    .promise()
+  const list =
+    catalogsOutput?.DataCatalogsSummary?.map(
+      ({ CatalogName }) => CatalogName || 'Unknown',
+    ) || []
+  return {
+    list: (prev?.list || []).concat(list),
+    next: catalogsOutput.NextToken,
+  }
+}
+
+export function useCatalogNames(
+  prev: CatalogNamesResponse | null,
+): AsyncData<CatalogNamesResponse> {
+  const athena = AWS.Athena.use()
+  return useData(fetchCatalogNames, { athena, prev })
+}
+
+export type Database = string
+export interface DatabasesResponse {
+  list: CatalogName[]
+  next?: string
+}
+
+interface DatabasesArgs {
+  athena: Athena
+  catalogName: CatalogName
+  prev: DatabasesResponse
+}
+
+async function fetchDatabases({
+  athena,
+  catalogName,
+  prev,
+}: DatabasesArgs): Promise<DatabasesResponse> {
+  const databasesOutput = await athena
+    ?.listDatabases({ CatalogName: catalogName, NextToken: prev?.next })
+    .promise()
+  // TODO: add `Description` besides `Name`
+  const list = databasesOutput?.DatabaseList?.map(({ Name }) => Name || 'Unknown') || []
+  return {
+    list: (prev?.list || []).concat(list),
+    next: databasesOutput.NextToken,
+  }
+}
+
+export function useDatabases(
+  catalogName: CatalogName | null,
+  prev: DatabasesResponse | null,
+): AsyncData<DatabasesResponse> {
+  const athena = AWS.Athena.use()
+  return useData(
+    fetchDatabases,
+    { athena, catalogName, prev },
+    { noAutoFetch: !catalogName },
+  )
+}

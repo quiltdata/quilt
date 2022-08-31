@@ -14,6 +14,8 @@ import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../requests'
 
+import Database from './Database'
+
 const ATHENA_REF = 'https://aws.amazon.com/athena/'
 
 const useStyles = M.makeStyles((t) => ({
@@ -158,7 +160,12 @@ export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
+    alignItems: 'center',
+    display: 'flex',
     margin: t.spacing(2, 0),
+  },
+  db: {
+    marginLeft: t.spacing(1),
   },
   error: {
     margin: t.spacing(1, 0, 0),
@@ -182,6 +189,7 @@ export function Form({
 }: FormProps) {
   const classes = useFormStyles()
   const [value, setValue] = React.useState<string | null>(initialValue)
+  const [database, setDatabase] = React.useState<requests.athena.Database | null>(null)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
@@ -208,6 +216,7 @@ export function Form({
         >
           Run query
         </M.Button>
+        <Database className={classes.db} onChange={setDatabase} value={database} />
       </div>
     </div>
   )
