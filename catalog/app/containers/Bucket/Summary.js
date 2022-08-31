@@ -2,7 +2,7 @@ import { basename, join } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
@@ -25,23 +25,62 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
+const variants = ['README.md', 'README.txt', 'README']
+
 function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const classes = useAddReadmeSectionStyles()
   const { urls } = NamedRoutes.use()
-  const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-  const toConfig = urls.bucketFile(bucket, join(name, 'README.md'), {
-    add: true,
-    edit: true,
-    next,
-  })
+  const history = useHistory()
+  const toConfig = React.useCallback(
+    (index) => {
+      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+      return urls.bucketFile(bucket, join(name, variants[index]), {
+        add: true,
+        edit: true,
+        next,
+      })
+    },
+    [bucket, name, urls],
+  )
+  const [selected, setSelected] = React.useState(0)
+  const handleClick = React.useCallback(() => {
+    const url = toConfig(selected)
+    history.push(url)
+  }, [history, toConfig, selected])
+  const options = React.useMemo(() => variants.map((x) => `Add ${x}`), [])
   return (
     <div className={classes.root}>
-      <StyledLink to={toConfig}>
-        <M.Button size="small" color="primary" variant="contained">
-          Add README
-        </M.Button>
-      </StyledLink>
+      <SplitButton options={options} onClick={handleClick} onChange={setSelected}>
+        {options[selected]}
+      </SplitButton>
     </div>
+  )
+}
+
+function SplitButton({ onClick, children, onChange, options }) {
+  const anchorRef = React.useRef(null)
+  const [anchorEl, setAnchorEl] = React.useState(null)
+  const handleSelect = React.useCallback(
+    (index) => () => {
+      onChange(index)
+      setAnchorEl(null)
+    },
+    [onChange],
+  )
+  return (
+    <>
+      <M.ButtonGroup ref={anchorRef} color="primary" size="small" variant="contained">
+        <M.Button onClick={onClick}>{children}</M.Button>
+        <M.Button onClick={() => setAnchorEl(anchorRef.current)}>
+          <M.Icon>arrow_drop_down</M.Icon>
+        </M.Button>
+      </M.ButtonGroup>
+      <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+        {options.map((option, i) => (
+          <M.MenuItem onClick={handleSelect(i)}>{option}</M.MenuItem>
+        ))}
+      </M.Menu>
+    </>
   )
 }
 

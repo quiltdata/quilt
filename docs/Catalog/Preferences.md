@@ -29,9 +29,6 @@ ui:
   package_description:
     .*:
       message: True
-  sourceBuckets:
-    s3://BUCKET_1: {}
-    s3://BUCKET_2: {}
 ```
 
 ### Properties
@@ -60,6 +57,18 @@ that maps package handle regular expressions
 or literals to JSONPath expressions of fields to show from package metadata
 in the package list view.
 Strings display as paragraphs. Elements of a list display as tags.
+* `ui.athena.defaultWorkflow` - default workflow to select on the Athena page
+
+#### `ui.sourceBuckets` example
+
+```yaml
+ui:
+  sourceBuckets:
+    s3://bucket-a: {}
+    s3://bucket-b: {}
+    s3://bucket-c: {}
+  defaultSourceBucket: s3://bucket-b
+```
 
 #### `ui.package_description` example
   
@@ -83,3 +92,11 @@ ui:
 ```
 
 ![Example of package_description use](../imgs/package-list-selective-metadata.png)
+
+#### `ui.athena` example
+
+```yaml
+ui:
+  athena:
+    defaultWorkflow: primary
+```

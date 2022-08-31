@@ -23,7 +23,11 @@
 * [Added] Deep search indexing for .pptx ([#2881](https://github.com/quiltdata/quilt/pull/2881))
 * [Added] Stack Status Admin UI ([#2935](https://github.com/quiltdata/quilt/pull/2935))
 * [Added] Render package manifests using Perspective ([#2971](https://github.com/quiltdata/quilt/pull/2971))
+* [Added] Athena default workflow config setting ([#2985](https://github.com/quiltdata/quilt/pull/2985))
+* [Added] Add missing README to package ([#2960](https://github.com/quiltdata/quilt/pull/2960), [#2979](https://github.com/quiltdata/quilt/pull/2979))
 * [Added] View and copy full Athena query by expanding table row ([2993](https://github.com/quiltdata/quilt/pull/2993))
+* [Added] Create packages from Athena query results ([#3004](https://github.com/quiltdata/quilt/pull/3004))
+* [Added] Add "Create text file" menu ([#3017](https://github.com/quiltdata/quilt/pull/3017))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
