@@ -25,7 +25,7 @@ export const Loader = function WrappedNotebookLoader({ handle, children, options
     case 'voila':
       return <Voila.Loader {...{ handle, children }} />
     case 'json':
-      return <Json.Loader {...{ handle, children }} />
+      return <Json.Loader {...{ handle, children, options }} />
     default:
       return <NotebookLoader {...{ handle, children }} />
   }
