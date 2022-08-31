@@ -21,7 +21,7 @@ function SelectError({ error }: SelectErrorProps) {
 }
 
 function SelectSkeleton() {
-  return <Skeleton height={48} mt={1} animate />
+  return <Skeleton height={32} animate />
 }
 
 const LOAD_MORE = '__load-more__'
@@ -84,7 +84,7 @@ function SelectCatalogName({ onChange }: SelectCatalogNameProps) {
     Ok: (response) => (
       <Select
         data={response}
-        label="Catalog name"
+        label="Data catalog"
         onChange={onChange}
         onLoadMore={setPrev}
       />
@@ -173,26 +173,19 @@ interface ChangeButtonProps {
 
 function ChangeButton({ className, database, onClick }: ChangeButtonProps) {
   const classes = useChangeButtonStyles()
-  if (database) {
-    return (
-      <M.Typography className={cx(classes.root, className)}>
-        Use <strong>{database}</strong> database or
-        <M.Button
-          className={classes.button}
-          color="primary"
-          onClick={onClick}
-          variant="outlined"
-        >
-          change database
-        </M.Button>
-      </M.Typography>
-    )
-  }
-
   return (
-    <M.Button className={cx(classes.button, className)} color="primary" onClick={onClick}>
-      Set database to use in query execution
-    </M.Button>
+    <M.Typography className={cx(classes.root, className)} variant="body2">
+      Use {database ? <strong>{database}</strong> : 'default'} database or
+      <M.Button
+        className={classes.button}
+        color="primary"
+        onClick={onClick}
+        size="small"
+        variant="outlined"
+      >
+        {database ? 'change' : 'set'} database
+      </M.Button>
+    </M.Typography>
   )
 }
 

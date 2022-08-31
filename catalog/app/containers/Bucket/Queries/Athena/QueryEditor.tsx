@@ -161,11 +161,9 @@ export { FormSkeleton as Skeleton }
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
+    justifyContent: 'space-between',
     display: 'flex',
     margin: t.spacing(2, 0),
-  },
-  db: {
-    marginLeft: t.spacing(1),
   },
   error: {
     margin: t.spacing(1, 0, 0),
@@ -208,6 +206,7 @@ export function Form({
       )}
 
       <div className={classes.actions}>
+        <Database onChange={setDatabase} value={database} />
         <M.Button
           variant="contained"
           color="primary"
@@ -216,7 +215,6 @@ export function Form({
         >
           Run query
         </M.Button>
-        <Database className={classes.db} onChange={setDatabase} value={database} />
       </div>
     </div>
   )
