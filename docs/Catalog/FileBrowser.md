@@ -24,12 +24,12 @@ Then you can open the Bookmarks pane and a create package from all those bookmar
 
 You can edit plain text, Markdown, JSON and YAML files.
 
-![Edit button](../imgs/catalog-createfile-editfile.png)
+![Edit button](../imgs/catalog-texteditor-edit.png)
 
 You can also create new files in editable file formats. The button for creating text files is located above the file browser, in the far right «burger»-menu
 
-![Open menu](../imgs/catalog-createfile-menu.png)
+![Open menu](../imgs/catalog-texteditor-create.png)
 
-![Choose name](../imgs/catalog-createfile-name.png)
+![Choose name](../imgs/catalog-texteditor-name.png)
 
-![Edit file](../imgs/catalog-createfile-edit.png)
+![Edit file](../imgs/catalog-texteditor-main.png)
