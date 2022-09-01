@@ -2,7 +2,7 @@
 
 ### Files browser
 
-Every bucket have "Bucket" tab where user can see all files in his bucket.
+Every bucket has "Bucket" tab where the user can see all files in his bucket.
 
 ![Files browser tab](../imgs/catalog-filesbrowser-tab.png)
 
@@ -10,11 +10,11 @@ See also [docs on how to hide this tab](./Preferences.md).
 
 ### Bookmarks
 
-If you need to collect multiple files from different directories and even different buckets, you can browse files and bookmark needed files. You can select needed files and click "Add to bookmarks". You can also navigate to specific file and bookmark individial file from file's page.
+If you want to create a package including multiple files from different directories and even different buckets, you can browse files and bookmark needed files. You can select needed files and click "Add to bookmarks". You can also navigate to a specific file and bookmark an individual file from file's page.
 
 ![Select and add to bookmarks](../imgs/catalog-filesbrowser-addtobookmarks.png)
 
-Then you can open Bookmarks pane and create package from all bookmarks.
+Then you can open the Bookmarks pane and a create package from all bookmarks.
 
 ![Open bookmarks](../imgs/catalog-filesbrowser-bookmarksmenu.png)
 
@@ -22,9 +22,9 @@ Then you can open Bookmarks pane and create package from all bookmarks.
 
 ### Text editor
 
-You can edit plain text, JSON and YAML files.
+You can edit plain text, Mardkdown, JSON and YAML files.
 
-You can also create new files of available to edit file formats. Button for creating text files is located above file browser in far right "burger"-menu
+You can also create new files in available to edit file formats. Button for creating text files is located above file browser in far right «burger»-menu
 
 ![Open menu](../imgs/catalog-createfile-menu.png)
 
