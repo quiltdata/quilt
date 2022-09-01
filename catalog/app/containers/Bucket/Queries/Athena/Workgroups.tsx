@@ -6,6 +6,7 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as requests from '../requests'
+import * as storage from '../requests/storage'
 
 import { Alert, Section } from './Components'
 
@@ -49,6 +50,7 @@ function WorkgroupSelect({
       if (event.target.value === LOAD_MORE) {
         onLoadMore(workgroups)
       } else {
+        storage.setWorkgroup(event.target.value)
         goToWorkgroup(event.target.value)
       }
     },

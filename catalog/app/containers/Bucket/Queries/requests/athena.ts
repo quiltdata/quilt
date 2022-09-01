@@ -4,8 +4,9 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
-import mkStorage from 'utils/storage'
 import wait from 'utils/wait'
+
+import * as storage from './storage'
 
 import { AsyncData } from './requests'
 
@@ -82,8 +83,6 @@ export function useQueries(
 
 export type Workgroup = string
 
-const storage = mkStorage({ athenaWorkgroup: 'ATHENA_WORKGROUP' })
-
 function getDefaultWorkgroup(
   list: Workgroup[],
   preferences?: BucketPreferences.AthenaPreferences,
@@ -92,7 +91,7 @@ function getDefaultWorkgroup(
   if (workgroupFromConfig && list.includes(workgroupFromConfig)) {
     return workgroupFromConfig
   }
-  return storage.get('ATHENA_WORKGROUP') || list[0]
+  return storage.getWorkgroup() || list[0]
 }
 
 interface WorkgroupArgs {
