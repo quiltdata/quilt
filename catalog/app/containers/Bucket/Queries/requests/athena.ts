@@ -87,7 +87,7 @@ function getDefaultWorkgroup(
   list: Workgroup[],
   preferences?: BucketPreferences.AthenaPreferences,
 ): Workgroup {
-  const workgroupFromConfig = preferences?.defaultWorkflow
+  const workgroupFromConfig = preferences?.defaultWorkgroup
   if (workgroupFromConfig && list.includes(workgroupFromConfig)) {
     return workgroupFromConfig
   }
