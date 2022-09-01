@@ -1,5 +1,6 @@
 import type { Json, JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
+import type { S3ObjectLocation } from 'model/S3'
 
 export type Maybe<T> = T | null
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
@@ -20,6 +21,7 @@ export interface Scalars {
   Json: Json
   JsonRecord: JsonRecord
   PackageContentsFlatMap: PackageContentsFlatMap
+  S3ObjectLocation: S3ObjectLocation
 }
 
 export interface AccessCountForDate {
@@ -562,7 +564,7 @@ export interface Query {
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
   readonly defaultRole: Maybe<Role>
-  readonly status: Status
+  readonly status: Maybe<Status>
 }
 
 export interface QuerybucketConfigArgs {
@@ -690,10 +692,43 @@ export interface Status {
   readonly canaries: ReadonlyArray<Canary>
   readonly latestStats: TestStats
   readonly stats: TestStatsTimeSeries
+  readonly reports: StatusReportList
 }
 
 export interface StatusstatsArgs {
   window?: Maybe<Scalars['Int']>
+}
+
+export interface StatusreportsArgs {
+  filter: Maybe<StatusReportListFilter>
+}
+
+export interface StatusReport {
+  readonly __typename: 'StatusReport'
+  readonly timestamp: Scalars['Datetime']
+  readonly renderedReportLocation: Scalars['S3ObjectLocation']
+}
+
+export interface StatusReportList {
+  readonly __typename: 'StatusReportList'
+  readonly total: Scalars['Int']
+  readonly page: ReadonlyArray<StatusReport>
+}
+
+export interface StatusReportListpageArgs {
+  number?: Scalars['Int']
+  perPage?: Scalars['Int']
+  order?: StatusReportListOrder
+}
+
+export interface StatusReportListFilter {
+  readonly timestampFrom: Maybe<Scalars['Datetime']>
+  readonly timestampTo: Maybe<Scalars['Datetime']>
+}
+
+export enum StatusReportListOrder {
+  NEW_FIRST = 'NEW_FIRST',
+  OLD_FIRST = 'OLD_FIRST',
 }
 
 export interface TestStats {

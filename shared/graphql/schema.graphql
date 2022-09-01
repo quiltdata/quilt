@@ -8,6 +8,9 @@ scalar JsonRecord
 
 scalar PackageContentsFlatMap
 
+# bucket + key + version (aka physical key)
+scalar S3ObjectLocation
+
 type OperationError {
   message: String!
   name: String!
@@ -64,10 +67,35 @@ type TestStatsTimeSeries {
   failed: [Int!]!
 }
 
+type StatusReport {
+  timestamp: Datetime! # can be used as id / cache key
+  renderedReportLocation: S3ObjectLocation!
+}
+
+enum StatusReportListOrder {
+  NEW_FIRST
+  OLD_FIRST
+}
+
+type StatusReportList {
+  total: Int!
+  page(
+    number: Int! = 1
+    perPage: Int! = 25
+    order: StatusReportListOrder! = NEW_FIRST
+  ): [StatusReport!]!
+}
+
+input StatusReportListFilter {
+  timestampFrom: Datetime
+  timestampTo: Datetime
+}
+
 type Status {
   canaries: [Canary!]!
   latestStats: TestStats!
   stats(window: Int = 30): TestStatsTimeSeries!
+  reports(filter: StatusReportListFilter): StatusReportList!
 }
 
 type Collaborator {
@@ -240,7 +268,7 @@ type Query {
   roles: [Role!]! @admin
   role(id: ID!): Role @admin
   defaultRole: Role @admin
-  status: Status! @admin
+  status: Status @admin
 }
 
 input BucketAddInput {

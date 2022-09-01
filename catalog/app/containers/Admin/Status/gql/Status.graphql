@@ -1,4 +1,8 @@
-query ($window: Int) {
+query (
+  $statsWindow: Int!,
+  $reportsPerPage: Int!,
+  $reportsOrder: StatusReportListOrder!,
+) {
   status {
     canaries {
       name
@@ -15,10 +19,17 @@ query ($window: Int) {
       failed
       running
     }
-    stats(window: $window) {
+    stats(window: $statsWindow) {
       datetimes
       passed
       failed
+    }
+    reports {
+      total
+      page(perPage: $reportsPerPage, order: $reportsOrder) {
+        timestamp
+        renderedReportLocation
+      }
     }
   }
 }

@@ -3,33 +3,48 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../../model/graphql/types.generated'
 
 export type containers_Admin_Status_gql_StatusQueryVariables = Types.Exact<{
-  window: Types.Maybe<Types.Scalars['Int']>
+  statsWindow: Types.Scalars['Int']
+  reportsPerPage: Types.Scalars['Int']
+  reportsOrder: Types.StatusReportListOrder
 }>
 
 export type containers_Admin_Status_gql_StatusQuery = { readonly __typename: 'Query' } & {
-  readonly status: { readonly __typename: 'Status' } & {
-    readonly canaries: ReadonlyArray<
-      { readonly __typename: 'Canary' } & Pick<
-        Types.Canary,
-        | 'name'
-        | 'region'
-        | 'group'
-        | 'title'
-        | 'description'
-        | 'schedule'
-        | 'ok'
-        | 'lastRun'
+  readonly status: Types.Maybe<
+    { readonly __typename: 'Status' } & {
+      readonly canaries: ReadonlyArray<
+        { readonly __typename: 'Canary' } & Pick<
+          Types.Canary,
+          | 'name'
+          | 'region'
+          | 'group'
+          | 'title'
+          | 'description'
+          | 'schedule'
+          | 'ok'
+          | 'lastRun'
+        >
       >
-    >
-    readonly latestStats: { readonly __typename: 'TestStats' } & Pick<
-      Types.TestStats,
-      'passed' | 'failed' | 'running'
-    >
-    readonly stats: { readonly __typename: 'TestStatsTimeSeries' } & Pick<
-      Types.TestStatsTimeSeries,
-      'datetimes' | 'passed' | 'failed'
-    >
-  }
+      readonly latestStats: { readonly __typename: 'TestStats' } & Pick<
+        Types.TestStats,
+        'passed' | 'failed' | 'running'
+      >
+      readonly stats: { readonly __typename: 'TestStatsTimeSeries' } & Pick<
+        Types.TestStatsTimeSeries,
+        'datetimes' | 'passed' | 'failed'
+      >
+      readonly reports: { readonly __typename: 'StatusReportList' } & Pick<
+        Types.StatusReportList,
+        'total'
+      > & {
+          readonly page: ReadonlyArray<
+            { readonly __typename: 'StatusReport' } & Pick<
+              Types.StatusReport,
+              'timestamp' | 'renderedReportLocation'
+            >
+          >
+        }
+    }
+  >
 }
 
 export const containers_Admin_Status_gql_StatusDocument = {
@@ -42,8 +57,30 @@ export const containers_Admin_Status_gql_StatusDocument = {
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'window' } },
-          type: { kind: 'NamedType', name: { kind: 'Name', value: 'Int' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'statsWindow' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'Int' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'reportsPerPage' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'Int' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'reportsOrder' } },
+          type: {
+            kind: 'NonNullType',
+            type: {
+              kind: 'NamedType',
+              name: { kind: 'Name', value: 'StatusReportListOrder' },
+            },
+          },
         },
       ],
       selectionSet: {
@@ -93,7 +130,7 @@ export const containers_Admin_Status_gql_StatusDocument = {
                       name: { kind: 'Name', value: 'window' },
                       value: {
                         kind: 'Variable',
-                        name: { kind: 'Name', value: 'window' },
+                        name: { kind: 'Name', value: 'statsWindow' },
                       },
                     },
                   ],
@@ -103,6 +140,48 @@ export const containers_Admin_Status_gql_StatusDocument = {
                       { kind: 'Field', name: { kind: 'Name', value: 'datetimes' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'passed' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'failed' } },
+                    ],
+                  },
+                },
+                {
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'reports' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'page' },
+                        arguments: [
+                          {
+                            kind: 'Argument',
+                            name: { kind: 'Name', value: 'perPage' },
+                            value: {
+                              kind: 'Variable',
+                              name: { kind: 'Name', value: 'reportsPerPage' },
+                            },
+                          },
+                          {
+                            kind: 'Argument',
+                            name: { kind: 'Name', value: 'order' },
+                            value: {
+                              kind: 'Variable',
+                              name: { kind: 'Name', value: 'reportsOrder' },
+                            },
+                          },
+                        ],
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'timestamp' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'renderedReportLocation' },
+                            },
+                          ],
+                        },
+                      },
                     ],
                   },
                 },
