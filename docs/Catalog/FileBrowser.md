@@ -10,11 +10,11 @@ See also [docs on how to hide this tab](./Preferences.md).
 
 ### Bookmarks
 
-If you want to create a package including multiple files from different directories and even different buckets, you can browse files and bookmark needed files. You can select needed files and click "Add to bookmarks". You can also navigate to a specific file and bookmark an individual file from file's page.
+If you want to create a package including multiple files from different directories and even different buckets, you can browse files and bookmark needed files. You can select needed files and click "Add to bookmarks". You can also navigate to a specific file and bookmark an individual file from that file's page.
 
 ![Select and add to bookmarks](../imgs/catalog-filesbrowser-addtobookmarks.png)
 
-Then you can open the Bookmarks pane and a create package from all bookmarks.
+Then you can open the Bookmarks pane and a create package from all those bookmarks.
 
 ![Open bookmarks](../imgs/catalog-filesbrowser-bookmarksmenu.png)
 
@@ -22,9 +22,9 @@ Then you can open the Bookmarks pane and a create package from all bookmarks.
 
 ### Text editor
 
-You can edit plain text, Mardkdown, JSON and YAML files.
+You can edit plain text, Markdown, JSON and YAML files.
 
-You can also create new files in available to edit file formats. Button for creating text files is located above file browser in far right «burger»-menu
+You can also create new files in editable file formats. The button for creating text files is located above the file browser, in the far right «burger»-menu
 
 ![Open menu](../imgs/catalog-createfile-menu.png)
 
