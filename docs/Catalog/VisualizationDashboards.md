@@ -383,6 +383,13 @@ In the above example, `igv-options-file.json` is an
 You may specify relative paths to package files or absolute S3 URLs as data sources, and the Quilt catalog will resolve them.
 HTTP URLs will remain unchanged.
 
+Be mindful of large files.
+You can restrict downloads by [`visibilityWindow` parameter](https://github.com/igvteam/igv.js/wiki/Tracks-2.0#options-for-all-track-types)
+(`-1` is for downloading the whole file, that could be potentially few gigabytes).
+
+Note that tracks are
+[grouped by type and file format](https://github.com/igvteam/igv.js/wiki/Tracks-2.0).
+
 ```json
 // igv-options-file.json
 {
