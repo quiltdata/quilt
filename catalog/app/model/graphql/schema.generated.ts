@@ -2671,9 +2671,12 @@ export default {
           {
             name: 'status',
             type: {
-              kind: 'OBJECT',
-              name: 'Status',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'StatusResult',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -3238,6 +3241,20 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'StatusResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Status',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Unavailable',
+          },
+        ],
+      },
+      {
         kind: 'OBJECT',
         name: 'TestStats',
         fields: [
@@ -3335,6 +3352,22 @@ export default {
                   },
                 },
               },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Unavailable',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
             },
             args: [],
           },

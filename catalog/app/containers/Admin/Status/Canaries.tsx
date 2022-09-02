@@ -10,7 +10,10 @@ import * as DG from 'components/DataGrid'
 import { useDataGridStyles } from './DataGrid'
 import type STATUS_QUERY from './gql/Status.generated'
 
-type StatusResult = NonNullable<ResultOf<typeof STATUS_QUERY>['status']>
+type StatusResult = Extract<
+  ResultOf<typeof STATUS_QUERY>['status'],
+  { __typename: 'Status' }
+>
 type Canary = StatusResult['canaries'][number]
 
 interface State {

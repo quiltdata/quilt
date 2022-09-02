@@ -32,6 +32,10 @@ type Ok {
   _: Boolean
 }
 
+type Unavailable {
+  _: Boolean
+}
+
 type ContentIndexingSettings {
   extensions: [String!]!
   bytesDefault: Int!
@@ -97,6 +101,8 @@ type Status {
   stats(window: Int = 30): TestStatsTimeSeries!
   reports(filter: StatusReportListFilter): StatusReportList!
 }
+
+union StatusResult = Status | Unavailable
 
 type Collaborator {
   email: String!
@@ -268,7 +274,7 @@ type Query {
   roles: [Role!]! @admin
   role(id: ID!): Role @admin
   defaultRole: Role @admin
-  status: Status @admin
+  status: StatusResult! @admin
 }
 
 input BucketAddInput {

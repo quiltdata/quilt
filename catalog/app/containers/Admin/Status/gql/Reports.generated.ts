@@ -12,21 +12,21 @@ export type containers_Admin_Status_gql_ReportsQueryVariables = Types.Exact<{
 export type containers_Admin_Status_gql_ReportsQuery = {
   readonly __typename: 'Query'
 } & {
-  readonly status: Types.Maybe<
-    { readonly __typename: 'Status' } & {
-      readonly reports: { readonly __typename: 'StatusReportList' } & Pick<
-        Types.StatusReportList,
-        'total'
-      > & {
-          readonly page: ReadonlyArray<
-            { readonly __typename: 'StatusReport' } & Pick<
-              Types.StatusReport,
-              'timestamp' | 'renderedReportLocation'
+  readonly status:
+    | ({ readonly __typename: 'Status' } & {
+        readonly reports: { readonly __typename: 'StatusReportList' } & Pick<
+          Types.StatusReportList,
+          'total'
+        > & {
+            readonly page: ReadonlyArray<
+              { readonly __typename: 'StatusReport' } & Pick<
+                Types.StatusReport,
+                'timestamp' | 'renderedReportLocation'
+              >
             >
-          >
-        }
-    }
-  >
+          }
+      })
+    | { readonly __typename: 'Unavailable' }
 }
 
 export const containers_Admin_Status_gql_ReportsDocument = {
@@ -85,59 +85,78 @@ export const containers_Admin_Status_gql_ReportsDocument = {
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
+                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
                 {
-                  kind: 'Field',
-                  name: { kind: 'Name', value: 'reports' },
-                  arguments: [
-                    {
-                      kind: 'Argument',
-                      name: { kind: 'Name', value: 'filter' },
-                      value: {
-                        kind: 'Variable',
-                        name: { kind: 'Name', value: 'filter' },
-                      },
-                    },
-                  ],
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'Status' },
+                  },
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                       {
                         kind: 'Field',
-                        name: { kind: 'Name', value: 'page' },
+                        name: { kind: 'Name', value: 'reports' },
                         arguments: [
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'number' },
+                            name: { kind: 'Name', value: 'filter' },
                             value: {
                               kind: 'Variable',
-                              name: { kind: 'Name', value: 'page' },
-                            },
-                          },
-                          {
-                            kind: 'Argument',
-                            name: { kind: 'Name', value: 'perPage' },
-                            value: {
-                              kind: 'Variable',
-                              name: { kind: 'Name', value: 'perPage' },
-                            },
-                          },
-                          {
-                            kind: 'Argument',
-                            name: { kind: 'Name', value: 'order' },
-                            value: {
-                              kind: 'Variable',
-                              name: { kind: 'Name', value: 'order' },
+                              name: { kind: 'Name', value: 'filter' },
                             },
                           },
                         ],
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'timestamp' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'total' } },
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'renderedReportLocation' },
+                              name: { kind: 'Name', value: 'page' },
+                              arguments: [
+                                {
+                                  kind: 'Argument',
+                                  name: { kind: 'Name', value: 'number' },
+                                  value: {
+                                    kind: 'Variable',
+                                    name: { kind: 'Name', value: 'page' },
+                                  },
+                                },
+                                {
+                                  kind: 'Argument',
+                                  name: { kind: 'Name', value: 'perPage' },
+                                  value: {
+                                    kind: 'Variable',
+                                    name: { kind: 'Name', value: 'perPage' },
+                                  },
+                                },
+                                {
+                                  kind: 'Argument',
+                                  name: { kind: 'Name', value: 'order' },
+                                  value: {
+                                    kind: 'Variable',
+                                    name: { kind: 'Name', value: 'order' },
+                                  },
+                                },
+                              ],
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'timestamp' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: {
+                                      kind: 'Name',
+                                      value: 'renderedReportLocation',
+                                    },
+                                  },
+                                ],
+                              },
                             },
                           ],
                         },

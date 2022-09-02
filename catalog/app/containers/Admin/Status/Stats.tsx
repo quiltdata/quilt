@@ -6,7 +6,10 @@ import * as Chart from 'components/EChartsChart'
 
 import type STATUS_QUERY from './gql/Status.generated'
 
-type StatusResult = NonNullable<ResultOf<typeof STATUS_QUERY>['status']>
+type StatusResult = Extract<
+  ResultOf<typeof STATUS_QUERY>['status'],
+  { __typename: 'Status' }
+>
 
 const CHART_COLORS = [M.colors.red[300], M.colors.lightBlue[300], M.colors.grey[400]]
 

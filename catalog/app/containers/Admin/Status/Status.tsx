@@ -28,7 +28,7 @@ export default function Status() {
   return (
     <M.Box my={2}>
       <MetaTitle>{['Status', 'Admin']}</MetaTitle>
-      {status ? (
+      {status.__typename === 'Status' ? (
         <>
           <Stats
             latest={status.latestStats}

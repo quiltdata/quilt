@@ -5,11 +5,14 @@ query (
   $order: StatusReportListOrder!,
 ) {
   status {
-    reports(filter: $filter) {
-      total
-      page(number: $page, perPage: $perPage, order: $order) {
-        timestamp
-        renderedReportLocation
+    __typename
+    ... on Status {
+      reports(filter: $filter) {
+        total
+        page(number: $page, perPage: $perPage, order: $order) {
+          timestamp
+          renderedReportLocation
+        }
       }
     }
   }

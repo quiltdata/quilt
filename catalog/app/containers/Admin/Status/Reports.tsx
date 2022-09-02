@@ -1,7 +1,9 @@
+import * as dateFns from 'date-fns'
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
-import * as dateFns from 'date-fns'
+import type * as urql from 'urql'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
@@ -15,7 +17,10 @@ import { useDataGridStyles } from './DataGrid'
 import REPORTS_QUERY from './gql/Reports.generated'
 import type STATUS_QUERY from './gql/Status.generated'
 
-type StatusResult = NonNullable<ResultOf<typeof STATUS_QUERY>['status']>
+type StatusResult = Extract<
+  ResultOf<typeof STATUS_QUERY>['status'],
+  { __typename: 'Status' }
+>
 type StatusReport = StatusResult['reports']['page'][number]
 
 interface ReportLinkProps {
@@ -42,6 +47,27 @@ function PreviewLink({ loc }: ReportLinkProps) {
         <M.Icon>visibility</M.Icon>
       </M.IconButton>
     </M.Tooltip>
+  )
+}
+
+interface ErrorOverlayProps {
+  error: urql.CombinedError
+  resetState: () => void
+}
+
+function ErrorOverlay({ error, resetState }: ErrorOverlayProps) {
+  return (
+    <M.Box pt={3} pb={4}>
+      <M.Typography variant="h6" align="center" gutterBottom>
+        An error occured
+      </M.Typography>
+      <M.Typography align="center">{error.message}</M.Typography>
+      <M.Box pt={3} display="flex" justifyContent="center">
+        <M.Button onClick={resetState} variant="contained" color="primary">
+          Reset table state
+        </M.Button>
+      </M.Box>
+    </M.Box>
   )
 }
 
@@ -134,40 +160,66 @@ export default function Reports({
     rowCount: total,
   })
 
-  const [sortModel, setSortModel] = React.useState<DG.GridSortModel>(() => [
-    {
-      field: 'timestamp',
-      sort:
-        defaults.order === Model.GQLTypes.StatusReportListOrder.NEW_FIRST
-          ? 'desc'
-          : 'asc',
-    },
-  ])
-  const handleSortModelChange = React.useCallback((params: DG.GridSortModelParams) => {
-    setSortModel(params.sortModel)
-  }, [])
-  const order = React.useMemo(() => sortModelToOrder(sortModel), [sortModel])
-
-  const [filterModel, setFilterModel] = React.useState<DG.GridFilterModel>({ items: [] })
-  const handleFilterModelChange = React.useCallback(
-    (params: DG.GridFilterModelParams) => {
-      setFilterModel(params.filterModel)
-    },
-    [],
-  )
-  const filter = React.useMemo(() => filterModelToFilter(filterModel), [filterModel])
-
   const [page, setPage] = React.useState(defaults.page)
   const handlePageChange = React.useCallback((params: DG.GridPageChangeParams) => {
     setPage(params.page + 1)
   }, [])
 
   const [pageSize, setPageSize] = React.useState(defaults.perPage)
-  const handlePageSizeChange = React.useCallback((params: DG.GridPageChangeParams) => {
-    setPageSize(params.pageSize)
-    // reset page when changing page size
+  const handlePageSizeChange = React.useCallback(
+    (params: DG.GridPageChangeParams) => {
+      if (pageSize === params.pageSize) return
+      setPageSize(params.pageSize)
+      // reset page when changing page size
+      setPage(1)
+    },
+    [pageSize],
+  )
+
+  const initialSortModel: DG.GridSortModel = React.useMemo(
+    () => [
+      {
+        field: 'timestamp',
+        sort:
+          defaults.order === Model.GQLTypes.StatusReportListOrder.NEW_FIRST
+            ? 'desc'
+            : 'asc',
+      },
+    ],
+    [defaults.order],
+  )
+  const [sortModel, setSortModel] = React.useState<DG.GridSortModel>(initialSortModel)
+  const handleSortModelChange = React.useCallback(
+    (params: DG.GridSortModelParams) => {
+      if (R.equals(sortModel, params.sortModel)) return
+      setSortModel(params.sortModel)
+      // reset page when changing sort order
+      setPage(1)
+    },
+    [sortModel],
+  )
+  const order = React.useMemo(() => sortModelToOrder(sortModel), [sortModel])
+
+  const initialFilterModel: DG.GridFilterModel = React.useMemo(() => ({ items: [] }), [])
+  const [filterModel, setFilterModel] =
+    React.useState<DG.GridFilterModel>(initialFilterModel)
+  const handleFilterModelChange = React.useCallback(
+    (params: DG.GridFilterModelParams) => {
+      if (R.equals(filterModel, params.filterModel)) return
+      setFilterModel(params.filterModel)
+      // reset page when changing filtering
+      setPage(1)
+    },
+    [filterModel],
+  )
+  const filter = React.useMemo(() => filterModelToFilter(filterModel), [filterModel])
+
+  const resetState = React.useCallback(() => {
     setPage(1)
-  }, [])
+    setPageSize(defaultPerPage)
+    setFilterModel(initialFilterModel)
+    setSortModel(initialSortModel)
+  }, [defaultPerPage, initialFilterModel, initialSortModel])
 
   const variables = {
     page,
@@ -178,28 +230,29 @@ export default function Reports({
 
   const pause = R.equals(defaults, variables)
 
-  const data = useQuery({
+  const queryResult = useQuery({
     query: REPORTS_QUERY,
     pause,
     variables,
   })
 
-  // console.log('data', data)
-  // TODO: handle data.error
+  invariant(queryResult.data?.status?.__typename !== 'Unavailable', 'Status unavalable')
 
   const rows = (
-    pause ? firstPage : data.data?.status?.reports.page ?? fallbacks.rows
+    pause ? firstPage : queryResult.data?.status?.reports.page ?? fallbacks.rows
   ) as StatusReport[]
   if (rows !== fallbacks.rows) fallbacks.rows = rows
 
   const isFiltered = !R.equals(defaults.filter, variables.filter)
 
   const rowCount = isFiltered
-    ? data.data?.status?.reports.total ?? fallbacks.rowCount
+    ? queryResult.data?.status?.reports.total ?? fallbacks.rowCount
     : total
   if (rowCount !== fallbacks.rowCount) fallbacks.rowCount = rowCount
 
-  const loading = pause ? false : data.fetching
+  const loading = pause ? false : queryResult.fetching
+  const error =
+    !pause && !loading && queryResult.error ? { error: queryResult.error } : null
 
   return (
     <M.Paper className={classes.root}>
@@ -212,6 +265,8 @@ export default function Reports({
         columns={columns}
         getRowId={(r) => (r as StatusReport).timestamp.toISOString()}
         autoHeight
+        components={{ ErrorOverlay }}
+        componentsProps={{ errorOverlay: { resetState } }}
         disableSelectionOnClick
         disableColumnSelector
         disableColumnResize
@@ -240,6 +295,7 @@ export default function Reports({
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
         loading={loading}
+        error={error}
       />
     </M.Paper>
   )

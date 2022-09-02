@@ -564,7 +564,7 @@ export interface Query {
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
   readonly defaultRole: Maybe<Role>
-  readonly status: Maybe<Status>
+  readonly status: StatusResult
 }
 
 export interface QuerybucketConfigArgs {
@@ -731,6 +731,8 @@ export enum StatusReportListOrder {
   OLD_FIRST = 'OLD_FIRST',
 }
 
+export type StatusResult = Status | Unavailable
+
 export interface TestStats {
   readonly __typename: 'TestStats'
   readonly passed: Scalars['Int']
@@ -743,6 +745,11 @@ export interface TestStatsTimeSeries {
   readonly datetimes: ReadonlyArray<Scalars['Datetime']>
   readonly passed: ReadonlyArray<Scalars['Int']>
   readonly failed: ReadonlyArray<Scalars['Int']>
+}
+
+export interface Unavailable {
+  readonly __typename: 'Unavailable'
+  readonly _: Maybe<Scalars['Boolean']>
 }
 
 export interface UnmanagedPolicyInput {
