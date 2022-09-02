@@ -30,3 +30,16 @@ jobs:
         with:
           flags: catalog
           name: ${{ github.job }}
+  lint-docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.11'
+      - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md

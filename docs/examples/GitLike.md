@@ -1,4 +1,5 @@
 <!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
 
 # Git-like operations for datasets and Jupyter notebooks
 
