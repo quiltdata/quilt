@@ -79,7 +79,7 @@ function useQueryRun(
     [bucket, history, urls, workgroup],
   )
   const onSubmit = React.useCallback(
-    async (value: string, executionContext?: requests.athena.ExecutionContext) => {
+    async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
       setLoading(true)
       setError(undefined)
       try {
@@ -193,7 +193,7 @@ export function Form({
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
     if (!value) return
-    onSubmit(value, executionContext || undefined)
+    onSubmit(value, executionContext)
   }, [executionContext, onSubmit, value])
 
   return (

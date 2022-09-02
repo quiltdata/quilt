@@ -469,7 +469,7 @@ interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
-  executionContext?: ExecutionContext
+  executionContext: ExecutionContext | null
 }
 
 export async function runQuery({
@@ -511,7 +511,7 @@ export async function runQuery({
 export function useQueryRun(workgroup: string) {
   const athena = AWS.Athena.use()
   return React.useCallback(
-    (queryBody: string, executionContext?: ExecutionContext) => {
+    (queryBody: string, executionContext: ExecutionContext | null) => {
       if (!athena) return Promise.reject(new Error('No Athena available'))
       return runQuery({ athena, queryBody, workgroup, executionContext })
     },
