@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { stringifyJSON } from './utils'
 
 const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
 
@@ -105,7 +106,7 @@ function objToDict(obj, parentPath, memo) {
 function calcReactId(valuePath, value) {
   const pathPrefix = serializeAddress(valuePath)
   // TODO: store preview for value, and reuse it for Preview
-  return `${pathPrefix}+${JSON.stringify(value)}`
+  return `${pathPrefix}+${stringifyJSON(value)}`
 }
 
 function getDefaultValue(jsonDictItem) {
