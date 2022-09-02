@@ -11,7 +11,7 @@ import jinja2
 
 CANARIES_PER_REQUEST = 5
 
-AWS_REGION = os.getenv("AWS_REGION")
+AWS_REGION = os.getenv("AWS_DEFAULT_REGION")
 assert AWS_REGION
 
 
@@ -19,11 +19,11 @@ session = aiobotocore.session.get_session()
 
 
 def create_cfn():
-    return session.create_client("cloudformation", region_name=AWS_REGION)
+    return session.create_client("cloudformation")
 
 
 def create_syn():
-    return session.create_client("synthetics", region_name=AWS_REGION)
+    return session.create_client("synthetics")
 
 
 async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
@@ -44,7 +44,7 @@ async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
         getattr(syn, method)(Names=chunk)
         for chunk in chunks
     ])
-    return list(itertools.chain(*[p[key] for p in pages]))
+    return list(itertools.chain.from_iterable(p[key] for p in pages))
 
 
 async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
@@ -104,8 +104,7 @@ async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
 async def get_resources(cfn, stack_name: str) -> T.List[dict]:
     result = []
     async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
-        for r in page["StackResourceSummaries"]:
-            result.append(r)
+        result.extend(page["StackResourceSummaries"])
     return result
 
 
@@ -115,7 +114,7 @@ async def get_stack_data(cfn, stack_name: str) -> dict:
 
 
 jenv = jinja2.Environment(autoescape=jinja2.select_autoescape())
-# TODO: inline CSS
+# TODO: stlying
 tmpl = jenv.from_string(
 """
 <!DOCTYPE html>
@@ -272,13 +271,12 @@ def async_handler(f):
 async def lambda_handler(*_):
     stack_name = os.getenv("STACK_NAME")
     assert stack_name
-    bucket = os.getenv("SERVICE_BUCKET")
+    bucket = os.getenv("STATUS_REPORTS_BUCKET")
     assert bucket
 
     now, html = await generate_status_report(stack_name)
     async with session.create_client("s3") as s3:
-        prefix = os.getenv("REPORTS_PREFIX") or "status-reports"
-        key = prefix + now.strftime("/%Y/%m/%d/%H-%M-%S.html")
+        key = now.strftime("%Y/%m/%d/%H-%M-%S.html")
         await s3.put_object(
             Bucket=bucket,
             Key=key,
