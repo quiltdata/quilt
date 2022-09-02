@@ -93,7 +93,10 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
         <Alert title={error.name} error={error} />
       ) : (
         <Lab.Alert severity="info">
-          <Lab.AlertTitle>No workgroups configured</Lab.AlertTitle>
+          <Lab.AlertTitle>
+            No Athena workgroup available. Please ask an AWS Administrator to create one
+            with an appropriate OutputLocation
+          </Lab.AlertTitle>
         </Lab.Alert>
       )}
 
