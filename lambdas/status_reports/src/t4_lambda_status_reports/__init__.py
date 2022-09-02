@@ -8,7 +8,6 @@ import typing as T
 import aiobotocore.session
 import jinja2
 
-
 CANARIES_PER_REQUEST = 5
 
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION")
@@ -115,8 +114,7 @@ async def get_stack_data(cfn, stack_name: str) -> dict:
 
 jenv = jinja2.Environment(autoescape=jinja2.select_autoescape())
 # TODO: stlying
-tmpl = jenv.from_string(
-"""
+tmpl = jenv.from_string("""
 <!DOCTYPE html>
 <html>
 <head>
@@ -236,8 +234,7 @@ tmpl = jenv.from_string(
     </table>
 </body>
 </html>
-"""
-)
+""")
 
 
 async def generate_status_report(stack_name: str):
