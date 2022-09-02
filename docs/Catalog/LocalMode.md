@@ -1,4 +1,5 @@
 <!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
 
 You can securely and privately run the Quilt catalog in "single-player mode" on your machine.
 `quilt3 catalog` launches a Python webserver and local services

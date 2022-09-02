@@ -45,11 +45,17 @@ drag-and-drop or from folders in S3
 * `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
 * `ui.blocks.meta: False` - hide Metadata block on Package page
-* `ui.sourceBuckets` - a dictionary of S3 bucket names that map to an empty object reserved for future enhancements;
+* `ui.sourceBuckets` - a dictionary of S3 bucket names
+that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks
-Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
-* `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
-* `ui.package_description` - a dictionary that maps package handle regular expressions or literals to JSONPath expressions of fields to show from package metadata in the package list view.
+Revise Package > Add files from Bucket; if the dictionary is not set
+or is empty the feature "Add files from Bucket" is disabled
+* `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets`
+that is selected by default; if it doesn't match any bucket then it's ignored
+* `ui.package_description` - a dictionary
+that maps package handle regular expressions
+or literals to JSONPath expressions of fields to show from package metadata
+in the package list view.
 Strings display as paragraphs. Elements of a list display as tags.
 * `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
 
@@ -66,7 +72,6 @@ ui:
 
 #### `ui.package_description` example
   
-
 ```yaml
 ui:
   packages:
