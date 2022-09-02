@@ -79,7 +79,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       {section === 'search' && (
         <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
       )}
-      {(section === 'queries' || section === 'es') && (
+      {preferences.queries && (section === 'queries' || section === 'es') && (
         <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
       )}
     </M.Tabs>
