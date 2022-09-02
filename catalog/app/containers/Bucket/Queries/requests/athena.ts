@@ -508,9 +508,7 @@ export async function runQuery({
   }
 }
 
-export function useQueryRun(
-  workgroup: string,
-): (q: string, execCtx?: ExecutionContext) => Promise<QueryRunResponse> {
+export function useQueryRun(workgroup: string) {
   const athena = AWS.Athena.use()
   return React.useCallback(
     (queryBody: string, executionContext?: ExecutionContext) => {
