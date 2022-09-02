@@ -121,16 +121,19 @@ const useDialogStyles = M.makeStyles((t) => ({
 }))
 
 interface DialogProps {
-  open: boolean
-  onClose: () => void
+  initialValue: requests.athena.ExecutionContext | null
   onChange: (value: requests.athena.ExecutionContext) => void
+  onClose: () => void
+  open: boolean
 }
 
-function Dialog({ open, onChange, onClose }: DialogProps) {
+function Dialog({ initialValue, open, onChange, onClose }: DialogProps) {
   const classes = useDialogStyles()
   const [catalogName, setCatalogName] =
-    React.useState<requests.athena.CatalogName | null>(null)
-  const [database, setDatabase] = React.useState<requests.athena.Database | null>(null)
+    React.useState<requests.athena.CatalogName | null>(initialValue?.catalogName || null)
+  const [database, setDatabase] = React.useState<requests.athena.Database | null>(
+    initialValue?.database || null,
+  )
   const handleSubmit = React.useCallback(() => {
     if (!catalogName || !database) return
     onChange({ catalogName, database })
@@ -210,7 +213,12 @@ export default function Database({ className, value, onChange }: DatabaseProps) 
   const [open, setOpen] = React.useState(false)
   return (
     <>
-      <Dialog open={open} onChange={onChange} onClose={() => setOpen(false)} />
+      <Dialog
+        initialValue={value}
+        onChange={onChange}
+        onClose={() => setOpen(false)}
+        open={open}
+      />
       <ChangeButton
         className={className}
         database={value?.database}
