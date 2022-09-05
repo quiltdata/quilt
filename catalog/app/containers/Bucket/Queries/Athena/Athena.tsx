@@ -154,7 +154,11 @@ function ResultsContainer({
           Pending: () => <Skeleton height={24} width={144} animate />,
           Ok: (queryResults) =>
             !!queryResults.rows.length && (
-              <CreatePackage bucket={bucket} rows={queryResults.rows} />
+              <CreatePackage
+                bucket={bucket}
+                columns={queryResults.columns}
+                rows={queryResults.rows}
+              />
             ),
         })}
       </ResultsBreadcrumbs>

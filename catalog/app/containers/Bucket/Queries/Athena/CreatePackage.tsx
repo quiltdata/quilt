@@ -9,6 +9,8 @@ import * as s3paths from 'utils/s3paths'
 
 import * as requests from '../requests'
 
+import Results from './Results'
+
 type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
 type ManifestEntryStringified = Record<ManifestKey, string>
 
@@ -24,6 +26,7 @@ function SeeDocsForCreatingPackage() {
   )
 }
 
+// TODO: check first 10 rows
 function doQueryResultsContainManifestEntries(
   rows: string[][],
 ): rows is [ManifestKey[], ...string[][]] {
@@ -74,7 +77,7 @@ function parseManifestEntryStringified(entry: ManifestEntryStringified): {
 
 interface ParsedRows {
   valid: Record<string, Model.S3File>
-  invalid: Error[]
+  invalid: requests.athena.QueryResultsRows
 }
 
 function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
@@ -84,33 +87,33 @@ function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
     [] as ManifestEntryStringified[],
   )
   return manifestEntries.reduce(
-    (memo, entry) => {
+    (memo, entry, index) => {
       const parsed = parseManifestEntryStringified(entry)
-      if (parsed) {
-        // FIXME if (parsed instanceof Error)
-        return {
-          valid: {
-            ...memo.valid,
-            ...parsed,
-          },
-          invalid: memo.invalid,
-        }
-      }
-      return {
-        valid: memo.valid,
-        invalid: memo.invalid.concat(new Error('INVALID ROW')),
-      }
+      return parsed
+        ? // FIXME if (parsed instanceof Error)
+          {
+            valid: {
+              ...memo.valid,
+              ...parsed,
+            },
+            invalid: memo.invalid,
+          }
+        : {
+            valid: memo.valid,
+            invalid: [...memo.invalid, tail[index]],
+          }
     },
     { valid: {}, invalid: [] } as ParsedRows,
   )
 }
 
 interface CreatePackageProps {
+  columns: requests.athena.QueryResultsColumns
   bucket: string
   rows: requests.athena.QueryResultsRows
 }
 
-export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
+export default function CreatePackage({ bucket, columns, rows }: CreatePackageProps) {
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
   const createDialog = usePackageCreationDialog({
@@ -124,24 +127,24 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
       addToPackage?.merge(entries.valid)
       createDialog.open()
     },
-    [addToPackage, createDialog],
+    [addToPackage, entries.valid, createDialog],
   )
   const confirm = Dialog.useConfirm({
-    title: 'Confirm',
+    title: 'These rows will be discarded. Confirm creating package?',
     onSubmit: handleConfirm,
   })
   const onPackage = React.useCallback(() => {
     if (!doQueryResultsContainManifestEntries(rows)) return
 
     // TODO: make it lazy, and disable button
-    const entries = parseQueryResults(rows)
-    setEntries(entries)
-    if (entries.invalid.length) {
+    const parsed = parseQueryResults(rows)
+    setEntries(parsed)
+    if (parsed.invalid.length) {
       confirm.open()
     } else {
       handleConfirm(true)
     }
-  }, [addToPackage, createDialog, rows])
+  }, [confirm, handleConfirm, rows])
 
   if (!doQueryResultsContainManifestEntries(rows)) return <SeeDocsForCreatingPackage />
 
@@ -154,7 +157,7 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
         ),
         title: 'Create package',
       })}
-      {confirm.render(<h1>Hello world!</h1>)}
+      {confirm.render(<Results rows={entries.invalid} columns={columns} />)}
       <M.Button color="primary" onClick={onPackage} size="small" variant="outlined">
         Create package
       </M.Button>
