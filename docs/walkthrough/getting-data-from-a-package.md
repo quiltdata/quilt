@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 The examples in this section use the `aleksey/hurdat` [demo package](https://open.quiltdata.com/b/quilt-example/tree/aleksey/hurdat/):
 
 
