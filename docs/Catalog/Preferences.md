@@ -57,7 +57,7 @@ that maps package handle regular expressions
 or literals to JSONPath expressions of fields to show from package metadata
 in the package list view.
 Strings display as paragraphs. Elements of a list display as tags.
-* `ui.athena.defaultWorkflow` - default workflow to select on the Athena page
+* `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
 
 #### `ui.sourceBuckets` example
 
@@ -98,5 +98,5 @@ ui:
 ```yaml
 ui:
   athena:
-    defaultWorkflow: primary
+    defaultWorkgroup: primary
 ```
