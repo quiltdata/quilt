@@ -3136,6 +3136,18 @@ export default {
               },
             ],
           },
+          {
+            name: 'reportsBucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },

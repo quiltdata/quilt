@@ -100,6 +100,7 @@ type Status {
   latestStats: TestStats!
   stats(window: Int = 30): TestStatsTimeSeries!
   reports(filter: StatusReportListFilter): StatusReportList!
+  reportsBucket: String!
 }
 
 union StatusResult = Status | Unavailable

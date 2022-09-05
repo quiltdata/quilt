@@ -4,6 +4,7 @@ import * as redux from 'react-redux'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import { handleToHttpsUri } from 'utils/s3paths'
 
 import * as Credentials from './Credentials'
@@ -22,10 +23,11 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const authenticated = redux.useSelector(authSelectors.authenticated)
   const cfg = Config.useConfig()
   const isInStack = BucketConfig.useIsInStack()
+  const statusReportsBucket = useStatusReportsBucket()
   const s3 = S3.use()
   const inStackOrSpecial = React.useCallback(
-    (b) => isInStack(b) || cfg.analyticsBucket === b || cfg.serviceBucket === b,
-    [isInStack, cfg.analyticsBucket, cfg.serviceBucket],
+    (b) => isInStack(b) || cfg.analyticsBucket === b || statusReportsBucket === b,
+    [isInStack, cfg.analyticsBucket, statusReportsBucket],
   )
   return React.useCallback(
     ({ bucket, key, version }, opts) =>

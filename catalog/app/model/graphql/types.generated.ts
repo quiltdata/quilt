@@ -693,6 +693,7 @@ export interface Status {
   readonly latestStats: TestStats
   readonly stats: TestStatsTimeSeries
   readonly reports: StatusReportList
+  readonly reportsBucket: Scalars['String']
 }
 
 export interface StatusstatsArgs {
