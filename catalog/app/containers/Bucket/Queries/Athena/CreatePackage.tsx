@@ -32,9 +32,8 @@ function doQueryResultsContainManifestEntries(
 ): rows is [ManifestKey[], ...string[][]] {
   const [head] = rows
   return (
-    head.includes('size') &&
-    head.includes('physical_keys') &&
-    head.includes('logical_key')
+    // head.includes('size') &&
+    head.includes('physical_keys') && head.includes('logical_key')
   )
 }
 
@@ -90,8 +89,7 @@ function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
     (memo, entry, index) => {
       const parsed = parseManifestEntryStringified(entry)
       return parsed
-        ? // FIXME if (parsed instanceof Error)
-          {
+        ? {
             valid: {
               ...memo.valid,
               ...parsed,
@@ -127,7 +125,7 @@ export default function CreatePackage({ bucket, columns, rows }: CreatePackagePr
       addToPackage?.merge(entries.valid)
       createDialog.open()
     },
-    [addToPackage, entries.valid, createDialog],
+    [addToPackage, entries, createDialog],
   )
   const confirm = Dialog.useConfirm({
     title: 'These rows will be discarded. Confirm creating package?',
@@ -142,9 +140,10 @@ export default function CreatePackage({ bucket, columns, rows }: CreatePackagePr
     if (parsed.invalid.length) {
       confirm.open()
     } else {
-      handleConfirm(true)
+      addToPackage?.merge(parsed.valid)
+      createDialog.open()
     }
-  }, [confirm, handleConfirm, rows])
+  }, [addToPackage, confirm, createDialog, rows])
 
   if (!doQueryResultsContainManifestEntries(rows)) return <SeeDocsForCreatingPackage />
 
