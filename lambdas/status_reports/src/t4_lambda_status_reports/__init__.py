@@ -113,7 +113,7 @@ async def get_stack_data(cfn, stack_name: str) -> dict:
 
 
 jenv = jinja2.Environment(autoescape=jinja2.select_autoescape())
-# TODO: stlying
+# TODO: styling
 tmpl = jenv.from_string("""
 <!DOCTYPE html>
 <html>
