@@ -90,6 +90,9 @@ const useStyles = M.makeStyles((t) => ({
       `,
     },
   },
+  revisionHash: {
+    color: t.palette.divider,
+  },
 }))
 
 export default function Footer() {
@@ -184,6 +187,11 @@ export default function Footer() {
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
           </M.Box>
+        </M.Container>
+        <M.Container maxWidth="lg">
+          <M.Typography className={classes.revisionHash} variant="caption">
+            {process.env.REVISION_HASH}
+          </M.Typography>
         </M.Container>
       </footer>
     </M.MuiThemeProvider>
