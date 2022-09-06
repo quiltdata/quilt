@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Mental model for a Quilt package
 
 Quilt represents datasets as *packages*. A package is an immutable collection of

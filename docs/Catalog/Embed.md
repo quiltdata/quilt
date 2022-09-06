@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 The Quilt catalog has limited-feature S3 browser called Embed, an embeddable iframe.
 Embed is served off the main catalog under `/__embed` route.
 

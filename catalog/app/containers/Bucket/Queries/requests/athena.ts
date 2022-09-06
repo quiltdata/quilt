@@ -6,6 +6,8 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import wait from 'utils/wait'
 
+import * as storage from './storage'
+
 import { AsyncData } from './requests'
 
 // TODO: rename to requests.athena.Query
@@ -81,6 +83,17 @@ export function useQueries(
 
 export type Workgroup = string
 
+function getDefaultWorkgroup(
+  list: Workgroup[],
+  preferences?: BucketPreferences.AthenaPreferences,
+): Workgroup {
+  const workgroupFromConfig = preferences?.defaultWorkgroup
+  if (workgroupFromConfig && list.includes(workgroupFromConfig)) {
+    return workgroupFromConfig
+  }
+  return storage.getWorkgroup() || list[0]
+}
+
 interface WorkgroupArgs {
   athena: Athena
   workgroup: Workgroup
@@ -126,12 +139,8 @@ async function fetchWorkgroups({
       await Promise.all(parsed.map((workgroup) => fetchWorkgroup({ athena, workgroup })))
     ).filter(Boolean)
     const list = (prev?.list || []).concat(available as Workgroup[])
-    const defaultWorkgroup =
-      preferences?.defaultWorkflow && list.includes(preferences?.defaultWorkflow)
-        ? preferences?.defaultWorkflow
-        : list[0]
     return {
-      defaultWorkgroup,
+      defaultWorkgroup: getDefaultWorkgroup(list, preferences),
       list,
       next: workgroupsOutput.NextToken,
     }

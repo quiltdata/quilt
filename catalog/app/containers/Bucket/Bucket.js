@@ -42,6 +42,7 @@ const match = (cases) => (pathname) => {
 }
 
 const sections = {
+  es: { path: 'bucketESQueries', exact: true },
   overview: { path: 'bucketOverview', exact: true },
   packages: { path: 'bucketPackageList' },
   tree: [

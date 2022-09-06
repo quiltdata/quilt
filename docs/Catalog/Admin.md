@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 The Quilt catalog includes an admin panel that allows you to manage
 users and buckets in Quilt, as well as customize the Quilt catalog. You can access
 the panel via a dropdown menu under username in the navbar.
