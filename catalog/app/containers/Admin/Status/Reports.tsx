@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 import * as DG from 'components/DataGrid'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import useQuery from 'utils/useQuery'
 
@@ -27,15 +28,41 @@ interface ReportLinkProps {
   loc: Model.S3.S3ObjectLocation
 }
 
-function DownloadLink({ loc, ...props }: ReportLinkProps & M.IconButtonProps<'a'>) {
-  const url = AWS.Signer.useDownloadUrl(loc, { filename: loc.key })
+function ActualDownloadLink({ loc }: ReportLinkProps) {
+  const url = AWS.Signer.useDownloadUrl(loc, {
+    filename: loc.key,
+    contentType: 'text/html',
+  })
   return (
-    <M.Tooltip title="Download report">
-      <M.IconButton component="a" href={url} rel="noreferrer" target="_blank" {...props}>
-        <M.Icon>save_alt</M.Icon>
-      </M.IconButton>
-    </M.Tooltip>
+    <M.IconButton component="a" href={url} rel="noreferrer" target="_blank" edge="end">
+      <M.Icon>save_alt</M.Icon>
+    </M.IconButton>
   )
+}
+
+function DownloadLink({ loc }: ReportLinkProps) {
+  // populate bucket region cache to get working signed urls
+  return useBucketExistence(loc.bucket).case({
+    Ok: () => (
+      <M.Tooltip title="Download report">
+        <ActualDownloadLink loc={loc} />
+      </M.Tooltip>
+    ),
+    Err: (e: Error | undefined) => (
+      <M.Tooltip title={`Couldn't get download link: ${e?.message || 'unknown error'}`}>
+        <M.IconButton edge="end">
+          <M.Icon>error_outline</M.Icon>
+        </M.IconButton>
+      </M.Tooltip>
+    ),
+    _: () => (
+      <M.Tooltip title="Getting download link">
+        <M.IconButton edge="end">
+          <M.CircularProgress size={24} color="inherit" style={{ padding: '2px' }} />
+        </M.IconButton>
+      </M.Tooltip>
+    ),
+  })
 }
 
 function PreviewLink({ loc }: ReportLinkProps) {
@@ -100,7 +127,7 @@ const columns: DG.GridColumns = [
       return (
         <>
           <PreviewLink loc={loc} />
-          <DownloadLink loc={loc} edge="end" />
+          <DownloadLink loc={loc} />
         </>
       )
     },
