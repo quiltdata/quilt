@@ -105,12 +105,14 @@ async function fetchWorkgroup({
 }: WorkgroupArgs): Promise<Workgroup | null> {
   try {
     const workgroupOutput = await athena.getWorkGroup({ WorkGroup: workgroup }).promise()
-    return workgroupOutput?.WorkGroup?.Configuration?.ResultConfiguration
-      ?.OutputLocation &&
+    if (
+      workgroupOutput?.WorkGroup?.Configuration?.ResultConfiguration?.OutputLocation &&
       workgroupOutput?.WorkGroup?.State === 'ENABLED' &&
       workgroupOutput?.WorkGroup?.Name
-      ? workgroupOutput.WorkGroup.Name
-      : null
+    ) {
+      return workgroupOutput.WorkGroup.Name
+    }
+    return null
   } catch (error) {
     return null
   }
