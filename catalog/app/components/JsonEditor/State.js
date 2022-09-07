@@ -127,7 +127,7 @@ const NO_ERRORS = []
 
 const bigintError = new Error(
   `We don't support numbers larger than ${Number.MAX_SAFE_INTEGER}.
-  Please consider to convert it to string`,
+  Please consider converting it to string.`,
 )
 
 function collectErrors(allErrors, itemAddress, value) {
