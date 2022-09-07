@@ -30,6 +30,7 @@
 * [Added] Add "Create text file" menu ([#3017](https://github.com/quiltdata/quilt/pull/3017))
 * [Added] Redirect to last selected Athena workgroup ([#3067](https://github.com/quiltdata/quilt/pull/3067))
 * [Added] `status_reports` lambda ([#2989](https://github.com/quiltdata/quilt/pull/2989))
+* [Added] Stack Status Admin UI: reports ([#3068](https://github.com/quiltdata/quilt/pull/3068))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
