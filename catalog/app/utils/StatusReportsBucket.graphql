@@ -1,0 +1,8 @@
+query {
+  status {
+    __typename
+    ... on Status {
+      reportsBucket
+    }
+  }
+}

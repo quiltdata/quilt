@@ -21,3 +21,4 @@ extensions:
             Json: utils/types#Json
             JsonRecord: utils/types#JsonRecord
             PackageContentsFlatMap: model#PackageContentsFlatMap
+            S3ObjectLocation: model/S3#S3ObjectLocation
