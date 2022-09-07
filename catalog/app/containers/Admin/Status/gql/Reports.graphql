@@ -1,0 +1,19 @@
+query (
+  $page: Int!,
+  $perPage: Int!,
+  $filter: StatusReportListFilter!,
+  $order: StatusReportListOrder!,
+) {
+  status {
+    __typename
+    ... on Status {
+      reports(filter: $filter) {
+        total
+        page(number: $page, perPage: $perPage, order: $order) {
+          timestamp
+          renderedReportLocation
+        }
+      }
+    }
+  }
+}
