@@ -1050,7 +1050,7 @@ export function Listing({
           toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
           footer: { truncated, locked, loadMore, items },
         }}
-        getRowId={(row) => row.name.replaceAll("'", "\\'")}
+        getRowId={(row) => row.name?.replaceAll("'", "\\'") || row.id}
         pagination
         pageSize={pageSize}
         onPageSizeChange={handlePageSizeChange}
