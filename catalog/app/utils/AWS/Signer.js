@@ -59,14 +59,14 @@ function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
   }, [interval])
 }
 
-export function useDownloadUrl(handle, { filename } = {}) {
+export function useDownloadUrl(handle, { filename = '', contentType = '' } = {}) {
   const { urlExpiration } = React.useContext(Ctx)
   const sign = useS3Signer()
   const filenameSuffix = filename ? `; filename="${filename}"` : ''
   const doSign = () => ({
     url: sign(handle, {
       ResponseContentDisposition: `attachment${filenameSuffix}`,
-      ResponseContentType: 'binary/octet-stream',
+      ResponseContentType: contentType || 'binary/octet-stream',
     }),
     ts: Date.now(),
   })
