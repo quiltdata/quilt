@@ -6,6 +6,7 @@ import * as redux from 'react-redux'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import { useConfig } from 'utils/Config'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useConstant from 'utils/useConstant'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
 
@@ -39,6 +40,7 @@ function useSmartS3() {
   const selectEndpoint = `${cfg.binaryApiGatewayEndpoint}/s3select/`
   const isAuthenticated = useTracking(redux.useSelector(authSelectors.authenticated))
   const isInStack = useTrackingFn(BucketConfig.useIsInStack())
+  const statusReportsBucket = useStatusReportsBucket()
 
   return useConstant(() => {
     class SmartS3 extends S3 {
@@ -52,8 +54,8 @@ function useSmartS3() {
             // sign if operation is not bucket-specific
             // (not sure if there are any such operations that can be used from the browser)
             !bucket ||
-            (cfg.analyticsBucket && cfg.analyticsBucket === bucket) ||
-            (cfg.serviceBucket && cfg.serviceBucket === bucket) ||
+            cfg.analyticsBucket === bucket ||
+            statusReportsBucket === bucket ||
             (cfg.mode !== 'OPEN' && isInStack(bucket))
           ) {
             return 'signed'

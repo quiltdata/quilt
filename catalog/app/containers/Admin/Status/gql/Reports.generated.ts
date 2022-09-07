@@ -2,36 +2,18 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Admin_Status_gql_StatusQueryVariables = Types.Exact<{
-  statsWindow: Types.Scalars['Int']
-  reportsPerPage: Types.Scalars['Int']
-  reportsOrder: Types.StatusReportListOrder
+export type containers_Admin_Status_gql_ReportsQueryVariables = Types.Exact<{
+  page: Types.Scalars['Int']
+  perPage: Types.Scalars['Int']
+  filter: Types.StatusReportListFilter
+  order: Types.StatusReportListOrder
 }>
 
-export type containers_Admin_Status_gql_StatusQuery = { readonly __typename: 'Query' } & {
+export type containers_Admin_Status_gql_ReportsQuery = {
+  readonly __typename: 'Query'
+} & {
   readonly status:
     | ({ readonly __typename: 'Status' } & {
-        readonly canaries: ReadonlyArray<
-          { readonly __typename: 'Canary' } & Pick<
-            Types.Canary,
-            | 'name'
-            | 'region'
-            | 'group'
-            | 'title'
-            | 'description'
-            | 'schedule'
-            | 'ok'
-            | 'lastRun'
-          >
-        >
-        readonly latestStats: { readonly __typename: 'TestStats' } & Pick<
-          Types.TestStats,
-          'passed' | 'failed' | 'running'
-        >
-        readonly stats: { readonly __typename: 'TestStatsTimeSeries' } & Pick<
-          Types.TestStatsTimeSeries,
-          'datetimes' | 'passed' | 'failed'
-        >
         readonly reports: { readonly __typename: 'StatusReportList' } & Pick<
           Types.StatusReportList,
           'total'
@@ -47,17 +29,17 @@ export type containers_Admin_Status_gql_StatusQuery = { readonly __typename: 'Qu
     | { readonly __typename: 'Unavailable' }
 }
 
-export const containers_Admin_Status_gql_StatusDocument = {
+export const containers_Admin_Status_gql_ReportsDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Admin_Status_gql_Status' },
+      name: { kind: 'Name', value: 'containers_Admin_Status_gql_Reports' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'statsWindow' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'page' } },
           type: {
             kind: 'NonNullType',
             type: { kind: 'NamedType', name: { kind: 'Name', value: 'Int' } },
@@ -65,7 +47,7 @@ export const containers_Admin_Status_gql_StatusDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'reportsPerPage' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'perPage' } },
           type: {
             kind: 'NonNullType',
             type: { kind: 'NamedType', name: { kind: 'Name', value: 'Int' } },
@@ -73,7 +55,18 @@ export const containers_Admin_Status_gql_StatusDocument = {
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'reportsOrder' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+          type: {
+            kind: 'NonNullType',
+            type: {
+              kind: 'NamedType',
+              name: { kind: 'Name', value: 'StatusReportListFilter' },
+            },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
           type: {
             kind: 'NonNullType',
             type: {
@@ -104,61 +97,17 @@ export const containers_Admin_Status_gql_StatusDocument = {
                     selections: [
                       {
                         kind: 'Field',
-                        name: { kind: 'Name', value: 'canaries' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'region' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'group' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'title' } },
-                            {
-                              kind: 'Field',
-                              name: { kind: 'Name', value: 'description' },
-                            },
-                            { kind: 'Field', name: { kind: 'Name', value: 'schedule' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'ok' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'lastRun' } },
-                          ],
-                        },
-                      },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'latestStats' },
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'passed' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'failed' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'running' } },
-                          ],
-                        },
-                      },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'stats' },
+                        name: { kind: 'Name', value: 'reports' },
                         arguments: [
                           {
                             kind: 'Argument',
-                            name: { kind: 'Name', value: 'window' },
+                            name: { kind: 'Name', value: 'filter' },
                             value: {
                               kind: 'Variable',
-                              name: { kind: 'Name', value: 'statsWindow' },
+                              name: { kind: 'Name', value: 'filter' },
                             },
                           },
                         ],
-                        selectionSet: {
-                          kind: 'SelectionSet',
-                          selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'datetimes' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'passed' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'failed' } },
-                          ],
-                        },
-                      },
-                      {
-                        kind: 'Field',
-                        name: { kind: 'Name', value: 'reports' },
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
@@ -169,10 +118,18 @@ export const containers_Admin_Status_gql_StatusDocument = {
                               arguments: [
                                 {
                                   kind: 'Argument',
+                                  name: { kind: 'Name', value: 'number' },
+                                  value: {
+                                    kind: 'Variable',
+                                    name: { kind: 'Name', value: 'page' },
+                                  },
+                                },
+                                {
+                                  kind: 'Argument',
                                   name: { kind: 'Name', value: 'perPage' },
                                   value: {
                                     kind: 'Variable',
-                                    name: { kind: 'Name', value: 'reportsPerPage' },
+                                    name: { kind: 'Name', value: 'perPage' },
                                   },
                                 },
                                 {
@@ -180,7 +137,7 @@ export const containers_Admin_Status_gql_StatusDocument = {
                                   name: { kind: 'Name', value: 'order' },
                                   value: {
                                     kind: 'Variable',
-                                    name: { kind: 'Name', value: 'reportsOrder' },
+                                    name: { kind: 'Name', value: 'order' },
                                   },
                                 },
                               ],
@@ -215,8 +172,8 @@ export const containers_Admin_Status_gql_StatusDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Admin_Status_gql_StatusQuery,
-  containers_Admin_Status_gql_StatusQueryVariables
+  containers_Admin_Status_gql_ReportsQuery,
+  containers_Admin_Status_gql_ReportsQueryVariables
 >
 
-export { containers_Admin_Status_gql_StatusDocument as default }
+export { containers_Admin_Status_gql_ReportsDocument as default }
