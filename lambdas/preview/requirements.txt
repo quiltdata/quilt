@@ -15,7 +15,7 @@ jsonschema==3.2.0
 jupyter-core==4.11.1
 MarkupSafe==1.1.1
 mistune==0.8.4
-nbconvert==6.3.0
+nbconvert==6.5.1
 nbformat==5.4.0
 numpy==1.21.5
 openpyxl==3.0.7
