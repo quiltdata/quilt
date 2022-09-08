@@ -22,6 +22,41 @@ import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
+const useVersionStyles = M.makeStyles((t) => ({
+  root: {
+    color: t.palette.secondary.main,
+    opacity: 0.3,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+  icon: {
+    fontSize: '14px',
+  },
+}))
+
+function Version() {
+  const classes = useVersionStyles()
+  const { push } = Notifications.use()
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(process.env.REVISION_HASH)
+    push('Version hash has been copied to clipboard')
+  }, [push])
+  return (
+    <div className={classes.root}>
+      <M.Typography variant="caption">{process.env.REVISION_HASH}</M.Typography>
+      <M.IconButton
+        color="inherit"
+        onClick={handleCopy}
+        size="small"
+        title="Copy version hash to clipboard"
+      >
+        <M.Icon className={classes.icon}>file_copy</M.Icon>
+      </M.IconButton>
+    </div>
+  )
+}
+
 const FooterLogo = () => <Logo height="29px" width="76.5px" />
 
 const NavLink = (props) => (
@@ -92,33 +127,16 @@ const useStyles = M.makeStyles((t) => ({
       `,
     },
   },
-  copy: {
-    fontSize: '14px',
-  },
-  revisionHash: {
-    color: t.palette.secondary.main,
-  },
-  revisionContainer: {
-    opacity: 0.3,
-    '&:hover': {
-      opacity: 1,
-    },
-  },
 }))
 
 export default function Footer() {
   const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
   const classes = useStyles()
-  const { push } = Notifications.use()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const year = React.useMemo(() => new Date().getFullYear(), [])
   const reservedSpaceForIntercom = !intercom.dummy && !intercom.isCustom
-  const handleCopy = React.useCallback(() => {
-    copyToClipboard(process.env.REVISION_HASH)
-    push('Version hash has been copied to clipboard')
-  }, [push])
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer
@@ -204,18 +222,8 @@ export default function Footer() {
             )}
           </M.Box>
         </M.Container>
-        <M.Container maxWidth="lg" className={classes.revisionContainer}>
-          <M.Typography className={classes.revisionHash} variant="caption">
-            {process.env.REVISION_HASH}
-          </M.Typography>
-          <M.IconButton
-            color="secondary"
-            onClick={handleCopy}
-            size="small"
-            title="Copy version hash to clipboard"
-          >
-            <M.Icon className={classes.copy}>file_copy</M.Icon>
-          </M.IconButton>
+        <M.Container maxWidth="lg">
+          <Version />
         </M.Container>
       </footer>
     </M.MuiThemeProvider>
