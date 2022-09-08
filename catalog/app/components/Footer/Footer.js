@@ -7,10 +7,12 @@ import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
+import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import copyToClipboard from 'utils/clipboard'
 
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
@@ -90,8 +92,17 @@ const useStyles = M.makeStyles((t) => ({
       `,
     },
   },
+  copy: {
+    fontSize: '14px',
+  },
   revisionHash: {
-    color: t.palette.divider,
+    color: t.palette.secondary.main,
+  },
+  revisionContainer: {
+    opacity: 0.3,
+    '&:hover': {
+      opacity: 1,
+    },
   },
 }))
 
@@ -99,10 +110,15 @@ export default function Footer() {
   const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
   const classes = useStyles()
+  const { push } = Notifications.use()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const year = React.useMemo(() => new Date().getFullYear(), [])
   const reservedSpaceForIntercom = !intercom.dummy && !intercom.isCustom
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(process.env.REVISION_HASH)
+    push('Version hash has been copied to clipboard')
+  }, [push])
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer
@@ -188,10 +204,18 @@ export default function Footer() {
             )}
           </M.Box>
         </M.Container>
-        <M.Container maxWidth="lg">
+        <M.Container maxWidth="lg" className={classes.revisionContainer}>
           <M.Typography className={classes.revisionHash} variant="caption">
             {process.env.REVISION_HASH}
           </M.Typography>
+          <M.IconButton
+            color="secondary"
+            onClick={handleCopy}
+            size="small"
+            title="Copy version hash to clipboard"
+          >
+            <M.Icon className={classes.copy}>file_copy</M.Icon>
+          </M.IconButton>
         </M.Container>
       </footer>
     </M.MuiThemeProvider>
