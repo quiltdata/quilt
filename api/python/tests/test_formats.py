@@ -163,6 +163,22 @@ def test_formats_anndata_roundtrip():
     ad.var.equals(ad2.var)
 
 
+def test_all_supported_formats():
+    assert FormatRegistry.all_supported_formats() == {
+        AnnData: {'h5ad'},
+        pd.DataFrame: {'csv', 'parquet', 'ssv', 'tsv'},
+        np.ndarray: {'npy', 'npz'},
+        str: {'json', 'md', 'rst', 'txt'},
+        tuple: {'json'},
+        type(None): {'json'},
+        dict: {'json'},
+        int: {'json'},
+        list: {'json'},
+        float: {'json'},
+        bytes: {'bin'},
+    }
+
+
 @pytest.mark.parametrize('args', [
     dict(obj_type=type('Foo', (), {}), meta=None, ext=None),
     dict(obj_type=None, meta={}, ext=None),
