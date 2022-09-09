@@ -69,6 +69,7 @@ Format metadata has the following form:
 import copy
 import csv
 import gzip
+import importlib
 import io
 import json
 import sys
@@ -331,26 +332,18 @@ class FormatRegistry:
                                <class 'float'>                    [json]
                                <class 'bytes'>                     [bin]
         """
-        try:
-            import numpy as np
-        except ImportError:
-            pass
-        else:
-            cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
-
-        try:
-            import pandas as pd
-        except ImportError:
-            pass
-        else:
-            cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
-
-        try:
-            import anndata as ad
-        except ImportError:
-            pass
-        else:
-            cls.search(ad.AnnData)  # Force FormatHandlers to register ad.AnnData as a supported object type
+        # Force FormatHandlers to register these classes as supported object types
+        for mod_name, cls_name in [
+            ('numpy', 'ndarray'),
+            ('pandas', 'DataFrame'),
+            ('anndata', 'AnnData'),
+        ]:
+            try:
+                mod = importlib.import_module(mod_name)
+            except ImportError:
+                pass
+            else:
+                cls.search(getattr(mod, cls_name))
 
         type_map = defaultdict(set)
         for handler in cls.registered_handlers:
