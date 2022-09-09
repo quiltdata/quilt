@@ -1,4 +1,3 @@
-import * as dateFns from 'date-fns'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
