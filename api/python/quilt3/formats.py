@@ -75,6 +75,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from .util import QuiltException
@@ -1070,8 +1071,9 @@ class AnnDataFormatHandler(BaseFormatHandler):
             # Old AnnData version don’t support writing to buffers,
             # see https://github.com/scverse/anndata/pull/800
             with NamedTemporaryFile() as f:
+                f.close()  # can’t re-open a file on Windows
                 obj.write(f.name, **opts_with_defaults)
-                data = f.read()
+                data = Path(f.name).read_bytes()
 
         return data, self._update_meta(meta, additions=opts_with_defaults)
 
