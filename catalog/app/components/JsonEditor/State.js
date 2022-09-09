@@ -3,6 +3,8 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
+
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
@@ -109,17 +111,17 @@ function calcReactId(valuePath, value) {
 }
 
 function getDefaultValue(jsonDictItem) {
-  if (!jsonDictItem || !jsonDictItem.valueSchema) return EMPTY_VALUE
+  if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
 
-  const schema = jsonDictItem.valueSchema
-  try {
-    if (schema.format === 'date' && schema.dateformat)
-      return dateFns.format(new Date(), schema.dateformat)
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
-  }
-  if (schema.default !== undefined) return schema.default
+  const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
+  if (defaultFromSchema !== undefined) return defaultFromSchema
+
+  // TODO:
+  // get defaults from nested objects
+  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
+  // const nestedDefaultFromSchema = setDefaults()
+  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
+
   return EMPTY_VALUE
 }
 
