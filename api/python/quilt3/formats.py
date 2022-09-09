@@ -1041,7 +1041,6 @@ class AnnDataFormatHandler(BaseFormatHandler):
         or directly in metadata under `{'format': {'opts': {...: ...}}}`.
 
         compression('gzip', 'lzf', None):  applies during serialization only.
-            
     """
     name = 'h5ad'
     handled_extensions = ['h5ad']
@@ -1059,8 +1058,6 @@ class AnnDataFormatHandler(BaseFormatHandler):
         return super().handles_type(typ)
 
     def serialize(self, obj, meta=None, ext=None, **format_opts):
-        import anndata as ad
-
         opts = self.get_opts(meta, format_opts)
         opts_with_defaults = copy.deepcopy(self.defaults)
         opts_with_defaults.update(opts)
