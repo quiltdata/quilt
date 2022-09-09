@@ -75,6 +75,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from tempfile import NamedTemporaryFile
 
 from .util import QuiltException
 
@@ -1051,7 +1052,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
 
     def handles_type(self, typ: type) -> bool:
         # don't load module unless we actually have to use it.
-        if 'annndata' not in sys.modules:
+        if 'anndata' not in sys.modules:
             return False
         import anndata as ad
         self.handled_types.add(ad.AnnData)
@@ -1061,10 +1062,18 @@ class AnnDataFormatHandler(BaseFormatHandler):
         opts = self.get_opts(meta, format_opts)
         opts_with_defaults = copy.deepcopy(self.defaults)
         opts_with_defaults.update(opts)
-        buf = io.BytesIO()
-        obj.write(buf, **opts_with_defaults)
+        try:
+            buf = io.BytesIO()
+            obj.write(buf, **opts_with_defaults)
+            data = buf.getvalue()
+        except TypeError:
+            # Old AnnData version don’t support writing to buffers,
+            # see https://github.com/scverse/anndata/pull/800
+            with NamedTemporaryFile() as f:
+                obj.write(f.name, **opts_with_defaults)
+                data = f.read()
 
-        return buf.getvalue(), self._update_meta(meta, additions=opts_with_defaults)
+        return data, self._update_meta(meta, additions=opts_with_defaults)
 
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
         try:

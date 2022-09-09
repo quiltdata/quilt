@@ -149,12 +149,18 @@ def test_formats_csv_roundtrip():
     assert df1.equals(df2)
 
 
-def test_formats_anndata():
+def test_formats_anndata_roundtrip():
     meta = {'format': {'name': 'h5ad'}}
     ad_file = data_dir / 'test.h5ad'
-    ad = FormatRegistry.deserialize(ad_file.read_bytes(), meta)
-
+    ad: AnnData = FormatRegistry.deserialize(ad_file.read_bytes(), meta)
     assert isinstance(ad, AnnData)
+
+    bin, format_meta = FormatRegistry.serialize(ad, meta)
+    meta2 = {**meta, **format_meta}
+    ad2: AnnData = FormatRegistry.deserialize(bin, meta2)
+    np.allclose(ad.X, ad2.X)
+    ad.obs.equals(ad2.obs)
+    ad.var.equals(ad2.var)
 
 
 @pytest.mark.parametrize('args', [
