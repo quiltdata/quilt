@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 Data in Quilt is organized in terms of **data packages**. A data package is a logical group of files, directories, and metadata.
 
 ## Initializing a package

@@ -69,6 +69,8 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
 }
 
 // NOTE: memo is mutated
+// weird eslint bug?
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function objToDict(obj, parentPath, memo) {
   const isObjArray = Array.isArray(obj)
   if (isObjArray) {
@@ -92,8 +94,6 @@ function objToDict(obj, parentPath, memo) {
       // eslint-disable-next-line no-param-reassign
       memo[serializeAddress(address)] = obj[key]
 
-      // weird eslint bug?
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       objToDict(obj[key], address, memo)
     })
     return memo

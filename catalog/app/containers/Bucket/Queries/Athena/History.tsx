@@ -153,15 +153,24 @@ function Execution({ bucket, queryExecution, workgroup }: ExecutionProps) {
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded(!expanded), [expanded])
 
+  if (queryExecution.error)
+    return (
+      <M.TableRow>
+        <M.TableCell colSpan={5}>
+          <Lab.Alert severity="warning">{queryExecution.error.message}</Lab.Alert>
+        </M.TableCell>
+      </M.TableRow>
+    )
+
   return (
     <>
       <M.TableRow>
         <M.TableCell padding="checkbox">
           <ToggleButton expanded={expanded} onClick={onToggle} />
         </M.TableCell>
-        <M.TableCell>{trimCenter(queryExecution.query, 50)}</M.TableCell>
+        <M.TableCell>{trimCenter(queryExecution.query || '', 50)}</M.TableCell>
         <M.TableCell>
-          <abbr title={queryExecution.id}>{queryExecution.status}</abbr>
+          <abbr title={queryExecution.id}>{queryExecution.status || 'UNKNOWN'}</abbr>
         </M.TableCell>
         <M.TableCell>
           <Date date={queryExecution.created} />
@@ -274,7 +283,7 @@ export default function History({
           ))}
           {!executions.length && (
             <M.TableRow>
-              <M.TableCell colSpan={4}>
+              <M.TableCell colSpan={5}>
                 <Empty />
               </M.TableCell>
             </M.TableRow>

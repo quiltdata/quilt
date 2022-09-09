@@ -31,8 +31,13 @@ type PackagesListPreferences = Record<string, PackagePreferences>
 type DefaultSourceBucketInput = string
 type SourceBucketsInput = Record<string, null>
 
+export interface AthenaPreferencesInput {
+  defaultWorkflow?: string // @deprecated, was used by mistake
+  defaultWorkgroup?: string
+}
+
 export interface AthenaPreferences {
-  defaultWorkflow?: string
+  defaultWorkgroup?: string
 }
 
 interface UiPreferencesInput {
@@ -111,6 +116,18 @@ function validate(data: unknown): asserts data is BucketPreferencesInput {
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
+function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
+  const { defaultWorkflow, ...rest } = { ...defaultPreferences.ui.athena, ...athena }
+  return {
+    ...(defaultWorkflow
+      ? {
+          defaultWorkgroup: defaultWorkflow,
+        }
+      : null),
+    ...rest,
+  }
+}
+
 function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
   return Object.entries(packages || {}).reduce(
     (memo, [name, { message, user_meta }]) => ({
@@ -155,6 +172,7 @@ export function extendDefaults(
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
+      athena: parseAthena(data?.ui?.athena),
       package_description: parsePackages(data?.ui?.package_description),
       sourceBuckets: parseSourceBuckets(
         sentry,

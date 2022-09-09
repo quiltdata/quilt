@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 
 The Quilt catalog renders previews of the following file types.
 Whenever possible, Quilt streams the smallest possible subset of the data
