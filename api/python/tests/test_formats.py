@@ -29,7 +29,7 @@ def test_buggy_parquet(parquet_handler):
 def test_formats_for_obj():
     arr = np.ndarray(3)
 
-    [fmt] = FormatRegistry.for_obj(arr)
+    fmt = FormatRegistry.for_obj(arr)[0]
 
     assert 'npz' in fmt.handled_extensions
     assert FormatRegistry.for_ext('npy')[0] is fmt
@@ -49,8 +49,8 @@ def test_formats_for_ext():
 
 
 def test_formats_for_meta():
-    [bytes_fmt] = FormatRegistry.for_meta({'target': 'bytes'})
-    [json_fmt] = FormatRegistry.for_meta({'target': 'json'})
+    bytes_fmt = FormatRegistry.for_meta({'target': 'bytes'})[0]
+    json_fmt = FormatRegistry.for_meta({'target': 'json'})[0]
 
     some_bytes = b'["phlipper", "piglet"]'
     assert bytes_fmt.serialize(some_bytes)[0] == some_bytes
@@ -58,8 +58,8 @@ def test_formats_for_meta():
 
 
 def test_formats_for_format():
-    [bytes_fmt] = FormatRegistry.for_format('bytes')
-    [json_fmt] = FormatRegistry.for_format('json')
+    bytes_fmt = FormatRegistry.for_format('bytes')[0]
+    json_fmt = FormatRegistry.for_format('json')[0]
 
     some_bytes = b'["phlipper", "piglet"]'
     assert bytes_fmt.serialize(some_bytes)[0] == some_bytes
