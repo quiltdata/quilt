@@ -32,8 +32,9 @@ function doQueryResultsContainManifestEntries(
 ): rows is [ManifestKey[], ...string[][]] {
   const [head] = rows
   return (
-    // head.includes('size') &&
-    head.includes('physical_keys') && head.includes('logical_key')
+    head.includes('size') &&
+    head.includes('physical_keys') &&
+    head.includes('logical_key')
   )
 }
 
