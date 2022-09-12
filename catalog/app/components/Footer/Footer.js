@@ -23,15 +23,13 @@ import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
 const useVersionStyles = M.makeStyles((t) => ({
-  root: {
+  revision: {
     color: t.palette.secondary.main,
+    cursor: 'pointer',
     opacity: 0.3,
     '&:hover': {
       opacity: 1,
     },
-  },
-  icon: {
-    fontSize: '14px',
   },
 }))
 
@@ -40,19 +38,18 @@ function Version() {
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
     copyToClipboard(process.env.REVISION_HASH)
-    push('Version hash has been copied to clipboard')
+    push('Product revision hash has been copied to clipboard')
   }, [push])
   return (
-    <div className={classes.root}>
-      <M.Typography variant="caption">{process.env.REVISION_HASH}</M.Typography>
-      <M.IconButton
-        color="inherit"
+    <div>
+      <M.Typography
+        className={classes.revision}
         onClick={handleCopy}
-        size="small"
-        title="Copy version hash to clipboard"
+        title="Copy product revision hash to clipboard"
+        variant="caption"
       >
-        <M.Icon className={classes.icon}>file_copy</M.Icon>
-      </M.IconButton>
+        Revision: {process.env.REVISION_HASH.substring(0, 8)}
+      </M.Typography>
     </div>
   )
 }
