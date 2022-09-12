@@ -2673,8 +2673,8 @@ export default {
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'Status',
+                kind: 'UNION',
+                name: 'StatusResult',
                 ofType: null,
               },
             },
@@ -3042,6 +3042,10 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'SCALAR',
+        name: 'S3ObjectLocation',
+      },
+      {
         kind: 'OBJECT',
         name: 'SnsInvalid',
         fields: [
@@ -3112,8 +3116,155 @@ export default {
               },
             ],
           },
+          {
+            name: 'reports',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'StatusReportList',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'filter',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+          {
+            name: 'reportsBucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'StatusReport',
+        fields: [
+          {
+            name: 'timestamp',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'renderedReportLocation',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'S3ObjectLocation',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'StatusReportList',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'page',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'StatusReport',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'number',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'perPage',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'order',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'StatusResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Status',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'Unavailable',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
@@ -3213,6 +3364,22 @@ export default {
                   },
                 },
               },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Unavailable',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
             },
             args: [],
           },
