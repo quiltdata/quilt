@@ -90,14 +90,16 @@ function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
     (memo, entry, index) => {
       const parsed = parseManifestEntryStringified(entry)
       return parsed
-        ? {
+        ? // if entry is ok then add it to valid map, and invalid is pristine
+          {
             valid: {
               ...memo.valid,
               ...parsed,
             },
             invalid: memo.invalid,
           }
-        : {
+        : // if no entry then add original data to list of invalid, and valid is pristine
+          {
             valid: memo.valid,
             invalid: [...memo.invalid, tail[index]],
           }
