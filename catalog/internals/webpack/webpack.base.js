@@ -9,6 +9,9 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
+const { execSync } = require('child_process')
+
+const revisionHash = execSync('git rev-parse HEAD').toString()
 
 // TODO: use webpack-merge, it's already in node_modules
 module.exports = (options) => ({
@@ -135,6 +138,7 @@ module.exports = (options) => ({
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
+      REVISION_HASH: revisionHash,
     }),
 
     new webpack.ProvidePlugin({
