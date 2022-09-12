@@ -77,7 +77,9 @@ function SplitButton({ onClick, children, onChange, options }) {
       </M.ButtonGroup>
       <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
         {options.map((option, i) => (
-          <M.MenuItem onClick={handleSelect(i)}>{option}</M.MenuItem>
+          <M.MenuItem key={`${option}_${i}`} onClick={handleSelect(i)}>
+            {option}
+          </M.MenuItem>
         ))}
       </M.Menu>
     </>
