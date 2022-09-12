@@ -10,15 +10,17 @@ interface DialogProps {
 }
 
 function Dialog({ children, onSubmit, open, title }: DialogProps) {
+  const handleCancel = React.useCallback(() => onSubmit(false), [onSubmit])
+  const handleSubmit = React.useCallback(() => onSubmit(true), [onSubmit])
   return (
     <M.Dialog open={open} fullWidth maxWidth="sm">
       <M.DialogTitle>{title}</M.DialogTitle>
       <M.DialogContent>{children}</M.DialogContent>
       <M.DialogActions>
-        <M.Button onClick={() => onSubmit(false)} color="primary" variant="outlined">
+        <M.Button onClick={handleCancel} color="primary" variant="outlined">
           Cancel
         </M.Button>
-        <M.Button color="primary" onClick={() => onSubmit(true)} variant="contained">
+        <M.Button color="primary" onClick={handleSubmit} variant="contained">
           Submit
         </M.Button>
       </M.DialogActions>
