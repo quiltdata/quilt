@@ -123,6 +123,7 @@ signOut.resolve = actionCreator(actions.SIGN_OUT_RESULT, (result) => ({
  */
 export const check = actionCreator(
   actions.CHECK,
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   ({ refetch = true } = {}, resolver) => ({
     payload: { refetch },
     meta: { ...resolver },

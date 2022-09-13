@@ -3,48 +3,55 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as redux from 'react-redux'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
-import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as validators from 'utils/validators'
-import type * as workflows from 'utils/workflows'
+import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
+import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
+import * as Successors from './Successors'
 import * as requests from './requests'
 
-const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
+const prepareEntries = (
+  entries: PD.FilesSelectorState,
+  path: string,
+  filtered: boolean,
+) => {
   const selected = entries.filter(R.propEq('selected', true))
-  if (selected.length === entries.length)
-    return [{ logical_key: '.', path, is_dir: true }]
-  return selected.map(({ type, name }) => ({
-    logical_key: name,
-    path: path + name,
-    is_dir: type === 'dir',
-  }))
+  return !filtered && selected.length === entries.length
+    ? [{ logicalKey: '.', path, isDir: true }]
+    : selected.map(({ type, name }) => ({
+        logicalKey: name,
+        path: path + name,
+        isDir: type === 'dir',
+      }))
 }
 
 interface DialogTitleProps {
-  bucket: string
+  bucket?: string
   path?: string
+  successor: workflows.Successor
+  onSuccessor?: (v: workflows.Successor) => void
 }
 
-function DialogTitle({ bucket, path }: DialogTitleProps) {
-  const { urls } = NamedRoutes.use()
-
+function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps) {
   const directory = path ? `"${path}"` : 'root'
 
   return (
     <>
       Push {directory} directory to{' '}
-      <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
-        {bucket}
-      </StyledLink>{' '}
+      <Successors.Dropdown
+        bucket={bucket || ''}
+        successor={successor}
+        onChange={onSuccessor}
+      />{' '}
       bucket as package
     </>
   )
@@ -60,7 +67,7 @@ const useStyles = M.makeStyles((t) => ({
   meta: {
     display: 'flex',
     flexDirection: 'column',
-    marginTop: t.spacing(3),
+    paddingTop: t.spacing(3),
     overflowY: 'auto',
   },
 }))
@@ -71,11 +78,13 @@ interface DialogFormProps {
   truncated?: boolean
   dirs: string[]
   files: { key: string; size: number }[]
+  filtered: boolean
   close: () => void
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   successor: workflows.Successor
+  onSuccessor: (successor: workflows.Successor) => void
   workflowsConfig: workflows.WorkflowsConfig
 }
 
@@ -85,6 +94,7 @@ function DialogForm({
   truncated,
   dirs,
   files,
+  filtered,
   close,
   responseError,
   schema,
@@ -96,23 +106,26 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
+  onSuccessor,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
-  const nameValidator = PD.useNameValidator()
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
   const classes = useStyles()
 
-  const createPackage = requests.useWrapPackage()
+  const [, createPackage] = urql.useMutation(PACKAGE_FROM_FOLDER)
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
     async ({
       commitMessage: message,
+      name,
+      meta,
+      workflow,
       files: filesValue,
-      ...values
     }: {
       commitMessage: string
       name: string
@@ -122,28 +135,50 @@ function DialogForm({
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const res = await createPackage(
-          {
-            ...values,
-            entries: prepareEntries(filesValue, path),
+        const res = await createPackage({
+          params: {
+            bucket: successor.slug,
+            name,
             message,
-            source: bucket,
-            target: {
-              bucket: successor.slug,
-              name: values.name,
-            },
+            userMeta: requests.getMetaValue(meta, schema) ?? null,
+            workflow:
+              // eslint-disable-next-line no-nested-ternary
+              workflow.slug === workflows.notAvailable
+                ? null
+                : workflow.slug === workflows.notSelected
+                ? ''
+                : workflow.slug,
           },
-          schema,
-        )
-        setSuccess({ name: values.name, hash: res.top_hash })
-      } catch (e) {
+          src: {
+            bucket,
+            entries: prepareEntries(filesValue, path, filtered),
+          },
+        })
+        if (res.error) throw res.error
+        if (!res.data) throw new Error('No data returned by the API')
+        const r = res.data.packageFromFolder
+        switch (r.__typename) {
+          case 'PackagePushSuccess':
+            setSuccess({ name, hash: r.revision.hash })
+            return
+          case 'OperationError':
+            return mkFormError(r.message)
+          case 'InvalidInput':
+            return mapInputErrors(r.errors, { 'src.entries': 'files' })
+          default:
+            assertNever(r)
+        }
+      } catch (e: any) {
         // eslint-disable-next-line no-console
-        console.log('error creating manifest', e)
-        const errorMessage = e instanceof Error ? e.message : null
-        return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
+        console.error('Error creating manifest:')
+        // eslint-disable-next-line no-console
+        console.error(e)
+        return mkFormError(
+          e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
+        )
       }
     },
-    [bucket, successor, createPackage, setSuccess, schema, path],
+    [bucket, successor, createPackage, setSuccess, schema, path, filtered],
   )
 
   const initialFiles: PD.FilesSelectorState = React.useMemo(
@@ -185,26 +220,30 @@ function DialogForm({
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLElement | null>(null)
-
+  const resizeObserver = React.useMemo(
+    () =>
+      new window.ResizeObserver((entries) => {
+        const { height } = entries[0]!.contentRect
+        setMetaHeight(height)
+      }),
+    [setMetaHeight],
+  )
   const onFormChange = React.useCallback(
     async ({ values }) => {
-      if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement!.clientHeight)
-      }
-
       handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, setMetaHeight],
+    [handleNameChange],
   )
 
   React.useEffect(() => {
-    if (document.body.contains(editorElement)) {
-      setMetaHeight(editorElement!.clientHeight)
+    if (editorElement) resizeObserver.observe(editorElement)
+    return () => {
+      if (editorElement) resizeObserver.unobserve(editorElement)
     }
-  }, [editorElement, setMetaHeight])
+  }, [editorElement, resizeObserver])
 
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
 
   return (
     <RF.Form
@@ -227,7 +266,12 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>
-            <DialogTitle bucket={successor.slug} path={path} />
+            <DialogTitle
+              bucket={bucket}
+              onSuccessor={onSuccessor}
+              path={path}
+              successor={successor}
+            />
           </M.DialogTitle>
 
           <M.DialogContent classes={dialogContentClasses}>
@@ -242,16 +286,18 @@ function DialogForm({
                 onChange={({ modified, values }) => {
                   if (modified?.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
+
+                    // HACK: FIXME: it triggers name validation with correct workflow
+                    setHideMeta(true)
+                    setTimeout(() => {
+                      setHideMeta(false)
+                    }, 300)
                   }
                 }}
               />
 
               <PD.Container>
                 <PD.LeftColumn>
-                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
-                    Main
-                  </M.Typography>
-
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"
@@ -266,7 +312,8 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={usernamePrefix}
+                    directory={path}
+                    workflow={selectedWorkflow || workflowsConfig}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
@@ -276,6 +323,7 @@ function DialogForm({
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
+                      pattern: `Name should match "${selectedWorkflow?.packageNamePattern}" regexp`,
                     }}
                     helperText={nameWarning}
                   />
@@ -290,7 +338,7 @@ function DialogForm({
                     }}
                   />
 
-                  {schemaLoading ? (
+                  {schemaLoading || hideMeta ? (
                     <PD.MetaInputSkeleton
                       className={classes.meta}
                       ref={setEditorElement}
@@ -375,33 +423,50 @@ function DialogForm({
 
 interface DialogErrorProps {
   bucket: string
-  path: string
   error: $TSFixMe
   onCancel: () => void
+  onSuccessor: (successor: workflows.Successor) => void
+  path: string
+  successor: workflows.Successor
 }
 
-function DialogError({ bucket, error, path, onCancel }: DialogErrorProps) {
+function DialogError({
+  bucket,
+  successor,
+  error,
+  path,
+  onCancel,
+  onSuccessor,
+}: DialogErrorProps) {
   return (
     <PD.DialogError
+      bucket={bucket}
       error={error}
       skeletonElement={<PD.FormSkeleton animate={false} />}
-      title={<DialogTitle bucket={bucket} path={path} />}
+      title={
+        <DialogTitle
+          bucket={bucket}
+          onSuccessor={onSuccessor}
+          successor={successor}
+          path={path}
+        />
+      }
       onCancel={onCancel}
     />
   )
 }
 
 interface DialogLoadingProps {
-  bucket: string
+  successor: workflows.Successor
   path: string
   onCancel: () => void
 }
 
-function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
+function DialogLoading({ path, successor, onCancel }: DialogLoadingProps) {
   return (
     <PD.DialogLoading
       skeletonElement={<PD.FormSkeleton />}
-      title={<DialogTitle bucket={bucket} path={path} />}
+      title={<DialogTitle successor={successor} path={path} />}
       onCancel={onCancel}
     />
   )
@@ -413,10 +478,12 @@ interface PackageDirectoryDialogProps {
   truncated?: boolean
   dirs: string[]
   files: { key: string; size: number }[]
+  filtered: boolean
   open: boolean
   successor: workflows.Successor | null
   onClose?: () => void
   onExited: (param: { pushed: null | { name: string; hash: string } }) => void
+  onSuccessor: (successor: workflows.Successor) => void
 }
 
 export default function PackageDirectoryDialog({
@@ -425,10 +492,12 @@ export default function PackageDirectoryDialog({
   truncated,
   dirs,
   files,
+  filtered,
   onClose,
   onExited,
   open,
   successor,
+  onSuccessor,
 }: PackageDirectoryDialogProps) {
   const s3 = AWS.S3.use()
 
@@ -447,19 +516,16 @@ export default function PackageDirectoryDialog({
   const handleClose = React.useCallback(() => {
     if (submitting) return
 
-    onExited({
-      pushed: success,
-    })
+    onExited({ pushed: success })
     if (onClose) onClose()
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
 
+  // XXX: something's wrong here with these identical handlers
   const handleExited = React.useCallback(() => {
     if (submitting) return
 
-    onExited({
-      pushed: success,
-    })
+    onExited({ pushed: success })
     if (onClose) onClose()
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
@@ -487,10 +553,12 @@ export default function PackageDirectoryDialog({
           Err: (e: Error) =>
             successor && (
               <DialogError
-                bucket={successor.slug}
-                path={path}
-                onCancel={handleClose}
+                bucket={bucket}
                 error={e}
+                onCancel={handleClose}
+                onSuccessor={onSuccessor}
+                path={path}
+                successor={successor}
               />
             ),
           Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
@@ -505,12 +573,14 @@ export default function PackageDirectoryDialog({
                       truncated,
                       dirs,
                       files,
+                      filtered,
                       close: handleClose,
                       setSubmitting,
                       setSuccess,
                       setWorkflow,
                       successor,
                       workflowsConfig,
+                      onSuccessor,
                     }}
                   />
                 )}
@@ -518,7 +588,7 @@ export default function PackageDirectoryDialog({
             ),
           _: () =>
             successor && (
-              <DialogLoading bucket={successor.slug} path={path} onCancel={handleClose} />
+              <DialogLoading successor={successor} path={path} onCancel={handleClose} />
             ),
         })
       )}

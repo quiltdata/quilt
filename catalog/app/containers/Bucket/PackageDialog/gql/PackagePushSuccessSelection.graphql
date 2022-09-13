@@ -1,0 +1,38 @@
+fragment PackagePushSuccessSelection on PackagePushSuccess {
+  package {
+    bucket
+    name
+    modified
+    # update latest revision hash
+    revision(hashOrTag: "latest") {
+      hash
+    }
+    revisions {
+      total
+      # revision menu
+      page(number: 1, perPage: 5) {
+        hash
+      }
+      # first page of revision list
+      page1: page(number: 1, perPage: 30) {
+        hash
+      }
+    }
+  }
+  revision {
+    hash
+    modified
+    message
+    metadata
+    userMeta
+    totalEntries
+    totalBytes
+    accessCounts {
+      total
+      counts {
+        date
+        value
+      }
+    }
+  }
+}

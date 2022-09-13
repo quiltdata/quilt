@@ -6,8 +6,11 @@ import { PreviewData } from 'components/Preview/types'
 import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 import { useVoila } from 'utils/voila'
+import { PackageHandle } from 'utils/packageHandle'
+import { JsonRecord } from 'utils/types'
 
 const MODES = {
+  igv: 'IGV',
   json: 'JSON',
   jupyter: 'Jupyter',
   vega: 'Vega',
@@ -15,6 +18,8 @@ const MODES = {
 }
 
 export type ViewMode = keyof typeof MODES
+
+const isIgvTracks = (json: JsonRecord) => Array.isArray(json?.tracks)
 
 const isVegaSchema = (schema: string) => {
   if (!schema) return false
@@ -32,7 +37,12 @@ export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null 
   )
 }
 
-export function useViewModes(path: string, modeInput: string | null | undefined) {
+export function useViewModes(
+  path: string,
+  modeInput: string | null | undefined,
+  // XXX: consider using a plain boolean here since the contents of this object are unused
+  packageHandle?: PackageHandle,
+) {
   const voilaAvailable = useVoila()
   const [previewResult, setPreviewResult] = React.useState(null)
 
@@ -46,16 +56,22 @@ export function useViewModes(path: string, modeInput: string | null | undefined)
   )
 
   const modes: ViewMode[] = React.useMemo(() => {
+    // TODO: add MODES here
     switch (extname(path)) {
       case '.ipynb':
-        return voilaAvailable ? ['jupyter', 'json', 'voila'] : ['jupyter', 'json']
+        return !!packageHandle && voilaAvailable
+          ? ['jupyter', 'json', 'voila']
+          : ['jupyter', 'json']
       case '.json':
         return PreviewData.case(
           {
             Vega: (json: any) =>
               isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
-            Json: (json: any) =>
-              isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : [],
+            Json: (json: any) => {
+              if (isVegaSchema(json.rendered?.$schema)) return ['vega', 'json']
+              if (isIgvTracks(json.rendered)) return ['json', 'igv']
+              return []
+            },
             _: () => [],
             __: () => [],
           },
@@ -64,7 +80,7 @@ export function useViewModes(path: string, modeInput: string | null | undefined)
       default:
         return []
     }
-  }, [path, previewResult, voilaAvailable])
+  }, [path, packageHandle, previewResult, voilaAvailable])
 
   const mode = (
     modes.includes(modeInput as any) ? modeInput : modes[0] || null

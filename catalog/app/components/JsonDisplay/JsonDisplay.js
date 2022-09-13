@@ -3,6 +3,9 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
+import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
 
@@ -61,17 +64,63 @@ function Key({ children, classes }) {
   return !!children && <div className={classes.key}>{children}: </div>
 }
 
-const formatValue = R.cond([
-  [R.is(String), (s) => `"${s}"`],
-  [R.T, (v) => `${v}`],
-])
+function getHref(v) {
+  try {
+    const urlData = new URL(v)
+    return urlData.href
+  } catch (e) {
+    return ''
+  }
+}
+
+function NonStringValue({ value }) {
+  return <div>{`${value}`}</div>
+}
+
+function S3UrlValue({ href, children }) {
+  const { urls } = NamedRoutes.use()
+  const to = React.useMemo(() => {
+    const { bucket, key, version } = s3paths.parseS3Url(href)
+    return urls.bucketFile(bucket, key, { version })
+  }, [href, urls])
+  return (
+    <div>
+      "<StyledLink to={to}>{children}</StyledLink>"
+    </div>
+  )
+}
+
+function StringValue({ value }) {
+  const href = React.useMemo(() => getHref(value), [value])
+  if (!href) return <div>"{value}"</div>
+  if (s3paths.isS3Url(href)) {
+    try {
+      return <S3UrlValue href={href}>{value}</S3UrlValue>
+    } catch (error) {
+      return <div>"{value}"</div>
+    }
+  }
+  return (
+    <div>
+      "
+      <StyledLink href={href} target="_blank">
+        {value}
+      </StyledLink>
+      "
+    </div>
+  )
+}
 
 function PrimitiveEntry({ name, value, topLevel = true, classes }) {
   return (
     <div className={classes.flex}>
       {!topLevel && <IconBlank classes={classes} />}
       <Key classes={classes}>{name}</Key>
-      <div>{formatValue(value)}</div>
+      {typeof value === 'string' ? (
+        <StringValue value={value} />
+      ) : (
+        <NonStringValue value={value} />
+      )}
     </div>
   )
 }

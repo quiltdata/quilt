@@ -26,6 +26,7 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from 'containers/Bucket/Code'
+import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
 import renderPreview from 'containers/Bucket/renderPreview'
@@ -78,7 +79,7 @@ function VersionInfo({ bucket, path, version }) {
 
   const getLink = (v) =>
     overrides.s3ObjectLink.href({
-      url: urls.bucketFile(bucket, path, v.id),
+      url: urls.bucketFile(bucket, path, { version: v.id }),
       s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
       bucket,
       key: path,
@@ -96,7 +97,7 @@ function VersionInfo({ bucket, path, version }) {
     if (overrides.s3ObjectLink.emit) {
       messageParent({
         type: 's3ObjectLink',
-        url: urls.bucketFile(bucket, path, v.id),
+        url: urls.bucketFile(bucket, path, { version: v.id }),
         s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
         bucket,
         key: path,
@@ -141,7 +142,7 @@ function VersionInfo({ bucket, path, version }) {
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, v.id)}
+                  to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -234,7 +235,7 @@ function VersionInfo({ bucket, path, version }) {
 function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.objectMeta, { s3, bucket, path, version })
-  return <FileView.Meta data={data.result} />
+  return <FileView.ObjectMeta data={data.result} />
 }
 
 function Analytics({ analyticsBucket, bucket, path }) {
@@ -336,15 +337,17 @@ const useStyles = M.makeStyles((t) => ({
   at: {
     color: t.palette.text.secondary,
   },
-  spacer: {
-    flexGrow: 1,
+  actions: {
+    alignItems: 'center',
+    display: 'flex',
+    marginLeft: 'auto',
   },
   button: {
-    flexShrink: 0,
-    marginBottom: -3,
-    marginTop: -3,
+    marginLeft: t.spacing(2),
   },
 }))
+
+const previewOptions = { context: Preview.CONTEXT.FILE }
 
 export default function File({
   match: {
@@ -367,8 +370,8 @@ export default function File({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           b.fetch("${path}", "./${basename(path)}")
         `,
       },
@@ -420,7 +423,7 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load(handle, callback)
+        return Preview.load(handle, callback, previewOptions)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
@@ -447,8 +450,12 @@ export default function File({
             'latest'
           )}
         </div>
-        <div className={classes.spacer} />
-        {downloadable && <FileView.DownloadButton handle={handle} />}
+        <div className={classes.actions}>
+          <FileProperties data={versionExistsData} />
+          {downloadable && (
+            <FileView.DownloadButton className={classes.button} handle={handle} />
+          )}
+        </div>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,

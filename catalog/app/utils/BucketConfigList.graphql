@@ -1,4 +1,4 @@
-query {
+query ($includeCollaborators: Boolean! = false) {
   bucketConfigs {
     name
     title
@@ -8,5 +8,12 @@ query {
     overviewUrl
     tags
     relevanceScore
+    collaborators @include(if: $includeCollaborators) {
+      collaborator {
+        email
+        username
+      }
+      permissionLevel
+    }
   }
 }

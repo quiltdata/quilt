@@ -1,3 +1,6 @@
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
+
 Quilt is an open source project, and we welcome contributions from the community.
 
 Contributors must adhere to the [Code of Conduct](https://github.com/quiltdata/quilt/blob/master/docs/CODE_OF_CONDUCT.md).

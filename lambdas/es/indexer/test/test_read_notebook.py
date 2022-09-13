@@ -31,14 +31,14 @@ def test_extract_text():
     basedir = os.path.join(parent, 'data')
     for name, expected_exc in NB_RAISES.items():
         path = os.path.join(basedir, name)
-        with open(path) as notebook:
+        with open(path, encoding='utf-8') as notebook:
             contents = notebook.read()
             with pytest.raises(expected_exc):
                 extract_text(contents)
 
     for name, expected_extracted in NB_EXTRACTS.items():
         path = os.path.join(basedir, name)
-        with open(path) as notebook:
+        with open(path, encoding='utf-8') as notebook:
             contents = notebook.read()
             extracted = extract_text(contents)
             assert extracted == expected_extracted

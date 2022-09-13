@@ -57,7 +57,7 @@ function NotAuthorized() {
         Not Authorized
       </Typography>
       <Typography variant="body1" align="center">
-        You are not authorized to visit this page.
+        Contact a Quilt admin to perform this task.
       </Typography>
     </Layout>
   )

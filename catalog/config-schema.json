@@ -97,6 +97,10 @@
     "ssoProviders": {
       "type": "string",
       "description": "Space-separated list of SSO providers."
+    },
+    "build_version": {
+      "type": "string",
+      "description": "Optional"
     }
   },
   "required": [
@@ -112,11 +116,6 @@
     "ssoAuth",
     "ssoProviders"
   ],
-  "additionalProperties": {
-    "build_version": {
-        "type": "string"
-    }
-  },
   "definitions": {
     "Url": {
       "type": "string",

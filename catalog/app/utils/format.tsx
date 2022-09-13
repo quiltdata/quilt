@@ -41,7 +41,9 @@ export function Relative({ value }: RelativeProps) {
     return () => clearInterval(timerId)
   }, [value])
 
-  return React.useMemo(() => relativify(value, t), [value, t])
+  // return a Fragment to overcome a typing limitation:
+  // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/20544
+  return React.useMemo(() => <>{relativify(value, t)}</>, [value, t])
 }
 
 interface Rules {
@@ -79,8 +81,10 @@ interface PluralProps extends Rules {
 }
 
 export function Plural({ value, zero, one, other }: PluralProps) {
+  // return a Fragment to overcome a typing limitation:
+  // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/20544
   return React.useMemo(
-    () => pluralify(value, { zero, one, other }),
+    () => <>{pluralify(value, { zero, one, other })}</>,
     [value, zero, one, other],
   )
 }

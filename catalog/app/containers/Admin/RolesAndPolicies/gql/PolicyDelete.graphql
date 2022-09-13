@@ -1,0 +1,14 @@
+mutation ($id: ID!) {
+  policyDelete(id: $id) {
+    __typename
+    ... on InvalidInput {
+      errors {
+        path
+        message
+      }
+    }
+    ... on OperationError {
+      message
+    }
+  }
+}

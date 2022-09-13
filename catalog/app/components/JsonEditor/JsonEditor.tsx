@@ -7,9 +7,52 @@ import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
 import Column from './Column'
 import State from './State'
-import { JsonValue, RowData } from './constants'
+import { JsonValue, RowData, ValidationErrors } from './constants'
 
-const useStyles = M.makeStyles({
+interface ColumnData {
+  items: RowData[]
+  parent: JsonValue
+}
+
+function shouldSqueezeColumn(columnIndex: number, columns: ColumnData[]) {
+  return columns.length > 2 && columnIndex > 0 && columnIndex < columns.length - 1
+}
+
+const useSqueezeStyles = M.makeStyles((t) => ({
+  root: {
+    alignSelf: 'flex-start',
+    cursor: 'pointer',
+    margin: t.spacing(0, 2),
+    padding: '5px 0',
+
+    '& + &': {
+      marginLeft: 0,
+    },
+  },
+}))
+
+interface SqueezeProps {
+  columnPath: string[]
+  onClick: () => void
+}
+
+function Squeeze({ columnPath, onClick }: SqueezeProps) {
+  const classes = useSqueezeStyles()
+  return (
+    <div
+      className={classes.root}
+      title={`# > ${columnPath.join(' > ')}`}
+      onClick={onClick}
+    >
+      <M.Icon>more_horiz</M.Icon>
+    </div>
+  )
+}
+
+const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
+  root: {
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+  },
   disabled: {
     position: 'relative',
     '&:after': {
@@ -27,23 +70,29 @@ const useStyles = M.makeStyles({
   inner: {
     display: 'flex',
     overflow: 'auto',
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
-})
+  column: {
+    maxWidth: t.spacing(76),
+    overflowY: 'auto',
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+  },
+}))
 
 interface JsonEditorProps {
   addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
   changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => JsonValue
   className?: string
-  columns: {
-    items: RowData[]
-    parent: JsonValue
-  }[]
+  columns: ColumnData[]
   disabled?: boolean
   fieldPath: string[]
   jsonDict: Record<string, JsonValue>
+  menuFieldPath: string[]
+  multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
   removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
+  setMenuFieldPath: (path: string[]) => void
 }
 
 const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function JsonEditor(
@@ -55,13 +104,16 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     disabled,
     fieldPath,
     jsonDict,
+    menuFieldPath,
+    multiColumned,
     onChange,
     removeField,
     setFieldPath,
+    setMenuFieldPath,
   },
   ref,
 ) {
-  const classes = useStyles()
+  const classes = useStyles({ multiColumned })
 
   const handleRowAdd = React.useCallback(
     (path: string[], key: string | number, value: JsonValue) => {
@@ -87,26 +139,42 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     [changeValue, onChange],
   )
 
-  const columnData = R.last(columns)
+  if (!columns.length) throw new Error('No column data')
 
-  if (!columnData) throw new Error('No column data')
+  const columnsView = React.useMemo(
+    () => (multiColumned ? columns : ([R.last(columns)] as ColumnData[])),
+    [columns, multiColumned],
+  )
 
   return (
-    <div className={cx({ [classes.disabled]: disabled }, className)}>
+    <div className={cx(classes.root, { [classes.disabled]: disabled }, className)}>
       <div className={classes.inner} ref={ref}>
-        <Column
-          {...{
-            columnPath: fieldPath,
-            data: columnData,
-            jsonDict,
-            key: fieldPath.join(','),
-            onAddRow: handleRowAdd,
-            onBreadcrumb: setFieldPath,
-            onChange: handleValueChange,
-            onExpand: setFieldPath,
-            onRemove: handleRowRemove,
-          }}
-        />
+        {columnsView.map((columnData, index) => {
+          const columnPath = multiColumned ? fieldPath.slice(0, index) : fieldPath
+          return shouldSqueezeColumn(index, columns) ? (
+            <Squeeze
+              columnPath={columnPath}
+              key={columnPath.join(',')}
+              onClick={() => setFieldPath(columnPath)}
+            />
+          ) : (
+            <Column
+              className={classes.column}
+              columnPath={columnPath}
+              contextMenuPath={menuFieldPath}
+              data={columnData}
+              hasSiblingColumn={multiColumned}
+              jsonDict={jsonDict}
+              key={columnPath.join(',')}
+              onAddRow={handleRowAdd}
+              onBreadcrumb={setFieldPath}
+              onChange={handleValueChange}
+              onContextMenu={setMenuFieldPath}
+              onExpand={setFieldPath}
+              onRemove={handleRowRemove}
+            />
+          )
+        })}
       </div>
     </div>
   )
@@ -127,11 +195,15 @@ interface StateRenderProps {
   jsonDict: Record<string, JsonValue>
   removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
+  menuFieldPath: string[]
+  setMenuFieldPath: (path: string[]) => void
 }
 
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
+  errors: ValidationErrors
+  multiColumned?: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
   value: JsonValue
@@ -139,19 +211,20 @@ interface JsonEditorWrapperProps {
 
 export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
   function JsonEditorWrapper(
-    { className, disabled, onChange, schema: optSchema, value },
+    { className, disabled, errors, multiColumned, onChange, schema: optSchema, value },
     ref,
   ) {
     const schema = optSchema || EMPTY_SCHEMA
 
     return (
-      <State jsonObject={value} schema={schema}>
+      <State errors={errors} jsonObject={value} schema={schema}>
         {(stateProps: StateRenderProps) => (
           <JsonEditor
             {...{
               className,
               disabled,
               onChange,
+              multiColumned: !!multiColumned,
               ref,
             }}
             {...stateProps}

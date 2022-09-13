@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 ## Catalog Overview stats (objects, packages) seem incorrect or aren't updating
 ## Catalog Packages tab doesn't work
 ## Catalog packages or stats are missing or are not updating

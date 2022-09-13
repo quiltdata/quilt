@@ -42,6 +42,7 @@ export default function PreviewDisplay({
   renderMessage = defaultMessage,
   renderAction = defaultAction,
   onData,
+  props,
 }) {
   const cfg = Config.use()
   const noDl = noDownload != null ? noDownload : cfg.noDownload
@@ -53,7 +54,7 @@ export default function PreviewDisplay({
   return AsyncResult.case(
     {
       _: renderProgress,
-      Ok: R.pipe(render, renderContents),
+      Ok: (...args) => R.pipe(render, renderContents)(...args, props),
       Err: PreviewError.case({
         Deleted: () =>
           renderMessage({

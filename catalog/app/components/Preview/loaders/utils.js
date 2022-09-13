@@ -148,7 +148,7 @@ export function useFirstBytes({ bytes, handle }) {
   return Data.use(getFirstBytes, { s3, bytes, handle })
 }
 
-const getObject = ({ s3, handle }) =>
+export const getObject = ({ s3, handle }) =>
   s3
     .getObject({
       Bucket: handle.bucket,
@@ -197,11 +197,15 @@ const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }
   return json
 }
 
-export function usePreview({ type, handle, query }) {
+export function usePreview({ type, handle, query }, options) {
   const { apiGatewayEndpoint: endpoint } = Config.use()
   const sign = AWS.Signer.useS3Signer()
   const compression = getCompression(handle.key)
-  return Data.use(fetchPreview, { endpoint, handle, sign, type, compression, query })
+  return Data.use(
+    fetchPreview,
+    { endpoint, handle, sign, type, compression, query },
+    options,
+  )
 }
 
 export function useProcessing(asyncResult, process, deps = []) {

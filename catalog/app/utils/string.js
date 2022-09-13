@@ -52,3 +52,11 @@ export const readableBytes = (bytes, extra) =>
     ),
     Component: 'span',
   })
+
+export const trimCenter = (str, maxLength) => {
+  if (str.length <= maxLength) return str
+  const divider = ' … '
+  const to = (maxLength - divider.length) / 2
+  const from = str.length - (maxLength - divider.length) / 2
+  return str.substring(0, to) + divider + str.substring(from, str.length)
+}

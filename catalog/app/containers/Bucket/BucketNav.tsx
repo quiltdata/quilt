@@ -23,7 +23,7 @@ function NavTab(props: NavTabProps) {
 
 interface BucketNavProps {
   bucket: string
-  section: 'overview' | 'packages' | 'queries' | 'search' | 'tree' | false // `keyof` sections object
+  section: 'es' | 'overview' | 'packages' | 'queries' | 'search' | 'tree' | false // `keyof` sections object
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
@@ -78,6 +78,9 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       )}
       {section === 'search' && (
         <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
+      )}
+      {preferences.queries && (section === 'queries' || section === 'es') && (
+        <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
       )}
     </M.Tabs>
   )

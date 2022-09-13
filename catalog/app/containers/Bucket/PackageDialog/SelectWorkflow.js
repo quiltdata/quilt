@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 import { docs } from 'constants/urls'
 import * as workflows from 'utils/workflows'
 
+import WorkflowsConfigLink from '../WorkflowsConfigLink'
+
 const useStyles = M.makeStyles((t) => ({
   crop: {
     textOverflow: 'ellipsis',
@@ -19,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function SelectWorkflow({
-  className,
+  bucket,
   disabled,
   error,
   items,
@@ -31,13 +33,7 @@ export default function SelectWorkflow({
   const noChoice = items.length === 1
 
   return (
-    <M.FormControl
-      className={className}
-      disabled={disabled || noChoice}
-      fullWidth
-      size="small"
-      error={!!error}
-    >
+    <M.FormControl disabled={disabled || noChoice} fullWidth size="small" error={!!error}>
       <M.InputLabel id="schema-select" shrink>
         Workflow
       </M.InputLabel>
@@ -66,9 +62,11 @@ export default function SelectWorkflow({
       </M.Select>
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
-        <M.Link href={`${docs}/advanced-usage/workflows`} target="_blank">
+        <M.Link href={`${docs}/advanced/workflows`} target="_blank">
           Learn about quality workflows
         </M.Link>
+        , or edit{' '}
+        <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )

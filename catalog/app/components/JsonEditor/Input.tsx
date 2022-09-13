@@ -86,6 +86,7 @@ interface InputProps {
   columnId: 'key' | 'value'
   data: RowData
   onChange: OnChange
+  onContextMenu: React.MouseEventHandler<HTMLElement>
   placeholder: string
   value: JsonValue
 }
@@ -94,6 +95,7 @@ export default function Input({
   columnId,
   data,
   onChange,
+  onContextMenu,
   placeholder,
   value: originalValue,
 }: InputProps) {
@@ -147,6 +149,11 @@ export default function Input({
     [onBlur],
   )
 
+  const handleContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault()
+    onContextMenu(event)
+  }
+
   return (
     <M.InputBase
       autoFocus
@@ -154,6 +161,7 @@ export default function Input({
       className={classes.root}
       value={valueStr}
       onChange={onChangeInternal}
+      onContextMenu={handleContextMenu}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
       placeholder={placeholder}

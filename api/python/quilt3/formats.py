@@ -68,6 +68,7 @@ Format metadata has the following form:
 
 import copy
 import csv
+import gzip
 import io
 import json
 import sys
@@ -1021,3 +1022,64 @@ class ParquetFormatHandler(BaseFormatHandler):
 # compat -- also handle 'pyarrow' in meta['target'] and meta['format']['name'].
 ParquetFormatHandler('pyarrow').register()
 ParquetFormatHandler().register()  # latest is preferred
+
+
+class CompressionRegistry:
+    """A collection for organizing `CompressionHandler` objects."""
+    registered_handlers = []
+
+    def __init__(self):
+        raise TypeError("The {!r} class is organizational, and cannot be instantiated."
+                        .format(type(self).__name__))
+
+    @classmethod
+    def register(cls, handler):
+        """Register a CompressionHandler instance"""
+        handlers = cls.registered_handlers
+
+        # no duplicates, just reprioritize.
+        if handler in handlers:
+            handlers.pop(handlers.index(handler))
+
+        handlers.insert(0, handler)
+
+    @classmethod
+    def search(cls, ext=None):
+        """Get a handler for the given extension"""
+        ext = ext.lower().strip('. ')
+
+        for handler in cls.registered_handlers:
+            if handler.handles_ext(ext):
+                return handler
+
+        return None
+
+
+class BaseCompressionHandler(ABC):
+    """Base class for compression handlers"""
+    name = None
+    handled_extensions = ()
+
+    @abstractmethod
+    def decompress(self, data):
+        "Decompress the given bytes object"
+        pass
+
+    def register(self):
+        """Register this format with CompressionRegistry"""
+        CompressionRegistry.register(self)
+
+    def handles_ext(self, ext):
+        """Check if this format handles the filetype indicated by an extension"""
+        return ext.lstrip('.').lower() in self.handled_extensions
+
+
+class GzipCompressionHandler(BaseCompressionHandler):
+    """Compression handler for gzip"""
+    handled_extensions = ['gz', 'gzip']
+
+    def decompress(self, data):
+        return gzip.decompress(data)
+
+
+GzipCompressionHandler().register()

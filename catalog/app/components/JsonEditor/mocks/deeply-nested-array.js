@@ -39,7 +39,7 @@ export const schema = {
 }
 
 export const jsonDict = {
-  longNestedList: {
+  '/longNestedList': {
     address: ['longNestedList'],
     required: false,
     valueSchema: {
@@ -60,7 +60,12 @@ export const jsonDict = {
                     type: 'array',
                     items: {
                       type: 'array',
-                      items: { type: 'array', items: { type: 'number' } },
+                      items: {
+                        type: 'array',
+                        items: {
+                          type: 'number',
+                        },
+                      },
                     },
                   },
                 },

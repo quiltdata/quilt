@@ -218,7 +218,7 @@ export default function ElastiSearch({
             <M.Typography className={classes.sectionHeader} variant="body1">
               Select query
             </M.Typography>
-            <QuerySelect
+            <QuerySelect<requests.Query>
               queries={queries}
               onChange={handleQueryMetaChange}
               value={customQueryBody ? null : queryMeta}

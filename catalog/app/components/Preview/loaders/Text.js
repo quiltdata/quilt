@@ -48,13 +48,13 @@ const LANGS = {
 
 const langPairs = Object.entries(LANGS)
 
-const findLang = R.pipe(basename, R.toLower, utils.stripCompression, (name) =>
+const findLang = R.pipe(R.unary(basename), R.toLower, utils.stripCompression, (name) =>
   langPairs.find(([, re]) => re.test(name)),
 )
 
 export const detect = R.pipe(findLang, Boolean)
 
-const getLang = R.pipe(findLang, ([lang] = []) => lang)
+const getLang = R.pipe(findLang, ([lang] = ['plaintext']) => lang)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
@@ -70,6 +70,7 @@ export const Loader = function TextLoader({ handle, forceLang, children }) {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const lang = forceLang || getLang(handle.logicalKey || handle.key)
+      // TODO: move highlightjs call to renderer
       const highlighted = R.map(hl(lang), { head, tail })
       return PreviewData.Text({ head, tail, lang, highlighted, note, warnings })
     },

@@ -4,7 +4,6 @@
 // Import all the third party stuff
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { useLocation } from 'react-router-dom'
 import { createBrowserHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
@@ -12,14 +11,15 @@ import * as M from '@material-ui/core'
 import 'sanitize.css'
 
 // Import root app
-import Error from 'components/Error'
 import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
-import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
 import * as Auth from 'containers/Auth'
+import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
+import * as AddToPackage from 'containers/AddToPackage'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
@@ -27,7 +27,6 @@ import * as APIConnector from 'utils/APIConnector'
 import { GraphQLProvider } from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
-import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
@@ -49,58 +48,6 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
   // reload doc when we have all custom fonts
   document.body.classList.add('fontLoaded')
 })
-
-interface ErrorBoundaryPlaceholderProps {
-  error: Error
-  info: any
-  reset: () => void
-}
-
-function ErrorBoundaryPlaceholder({ error, info, reset }: ErrorBoundaryPlaceholderProps) {
-  const location = useLocation()
-  const errorShown = React.useRef(false)
-  React.useEffect(() => {
-    if (!errorShown.current) {
-      errorShown.current = true
-      return
-    }
-    errorShown.current = false
-    reset()
-  }, [location.pathname, reset])
-
-  const sentry = Sentry.use()
-  React.useEffect(() => {
-    sentry('captureException', error, info)
-  }, [error, info, sentry])
-
-  return (
-    <Layout bare>
-      <Error headline="Unexpected Error" detail="Something went wrong" />
-    </Layout>
-  )
-}
-
-const ErrorBoundary = createBoundary(
-  (_: unknown, { reset }: { reset: () => void }) =>
-    (error: $TSFixMe, info: $TSFixMe) =>
-      <ErrorBoundaryPlaceholder error={error} info={info} reset={reset} />,
-)
-
-// error gets automatically logged to the console, so no need to do it explicitly
-const FinalBoundary = createBoundary(() => (/* error, info */) => (
-  <h1
-    style={{
-      alignItems: 'center',
-      color: '#fff',
-      display: 'flex',
-      height: '90vh',
-      justifyContent: 'center',
-      maxHeight: '600px',
-    }}
-  >
-    Something went wrong
-  </h1>
-))
 
 const history = createHistory()
 const MOUNT_NODE = document.getElementById('app')
@@ -129,7 +76,7 @@ const render = () => {
     nest(
       [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
       WithGlobalStyles,
-      FinalBoundary,
+      Errors.FinalBoundary,
       // @ts-expect-error
       Sentry.Provider,
       [Store.Provider, { history }],
@@ -140,7 +87,9 @@ const render = () => {
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,
-      ErrorBoundary,
+      AddToPackage.Provider,
+      Bookmarks.Provider,
+      Errors.ErrorBoundary,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
@@ -150,7 +99,7 @@ const render = () => {
           userSelector: intercomUserSelector,
           horizontal_padding:
             // align the launcher with the right side of the container
-            (window.innerWidth - Math.min(1280, window.innerWidth)) / 2 + 32,
+            (window.innerWidth - Math.min(1280, window.innerWidth)) / 2 + 24,
           vertical_padding: 59,
         },
       ],
@@ -167,7 +116,7 @@ const render = () => {
       AWS.Athena.Provider,
       AWS.S3.Provider,
       Notifications.WithNotifications,
-      ErrorBoundary,
+      Errors.ErrorBoundary,
       BucketCacheProvider,
       App,
     ),
