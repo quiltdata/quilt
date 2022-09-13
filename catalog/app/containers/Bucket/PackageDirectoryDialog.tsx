@@ -9,14 +9,14 @@ import * as M from '@material-ui/core'
 import * as Intercom from 'components/Intercom'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
+import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import PACKAGE_FROM_FOLDER from './PackageDialog/gql/PackageFromFolder.generated'
+import * as Successors from './Successors'
 import * as requests from './requests'
 
 const prepareEntries = (
@@ -35,21 +35,23 @@ const prepareEntries = (
 }
 
 interface DialogTitleProps {
-  bucket: string
+  bucket?: string
   path?: string
+  successor: workflows.Successor
+  onSuccessor?: (v: workflows.Successor) => void
 }
 
-function DialogTitle({ bucket, path }: DialogTitleProps) {
-  const { urls } = NamedRoutes.use()
-
+function DialogTitle({ bucket, path, successor, onSuccessor }: DialogTitleProps) {
   const directory = path ? `"${path}"` : 'root'
 
   return (
     <>
       Push {directory} directory to{' '}
-      <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
-        {bucket}
-      </StyledLink>{' '}
+      <Successors.Dropdown
+        bucket={bucket || ''}
+        successor={successor}
+        onChange={onSuccessor}
+      />{' '}
       bucket as package
     </>
   )
@@ -82,6 +84,7 @@ interface DialogFormProps {
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   successor: workflows.Successor
+  onSuccessor: (successor: workflows.Successor) => void
   workflowsConfig: workflows.WorkflowsConfig
 }
 
@@ -103,6 +106,7 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
+  onSuccessor,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -158,9 +162,9 @@ function DialogForm({
             setSuccess({ name, hash: r.revision.hash })
             return
           case 'OperationError':
-            return PD.mkFormError(r.message)
+            return mkFormError(r.message)
           case 'InvalidInput':
-            return PD.mapInputErrors(r.errors, { 'src.entries': 'files' })
+            return mapInputErrors(r.errors, { 'src.entries': 'files' })
           default:
             assertNever(r)
         }
@@ -169,7 +173,7 @@ function DialogForm({
         console.error('Error creating manifest:')
         // eslint-disable-next-line no-console
         console.error(e)
-        return PD.mkFormError(
+        return mkFormError(
           e.message ? `Unexpected error: ${e.message}` : PD.ERROR_MESSAGES.MANIFEST,
         )
       }
@@ -262,7 +266,12 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>
-            <DialogTitle bucket={successor.slug} path={path} />
+            <DialogTitle
+              bucket={bucket}
+              onSuccessor={onSuccessor}
+              path={path}
+              successor={successor}
+            />
           </M.DialogTitle>
 
           <M.DialogContent classes={dialogContentClasses}>
@@ -414,33 +423,50 @@ function DialogForm({
 
 interface DialogErrorProps {
   bucket: string
-  path: string
   error: $TSFixMe
   onCancel: () => void
+  onSuccessor: (successor: workflows.Successor) => void
+  path: string
+  successor: workflows.Successor
 }
 
-function DialogError({ bucket, error, path, onCancel }: DialogErrorProps) {
+function DialogError({
+  bucket,
+  successor,
+  error,
+  path,
+  onCancel,
+  onSuccessor,
+}: DialogErrorProps) {
   return (
     <PD.DialogError
+      bucket={bucket}
       error={error}
       skeletonElement={<PD.FormSkeleton animate={false} />}
-      title={<DialogTitle bucket={bucket} path={path} />}
+      title={
+        <DialogTitle
+          bucket={bucket}
+          onSuccessor={onSuccessor}
+          successor={successor}
+          path={path}
+        />
+      }
       onCancel={onCancel}
     />
   )
 }
 
 interface DialogLoadingProps {
-  bucket: string
+  successor: workflows.Successor
   path: string
   onCancel: () => void
 }
 
-function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
+function DialogLoading({ path, successor, onCancel }: DialogLoadingProps) {
   return (
     <PD.DialogLoading
       skeletonElement={<PD.FormSkeleton />}
-      title={<DialogTitle bucket={bucket} path={path} />}
+      title={<DialogTitle successor={successor} path={path} />}
       onCancel={onCancel}
     />
   )
@@ -457,6 +483,7 @@ interface PackageDirectoryDialogProps {
   successor: workflows.Successor | null
   onClose?: () => void
   onExited: (param: { pushed: null | { name: string; hash: string } }) => void
+  onSuccessor: (successor: workflows.Successor) => void
 }
 
 export default function PackageDirectoryDialog({
@@ -470,6 +497,7 @@ export default function PackageDirectoryDialog({
   onExited,
   open,
   successor,
+  onSuccessor,
 }: PackageDirectoryDialogProps) {
   const s3 = AWS.S3.use()
 
@@ -525,10 +553,12 @@ export default function PackageDirectoryDialog({
           Err: (e: Error) =>
             successor && (
               <DialogError
-                bucket={successor.slug}
-                path={path}
-                onCancel={handleClose}
+                bucket={bucket}
                 error={e}
+                onCancel={handleClose}
+                onSuccessor={onSuccessor}
+                path={path}
+                successor={successor}
               />
             ),
           Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
@@ -550,6 +580,7 @@ export default function PackageDirectoryDialog({
                       setWorkflow,
                       successor,
                       workflowsConfig,
+                      onSuccessor,
                     }}
                   />
                 )}
@@ -557,7 +588,7 @@ export default function PackageDirectoryDialog({
             ),
           _: () =>
             successor && (
-              <DialogLoading bucket={successor.slug} path={path} onCancel={handleClose} />
+              <DialogLoading successor={successor} path={path} onCancel={handleClose} />
             ),
         })
       )}

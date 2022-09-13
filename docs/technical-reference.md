@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Run Quilt in Your AWS Account
 Quilt is a Data Hub for AWS.
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
@@ -78,28 +79,18 @@ You will need the following:
 
 1. **An AWS account**
 
-1. **IAM Permissions** to run the CloudFormation template (or Add products in
+1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-The `AdministratorAccess` policy is sufficient. (Quilt creates and manages a
-VPC, containers, S3 buckets, a database, and more.)
 
-If you wish to create an [AWS CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-for the installation, visit `IAM > Roles > Create Role > AWS service > CloudFormation`
-in the AWS console.
+We recommend that you use a
+[CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+for stack creation and updates.
 
-The following service role is equivalent to `AdministratorAccess`:
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": "*",
-            "Resource": "*"
-        }
-    ]
-}
-```
+See this [example service role](./cfn-service-role.yml) for minimal permissions
+to install a Quilt stack.
+
+> Ensure that your service role is up-to-date with the example before every stack
+update so as to prevent installation failures.
 
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
@@ -220,7 +211,7 @@ your CloudFormation stack.
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-## Routine Maintainance and Upgrades
+## Routine Maintenance and Upgrades
 
 Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
 
@@ -250,14 +241,13 @@ User email addresses are stored by the Identity Service in RDS Postgres (part of
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
-### Setting default role
+### Setting the default role
 
-If your stack settings allow users signing up by themselves, you must set the
-default role which will be assigned to all new users.
-Users won't be able to sign up by themselves until the default role is set,
-though they still can be invited by an admin via user management UI.
+**The Quilt admin must log in and set the default role** in order for new 
+users to be able to sign up.
 
-![](imgs/admin-set-default-role.png)
+![](imgs/default-role.png)
+
 
 ### Single sign-on (SSO)
 
@@ -306,9 +296,12 @@ and hybrid flows, and check the box to issue ID tokens
 `Initiate login URI`
 1. Copy the `Client ID` to a safe place
 1. Go to API > Authorization servers
-1. You should see a default URI that looks something like this
-`https://<MY_COMPANY>.okta.com/oauth2/default`; copy it to a
-safe place
+1. You should see a default URI that looks something like the following:
+    ```
+    https://<MY_COMPANY>.okta.com/oauth2
+    ```
+    See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
+    for more.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ![](./imgs/okta-sso-general.png)
@@ -344,6 +337,8 @@ Use current template > Next > Specify stack details), set the following paramete
 * *AuthType*: Enabled
 * *AuthClientId*: *Client ID*
 * *AuthBaseUrl*: *Issuer URL V2*
+
+> Be sure to set the [default role](#setting-the-default-role) as indicated above.
 
 ### Preparing an AWS Role for use with Quilt
 
@@ -394,6 +389,38 @@ Note the comma after the object. Your trust relationship should now look somethi
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
 
+### S3 buckets with SSE-KMS
+In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
+the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
+and look for IAM roles with the following logical IDs:
+* `AmazonECSTaskExecutionRole`
+* `PkgEventsRole`
+* `PkgSelectLambdaRole`
+* `SearchHandlerRole`
+* `T4BucketReadRole`
+* `T4BucketWriteRole`
+
+Note the ARN for each of the above logical IDs and add an Allow statement
+similar to the following to the KMS key policy:
+
+```json
+{
+    "Effect": "Allow",
+    "Principal": {
+        "AWS": [
+            "<RoleARN-1>",
+            ...
+            "<RoleARN-N>"
+        ]
+    },
+    "Action": [
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
+    ],
+    "Resource": "*"
+}
+```
+
 ## Backup and Recovery
 
 All data and metadata in Quilt is stored in S3. S3 data is automatically backed up (replicated across multiple available zones). To protect against accidental deletion or overwriting of data, we strongly recommend enabling object versioning for all S3 buckets connected to Quilt.
@@ -410,7 +437,7 @@ To restore Quilt in your backup region:
 1. Create a new Quilt stack from the same CloudFormation template in the backup region.
 1. Connect the replica buckets (in the backup region) to your Quilt stack. In the Quilt catalog, select "Users and Buckets"->"Buckets" and enter the bucket information.
 
-## Emergency Maintainance
+## Emergency Maintenance
 See [Troubleshooting](Troubleshooting.md)
 
 ## Support

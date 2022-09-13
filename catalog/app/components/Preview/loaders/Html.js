@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useIsInStack } from 'utils/BucketConfig'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
@@ -22,7 +23,8 @@ function IFrameLoader({ handle, children }) {
 
 export const Loader = function HtmlLoader({ handle, children }) {
   const isInStack = useIsInStack()
-  return isInStack(handle.bucket) ? (
+  const statusReportsBucket = useStatusReportsBucket()
+  return isInStack(handle.bucket) || handle.bucket === statusReportsBucket ? (
     <IFrameLoader {...{ handle, children }} />
   ) : (
     <Text.Loader {...{ handle, children }} />

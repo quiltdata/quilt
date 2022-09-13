@@ -1,0 +1,45 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
+jobs:
+  test-catalog:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: catalog
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.11'
+          cache: 'npm'
+          cache-dependency-path: 'catalog/package-lock.json'
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - env:
+          BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
+        run: npm run bundlewatch
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: catalog
+          name: ${{ github.job }}
+  lint-docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.11'
+      - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md

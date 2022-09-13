@@ -1,3 +1,6 @@
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
+
 You can securely and privately run the Quilt catalog in "single-player mode" on your machine.
 `quilt3 catalog` launches a Python webserver and local services
 that communicate with S3 using temporary AWS credentials,
@@ -17,7 +20,7 @@ $ pip install quilt3[catalog]
 ## Invocation
 
 ```bash
-quilt3 catalog
+$ quilt3 catalog
 ```
 
 See the [CLI API reference](../api-reference/cli.md#catalog) for details.

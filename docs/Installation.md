@@ -1,3 +1,6 @@
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
+
 # Installation
 
 Quilt has two user-facing components:

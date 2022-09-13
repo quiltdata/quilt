@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -10,9 +10,11 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import { detect } from 'components/FileEditor/loader'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -32,7 +34,6 @@ import { UseQueryResult, useQuery } from 'utils/useQuery'
 import * as workflows from 'utils/workflows'
 
 import Code from '../Code'
-import CopyButton from '../CopyButton'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
@@ -40,6 +41,7 @@ import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
+import * as Successors from '../Successors'
 import Summary from '../Summary'
 import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
@@ -90,7 +92,8 @@ interface PkgCodeProps {
 }
 
 function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
-  const nameWithPath = JSON.stringify(s3paths.ensureNoSlash(`${name}/${path}`))
+  const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
+  const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
   const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
   const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
   const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
@@ -100,18 +103,34 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
       hl: 'python',
       contents: dedent`
         import quilt3 as q3
-        # browse
+        # Browse
         p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # download (be mindful of large packages)
-        q3.Package.install(${nameWithPath}${hashPy}, registry="s3://${bucket}", dest=".")
+        # make changes to package adding individual files
+        p.set("data.csv", "data.csv")
+        # or whole directories
+        p.set_dir("subdir", "subdir")
+        # and push changes
+        q3.Package.push("${name}", registry="s3://${bucket}", message="Hello World")
+
+        # Download (be mindful of large packages)
+        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
       `,
     },
     {
       label: 'CLI',
       hl: 'bash',
-      contents: dedent`
-        quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
-      `,
+      contents:
+        dedent`
+          # Download package
+          quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
+        ` +
+        (!path
+          ? dedent`\n
+              # Upload package
+              echo "Hello World" > README.md
+              quilt3 push "${name}" --registry s3://${bucket} --dir .
+            `
+          : ''),
     },
     {
       label: 'URI',
@@ -174,10 +193,19 @@ interface DirDisplayProps {
   hashOrTag: string
   path: string
   crumbs: $TSFixMe[] // Crumb
+  size?: number
 }
 
-function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayProps) {
-  const { desktop } = Config.use()
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  hashOrTag,
+  path,
+  crumbs,
+  size,
+}: DirDisplayProps) {
+  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -192,7 +220,10 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     [urls, bucket, name, hashOrTag],
   )
 
+  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
+
   const updateDialog = PD.usePackageCreationDialog({
+    initialOpen,
     bucket,
     src: { name, hash },
   })
@@ -220,9 +251,10 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     opened: false,
   })
 
-  const onPackageDeleteDialogOpen = React.useCallback(() => {
-    setDeletionState(R.assoc('opened', true))
-  }, [])
+  const confirmDelete = React.useCallback(
+    () => setDeletionState(R.assoc('opened', true)),
+    [],
+  )
 
   const onPackageDeleteDialogClose = React.useCallback(() => {
     setDeletionState(
@@ -265,11 +297,17 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
     [bucket, name, hash],
   )
 
-  const [expandedLocalFolder, setExpandedLocalFolder] = React.useState(false)
-  const [localFolder, setLocalFolder] = Download.useLocalFolder()
+  const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   return (
     <>
+      <OpenInDesktop.Dialog
+        open={openInDesktopState.confirming}
+        onClose={openInDesktopState.unconfirm}
+        onConfirm={openInDesktopState.openInDesktop}
+        size={size}
+      />
+
       <PackageCopyDialog
         bucket={bucket}
         hash={hash}
@@ -298,13 +336,6 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
         ),
         title: 'Push package revision',
       })}
-
-      <Download.ConfirmDialog
-        localPath={localFolder}
-        onClose={() => setExpandedLocalFolder(false)}
-        open={!!localFolder && !!expandedLocalFolder}
-        packageHandle={packageHandle}
-      />
 
       {dirQuery.case({
         // TODO: skeleton placeholder
@@ -381,60 +412,55 @@ function DirDisplay({ bucket, name, hash, hashOrTag, path, crumbs }: DirDisplayP
           const downloadPath = path
             ? `package/${bucket}/${name}/${hash}/${path}`
             : `package/${bucket}/${name}/${hash}`
+          // TODO: disable if nothing to revise on desktop
+          const hasReviseButton = preferences?.ui?.actions?.revisePackage
 
           return (
             <>
               <TopBar crumbs={crumbs}>
-                {preferences?.ui?.actions?.revisePackage && !desktop && (
+                {hasReviseButton && (
                   <M.Button
                     className={classes.button}
                     variant="contained"
                     color="primary"
                     size="small"
                     style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                    onClick={updateDialog.open}
+                    onClick={() => updateDialog.open()}
                   >
                     Revise package
                   </M.Button>
                 )}
                 {preferences?.ui?.actions?.copyPackage && (
-                  <CopyButton
+                  <Successors.Button
                     className={classes.button}
                     bucket={bucket}
                     onChange={setSuccessor}
                   >
                     Push to bucket
-                  </CopyButton>
+                  </Successors.Button>
                 )}
                 <Download.DownloadButton
                   className={classes.button}
                   label={path ? 'Download sub-package' : 'Download package'}
-                  onClick={() => setExpandedLocalFolder(true)}
+                  onClick={openInDesktopState.confirm}
                   path={downloadPath}
                 />
-                {preferences?.ui?.actions?.deleteRevision && (
-                  <RevisionMenu
-                    className={classes.button}
-                    onDelete={onPackageDeleteDialogOpen}
-                  />
-                )}
+                <RevisionMenu
+                  className={classes.button}
+                  onDelete={confirmDelete}
+                  onDesktop={openInDesktopState.confirm}
+                />
               </TopBar>
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
               )}
-              {desktop && (
-                <Download.LocalFolderInput
-                  onChange={setLocalFolder}
-                  open={expandedLocalFolder}
-                  value={localFolder}
-                />
-              )}
               {preferences?.ui?.blocks?.meta && (
-                <FileView.Meta data={AsyncResult.Ok(dir.metadata)} />
+                <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
               )}
               <M.Box mt={2}>
                 {preferences?.ui?.blocks?.browser && <Listing items={items} key={hash} />}
                 <Summary
+                  path={path}
                   files={summaryHandles}
                   mkUrl={mkUrl}
                   packageHandle={packageHandle}
@@ -533,6 +559,17 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
+  const isEditable = detect(path) && hashOrTag === 'latest'
+  const handleEdit = React.useCallback(() => {
+    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+    const editUrl = urls.bucketFile(bucket, join(name, path), {
+      add: true,
+      edit: true,
+      next,
+    })
+    history.push(editUrl)
+  }, [bucket, history, name, path, urls])
+
   const renderProgress = () => (
     // TODO: skeleton placeholder
     <>
@@ -603,6 +640,14 @@ function FileDisplay({
                       lastModified={lastModified}
                       size={size}
                     />
+                    {isEditable && (
+                      <FileView.AdaptiveButtonLayout
+                        className={classes.button}
+                        icon="edit"
+                        label="Edit"
+                        onClick={handleEdit}
+                      />
+                    )}
                     {!!viewModes.modes.length && (
                       <FileView.ViewModeSelector
                         className={classes.button}
@@ -624,7 +669,7 @@ function FileDisplay({
                     <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
                   )}
                   {preferences?.ui?.blocks?.meta && (
-                    <FileView.Meta data={AsyncResult.Ok(file.metadata)} />
+                    <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
                   )}
                   <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                     {withPreview(
@@ -703,6 +748,7 @@ interface PackageTreeProps {
   mode?: string
   resolvedFrom?: string
   revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
+  size?: number
 }
 
 function PackageTree({
@@ -714,6 +760,7 @@ function PackageTree({
   mode,
   resolvedFrom,
   revisionListQuery,
+  size,
 }: PackageTreeProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -799,6 +846,7 @@ function PackageTree({
                 path,
                 hashOrTag,
                 crumbs,
+                size,
               }}
             />
           ) : (
@@ -875,6 +923,7 @@ function PackageTreeQueries({
             name,
             hashOrTag,
             hash: d.package.revision?.hash,
+            size: d.package.revision?.totalBytes ?? undefined,
             path,
             mode,
             resolvedFrom,
@@ -900,6 +949,7 @@ export default function PackageTreeWrapper({
   location,
 }: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
   const path = s3paths.decode(encodedPath)
+  // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)
   return (
     <>

@@ -92,7 +92,7 @@ export function Error({ submitFailed, error, errors, ...rest }: ErrorProps) {
   const classes = useErrorStyles()
   const err = submitFailed && error ? errors[error] || error : undefined
   return err ? (
-    <p className={classes.root} {...rest}>
+    <p className={classes.root} data-testid="auth-error" {...rest}>
       {err}
     </p>
   ) : null
@@ -152,7 +152,9 @@ export const mkLayout =
       <Layout>
         <Container>
           <M.Box pt={5} pb={2}>
-            <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
+            <Heading data-testid="auth-heading">
+              {typeof heading === 'function' ? heading(props) : heading}
+            </Heading>
           </M.Box>
           {children}
         </Container>
@@ -167,7 +169,13 @@ interface SubmitProps extends M.ButtonProps {
 
 export function Submit({ busy, label, children, ...rest }: SubmitProps) {
   return (
-    <M.Button color="primary" variant="contained" type="submit" {...rest}>
+    <M.Button
+      color="primary"
+      variant="contained"
+      type="submit"
+      data-testid="auth-submit"
+      {...rest}
+    >
       {label}
       {children}
       {busy && (

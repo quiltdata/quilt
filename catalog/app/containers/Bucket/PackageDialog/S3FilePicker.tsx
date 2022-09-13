@@ -5,12 +5,13 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as DG from '@material-ui/data-grid'
 
+import Lock from 'components/Lock'
 import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
-import { JsonRecord } from 'utils/types'
+import type * as Model from 'model'
 
 import * as Listing from '../Listing'
 import { displayError } from '../errors'
@@ -20,15 +21,7 @@ import SubmitSpinner from './SubmitSpinner'
 
 const limit = pLimit(5)
 
-export interface S3File {
-  bucket: string
-  key: string
-  version?: string
-  size: number
-  meta?: JsonRecord
-}
-
-export const isS3File = (f: any): f is S3File =>
+export const isS3File = (f: any): f is Model.S3File =>
   !!f &&
   typeof f === 'object' &&
   typeof f.bucket === 'string' &&
@@ -95,7 +88,10 @@ function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
 }
 
 type MuiCloseReason = 'backdropClick' | 'escapeKeyDown'
-export type CloseReason = MuiCloseReason | 'cancel' | { path: string; files: S3File[] }
+export type CloseReason =
+  | MuiCloseReason
+  | 'cancel'
+  | { path: string; files: Model.S3File[] }
 
 const useStyles = M.makeStyles((t) => ({
   paper: {
@@ -110,17 +106,13 @@ const useStyles = M.makeStyles((t) => ({
     paddingRight: t.spacing(3),
   },
   lock: {
-    background: 'rgba(255,255,255,0.5)',
     bottom: 52,
-    left: 0,
-    position: 'absolute',
-    right: 0,
     top: 56,
-    zIndex: 1,
   },
 }))
 
 interface DialogProps {
+  initialPath?: string
   bucket: string
   buckets?: string[]
   selectBucket?: (bucket: string) => void
@@ -128,7 +120,14 @@ interface DialogProps {
   onClose: (reason: CloseReason) => void
 }
 
-export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogProps) {
+export function Dialog({
+  bucket,
+  buckets,
+  selectBucket,
+  open,
+  onClose,
+  initialPath,
+}: DialogProps) {
   const classes = useStyles()
 
   const bucketListing = requests.useBucketListing()
@@ -168,6 +167,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrefix('')
     setSelection([])
   }, [bucket])
+
+  React.useLayoutEffect(() => {
+    if (!initialPath) return
+    setPath(initialPath)
+  }, [initialPath])
 
   const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
 
@@ -279,7 +283,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           )
         },
       })}
-      {locked && <div className={classes.lock} />}
+      {locked && <Lock className={classes.lock} />}
       <M.DialogActions>
         {locked ? (
           <SubmitSpinner>Adding files</SubmitSpinner>

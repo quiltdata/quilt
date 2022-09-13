@@ -66,6 +66,7 @@ setup(
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
+        'importlib_metadata; python_version < "3.8"',
     ],
     extras_require={
         'pyarrow': [
@@ -79,7 +80,7 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest==6.*',
             'pytest-cov',
-            'coverage==6.2',
+            'coverage==6.4',
             'pytest-env',
             'pytest-subtests',
             'responses',

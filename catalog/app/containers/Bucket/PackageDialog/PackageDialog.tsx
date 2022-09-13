@@ -1,6 +1,5 @@
 import { basename } from 'path'
 
-import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
@@ -13,7 +12,12 @@ import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import { mkFormError } from 'utils/formTools'
+import {
+  JsonSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from 'utils/json-schema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
@@ -34,25 +38,6 @@ export const ERROR_MESSAGES = {
 export const getNormalizedPath = (f: { path?: string; name: string }) => {
   const p = f.path || f.name
   return p.startsWith('/') ? p.substring(1) : p
-}
-
-export const mkFormError = (err: React.ReactNode) => ({ [FORM_ERROR]: err })
-
-interface InputError {
-  path: string | null
-  message: string
-}
-
-export function mapInputErrors(
-  inputErrors: Readonly<InputError[]>,
-  mapping: Record<string, string> = {},
-) {
-  const formErrors: Record<string, string> = {}
-  for (let err of inputErrors) {
-    const key = err.path && err.path in mapping ? mapping[err.path] : FORM_ERROR
-    formErrors[key] = err.message
-  }
-  return formErrors
 }
 
 export async function hashFile(file: File) {
@@ -188,7 +173,8 @@ export function mkMetaValidator(schema?: JsonSchema) {
     }
 
     if (schema) {
-      const errors = schemaValidator(value || {})
+      const setDefaults = makeSchemaDefaultsSetter(schema)
+      const errors = schemaValidator(setDefaults(value || {}))
       if (errors.length) return errors
     }
 
@@ -316,7 +302,7 @@ export function CommitMessageInput({
     disabled: meta.submitting || meta.submitSucceeded,
     error,
     fullWidth: true,
-    label: 'Commit message',
+    label: 'Message',
     margin: 'normal' as const,
     placeholder: 'Enter a commit message',
     validating: meta.submitFailed && meta.validating,
@@ -327,6 +313,7 @@ export function CommitMessageInput({
 }
 
 interface WorkflowInputProps {
+  bucket: string
   input: RF.FieldInputProps<workflows.Workflow>
   meta: RF.FieldMetaState<workflows.Workflow>
   workflowsConfig?: workflows.WorkflowsConfig
@@ -334,6 +321,7 @@ interface WorkflowInputProps {
 }
 
 export function WorkflowInput({
+  bucket,
   input,
   meta,
   workflowsConfig,
@@ -344,6 +332,7 @@ export function WorkflowInput({
 
   return (
     <SelectWorkflow
+      bucket={bucket}
       items={workflowsConfig ? workflowsConfig.workflows : []}
       onChange={input.onChange}
       value={input.value}

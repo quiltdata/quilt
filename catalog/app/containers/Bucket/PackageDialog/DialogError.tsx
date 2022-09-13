@@ -6,6 +6,7 @@ import { fade } from '@material-ui/core/styles'
 import StyledLink from 'utils/StyledLink'
 import { docs } from 'constants/urls'
 
+import WorkflowsConfigLink from '../WorkflowsConfigLink'
 import * as ERRORS from '../errors'
 
 const useStyles = M.makeStyles((t) => ({
@@ -29,7 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 const errorDisplay = R.cond([
   [
     R.is(ERRORS.WorkflowsConfigInvalid),
-    (e: ERRORS.WorkflowsConfigInvalid) => (
+    (e: ERRORS.WorkflowsConfigInvalid, bucket) => (
       <>
         <M.Typography variant="h6" gutterBottom>
           Invalid workflows config
@@ -38,7 +39,9 @@ const errorDisplay = R.cond([
           Error: <code>{e.message}</code>
         </M.Typography>
         <M.Typography>
-          Please fix the workflows config according to{' '}
+          Please fix the{' '}
+          <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>{' '}
+          according to{' '}
           <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
             the documentation
           </StyledLink>
@@ -79,6 +82,7 @@ const errorDisplay = R.cond([
 ])
 
 interface DialogErrorProps {
+  bucket: string
   cancelText?: React.ReactNode
   error: any
   onCancel: () => void
@@ -88,6 +92,7 @@ interface DialogErrorProps {
 }
 
 export default function DialogError({
+  bucket,
   cancelText,
   error,
   onCancel,
@@ -101,7 +106,7 @@ export default function DialogError({
       <M.DialogTitle>{title}</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         {skeletonElement}
-        <div className={classes.overlay}>{errorDisplay(error)}</div>
+        <div className={classes.overlay}>{errorDisplay(error, bucket)}</div>
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onCancel}>{cancelText || 'Cancel'}</M.Button>

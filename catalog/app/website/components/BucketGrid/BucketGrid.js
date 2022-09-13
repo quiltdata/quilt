@@ -80,7 +80,11 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
   const cfg = Config.use()
 
   return (
-    <div className={classes.bucket}>
+    <div
+      className={classes.bucket}
+      data-testid="bucket-grid--bucket"
+      data-bucket={bucket.name}
+    >
       <div>
         {cfg.mode === 'PRODUCT' && (
           <div className={classes.shared}>

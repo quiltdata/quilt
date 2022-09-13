@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Using Quilt with other services that consume S3 events
 
 By default, when you connect a bucket to Quilt, Quilt will create an S3
@@ -47,7 +48,7 @@ that you created above.
     ![](./imgs/event-target.png)
 1. Specify the Input transformer as follows:
     #### Input Path
-    ```
+    ```json
     {
         "awsRegion": "$.detail.awsRegion",
         "bucketName": "$.detail.requestParameters.bucketName",
@@ -59,7 +60,7 @@ that you created above.
     }
     ```
     #### Input Template
-    ```
+    ```json
     {
         "Records": [
             {

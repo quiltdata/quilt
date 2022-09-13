@@ -123,7 +123,6 @@ def lambda_handler(request):
 
     headers = {
         'Content-Type': format,
-        'Title': f"Preview of {filename}",
         'Content-Disposition': f'inline; filename="{filename}"',
     }
 

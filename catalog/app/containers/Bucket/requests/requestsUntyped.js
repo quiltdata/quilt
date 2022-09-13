@@ -248,22 +248,11 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
 
   const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
 
-  try {
-    const response = await fetchFile({ s3, bucket, path: key, version })
-    return JSON.parse(response.Body.toString('utf-8'))
-  } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
-
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-  }
-
-  return null
+  const response = await fetchFile({ s3, bucket, path: key, version })
+  return JSON.parse(response.Body.toString('utf-8'))
 }
 
-const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+export const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 // TODO: enable this when backend is ready
 // const WORKFLOWS_CONFIG_PATH = [
 //   '.quilt/workflows/config.yaml',

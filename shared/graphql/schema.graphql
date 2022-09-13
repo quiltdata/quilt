@@ -8,6 +8,9 @@ scalar JsonRecord
 
 scalar PackageContentsFlatMap
 
+# bucket + key + version (aka physical key)
+scalar S3ObjectLocation
+
 type OperationError {
   message: String!
   name: String!
@@ -25,6 +28,14 @@ type InvalidInput {
   errors: [InputError!]!
 }
 
+type Ok {
+  _: Boolean
+}
+
+type Unavailable {
+  _: Boolean
+}
+
 type ContentIndexingSettings {
   extensions: [String!]!
   bytesDefault: Int!
@@ -35,6 +46,64 @@ type ContentIndexingSettings {
 type Config {
   contentIndexingSettings: ContentIndexingSettings! @admin
 }
+
+type Canary {
+  name: String!
+  # TODO: full AWS console URL instead?
+  region: String!
+  group: String!
+  title: String!
+  description: String!
+  schedule: String!
+  ok: Boolean
+  lastRun: Datetime
+}
+
+type TestStats {
+  passed: Int!
+  failed: Int!
+  running: Int!
+}
+
+type TestStatsTimeSeries {
+  datetimes: [Datetime!]!
+  passed: [Int!]!
+  failed: [Int!]!
+}
+
+type StatusReport {
+  timestamp: Datetime! # can be used as id / cache key
+  renderedReportLocation: S3ObjectLocation!
+}
+
+enum StatusReportListOrder {
+  NEW_FIRST
+  OLD_FIRST
+}
+
+type StatusReportList {
+  total: Int!
+  page(
+    number: Int! = 1
+    perPage: Int! = 25
+    order: StatusReportListOrder! = NEW_FIRST
+  ): [StatusReport!]!
+}
+
+input StatusReportListFilter {
+  timestampFrom: Datetime
+  timestampTo: Datetime
+}
+
+type Status {
+  canaries: [Canary!]!
+  latestStats: TestStats!
+  stats(window: Int = 30): TestStatsTimeSeries!
+  reports(filter: StatusReportListFilter): StatusReportList!
+  reportsBucket: String!
+}
+
+union StatusResult = Status | Unavailable
 
 type Collaborator {
   email: String!
@@ -61,34 +130,57 @@ type BucketConfig {
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
   indexContentBytes: Int @admin
-  permissions: [RoleBucketPermission!]! @admin
+  associatedPolicies: [PolicyBucketPermission!]! @admin
+  associatedRoles: [RoleBucketPermission!]! @admin
   collaborators: [CollaboratorBucketConnection!]!
 }
 
+# XXX: consider unifying ManagedRole and UnmanagedRole
 type UnmanagedRole {
   id: ID!
   name: String!
-  arn: String
+  arn: String!
 }
 
 type ManagedRole {
   id: ID!
   name: String!
-  arn: String
+  arn: String!
+  policies: [Policy!]!
   permissions: [RoleBucketPermission!]!
 }
 
 union Role = UnmanagedRole | ManagedRole
+
+type Policy {
+  id: ID!
+  title: String!
+  arn: String!
+  managed: Boolean!
+  permissions: [PolicyBucketPermission!]!
+  roles: [ManagedRole!]!
+}
 
 enum BucketPermissionLevel {
   READ
   READ_WRITE
 }
 
-type RoleBucketPermission {
+interface BucketPermission {
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type PolicyBucketPermission implements BucketPermission {
+  policy: Policy!
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type RoleBucketPermission implements BucketPermission {
   role: Role!
   bucket: BucketConfig!
-  level: BucketPermissionLevel
+  level: BucketPermissionLevel!
 }
 
 type AccessCountForDate {
@@ -178,9 +270,12 @@ type Query {
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
+  policies: [Policy!]! @admin
+  policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
   role(id: ID!): Role @admin
   defaultRole: Role @admin
+  status: StatusResult! @admin
 }
 
 input BucketAddInput {
@@ -197,7 +292,6 @@ input BucketAddInput {
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
-  setVersioning: Boolean
   delayScan: Boolean
 }
 
@@ -214,7 +308,6 @@ input BucketUpdateInput {
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
-  setVersioning: Boolean
 }
 
 type BucketAddSuccess {
@@ -296,7 +389,7 @@ union BucketRemoveResult =
 
 input PermissionInput {
   bucket: String!
-  level: BucketPermissionLevel
+  level: BucketPermissionLevel!
 }
 
 input UnmanagedRoleInput {
@@ -306,9 +399,10 @@ input UnmanagedRoleInput {
 
 input ManagedRoleInput {
   name: String!
-  permissions: [PermissionInput!]!
+  policies: [ID!]!
 }
 
+# XXX: consider making these `OperationError`s
 type RoleNameReserved {
   _: Boolean
 }
@@ -319,10 +413,6 @@ type RoleNameExists {
 
 type RoleNameInvalid {
   _: Boolean
-}
-
-type BucketConfigDoesNotExist {
-  name: String!
 }
 
 type RoleDoesNotExist {
@@ -337,6 +427,10 @@ type RoleIsUnmanaged {
   _: Boolean
 }
 
+type RoleHasTooManyPoliciesToAttach {
+  _: Boolean
+}
+
 type RoleCreateSuccess {
   role: Role!
 }
@@ -346,7 +440,7 @@ union RoleCreateResult =
   | RoleNameReserved
   | RoleNameExists
   | RoleNameInvalid
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 type RoleUpdateSuccess {
   role: Role!
@@ -359,7 +453,7 @@ union RoleUpdateResult =
   | RoleNameInvalid
   | RoleIsManaged
   | RoleIsUnmanaged
-  | BucketConfigDoesNotExist
+  | RoleHasTooManyPoliciesToAttach
 
 type RoleDeleteSuccess {
   _: Boolean
@@ -380,6 +474,22 @@ union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
 type RoleSetDefaultSuccess {
   role: Role!
 }
+
+input ManagedPolicyInput {
+  title: String!
+  permissions: [PermissionInput!]!
+  roles: [ID!]!
+}
+
+input UnmanagedPolicyInput {
+  title: String!
+  arn: String!
+  roles: [ID!]!
+}
+
+union PolicyResult = Policy | InvalidInput | OperationError
+
+union PolicyDeleteResult = Ok | InvalidInput | OperationError
 
 input PackagePushParams {
   message: String
@@ -470,6 +580,12 @@ type Mutation {
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
     @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
+
+  policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
+  policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyUpdateManaged(id: ID!, input: ManagedPolicyInput!): PolicyResult! @admin
+  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyDelete(id: ID!): PolicyDeleteResult! @admin
 
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
   roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin

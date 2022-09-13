@@ -168,6 +168,11 @@ const useRevisionLayoutStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  base: {
+    [t.breakpoints.up('sm')]: {
+      position: 'relative',
+    },
+  },
 }))
 
 interface RevisionLayoutProps {
@@ -189,12 +194,24 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
   const sparklineH = xs ? 32 : 48
   return (
     <M.Paper className={classes.root}>
-      <M.Box pt={2} pl={2} pr={25}>
-        {link}
-      </M.Box>
-      <M.Box py={1} pl={2} pr={xs ? 2 : Math.ceil(sparklineW / t.spacing(1) + 1)}>
-        {msg}
-      </M.Box>
+      <div className={classes.base}>
+        <M.Box pt={2} pl={2} pr={25}>
+          {link}
+        </M.Box>
+        <M.Box py={1} pl={2} pr={xs ? 2 : Math.ceil(sparklineW / t.spacing(1) + 1)}>
+          {msg}
+        </M.Box>
+        <M.Box
+          position="absolute"
+          right={0}
+          bottom={0}
+          top={{ xs: 'auto', sm: 16 }}
+          height={{ xs: 64, sm: 'auto' }}
+          width={sparklineW}
+        >
+          {counts({ sparklineW, sparklineH })}
+        </M.Box>
+      </div>
       {!!meta && (
         <M.Hidden xsDown>
           <M.Divider />
@@ -224,16 +241,6 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
         color="text.secondary"
       >
         {stats}
-      </M.Box>
-      <M.Box
-        position="absolute"
-        right={0}
-        bottom={{ xs: 0, sm: 49 }}
-        top={{ xs: 'auto', sm: 16 }}
-        height={{ xs: 64, sm: 'auto' }}
-        width={sparklineW}
-      >
-        {counts({ sparklineW, sparklineH })}
       </M.Box>
     </M.Paper>
   )
@@ -466,7 +473,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
             variant="contained"
             color="primary"
             style={{ marginTop: -3, marginBottom: -3 }}
-            onClick={updateDialog.open}
+            onClick={() => updateDialog.open()}
           >
             Revise package
           </M.Button>

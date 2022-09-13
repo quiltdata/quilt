@@ -1,7 +1,8 @@
-import * as dateFns from 'date-fns'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
+
+import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
@@ -69,6 +70,8 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
 }
 
 // NOTE: memo is mutated
+// weird eslint bug?
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function objToDict(obj, parentPath, memo) {
   const isObjArray = Array.isArray(obj)
   if (isObjArray) {
@@ -92,8 +95,6 @@ function objToDict(obj, parentPath, memo) {
       // eslint-disable-next-line no-param-reassign
       memo[serializeAddress(address)] = obj[key]
 
-      // weird eslint bug?
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       objToDict(obj[key], address, memo)
     })
     return memo
@@ -109,32 +110,46 @@ function calcReactId(valuePath, value) {
 }
 
 function getDefaultValue(jsonDictItem) {
-  if (!jsonDictItem || !jsonDictItem.valueSchema) return EMPTY_VALUE
+  if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
 
-  const schema = jsonDictItem.valueSchema
-  try {
-    if (schema.format === 'date' && schema.dateformat)
-      return dateFns.format(new Date(), schema.dateformat)
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
-  }
-  if (schema.default !== undefined) return schema.default
+  const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
+  if (defaultFromSchema !== undefined) return defaultFromSchema
+
+  // TODO:
+  // get defaults from nested objects
+  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
+  // const nestedDefaultFromSchema = setDefaults()
+  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
+
   return EMPTY_VALUE
 }
 
 const NO_ERRORS = []
 
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
-  const itemAddress = serializeAddress(getAddressPath(key, parentPath))
-  const item = jsonDict[itemAddress]
+const bigintError = new Error(
+  `We don't support numbers larger than ${Number.MAX_SAFE_INTEGER}.
+  Please consider converting it to string.`,
+)
+
+function collectErrors(allErrors, itemAddress, value) {
   const errors = allErrors
     ? allErrors.filter((error) => error.instancePath === itemAddress)
     : NO_ERRORS
+
+  if (typeof value === 'number' && value > Number.MAX_SAFE_INTEGER) {
+    return errors.concat(bigintError)
+  }
+  return errors
+}
+
+function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
+  const itemAddress = serializeAddress(getAddressPath(key, parentPath))
+  const item = jsonDict[itemAddress]
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
   const value = storedValue === undefined ? getDefaultValue(item) : storedValue
+  const errors = collectErrors(allErrors, itemAddress, value)
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,

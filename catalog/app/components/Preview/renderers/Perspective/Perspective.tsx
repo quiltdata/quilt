@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import * as perspective from 'utils/perspective'
+import { JsonRecord } from 'utils/types'
 
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
@@ -168,6 +169,17 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
           Filter and plot
         </M.Button>
       )}
+
+      {state?.rotateThemes && (
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>palette_outlined</M.Icon>}
+          size="small"
+          onClick={state?.rotateThemes}
+        >
+          Toggle theme
+        </M.Button>
+      )}
     </div>
   )
 }
@@ -199,7 +211,8 @@ export interface PerspectiveProps
   extends React.HTMLAttributes<HTMLDivElement>,
     PerspectiveOptions {
   data: perspective.PerspectiveInput
-  meta?: ParquetMetadata
+  packageMeta?: JsonRecord
+  parquetMeta?: ParquetMetadata
   onLoadMore?: () => void
   truncated: boolean
 }
@@ -208,7 +221,8 @@ export default function Perspective({
   children,
   className,
   data,
-  meta,
+  parquetMeta,
+  packageMeta,
   onLoadMore,
   truncated,
   config,
@@ -229,7 +243,9 @@ export default function Perspective({
         onLoadMore={onLoadMore}
         truncated={truncated}
       />
-      {!!meta && <ParquetMeta className={classes.meta} {...meta} />}
+      {/* @ts-expect-error */}
+      {!!packageMeta && <JsonDisplay className={classes.meta} value={packageMeta} />}
+      {!!parquetMeta && <ParquetMeta className={classes.meta} {...parquetMeta} />}
       {children}
     </div>
   )

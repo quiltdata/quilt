@@ -42,7 +42,7 @@ function ObjectCrumbs({ handle, showBucket = false }) {
       children: label,
     }))
     const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
+      to: urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
       children: R.last(all).label,
     }
     const bucket = showBucket
@@ -198,7 +198,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         <Nowrap>
           Version{' '}
           <StyledLink
-            to={urls.bucketFile(bucket, path, version.id)}
+            to={urls.bucketFile(bucket, path, { version: version.id })}
             className={classes.version}
           >
             {clip(version.id, 24)}
@@ -228,7 +228,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               className={classes.versionContainer}
             >
               <StyledLink
-                to={urls.bucketFile(bucket, path, v.id)}
+                to={urls.bucketFile(bucket, path, { version: v.id })}
                 className={classes.version}
               >
                 {clip(v.id, 6)}
@@ -457,7 +457,12 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
     })
 
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="file"
+      data-search-hit-bucket={bucket}
+      data-search-hit-path={path}
+    >
       <ObjectHeader {...{ handle, showBucket, downloadable }} />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
@@ -476,7 +481,12 @@ function DirHit({
 }) {
   const handle = { bucket, key: path }
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="dir"
+      data-search-hit-bucket={bucket}
+      data-search-hit-path={path}
+    >
       <ObjectHeader {...{ handle, showBucket }} />
       <Meta meta={v.meta} />
     </Section>
@@ -488,7 +498,13 @@ function PackageHit({
   hit: { bucket, handle, hash, lastModified, meta, tags, comment },
 }) {
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="package"
+      data-search-hit-bucket={bucket}
+      data-search-hit-package-name={handle}
+      data-search-hit-package-hash={hash}
+    >
       <PackageHeader {...{ handle, bucket, hash, showBucket }} />
       <RevisionInfo {...{ bucket, handle, hash, comment, lastModified }} />
       {tags && tags.length > 0 && (

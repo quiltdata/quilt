@@ -8,9 +8,11 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -118,7 +120,7 @@ function VersionInfo({ bucket, path, version }) {
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, v.id)}
+                  to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -211,7 +213,7 @@ function VersionInfo({ bucket, path, version }) {
 function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.objectMeta, { s3, bucket, path, version })
-  return <FileView.Meta data={data.result} />
+  return <FileView.ObjectMeta data={data.result} />
 }
 
 function Analytics({ analyticsBucket, bucket, path }) {
@@ -394,12 +396,17 @@ export default function File({
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, version, m.valueOf()))
+      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
     },
     [history, urls, bucket, encodedPath, version],
   )
 
-  const handle = { bucket, key: path, version }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version }),
+    [bucket, path, version],
+  )
+
+  const editorState = FileEditor.useState(handle)
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -420,6 +427,11 @@ export default function File({
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
+  const bookmarks = Bookmarks.use()
+  const isBookmarked = React.useMemo(
+    () => bookmarks?.isBookmarked('main', handle),
+    [bookmarks, handle],
+  )
 
   return (
     <FileView.Root>
@@ -453,6 +465,22 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
+          {!!editorState.type.brace && (
+            <FileEditor.Controls
+              disabled={editorState.saving}
+              editing={editorState.editing}
+              className={classes.button}
+              onSave={editorState.onSave}
+              onCancel={editorState.onCancel}
+              onEdit={editorState.onEdit}
+            />
+          )}
+          <FileView.AdaptiveButtonLayout
+            className={classes.button}
+            icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
+            label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+            onClick={() => bookmarks?.toggle('main', handle)}
+          />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
@@ -481,18 +509,48 @@ export default function File({
               {preferences?.ui?.blocks?.meta && (
                 <Meta bucket={bucket} path={path} version={version} />
               )}
-              <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                {versionExistsData.case({
-                  _: () => <CenteredProgress />,
-                  Err: (e) => {
-                    throw e
-                  },
-                  Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                })}
-              </Section>
+              {editorState.editing ? (
+                <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                  <FileEditor.Editor
+                    disabled={editorState.saving}
+                    error={editorState.error}
+                    handle={handle}
+                    onChange={editorState.onChange}
+                    type={editorState.type}
+                  />
+                </Section>
+              ) : (
+                <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
+                  {versionExistsData.case({
+                    _: () => <CenteredProgress />,
+                    Err: (e) => {
+                      throw e
+                    },
+                    Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                  })}
+                </Section>
+              )}
             </>
           ),
-          _: () => <Message headline="No Such Object" />,
+          _: () =>
+            editorState.editing ? (
+              <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                <FileEditor.Editor
+                  disabled={editorState.saving}
+                  error={editorState.error}
+                  type={editorState.type}
+                  empty
+                  handle={handle}
+                  onChange={editorState.onChange}
+                />
+              </Section>
+            ) : (
+              <>
+                <Message headline="No Such Object">
+                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                </Message>
+              </>
+            ),
         }),
       })}
     </FileView.Root>

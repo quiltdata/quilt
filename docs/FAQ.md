@@ -1,5 +1,7 @@
+<!-- markdownlint-disable -->
 ## How do I sync my notebook and all of its data and models to S3 as a package?
-```
+<!--pytest.mark.skip-->
+```python
 p = quilt3.Package()
 p.set_dir(".", ".")
 p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
@@ -25,8 +27,8 @@ and use [`quilt`](https://pypi.org/project/quilt/) on PyPI.
 Yes, to find bugs and prioritize features.
 
 You can disable anonymous usage collection with an environment variable:
-```
-$ export QUILT_DISABLE_USAGE_METRICS=true
+```bash
+export QUILT_DISABLE_USAGE_METRICS=true
 ```
 
 Or call `quilt3.disable_telemetry()`
@@ -35,8 +37,8 @@ to persistently disable anonymous usage statistics.
 ## Can I turn off TQDM progress bars for log files?
 
 Yes:
-```
-$ export QUILT_MINIMIZE_STDOUT=true
+```bash
+export QUILT_MINIMIZE_STDOUT=true
 ```
 
 ## Which version of Quilt are you on?
@@ -62,4 +64,3 @@ a local machine or foreign region)—I/O is much faster.
 
 1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
-

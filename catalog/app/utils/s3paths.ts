@@ -117,19 +117,6 @@ export const parseS3Url = (url: string): S3HandleBase => {
 export const resolveKey = (from: string, to: string) =>
   resolve(`/${getPrefix(from)}`, to).substring(1)
 
-/**
- * Create an S3Handle for a URL relative to the given S3Handle.
- */
-export const handleFromUrl = (url: string, referrer: S3Handle) => {
-  // absolute URL (e.g. `s3://${bucket}/${key}`)
-  if (isS3Url(url)) return parseS3Url(url)
-  if (!referrer) {
-    throw new Error('handleFromUrl: referrer required for local URLs')
-  }
-  // path-like URL (e.g. `dir/file.json` or `/dir/file.json`)
-  return { bucket: referrer.bucket, key: resolveKey(referrer.key, url) }
-}
-
 // AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
 // "buckets created in Regions launched after March 20, 2019 are not reachable via the
 // `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
