@@ -34,8 +34,9 @@ const ErrorScreen = () => {
               color="primary"
               style={{ marginLeft: '1em' }}
               onClick={retry}
-              label="Retry"
-            />
+            >
+              Retry
+            </Button>
           </span>
         }
       />
@@ -63,7 +64,7 @@ function NotAuthorized() {
   )
 }
 
-export default ({ authorizedSelector = R.T } = {}) => {
+export default function requireAuth<Props = {}>({ authorizedSelector = R.T } = {}) {
   const select = createStructuredSelector({
     authenticated: selectors.authenticated,
     authorized: authorizedSelector,
@@ -71,7 +72,7 @@ export default ({ authorizedSelector = R.T } = {}) => {
     waiting: selectors.waiting,
     location: selectLocation,
   })
-  return memoize((Component) => (props) => {
+  return memoize((Component) => (props: Props) => {
     const state = redux.useSelector(select)
     const { urls } = NamedRoutes.use()
 
