@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import { detect } from 'components/FileEditor/loader'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -558,6 +559,17 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
+  const isEditable = detect(path) && hashOrTag === 'latest'
+  const handleEdit = React.useCallback(() => {
+    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+    const editUrl = urls.bucketFile(bucket, join(name, path), {
+      add: true,
+      edit: true,
+      next,
+    })
+    history.push(editUrl)
+  }, [bucket, history, name, path, urls])
+
   const renderProgress = () => (
     // TODO: skeleton placeholder
     <>
@@ -628,6 +640,14 @@ function FileDisplay({
                       lastModified={lastModified}
                       size={size}
                     />
+                    {isEditable && (
+                      <FileView.AdaptiveButtonLayout
+                        className={classes.button}
+                        icon="edit"
+                        label="Edit"
+                        onClick={handleEdit}
+                      />
+                    )}
                     {!!viewModes.modes.length && (
                       <FileView.ViewModeSelector
                         className={classes.button}
