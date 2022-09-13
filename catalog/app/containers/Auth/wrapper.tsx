@@ -16,9 +16,16 @@ import { check } from './actions'
 import { InvalidToken } from './errors'
 import * as selectors from './selectors'
 
+const useErrorScreenStyles = M.makeStyles({
+  button: {
+    marginLeft: '1em',
+  },
+})
+
 const ErrorScreen = () => {
   const dispatch = redux.useDispatch()
   const retry = React.useCallback(() => dispatch(check()), [dispatch])
+  const classes = useErrorScreenStyles()
 
   return (
     <Layout>
@@ -30,7 +37,7 @@ const ErrorScreen = () => {
             <M.Button
               variant="contained"
               color="primary"
-              style={{ marginLeft: '1em' }}
+              className={classes.button}
               onClick={retry}
             >
               Retry
