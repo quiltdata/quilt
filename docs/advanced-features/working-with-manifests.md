@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 Every data package is backed by a **manifest**. A manifest is a self-contained reference sheet for a package, containing all of the files data and metadata necessary to work with a package.
 
 Every time you save a data package to a registry you also save its manifest. You can inspect the manifest yourself using the `manifest` property:

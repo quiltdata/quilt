@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Querying package metadata with Athena
 
 Quilt stores package data and metadata in S3. Each package revision is serialized 

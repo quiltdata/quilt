@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import { detect } from 'components/FileEditor/loader'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -102,18 +103,34 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
       hl: 'python',
       contents: dedent`
         import quilt3 as q3
-        # browse
+        # Browse
         p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # download (be mindful of large packages)
+        # make changes to package adding individual files
+        p.set("data.csv", "data.csv")
+        # or whole directories
+        p.set_dir("subdir", "subdir")
+        # and push changes
+        q3.Package.push("${name}", registry="s3://${bucket}", message="Hello World")
+
+        # Download (be mindful of large packages)
         q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
       `,
     },
     {
       label: 'CLI',
       hl: 'bash',
-      contents: dedent`
-        quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
-      `,
+      contents:
+        dedent`
+          # Download package
+          quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
+        ` +
+        (!path
+          ? dedent`\n
+              # Upload package
+              echo "Hello World" > README.md
+              quilt3 push "${name}" --registry s3://${bucket} --dir .
+            `
+          : ''),
     },
     {
       label: 'URI',
@@ -395,9 +412,6 @@ function DirDisplay({
           const downloadPath = path
             ? `package/${bucket}/${name}/${hash}/${path}`
             : `package/${bucket}/${name}/${hash}`
-          const hasRevisionMenu =
-            preferences?.ui?.actions?.deleteRevision ||
-            preferences?.ui?.actions?.openInDesktop
           // TODO: disable if nothing to revise on desktop
           const hasReviseButton = preferences?.ui?.actions?.revisePackage
 
@@ -431,13 +445,11 @@ function DirDisplay({
                   onClick={openInDesktopState.confirm}
                   path={downloadPath}
                 />
-                {hasRevisionMenu && (
-                  <RevisionMenu
-                    className={classes.button}
-                    onDelete={confirmDelete}
-                    onDesktop={openInDesktopState.confirm}
-                  />
-                )}
+                <RevisionMenu
+                  className={classes.button}
+                  onDelete={confirmDelete}
+                  onDesktop={openInDesktopState.confirm}
+                />
               </TopBar>
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
@@ -547,6 +559,17 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
+  const isEditable = detect(path) && hashOrTag === 'latest'
+  const handleEdit = React.useCallback(() => {
+    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+    const editUrl = urls.bucketFile(bucket, join(name, path), {
+      add: true,
+      edit: true,
+      next,
+    })
+    history.push(editUrl)
+  }, [bucket, history, name, path, urls])
+
   const renderProgress = () => (
     // TODO: skeleton placeholder
     <>
@@ -617,6 +640,14 @@ function FileDisplay({
                       lastModified={lastModified}
                       size={size}
                     />
+                    {isEditable && (
+                      <FileView.AdaptiveButtonLayout
+                        className={classes.button}
+                        icon="edit"
+                        label="Edit"
+                        onClick={handleEdit}
+                      />
+                    )}
                     {!!viewModes.modes.length && (
                       <FileView.ViewModeSelector
                         className={classes.button}

@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 ## Why metadata matters
 
 Data without labels and documentation quickly become meaningless. In Quilt,

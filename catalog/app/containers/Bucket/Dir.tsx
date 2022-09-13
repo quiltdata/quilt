@@ -1,4 +1,4 @@
-import { basename, join } from 'path'
+import { basename, join, extname } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -8,6 +8,8 @@ import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
+import * as Dialog from 'components/Dialog'
+import { detect } from 'components/FileEditor/loader'
 import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -23,11 +25,62 @@ import type * as workflows from 'utils/workflows'
 import Code from './Code'
 import * as FileView from './FileView'
 import { Item, Listing, PrefixFilter } from './Listing'
+import Menu from './Menu'
 import * as PD from './PackageDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+interface DirectoryMenuProps {
+  bucket: string
+  className?: string
+  path: string
+}
+
+function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const history = RRDom.useHistory()
+
+  const createFile = React.useCallback(
+    (name: string) => {
+      if (!name) return
+      history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
+    },
+    [bucket, history, path, urls],
+  )
+  const validateFileName = React.useCallback((value: string) => {
+    if (!value) {
+      return new Error('File name is required')
+    }
+    if (!detect(value).brace || extname(value) === '.' || !extname(value)) {
+      // TODO: get list of supported extensions from FileEditor
+      return new Error('Supported file formats are JSON, Markdown, YAML and text')
+    }
+  }, [])
+  const prompt = Dialog.usePrompt({
+    onSubmit: createFile,
+    initialValue: 'README.md',
+    title: 'Enter file name',
+    validate: validateFileName,
+  })
+  const menuItems = React.useMemo(
+    () => [
+      {
+        onClick: prompt.open,
+        title: 'Create file',
+      },
+    ],
+    [prompt.open],
+  )
+
+  return (
+    <>
+      {prompt.render()}
+      <Menu className={className} items={menuItems} />
+    </>
+  )
+}
 
 const useAddToBookmarksStyles = M.makeStyles((t) => ({
   root: {
@@ -105,7 +158,17 @@ function AddToBookmarks({
 
 interface RouteMap {
   bucketDir: [bucket: string, path?: string, prefix?: string]
-  bucketFile: [bucket: string, path: string, version?: string]
+  bucketFile: [
+    bucket: string,
+    path: string,
+    options?: {
+      add?: boolean
+      edit?: boolean
+      mode?: string
+      next?: string
+      version?: string
+    },
+  ]
 }
 
 type Urls = NamedRoutes.Urls<RouteMap>
@@ -363,6 +426,7 @@ export default function Dir({
             label="Download directory"
           />
         )}
+        <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
       </M.Box>
 
       {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
