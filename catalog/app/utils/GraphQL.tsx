@@ -100,6 +100,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           PackageDir: () => null,
           PackageFile: () => null,
           PackageList: () => null,
+          // XXX: is r.modified a string here?
           PackageRevision: (r) =>
             r.hash ? `${r.hash}:${r.modified?.valueOf() || ''}` : null,
           PackageRevisionList: () => null,
@@ -109,6 +110,8 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
           Status: () => null,
+          StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
+          StatusReportList: () => null,
           TestStats: () => null,
           TestStatsTimeSeries: () => null,
         },
