@@ -84,7 +84,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
 
   // Custom query content, not associated with queryMeta
   const [customQueryBody, setCustomQueryBody] =
-    React.useState<requests.ElasticSearchQuery>(QUERY_PLACEHOLDER)
+    React.useState<requests.ElasticSearchQuery>(null)
 
   // Query content requested to Elastic Search
   const [queryRequest, setQueryRequest] =
@@ -183,10 +183,9 @@ const QUERY_PLACEHOLDER = {
 }
 
 const isButtonDisabled = (
-  queryContent: requests.ElasticSearchQuery,
   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
   error: Error | null,
-): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
+): boolean => !!error || !!resultsData.case({ Pending: R.T, _: R.F })
 
 interface ElastiSearchProps extends RouteComponentProps<{ bucket: string }> {}
 
@@ -228,24 +227,20 @@ export default function ElastiSearch({
           {queryData.case({
             Init: () => (
               <Form
-                disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
+                disabled={isButtonDisabled(resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
-                value={customQueryBody}
+                value={customQueryBody || QUERY_PLACEHOLDER}
               />
             ),
             Ok: (queryBody: requests.ElasticSearchQuery) => (
               <Form
-                disabled={isButtonDisabled(
-                  customQueryBody || queryBody,
-                  resultsData,
-                  queryBodyError,
-                )}
+                disabled={isButtonDisabled(resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
-                value={customQueryBody || queryBody}
+                value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
               />
             ),
             Err: (error: Error) => (
