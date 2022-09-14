@@ -85,7 +85,7 @@ with your R scripts to create a unified workflow:
 
 ```bash
 quilt3 install
-[Run R commands or script(s)]
+[Run R commands or scripts]
 quilt3 push
 ```
 
