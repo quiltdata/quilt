@@ -26,8 +26,8 @@ function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
           <M.Typography variant="h5">JSON editor is empty</M.Typography>
           <M.Typography variant="body1">
             Start filling empty rows as in Excel. You can enter values by hand. Type{' '}
-            <Code>{`{}`}</Code> to create objects, or <Code>{`[]`}</Code> to create
-            arrays, and then traverse it to enter properties.
+            <Code>{`{}`}</Code> to create an object, or <Code>{`[]`}</Code> to create
+            an array, and then traverse it to enter properties.
           </M.Typography>
           <video src={illustrationEnterValues} width="100%" autoPlay loop />
         </M.CardContent>
