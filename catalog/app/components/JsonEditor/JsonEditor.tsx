@@ -232,7 +232,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
       {multiColumned && !md && (
         <EmptyState
           className={classes.help}
-          noValue={R.isEmpty(columns[0].parent)}
+          noValue={!columns[0].parent || R.isEmpty(columns[0].parent)}
           notExpanded={columnsView.length < 2}
         />
       )}
