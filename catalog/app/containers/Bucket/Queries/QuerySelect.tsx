@@ -54,7 +54,7 @@ export default function QuerySelect<T>({
           classes={{ root: classes.select }}
           disabled={!queries.length}
           onChange={handleChange}
-          value={value ? value.key : 'none'}
+          value={value?.key || 'none'}
         >
           <M.MenuItem disabled value="none">
             <M.ListItemText>Custom</M.ListItemText>
