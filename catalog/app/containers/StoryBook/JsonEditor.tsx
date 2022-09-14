@@ -30,19 +30,20 @@ export default function JsonEditorBook() {
     <M.Container maxWidth="lg">
       <M.Box bgcolor="common.white" py={2}>
         <JsonEditor
-          multiColumned
           errors={[]}
-          value={null}
+          multiColumned
           onChange={noop}
+          schema={schema}
+          value={null}
         />
       </M.Box>
       <M.Box bgcolor="common.white" py={2}>
         <JsonEditor
           errors={errors}
-          value={value}
+          multiColumned
           onChange={onChange}
           schema={schema}
-          multiColumned
+          value={value}
         />
       </M.Box>
     </M.Container>
