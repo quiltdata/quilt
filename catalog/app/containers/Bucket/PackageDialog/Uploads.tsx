@@ -4,12 +4,13 @@ import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 
-import type { LocalFile, ExistingFile } from './FilesInput'
+import type { LocalFile } from './FilesInput'
 
 interface UploadResult extends S3.ManagedUpload.SendData {
   VersionId: string
@@ -150,7 +151,7 @@ export function useUploads() {
                 hash: f.file.hash.value,
                 meta: getMeta?.(f.path),
               },
-            ] as R.KeyValuePair<string, ExistingFile>,
+            ] as R.KeyValuePair<string, Model.PackageEntry>,
         ),
         R.fromPairs,
       )

@@ -11,7 +11,6 @@ import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
-import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 import * as workflows from 'utils/workflows'
@@ -249,22 +248,11 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
 
   const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
 
-  try {
-    const response = await fetchFile({ s3, bucket, path: key, version })
-    return JSON.parse(response.Body.toString('utf-8'))
-  } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
-
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-  }
-
-  return null
+  const response = await fetchFile({ s3, bucket, path: key, version })
+  return JSON.parse(response.Body.toString('utf-8'))
 }
 
-const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+export const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 // TODO: enable this when backend is ready
 // const WORKFLOWS_CONFIG_PATH = [
 //   '.quilt/workflows/config.yaml',
@@ -324,8 +312,10 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       bucket,
       key,
       version: h.VersionId,
+      size: h.ContentLength,
       deleted: !!h.DeleteMarker,
       archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
+      lastModified: parseDate(h.LastModified),
     })
   } catch (e) {
     if (e.code === 405 && version != null) {
@@ -672,11 +662,10 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     console.log('Error loading summary:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    throw e
   }
 }
 
-const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
 
 const withCalculatedRevisions = (s) => ({
@@ -700,8 +689,6 @@ const withCalculatedRevisions = (s) => ({
     `,
   },
 })
-
-const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
 const TIMESTAMP_RE_SRC = '[0-9]{10}'
 
@@ -735,28 +722,10 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
-function tryParse(s) {
-  try {
-    return JSON.parse(s)
-  } catch (e) {
-    return undefined
-  }
-}
-
-export const loadRevisionHash = async ({ s3, bucket, name, id }) =>
-  s3
-    .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
-    .promise()
-    .then((res) => ({
-      modified: res.LastModified,
-      hash: res.Body.toString('utf-8'),
-    }))
-
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
 const MAX_PACKAGE_ENTRIES = 500
 
-export const MANIFEST_MAX_SIZE = 10 * 1000 * 1000
-
+// TODO: remove
 export const getRevisionData = async ({
   endpoint,
   sign,
@@ -779,60 +748,6 @@ export const getRevisionData = async ({
     stats: { files, bytes, truncated },
     message: header.message,
     header,
-  }
-}
-
-export async function loadManifest({
-  s3,
-  bucket,
-  name,
-  hash: maybeHash,
-  maxSize = MANIFEST_MAX_SIZE,
-}) {
-  try {
-    const hash =
-      maybeHash ||
-      (await loadRevisionHash({ s3, bucket, name, id: 'latest' }).then(R.prop('hash')))
-    const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-
-    if (maxSize) {
-      const h = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
-      if (h.ContentLength > maxSize) {
-        throw new errors.ManifestTooLarge({
-          bucket,
-          key: manifestKey,
-          maxSize,
-          actualSize: h.ContentLength,
-        })
-      }
-    }
-
-    const m = await s3.getObject({ Bucket: bucket, Key: manifestKey }).promise()
-    const [header, ...rawEntries] = pipeThru(m.Body.toString('utf-8'))(
-      R.split('\n'),
-      R.map(tryParse),
-      R.filter(Boolean),
-    )
-    const entries = pipeThru(rawEntries)(
-      R.map((e) => [
-        e.logical_key,
-        {
-          hash: e.hash.value,
-          physicalKey: e.physical_keys[0],
-          size: e.size,
-          meta: e.meta,
-        },
-      ]),
-      R.fromPairs,
-    )
-    return { entries, meta: header.user_meta, workflow: header.workflow }
-  } catch (e) {
-    if (e instanceof errors.ManifestTooLarge) throw e
-    // eslint-disable-next-line no-console
-    console.log('loadManifest error:')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
   }
 }
 
@@ -925,15 +840,3 @@ export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today })
     today,
     window: 365,
   })
-
-export const ensurePackageIsPresent = async ({ s3, bucket, name }) => {
-  const response = await s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Prefix: `${PACKAGES_PREFIX}${name}/`,
-      MaxKeys: 1,
-      EncodingType: 'url',
-    })
-    .promise()
-  return !!response.KeyCount
-}

@@ -21,8 +21,9 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
 
-import { usePackageUpdateDialog } from '../PackageUpdateDialog'
+import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
+import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
 
 import REVISION_COUNT_QUERY from './gql/RevisionCount.generated'
@@ -167,6 +168,11 @@ const useRevisionLayoutStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  base: {
+    [t.breakpoints.up('sm')]: {
+      position: 'relative',
+    },
+  },
 }))
 
 interface RevisionLayoutProps {
@@ -188,12 +194,24 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
   const sparklineH = xs ? 32 : 48
   return (
     <M.Paper className={classes.root}>
-      <M.Box pt={2} pl={2} pr={25}>
-        {link}
-      </M.Box>
-      <M.Box py={1} pl={2} pr={xs ? 2 : Math.ceil(sparklineW / t.spacing(1) + 1)}>
-        {msg}
-      </M.Box>
+      <div className={classes.base}>
+        <M.Box pt={2} pl={2} pr={25}>
+          {link}
+        </M.Box>
+        <M.Box py={1} pl={2} pr={xs ? 2 : Math.ceil(sparklineW / t.spacing(1) + 1)}>
+          {msg}
+        </M.Box>
+        <M.Box
+          position="absolute"
+          right={0}
+          bottom={0}
+          top={{ xs: 'auto', sm: 16 }}
+          height={{ xs: 64, sm: 'auto' }}
+          width={sparklineW}
+        >
+          {counts({ sparklineW, sparklineH })}
+        </M.Box>
+      </div>
       {!!meta && (
         <M.Hidden xsDown>
           <M.Divider />
@@ -223,16 +241,6 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }: RevisionLayout
         color="text.secondary"
       >
         {stats}
-      </M.Box>
-      <M.Box
-        position="absolute"
-        right={0}
-        bottom={{ xs: 0, sm: 49 }}
-        top={{ xs: 'auto', sm: 16 }}
-        height={{ xs: 64, sm: 'auto' }}
-        width={sparklineW}
-      >
-        {counts({ sparklineW, sparklineH })}
       </M.Box>
     </M.Paper>
   )
@@ -398,17 +406,16 @@ function Revision({
 
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
-export default function PackageRevisions({
-  match: {
-    params: { bucket, name },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+interface PackageRevisionsProps {
+  bucket: string
+  name: string
+  page?: number
+}
+
+export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const preferences = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
-  const { p } = parseSearch(location.search, true)
-  const page = p ? parseInt(p, 10) : undefined
   const actualPage = page || 1
 
   const makePageUrl = React.useCallback(
@@ -429,38 +436,26 @@ export default function PackageRevisions({
   const revisionCountQuery = useQuery({
     query: REVISION_COUNT_QUERY,
     variables: { bucket, name },
-    requestPolicy: 'cache-and-network',
   })
   const revisionListQuery = useQuery({
     query: REVISION_LIST_QUERY,
     variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
-    requestPolicy: 'cache-and-network',
   })
 
-  const refreshData = React.useCallback(() => {
-    revisionCountQuery.run({ requestPolicy: 'cache-and-network' })
-    revisionListQuery.run({ requestPolicy: 'cache-and-network' })
-  }, [revisionCountQuery, revisionListQuery])
-
-  const onExited = React.useCallback(
-    (res) => {
-      // refresh data if new revision of current package was pushed
-      if (res?.pushed?.name === name) {
-        refreshData()
-        return true
-      }
-      return false
-    },
-    [name, refreshData],
-  )
-
-  const updateDialog = usePackageUpdateDialog({ bucket, name, onExited })
+  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <MetaTitle>{[name, bucket]}</MetaTitle>
-
-      {updateDialog.element}
+      {updateDialog.render({
+        resetFiles: 'Undo changes',
+        submit: 'Push',
+        successBrowse: 'Browse',
+        successTitle: 'Push complete',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package revision {packageLink} successfully created</>
+        ),
+        title: 'Push package revision',
+      })}
 
       <M.Box
         pt={{ xs: 2, sm: 3 }}
@@ -478,7 +473,7 @@ export default function PackageRevisions({
             variant="contained"
             color="primary"
             style={{ marginTop: -3, marginBottom: -3 }}
-            onClick={updateDialog.open}
+            onClick={() => updateDialog.open()}
           >
             Revise package
           </M.Button>
@@ -522,6 +517,24 @@ export default function PackageRevisions({
         },
       })}
     </M.Box>
+  )
+}
+
+export default function PackageRevisionsWrapper({
+  match: {
+    params: { bucket, name },
+  },
+  location,
+}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+  const { p } = parseSearch(location.search, true)
+  const page = p ? parseInt(p, 10) : undefined
+  return (
+    <>
+      <MetaTitle>{[name, bucket]}</MetaTitle>
+      <WithPackagesSupport bucket={bucket}>
+        <PackageRevisions {...{ bucket, name, page }} />
+      </WithPackagesSupport>
+    </>
   )
 }
 

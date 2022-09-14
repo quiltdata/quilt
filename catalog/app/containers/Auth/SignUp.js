@@ -6,6 +6,7 @@ import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Placeholder from 'components/Placeholder'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
@@ -13,6 +14,7 @@ import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
 import useMutex from 'utils/useMutex'
+import * as RT from 'utils/reactTools'
 import validate, * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
@@ -24,7 +26,14 @@ import { signUp } from './actions'
 import * as errors from './errors'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout('Complete sign-up')
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
+
+const StrenghtenPasswordField = RT.mkLazy(
+  () => import('./StrenghtenPasswordField'),
+  SuspensePlaceholder,
+)
+
+const Container = Layout.mkLayout('Sign Up')
 
 const MUTEX_ID = 'password'
 
@@ -32,6 +41,16 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
+
+  const [email, setEmail] = React.useState('')
+  const [username, setName] = React.useState('')
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      if (email !== values.email) setEmail(values.email)
+      if (username !== values.username) setName(values.username)
+    },
+    [email, username],
+  )
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -73,6 +92,12 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             password: 'invalid',
           }
         }
+        if (e instanceof errors.NoDefaultRole) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'noDefaultRole',
+          }
+        }
         if (e instanceof errors.SMTPError) {
           // eslint-disable-next-line consistent-return
           return {
@@ -104,6 +129,7 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
         submitting,
       }) => (
         <form onSubmit={handleSubmit}>
+          <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
           <RF.Field
             component={Layout.Field}
             name="username"
@@ -143,15 +169,15 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <RF.Field
-            component={Layout.Field}
+            component={StrenghtenPasswordField}
             name="password"
-            type="password"
             validate={validators.required}
+            username={username}
+            email={email}
             disabled={!!mutex.current || submitting}
-            floatingLabelText="Password"
             errors={{
               required: 'Enter a password',
-              invalid: 'Password must be at least 8 characters long',
+              invalid: 'Password must be between 8 and 64 characters long',
             }}
           />
           <RF.Field
@@ -177,6 +203,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             errors={{
               unexpected: 'Something went wrong. Try again later.',
               smtp: 'SMTP error: contact your administrator',
+              noDefaultRole:
+                'Unable to assign role. Ask your Quilt administrator to set a default role.',
             }}
           />
           <Layout.Actions>

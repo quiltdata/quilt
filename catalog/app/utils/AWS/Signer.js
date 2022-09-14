@@ -4,6 +4,7 @@ import * as redux from 'react-redux'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import { handleToHttpsUri } from 'utils/s3paths'
 
 import * as Credentials from './Credentials'
@@ -15,26 +16,33 @@ const LAG = POLL_INTERVAL * 3
 
 const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
 
-export function useS3Signer({ urlExpiration: exp } = {}) {
+export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const ctx = React.useContext(Ctx)
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
   const authenticated = redux.useSelector(authSelectors.authenticated)
-  const { mode } = Config.useConfig()
+  const cfg = Config.useConfig()
   const isInStack = BucketConfig.useIsInStack()
+  const statusReportsBucket = useStatusReportsBucket()
   const s3 = S3.use()
+  const inStackOrSpecial = React.useCallback(
+    (b) => isInStack(b) || cfg.analyticsBucket === b || statusReportsBucket === b,
+    [isInStack, cfg.analyticsBucket, statusReportsBucket],
+  )
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
-      mode !== 'OPEN' && (mode === 'LOCAL' || (isInStack(bucket) && authenticated))
+      cfg.mode !== 'OPEN' &&
+      (cfg.mode === 'LOCAL' || (inStackOrSpecial(bucket) && authenticated))
         ? s3.getSignedUrl('getObject', {
             Bucket: bucket,
             Key: key,
             VersionId: version,
             Expires: urlExpiration,
+            forceProxy,
             ...opts,
           })
         : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
-    [mode, isInStack, authenticated, s3, urlExpiration],
+    [cfg.mode, inStackOrSpecial, authenticated, s3, urlExpiration, forceProxy],
   )
 }
 
@@ -51,13 +59,14 @@ function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
   }, [interval])
 }
 
-export function useDownloadUrl(handle) {
+export function useDownloadUrl(handle, { filename = '', contentType = '' } = {}) {
   const { urlExpiration } = React.useContext(Ctx)
   const sign = useS3Signer()
+  const filenameSuffix = filename ? `; filename="${filename}"` : ''
   const doSign = () => ({
     url: sign(handle, {
-      ResponseContentDisposition: 'attachment',
-      ResponseContentType: 'binary/octet-stream',
+      ResponseContentDisposition: `attachment${filenameSuffix}`,
+      ResponseContentType: contentType || 'binary/octet-stream',
     }),
     ts: Date.now(),
   })

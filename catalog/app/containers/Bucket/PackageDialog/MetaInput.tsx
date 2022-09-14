@@ -223,7 +223,6 @@ interface MetaInputProps {
   schema?: JsonSchema
 }
 
-// FIXME: disabled state
 export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
   function MetaInput(
     { className, schemaError, input: { value, onChange }, meta, schema },
@@ -241,7 +240,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const onChangeFullscreen = React.useCallback(
       (json: JsonRecord) => {
         setJsonInlineEditorKey(R.inc)
-        onChange(json)
+        // NOTE: `json` may have `target` field and make react-final-form think it's an event not value
+        //       so, let's create "event" voluntarily
+        //       https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange
+        onChange({ target: { value: json } })
       },
       [onChange],
     )
@@ -249,7 +251,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const onChangeInline = React.useCallback(
       (json: JsonRecord) => {
         setJsonFullscreenEditorKey(R.inc)
-        onChange(json)
+        // NOTE: `json` may have `target` field and make react-final-form think it's an event not value
+        //       so, let's create "event" voluntarily
+        //       https://final-form.org/docs/react-final-form/types/FieldRenderProps#inputonchange
+        onChange({ target: { value: json } })
       },
       [onChange],
     )
@@ -324,9 +329,10 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           </M.Typography>
           <M.Button
             className={classes.jsonTrigger}
+            disabled={disabled}
             onClick={openEditor}
-            title="Expand JSON editor"
             size="small"
+            title="Expand JSON editor"
             variant="outlined"
             endIcon={
               <M.Icon fontSize="inherit" color="primary">
@@ -353,11 +359,12 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
             <div className={classes.json}>
               <JsonEditor
+                disabled={disabled}
+                errors={errors}
                 key={jsonInlineEditorKey}
-                value={value}
                 onChange={onChangeInline}
                 schema={schema}
-                errors={errors}
+                value={value}
               />
             </div>
 

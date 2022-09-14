@@ -159,8 +159,8 @@ class Bucket:
             recursive (bool): show subdirectories and their contents as well
 
         Returns:
-            ``list``: Return value structure has not yet been permanently decided
-            Currently, it's a ``tuple`` of ``list`` objects, containing the
+            `list`: Return value structure has not yet been permanently decided
+            Currently, it's a `tuple` of `list` objects, containing the
             following: (directory info, file/object info, delete markers).
         """
         if path and not path.endswith('/'):

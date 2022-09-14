@@ -42,7 +42,7 @@ function ObjectCrumbs({ handle, showBucket = false }) {
       children: label,
     }))
     const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
+      to: urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
       children: R.last(all).label,
     }
     const bucket = showBucket
@@ -198,7 +198,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         <Nowrap>
           Version{' '}
           <StyledLink
-            to={urls.bucketFile(bucket, path, version.id)}
+            to={urls.bucketFile(bucket, path, { version: version.id })}
             className={classes.version}
           >
             {clip(version.id, 24)}
@@ -228,7 +228,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               className={classes.versionContainer}
             >
               <StyledLink
-                to={urls.bucketFile(bucket, path, v.id)}
+                to={urls.bucketFile(bucket, path, { version: v.id })}
                 className={classes.version}
               >
                 {clip(v.id, 6)}
@@ -288,6 +288,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
       rgba(255, 255, 255, 0.1)
     )`,
     bottom: 0,
+    cursor: 'pointer',
     display: 'flex',
     height: '100%',
     justifyContent: 'center',
@@ -299,12 +300,8 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title }) {
+function PreviewBox({ children, title, expanded, onExpand }) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(false)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <SmallerSection>
       {title && <SectionHeading>{title}</SectionHeading>}
@@ -313,10 +310,8 @@ function PreviewBox({ children, title }) {
         {children}
 
         {!expanded && (
-          <div className={classes.fade}>
-            <M.Button variant="outlined" onClick={expand}>
-              Expand
-            </M.Button>
+          <div className={classes.fade} onClick={onExpand}>
+            <M.Button variant="outlined">Expand</M.Button>
           </div>
         )}
       </div>
@@ -324,9 +319,15 @@ function PreviewBox({ children, title }) {
   )
 }
 
-const renderContents = (children) => <PreviewBox {...{ children }} />
+const previewOptions = { context: Preview.CONTEXT.LISTING }
 
 function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
   const withData = (callback) =>
     bucketExistenceData.case({
       _: callback,
@@ -350,7 +351,7 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
                   AsyncResult.Err(Preview.PreviewError.Archived({ handle })),
                 )
               }
-              return Preview.load(handle, callback)
+              return Preview.load(handle, callback, previewOptions)
             },
             DoesNotExist: () =>
               callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
@@ -358,14 +359,21 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
         }),
     })
 
-  return withData(Preview.display({ renderContents }))
+  return withData(
+    Preview.display({
+      renderContents,
+      renderProgress: Progress,
+    }),
+  )
 }
 
 function Meta({ meta }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata">
+    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
       <JsonDisplay defaultExpanded={1} value={meta} />
     </PreviewBox>
   )
@@ -449,7 +457,12 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
     })
 
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="file"
+      data-search-hit-bucket={bucket}
+      data-search-hit-path={path}
+    >
       <ObjectHeader {...{ handle, showBucket, downloadable }} />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
@@ -468,7 +481,12 @@ function DirHit({
 }) {
   const handle = { bucket, key: path }
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="dir"
+      data-search-hit-bucket={bucket}
+      data-search-hit-path={path}
+    >
       <ObjectHeader {...{ handle, showBucket }} />
       <Meta meta={v.meta} />
     </Section>
@@ -480,7 +498,13 @@ function PackageHit({
   hit: { bucket, handle, hash, lastModified, meta, tags, comment },
 }) {
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="package"
+      data-search-hit-bucket={bucket}
+      data-search-hit-package-name={handle}
+      data-search-hit-package-hash={hash}
+    >
       <PackageHeader {...{ handle, bucket, hash, showBucket }} />
       <RevisionInfo {...{ bucket, handle, hash, comment, lastModified }} />
       {tags && tags.length > 0 && (

@@ -72,3 +72,5 @@ export const enumType = <E extends typeof Enum>(e: E, name: string = 'enum') =>
   new EnumType<E>(e, name)
 
 export { enumType as enum }
+
+export type AtLeast<T, K extends keyof T> = Partial<T> & Pick<T, K>

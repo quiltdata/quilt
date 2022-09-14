@@ -1,3 +1,6 @@
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
+
 ## `build` versus `push`
 
 `build` and `push` have the following behaviors:

@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Summary
 
 * [Introduction](README.md)
@@ -29,6 +30,7 @@
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
 * [Visualization & dashboards](Catalog/VisualizationDashboards.md)
+* [Local Development Mode](Catalog/LocalMode.md)
 
 ### Examples
 * [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
@@ -42,6 +44,9 @@
 * [Workflows](advanced-features/workflows.md)
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
+* [Cross-account access](CrossAccount.md)
+* [Querying Metadata with Athena](advanced-features/athena.md)
+* [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)

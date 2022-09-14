@@ -8,6 +8,7 @@ import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
 import * as urls from 'constants/urls'
+import * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
@@ -16,7 +17,7 @@ import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
-import { JsonRecord } from 'utils/types'
+import * as Types from 'utils/types'
 
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
@@ -36,7 +37,7 @@ interface FileWithHash extends File {
     error?: Error
     promise: Promise<string | undefined>
   }
-  meta?: JsonRecord
+  meta?: Types.JsonRecord
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
@@ -70,14 +71,10 @@ export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
     Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
-    AddFromS3: (v: {
-      files: S3FilePicker.S3File[]
-      basePrefix: string
-      prefix?: string
-    }) => v,
+    AddFromS3: (v: { files: Model.S3File[]; basePrefix: string; prefix?: string }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
-    Meta: (v: { path: string; meta: JsonRecord }) => v,
+    Meta: (v: { path: string; meta: Types.JsonRecord }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -87,35 +84,20 @@ export const FilesAction = tagged.create(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
-// XXX: we probably should move this out to a more appropriate place
-export interface ExistingFile {
-  physicalKey: string
-  hash: string
-  meta: JsonRecord
-  size: number
-}
-
-export interface PartialExistingFile {
-  physicalKey: string
-  hash?: string
-  meta?: JsonRecord
-  size?: number
-}
-
 export type LocalFile = FileWithPath & FileWithHash
 
 export interface FilesState {
-  added: Record<string, LocalFile | S3FilePicker.S3File>
+  added: Record<string, LocalFile | Model.S3File>
   deleted: Record<string, true>
-  existing: Record<string, ExistingFile>
+  existing: Record<string, Model.PackageEntry>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
 }
 
 const addMetaToFile = (
-  file: ExistingFile | LocalFile | S3FilePicker.S3File,
-  meta: JsonRecord,
+  file: Model.PackageEntry | LocalFile | Model.S3File,
+  meta: Types.JsonRecord,
 ) => {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
@@ -183,22 +165,16 @@ const handleFilesAction = FilesAction.match<
       ...rest,
     }),
   Meta: ({ path, meta }) => {
-    // TODO: use one function and type overload
-    const setMetaToAddedFile = (
-      filesDict: Record<string, LocalFile | S3FilePicker.S3File>,
-    ) => {
-      const file = filesDict[path]
-      if (!file) return filesDict
-      return R.assoc(path, addMetaToFile(file, meta), filesDict)
-    }
-    const setMetaToExistingFile = (filesDict: Record<string, ExistingFile>) => {
-      const file = filesDict[path]
-      if (!file) return filesDict
-      return R.assoc(path, addMetaToFile(file, meta), filesDict)
-    }
+    const mkSetMeta =
+      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      (filesDict: Record<string, T>) => {
+        const file = filesDict[path]
+        if (!file) return filesDict
+        return R.assoc(path, addMetaToFile(file, meta), filesDict)
+      }
     return R.evolve({
-      added: setMetaToAddedFile,
-      existing: setMetaToExistingFile,
+      added: mkSetMeta<LocalFile | Model.S3File>(),
+      existing: mkSetMeta<Model.PackageEntry>(),
     })
   },
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
@@ -235,7 +211,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
-    meta?: JsonRecord
+    meta?: Types.JsonRecord | null
   }) => v,
 })
 
@@ -256,6 +232,7 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
   return FilesEntry.Dir({ name, state, childEntries: newChildren })
 }
 
+// eslint-disable-next-line @typescript-eslint/default-param-last
 const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEntry[]) => {
   let inserted = file
   let restEntries = entries
@@ -287,7 +264,7 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
-  meta?: JsonRecord
+  meta?: Types.JsonRecord | null
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
@@ -492,9 +469,9 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
-  meta?: JsonRecord
+  meta?: Types.JsonRecord | null
   metaDisabled?: boolean
-  onMeta?: (value: JsonRecord) => void
+  onMeta?: (value: Types.JsonRecord) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -657,7 +634,7 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   onHeadClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
+export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
     name,
     state = 'unchanged',
@@ -733,17 +710,22 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 }))
 
 interface DropzoneMessageProps {
+  label?: React.ReactNode
   error: React.ReactNode
   warn: { upload: boolean; s3: boolean; count: boolean }
 }
 
-function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
+export function DropzoneMessage({
+  label: defaultLabel,
+  error,
+  warn,
+}: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
     if (error) return <span>{error}</span>
     if (!warn.s3 && !warn.count && !warn.upload) {
-      return <span>Drop files here or click to browse</span>
+      return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
     }
     return (
       <div>
@@ -764,7 +746,7 @@ function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
         )}
       </div>
     )
-  }, [error, warn.upload, warn.s3, warn.count])
+  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
 
   return (
     <div
@@ -785,7 +767,10 @@ const useRootStyles = M.makeStyles({
   },
 })
 
-function Root({ className, ...props }: React.PropsWithChildren<{ className?: string }>) {
+export function Root({
+  className,
+  ...props
+}: React.PropsWithChildren<{ className?: string }>) {
   const classes = useRootStyles()
   return <div className={cx(classes.root, className)} {...props} />
 }
@@ -797,7 +782,7 @@ const useHeaderStyles = M.makeStyles({
   },
 })
 
-function Header(props: React.PropsWithChildren<{}>) {
+export function Header(props: React.PropsWithChildren<{}>) {
   const classes = useHeaderStyles()
   return <div className={classes.root} {...props} />
 }
@@ -824,7 +809,7 @@ const useHeaderTitleStyles = M.makeStyles((t) => ({
 
 type HeaderTitleState = 'disabled' | 'error' | 'warn' | 'regular'
 
-function HeaderTitle({
+export function HeaderTitle({
   state = 'regular',
   ...props
 }: React.PropsWithChildren<{ state?: HeaderTitleState }>) {
@@ -872,7 +857,7 @@ const useLockStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Lock({
+export function Lock({
   progress,
 }: {
   progress?: {
@@ -935,7 +920,7 @@ type FilesContainerProps = React.PropsWithChildren<{
   noBorder?: boolean
 }>
 
-function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
+export function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
   const classes = useFilesContainerStyles()
   return (
     <div
@@ -970,7 +955,11 @@ type ContentsContainerProps = {
   outlined?: boolean
 } & React.HTMLAttributes<HTMLDivElement>
 
-function ContentsContainer({ outlined, className, ...props }: ContentsContainerProps) {
+export function ContentsContainer({
+  outlined,
+  className,
+  ...props
+}: ContentsContainerProps) {
   const classes = useContentsContainerStyles()
   return (
     <div
@@ -1013,7 +1002,7 @@ interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
   warn?: boolean
 }
 
-const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
+export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
   { interactive, active, error, warn, className, ...props },
   ref,
 ) {
@@ -1101,7 +1090,7 @@ function FileUpload({
   }, [])
 
   const onMeta = React.useCallback(
-    (m: JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
+    (m: Types.JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
 
@@ -1286,6 +1275,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 }))
 
 interface FilesInputProps {
+  initialS3Path?: string
   input: {
     value: FilesState
     onChange: (value: FilesState) => void
@@ -1299,6 +1289,7 @@ interface FilesInputProps {
     submitFailed: boolean
     dirty: boolean
     error?: string
+    submitError?: string
     initial: FilesState
   }
   onFilesAction?: (
@@ -1337,6 +1328,7 @@ export function FilesInput({
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
+  initialS3Path,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1355,7 +1347,7 @@ export function FilesInput({
   }
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const refProps = {
     value,
@@ -1435,7 +1427,7 @@ export function FilesInput({
     count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
   }
 
-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(initialS3Path != null)
 
   const closeS3FilePicker = React.useCallback(
     (reason: S3FilePicker.CloseReason) => {
@@ -1462,6 +1454,7 @@ export function FilesInput({
           selectBucket={selectBucket}
           open={s3FilePickerOpen}
           onClose={closeS3FilePicker}
+          initialPath={initialS3Path}
         />
       )}
       <Header>
@@ -1630,7 +1623,7 @@ interface FilesSelectorEntry {
   name: string
   selected: boolean
   size?: number
-  meta?: JsonRecord
+  meta?: Types.JsonRecord
 }
 
 export type FilesSelectorState = FilesSelectorEntry[]
@@ -1649,6 +1642,7 @@ interface FilesSelectorProps {
     submitFailed: boolean
     dirty: boolean
     error?: string
+    submitError?: string
     initial: FilesSelectorState
   }
   title: React.ReactNode
@@ -1667,7 +1661,7 @@ export function FilesSelector({
   const classes = useFilesSelectorStyles()
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const selected = React.useMemo(
     () => value.reduce((m, i) => (i.selected ? m + 1 : m), 0),

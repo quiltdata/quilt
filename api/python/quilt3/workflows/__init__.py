@@ -2,10 +2,10 @@ import functools
 import json
 import re
 import typing
+from importlib import resources
 
 import botocore.exceptions
 import jsonschema
-import pkg_resources
 import yaml
 
 from quilt3.data_transfer import get_bytes_and_effective_pk
@@ -59,7 +59,7 @@ class WorkflowValidationError(WorkflowErrorBase):
 
 @functools.lru_cache(maxsize=None)
 def _get_conf_validator():
-    schema = json.loads(pkg_resources.resource_string(__name__, 'config-1.schema.json'))
+    schema = json.loads(resources.read_text(__name__, 'config-1.schema.json'))
     return jsonschema.Draft7Validator(schema).validate
 
 

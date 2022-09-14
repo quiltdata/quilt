@@ -1,39 +1,42 @@
 import * as React from 'react'
-import * as M from '@material-ui/core'
+
+import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Config from 'utils/Config'
+
+import Menu from '../Menu'
 
 interface RevisionMenuProps {
   className: string
   onDelete: () => void
+  onDesktop: () => void
 }
 
-export default function RevisionMenu({ className, onDelete }: RevisionMenuProps) {
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+export default function RevisionMenu({
+  className,
+  onDelete,
+  onDesktop,
+}: RevisionMenuProps) {
+  const preferences = BucketPreferences.use()
+  const { desktop }: { desktop: boolean } = Config.use()
 
-  const handleOpen = React.useCallback(
-    (event) => {
-      setAnchorEl(event.target)
-    },
-    [setAnchorEl],
-  )
+  const items = React.useMemo(() => {
+    const menu = []
+    if (preferences?.ui?.actions?.deleteRevision) {
+      menu.push({
+        onClick: onDelete,
+        title: 'Delete revision',
+      })
+    }
+    if (preferences?.ui?.actions?.openInDesktop && !desktop) {
+      menu.push({
+        onClick: onDesktop,
+        title: 'Open in Teleport',
+      })
+    }
+    return menu
+  }, [desktop, onDelete, onDesktop, preferences])
 
-  const handleClose = React.useCallback(() => {
-    setAnchorEl(null)
-  }, [setAnchorEl])
+  if (!items.length) return null
 
-  const handleDeleteClick = React.useCallback(() => {
-    onDelete()
-    setAnchorEl(null)
-  }, [onDelete, setAnchorEl])
-
-  return (
-    <>
-      <M.IconButton className={className} onClick={handleOpen} size="small">
-        <M.Icon>more_vert</M.Icon>
-      </M.IconButton>
-
-      <M.Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleClose}>
-        <M.MenuItem onClick={handleDeleteClick}>Delete revision</M.MenuItem>
-      </M.Menu>
-    </>
-  )
+  return <Menu className={className} items={items} />
 }

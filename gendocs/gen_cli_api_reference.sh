@@ -5,7 +5,7 @@ touch cli.md
 
 gen_cmd_docs () {
     CMD=$1
-
+    echo "gen_cmd_docs: " ${CMD}
     echo '## `'${CMD}'`' >> cli.md
     echo '```' >> cli.md
     quilt3 ${CMD} -h >> cli.md

@@ -30,10 +30,7 @@ Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH
-    (/PATH is deprecated, use the `path` parameter instead),
-    in this case only the sub-package or the entry specified by PATH will
-    be downloaded.
+* __name(str)__:  Name of package to install.
 * __registry(str)__:  Registry where package is located.
     Defaults to the default remote registry.
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.
@@ -273,7 +270,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force=False)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -296,6 +293,9 @@ If `selector_fn('entry_1', pkg["entry_1"]) == False`,
 If `selector_fn('entry_1', pkg["entry_1"]) == True`,
 `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
+By default, push will not overwrite an existing package if its top hash does not match
+the parent hash of the package being pushed. Use `force=True` to skip the check.
+
 __Arguments__
 
 * __name__:  name for package in registry
@@ -306,13 +306,15 @@ __Arguments__
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3.
     The function takes in two arguments, logical_key and package_entry, and should return False if that
-    PackageEntry should be skipped during push. If for example you have a package where the files
-    are spread over multiple buckets and you add a single local file, you can use selector_fn to
-    only push the local file to s3 (instead of pushing all data to the destination bucket).
+    PackageEntry should not be copied to the destination registry during push.
+    If for example you have a package where the files are spread over multiple buckets
+    and you add a single local file, you can use selector_fn to only
+    push the local file to s3 (instead of pushing all data to the destination bucket).
 * __workflow__:  workflow ID or `None` to skip workflow validation.
     If not specified, the default workflow will be used.
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
 
+* __force__:  skip the top hash check and overwrite any existing package
 
 __Returns__
 
@@ -416,15 +418,12 @@ __Returns__
 a PackageEntry
 
 ## __slots__
-tuple() -> empty tuple
-tuple(iterable) -> tuple initialized from iterable's items
+Built-in immutable sequence.
+
+If no argument is given, the constructor returns an empty tuple.
+If iterable is specified the tuple is initialized from iterable's items.
 
 If the argument is a tuple, the return value is the same object.
-
-## physical_keys
-
-Deprecated
-
 
 ## PackageEntry.as\_dict(self)  {#PackageEntry.as\_dict}
 

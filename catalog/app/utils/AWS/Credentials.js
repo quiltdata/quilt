@@ -6,6 +6,7 @@ import * as redux from 'react-redux'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
+import { BaseError } from 'utils/error'
 import useMemoEq from 'utils/useMemoEq'
 
 class RegistryCredentials extends AWS.Credentials {
@@ -78,7 +79,16 @@ export function AWSCredentialsProvider({ children }) {
   return <Ctx.Provider value={useCredentialsMemo({ local })}>{children}</Ctx.Provider>
 }
 
+export class CredentialsError extends BaseError {
+  constructor(headline, detail, object) {
+    super(headline, { headline, detail, object })
+  }
+}
+
 export function useCredentials() {
+  const credentials = React.useContext(Ctx)
+  // TODO: find out real reason
+  if (!credentials) throw new CredentialsError('Session expired')
   return React.useContext(Ctx)
 }
 

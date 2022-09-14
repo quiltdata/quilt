@@ -1,3 +1,6 @@
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
+
 # Git-like operations for datasets and Jupyter notebooks
 
 `quilt3` provides a simple command-line for versioning large datasets and storing
@@ -71,7 +74,7 @@ quilt3 list-packages s3://YOUR_BUCKET
 ```
 
 In the Quilt catalog, you will now see a new package revision, complete with
-a README, data grid preview, and an interactive visualization in Altair.
+a README, datagrid preview, and an interactive visualization in Altair.
 
 ![](../imgs/reef1.png)
 ![](../imgs/reef2.png)

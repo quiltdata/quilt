@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Using Quilt with other services that consume S3 events
 
 By default, when you connect a bucket to Quilt, Quilt will create an S3
@@ -13,6 +14,7 @@ As such, services such as FSx and Quilt may clash.
 
 1. Provide Quilt with an SNS topic that receives ObjectRemoved:* and ObjectCreated:*
 from S3
+(see [Fanout S3 Event Notifications to Multiple Endpoints](https://aws.amazon.com/blogs/compute/fanout-s3-event-notifications-to-multiple-endpoints/))
 1. Use EventBridge to generate synthetic S3 events
 1. Avoid using S3 notifications by spinning resources (e.g. FSx clusters) up 
 "just in time" to avoid the need for live notification from S3
@@ -46,7 +48,7 @@ that you created above.
     ![](./imgs/event-target.png)
 1. Specify the Input transformer as follows:
     #### Input Path
-    ```
+    ```json
     {
         "awsRegion": "$.detail.awsRegion",
         "bucketName": "$.detail.requestParameters.bucketName",
@@ -58,7 +60,7 @@ that you created above.
     }
     ```
     #### Input Template
-    ```
+    ```json
     {
         "Records": [
             {

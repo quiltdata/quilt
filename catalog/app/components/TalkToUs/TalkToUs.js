@@ -51,11 +51,22 @@ function useSingletonListener() {
 const getCalendlyEvent = (e) =>
   e?.data?.event?.startsWith('calendly.') && e?.data?.event?.substring('calendly.'.length)
 
-export function TalkToUsProvider({ children }) {
+function useCalendlyLink() {
   const cfg = useConfig()
-  const t = useTracker()
+  return React.useCallback(
+    (extra) =>
+      extra?.src === 'bioit'
+        ? 'https://calendly.com/quilt-founders/quilt-at-bio-it-world'
+        : cfg.calendlyLink,
+    [cfg.calendlyLink],
+  )
+}
 
-  const calendlyP = cfg.calendlyLink ? getCalendlyPromise() : null
+export function TalkToUsProvider({ children }) {
+  const t = useTracker()
+  const getCalendlyLink = useCalendlyLink()
+
+  const calendlyP = getCalendlyLink() ? getCalendlyPromise() : null
 
   const listen = useSingletonListener()
 
@@ -69,7 +80,7 @@ export function TalkToUsProvider({ children }) {
         }
       }
 
-      if (!cfg.calendlyLink) {
+      if (!getCalendlyLink(extra)) {
         // eslint-disable-next-line no-console
         console.warn('Unable to open Calendly popup: missing Config.calendlyLink', extra)
         return
@@ -77,12 +88,12 @@ export function TalkToUsProvider({ children }) {
 
       calendlyP.then((C) => {
         listen('message', handleCalendlyEvent)
-        const urlData = new window.URL(cfg.calendlyLink)
+        const urlData = new window.URL(getCalendlyLink(extra))
         urlData.searchParams.append('hide_gdpr_banner', '1')
         C.initPopupWidget({ url: urlData.toString() })
       })
     },
-    [t, cfg.calendlyLink, calendlyP, listen],
+    [t, getCalendlyLink, calendlyP, listen],
   )
 
   return <Ctx.Provider value={showPopup}>{children}</Ctx.Provider>

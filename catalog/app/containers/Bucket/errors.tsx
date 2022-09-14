@@ -5,7 +5,7 @@ import { Route, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
-import * as Auth from 'containers/Auth'
+import { authenticated as authenticatedSelector } from 'containers/Auth/selectors'
 import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -67,9 +67,8 @@ export class WorkflowsConfigInvalid extends BucketError {
 
 export interface ManifestTooLargeProps {
   bucket: string
-  key: string
-  actualSize: number
-  maxSize: number
+  hash: string
+  max: number
 }
 
 export class ManifestTooLarge extends BucketError {
@@ -77,7 +76,7 @@ export class ManifestTooLarge extends BucketError {
 
   constructor(props: ManifestTooLargeProps) {
     super(
-      `Package manifest at s3://${props.bucket}/${props.key} is too large: ${props.actualSize} (max size: ${props.maxSize})`,
+      `Package manifest ${props.hash} at s3://${props.bucket} is too large (more than ${props.max} entries)`,
       props,
     )
   }
@@ -93,7 +92,7 @@ interface WhenAuthProps {
 }
 
 function WhenAuth({ cases }: WhenAuthProps) {
-  const authenticated = redux.useSelector(Auth.selectors.authenticated)
+  const authenticated = redux.useSelector(authenticatedSelector)
   return cases[`${authenticated}` as 'true' | 'false']()
 }
 

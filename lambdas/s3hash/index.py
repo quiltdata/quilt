@@ -1,5 +1,6 @@
 import functools
 import hashlib
+import urllib.error
 import urllib.request
 
 
@@ -15,7 +16,11 @@ def hash_fileobj(*, fileobj, hashobj_constructor=hashlib.sha256):
 
 
 def urlopen(url: str):
-    return urllib.request.urlopen(url)
+    try:
+        return urllib.request.urlopen(url)
+    except urllib.error.HTTPError as e:
+        print(e.read().decode())
+        raise
 
 
 def lambda_handler(url, context):

@@ -30,12 +30,22 @@ const useStyles = M.makeStyles((t) => ({
 interface RowProps {
   cells: RTable.Cell<RowData>[]
   columnPath: string[]
+  contextMenuPath: string[]
   fresh: boolean
+  onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
 }
 
-export default function Row({ cells, columnPath, fresh, onExpand, onRemove }: RowProps) {
+export default function Row({
+  cells,
+  columnPath,
+  contextMenuPath,
+  fresh,
+  onContextMenu,
+  onExpand,
+  onRemove,
+}: RowProps) {
   const classes = useStyles()
 
   return (
@@ -50,8 +60,10 @@ export default function Row({ cells, columnPath, fresh, onExpand, onRemove }: Ro
           })}
         >
           {cell.render('Cell', {
-            editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
             columnPath,
+            contextMenuPath,
+            editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
+            onContextMenu,
             onExpand,
             onRemove,
           })}

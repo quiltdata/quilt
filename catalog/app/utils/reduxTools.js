@@ -118,6 +118,7 @@ export const handleTransitions = (getState, reducers) => (state, action) =>
  */
 export const withInitialState =
   (initialState, reducer) =>
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   (state = initialState, action) =>
     reducer(state, action)
 

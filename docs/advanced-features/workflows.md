@@ -1,3 +1,5 @@
+<!--pytest-codeblocks:skipfile-->
+<!-- markdownlint-disable -->
 *New in Quilt 3.3*
 
 
@@ -72,42 +74,50 @@ schemas:
 
 With the above configuration, you must specify a workflow before you can push:
 
+<!--pytest-codeblocks:cont-->
+<!--pytest.mark.xfail-->
 ```python
->>> import quilt3
->>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata')
+import quilt3
+quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata')
 
-QuiltException: Workflow required, but none specified.
+# QuiltException: Workflow required, but none specified.
 ```
 
 Let's try with the `workflow=` parameter:
 
+<!--pytest-codeblocks:cont-->
+<!--pytest.mark.xfail-->
 ```python
->>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='alpha')
+quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='alpha')
 
-QuiltException: Commit message is required by workflow, but none was provided.
+# QuiltException: Commit message is required by workflow, but none was provided.
 ```
 
 The above `QuiltException` is caused by `is_message_required: true`.
 Here's how we can pass the workflow:
+
+<!--pytest-codeblocks:cont-->
 ```python
->>> quilt3.Package().push(
+quilt3.Package().push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         message='added info about UFO',
         workflow='alpha')
 
-Package test/package@bc9a838 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@bc9a838 pushed to s3://quilt-sergey-dev-metadata
 ```
 
 Now let's push with `workflow='beta'`:
 
+<!--pytest-codeblocks:cont-->
+<!--pytest.mark.xfail-->
 ```python
->>> quilt3.Package().push(
+quilt3.Package().push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         workflow='beta')
 
-QuiltException: Metadata failed validation: 'superhero' is a required property.
+# QuiltException: Metadata failed validation: 'superhero' is a required property.
 ```
 
 We encountered another exception because the `beta` workflow specifies
@@ -136,53 +146,58 @@ Therefore, the `test/package` metadata must validate against the
 
 Note that `superhero` is a required property:
 
+<!--pytest-codeblocks:cont-->
 ```python
->>> quilt3.Package().set_meta({'superhero': 'Batman'}).push(
+quilt3.Package().set_meta({'superhero': 'Batman'}).push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         workflow='beta')
 
-Package test/package@c4691d8 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@c4691d8 pushed to s3://quilt-sergey-dev-metadata
 ```
 
 For the `gamma` workflow, both `is_message_required: true` and `metadata_schema`
 are set, so both `message` and package metadata are validated:
 
+<!--pytest-codeblocks:cont-->
+<!--pytest.mark.xfail-->
 ```python
->>> quilt3.Package().push(
+quilt3.Package().push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         workflow='gamma')
 
-QuiltException: Metadata failed validation: 'answer' is a required property.
+# QuiltException: Metadata failed validation: 'answer' is a required property.
 
->>> quilt3.Package().set_meta({'answer': 42}).push(
+quilt3.Package().set_meta({'answer': 42}).push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         workflow='gamma')
 
-QuiltException: Commit message is required by workflow, but none was provided.
+# QuiltException: Commit message is required by workflow, but none was provided.
 
->>> quilt3.Package().set_meta({'answer': 42}).push(
+quilt3.Package().set_meta({'answer': 42}).push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         message='at last all is set up',
         workflow='gamma')
 
-Package test/package@6331508 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@6331508 pushed to s3://quilt-sergey-dev-metadata
 ```
 
 If you wish for your users to be able to skip workflows altogether, you can make
 workflow validation optional with `is_workflow_required: false` in your `config.yml`,
 and specify `workflow=None` in the API:
 
+<!--pytest-codeblocks:cont-->
+<!--pytest.mark.xfail-->
 ```python
->>> quilt3.Package().push(
+quilt3.Package().push(
         'test/package',
         registry='s3://quilt-sergey-dev-metadata',
         workflow=None)
 
-Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
 ```
 
 Also `default_workflow` can be set in the config to specify which workflow will be used
@@ -200,7 +215,7 @@ Quilt supports the
 If you wish to pre-populate dates in the Quilt catalog, you can use the custom
 keyword `dateformat` in your schemas. For example:
 
-```
+```json
 {
     "type": "string",
     "format": "date",
@@ -215,6 +230,7 @@ In addition to package-level metadata. Quilt workflows enable you to validate
 package names, and basic file metadata.
 > You must include the following schema version at the root of your config.yml in order for
 > any catalog-specific features to function:
+
 ```yaml
 version:
   base: "1"
@@ -243,6 +259,7 @@ the following places:
 and workflow in question
 
 #### Example
+
 ```yaml
 catalog:
   # default for all workflows for Packages tab
@@ -250,6 +267,7 @@ catalog:
     packages: analysis/
 workflows:
   my-workflow:
+    name: My workflow
     catalog:
       # defaults for my-workflow, different for each tab
       package_handle:
@@ -265,24 +283,29 @@ You can validate package names with `WORKFLOW.handle_pattern`, which accepts
 > You can explicitly add start (`^`) and end (`$`) markers as needed.
 
 #### Example
+
 ```yaml
 workflows:
+  name: My workflow
   my-workflow:
     handle_pattern: ^(employee1|employee2)/(production|staging)$
 ```
 
 ### Package file validation
 You can validate the names and sizes of files in the package with
-`WORkFLOW.entries_schema`. The provided schema runs against an array of
+`WORKFLOW.entries_schema`. The provided schema runs against an array of
 objects known as *package entries*. Each package entry defines a logical key
-(its releative path and name in the parent package) and size (in bytes).
+(its relative path and name in the parent package) and size (in bytes).
 
 #### Example
+
 ```yaml
 workflows:
   myworkflow-1:
+    name: 'My workflow #1'
     entries_schema: must-contain-readme
   myworkflow-2:
+    name: 'My workflow #2'
     entries_schema: must-contain-readme-summarize-at-least-1byte
     description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
 schemas:
@@ -293,10 +316,12 @@ schemas:
 ```
 
 ##### `s3://bucket/must-contain-readme.json`
+
+Requires a README
+
 ```json
 {
   "type": "array",
-  "items": {
   "contains": {
     "type": "object",
     "properties": {
@@ -310,6 +335,7 @@ schemas:
 ```
 
 ##### `s3://bucket/must-contain-readme-summarize-at-least-1byte.json`
+
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -368,8 +394,14 @@ to *my-production-bucket* as it matures and becomes trusted.
 The catalog's
 [Push to bucket](../walkthrough/working-with-the-catalog.md)
 feature can be enabled by adding a `successors` property to the config.
-A *successor* is a destination bucket. 
+A *successor* is a destination bucket.
+
 ```yaml
+version:
+  base: "1"
+workflows:
+  dummy:
+    name: Dummy
 successors:
   s3://bucket1:
     title: Staging

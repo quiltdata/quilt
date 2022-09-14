@@ -69,11 +69,19 @@ const emptyValueProps = {
 
 interface AddRowProps {
   columnPath: string[]
+  contextMenuPath: string[]
   onAdd: (path: string[], key: string, value: JsonValue) => void
+  onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
 }
 
-export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
+export default function AddRow({
+  columnPath,
+  contextMenuPath,
+  onAdd,
+  onContextMenu,
+  onExpand,
+}: AddRowProps) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState('')
@@ -103,7 +111,9 @@ export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
           {...{
             ...emptyKeyProps,
             columnPath,
+            contextMenuPath,
             editing: false,
+            onContextMenu,
             onExpand,
             onRemove,
             updateMyData: onChangeKey,
@@ -116,7 +126,9 @@ export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
           {...{
             ...emptyValueProps,
             columnPath,
+            contextMenuPath,
             editing: false,
+            onContextMenu,
             onExpand,
             onRemove,
             updateMyData: onChangeValue,

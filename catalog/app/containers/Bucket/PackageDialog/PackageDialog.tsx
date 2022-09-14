@@ -1,10 +1,10 @@
 import { basename } from 'path'
 
-import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as authSelectors from 'containers/Auth/selectors'
@@ -12,13 +12,19 @@ import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import { mkFormError } from 'utils/formTools'
+import {
+  JsonSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from 'utils/json-schema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 import SelectWorkflow from './SelectWorkflow'
+import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
 export const MAX_S3_SIZE = 50 * 1000 * 1000 * 1000 // 50GB
@@ -132,23 +138,24 @@ export function useNameValidator(workflow?: workflows.Workflow) {
 export function useNameExistence(bucket: string) {
   const [counter, setCounter] = React.useState(0)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
-
-  const s3 = AWS.S3.use()
+  const client = urql.useClient()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
     cacheDebounce(async (name: string) => {
       if (name) {
-        const packageExists = await requests.ensurePackageIsPresent({
-          s3,
-          bucket,
-          name,
-        })
-        if (packageExists) return 'exists'
+        const res = await client
+          .query(
+            PACKAGE_EXISTS_QUERY,
+            { bucket, name },
+            { requestPolicy: 'network-only' },
+          )
+          .toPromise()
+        if (res.data?.package) return 'exists'
       }
       return undefined
     }, 200),
-    [bucket, counter, s3],
+    [bucket, counter, client],
   )
 
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
@@ -166,7 +173,8 @@ export function mkMetaValidator(schema?: JsonSchema) {
     }
 
     if (schema) {
-      const errors = schemaValidator(value || {})
+      const setDefaults = makeSchemaDefaultsSetter(schema)
+      const errors = schemaValidator(setDefaults(value || {}))
       if (errors.length) return errors
     }
 
@@ -294,7 +302,7 @@ export function CommitMessageInput({
     disabled: meta.submitting || meta.submitSucceeded,
     error,
     fullWidth: true,
-    label: 'Commit message',
+    label: 'Message',
     margin: 'normal' as const,
     placeholder: 'Enter a commit message',
     validating: meta.submitFailed && meta.validating,
@@ -305,6 +313,7 @@ export function CommitMessageInput({
 }
 
 interface WorkflowInputProps {
+  bucket: string
   input: RF.FieldInputProps<workflows.Workflow>
   meta: RF.FieldMetaState<workflows.Workflow>
   workflowsConfig?: workflows.WorkflowsConfig
@@ -312,6 +321,7 @@ interface WorkflowInputProps {
 }
 
 export function WorkflowInput({
+  bucket,
   input,
   meta,
   workflowsConfig,
@@ -322,6 +332,7 @@ export function WorkflowInput({
 
   return (
     <SelectWorkflow
+      bucket={bucket}
       items={workflowsConfig ? workflowsConfig.workflows : []}
       onChange={input.onChange}
       value={input.value}
@@ -377,18 +388,14 @@ export type SchemaFetcherRenderProps =
 const noopValidator: MetaValidator = () => undefined
 
 interface SchemaFetcherProps {
-  manifest?: {
-    workflow?: {
-      id?: string
-    }
-  }
+  initialWorkflowId?: string
   workflow?: workflows.Workflow
   workflowsConfig: workflows.WorkflowsConfig
   children: (props: SchemaFetcherRenderProps) => React.ReactElement
 }
 
 export function SchemaFetcher({
-  manifest,
+  initialWorkflowId,
   workflow,
   workflowsConfig,
   children,
@@ -396,16 +403,14 @@ export function SchemaFetcher({
   const s3 = AWS.S3.use()
   const sentry = Sentry.use()
 
-  const slug = manifest?.workflow?.id
-
   const initialWorkflow = React.useMemo(() => {
     // reuse workflow from previous revision if it's still present in the config
-    if (slug) {
-      const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
+    if (initialWorkflowId) {
+      const w = workflowsConfig.workflows.find(R.propEq('slug', initialWorkflowId))
       if (w) return w
     }
     return defaultWorkflowFromConfig(workflowsConfig)
-  }, [slug, workflowsConfig])
+  }, [initialWorkflowId, workflowsConfig])
 
   const selectedWorkflow = workflow || initialWorkflow
 
@@ -449,15 +454,16 @@ export function SchemaFetcher({
 }
 
 export function useCryptoApiValidation() {
-  return React.useCallback(() => {
-    const isCryptoApiAvailable =
-      window.crypto && window.crypto.subtle && window.crypto.subtle.digest
-    return {
-      [FORM_ERROR]: !isCryptoApiAvailable
-        ? 'Quilt requires the Web Cryptography API. Please try another browser.'
-        : undefined,
-    }
-  }, [])
+  return React.useCallback(
+    () =>
+      !!window.crypto?.subtle?.digest
+        ? {}
+        : mkFormError(
+            'Quilt requires the Web Cryptography API. Please try another browser.',
+          ),
+
+    [],
+  )
 }
 
 export function calcDialogHeight(windowHeight: number, metaHeight: number): number {

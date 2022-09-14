@@ -1,9 +1,10 @@
-Out of the box, Quilt provides support for queries in the ElasticSearch DSL, as well as SQL queries in Athena (details forthcoming).
+<!-- markdownlint-disable -->
+Quilt provides support for queries in the ElasticSearch DSL, as well as SQL queries in Athena.
 
 ## ElasticSearch
 
 The objects in S3 buckets connected to Quilt are synchronized to an ElasticSearch
-cluster, which powers Quilt's search features. For custom queries, you can use the
+cluster, which provides Quilt's search features. For custom queries, you can use the
 Queries tab in the Quilt catalog to directly query ElasticSearch cluster.
 
 Quilt uses ElasticsSearch 6.7
@@ -24,6 +25,7 @@ indexing for the following file extensions:
   * .pdf
   * .html, .txt, .tsv, .csv, .md (plus many other plain-text formats)
   * .xls, .xlsx
+  * .pptx
 
 ### Queries
 
@@ -55,3 +57,17 @@ queries:
 
 The Quilt catalog displays your saved queries in a drop-down for your users to
 select, edit, and execute.
+
+## Athena
+
+You can park reusable Athena Queries in the Quilt catalog so that your users can
+run them. You must first set up you an Athena workgroup and Saved queries per
+[AWS's Athena documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).
+
+### Configuration
+You can hide the "Queries" tab by setting `ui > nav > queries: false` ([learn more](./Preferences.md)).
+
+### Basics
+"Run query" executes the selected query and waits for the result.
+![](../imgs/athena-ui.png)
+![](../imgs/athena-history.png)
