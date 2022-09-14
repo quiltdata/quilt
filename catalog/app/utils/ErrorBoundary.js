@@ -1,9 +1,7 @@
 import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
 
-import * as RT from 'utils/reactTools'
-
+// TODO: TSify or, better yet, use react-error-boundary package
 export const createBoundary = (handle, name = 'ErrorBoundary') =>
   class extends React.Component {
     static displayName = name
@@ -40,11 +38,3 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
       return this.state.handled || this.props.children
     }
   }
-
-export const withBoundary = (handle) =>
-  RT.composeHOC('withErrorBoundary', (Component) =>
-    RC.nest(
-      createBoundary(handle, `ErrorBoundary(${RC.getDisplayName(Component)})`),
-      Component,
-    ),
-  )

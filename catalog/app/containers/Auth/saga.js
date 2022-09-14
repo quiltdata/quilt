@@ -56,6 +56,9 @@ function* signUp(credentials) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
+      if (e.status === 400 && e.json && e.json.message === 'Default role not set') {
+        throw new errors.NoDefaultRole({ originalError: e })
+      }
       if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
         throw new errors.InvalidUsername({ originalError: e })
       }
@@ -131,6 +134,9 @@ function* signIn(credentials) {
     }
     if (HTTPError.is(e, 401, /login attempt failed/i)) {
       throw new errors.InvalidCredentials()
+    }
+    if (HTTPError.is(e, 400, 'Default role not set')) {
+      throw new errors.NoDefaultRole({ originalError: e })
     }
 
     throw new errors.AuthError({

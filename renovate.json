@@ -3,7 +3,8 @@
     "config:base",
     ":maintainLockFilesWeekly",
     ":prHourlyLimitNone",
-    ":prConcurrentLimitNone"
+    ":prConcurrentLimitNone",
+    ":dependencyDashboardApproval"
   ],
   "enabledManagers": ["npm"],
   "rangeStrategy": "bump",

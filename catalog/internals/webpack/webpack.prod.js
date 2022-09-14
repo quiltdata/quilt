@@ -6,13 +6,6 @@ const TerserPlugin = require('terser-webpack-plugin')
 module.exports = require('./webpack.base')({
   mode: 'production',
 
-  // In production, we skip all hot-reloading stuff
-  entry: {
-    app: path.join(process.cwd(), 'app/app'),
-    embed: path.join(process.cwd(), 'app/embed/index'),
-    'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
-  },
-
   // Utilize long-term caching by adding content hashes (not compilation hashes) to compiled assets
   output: {
     filename: '[name].[contenthash].js',

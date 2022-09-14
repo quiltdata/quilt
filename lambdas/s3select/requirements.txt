@@ -1,5 +1,5 @@
 attrs==19.1.0
-botocore==1.12.188
+botocore==1.21.44
 certifi==2019.6.16
 chardet==3.0.4
 docutils==0.14
@@ -8,6 +8,6 @@ jmespath==0.9.4
 jsonschema==3.0.1
 pyrsistent==0.15.3
 python-dateutil==2.8.0
-requests==2.22.0
+requests==2.26.0
 six==1.12.0
-urllib3==1.25.8
+urllib3==1.26.5

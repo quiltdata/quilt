@@ -1,10 +1,6 @@
 const { resolve } = require('path')
 const express = require('express')
 const argv = require('minimist')(process.argv.slice(2))
-const ngrok =
-  (process.env.NODE_ENV !== 'production' && process.env.ENABLE_TUNNEL) || argv.tunnel
-    ? require('ngrok')
-    : false
 
 const logger = require('./logger')
 const setup = require('./middlewares/frontendMiddleware')
@@ -38,15 +34,5 @@ app.listen(port, host, async (err) => {
     return
   }
 
-  // Connect to ngrok in dev mode
-  if (ngrok) {
-    try {
-      const url = await ngrok.connect(port)
-      logger.appStarted(port, prettyHost, url)
-    } catch (e) {
-      logger.error(e)
-    }
-  } else {
-    logger.appStarted(port, prettyHost)
-  }
+  logger.appStarted(port, prettyHost)
 })

@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 [![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
@@ -46,9 +47,7 @@ on [quiltdata.com](https://quiltdata.com).
 ### I - Performance and core services
 * [x] Address performance issues with push (e.g. re-hash)
 * [x] Provide Presto-DB-powered services for filtering package repos with SQL
-* [ ] Investigate and implement more efficient manifest formats (e.g. Parquet),
-that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
-* [ ] Refactor `s3://bucket/.quilt` for improved listing and delete performance
+* [ ] Transition S3 manifests to [Apache Iceberg](https://iceberg.apache.org/) tables
 
 ### II - CI/CD for data
 * [ ] Ability to fork/merge packages

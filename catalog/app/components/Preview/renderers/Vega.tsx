@@ -9,6 +9,7 @@ const VEGA_OPTIONS = {
     export: true,
     source: false,
   },
+  scaleFactor: 2,
 }
 
 const useStyles = M.makeStyles({

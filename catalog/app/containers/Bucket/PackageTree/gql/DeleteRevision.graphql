@@ -1,0 +1,8 @@
+mutation ($bucket: String!, $name: String!, $hash: String!) {
+  packageRevisionDelete(bucket: $bucket, name: $name, hash: $hash) {
+    __typename
+    ... on OperationError {
+      message
+    }
+  }
+}

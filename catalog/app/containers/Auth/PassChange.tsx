@@ -2,6 +2,7 @@ import { FORM_ERROR } from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -60,7 +61,7 @@ function Form({ onSuccess, link }: FormProps) {
         return { [FORM_ERROR]: 'userNotFound' }
       }
       if (e instanceof errors.InvalidPassword) {
-        return { password: 'invalid' }
+        return { [FORM_ERROR]: 'invalid' }
       }
       sentry('captureException', e)
       return { [FORM_ERROR]: 'unexpected' }
@@ -70,7 +71,16 @@ function Form({ onSuccess, link }: FormProps) {
   return (
     <Container>
       <RF.Form onSubmit={onSubmit}>
-        {({ handleSubmit, submitting, submitFailed, invalid, error, submitError }) => (
+        {({
+          error,
+          handleSubmit,
+          hasSubmitErrors,
+          hasValidationErrors,
+          modifiedSinceLastSubmit,
+          submitError,
+          submitFailed,
+          submitting,
+        }) => (
           <form onSubmit={handleSubmit}>
             <RF.Field
               // @ts-expect-error
@@ -83,7 +93,6 @@ function Form({ onSuccess, link }: FormProps) {
               floatingLabelText="New password"
               errors={{
                 required: 'Enter a password',
-                invalid: 'Password must be at least 8 characters long',
               }}
             />
             <RF.Field
@@ -104,7 +113,10 @@ function Form({ onSuccess, link }: FormProps) {
               fullWidth
             />
             <Layout.Error
-              {...{ submitFailed, error: error || submitError }}
+              {...{
+                submitFailed,
+                error: error || (!modifiedSinceLastSubmit && submitError),
+              }}
               errors={{
                 invalidToken: (
                   <>
@@ -112,6 +124,7 @@ function Form({ onSuccess, link }: FormProps) {
                     <Link to={urls.passReset()}>resetting password</Link> again.
                   </>
                 ),
+                invalid: 'Password must be at least 8 characters long',
                 notAllowed: 'You are not allowed to set password.',
                 userNotFound:
                   'User not found for this reset link. Please contact support.',
@@ -121,7 +134,11 @@ function Form({ onSuccess, link }: FormProps) {
             <Layout.Actions>
               <Layout.Submit
                 label="Change Password"
-                disabled={submitting || (submitFailed && invalid)}
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
                 busy={submitting}
               />
             </Layout.Actions>
@@ -146,6 +163,8 @@ function Success() {
   )
 }
 
+const LINK_PLACEHOLDER = '_'
+
 interface PassChangeProps {
   match: { params: { link: string } }
 }
@@ -155,11 +174,21 @@ export default function PassChange({
     params: { link },
   },
 }: PassChangeProps) {
+  const { urls } = NamedRoutes.use()
+
   const authenticated = redux.useSelector(selectors.authenticated)
   const [done, setDone] = React.useState(false)
   const onSuccess = React.useCallback(() => setDone(true), [setDone])
 
+  const [storedLink] = React.useState(link)
+  const history = useHistory()
+  const cleanUrl = urls.passChange(LINK_PLACEHOLDER)
+
+  React.useEffect(() => {
+    if (link !== LINK_PLACEHOLDER) history.replace(cleanUrl)
+  }, [link, history, cleanUrl])
+
   if (authenticated) return <SignOut />
   if (done) return <Success />
-  return <Form {...{ onSuccess, link }} />
+  return <Form {...{ onSuccess, link: storedLink }} />
 }

@@ -2,25 +2,27 @@ const path = require('path')
 
 const CircularDependencyPlugin = require('circular-dependency-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
-const webpack = require('webpack')
 
 module.exports = require('./webpack.base')({
   mode: 'development',
 
-  // Add hot reloading in development
-  entry: {
-    app: [
-      'webpack-hot-middleware/client?reload=true',
-      path.join(process.cwd(), 'app/app'), // Start with app/app.js
-    ],
-    embed: [
-      'webpack-hot-middleware/client?reload=true',
-      path.join(process.cwd(), 'app/embed'),
-    ],
-    'embed-debug-harness': [
-      'webpack-hot-middleware/client?reload=true',
-      path.join(process.cwd(), 'app/embed/debug-harness'),
-    ],
+  devServer: {
+    compress: true,
+    headers: { 'Access-Control-Allow-Origin': '*' },
+    // hot: true, // https://github.com/webpack-contrib/webpack-hot-middleware/issues/390
+    port: process.env.PORT || 3000,
+    static: {
+      directory: 'static-dev/',
+    },
+    historyApiFallback: {
+      disableDotRule: true,
+      rewrites: [
+        { from: /^\/__embed$/, to: '/embed.html' },
+        { from: /^\/__embed-debug$/, to: '/embed-debug-harness.html' },
+        { from: /^\/oauth-callback$/, to: '/oauth-callback.html' },
+      ],
+    },
+    watchFiles: ['app/**/*', 'static-dev/*'],
   },
 
   optimization: {
@@ -31,8 +33,6 @@ module.exports = require('./webpack.base')({
   // Add development plugins
   plugins: [
     new CopyWebpackPlugin({ patterns: [{ from: 'static-dev' }] }),
-
-    new webpack.HotModuleReplacementPlugin(), // Tell webpack we want hot reloading
 
     new CircularDependencyPlugin({
       exclude: /a\.js|node_modules/, // exclude node_modules

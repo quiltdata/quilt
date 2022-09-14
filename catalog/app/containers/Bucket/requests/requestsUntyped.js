@@ -5,12 +5,12 @@ import * as FP from 'fp-ts'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
-import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
+
+import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
-import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 import * as workflows from 'utils/workflows'
@@ -18,11 +18,6 @@ import * as workflows from 'utils/workflows'
 import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
-
-const withErrorHandling =
-  (fn, pairs) =>
-  (...args) =>
-    fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
@@ -155,14 +150,13 @@ const processStats = R.applySpec({
 export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
-      return s3
+      const r = await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'stats.json'),
         })
         .promise()
-        .then((r) => JSON.parse(r.Body.toString('utf-8')))
-        .then(processStats)
+      return processStats(JSON.parse(r.Body.toString('utf-8')))
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
@@ -254,22 +248,11 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
 
   const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
 
-  try {
-    const response = await fetchFile({ s3, bucket, path: key, version })
-    return JSON.parse(response.Body.toString('utf-8'))
-  } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
-
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-  }
-
-  return null
+  const response = await fetchFile({ s3, bucket, path: key, version })
+  return JSON.parse(response.Body.toString('utf-8'))
 }
 
-const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+export const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 // TODO: enable this when backend is ready
 // const WORKFLOWS_CONFIG_PATH = [
 //   '.quilt/workflows/config.yaml',
@@ -329,8 +312,10 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       bucket,
       key,
       version: h.VersionId,
+      size: h.ContentLength,
       deleted: !!h.DeleteMarker,
       archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
+      lastModified: parseDate(h.LastModified),
     })
   } catch (e) {
     if (e.code === 405 && version != null) {
@@ -382,33 +367,31 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   }
   if (overviewUrl) {
     try {
-      return s3
+      const r = await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-        .then(
-          R.pipe(
-            (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
-            R.map((b) => ({
-              bucket,
-              key: b.key,
-              // eslint-disable-next-line no-underscore-dangle
-              version: b.latestVersion.hits.hits[0]._source.version_id,
-              lastModified: parseDate(b.lastModified),
-              // eslint-disable-next-line no-underscore-dangle
-              ext: b.latestVersion.hits.hits[0]._source.ext,
-            })),
-            R.sortWith([
-              R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
-              R.descend(R.prop('lastModified')),
-            ]),
-            R.take(SAMPLE_SIZE),
-            R.map(R.objOf('handle')),
-          ),
-        )
+      return FP.function.pipe(
+        JSON.parse(r.Body.toString('utf-8')),
+        R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          // eslint-disable-next-line no-underscore-dangle
+          version: b.latestVersion.hits.hits[0]._source.version_id,
+          lastModified: parseDate(b.lastModified),
+          // eslint-disable-next-line no-underscore-dangle
+          ext: b.latestVersion.hits.hits[0]._source.ext,
+        })),
+        R.sortWith([
+          R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
+          R.descend(R.prop('lastModified')),
+        ]),
+        R.take(SAMPLE_SIZE),
+        R.map(R.objOf('handle')),
+      )
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
@@ -488,24 +471,22 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
 export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (overviewUrl) {
     try {
-      return s3
+      const r = await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-        .then(
-          R.pipe(
-            (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
-            R.map((b) => ({
-              bucket,
-              key: b.key,
-              // eslint-disable-next-line no-underscore-dangle
-              version: b.latestVersion.hits.hits[0]._source.version_id,
-            })),
-          ),
-        )
+      return FP.function.pipe(
+        JSON.parse(r.Body.toString('utf-8')),
+        R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          // eslint-disable-next-line no-underscore-dangle
+          version: b.latestVersion.hits.hits[0]._source.version_id,
+        })),
+      )
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch images sample from '${overviewUrl}':`)
@@ -642,143 +623,50 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       )
     }
 
-    const resolvePath = (path) =>
-      resolveLogicalKey && handle.logicalKey
-        ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
-            // eslint-disable-next-line no-console
-            console.warn('Error resolving logical key for summary', { handle, path })
-            // eslint-disable-next-line no-console
-            console.error(e)
-            return null
-          })
-        : Promise.resolve({
-            bucket: handle.bucket,
-            key: s3paths.resolveKey(handle.key, path),
-          })
+    const resolvePath = async (path) => {
+      const resolvedHandle = {
+        bucket: handle.bucket,
+        key: s3paths.resolveKey(handle.key, path),
+      }
 
-    const handles = await Promise.all(
+      if (resolveLogicalKey && handle.logicalKey) {
+        try {
+          const resolvedLogicalHandle = await resolveLogicalKey(
+            s3paths.resolveKey(handle.logicalKey, path),
+          )
+          return resolvedLogicalHandle
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn('Error resolving logical key for summary', { handle, path })
+          // eslint-disable-next-line no-console
+          console.error(error)
+          return {
+            ...resolvedHandle,
+            error,
+          }
+        }
+      }
+
+      return resolvedHandle
+    }
+
+    return await Promise.all(
       manifest.map((fileHandle) =>
         isFile(fileHandle)
           ? parseFile(resolvePath, fileHandle)
           : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
       ),
     )
-    return handles.filter((h) => h)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    throw e
   }
 }
 
-const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
-
-const fetchPackagesAccessCounts = async ({
-  s3,
-  analyticsBucket,
-  bucket,
-  today,
-  window,
-}) => {
-  try {
-    const records = await s3Select({
-      s3,
-      Bucket: analyticsBucket,
-      Key: `${ACCESS_COUNTS_PREFIX}/Packages.csv`,
-      Expression: `
-        SELECT name, counts FROM s3object
-        WHERE eventname = 'GetObject'
-        AND bucket = '${sqlEscape(bucket)}'
-      `,
-      InputSerialization: {
-        CSV: {
-          FileHeaderInfo: 'Use',
-          AllowQuotedRecordDelimiter: true,
-        },
-      },
-    })
-
-    return records.reduce((acc, r) => {
-      const recordedCounts = JSON.parse(r.counts)
-
-      const counts = R.times((i) => {
-        const date = dateFns.subDays(today, window - i - 1)
-        return {
-          date,
-          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
-        }
-      }, window)
-
-      const total = Object.values(recordedCounts).reduce(R.add, 0)
-
-      return { ...acc, [r.name]: { counts, total } }
-    }, {})
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('fetchPackagesAccessCounts : error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return {}
-  }
-}
-
-const isReserved = R.includes(R.__, '.+|{}[]()"\\#@&<>~')
-
-const escapeReserved = (c) => `\\${c}`
-
-const isLetter = (c) => c.toLowerCase() !== c.toUpperCase()
-
-const bothCases = (c) => `(${c.toLowerCase()}|${c.toUpperCase()})`
-
-const mkFilterQuery = (filter) =>
-  filter
-    ? {
-        regexp: {
-          handle: {
-            value: pipeThru(filter)(
-              R.unless(R.test(/[*?]/), (f) => `*${f}*`),
-              R.map(
-                R.cond([
-                  [isLetter, bothCases],
-                  [isReserved, escapeReserved],
-                  [R.equals('*'), () => '.*'],
-                  [R.equals('?'), () => '.{0,1}'],
-                  [R.T, R.identity],
-                ]),
-              ),
-              R.join(''),
-            ),
-          },
-        },
-      }
-    : { match_all: {} }
-
-const NOT_DELETED_METRIC = {
-  scripted_metric: {
-    init_script: 'state.last_modified = 0; state.deleted = false',
-    map_script: `
-      def last_modified = doc.last_modified.getValue().toInstant().toEpochMilli();
-      if (last_modified > state.last_modified) {
-        state.last_modified = last_modified;
-        state.deleted = doc.delete_marker.getValue();
-      }
-    `,
-    reduce_script: `
-      def last_modified = 0;
-      def deleted = false;
-      for (s in states) {
-        if (s.last_modified > last_modified) {
-          last_modified = s.last_modified;
-          deleted = s.deleted;
-        }
-      }
-      return deleted ? 0 : 1;
-    `,
-  },
-}
 
 const withCalculatedRevisions = (s) => ({
   scripted_metric: {
@@ -802,194 +690,9 @@ const withCalculatedRevisions = (s) => ({
   },
 })
 
-export const countPackages = withErrorHandling(async ({ req, bucket, filter }) => {
-  const body = {
-    query: {
-      bool: {
-        must: [mkFilterQuery(filter), { regexp: { pointer_file: TIMESTAMP_RE_SRC } }],
-      },
-    },
-    aggs: {
-      packages: {
-        terms: { field: 'handle', size: 1000000 },
-        aggs: {
-          not_deleted: withCalculatedRevisions(`
-            for (def v : merged.values()) {
-              if (!v.del) return 1;
-            }
-            return 0;
-          `),
-        },
-      },
-      total_handles: {
-        sum_bucket: {
-          buckets_path: 'packages>not_deleted.value',
-        },
-      },
-    },
-  }
-  const qs = mkSearch({
-    index: `${bucket}_packages`,
-    action: 'packages',
-    body: JSON.stringify(body),
-    size: 0,
-    filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.total_handles'].join(
-      ',',
-    ),
-  })
-  const result = await req(`/search${qs}`)
-  return result.aggregations?.total_handles?.value ?? 0
-})
+const TIMESTAMP_RE_SRC = '[0-9]{10}'
 
-export const listPackages = withErrorHandling(
-  async ({
-    req,
-    s3,
-    analyticsBucket,
-    bucket,
-    filter,
-    sort, // name | modified
-    perPage = 30,
-    page = 1,
-    today,
-    analyticsWindow = 30,
-  }) => {
-    const countsP =
-      analyticsBucket &&
-      fetchPackagesAccessCounts({
-        s3,
-        analyticsBucket,
-        bucket,
-        today,
-        window: analyticsWindow,
-      })
-
-    const body = {
-      query: {
-        bool: {
-          must: [mkFilterQuery(filter), { regexp: { pointer_file: TIMESTAMP_RE_SRC } }],
-        },
-      },
-      aggs: {
-        packages: {
-          terms: { field: 'handle', size: 1000000 },
-          aggs: {
-            revisions: withCalculatedRevisions(`
-              return merged.count((k, v) -> !v.del);
-            `),
-            // mtime of the most recent not-deleted revision
-            modified: withCalculatedRevisions(`
-              def mtime = 0;
-              for (def v : merged.values()) {
-                if (!v.del && v.mtime > mtime) { mtime = v.mtime; }
-              }
-              return mtime;
-            `),
-            drop_deleted: {
-              bucket_selector: {
-                buckets_path: { revisions: 'revisions.value' },
-                script: 'params.revisions > 0',
-              },
-            },
-            sort: {
-              bucket_sort: {
-                sort:
-                  sort === 'modified'
-                    ? [{ 'modified.value': 'desc' }]
-                    : [{ _key: 'asc' }],
-                size: perPage,
-                from: perPage * (page - 1),
-              },
-            },
-          },
-        },
-      },
-    }
-    const qs = mkSearch({
-      index: `${bucket}_packages`,
-      action: 'packages',
-      body: JSON.stringify(body),
-      size: 0,
-      filter_path: [
-        'took',
-        'timed_out',
-        'hits.total',
-        'aggregations.packages.buckets.key',
-        'aggregations.packages.buckets.modified',
-        'aggregations.packages.buckets.revisions',
-      ].join(','),
-    })
-    const packages = await req(`/search${qs}`).then(
-      R.pipe(
-        R.pathOr([], ['aggregations', 'packages', 'buckets']),
-        R.map((b) => ({
-          name: b.key,
-          modified: new Date(b.modified.value),
-          revisions: b.revisions.value,
-        })),
-      ),
-    )
-
-    if (!countsP) return packages
-    const counts = await countsP
-    return packages.map((p) => ({ ...p, views: counts[p.name] }))
-  },
-)
-
-const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
-
-export async function fetchRevisionsAccessCounts({
-  s3,
-  analyticsBucket,
-  bucket,
-  name,
-  today,
-  window,
-}) {
-  if (!analyticsBucket) return {}
-  try {
-    const records = await s3Select({
-      s3,
-      Bucket: analyticsBucket,
-      Key: `${ACCESS_COUNTS_PREFIX}/PackageVersions.csv`,
-      Expression: `
-        SELECT hash, counts FROM s3object
-        WHERE eventname = 'GetObject'
-        AND bucket = '${sqlEscape(bucket)}'
-        AND name = '${sqlEscape(name)}'
-      `,
-      InputSerialization: {
-        CSV: {
-          FileHeaderInfo: 'Use',
-          AllowQuotedRecordDelimiter: true,
-        },
-      },
-    })
-
-    return records.reduce((acc, r) => {
-      const recordedCounts = JSON.parse(r.counts)
-
-      const counts = R.times((i) => {
-        const date = dateFns.subDays(today, window - i - 1)
-        return {
-          date,
-          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
-        }
-      }, window)
-
-      const total = Object.values(recordedCounts).reduce(R.add, 0)
-
-      return { ...acc, [r.hash]: { counts, total } }
-    }, {})
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('fetchRevisionsAccessCounts : error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return {}
-  }
-}
-
+// TODO: remove this, only used by Overview ATM
 export const countPackageRevisions = ({ req, bucket, name }) =>
   req(
     `/search${mkSearch({
@@ -1019,166 +722,10 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
-function tryParse(s) {
-  try {
-    return JSON.parse(s)
-  } catch (e) {
-    return undefined
-  }
-}
-
-export const getPackageRevisions = withErrorHandling(
-  ({ req, bucket, name, page = 1, perPage = 10 }) =>
-    req(
-      `/search${mkSearch({
-        nonce: Math.random(),
-        index: `${bucket}_packages`,
-        action: 'packages',
-        size: 0,
-        filter_path: [
-          'took',
-          'timed_out',
-          'hits.total',
-          'aggregations.revisions.buckets.latest.hits.hits._source',
-        ].join(','),
-        body: JSON.stringify({
-          query: {
-            bool: {
-              must: [
-                { term: { handle: name } },
-                { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
-              ],
-            },
-          },
-          aggs: {
-            revisions: {
-              terms: {
-                field: 'key',
-                size: 1000000,
-                order: { _key: 'desc' },
-              },
-              aggs: {
-                not_deleted: NOT_DELETED_METRIC,
-                drop_deleted: {
-                  bucket_selector: {
-                    buckets_path: { not_deleted: 'not_deleted.value' },
-                    script: 'params.not_deleted > 0',
-                  },
-                },
-                latest: {
-                  top_hits: {
-                    size: 1,
-                    sort: { last_modified: 'desc' },
-                    _source: [
-                      'pointer_file',
-                      'comment',
-                      'hash',
-                      'last_modified',
-                      'metadata',
-                      'package_stats',
-                    ],
-                  },
-                },
-                sort: {
-                  bucket_sort: {
-                    size: perPage,
-                    from: perPage * (page - 1),
-                  },
-                },
-              },
-            },
-          },
-        }),
-      })}`,
-    ).then(
-      R.pipe(
-        R.pathOr([], ['aggregations', 'revisions', 'buckets']),
-        R.map(
-          ({
-            latest: {
-              hits: {
-                hits: [{ _source: s }],
-              },
-            },
-          }) => ({
-            pointer: s.pointer_file,
-            hash: s.hash,
-            modified: new Date(s.last_modified),
-            stats: {
-              files: R.pathOr(0, ['package_stats', 'total_files'], s),
-              bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
-            },
-            message: s.comment,
-            metadata: tryParse(s.metadata),
-            // header, // not in ES
-          }),
-        ),
-      ),
-    ),
-)
-
-export const loadRevisionHash = async ({ s3, bucket, name, id }) =>
-  s3
-    .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
-    .promise()
-    .then((res) => ({
-      modified: res.LastModified,
-      hash: res.Body.toString('utf-8'),
-    }))
-
-export const checkPackageExistence = ({ s3, bucket, name }) =>
-  s3
-    .listObjectsV2({ Bucket: bucket, Prefix: getRevisionKeyFromId(name, ''), MaxKeys: 1 })
-    .promise()
-    .then((res) => !!res.KeyCount)
-
-export const ensurePackageExists = ({ s3, bucket, name }) =>
-  checkPackageExistence({ s3, bucket, name }).then((exists) => {
-    if (!exists) throw new errors.NoSuchPackage({ bucket, handle: name })
-  })
-
-const HASH_RE = /^[a-f0-9]{64}$/
-const TIMESTAMP_RE_SRC = '[0-9]{10}'
-const TIMESTAMP_RE = new RegExp(`^${TIMESTAMP_RE_SRC}$`)
-
-// returns { hash, modified }
-export async function resolvePackageRevision({ s3, bucket, name, revision }) {
-  if (HASH_RE.test(revision)) {
-    const manifestKey = `${MANIFESTS_PREFIX}${revision}`
-    try {
-      const head = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
-      return { hash: revision, modified: head.LastModified }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(
-        'resolvePackageRevision: revision appears like top_hash, but manifest could not be loaded',
-        { bucket, name, revision },
-      )
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  } else if (TIMESTAMP_RE.test(revision) || revision === 'latest') {
-    try {
-      return await loadRevisionHash({ s3, bucket, name, id: revision })
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(
-        'resolvePackageRevision: revision appears like pointer file name, but it could not be loaded',
-        { bucket, name, revision },
-      )
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-  throw new errors.BadRevision({ bucket, handle: name, revision })
-  // TODO: try tags (when implemented), resolve short hashes
-}
-
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
 const MAX_PACKAGE_ENTRIES = 500
 
-export const MANIFEST_MAX_SIZE = 10 * 1000 * 1000
-
+// TODO: remove
 export const getRevisionData = async ({
   endpoint,
   sign,
@@ -1201,60 +748,6 @@ export const getRevisionData = async ({
     stats: { files, bytes, truncated },
     message: header.message,
     header,
-  }
-}
-
-export async function loadManifest({
-  s3,
-  bucket,
-  name,
-  hash: maybeHash,
-  maxSize = MANIFEST_MAX_SIZE,
-}) {
-  try {
-    const hash =
-      maybeHash ||
-      (await loadRevisionHash({ s3, bucket, name, id: 'latest' }).then(R.prop('hash')))
-    const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-
-    if (maxSize) {
-      const h = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
-      if (h.ContentLength > maxSize) {
-        throw new errors.ManifestTooLarge({
-          bucket,
-          key: manifestKey,
-          maxSize,
-          actualSize: h.ContentLength,
-        })
-      }
-    }
-
-    const m = await s3.getObject({ Bucket: bucket, Key: manifestKey }).promise()
-    const [header, ...rawEntries] = pipeThru(m.Body.toString('utf-8'))(
-      R.split('\n'),
-      R.map(tryParse),
-      R.filter(Boolean),
-    )
-    const entries = pipeThru(rawEntries)(
-      R.map((e) => [
-        e.logical_key,
-        {
-          hash: e.hash.value,
-          physicalKey: e.physical_keys[0],
-          size: e.size,
-          meta: e.meta,
-        },
-      ]),
-      R.fromPairs,
-    )
-    return { entries, meta: header.user_meta, workflow: header.workflow }
-  } catch (e) {
-    if (e instanceof errors.ManifestTooLarge) throw e
-    // eslint-disable-next-line no-console
-    console.log('loadManifest error:')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
   }
 }
 
@@ -1284,60 +777,6 @@ const s3Select = ({
         R.ifElse(R.isEmpty, R.always([]), R.pipe(R.split('\n'), R.map(JSON.parse))),
       ),
     )
-
-export async function packageSelect({
-  s3,
-  credentials,
-  endpoint,
-  bucket,
-  name,
-  hash,
-  ...args
-}) {
-  await credentials.getPromise()
-
-  const r = await fetch(
-    `${endpoint}/pkgselect${mkSearch({
-      bucket,
-      manifest: `${MANIFESTS_PREFIX}${hash}`,
-      access_key: credentials.accessKeyId,
-      secret_key: credentials.secretAccessKey,
-      session_token: credentials.sessionToken,
-      ...args,
-    })}`,
-  )
-
-  if (r.status >= 400) {
-    const msg = await r.text()
-    // eslint-disable-next-line no-console
-    console.error(`pkgselect error (${r.status}): ${msg}`)
-    throw new errors.BucketError(msg, { status: r.status })
-  }
-
-  const json = await r.json()
-
-  return R.evolve(
-    {
-      objects: R.map((o) => ({
-        name: o.logical_key,
-        physicalKey: o.physical_key,
-        size: o.size,
-      })),
-      prefixes: R.pluck('logical_key'),
-    },
-    json.contents,
-  )
-}
-
-export async function packageFileDetail({ path, ...args }) {
-  const r = await packageSelect({ logical_key: path, ...args })
-  return {
-    ...s3paths.parseS3Url(r.physical_keys[0]),
-    size: r.size,
-    logicalKey: r.logical_key,
-    meta: r.meta,
-  }
-}
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
 
@@ -1401,15 +840,3 @@ export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today })
     today,
     window: 365,
   })
-
-export const ensurePackageIsPresent = async ({ s3, bucket, name }) => {
-  const response = await s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Prefix: `${PACKAGES_PREFIX}${name}/`,
-      MaxKeys: 1,
-      EncodingType: 'url',
-    })
-    .promise()
-  return !!response.KeyCount
-}

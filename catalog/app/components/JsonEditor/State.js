@@ -1,12 +1,12 @@
-import * as dateFns from 'date-fns'
+import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import pipeThru from 'utils/pipeThru'
+import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
-const serializeAddress = (addressPath) => addressPath.join(', ')
+const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
 
 const getAddressPath = (key, parentPath) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
@@ -70,6 +70,8 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
 }
 
 // NOTE: memo is mutated
+// weird eslint bug?
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function objToDict(obj, parentPath, memo) {
   const isObjArray = Array.isArray(obj)
   if (isObjArray) {
@@ -93,8 +95,6 @@ function objToDict(obj, parentPath, memo) {
       // eslint-disable-next-line no-param-reassign
       memo[serializeAddress(address)] = obj[key]
 
-      // weird eslint bug?
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       objToDict(obj[key], address, memo)
     })
     return memo
@@ -110,30 +110,50 @@ function calcReactId(valuePath, value) {
 }
 
 function getDefaultValue(jsonDictItem) {
-  if (!jsonDictItem || !jsonDictItem.valueSchema) return EMPTY_VALUE
+  if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
 
-  const schema = jsonDictItem.valueSchema
-  try {
-    if (schema.format === 'date' && schema.dateformat)
-      return dateFns.format(new Date(), schema.dateformat)
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error)
-  }
-  if (schema.default !== undefined) return schema.default
+  const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
+  if (defaultFromSchema !== undefined) return defaultFromSchema
+
+  // TODO:
+  // get defaults from nested objects
+  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
+  // const nestedDefaultFromSchema = setDefaults()
+  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
+
   return EMPTY_VALUE
 }
 
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {
+const NO_ERRORS = []
+
+const bigintError = new Error(
+  `We don't support numbers larger than ${Number.MAX_SAFE_INTEGER}.
+  Please consider converting it to string.`,
+)
+
+function collectErrors(allErrors, itemAddress, value) {
+  const errors = allErrors
+    ? allErrors.filter((error) => error.instancePath === itemAddress)
+    : NO_ERRORS
+
+  if (typeof value === 'number' && value > Number.MAX_SAFE_INTEGER) {
+    return errors.concat(bigintError)
+  }
+  return errors
+}
+
+function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
   const value = storedValue === undefined ? getDefaultValue(item) : storedValue
+  const errors = collectErrors(allErrors, itemAddress, value)
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
+    errors,
     reactId: calcReactId(valuePath, storedValue),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
     ...(item || {}),
@@ -186,11 +206,13 @@ function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
   ])
 }
 
-export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder) {
+// TODO: refactor data, decrease number of arguments to three
+export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, errors) {
   if (!fieldPath.length)
     return [
-      pipeThru(rootKeys)(
-        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder)),
+      FP.function.pipe(
+        rootKeys,
+        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder, errors)),
         R.sortBy(R.prop('sortIndex')),
         (items) => ({
           parent: obj,
@@ -203,8 +225,9 @@ export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder) {
     const pathPart = R.slice(0, index, fieldPath)
 
     const keys = getSchemaAndObjKeys(obj, jsonDict, pathPart, rootKeys)
-    return pipeThru(keys)(
-      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder)),
+    return FP.function.pipe(
+      keys,
+      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder, errors)),
       R.sortBy(R.prop('sortIndex')),
       (items) => ({
         parent: R.path(pathPart, obj),
@@ -220,10 +243,13 @@ export function mergeSchemaAndObjRootKeys(schema, obj) {
   return R.uniq([...schemaKeys, ...objKeys])
 }
 
-export default function JsonEditorState({ children, jsonObject, schema }) {
+export default function JsonEditorState({ children, errors, jsonObject, schema }) {
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
   const [fieldPath, setFieldPath] = React.useState([])
+
+  // NOTE: similar to fieldPath, shows where to open ContextMenu
+  const [menuFieldPath, setMenuFieldPath] = React.useState([])
 
   // NOTE: incremented sortIndex counter,
   //       and cache for sortIndexes: { [keyA]: sortIndexA, [keyB]: sortIndexB }
@@ -248,8 +274,8 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
   const columns = React.useMemo(
-    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys, sortOrder),
-    [jsonObject, jsonDict, fieldPath, rootKeys],
+    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys, sortOrder, errors),
+    [errors, jsonObject, jsonDict, fieldPath, rootKeys],
   )
 
   // TODO: Use `sortIndex: -1` to "remove" fields that cannot be removed,
@@ -297,7 +323,9 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
     columns,
     fieldPath,
     jsonDict,
+    menuFieldPath,
     removeField,
     setFieldPath,
+    setMenuFieldPath,
   })
 }

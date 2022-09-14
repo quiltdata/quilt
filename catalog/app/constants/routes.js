@@ -34,6 +34,11 @@ export const activate = {
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
 }
 
+export const example = {
+  path: '/__example',
+  url: () => '/__example',
+}
+
 // auth
 export const signIn = {
   path: '/signin',
@@ -100,11 +105,12 @@ export const bucketSearch = {
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, version, mode) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ mode, version })}`,
+  url: (bucket, path, { add, edit, mode, next, version } = {}) =>
+    `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
 }
@@ -115,10 +121,12 @@ export const bucketPackageList = {
 }
 export const bucketPackageDetail = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  url: (bucket, name) => `/b/${bucket}/packages/${name}`,
+  url: (bucket, name, { action } = {}) =>
+    `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
       ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
@@ -142,14 +150,20 @@ export const bucketESQueries = {
   url: (bucket) => `/b/${bucket}/queries/es`,
 }
 
-export const bucketAthenaQueries = {
+export const bucketAthena = {
   path: '/b/:bucket/queries/athena',
   url: (bucket) => `/b/${bucket}/queries/athena`,
 }
 
-export const bucketAthenaQueryExecution = {
-  path: '/b/:bucket/queries/athena/:queryExecutionId',
-  url: (bucket, queryExecutionId) => `/b/${bucket}/queries/athena/${queryExecutionId}`,
+export const bucketAthenaWorkgroup = {
+  path: '/b/:bucket/queries/athena/:workgroup',
+  url: (bucket, workgroup) => `/b/${bucket}/queries/athena/${workgroup}`,
+}
+
+export const bucketAthenaExecution = {
+  path: '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
+  url: (bucket, workgroup, queryExecutionId) =>
+    `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 }
 
 // legacy stuff
@@ -171,4 +185,18 @@ export const adminBuckets = {
 export const adminSettings = {
   path: '/admin/settings',
   url: () => '/admin/settings',
+}
+export const adminSync = {
+  path: '/admin/sync',
+  url: () => '/admin/sync',
+}
+export const adminStatus = {
+  path: '/admin/status',
+  url: () => '/admin/status',
+}
+
+// storybook
+export const storyBook = {
+  path: '/storybook',
+  url: () => '/storybook',
 }

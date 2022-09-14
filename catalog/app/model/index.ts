@@ -1,29 +1,30 @@
 import * as IO from 'io-ts'
 
+import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 
 import * as GQLTypes from './graphql/types.generated'
 
 export * as GQLTypes from './graphql/types.generated'
 
+export * as S3 from './S3'
+
 export const BucketPermissionLevel = Types.enum(
   GQLTypes.BucketPermissionLevel,
   'BucketPermissionLevel',
 )
 
-export const BucketPermissionLevelStrings = ['None', 'Read', 'ReadWrite'] as const
+export const BucketPermissionLevelStrings = ['Read', 'ReadWrite'] as const
 
 export type BucketPermissionLevelString = typeof BucketPermissionLevelStrings[number]
 
-export const NullableBucketPermissionLevelFromString = new IO.Type<
-  GQLTypes.BucketPermissionLevel | null,
+export const BucketPermissionLevelFromString = new IO.Type<
+  GQLTypes.BucketPermissionLevel,
   BucketPermissionLevelString
 >(
-  'NullableBucketPermissionLevelFromString',
-  (u): u is GQLTypes.BucketPermissionLevel | null =>
-    u === null || BucketPermissionLevel.is(u),
+  'BucketPermissionLevelFromString',
+  BucketPermissionLevel.is,
   (u, c) => {
-    if (u === 'None') return IO.success(null)
     if (u === 'Read') return IO.success(GQLTypes.BucketPermissionLevel.READ)
     if (u === 'ReadWrite') return IO.success(GQLTypes.BucketPermissionLevel.READ_WRITE)
     return IO.failure(u, c)
@@ -31,6 +32,32 @@ export const NullableBucketPermissionLevelFromString = new IO.Type<
   (a) => {
     if (a === GQLTypes.BucketPermissionLevel.READ) return 'Read' as const
     if (a === GQLTypes.BucketPermissionLevel.READ_WRITE) return 'ReadWrite' as const
-    return 'None' as const
+    return assertNever(a)
   },
 )
+
+export type PotentialCollaborator = {
+  collaborator: GQLTypes.Collaborator
+  permissionLevel?: undefined
+}
+
+export type Collaborators = ReadonlyArray<
+  GQLTypes.CollaboratorBucketConnection | PotentialCollaborator
+>
+
+export interface PackageEntry {
+  physicalKey: string
+  hash: string
+  meta: Types.JsonRecord | null
+  size: number
+}
+
+export type PackageContentsFlatMap = Record<string, PackageEntry>
+
+export interface S3File {
+  bucket: string
+  key: string
+  meta?: Types.JsonRecord // TODO: make it the same as in PackageEntry
+  size: number
+  version?: string
+}

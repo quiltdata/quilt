@@ -33,7 +33,7 @@ export default function UriResolver({ match }: RouteComponentProps<{ uri: string
     try {
       return [uri ? PackageUri.parse(uri) : null]
     } catch (e) {
-      return [null, e]
+      return [null, e as unknown as PackageUri.PackageUriError]
     }
   }, [uri])
 
@@ -95,7 +95,7 @@ export default function UriResolver({ match }: RouteComponentProps<{ uri: string
 
           {!!error && (
             <M.Box mt={2}>
-              <M.Typography color="error">
+              <M.Typography color="error" data-testid="uri-error">
                 Error parsing URI: {error.msg || `${error}`}
               </M.Typography>
             </M.Box>

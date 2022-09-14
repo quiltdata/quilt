@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Helmet } from 'react-helmet'
 
-const BASE = 'Quilt is a versioned data portal for AWS'
+const BASE = 'Quilt is a versioned data hub for AWS'
 
 const DIVIDER = ' • '
 

@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as I from 'immutable'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -34,36 +33,6 @@ export function useOrdering({ rows, ...opts }) {
   )
 
   return { column, direction, change, ordered }
-}
-
-const emptySet = I.Set()
-
-export function useSelection({ rows, getId = R.unary(I.fromJS) }) {
-  const [selected, setSelected] = React.useState(emptySet)
-  const allSelected = React.useMemo(() => I.Set(rows.map(getId)), [rows, getId])
-
-  const toggle = React.useCallback(
-    (row) => {
-      const id = getId(row)
-      setSelected((s) => (s.has(id) ? s.delete(id) : s.add(id)))
-    },
-    [setSelected, getId],
-  )
-
-  const toggleAll = React.useCallback(() => {
-    setSelected((s) => (s.equals(allSelected) ? emptySet : allSelected))
-  }, [setSelected, allSelected])
-
-  const clear = React.useCallback(() => {
-    setSelected(emptySet)
-  }, [setSelected])
-
-  const isSelected = React.useCallback(
-    (row) => selected.has(getId(row)),
-    [selected, getId],
-  )
-
-  return { toggle, toggleAll, clear, isSelected, selected, all: allSelected }
 }
 
 export const renderAction = (a) =>

@@ -5,8 +5,6 @@ import * as redux from 'react-redux'
 import { applyMiddleware } from 'redux'
 import createSagaMiddleware from 'redux-saga'
 
-import * as RT from 'utils/reactTools'
-
 const scope = 'app/utils/SagaInjector'
 
 export const useSaga = (saga, ...args) => {
@@ -41,12 +39,6 @@ export function Inject({ saga, args = [], children }) {
   useSaga(saga, ...args)
   return children
 }
-
-export const injectSaga = (name, saga, { args = (props) => [props] } = {}) =>
-  RT.composeHOC(
-    `injectSaga(${name})`,
-    RT.wrap(Inject, (props) => ({ saga, args: args(props) })),
-  )
 
 export const withSaga =
   (...sagaMWArgs) =>

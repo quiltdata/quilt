@@ -8,12 +8,15 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
@@ -27,11 +30,12 @@ import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
+import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
-import useViewModes from './viewModes'
+import { useViewModes, viewModeToSelectOption } from './viewModes'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -116,7 +120,7 @@ function VersionInfo({ bucket, path, version }) {
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, v.id)}
+                  to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -209,7 +213,7 @@ function VersionInfo({ bucket, path, version }) {
 function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.objectMeta, { s3, bucket, path, version })
-  return <FileView.Meta data={data.result} />
+  return <FileView.ObjectMeta data={data.result} />
 }
 
 function Analytics({ analyticsBucket, bucket, path }) {
@@ -291,6 +295,8 @@ function CenteredProgress() {
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
+    alignItems: 'center',
+    display: 'flex',
     marginLeft: 'auto',
   },
   at: {
@@ -303,6 +309,9 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     maxWidth: '100%',
     overflowWrap: 'break-word',
+  },
+  fileProperties: {
+    marginTop: '2px',
   },
   name: {
     ...t.typography.body1,
@@ -325,12 +334,13 @@ export default function File({
   },
   location,
 }) {
-  const { version, mode: viewModeSlug } = parseSearch(location.search)
+  const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
+  const preferences = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -340,8 +350,8 @@ export default function File({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
+          import quilt3 as q3
+          b = q3.Bucket("s3://${bucket}")
           b.fetch("${path}", "./${basename(path)}")
         `,
       },
@@ -382,9 +392,28 @@ export default function File({
       }),
     })
 
-  const handle = { bucket, key: path, version }
+  const viewModes = useViewModes(path, mode)
 
-  const withPreview = (callback, mode) =>
+  const onViewModeChange = React.useCallback(
+    (m) => {
+      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
+    },
+    [history, urls, bucket, encodedPath, version],
+  )
+
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version }),
+    [bucket, path, version],
+  )
+
+  const editorState = FileEditor.useState(handle)
+
+  const previewOptions = React.useMemo(
+    () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
+    [viewModes.mode],
+  )
+
+  const withPreview = (callback) =>
     requests.ObjectExistence.case({
       Exists: (h) => {
         if (h.deleted) {
@@ -393,37 +422,15 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return mode
-          ? Preview.load(R.assoc('mode', mode.key, handle), callback)
-          : Preview.load(handle, callback)
+        return Preview.load(handle, callback, previewOptions)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
-
-  const [previewResult, setPreviewResult] = React.useState(false)
-  const onRender = React.useCallback(
-    (result) => {
-      if (AsyncResult.Ok.is(result) && !previewResult) {
-        setPreviewResult(result)
-        return renderPreview(AsyncResult.Pending())
-      }
-      return renderPreview(result)
-    },
-    [previewResult, setPreviewResult],
-  )
-
-  const { registryUrl } = Config.use()
-  const viewModes = useViewModes(registryUrl, path, previewResult)
-  const viewMode = React.useMemo(
-    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
-    [viewModes, viewModeSlug],
-  )
-  const onViewModeChange = React.useCallback(
-    (mode) => {
-      history.push(urls.bucketFile(bucket, encodedPath, version, mode.key))
-    },
-    [history, urls, bucket, encodedPath, version],
+  const bookmarks = Bookmarks.use()
+  const isBookmarked = React.useMemo(
+    () => bookmarks?.isBookmarked('main', handle),
+    [bookmarks, handle],
   )
 
   return (
@@ -449,14 +456,31 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          {!!viewModes.length && (
-            <FileView.ViewWithVoilaButtonLayout
+          <FileProperties className={classes.fileProperties} data={versionExistsData} />
+          {!!viewModes.modes.length && (
+            <FileView.ViewModeSelector
               className={classes.button}
-              modesList={viewModes}
-              mode={viewMode}
+              options={viewModes.modes.map(viewModeToSelectOption)}
+              value={viewModeToSelectOption(viewModes.mode)}
               onChange={onViewModeChange}
             />
           )}
+          {!!editorState.type.brace && (
+            <FileEditor.Controls
+              disabled={editorState.saving}
+              editing={editorState.editing}
+              className={classes.button}
+              onSave={editorState.onSave}
+              onCancel={editorState.onCancel}
+              onEdit={editorState.onEdit}
+            />
+          )}
+          <FileView.AdaptiveButtonLayout
+            className={classes.button}
+            icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
+            label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+            onClick={() => bookmarks?.toggle('main', handle)}
+          />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}
@@ -478,21 +502,55 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              <Code>{code}</Code>
-              {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
-              <Meta bucket={bucket} path={path} version={version} />
-              <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                {versionExistsData.case({
-                  _: () => <CenteredProgress />,
-                  Err: (e) => {
-                    throw e
-                  },
-                  Ok: withPreview(onRender, viewMode),
-                })}
-              </Section>
+              {preferences?.ui?.blocks?.code && <Code>{code}</Code>}
+              {!!analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
+                <Analytics {...{ analyticsBucket, bucket, path }} />
+              )}
+              {preferences?.ui?.blocks?.meta && (
+                <Meta bucket={bucket} path={path} version={version} />
+              )}
+              {editorState.editing ? (
+                <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                  <FileEditor.Editor
+                    disabled={editorState.saving}
+                    error={editorState.error}
+                    handle={handle}
+                    onChange={editorState.onChange}
+                    type={editorState.type}
+                  />
+                </Section>
+              ) : (
+                <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
+                  {versionExistsData.case({
+                    _: () => <CenteredProgress />,
+                    Err: (e) => {
+                      throw e
+                    },
+                    Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                  })}
+                </Section>
+              )}
             </>
           ),
-          _: () => <Message headline="No Such Object" />,
+          _: () =>
+            editorState.editing ? (
+              <Section icon="text_fields" heading="Edit content" defaultExpanded>
+                <FileEditor.Editor
+                  disabled={editorState.saving}
+                  error={editorState.error}
+                  type={editorState.type}
+                  empty
+                  handle={handle}
+                  onChange={editorState.onChange}
+                />
+              </Section>
+            ) : (
+              <>
+                <Message headline="No Such Object">
+                  <FileEditor.AddFileButton onClick={editorState.onEdit} />
+                </Message>
+              </>
+            ),
         }),
       })}
     </FileView.Root>

@@ -1,106 +1,90 @@
 import { extname } from 'path'
-import * as R from 'ramda'
 import * as React from 'react'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
 import { PreviewData } from 'components/Preview/types'
+import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
-import global from 'utils/global'
+import { useVoila } from 'utils/voila'
+import { PackageHandle } from 'utils/packageHandle'
+import { JsonRecord } from 'utils/types'
 
-const VOILA_PING_URL = (registryUrl: string) => `${registryUrl}/voila/`
-
-async function pingVoilaService(registryUrl: string): Promise<boolean> {
-  try {
-    const result = await global.fetch(VOILA_PING_URL(registryUrl))
-    return result.ok
-  } catch (error) {
-    return false
-  }
+const MODES = {
+  igv: 'IGV',
+  json: 'JSON',
+  jupyter: 'Jupyter',
+  vega: 'Vega',
+  voila: 'Voila',
 }
 
-export interface ViewMode {
-  key: string
-  label: string
-}
+export type ViewMode = keyof typeof MODES
 
-const JSON_MODE = { key: 'json', label: 'JSON' }
-
-const JUPYTER_MODE = { key: 'jupyter', label: 'Jupyter' }
-
-const VEGA_MODE = { key: 'vega', label: 'Vega' }
-
-const VOILA_MODE = { key: 'voila', label: 'Voila' }
+const isIgvTracks = (json: JsonRecord) => Array.isArray(json?.tracks)
 
 const isVegaSchema = (schema: string) => {
   if (!schema) return false
   return !!schema.match(/https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json/)
 }
 
-export default function useViewModes(
-  registryUrl: string,
+export function viewModeToSelectOption(m: ViewMode): SelectOption
+export function viewModeToSelectOption(m: null): null
+export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null {
+  return (
+    m && {
+      toString: () => MODES[m],
+      valueOf: () => m,
+    }
+  )
+}
+
+export function useViewModes(
   path: string,
-  previewResult?: $TSFixMe,
-): ViewMode[] {
-  const [viewModes, setViewModes] = React.useState<ViewMode[]>([])
+  modeInput: string | null | undefined,
+  // XXX: consider using a plain boolean here since the contents of this object are unused
+  packageHandle?: PackageHandle,
+) {
+  const voilaAvailable = useVoila()
+  const [previewResult, setPreviewResult] = React.useState(null)
 
-  const handleNotebook = React.useCallback(async () => {
-    setViewModes([JUPYTER_MODE, JSON_MODE])
-    const isVoilaSupported = await pingVoilaService(registryUrl)
-    if (isVoilaSupported) {
-      setViewModes(R.append(VOILA_MODE))
-    } else {
-      // eslint-disable-next-line no-console
-      console.debug('Voila is not supported by current stack')
-      // TODO: add link to documentation
-    }
-  }, [registryUrl])
-
-  const handleJson = React.useCallback(() => {
-    if (!previewResult) return
-
-    AsyncResult.case(
-      {
-        Ok: (jsonResult: $TSFixMe) => {
-          PreviewData.case(
-            {
-              Vega: (json: any) => {
-                if (isVegaSchema(json.spec?.$schema)) {
-                  setViewModes([VEGA_MODE, JSON_MODE])
-                }
-              },
-              Json: (json: any) => {
-                if (isVegaSchema(json.rendered?.$schema)) {
-                  setViewModes([VEGA_MODE, JSON_MODE])
-                }
-              },
-              _: () => null,
-            },
-            jsonResult,
-          )
-        },
-        _: () => null,
-      },
-      previewResult,
-    )
-  }, [previewResult])
-
-  React.useEffect(() => {
-    async function fillViewModes() {
-      const ext = extname(path)
-      switch (ext) {
-        case '.ipynb': {
-          handleNotebook()
-          break
-        }
-        case '.json': {
-          handleJson()
-          break
-        }
-        // no default
+  const handlePreviewResult = React.useCallback(
+    (result) => {
+      if (!previewResult && AsyncResult.Ok.is(result)) {
+        setPreviewResult(AsyncResult.Ok.unbox(result))
       }
-    }
-    fillViewModes()
-  }, [handleJson, handleNotebook, path, registryUrl])
+    },
+    [previewResult, setPreviewResult],
+  )
 
-  return viewModes
+  const modes: ViewMode[] = React.useMemo(() => {
+    // TODO: add MODES here
+    switch (extname(path)) {
+      case '.ipynb':
+        return !!packageHandle && voilaAvailable
+          ? ['jupyter', 'json', 'voila']
+          : ['jupyter', 'json']
+      case '.json':
+        return PreviewData.case(
+          {
+            Vega: (json: any) =>
+              isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
+            Json: (json: any) => {
+              if (isVegaSchema(json.rendered?.$schema)) return ['vega', 'json']
+              if (isIgvTracks(json.rendered)) return ['json', 'igv']
+              return []
+            },
+            _: () => [],
+            __: () => [],
+          },
+          previewResult,
+        )
+      default:
+        return []
+    }
+  }, [path, packageHandle, previewResult, voilaAvailable])
+
+  const mode = (
+    modes.includes(modeInput as any) ? modeInput : modes[0] || null
+  ) as ViewMode | null
+
+  return { modes, mode, handlePreviewResult }
 }

@@ -6,6 +6,7 @@ import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
@@ -31,6 +32,10 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
+  },
+  backlight: {
+    bottom: ({ isProduct }) => (isProduct ? 0 : undefined),
+    opacity: 0.5,
   },
   controls: {
     display: 'flex',
@@ -62,7 +67,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function Buckets({ query: filter } = { query: '' }) {
-  const classes = useStyles()
+  const cfg = Config.useConfig()
+  const classes = useStyles({ isProduct: cfg.mode === 'PRODUCT' })
   // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
@@ -126,7 +132,7 @@ export default function Buckets({ query: filter } = { query: '' }) {
 
   return (
     <div className={classes.root}>
-      <Backlight style={{ opacity: 0.5 }} />
+      <Backlight className={classes.backlight} />
       <M.Container maxWidth="lg" className={classes.container}>
         <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">

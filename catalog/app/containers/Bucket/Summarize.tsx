@@ -9,22 +9,29 @@ import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import { docs } from 'constants/urls'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import { getBasename, getBreadCrumbs } from 'utils/s3paths'
+import { PackageHandle } from 'utils/packageHandle'
+import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
+import * as errors from './errors'
 
-interface S3Handle {
-  bucket: string
-  key: string
-  logicalKey?: string
-  size?: number
-  version?: number
+type SummaryFileTypeShorthand = 'echarts' | 'voila'
+type SummaryFileTypeExtended = {
+  name: SummaryFileTypeShorthand
+  style?: { height: string }
+}
+type SummaryFileType = SummaryFileTypeShorthand | SummaryFileTypeExtended
+type SummaryFileTypes = SummaryFileType[]
+
+interface S3Handle extends LogicalKeyResolver.S3SummarizeHandle {
+  error?: errors.BucketError
 }
 
 interface SummarizeFile {
@@ -32,10 +39,38 @@ interface SummarizeFile {
   handle: S3Handle
   path: string
   title?: string
+  types?: SummaryFileTypes
   width?: string | number
+  expand?: boolean
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
+
+const useDownloadButtonStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    height: t.spacing(4),
+    justifyContent: 'center',
+    width: t.spacing(3),
+  },
+}))
+
+interface DownloadButtonProps {
+  className?: string
+  handle: S3Handle
+}
+
+function DownloadButton({ className, handle }: DownloadButtonProps) {
+  const classes = useDownloadButtonStyles()
+  return AWS.Signer.withDownloadUrl(handle, (url: string) => (
+    <div className={cx(classes.root, className)}>
+      <M.IconButton href={url} title="Download" download>
+        <M.Icon>arrow_downward</M.Icon>
+      </M.IconButton>
+    </div>
+  ))
+}
 
 enum FileThemes {
   Overview = 'overview',
@@ -76,6 +111,7 @@ const useSectionStyles = M.makeStyles((t) => ({
   },
   heading: {
     ...t.typography.h6,
+    display: 'flex',
     lineHeight: 1.75,
     marginBottom: t.spacing(1),
     [t.breakpoints.up('sm')]: {
@@ -85,19 +121,38 @@ const useSectionStyles = M.makeStyles((t) => ({
       ...t.typography.h5,
     },
   },
+  headingText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  headingAction: {
+    marginLeft: 'auto',
+  },
 }))
 
 interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
+  handle?: S3Handle
   heading?: React.ReactNode
 }
 
-export function Section({ heading, description, children, ...props }: SectionProps) {
+export function Section({
+  handle,
+  heading,
+  description,
+  children,
+  ...props
+}: SectionProps) {
   const ft = React.useContext(FileThemeContext)
   const classes = useSectionStyles()
   return (
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
-      {!!heading && <div className={classes.heading}>{heading}</div>}
+      {!!heading && (
+        <div className={classes.heading}>
+          <div className={classes.headingText}>{heading}</div>
+          {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
+        </div>
+      )}
       {!!description && <div className={classes.description}>{description}</div>}
       {children}
     </M.Paper>
@@ -105,8 +160,9 @@ export function Section({ heading, description, children, ...props }: SectionPro
 }
 
 interface PreviewBoxProps {
-  contents: React.ReactNode
+  children: React.ReactNode
   expanded?: boolean
+  onExpand: () => void
 }
 
 const usePreviewBoxStyles = M.makeStyles((t) => ({
@@ -143,6 +199,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
     bottom: 0,
     display: 'flex',
     height: '100%',
+    cursor: 'pointer',
     justifyContent: 'center',
     left: 0,
     position: 'absolute',
@@ -151,20 +208,14 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxProps) {
+function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
+      {children}
       {!expanded && (
-        <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={expand}>
-            Expand
-          </M.Button>
+        <div className={classes.fade} onClick={onExpand} title="Click to expand">
+          <M.Button variant="outlined">Expand</M.Button>
         </div>
       )}
     </div>
@@ -173,23 +224,14 @@ function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxP
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-interface FilePreviewProps {
-  description: React.ReactNode
+interface CrumbsProps {
   handle: S3Handle
-  headingOverride: React.ReactNode
-  expanded?: boolean
 }
 
-export function FilePreview({
-  description,
-  handle,
-  headingOverride,
-  expanded,
-}: FilePreviewProps) {
+function Crumbs({ handle }: CrumbsProps) {
   const { urls } = NamedRoutes.use()
-
   const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
+    const all = s3paths.getBreadCrumbs(handle.key)
     const dirs = R.init(all).map(({ label, path }) => ({
       to: urls.bucketFile(handle.bucket, path),
       children: label,
@@ -201,32 +243,70 @@ export function FilePreview({
     return { dirs, file }
   }, [handle.bucket, handle.logicalKey, handle.key, urls])
 
-  const heading =
-    headingOverride != null ? (
-      headingOverride
-    ) : (
-      <span onCopy={copyWithoutSpaces}>
-        {crumbs.dirs.map((c) => (
-          <React.Fragment key={`crumb:${c.to}`}>
-            <CrumbLink {...c} />
-            &nbsp;/{' '}
-          </React.Fragment>
-        ))}
-        <CrumbLink {...crumbs.file} />
-      </span>
-    )
+  return (
+    <span onCopy={copyWithoutSpaces}>
+      {crumbs.dirs.map((c) => (
+        <React.Fragment key={`crumb:${c.to}`}>
+          <CrumbLink {...c} />
+          &nbsp;/{' '}
+        </React.Fragment>
+      ))}
+      <CrumbLink {...crumbs.file} />
+    </span>
+  )
+}
+
+interface FilePreviewProps {
+  expanded?: boolean
+  file?: SummarizeFile
+  handle: S3Handle
+  headingOverride: React.ReactNode
+  packageHandle?: PackageHandle
+}
+
+export function FilePreview({
+  expanded: defaultExpanded,
+  file,
+  handle,
+  headingOverride,
+  packageHandle,
+}: FilePreviewProps) {
+  const description = file ? <Markdown data={file.description} /> : null
+  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
+
+  const key = handle.logicalKey || handle.key
+  const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
+
+  const previewOptions = React.useMemo(
+    () => ({
+      ...file,
+      context: Preview.CONTEXT.LISTING,
+    }),
+    [file],
+  )
+  const previewHandle = React.useMemo(
+    () => ({ ...handle, packageHandle }),
+    [handle, packageHandle],
+  )
+
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
+    [expanded, onExpand],
+  )
 
   // TODO: check for glacier and hide items
   return (
-    <Section description={description} heading={heading}>
+    <Section description={description} heading={heading} handle={handle}>
       {Preview.load(
-        handle,
+        previewHandle,
         Preview.display({
-          renderContents: (contents: React.ReactNode) => (
-            <PreviewBox {...{ contents, expanded }} />
-          ),
+          renderContents,
           renderProgress: () => <ContentSkel />,
+          props,
         }),
+        previewOptions,
       )}
     </Section>
   )
@@ -266,7 +346,7 @@ export const FilePreviewSkel = () => (
 )
 
 function useFilename(handle: S3Handle): string {
-  return getBasename(handle.logicalKey || handle.key)
+  return s3paths.getBasename(handle.logicalKey || handle.key)
 }
 
 function useFileRoute(handle: S3Handle, mkUrl?: MakeURL): LocationDescriptor {
@@ -330,16 +410,26 @@ interface FileHandleProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
+function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
+  if (file.handle.error)
+    return (
+      <Section heading={file.handle.key}>
+        Unable to resolve path: "{s3paths.handleToS3Url(file.handle)}"
+      </Section>
+    )
+
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
         <FilePreview
-          description={<Markdown data={file.description} />}
           handle={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
+          file={file}
+          expanded={file.expand}
+          packageHandle={packageHandle}
         />
       )}
     </EnsureAvailability>
@@ -359,13 +449,14 @@ interface ColumnProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function Column({ className, file, mkUrl, s3 }: ColumnProps) {
+function Column({ className, file, mkUrl, packageHandle, s3 }: ColumnProps) {
   const style = React.useMemo(() => getColumnStyles(file.width), [file.width])
   return (
     <div className={className} style={style}>
-      <FileHandle file={file} mkUrl={mkUrl} s3={s3} />
+      <FileHandle file={file} mkUrl={mkUrl} packageHandle={packageHandle} s3={s3} />
     </div>
   )
 }
@@ -388,12 +479,14 @@ interface RowProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function Row({ file, mkUrl, s3 }: RowProps) {
+function Row({ file, mkUrl, packageHandle, s3 }: RowProps) {
   const classes = useRowStyles()
 
-  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} mkUrl={mkUrl} />
+  if (!Array.isArray(file))
+    return <FileHandle file={file} s3={s3} mkUrl={mkUrl} packageHandle={packageHandle} />
 
   return (
     <div className={classes.row}>
@@ -410,13 +503,27 @@ function Row({ file, mkUrl, s3 }: RowProps) {
   )
 }
 
+const useSummaryEntriesStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  more: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginTop: t.spacing(2),
+  },
+}))
+
 interface SummaryEntriesProps {
   entries: SummarizeFile[]
   mkUrl?: MakeURL
   s3: S3
+  packageHandle?: PackageHandle
 }
 
-function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
+function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesProps) {
+  const classes = useSummaryEntriesStyles()
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
@@ -424,25 +531,26 @@ function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
 
   const shownEntries = R.take(shown, entries)
   return (
-    <>
-      {shownEntries.map((file) => (
+    <div className={classes.root}>
+      {shownEntries.map((file, i) => (
         <Row
-          key={
+          key={`${
             Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
-          }
+          }_${i}`}
           file={file}
           mkUrl={mkUrl}
+          packageHandle={packageHandle}
           s3={s3}
         />
       ))}
       {shown < entries.length && (
-        <M.Box mt={2} display="flex" justifyContent="center">
+        <div className={classes.more}>
           <M.Button variant="contained" color="primary" onClick={showMore}>
             Show more
           </M.Button>
-        </M.Box>
+        </div>
       )}
-    </>
+    </div>
   )
 }
 
@@ -474,6 +582,43 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
   )
 }
 
+interface SummaryFailedProps {
+  error: Error
+}
+
+const useSummaryFailedStyles = M.makeStyles((t) => ({
+  heading: {
+    color: t.palette.error.light,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: t.spacing(1),
+  },
+}))
+
+function SummaryFailed({ error }: SummaryFailedProps) {
+  const classes = useSummaryFailedStyles()
+  return (
+    <Section
+      heading={
+        <span className={classes.heading} title={error.message}>
+          <M.Icon className={classes.icon}>error</M.Icon>Oops
+        </span>
+      }
+    >
+      <M.Typography>Check your quilt_summarize.json file for errors.</M.Typography>
+      <M.Typography>
+        See the{' '}
+        <Link href={`${docs}/catalog/visualizationdashboards#quilt_summarize.json`}>
+          summarize docs
+        </Link>{' '}
+        for more.
+      </M.Typography>
+    </Section>
+  )
+}
+
 interface SummaryNestedProps {
   mkUrl: MakeURL
   handle: {
@@ -483,24 +628,24 @@ interface SummaryNestedProps {
     version: string
     etag: string
   }
+  packageHandle: PackageHandle
 }
 
-export function SummaryNested({ handle, mkUrl }: SummaryNestedProps) {
+export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedProps) {
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
   return (
     <FileThemeContext.Provider value={FileThemes.Nested}>
       {data.case({
-        Err: (e: Error) => {
-          // eslint-disable-next-line no-console
-          console.warn('Error loading summary')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          return null
-        },
+        Err: (e: Error) => <SummaryFailed error={e} />,
         Ok: (entries: SummarizeFile[]) => (
-          <SummaryEntries entries={entries} s3={s3} mkUrl={mkUrl} />
+          <SummaryEntries
+            entries={entries}
+            s3={s3}
+            mkUrl={mkUrl}
+            packageHandle={packageHandle}
+          />
         ),
         Pending: () => <FilePreviewSkel />,
         _: () => null,

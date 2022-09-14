@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import 'katex/dist/katex.css'
 
-import 'ipynb.css'
+import 'assets/ipynb.css'
 
 import { renderWarnings } from './util'
 

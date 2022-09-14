@@ -1,10 +1,12 @@
 /* embed/debug-harness.js - debug tool for embedded browser */
+import * as R from 'ramda'
 import * as React from 'react'
 import ReactDOM from 'react-dom'
 import * as M from '@material-ui/core'
 
 import 'sanitize.css' // side-effect: inject global css
 
+import JsonDisplay from 'components/JsonDisplay'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as style from 'constants/style'
@@ -14,11 +16,17 @@ import * as Okta from 'utils/Okta'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
+import mkSearch from 'utils/mkSearch'
 import * as RT from 'utils/reactTools'
 
 import WithGlobalStyles from '../global-styles'
 
 const SRC = '/__embed'
+const EMBED_ORIGIN = window.location.origin
+const PARENT_ORIGIN = window.location.origin
+const EVENT_SOURCE = 'quilt-embed'
+
+const mkNonce = () => `${Math.random()}`
 
 function useField(init) {
   const [value, set] = React.useState(init)
@@ -37,13 +45,28 @@ function Embedder() {
 
   const iframeRef = React.useRef(null)
 
+  const [nonce, setNonce] = React.useState(mkNonce)
+
+  const src = `${SRC}${mkSearch({ nonce, origin: PARENT_ORIGIN })}`
+
   const fields = {
     credentials: useField('{}'),
     bucket: useField(''),
     path: useField(''),
     scope: useField(''),
     rest: useField('{}'),
+    route: useField(''),
+    newRoute: useField(''),
   }
+
+  const [messages, setMessages] = React.useState([])
+
+  const logMessage = React.useCallback(
+    (direction, { type, ...contents }) => {
+      setMessages(R.prepend({ direction, type, contents, time: new Date() }))
+    },
+    [setMessages],
+  )
 
   const initParams = React.useMemo(() => {
     try {
@@ -52,6 +75,7 @@ function Embedder() {
         path: fields.path.value,
         scope: fields.scope.value,
         credentials: JSON.parse(fields.credentials.value),
+        route: fields.route.value,
         ...JSON.parse(fields.rest.value || '{}'),
       }
     } catch (e) {
@@ -63,6 +87,7 @@ function Embedder() {
     fields.path.value,
     fields.scope.value,
     fields.rest.value,
+    fields.route.value,
   ])
 
   const getOktaCredentials = React.useCallback(async () => {
@@ -74,12 +99,10 @@ function Embedder() {
     (msg) => {
       if (!iframeRef.current) return
       const w = iframeRef.current.contentWindow
-      // eslint-disable-next-line no-console
-      console.log('Sending message to the iframe', msg)
-      // TODO: use origin?
-      w.postMessage(msg)
+      w.postMessage(msg, EMBED_ORIGIN)
+      logMessage('out', msg)
     },
-    [iframeRef],
+    [iframeRef, logMessage],
   )
 
   const postInit = React.useCallback(() => {
@@ -87,11 +110,35 @@ function Embedder() {
     postMessage({ type: 'init', ...initParams })
   }, [postMessage, initParams])
 
+  const navigate = React.useCallback(() => {
+    postMessage({ type: 'navigate', route: fields.newRoute.value })
+  }, [postMessage, fields.newRoute.value])
+
   const reloadIframe = React.useCallback(() => {
-    if (iframeRef.current) {
-      iframeRef.current.src = SRC
+    setNonce(mkNonce)
+    setMessages([])
+  }, [setNonce, setMessages])
+
+  const handleMessage = React.useCallback(
+    (e) => {
+      if (
+        e.source !== iframeRef.current.contentWindow ||
+        e.origin !== EMBED_ORIGIN ||
+        e.data.source !== EVENT_SOURCE ||
+        nonce !== e.data.nonce
+      )
+        return
+      logMessage('in', R.omit(['source', 'nonce'], e.data))
+    },
+    [iframeRef, logMessage, nonce],
+  )
+
+  React.useEffect(() => {
+    window.addEventListener('message', handleMessage)
+    return () => {
+      window.removeEventListener('message', handleMessage)
     }
-  }, [iframeRef])
+  }, [handleMessage])
 
   return (
     <M.Box display="flex" justifyContent="space-between" p={2} maxHeight="100vh">
@@ -123,6 +170,9 @@ function Embedder() {
         <M.TextField label="Path" fullWidth {...fields.path.input} />
 
         <M.Box mt={2} />
+        <M.TextField label="Route" fullWidth {...fields.route.input} />
+
+        <M.Box mt={2} />
         <M.TextField label="Scope" fullWidth {...fields.scope.input} />
 
         <M.Box mt={2} />
@@ -144,26 +194,57 @@ function Embedder() {
           reload iframe
         </M.Button>
 
-        <M.Box
-          component="pre"
-          mt={2}
-          mb={0}
-          style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}
-        >
-          {initParams instanceof Error
-            ? `${initParams}`
-            : JSON.stringify(initParams, null, 2)}
+        <M.Box mt={2}>
+          {initParams instanceof Error ? (
+            `${initParams}`
+          ) : (
+            <JsonDisplay name="init params" value={initParams} defaultExpanded />
+          )}
         </M.Box>
+
+        <M.Box mt={4} />
+        <M.Button variant="outlined" onClick={navigate}>
+          navigate to
+        </M.Button>
+
+        <M.Box mt={2} />
+        <M.TextField label="New route" fullWidth {...fields.newRoute.input} />
       </M.Box>
 
-      <iframe
-        title="embed"
-        src={SRC}
-        width="900"
-        height="600"
-        ref={iframeRef}
-        style={{ border: '1px solid', flexShrink: 0 }}
-      />
+      <M.Box flexShrink={0}>
+        <iframe
+          title="embed"
+          src={src}
+          width="900"
+          height="600"
+          ref={iframeRef}
+          style={{ border: '1px solid' }}
+        />
+
+        <M.Box mt={3}>
+          <M.Typography variant="h6" gutterBottom>
+            Messages
+          </M.Typography>
+          {messages.map((m) => (
+            <M.Box key={m.time.toISOString()}>
+              <JsonDisplay
+                name={`[${m.time.toISOString()}] ${
+                  m.direction === 'in' ? '<==' : '==>'
+                } ${m.type}`}
+                value={m.contents}
+                color={
+                  // eslint-disable-next-line no-nested-ternary
+                  m.direction === 'in'
+                    ? m.type === 'error'
+                      ? 'error.main'
+                      : 'success.main'
+                    : undefined
+                }
+              />
+            </M.Box>
+          ))}
+        </M.Box>
+      </M.Box>
     </M.Box>
   )
 }

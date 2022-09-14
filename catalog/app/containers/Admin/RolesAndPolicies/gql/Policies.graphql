@@ -1,0 +1,7 @@
+# import PolicySelection from "./PolicySelection.graphql"
+
+query {
+  policies {
+    ...PolicySelection
+  }
+}

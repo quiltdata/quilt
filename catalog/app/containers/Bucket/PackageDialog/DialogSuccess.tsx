@@ -26,7 +26,7 @@ const defaultRenderMessage = (props: DialogSuccessRenderMessageProps) => (
 interface DialogSuccessProps {
   browseText?: React.ReactNode
   bucket: string
-  hash: string
+  hash?: string
   name: string
   onClose: () => void
   renderMessage?: (props: DialogSuccessRenderMessageProps) => React.ReactNode
@@ -46,16 +46,18 @@ export default function DialogSuccess({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
-  const packageUrl = urls.bucketPackageTree(bucket, name, hash)
+  // TODO: return full revision from quilt3 CLI
+  const isFullHash = hash && hash.length >= 10
+  const packageUrl = isFullHash
+    ? urls.bucketPackageTree(bucket, name, hash)
+    : urls.bucketPackageRevisions(bucket, name)
   const packageLink = (
-    <StyledLink to={packageUrl}>
-      {name}@{R.take(10, hash)}
-    </StyledLink>
+    <StyledLink to={packageUrl}>{hash ? `${name}@${R.take(10, hash)}` : name}</StyledLink>
   )
   const bucketLink = (
     <StyledLink to={urls.bucketOverview(bucket)}>s3://{bucket}</StyledLink>
   )
-
+  const defaultBrowseText = isFullHash ? 'Browse package' : 'Browse package revisions'
   return (
     <>
       <M.DialogTitle>{title || 'Push complete'}</M.DialogTitle>
@@ -73,7 +75,7 @@ export default function DialogSuccess({
           variant="contained"
           color="primary"
         >
-          {browseText || 'Browse package'}
+          {browseText || defaultBrowseText}
         </M.Button>
       </M.DialogActions>
     </>

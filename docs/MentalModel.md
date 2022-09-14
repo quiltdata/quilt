@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Mental model for a Quilt package
 
 Quilt represents datasets as *packages*. A package is an immutable collection of
@@ -56,5 +57,5 @@ We generally recommend a minimum of three buckets for the data lifecycle:
 ![](imgs/three-bucket-flow.png)
 
 
-See [Quilt workflows](Advanced%20Features/workflows.md) for more on how you can
+See [Quilt workflows](advanced-features/workflows.md) for more on how you can
 control data quality with schemas.

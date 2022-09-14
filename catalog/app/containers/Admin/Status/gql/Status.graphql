@@ -1,0 +1,38 @@
+query (
+  $statsWindow: Int!,
+  $reportsPerPage: Int!,
+  $reportsOrder: StatusReportListOrder!,
+) {
+  status {
+    __typename
+    ... on Status {
+      canaries {
+        name
+        region
+        group
+        title
+        description
+        schedule
+        ok
+        lastRun
+      }
+      latestStats {
+        passed
+        failed
+        running
+      }
+      stats(window: $statsWindow) {
+        datetimes
+        passed
+        failed
+      }
+      reports {
+        total
+        page(perPage: $reportsPerPage, order: $reportsOrder) {
+          timestamp
+          renderedReportLocation
+        }
+      }
+    }
+  }
+}

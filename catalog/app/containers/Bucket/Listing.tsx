@@ -6,9 +6,10 @@ import type { AutosizeInputProps } from 'react-input-autosize'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
-import * as DG from '@material-ui/data-grid'
 
+import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
+import type { S3HandleBase } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -18,9 +19,6 @@ const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28
 
-// monkey-patch MUI built-in colDef to better align checkboxes
-DG.gridCheckboxSelectionColDef.width = 32
-
 export interface Item {
   type: 'dir' | 'file'
   name: string
@@ -28,6 +26,7 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
+  handle?: S3HandleBase
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
@@ -48,15 +47,6 @@ const computeStats = R.reduce(
     size: 0,
     modified: undefined as Date | undefined,
   },
-)
-
-type DataGridProps = Omit<DG.GridComponentProps, 'licenseStatus'>
-
-const DataGrid = React.memo(
-  React.forwardRef<HTMLDivElement, DataGridProps>(function DataGrid(inProps, ref) {
-    const props = DG.useThemeProps({ props: inProps, name: 'MuiDataGrid' })
-    return <DG.GridComponent ref={ref} {...props} licenseStatus="Valid" />
-  }),
 )
 
 interface WrappedAutosizeInputProps extends Omit<AutosizeInputProps, 'ref'> {
@@ -775,6 +765,9 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     zIndex: 1, // to prevent receiveing shadow from footer
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
+    },
   },
   grid: {
     border: 'none',
@@ -883,7 +876,7 @@ interface ListingProps {
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
-  dataGridProps?: Partial<DataGridProps>
+  dataGridProps?: Partial<DG.DataGridProps>
 }
 
 export function Listing({
@@ -1046,7 +1039,7 @@ export function Listing({
   // TODO: control page, pageSize, filtering and sorting via props
   return (
     <RootComponent className={cx(classes.root, className)}>
-      <DataGrid
+      <DG.DataGrid
         onFilterModelChange={handleFilterModelChange}
         className={cx(classes.grid, locked && classes.locked)}
         rows={items}

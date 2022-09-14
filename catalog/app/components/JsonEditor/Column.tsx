@@ -1,3 +1,5 @@
+import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -6,19 +8,32 @@ import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
+import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
 import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    background: t.palette.common.white,
     flex: 'none',
     padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
   },
+  sibling: {
+    flex: 1,
 
+    '& + &': {
+      marginLeft: '-1px',
+    },
+  },
+  siblingButton: {
+    paddingLeft: t.spacing(1),
+  },
+  scroll: {
+    maxHeight: `calc(100% - ${t.spacing(8)}px)`,
+    overflowY: 'auto',
+  },
   table: {
     tableLayout: 'fixed',
   },
@@ -63,8 +78,35 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
   )
 }
 
+const MIN_ROWS_NUMBER = 10
+
+interface ColumnFillerProps {
+  hasSiblingColumn: boolean
+  filledRowsNumber: number
+}
+
+function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps) {
+  const emptyRows = React.useMemo(() => {
+    if (filledRowsNumber >= MIN_ROWS_NUMBER) return []
+    return R.range(0, MIN_ROWS_NUMBER - filledRowsNumber)
+  }, [filledRowsNumber])
+
+  if (!hasSiblingColumn) return null
+
+  return (
+    <>
+      {emptyRows.map((index) => (
+        <EmptyRow key={`empty_row_${index}`} />
+      ))}
+    </>
+  )
+}
+
 interface ColumnProps {
+  hasSiblingColumn: boolean
+  className: string
   columnPath: string[]
+  contextMenuPath: string[]
   data: {
     items: RowData[]
     parent: JsonValue
@@ -73,17 +115,22 @@ interface ColumnProps {
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: string[]) => void
   onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
 }
 
 export default function Column({
+  className,
   columnPath,
+  contextMenuPath,
   data,
+  hasSiblingColumn,
   jsonDict,
   onAddRow,
   onBreadcrumb,
   onChange,
+  onContextMenu,
   onExpand,
   onRemove,
 }: ColumnProps) {
@@ -132,10 +179,16 @@ export default function Column({
   )
 
   return (
-    <div className={classes.root}>
-      {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
+    <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
+      {!!columnPath.length && (
+        <Breadcrumbs
+          tailOnly={hasSiblingColumn}
+          items={columnPath}
+          onSelect={onBreadcrumb}
+        />
+      )}
 
-      <M.TableContainer>
+      <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
@@ -145,8 +198,10 @@ export default function Column({
 
               const props = {
                 cells: row.cells,
-                fresh: isLastRow && hasNewRow,
                 columnPath,
+                contextMenuPath,
+                fresh: isLastRow && hasNewRow,
+                onContextMenu,
                 onExpand,
                 onRemove,
                 key: '',
@@ -164,6 +219,7 @@ export default function Column({
             {columnType === 'array' && (
               <AddArrayItem
                 {...{
+                  className: hasSiblingColumn ? classes.siblingButton : undefined,
                   columnPath,
                   index: rows.length,
                   onAdd: onAddRowInternal,
@@ -176,10 +232,19 @@ export default function Column({
               <AddRow
                 {...{
                   columnPath,
-                  onExpand,
-                  onAdd: onAddRowInternal,
+                  contextMenuPath,
                   key: `add_row_${rows.length}`,
+                  onAdd: onAddRowInternal,
+                  onContextMenu,
+                  onExpand,
                 }}
+              />
+            )}
+
+            {columnType !== 'array' && (
+              <ColumnFiller
+                hasSiblingColumn={hasSiblingColumn}
+                filledRowsNumber={rows.length}
               />
             )}
           </M.TableBody>
