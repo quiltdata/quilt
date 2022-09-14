@@ -92,8 +92,8 @@ function Squeeze({ columnPath, onClick }: SqueezeProps) {
 
 const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   root: {
-    position: 'relative',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+    position: 'relative',
   },
   disabled: {
     position: 'relative',
@@ -111,21 +111,21 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   },
   inner: {
     display: 'flex',
-    overflow: 'auto',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
-    zIndex: 20,
+    overflow: 'auto',
     position: 'relative',
+    zIndex: 20,
   },
   column: {
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
     maxWidth: t.spacing(76),
     overflowY: 'auto',
-    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
   help: {
-    width: t.spacing(60),
     position: 'absolute',
     right: 0,
     top: 0,
+    width: t.spacing(60),
     zIndex: 10,
   },
 }))
