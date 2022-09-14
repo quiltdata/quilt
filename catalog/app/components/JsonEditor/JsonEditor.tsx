@@ -165,6 +165,8 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   ref,
 ) {
   const classes = useStyles({ multiColumned })
+  const t = M.useTheme()
+  const md = M.useMediaQuery(t.breakpoints.down('md'))
 
   const handleRowAdd = React.useCallback(
     (path: string[], key: string | number, value: JsonValue) => {
@@ -227,7 +229,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
           )
         })}
       </div>
-      {multiColumned && (
+      {multiColumned && !md && (
         <EmptyState
           className={classes.help}
           noValue={R.isEmpty(columns[0].parent)}
