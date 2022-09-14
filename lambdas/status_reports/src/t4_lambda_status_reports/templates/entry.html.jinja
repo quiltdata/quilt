@@ -1,0 +1,309 @@
+{% extends "base.html.jinja" %}
+
+{% block title %}Status Report for {{ stack_name }} Quilt stack{% endblock %}
+
+{% block style %}
+  body {
+    margin: 0;
+  }
+  .root {
+    margin: 1rem;
+  }
+  .mono {
+    font-family: 'Roboto Mono';
+  }
+  .bold {
+    font-weight: 500;
+  }
+  .color-ok {
+    color: green;
+  }
+  .color-err {
+    color: red;
+  }
+  .color-info {
+    color: blue;
+  }
+  .header__logo {
+    height: 64px;
+    margin-bottom: -8px;
+    margin-top: -6px;
+  }
+  .footer {
+    align-items: center;
+    display: flex;
+    margin-top: 1.5rem;
+  }
+  .footer__logo {
+    height: 32px;
+    margin-right: 8px;
+  }
+{% endblock %}
+
+{% macro table() %}
+  <div class="mdc-data-table">
+    <div class="mdc-data-table__table-container">
+      <table class="mdc-data-table__table">
+        {{ caller() }}
+      </table>
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro thead() %}
+  <thead>
+    <tr class="mdc-data-table__header-row">
+      {{ caller() }}
+    </tr>
+  </thead>
+{% endmacro %}
+
+{% macro tbody() %}
+  <tbody class="mdc-data-table__content">
+    {{ caller() }}
+  </tbody>
+{% endmacro %}
+
+{% macro th() %}
+  <th class="mdc-data-table__header-cell">
+    {{ caller() }}
+  </th>
+{% endmacro %}
+
+{% macro tr() %}
+  <tr class="mdc-data-table__row">
+    {{ caller() }}
+  </tr>
+{% endmacro %}
+
+{% macro td(classes="") %}
+  <td class="mdc-data-table__cell {{ classes }}">
+    {{ caller() }}
+  </td>
+{% endmacro %}
+
+{% macro typo(el="p", variant="body1", classes="") %}
+  <{{ el }} class="mdc-typography--{{ variant }} {{ classes }}">
+    {{ caller() }}
+  </{{ el }}>
+{% endmacro %}
+
+{% macro status_color(status) %}
+  color-{% if status.endswith('_COMPLETE') %}ok{% elif status.endswith('_FAILED') %}err{% else %}info{% endif %}
+{% endmacro %}
+
+{% block body %}
+  <div class="root">
+    {% call typo("h1", "headline2") %}
+      <img
+        alt="Q"
+        class="header__logo"
+        src="https://quilt-web-public.s3.amazonaws.com/q-128-square.png"
+      />
+      Status Report for <b>{{ stack_name }}</b> Quilt stack
+    {% endcall %}
+
+    {% call typo() %}
+      Generated at <b>{{ now }}</b>
+    {% endcall %}
+    {% call typo() %}
+      Other reports available at 
+      <a
+        href="https://{{ catalog_url }}/admin/status"
+        rel="noreferrer"
+        target="_blank"
+      >
+        {{ catalog_url }}/admin/status
+      </a>
+    {% endcall %}
+
+    {% call typo("h3", "headline4") %}Stack Metadata{% endcall %}
+    {% call table() %}
+      {% call tbody() %}
+        {% call tr() %}
+          {% call td("bold") %}Catalog URL{% endcall %}
+          {% call td() %}
+            <a
+              href="https://{{ catalog_url }}"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {{ catalog_url }}
+            </a>
+          {% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}Stack Name{% endcall %}
+          {% call td() %}
+            <a
+              href="https://{{ aws_region }}.console.aws.amazon.com/cloudformation/home?region={{ aws_region }}#/stacks/stackinfo?stackId={{ stack_data.StackId | urlencode }}"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {{ stack_name }}
+            </a>
+          {% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}Stack ID{% endcall %}
+          {% call td() %}
+            <a
+              href="https://{{ aws_region }}.console.aws.amazon.com/cloudformation/home?region={{ aws_region }}#/stacks/stackinfo?stackId={{ stack_data.StackId | urlencode }}"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {{ stack_data.StackId }}
+            </a>
+          {% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}AWS Region{% endcall %}
+          {% call td() %}{{ aws_region }}{% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}Creation Time{% endcall %}
+          {% call td() %}{{ stack_data.CreationTime }}{% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}Last Updated Time{% endcall %}
+          {% call td() %}{{ stack_data.LastUpdatedTime }}{% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}Status{% endcall %}
+          {% call td() %}
+            <span class="mono {{ status_color(stack_data.StackStatus) }}">
+              {{ stack_data.StackStatus }}
+            </span>
+            {% if stack_data.StackStatusReason %}
+              <span>({{ stack_data.StackStatusReason }})</span>
+            {% endif %}
+          {% endcall %}
+        {% endcall %}
+        {% call tr() %}
+          {% call td("bold") %}Description{% endcall %}
+          {% call td() %}{{ stack_data.Description }}{% endcall %}
+        {% endcall %}
+      {% endcall %}
+    {% endcall %}
+
+    {% call typo("h2", "headline3") %}Operational Qualification{% endcall %}
+    {% call table() %}
+      {% call thead() %}
+        {% call th() %}Test{% endcall %}
+        {% call th() %}Schedule{% endcall %}
+        {% call th() %}State{% endcall %}
+        {% call th() %}Last Run{% endcall %}
+      {% endcall %}
+      {% call tbody() %}
+        {% for canary in canaries %}
+          {% call tr() %}
+            {% call td() %}
+              <a
+                href="https://{{ aws_region }}.console.aws.amazon.com/synthetics/cw?region={{ aws_region }}#canary/detail/{{ canary.name }}"
+                rel="noreferrer"
+                target="_blank"
+              >
+                {{ canary.group }} / {{ canary.title }}
+              </a>
+            {% endcall %}
+            {% call td() %}{{ canary.schedule }}{% endcall %}
+            {% call td() %}
+              {% if canary.ok %}
+                <span class="color-ok">Passed</span>
+              {% elif canary.ok is false %}
+                <span class="color-err">Failed</span>
+              {% else %}
+                <span class="color-info">Running</span>
+              {% endif %}
+            {% endcall %}
+            {% call td() %}
+              {% if canary.lastRun %}
+                {{ canary.lastRun }}
+              {% else %}
+                N/A
+              {% endif %}
+            {% endcall %}
+          {% endcall %}
+        {% endfor %}
+      {% endcall %}
+    {% endcall %}
+
+    {% call typo("h2", "headline3") %}Installation Qualification{% endcall %}
+
+    {% call typo("h3", "headline4") %}Stack Resources{% endcall %}
+    {% call table() %}
+      {% call thead() %}
+        {% call th() %}Logical ID{% endcall %}
+        {% call th() %}Physical ID{% endcall %}
+        {% call th() %}Type{% endcall %}
+        {% call th() %}Status{% endcall %}
+        {% call th() %}Last Updated{% endcall %}
+      {% endcall %}
+      {% call tbody() %}
+        {% for r in resources %}
+          {% call tr() %}
+            {% call td("mono") %}{{ r.LogicalResourceId }}{% endcall %}
+            {% call td("mono") %}{{ r.PhysicalResourceId }}{% endcall %}
+            {% call td("mono") %}{{ r.ResourceType }}{% endcall %}
+            {% call td("mono") %}
+              <span class="{{ status_color(r.ResourceStatus) }}">
+                {{ r.ResourceStatus }}
+              </span>
+            {% endcall %}
+            {% call td("mono") %}{{ r.LastUpdatedTimestamp }}{% endcall %}
+          {% endcall %}
+        {% endfor %}
+      {% endcall %}
+    {% endcall %}
+
+    {% call typo("h3", "headline4") %}Stack Outputs{% endcall %}
+    {% call table() %}
+      {% call thead() %}
+        {% call th() %}Output Key{% endcall %}
+        {% call th() %}Value{% endcall %}
+        {% call th() %}Description{% endcall %}
+      {% endcall %}
+      {% call tbody() %}
+        {% for o in stack_data.Outputs %}
+          {% call tr() %}
+            {% call td("mono") %}{{ o.OutputKey }}{% endcall %}
+            {% call td("mono") %}{{ o.OutputValue }}{% endcall %}
+            {% call td() %}{{ o.Description }}{% endcall %}
+          {% endcall %}
+        {% endfor %}
+      {% endcall %}
+    {% endcall %}
+
+    {% call typo("h3", "headline4") %}Stack Parameters{% endcall %}
+    {% call table() %}
+      {% call thead() %}
+        {% call th() %}Parameter Key{% endcall %}
+        {% call th() %}Value{% endcall %}
+      {% endcall %}
+      {% call tbody() %}
+        {% for p in stack_data.Parameters %}
+          {% call tr() %}
+            {% call td("mono") %}{{ p.ParameterKey }}{% endcall %}
+            {% call td("mono") %}{{ p.ParameterValue }}{% endcall %}
+          {% endcall %}
+        {% endfor %}
+      {% endcall %}
+    {% endcall %}
+
+    <footer class="footer">
+      <a href="https://quiltdata.com" rel="noreferrer" target="_blank">{#
+        #}<img
+          alt="Q"
+          class="footer__logo"
+          src="https://quilt-web-public.s3.amazonaws.com/q-128-square.png"
+        />{#
+      #}</a>
+      <span>
+        Report generated by
+        <a href="https://quiltdata.com" rel="noreferrer" target="_blank">
+          Quilt
+        </a>
+      </span>
+    </footer>
+  </div>
+{% endblock %}
