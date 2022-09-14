@@ -13,6 +13,7 @@ const schema = {
   },
 }
 const validate = jsonSchema.makeSchemaValidator(schema)
+const noop = () => {}
 
 export default function JsonEditorBook() {
   const [value, setValue] = React.useState<JsonValue>({
@@ -30,10 +31,9 @@ export default function JsonEditorBook() {
       <M.Box bgcolor="common.white" py={2}>
         <JsonEditor
           multiColumned
-          errors={errors}
-          value={value}
-          onChange={onChange}
-          schema={schema}
+          errors={[]}
+          value={null}
+          onChange={noop}
         />
       </M.Box>
       <M.Box bgcolor="common.white" py={2}>
