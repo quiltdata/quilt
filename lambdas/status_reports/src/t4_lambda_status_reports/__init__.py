@@ -27,7 +27,9 @@ def create_syn():
 
 async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
     result = []
-    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
+    async for page in cfn.get_paginator("list_stack_resources").paginate(
+        StackName=stack_name
+    ):
         for r in page["StackResourceSummaries"]:
             if r["ResourceType"] == "AWS::Synthetics::Canary":
                 result.append(r["PhysicalResourceId"])
@@ -39,10 +41,9 @@ async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
         names[i:i + CANARIES_PER_REQUEST]
         for i in range(0, len(names), CANARIES_PER_REQUEST)
     ]
-    pages = await asyncio.gather(*[
-        getattr(syn, method)(Names=chunk)
-        for chunk in chunks
-    ])
+    pages = await asyncio.gather(
+        *[getattr(syn, method)(Names=chunk) for chunk in chunks]
+    )
     return list(itertools.chain.from_iterable(p[key] for p in pages))
 
 
@@ -102,7 +103,9 @@ async def get_canaries(syn, cfn, stack_name: str) -> T.List[dict]:
 
 async def get_resources(cfn, stack_name: str) -> T.List[dict]:
     result = []
-    async for page in cfn.get_paginator("list_stack_resources").paginate(StackName=stack_name):
+    async for page in cfn.get_paginator("list_stack_resources").paginate(
+        StackName=stack_name
+    ):
         result.extend(page["StackResourceSummaries"])
     return result
 
@@ -112,129 +115,12 @@ async def get_stack_data(cfn, stack_name: str) -> dict:
     return resp["Stacks"][0]
 
 
-jenv = jinja2.Environment(autoescape=jinja2.select_autoescape())
-# TODO: styling
-tmpl = jenv.from_string("""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Status Report</title>
-</head>
-<body>
-    <h1>Quilt Status Report</h1>
-    <dl>
-        <dt>CloudFormation Stack:</dt>
-        <dd>{{ stack_name }}</dd>
-        <dt>AWS Region:</dt>
-        <dd>{{ aws_region }}</dd>
-        <dt>Timestamp:</dt>
-        <dd>{{ now.isoformat() }}</dd>
-    </dl>
+jenv = jinja2.Environment(
+    loader=jinja2.PackageLoader("t4_lambda_status_reports"),
+    autoescape=jinja2.select_autoescape(),
+)
 
-    <h2>Operational Qualification</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Test</th>
-                <th>Schedule</th>
-                <th>State</th>
-                <th>Last Run</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for canary in canaries %}
-                <tr>
-                    <td>{{ canary.group }} / {{ canary.title }}</td>
-                    <td>{{ canary.schedule }}</td>
-                    <td>
-                        {% if canary.ok %}
-                            Passed
-                        {% elif canary.ok is false %}
-                            Failed
-                        {% else %}
-                            Running
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if canary.lastRun %}
-                            {{ canary.lastRun }}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Installation Qualification</h2>
-
-    <h3>Stack Resources</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Logical ID</th>
-                <th>Physical ID</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Last Updated</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in resources %}
-                <tr>
-                    <td>{{ r.LogicalResourceId }}</td>
-                    <td>{{ r.PhysicalResourceId }}</td>
-                    <td>{{ r.ResourceType }}</td>
-                    <td>{{ r.ResourceStatus }}</td>
-                    <td>{{ r.LastUpdatedTimestamp.isoformat() }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h3>Stack Outputs</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Output Key</th>
-                <th>Value</th>
-                <th>Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for o in stack_data.Outputs %}
-                <tr>
-                    <td>{{ o.OutputKey }}</td>
-                    <td>{{ o.OutputValue }}</td>
-                    <td>{{ o.Description }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h3>Stack Parameters</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Parameter Key</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in stack_data.Parameters %}
-                <tr>
-                    <td>{{ p.ParameterKey }}</td>
-                    <td>{{ p.ParameterValue }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
-""")
+tmpl = jenv.get_template("entry.html.jinja")
 
 
 async def generate_status_report(stack_name: str):
@@ -245,6 +131,11 @@ async def generate_status_report(stack_name: str):
             get_resources(cfn, stack_name),
             get_stack_data(cfn, stack_name),
         )
+        catalog_url = next(
+            o["OutputValue"]
+            for o in stack_data["Outputs"]
+            if o["OutputKey"] == "QuiltWebHost"
+        )
         html = tmpl.render(
             stack_name=stack_name,
             aws_region=AWS_REGION,
@@ -252,6 +143,7 @@ async def generate_status_report(stack_name: str):
             canaries=canaries,
             resources=resources,
             stack_data=stack_data,
+            catalog_url=catalog_url,
         )
         return now, html
 
@@ -284,6 +176,7 @@ async def lambda_handler(*_):
 
 if __name__ == "__main__":
     import sys
+
     args = sys.argv[1:]
     stack_name = args[0] if len(args) >= 1 else os.getenv("STACK_NAME")
     assert stack_name
