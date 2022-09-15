@@ -84,9 +84,9 @@ You can script the Quilt CLI directly from your shell environment and chain it
 with your R scripts to create a unified workflow:
 
 ```bash
-quilt3 install # download Quilt package
-[Run R commands or scripts] # modify the data in Quilt package using R
-quilt3 push # upload Quilt package
+quilt3 install my-package # download Quilt data package
+[Run R commands or scripts] # modify the data in Quilt data package using R
+quilt3 push my-package # upload Quilt data package
 ```
 
 ### Using Quilt with Reticulate
