@@ -238,10 +238,10 @@ function Crumbs({ handle }: CrumbsProps) {
     }))
     const file = {
       to: urls.bucketFile(handle.bucket, handle.key),
-      children: handle.logicalKey || R.last(all)?.label,
+      children: R.last(all)?.label,
     }
     return { dirs, file }
-  }, [handle.bucket, handle.logicalKey, handle.key, urls])
+  }, [handle.bucket, handle.key, urls])
 
   return (
     <span onCopy={copyWithoutSpaces}>
@@ -346,7 +346,7 @@ export const FilePreviewSkel = () => (
 )
 
 function useFilename(handle: S3Handle): string {
-  return s3paths.getBasename(handle.logicalKey || handle.key)
+  return s3paths.getBasename(handle.key)
 }
 
 function useFileRoute(handle: S3Handle, mkUrl?: MakeURL): LocationDescriptor {
