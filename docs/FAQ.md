@@ -64,3 +64,32 @@ a local machine or foreign region)—I/O is much faster.
 
 1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
+
+## Does Quilt work with R?
+
+In the scientific computing community, the [R Project](https://www.r-project.org/)
+is commonly used as an alternative, or companion, to Python. It is a language and
+environment for statistical computing and graphics, and is available as Free Software
+under the [GNU General Public License](https://www.r-project.org/COPYING).
+
+Currently there are no plans to release a Quilt package for distribution through
+the [CRAN package repository](https://cloud.r-project.org/). However, you can still
+use Quilt with R, using either:
+
+1. The Command Line Interface (CLI) API
+1. [Reticulate](https://rstudio.github.io/reticulate/)
+
+### Using the Quilt CLI API with R
+You can script the Quilt CLI directly from your shell environment and chain it
+with your R scripts to create a unified workflow:
+
+<!--pytest.mark.skip-->
+```bash
+quilt3 install my-package # download Quilt data package 
+[Run R commands or scripts] # modify the data in Quilt data package using R
+quilt3 push --dir path/to/remote-registry my-package # upload Quilt data package to the remote registry
+```
+
+### Using Quilt with Reticulate
+The [Reticulate](https://rstudio.github.io/reticulate/) package provides a set of tools
+for interoperability between Python and R by embedding a Python session within your R session.
