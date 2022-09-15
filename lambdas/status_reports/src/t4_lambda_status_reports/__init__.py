@@ -38,7 +38,7 @@ async def list_stack_canaries(cfn, stack_name: str) -> T.List[str]:
 
 async def drain(syn, method: str, key: str, names: T.List[str]) -> T.List[dict]:
     chunks = [
-        names[i : i + CANARIES_PER_REQUEST]
+        names[i:i + CANARIES_PER_REQUEST]
         for i in range(0, len(names), CANARIES_PER_REQUEST)
     ]
     pages = await asyncio.gather(
