@@ -1060,7 +1060,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
         opts_with_defaults.update(opts)
         try:
             from anndata.experimental import write_elem
-        except ImportError:
+        except ImportError:  # pragma: no cover
             warnings.warn("anndata.experimenta.write_elem got moved", FutureWarning)
             with TemporaryDirectory() as td:
                 path = Path(td) / 'data.h5ad'
@@ -1077,7 +1077,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
         try:
             import anndata as ad
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise QuiltException("Please install anndata")
 
         import h5py
@@ -1085,7 +1085,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
         buf = io.BytesIO(bytes_obj)
         try:
             from anndata.experimental import read_elem
-        except ImportError:
+        except ImportError:  # pragma: no cover
             warnings.warn("anndata.experimenta.read_elem got moved", FutureWarning)
             return ad.read_h5ad(buf)
 
