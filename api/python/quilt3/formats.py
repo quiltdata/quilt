@@ -77,7 +77,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 
 from .util import QuiltException
 
@@ -1053,20 +1053,24 @@ class AnnDataFormatHandler(BaseFormatHandler):
         return super().handles_type(typ)
 
     def serialize(self, obj, meta=None, ext=None, **format_opts):
+        import h5py
+
         opts = self.get_opts(meta, format_opts)
         opts_with_defaults = copy.deepcopy(self.defaults)
         opts_with_defaults.update(opts)
         try:
+            from anndata.experimental import write_elem
+        except ImportError:
+            warnings.warn("anndata.experimenta.write_elem got moved", FutureWarning)
+            with TemporaryDirectory() as td:
+                path = Path(td) / 'data.h5ad'
+                obj.write(path, **opts_with_defaults)
+                data = path.read_bytes()
+        else:
             buf = io.BytesIO()
-            obj.write(buf, **opts_with_defaults)
+            with h5py.File(buf, "w") as f:
+                write_elem(f, "/", obj)
             data = buf.getvalue()
-        except TypeError:
-            # Old AnnData version don’t support writing to buffers,
-            # see https://github.com/scverse/anndata/pull/800
-            with NamedTemporaryFile() as f:
-                f.close()  # can’t re-open a file on Windows
-                obj.write(f.name, **opts_with_defaults)
-                data = Path(f.name).read_bytes()
 
         return data, self._update_meta(meta, additions=opts_with_defaults)
 
@@ -1076,8 +1080,17 @@ class AnnDataFormatHandler(BaseFormatHandler):
         except ImportError:
             raise QuiltException("Please install anndata")
 
+        import h5py
+
         buf = io.BytesIO(bytes_obj)
-        return ad.read_h5ad(buf)
+        try:
+            from anndata.experimental import read_elem
+        except ImportError:
+            warnings.warn("anndata.experimenta.read_elem got moved", FutureWarning)
+            return ad.read_h5ad(buf)
+
+        with h5py.File(buf, "r") as f:
+            return read_elem(f["/"])
 
 
 AnnDataFormatHandler().register()
