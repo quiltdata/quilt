@@ -1,5 +1,4 @@
 <!-- markdownlint-disable -->
-<!--pytest-codeblocks:skipfile-->
 ## How do I sync my notebook and all of its data and models to S3 as a package?
 <!--pytest.mark.skip-->
 ```python
@@ -84,6 +83,7 @@ use Quilt with R, using either:
 You can script the Quilt CLI directly from your shell environment and chain it
 with your R scripts to create a unified workflow:
 
+<!--pytest.mark.skip-->
 ```bash
 quilt3 install my-package # download Quilt data package 
 [Run R commands or scripts] # modify the data in Quilt data package using R
