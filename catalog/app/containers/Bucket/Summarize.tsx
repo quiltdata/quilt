@@ -346,6 +346,7 @@ export const FilePreviewSkel = () => (
 )
 
 function getDisplayName(handle: S3Handle): string {
+  // TODO: show crumbs for packages too
   return s3paths.getBasename(handle.key)
 }
 
