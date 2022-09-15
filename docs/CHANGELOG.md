@@ -44,6 +44,7 @@
 * [Changed] Fixed config and docs mistyping: `ui.athena.defaultWorkflow` should be `ui.athena.defaultWorkgroup` ([#3067](https://github.com/quiltdata/quilt/pull/3067))
 
 ## Docs
+* [Added] Using R with Quilt ([#3089](https://github.com/quiltdata/quilt/pull/3089))
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
 
 # 5.0.0 - 2022-03-14
