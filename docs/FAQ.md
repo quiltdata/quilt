@@ -1,4 +1,5 @@
 <!-- markdownlint-disable -->
+<!--pytest-codeblocks:skipfile-->
 ## How do I sync my notebook and all of its data and models to S3 as a package?
 <!--pytest.mark.skip-->
 ```python
