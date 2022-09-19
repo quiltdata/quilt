@@ -12,7 +12,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
 
-import { Section, makeAsyncDataErrorHandler } from './Components'
+import { Alert, Section, makeAsyncDataErrorHandler } from './Components'
 import CreatePackage from './CreatePackage'
 import * as QueryEditor from './QueryEditor'
 import Results from './Results'
@@ -194,7 +194,7 @@ function ResultsContainer({
         />
       ) : // eslint-disable-next-line no-nested-ternary
       queryResults.queryExecution.error ? (
-        makeAsyncDataErrorHandler('Query Results Data')(queryResults.queryExecution.error)
+        <Alert error={queryResults.queryExecution.error} title="Query Results Data" />
       ) : queryResults.queryExecution ? (
         <History
           bucket={bucket}
@@ -202,9 +202,10 @@ function ResultsContainer({
           workgroup={workgroup}
         />
       ) : (
-        makeAsyncDataErrorHandler('Query Results Data')(
-          new Error("Couldn't fetch query results"),
-        )
+        <Alert
+          error={new Error("Couldn't fetch query results")}
+          title="Query Results Data"
+        />
       )}
     </div>
   )
