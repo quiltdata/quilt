@@ -7,7 +7,6 @@ Every time you save a data package to a registry you also save its manifest. You
 
 ```python
 import quilt3
-import os
 
 # create test file
 with open("data.csv", "w") as f:
@@ -69,7 +68,7 @@ p.set_meta({"key": "value"})
 with open("example.jsonl", "w") as f:
     p.dump(f)
 
-# Loading maifest 
+# Loading manifest
 p.load(open("example.jsonl", "r"))
 ```
 
