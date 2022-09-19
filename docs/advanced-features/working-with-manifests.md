@@ -48,7 +48,7 @@ The manifest fields are as follows:
 * `logical_key` - The path to the entry within the package.
 * `physical_keys` - A list of files. Currently this field will always have a single entry. This field is omitted if the entry is a directory.
 * `size` - The size of the entry in raw bytes. This field is omitted if the entry is a directory.
-* `hash` - [Materialized packages](./Materialization.md) record a content hash for every entry in the package. This field is used to ensure package immutability (the tophash is partly a hash of these hashes).
+* `hash` - [Materialized packages](./materialization.md) record a content hash for every entry in the package. This field is used to ensure package immutability (the tophash is partly a hash of these hashes).
 
   If the hash is present it will be a `dict` fragment of the form `{'type': 'SHA256',
    'value': '...'}`. Un-materialized package entries have a `hash` of `None`, as in our example. Directory entries omit this field.
