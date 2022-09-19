@@ -64,9 +64,7 @@ export default function QueryViewer({
   const [error, setError] = React.useState<Error | null>(null)
 
   const handleChange = React.useCallback(
-    (value: object) => {
-      onChange(value as requests.ElasticSearchQuery)
-    },
+    (value: object) => onChange(value as requests.ElasticSearchQuery),
     [onChange],
   )
 
@@ -91,8 +89,6 @@ export default function QueryViewer({
     }),
     [t],
   )
-
-  if (!query) return null
 
   return (
     <div className={className}>
