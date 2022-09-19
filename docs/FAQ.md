@@ -120,3 +120,6 @@ for (k, e) in p.walk():
     pk = e.physical_key
     s3.delete_object(Bucket=pk.bucket, Key=pk.path, VersionId=pk.version_id)
 ```
+
+You can then follow the above with `q3.Package.delete(pname, registry=reg, top_hash=p.top_hash)`.
+
