@@ -69,7 +69,7 @@ p.set_meta({"key": "value"})
 with open("example.jsonl", "w") as f:
     p.dump(f)
 
-# Loading maifest 
+# Loading manifest
 p.load(open("example.jsonl", "r"))
 ```
 
