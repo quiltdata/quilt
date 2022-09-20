@@ -168,20 +168,21 @@ const useFormStyles = M.makeStyles((t) => ({
 interface FormProps {
   bucket: string
   className?: string
-  initialValue: string | null
+  onChange: (value: string) => void
   queryExecutionId?: string
+  value: string | null
   workgroup: requests.athena.Workgroup
 }
 
 export function Form({
   bucket,
   className,
-  initialValue,
-  workgroup,
+  onChange,
   queryExecutionId,
+  value,
+  workgroup,
 }: FormProps) {
   const classes = useFormStyles()
-  const [value, setValue] = React.useState<string | null>(initialValue)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
@@ -191,7 +192,7 @@ export function Form({
 
   return (
     <div className={className}>
-      <EditorField onChange={setValue} query={value || ''} />
+      <EditorField onChange={onChange} query={value || ''} />
 
       {error && (
         <Lab.Alert className={classes.error} severity="error">
