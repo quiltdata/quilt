@@ -29,8 +29,9 @@ interface ReportLinkProps {
 }
 
 function ActualDownloadLink({ loc }: ReportLinkProps) {
+  const stack = loc.bucket.replace(/-statusreportsbucket-.*$/, '')
   const url = AWS.Signer.useDownloadUrl(loc, {
-    filename: loc.key,
+    filename: `status-${stack}-${loc.key}`,
     contentType: 'text/html',
   })
   return (

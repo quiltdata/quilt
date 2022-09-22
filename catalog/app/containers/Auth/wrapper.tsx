@@ -4,8 +4,6 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
-import Button from '@material-ui/core/Button'
-import Typography from '@material-ui/core/Typography'
 import * as M from '@material-ui/core'
 
 import Error from 'components/Error'
@@ -18,9 +16,16 @@ import { check } from './actions'
 import { InvalidToken } from './errors'
 import * as selectors from './selectors'
 
+const useErrorScreenStyles = M.makeStyles({
+  button: {
+    marginLeft: '1em',
+  },
+})
+
 const ErrorScreen = () => {
   const dispatch = redux.useDispatch()
   const retry = React.useCallback(() => dispatch(check()), [dispatch])
+  const classes = useErrorScreenStyles()
 
   return (
     <Layout>
@@ -29,13 +34,14 @@ const ErrorScreen = () => {
         detail={
           <span>
             Something went wrong. Try again.
-            <Button
+            <M.Button
               variant="contained"
               color="primary"
-              style={{ marginLeft: '1em' }}
+              className={classes.button}
               onClick={retry}
-              label="Retry"
-            />
+            >
+              Retry
+            </M.Button>
           </span>
         }
       />
@@ -43,27 +49,27 @@ const ErrorScreen = () => {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useNotAuthorizedStyles = M.makeStyles((t) => ({
   heading: {
     marginTop: t.spacing(10),
   },
 }))
 
 function NotAuthorized() {
-  const classes = useStyles()
+  const classes = useNotAuthorizedStyles()
   return (
     <Layout>
-      <Typography variant="h3" align="center" className={classes.heading} gutterBottom>
+      <M.Typography variant="h3" align="center" className={classes.heading} gutterBottom>
         Not Authorized
-      </Typography>
-      <Typography variant="body1" align="center">
+      </M.Typography>
+      <M.Typography variant="body1" align="center">
         Contact a Quilt admin to perform this task.
-      </Typography>
+      </M.Typography>
     </Layout>
   )
 }
 
-export default ({ authorizedSelector = R.T } = {}) => {
+export default function requireAuth<Props = {}>({ authorizedSelector = R.T } = {}) {
   const select = createStructuredSelector({
     authenticated: selectors.authenticated,
     authorized: authorizedSelector,
@@ -71,7 +77,7 @@ export default ({ authorizedSelector = R.T } = {}) => {
     waiting: selectors.waiting,
     location: selectLocation,
   })
-  return memoize((Component) => (props) => {
+  return memoize((Component) => (props: Props) => {
     const state = redux.useSelector(select)
     const { urls } = NamedRoutes.use()
 

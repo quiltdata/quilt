@@ -7,10 +7,12 @@ import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
+import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import copyToClipboard from 'utils/clipboard'
 
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
@@ -19,6 +21,38 @@ import iconInstagram from './icon-instagram.svg'
 import iconLinkedin from './icon-linkedin.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
+
+const useVersionStyles = M.makeStyles((t) => ({
+  revision: {
+    color: t.palette.secondary.main,
+    cursor: 'pointer',
+    opacity: 0.3,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+}))
+
+function Version() {
+  const classes = useVersionStyles()
+  const { push } = Notifications.use()
+  const handleCopy = React.useCallback(() => {
+    copyToClipboard(process.env.REVISION_HASH)
+    push('Product revision hash has been copied to clipboard')
+  }, [push])
+  return (
+    <div>
+      <M.Typography
+        className={classes.revision}
+        onClick={handleCopy}
+        title="Copy product revision hash to clipboard"
+        variant="caption"
+      >
+        Revision: {process.env.REVISION_HASH.substring(0, 8)}
+      </M.Typography>
+    </div>
+  )
+}
 
 const FooterLogo = () => <Logo height="29px" width="76.5px" />
 
@@ -184,6 +218,9 @@ export default function Footer() {
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
           </M.Box>
+        </M.Container>
+        <M.Container maxWidth="lg">
+          <Version />
         </M.Container>
       </footer>
     </M.MuiThemeProvider>

@@ -183,10 +183,9 @@ const QUERY_PLACEHOLDER = {
 }
 
 const isButtonDisabled = (
-  queryContent: requests.ElasticSearchQuery,
   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
   error: Error | null,
-): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
+): boolean => !!error || !!resultsData.case({ Pending: R.T, _: R.F })
 
 interface ElastiSearchProps extends RouteComponentProps<{ bucket: string }> {}
 
@@ -228,7 +227,7 @@ export default function ElastiSearch({
           {queryData.case({
             Init: () => (
               <Form
-                disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
+                disabled={isButtonDisabled(resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
@@ -237,11 +236,7 @@ export default function ElastiSearch({
             ),
             Ok: (queryBody: requests.ElasticSearchQuery) => (
               <Form
-                disabled={isButtonDisabled(
-                  customQueryBody || queryBody,
-                  resultsData,
-                  queryBodyError,
-                )}
+                disabled={isButtonDisabled(resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
