@@ -44,6 +44,7 @@
 * [Changed] Fixed config and docs mistyping: `ui.athena.defaultWorkflow` should be `ui.athena.defaultWorkgroup` ([#3067](https://github.com/quiltdata/quilt/pull/3067))
 
 ## Docs
+* [Added] Using quilt3 login and aws configure with containers ([#3099](https://github.com/quiltdata/quilt/pull/3099))
 * [Added] Object deletion example ([#3097](https://github.com/quiltdata/quilt/pull/3097))
 * [Added] Using R with Quilt ([#3089](https://github.com/quiltdata/quilt/pull/3089))
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
