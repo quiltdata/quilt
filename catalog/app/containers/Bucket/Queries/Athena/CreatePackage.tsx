@@ -108,6 +108,15 @@ function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  results: {
+    'div&': {
+      // NOTE: increasing CSS specifity to overwrite
+      minHeight: t.spacing(30),
+    },
+  },
+}))
+
 interface CreatePackageProps {
   columns: requests.athena.QueryResultsColumns
   bucket: string
@@ -115,6 +124,7 @@ interface CreatePackageProps {
 }
 
 export default function CreatePackage({ bucket, columns, rows }: CreatePackageProps) {
+  const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
   const createDialog = usePackageCreationDialog({
@@ -159,7 +169,9 @@ export default function CreatePackage({ bucket, columns, rows }: CreatePackagePr
         ),
         title: 'Create package',
       })}
-      {confirm.render(<Results rows={entries.invalid} columns={columns} />)}
+      {confirm.render(
+        <Results className={classes.results} rows={entries.invalid} columns={columns} />,
+      )}
       <M.Button color="primary" onClick={onPackage} size="small" variant="outlined">
         Create package
       </M.Button>
