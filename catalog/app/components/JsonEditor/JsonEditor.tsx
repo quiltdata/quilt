@@ -3,11 +3,52 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
+import illustrationEnterValues from './enter-values.webm'
+import illustrationObjectExpand from './object-expand.webm'
 import Column from './Column'
 import State from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
+
+interface EmptyStateProps {
+  className: string
+  noValue: boolean
+  notExpanded: boolean
+}
+
+function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
+  if (noValue) {
+    return (
+      <M.Card className={className}>
+        <M.CardContent>
+          <M.Typography variant="h5">JSON editor is empty</M.Typography>
+          <M.Typography variant="body1">
+            Start filling empty rows as in Excel. You can enter values by hand. Type{' '}
+            <Code>{`{}`}</Code> to create an object, or <Code>{`[]`}</Code> to create an
+            array, and then traverse it to enter properties.
+          </M.Typography>
+          <video src={illustrationEnterValues} width="100%" autoPlay loop />
+        </M.CardContent>
+      </M.Card>
+    )
+  }
+
+  if (notExpanded) {
+    return (
+      <M.Card className={className}>
+        <M.CardContent>
+          <M.Typography variant="h5">There is more data here</M.Typography>
+          <M.Typography variant="body1">Try to expand object values</M.Typography>
+          <video src={illustrationObjectExpand} width="100%" autoPlay loop />
+        </M.CardContent>
+      </M.Card>
+    )
+  }
+
+  return null
+}
 
 interface ColumnData {
   items: RowData[]
@@ -52,6 +93,7 @@ function Squeeze({ columnPath, onClick }: SqueezeProps) {
 const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   root: {
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+    position: 'relative',
   },
   disabled: {
     position: 'relative',
@@ -69,13 +111,22 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   },
   inner: {
     display: 'flex',
-    overflow: 'auto',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+    overflow: 'auto',
+    position: 'relative',
+    zIndex: 20,
   },
   column: {
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
     maxWidth: t.spacing(76),
     overflowY: 'auto',
-    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+  },
+  help: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: t.spacing(60),
+    zIndex: 10,
   },
 }))
 
@@ -114,6 +165,8 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   ref,
 ) {
   const classes = useStyles({ multiColumned })
+  const t = M.useTheme()
+  const md = M.useMediaQuery(t.breakpoints.down('md'))
 
   const handleRowAdd = React.useCallback(
     (path: string[], key: string | number, value: JsonValue) => {
@@ -176,6 +229,13 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
           )
         })}
       </div>
+      {multiColumned && !md && (
+        <EmptyState
+          className={classes.help}
+          noValue={!columns[0].parent || R.isEmpty(columns[0].parent)}
+          notExpanded={columnsView.length < 2}
+        />
+      )}
     </div>
   )
 })
