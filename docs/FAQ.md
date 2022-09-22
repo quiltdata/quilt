@@ -125,3 +125,14 @@ for (k, e) in p.walk():
 
 You can then follow the above with `q3.Package.delete(pname, registry=reg, top_hash=p.top_hash)`.
 
+## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
+
+If you have configured your [AWS command line](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) 
+you can run `aws configure` and use your valid AWS credentials to push from your
+machine or from any pipeline. Remember to run `quilt3 logout` if you were logged 
+in to your existing Quilt stack!
+
+The necessary AWS S3 object permissions are similar to 
+[this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies) 
+but you do not need either the `s3:GetBucketNotification` or `s3:PutBucketNotification` 
+to use `quilt3`.
