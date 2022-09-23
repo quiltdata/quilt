@@ -131,6 +131,7 @@ Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide
 and `quilt3` will use the same for its API calls. Select among multiple profiles in your shell as follows:
 ```bash
 export AWS_PROFILE=your_profile
+```
 
 The S3 permissions needed by `quilt3` are similar to
 [this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies)
