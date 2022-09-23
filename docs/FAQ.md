@@ -132,7 +132,6 @@ and `quilt3` will use the same for its API calls. Select among multiple profiles
 ```bash
 export AWS_PROFILE=your_profile
 
-The necessary AWS S3 object permissions are similar to 
-[this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies) 
-but you do not need either the `s3:GetBucketNotification` or `s3:PutBucketNotification` 
-to use `quilt3`.
+The S3 permissions needed by `quilt3` are similar to
+[this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies)
+but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
