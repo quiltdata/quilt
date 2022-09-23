@@ -32,19 +32,19 @@ interface ResultsProps {
 
 export default function Results({ columns, rows, onLoadMore }: ResultsProps) {
   const classes = useResultsStyles()
-  const data = React.useMemo(
-    () =>
-      rows.map((row) =>
-        row.reduce(
-          (memo, item, index) => ({
-            ...memo,
-            [columns[index]?.name || 'Unknown']: item,
-          }),
-          {},
-        ),
+  const data = React.useMemo(() => {
+    // TODO: move to `athena.fetchQueryResults`
+    const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
+    return (isHeadColumns ? rows.slice(1) : rows).map((row) =>
+      row.reduce(
+        (memo, item, index) => ({
+          ...memo,
+          [columns[index]?.name || 'Unknown']: item,
+        }),
+        {},
       ),
-    [columns, rows],
-  )
+    )
+  }, [columns, rows])
 
   if (!data.length) return <Empty />
 

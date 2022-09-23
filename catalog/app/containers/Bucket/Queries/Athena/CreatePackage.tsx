@@ -24,13 +24,13 @@ function SeeDocsForCreatingPackage() {
 }
 
 function doQueryResultsContainManifestEntries(
-  rows: string[][],
-): rows is [ManifestKey[], ...string[][]] {
-  const [head] = rows
+  queryResults: requests.athena.QueryResultsResponse,
+): queryResults is requests.athena.QueryManifestsResponse {
+  const columnNames = queryResults.columns.map(({ name }) => name)
   return (
-    head.includes('size') &&
-    head.includes('physical_keys') &&
-    head.includes('logical_key')
+    columnNames.includes('size') &&
+    columnNames.includes('physical_keys') &&
+    columnNames.includes('logical_key')
   )
 }
 
@@ -90,10 +90,10 @@ function parseQueryResults(
 
 interface CreatePackageProps {
   bucket: string
-  rows: requests.athena.QueryResultsRows
+  queryResults: requests.athena.QueryResultsResponse
 }
 
-export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
+export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {
   const addToPackage = AddToPackage.use()
   const createDialog = usePackageCreationDialog({
     bucket,
@@ -101,15 +101,17 @@ export default function CreatePackage({ bucket, rows }: CreatePackageProps) {
     disableStateDisplay: true,
   })
   const onPackage = React.useCallback(() => {
-    if (!doQueryResultsContainManifestEntries(rows)) return
+    if (!doQueryResultsContainManifestEntries(queryResults)) return
 
     // TODO: make it lazy, and disable button
-    const entries = parseQueryResults(rows)
+    const entries = parseQueryResults(queryResults.rows)
     addToPackage?.merge(entries)
     createDialog.open()
-  }, [addToPackage, createDialog, rows])
+  }, [addToPackage, createDialog, queryResults])
 
-  if (!doQueryResultsContainManifestEntries(rows)) return <SeeDocsForCreatingPackage />
+  if (!doQueryResultsContainManifestEntries(queryResults)) {
+    return <SeeDocsForCreatingPackage />
+  }
 
   return (
     <>
