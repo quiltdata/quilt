@@ -36,13 +36,13 @@ function doQueryResultsContainManifestEntries(
 
 function rowToManifestEntryStringified(
   row: string[],
-  head: ManifestKey[],
+  columns: requests.athena.QueryResultsColumns,
 ): ManifestEntryStringified {
   return row.reduce((acc, value, index) => {
-    if (!head[index]) return acc
+    if (!columns[index].name) return acc
     return {
       ...acc,
-      [head[index]]: value,
+      [columns[index].name]: value,
     }
   }, {} as ManifestEntryStringified)
 }
@@ -72,11 +72,10 @@ function parseManifestEntryStringified(entry: ManifestEntryStringified): {
 }
 
 function parseQueryResults(
-  rows: [ManifestKey[], ...string[][]],
+  queryResults: requests.athena.QueryManifestsResponse,
 ): Record<string, Model.S3File> {
-  const [head, ...tail] = rows
-  const manifestEntries: ManifestEntryStringified[] = tail.reduce(
-    (memo, row) => memo.concat(rowToManifestEntryStringified(row, head)),
+  const manifestEntries: ManifestEntryStringified[] = queryResults.rows.reduce(
+    (memo, row) => memo.concat(rowToManifestEntryStringified(row, queryResults.columns)),
     [] as ManifestEntryStringified[],
   )
   return manifestEntries.reduce(
@@ -104,7 +103,7 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
     if (!doQueryResultsContainManifestEntries(queryResults)) return
 
     // TODO: make it lazy, and disable button
-    const entries = parseQueryResults(queryResults.rows)
+    const entries = parseQueryResults(queryResults)
     addToPackage?.merge(entries)
     createDialog.open()
   }, [addToPackage, createDialog, queryResults])
