@@ -374,8 +374,9 @@ async function fetchQueryResults({
           type: Type,
         }),
       ) || emptyColumns
+    const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
     return {
-      rows,
+      rows: isHeadColumns ? rows.slice(1) : rows,
       columns,
       next: queryResultsOutput.NextToken,
       queryExecution,
