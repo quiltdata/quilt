@@ -36,7 +36,7 @@ only allowing necessary traffic.
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
 
-#### Elasticsearch Service Configuration
+### Elasticsearch Service Configuration
 By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
 
 ### Cost
@@ -55,7 +55,7 @@ The infrastructure costs of running a Quilt stack vary with usage. Baseline infr
 ### Health and Monitoring
 To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
 
-#### Elasticsearch Cluster
+### Elasticsearch Cluster
 If you notice slow or incomplete search results, check the status of the Quilt Elasticsearch cluster. To find the Quilt search cluster from CloudFormation, click on the Quilt stack, then "Resources." Click on the "Search" resource.
 
 If your cluster status is not "Green" (healthy), please contact Quilt support. Causes of unhealthy search clusters include:
@@ -249,9 +249,9 @@ users to be able to sign up.
 ![](imgs/default-role.png)
 
 
-### Single sign-on (SSO)
+## Single sign-on (SSO)
 
-#### Google
+### Google
 
 You can enable users on your Google domain to sign in to Quilt.
 Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
@@ -263,7 +263,7 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 
 ![](./imgs/google_auth.png)
 
-#### Active Directory
+### Active Directory
 
 1. Go to Azure Portal > Active Directory > App Registrations
 1. Click New Registration
@@ -285,7 +285,7 @@ and hybrid flows, and check the box to issue ID tokens
 
 ![](./imgs/active-directory.png)
 
-#### Okta
+### Okta
 
 1. Go to Okta > Admin > Applications
 1. Click `Add Application`
@@ -306,7 +306,7 @@ and hybrid flows, and check the box to issue ID tokens
 
 ![](./imgs/okta-sso-general.png)
 
-#### OneLogin
+### OneLogin
 
 1. Go to Administration : Applications > Custom Connectors
 1. Click `New Connector`
@@ -327,7 +327,7 @@ Quilt
 ![](./imgs/onelogin-sso.png)
 ![](./imgs/onelogin-users.png)
 
-#### Enabling SSO in CloudFormation
+### Enabling SSO in CloudFormation
 
 Now you can connect Quilt to your SSO provider.
 In the Quilt template
