@@ -28,25 +28,25 @@ function SeeDocsForCreatingPackage() {
 
 // TODO: check first 10 rows
 function doQueryResultsContainManifestEntries(
-  rows: string[][],
-): rows is [ManifestKey[], ...string[][]] {
-  const [head] = rows
+  queryResults: requests.athena.QueryResultsResponse,
+): queryResults is requests.athena.QueryManifestsResponse {
+  const columnNames = queryResults.columns.map(({ name }) => name)
   return (
-    head.includes('size') &&
-    head.includes('physical_keys') &&
-    head.includes('logical_key')
+    columnNames.includes('size') &&
+    columnNames.includes('physical_keys') &&
+    columnNames.includes('logical_key')
   )
 }
 
 function rowToManifestEntryStringified(
   row: string[],
-  head: ManifestKey[],
+  columns: requests.athena.QueryResultsColumns,
 ): ManifestEntryStringified {
   return row.reduce((acc, value, index) => {
-    if (!head[index]) return acc
+    if (!columns[index].name) return acc
     return {
       ...acc,
-      [head[index]]: value,
+      [columns[index].name]: value,
     }
   }, {} as ManifestEntryStringified)
 }
@@ -80,10 +80,11 @@ interface ParsedRows {
   invalid: requests.athena.QueryResultsRows
 }
 
-function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
-  const [head, ...tail] = rows
-  const manifestEntries: ManifestEntryStringified[] = tail.reduce(
-    (memo, row) => memo.concat(rowToManifestEntryStringified(row, head)),
+function parseQueryResults(
+  queryResults: requests.athena.QueryManifestsResponse,
+): ParsedRows {
+  const manifestEntries: ManifestEntryStringified[] = queryResults.rows.reduce(
+    (memo, row) => memo.concat(rowToManifestEntryStringified(row, queryResults.columns)),
     [] as ManifestEntryStringified[],
   )
   return manifestEntries.reduce(
@@ -101,7 +102,7 @@ function parseQueryResults(rows: [ManifestKey[], ...string[][]]): ParsedRows {
         : // if no entry then add original data to list of invalid, and valid is pristine
           {
             valid: memo.valid,
-            invalid: [...memo.invalid, tail[index]],
+            invalid: [...memo.invalid, queryResults.rows[index]],
           }
     },
     { valid: {}, invalid: [] } as ParsedRows,
@@ -118,12 +119,11 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CreatePackageProps {
-  columns: requests.athena.QueryResultsColumns
   bucket: string
-  rows: requests.athena.QueryResultsRows
+  queryResults: requests.athena.QueryResultsResponse
 }
 
-export default function CreatePackage({ bucket, columns, rows }: CreatePackageProps) {
+export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
@@ -145,10 +145,10 @@ export default function CreatePackage({ bucket, columns, rows }: CreatePackagePr
     onSubmit: handleConfirm,
   })
   const onPackage = React.useCallback(() => {
-    if (!doQueryResultsContainManifestEntries(rows)) return
+    if (!doQueryResultsContainManifestEntries(queryResults)) return
 
     // TODO: make it lazy, and disable button
-    const parsed = parseQueryResults(rows)
+    const parsed = parseQueryResults(queryResults)
     setEntries(parsed)
     if (parsed.invalid.length) {
       confirm.open()
@@ -156,9 +156,11 @@ export default function CreatePackage({ bucket, columns, rows }: CreatePackagePr
       addToPackage?.merge(parsed.valid)
       createDialog.open()
     }
-  }, [addToPackage, confirm, createDialog, rows])
+  }, [addToPackage, confirm, createDialog, queryResults])
 
-  if (!doQueryResultsContainManifestEntries(rows)) return <SeeDocsForCreatingPackage />
+  if (!doQueryResultsContainManifestEntries(queryResults)) {
+    return <SeeDocsForCreatingPackage />
+  }
 
   return (
     <>
@@ -170,7 +172,11 @@ export default function CreatePackage({ bucket, columns, rows }: CreatePackagePr
         title: 'Create package',
       })}
       {confirm.render(
-        <Results className={classes.results} rows={entries.invalid} columns={columns} />,
+        <Results
+          className={classes.results}
+          rows={entries.invalid}
+          columns={queryResults.columns}
+        />,
       )}
       <M.Button color="primary" onClick={onPackage} size="small" variant="outlined">
         Create package

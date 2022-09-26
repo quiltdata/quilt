@@ -182,11 +182,7 @@ function ResultsContainer({
         workgroup={workgroup}
       >
         {!!queryResults.rows.length && (
-          <CreatePackage
-            bucket={bucket}
-            columns={queryResults.columns}
-            rows={queryResults.rows}
-          />
+          <CreatePackage bucket={bucket} queryResults={queryResults} />
         )}
       </ResultsBreadcrumbs>
       {/* eslint-disable-next-line no-nested-ternary */}
