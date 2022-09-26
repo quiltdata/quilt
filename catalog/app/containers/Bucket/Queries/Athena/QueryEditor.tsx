@@ -14,6 +14,8 @@ import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../requests'
 
+import Database from './Database'
+
 const ATHENA_REF = 'https://aws.amazon.com/athena/'
 
 const useStyles = M.makeStyles((t) => ({
@@ -77,11 +79,11 @@ function useQueryRun(
     [bucket, history, urls, workgroup],
   )
   const onSubmit = React.useCallback(
-    async (value: string) => {
+    async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
       setLoading(true)
       setError(undefined)
       try {
-        const { id } = await runQuery(value)
+        const { id } = await runQuery(value, executionContext)
         if (id === queryExecutionId) notify('Query execution results remain unchanged')
         setLoading(false)
         goToExecution(id)
@@ -158,6 +160,9 @@ export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    display: 'flex',
     margin: t.spacing(2, 0),
   },
   error: {
@@ -183,12 +188,14 @@ export function Form({
   workgroup,
 }: FormProps) {
   const classes = useFormStyles()
+  const [executionContext, setExecutionContext] =
+    React.useState<requests.athena.ExecutionContext | null>(null)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
     if (!value) return
-    onSubmit(value)
-  }, [onSubmit, value])
+    onSubmit(value, executionContext)
+  }, [executionContext, onSubmit, value])
 
   return (
     <div className={className}>
@@ -201,6 +208,7 @@ export function Form({
       )}
 
       <div className={classes.actions}>
+        <Database onChange={setExecutionContext} value={executionContext} />
         <M.Button
           variant="contained"
           color="primary"
