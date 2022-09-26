@@ -37,6 +37,8 @@ function doQueryResultsContainManifestEntries(
   )
 }
 
+// TODO: this name doesn't make sense without `parseManifestEntryStringified`
+//       merge it into one
 function rowToManifestEntryStringified(
   row: string[],
   columns: requests.athena.QueryResultsColumns,
@@ -82,6 +84,8 @@ interface ParsedRows {
 function parseQueryResults(
   queryResults: requests.athena.QueryManifestsResponse,
 ): ParsedRows {
+  // TODO: use one reduce-loop
+  //       merge `rowToManifestEntryStringified` and `parseManifestEntryStringified` into one function
   const manifestEntries: ManifestEntryStringified[] = queryResults.rows.reduce(
     (memo, row) => memo.concat(rowToManifestEntryStringified(row, queryResults.columns)),
     [] as ManifestEntryStringified[],
