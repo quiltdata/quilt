@@ -409,29 +409,116 @@ export interface QueryRunResponse {
   id: string
 }
 
+export type CatalogName = string
+export interface CatalogNamesResponse {
+  list: CatalogName[]
+  next?: string
+}
+
+interface CatalogNamesArgs {
+  athena: Athena
+  prev?: CatalogNamesResponse
+}
+
+async function fetchCatalogNames({
+  athena,
+  prev,
+}: CatalogNamesArgs): Promise<CatalogNamesResponse> {
+  const catalogsOutput = await athena
+    ?.listDataCatalogs({ NextToken: prev?.next })
+    .promise()
+  const list =
+    catalogsOutput?.DataCatalogsSummary?.map(
+      ({ CatalogName }) => CatalogName || 'Unknown',
+    ) || []
+  return {
+    list: (prev?.list || []).concat(list),
+    next: catalogsOutput.NextToken,
+  }
+}
+
+export function useCatalogNames(
+  prev: CatalogNamesResponse | null,
+): AsyncData<CatalogNamesResponse> {
+  const athena = AWS.Athena.use()
+  return useData(fetchCatalogNames, { athena, prev })
+}
+
+export type Database = string
+export interface DatabasesResponse {
+  list: CatalogName[]
+  next?: string
+}
+
+interface DatabasesArgs {
+  athena: Athena
+  catalogName: CatalogName
+  prev: DatabasesResponse
+}
+
+async function fetchDatabases({
+  athena,
+  catalogName,
+  prev,
+}: DatabasesArgs): Promise<DatabasesResponse> {
+  const databasesOutput = await athena
+    ?.listDatabases({ CatalogName: catalogName, NextToken: prev?.next })
+    .promise()
+  // TODO: add `Description` besides `Name`
+  const list = databasesOutput?.DatabaseList?.map(({ Name }) => Name || 'Unknown') || []
+  return {
+    list: (prev?.list || []).concat(list),
+    next: databasesOutput.NextToken,
+  }
+}
+
+export function useDatabases(
+  catalogName: CatalogName | null,
+  prev: DatabasesResponse | null,
+): AsyncData<DatabasesResponse> {
+  const athena = AWS.Athena.use()
+  return useData(
+    fetchDatabases,
+    { athena, catalogName, prev },
+    { noAutoFetch: !catalogName },
+  )
+}
+
+export interface ExecutionContext {
+  catalogName: CatalogName
+  database: Database
+}
+
 interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
+  executionContext: ExecutionContext | null
 }
 
 export async function runQuery({
   athena,
   queryBody,
   workgroup,
+  executionContext,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const { QueryExecutionId } = await athena
-      .startQueryExecution({
-        QueryString: queryBody,
-        ResultConfiguration: {
-          EncryptionConfiguration: {
-            EncryptionOption: 'SSE_S3',
-          },
+    const options: Athena.Types.StartQueryExecutionInput = {
+      QueryString: queryBody,
+      ResultConfiguration: {
+        EncryptionConfiguration: {
+          EncryptionOption: 'SSE_S3',
         },
-        WorkGroup: workgroup,
-      })
-      .promise()
+      },
+      WorkGroup: workgroup,
+    }
+    if (executionContext) {
+      options.QueryExecutionContext = {
+        Catalog: executionContext.catalogName,
+        Database: executionContext.database,
+      }
+    }
+    const { QueryExecutionId } = await athena.startQueryExecution(options).promise()
     if (!QueryExecutionId) throw new Error('No execution id')
     return {
       id: QueryExecutionId,
@@ -445,12 +532,12 @@ export async function runQuery({
   }
 }
 
-export function useQueryRun(workgroup: string): (q: string) => Promise<QueryRunResponse> {
+export function useQueryRun(workgroup: string) {
   const athena = AWS.Athena.use()
   return React.useCallback(
-    (queryBody: string) => {
+    (queryBody: string, executionContext: ExecutionContext | null) => {
       if (!athena) return Promise.reject(new Error('No Athena available'))
-      return runQuery({ athena, queryBody, workgroup })
+      return runQuery({ athena, queryBody, workgroup, executionContext })
     },
     [athena, workgroup],
   )
