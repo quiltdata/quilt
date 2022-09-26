@@ -93,3 +93,35 @@ quilt3 push --dir path/to/remote-registry my-package # upload Quilt data package
 ### Using Quilt with Reticulate
 The [Reticulate](https://rstudio.github.io/reticulate/) package provides a set of tools
 for interoperability between Python and R by embedding a Python session within your R session.
+
+## How do I delete a data package and all of the objects in the data package?
+
+You may have a test data package that you wish to delete at some point to ensure
+your data repository is clean and organized. *Please do this very carefully!* 
+In favor of immutability, Quilt makes deletion a
+bit tricky. First, note that `quilt3.Package.delete` only deletes the
+_package manifest_, not the *underlying objects*. If you wish to delete
+the entire package *and* its objects, _delete the objects first_.
+
+*Warning: the objects you delete will be lost forever. Ditto for the package revision.*
+
+To delete, first browse the package then walk it, deleting its entry objects as follows:
+
+<!--pytest.mark.skip-->
+```python
+import boto3
+import quilt3 as q3
+
+s3 = boto3.client("s3")
+
+reg = "s3://quilt-bio-staging"
+pname = "akarve/delete-object"
+p = q3.Package.browse(pname, registry=reg)
+
+for (k, e) in p.walk():
+    pk = e.physical_key
+    s3.delete_object(Bucket=pk.bucket, Key=pk.path, VersionId=pk.version_id)
+```
+
+You can then follow the above with `q3.Package.delete(pname, registry=reg, top_hash=p.top_hash)`.
+
