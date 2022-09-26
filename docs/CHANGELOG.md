@@ -32,6 +32,7 @@
 * [Added] `status_reports` lambda ([#2989](https://github.com/quiltdata/quilt/pull/2989), [#3088](https://github.com/quiltdata/quilt/pull/3088))
 * [Added] Stack Status Admin UI: reports ([#3068](https://github.com/quiltdata/quilt/pull/3068))
 * [Added] Edit button for text files in packages ([#3070](https://github.com/quiltdata/quilt/pull/3070))
+* [Added] Add execution context for Athena query execution ([#3062](https://github.com/quiltdata/quilt/pull/3062))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Fixed] Fix pre-popullation of default dates when using "dateformat" + {"format": "date"} ([3082](https://github.com/quiltdata/quilt/pull/3082))
@@ -42,6 +43,7 @@
 * [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointer objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
 * [Changed] Remove ClientRequestToken (idempotency token) for making Athena queries ([#2992](https://github.com/quiltdata/quilt/pull/2992))
 * [Changed] Fixed config and docs mistyping: `ui.athena.defaultWorkflow` should be `ui.athena.defaultWorkgroup` ([#3067](https://github.com/quiltdata/quilt/pull/3067))
+* [Changed] Use dedicated columns field instead of first row, fix duplicated first row in table results ([#3101](https://github.com/quiltdata/quilt/pull/3101))
 
 ## Docs
 * [Added] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
