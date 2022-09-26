@@ -26,7 +26,6 @@ function SeeDocsForCreatingPackage() {
   )
 }
 
-// TODO: check first 10 rows
 function doQueryResultsContainManifestEntries(
   queryResults: requests.athena.QueryResultsResponse,
 ): queryResults is requests.athena.QueryManifestsResponse {
