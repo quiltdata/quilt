@@ -25,23 +25,23 @@ const typeCsv: EditorInputType = {
   brace: 'csv',
 }
 
-const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
-const typeYaml: EditorInputType = {
-  brace: 'yaml',
+const isJson = PreviewUtils.extIn(['.json'])
+const typeJson: EditorInputType = {
+  brace: 'json',
 }
 
 const typeMarkdown: EditorInputType = {
   brace: 'markdown',
 }
 
-const isJson = PreviewUtils.extIn(['.json'])
-const typeJson: EditorInputType = {
-  brace: 'json',
-}
-
 const isText = PreviewUtils.extIn(['.txt', ''])
 const typeText: EditorInputType = {
   brace: 'text',
+}
+
+const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
+const typeYaml: EditorInputType = {
+  brace: 'yaml',
 }
 
 const typeNone: EditorInputType = {
