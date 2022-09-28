@@ -22,7 +22,7 @@ export const loadMode = (mode: Mode) => {
 
 const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab'])
 const typeCsv: EditorInputType = {
-  brace: 'csv',
+  brace: 'less',
 }
 
 const isJson = PreviewUtils.extIn(['.json'])
@@ -36,7 +36,7 @@ const typeMarkdown: EditorInputType = {
 
 const isText = PreviewUtils.extIn(['.txt', ''])
 const typeText: EditorInputType = {
-  brace: 'text',
+  brace: 'plain_text',
 }
 
 const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])

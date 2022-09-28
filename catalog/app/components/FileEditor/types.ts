@@ -1,4 +1,4 @@
-export type Mode = 'csv' | 'json' | 'markdown' | 'text' | 'yaml'
+export type Mode = 'less' | 'json' | 'markdown' | 'plain_text' | 'yaml'
 
 export interface EditorInputType {
   brace: Mode | null
