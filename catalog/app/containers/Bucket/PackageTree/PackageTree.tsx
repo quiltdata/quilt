@@ -10,7 +10,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import { detect } from 'components/FileEditor/loader'
+import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -559,7 +559,7 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
-  const isEditable = detect(path) && hashOrTag === 'latest'
+  const isEditable = FileEditor.isSupportedFileType(path) && hashOrTag === 'latest'
   const handleEdit = React.useCallback(() => {
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
     const editUrl = urls.bucketFile(bucket, join(name, path), {
