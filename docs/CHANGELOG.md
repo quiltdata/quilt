@@ -47,6 +47,7 @@
 * [Changed] Use dedicated columns field instead of first row, fix duplicated first row in table results ([#3101](https://github.com/quiltdata/quilt/pull/3101))
 
 ## Docs
+* [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
 * [Added] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
 * [Added] Object deletion example ([#3097](https://github.com/quiltdata/quilt/pull/3097))
 * [Added] Using R with Quilt ([#3089](https://github.com/quiltdata/quilt/pull/3089))
