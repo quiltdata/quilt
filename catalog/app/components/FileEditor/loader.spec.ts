@@ -18,7 +18,7 @@ describe('components/FileEditor/loader', () => {
       expect(isSupportedFileType('file.jpg')).toBe(false)
       expect(isSupportedFileType('file.wav')).toBe(false)
     })
-    it('should supported files for nested directories or URLs', () => {
+    it('should detect supported files for nested directories or URLs', () => {
       expect(isSupportedFileType('directoryA/directoryB/file.txt')).toBe(true)
       expect(isSupportedFileType('../relative/file.txt')).toBe(true)
       expect(isSupportedFileType('https://example.com/path/file.txt')).toBe(true)
