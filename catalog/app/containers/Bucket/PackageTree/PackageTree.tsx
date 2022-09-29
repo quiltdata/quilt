@@ -26,7 +26,6 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
-import { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
@@ -476,9 +475,8 @@ function DirDisplay({
 
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
-  handle: PackageEntryHandle,
+  handle: LogicalKeyResolver.S3SummarizeHandle,
   mode: ViewMode | null,
-  packageHandle: PackageHandle,
   callback: (res: $TSFixMe) => JSX.Element,
 ) => {
   if (deleted) {
@@ -487,9 +485,8 @@ const withPreview = (
   if (archived) {
     return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
   }
-  const previewHandle = { ...handle, packageHandle }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
-  return Preview.load(previewHandle, callback, previewOptions)
+  return Preview.load(handle, callback, previewOptions)
 }
 
 interface ObjectAttrs {
@@ -497,10 +494,6 @@ interface ObjectAttrs {
   deleted: boolean
   lastModified?: Date
   size?: number
-}
-
-interface PackageEntryHandle extends s3paths.S3HandleBase {
-  logicalKey: string
 }
 
 type CrumbProp = $TSFixMe
@@ -645,12 +638,13 @@ function FileDisplay({
     history.push(editUrl)
   }, [bucket, history, name, path, urls])
 
-  const handle: PackageEntryHandle = React.useMemo(
+  const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({
       ...s3paths.parseS3Url(file.physicalKey),
       logicalKey: file.path,
+      packageHandle,
     }),
-    [file],
+    [file, packageHandle],
   )
 
   return (
@@ -720,7 +714,6 @@ function FileDisplay({
                   { archived, deleted },
                   handle,
                   viewModes.mode,
-                  packageHandle,
                   renderPreview(viewModes.handlePreviewResult),
                 )}
               </Section>
