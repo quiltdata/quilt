@@ -508,6 +508,7 @@ type CrumbProp = $TSFixMe
 interface FileDisplaySkeletonProps {
   crumbs: CrumbProp[]
 }
+
 function FileDisplaySkeleton({ crumbs }: FileDisplaySkeletonProps) {
   return (
     // TODO: skeleton placeholder
@@ -515,6 +516,30 @@ function FileDisplaySkeleton({ crumbs }: FileDisplaySkeletonProps) {
       <TopBar crumbs={crumbs} />
       <M.Box mt={2}>
         <M.CircularProgress />
+      </M.Box>
+    </>
+  )
+}
+
+interface FileDisplayErrorProps {
+  crumbs: CrumbProp[]
+  detail?: React.ReactNode
+  headline: React.ReactNode
+}
+
+function FileDisplayError({ crumbs, detail, headline }: FileDisplayErrorProps) {
+  return (
+    <>
+      <TopBar crumbs={crumbs} />
+      <M.Box mt={4}>
+        <M.Typography variant="h4" align="center" gutterBottom>
+          {headline}
+        </M.Typography>
+        {!!detail && (
+          <M.Typography variant="body1" align="center">
+            {detail}
+          </M.Typography>
+        )}
       </M.Box>
     </>
   )
@@ -587,22 +612,6 @@ function FileDisplay({
     history.push(editUrl)
   }, [bucket, history, name, path, urls])
 
-  const renderError = (headline: React.ReactNode, detail?: React.ReactNode) => (
-    <>
-      <TopBar crumbs={crumbs} />
-      <M.Box mt={4}>
-        <M.Typography variant="h4" align="center" gutterBottom>
-          {headline}
-        </M.Typography>
-        {!!detail && (
-          <M.Typography variant="body1" align="center">
-            {detail}
-          </M.Typography>
-        )}
-      </M.Box>
-    </>
-  )
-
   return fileQuery.case({
     fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
     data: (d) => {
@@ -611,9 +620,12 @@ function FileDisplay({
       if (!file) {
         // eslint-disable-next-line no-console
         if (fileQuery.error) console.error(fileQuery.error)
-        return renderError(
-          'Error loading file',
-          "Seems like there's no such file in this package",
+        return (
+          <FileDisplayError
+            headline="Error loading file"
+            detail="Seems like there's no such file in this package"
+            crumbs={crumbs}
+          />
         )
       }
 
@@ -629,14 +641,23 @@ function FileDisplay({
             _: () => <FileDisplaySkeleton crumbs={crumbs} />,
             Err: (e: $TSFixMe) => {
               if (e.code === 'Forbidden') {
-                return renderError(
-                  'Access Denied',
-                  "You don't have access to this object",
+                return (
+                  <FileDisplayError
+                    headline="Access Denied"
+                    detail="You don't have access to this object"
+                    crumbs={crumbs}
+                  />
                 )
               }
               // eslint-disable-next-line no-console
               console.error(e)
-              return renderError('Error loading file', 'Something went wrong')
+              return (
+                <FileDisplayError
+                  headline="Error loading file"
+                  detail="Something went wrong"
+                  crumbs={crumbs}
+                />
+              )
             },
             Ok: requests.ObjectExistence.case({
               Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
@@ -689,7 +710,7 @@ function FileDisplay({
                   </Section>
                 </>
               ),
-              _: () => renderError('No Such Object'),
+              _: () => <FileDisplayError headline="No Such Object" crumbs={crumbs} />,
             }),
           })}
         </Data>
