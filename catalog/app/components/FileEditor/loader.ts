@@ -54,6 +54,12 @@ export const detect: (path: string) => EditorInputType = R.pipe(
   ]),
 )
 
+export const isSupportedFileType: (path: string) => boolean = R.pipe(
+  detect,
+  R.prop('brace'),
+  Boolean,
+)
+
 export function useWriteData({
   bucket,
   key,
