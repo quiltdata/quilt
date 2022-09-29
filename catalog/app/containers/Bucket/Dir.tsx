@@ -9,7 +9,7 @@ import * as M from '@material-ui/core'
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
 import * as Dialog from 'components/Dialog'
-import { detect } from 'components/FileEditor/loader'
+import * as FileEditor from 'components/FileEditor'
 import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -53,7 +53,11 @@ function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
     if (!value) {
       return new Error('File name is required')
     }
-    if (!detect(value).brace || extname(value) === '.' || !extname(value)) {
+    if (
+      !FileEditor.isSupportedFileType(value) ||
+      extname(value) === '.' ||
+      !extname(value)
+    ) {
       // TODO: get list of supported extensions from FileEditor
       return new Error('Supported file formats are JSON, Markdown, YAML and text')
     }

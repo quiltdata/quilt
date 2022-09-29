@@ -15,6 +15,8 @@ import TextEditor from './TextEditor'
 import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
+export { detect, isSupportedFileType } from './loader'
+
 function useRedirect() {
   const addToPackage = AddToPackage.use()
   const history = RRDom.useHistory()
