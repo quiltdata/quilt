@@ -503,6 +503,23 @@ interface PackageEntryHandle extends s3paths.S3HandleBase {
   logicalKey: string
 }
 
+type CrumbProp = $TSFixMe
+
+interface FileDisplaySkeletonProps {
+  crumbs: CrumbProp[]
+}
+function FileDisplaySkeleton({ crumbs }: FileDisplaySkeletonProps) {
+  return (
+    // TODO: skeleton placeholder
+    <>
+      <TopBar crumbs={crumbs} />
+      <M.Box mt={2}>
+        <M.CircularProgress />
+      </M.Box>
+    </>
+  )
+}
+
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(2),
@@ -570,16 +587,6 @@ function FileDisplay({
     history.push(editUrl)
   }, [bucket, history, name, path, urls])
 
-  const renderProgress = () => (
-    // TODO: skeleton placeholder
-    <>
-      <TopBar crumbs={crumbs} />
-      <M.Box mt={2}>
-        <M.CircularProgress />
-      </M.Box>
-    </>
-  )
-
   const renderError = (headline: React.ReactNode, detail?: React.ReactNode) => (
     <>
       <TopBar crumbs={crumbs} />
@@ -597,7 +604,7 @@ function FileDisplay({
   )
 
   return fileQuery.case({
-    fetching: renderProgress,
+    fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
     data: (d) => {
       const file = d.package?.revision?.file
 
@@ -619,7 +626,7 @@ function FileDisplay({
         // @ts-expect-error
         <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
           {AsyncResult.case({
-            _: renderProgress,
+            _: () => <FileDisplaySkeleton crumbs={crumbs} />,
             Err: (e: $TSFixMe) => {
               if (e.code === 'Forbidden') {
                 return renderError(
