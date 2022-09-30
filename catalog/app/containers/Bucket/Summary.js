@@ -34,8 +34,9 @@ function AddReadmeSection({ packageHandle: { bucket, name } }) {
   const toConfig = React.useCallback(
     (index) => {
       const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-      return urls.bucketFile(bucket, join(name, variants[index]), {
-        add: true,
+      const key = join(name, variants[index])
+      return urls.bucketFile(bucket, key, {
+        add: key,
         edit: true,
         next,
       })

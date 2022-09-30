@@ -632,12 +632,12 @@ function FileDisplay({
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
     const physicalHandle = s3paths.parseS3Url(file.physicalKey)
     const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
-      add: true,
+      add: path,
       edit: true,
       next,
     })
     history.push(editUrl)
-  }, [file, bucket, history, name, urls])
+  }, [file, bucket, history, name, path, urls])
 
   const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({

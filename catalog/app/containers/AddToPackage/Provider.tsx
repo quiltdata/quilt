@@ -1,12 +1,10 @@
-import { sep } from 'path'
-
 import * as R from 'ramda'
 import * as React from 'react'
 
 import type * as Model from 'model'
 
 const Ctx = React.createContext<{
-  append: (file: Model.S3File) => void
+  append: (key: string, file: Model.S3File) => void
   clear: () => void
   entries: Record<string, Model.S3File>
   merge: (entries: Record<string, Model.S3File>) => void
@@ -19,13 +17,10 @@ interface ProviderProps {
 /** @deprecated Use Bookmarks.Provider and 'addToPackage' GroupName */
 export function Provider({ children }: ProviderProps) {
   const [entries, setEntries] = React.useState({})
-  const append = React.useCallback((s3File) => {
-    // strip package name
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [x0, x1, ...path] = s3File.key.split(sep)
+  const append = React.useCallback((logicalKey, s3File) => {
     setEntries(
       R.mergeLeft({
-        [path.join(sep)]: s3File,
+        [logicalKey]: s3File,
       }),
     )
   }, [])
