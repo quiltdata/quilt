@@ -110,7 +110,7 @@ function EditorSuspended({
   onChange,
   type,
 }: EditorProps) {
-  loadMode(type.brace || 'text')
+  loadMode(type.brace || 'plain_text') // TODO: loaders#typeText.brace
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty) return <TextEditor error={error} type={type} value="" onChange={onChange} />
