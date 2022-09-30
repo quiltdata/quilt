@@ -1,4 +1,4 @@
-import { basename } from 'path'
+import { sep } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
@@ -20,9 +20,12 @@ interface ProviderProps {
 export function Provider({ children }: ProviderProps) {
   const [entries, setEntries] = React.useState({})
   const append = React.useCallback((s3File) => {
+    // strip package name
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [x0, x1, ...path] = s3File.key.split(sep)
     setEntries(
       R.mergeLeft({
-        [basename(s3File.key)]: s3File,
+        [path.join(sep)]: s3File,
       }),
     )
   }, [])
