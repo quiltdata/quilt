@@ -20,13 +20,9 @@ export const loadMode = (mode: Mode) => {
   throw cache[mode]
 }
 
-const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
-const typeYaml: EditorInputType = {
-  brace: 'yaml',
-}
-
-const typeMarkdown: EditorInputType = {
-  brace: 'markdown',
+const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab'])
+const typeCsv: EditorInputType = {
+  brace: 'less',
 }
 
 const isJson = PreviewUtils.extIn(['.json'])
@@ -34,9 +30,18 @@ const typeJson: EditorInputType = {
   brace: 'json',
 }
 
+const typeMarkdown: EditorInputType = {
+  brace: 'markdown',
+}
+
 const isText = PreviewUtils.extIn(['.txt', ''])
 const typeText: EditorInputType = {
-  brace: 'text',
+  brace: 'plain_text',
+}
+
+const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
+const typeYaml: EditorInputType = {
+  brace: 'yaml',
 }
 
 const typeNone: EditorInputType = {
@@ -46,6 +51,7 @@ const typeNone: EditorInputType = {
 export const detect: (path: string) => EditorInputType = R.pipe(
   PreviewUtils.stripCompression,
   R.cond([
+    [isCsv, R.always(typeCsv)],
     [isJson, R.always(typeJson)],
     [isMarkdown, R.always(typeMarkdown)],
     [isText, R.always(typeText)],

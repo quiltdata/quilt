@@ -4,6 +4,7 @@ describe('components/FileEditor/loader', () => {
   describe('isSupportedFileType', () => {
     it('should return true for supported files', () => {
       expect(isSupportedFileType('file')).toBe(true)
+      expect(isSupportedFileType('file.csv')).toBe(true)
       expect(isSupportedFileType('file.json')).toBe(true)
       expect(isSupportedFileType('file.md')).toBe(true)
       expect(isSupportedFileType('file.rmd')).toBe(true)
@@ -13,7 +14,6 @@ describe('components/FileEditor/loader', () => {
     })
     it('should return false for unsupported files', () => {
       expect(isSupportedFileType('file.bam')).toBe(false)
-      expect(isSupportedFileType('file.csv')).toBe(false)
       expect(isSupportedFileType('file.ipynb')).toBe(false)
       expect(isSupportedFileType('file.jpg')).toBe(false)
       expect(isSupportedFileType('file.wav')).toBe(false)
