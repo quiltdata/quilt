@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 
+import * as quiltConfigs from 'constants/quiltConfigs'
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
@@ -7,8 +8,6 @@ import { useData } from 'utils/Data'
 import yaml from 'utils/yaml'
 
 import { AsyncData } from './requests'
-
-const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
 // TODO: rename to requests.es.Query
 export interface Query {
@@ -48,7 +47,11 @@ export const queriesConfig = async ({
   bucket,
 }: QueriesConfigArgs): Promise<Query[] | null> => {
   try {
-    const response = await requests.fetchFile({ s3, bucket, path: QUERIES_CONFIG_PATH })
+    const response = await requests.fetchFile({
+      s3,
+      bucket,
+      path: quiltConfigs.esQueries,
+    })
     // TODO: validate config with JSON Schema
     return parseQueriesList(yaml(response.Body.toString('utf-8')))
   } catch (e) {
