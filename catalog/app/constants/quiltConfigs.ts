@@ -11,3 +11,5 @@ export const esQueries = '.quilt/queries/config.yaml'
 //   '.quilt/workflows/config.yml',
 // ]
 export const workflows = '.quilt/workflows/config.yml'
+
+export const all = [...bucketPreferences, esQueries, workflows]

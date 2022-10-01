@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import * as quiltConfigs from 'constants/quiltConfigs'
 import { detect as isMarkdown } from 'components/Preview/loaders/Markdown'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import * as AWS from 'utils/AWS'
@@ -18,6 +19,12 @@ export const loadMode = (mode: Mode) => {
     cache[mode] = 'fullfilled'
   })
   throw cache[mode]
+}
+
+const isQuiltConfig = (path: string) =>
+  quiltConfigs.all.some((quiltConfig) => quiltConfig.includes(path))
+const typeQuiltConfig: EditorInputType = {
+  brace: '__quiltConfig',
 }
 
 const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab'])
@@ -51,6 +58,7 @@ const typeNone: EditorInputType = {
 export const detect: (path: string) => EditorInputType = R.pipe(
   PreviewUtils.stripCompression,
   R.cond([
+    [isQuiltConfig, R.always(typeQuiltConfig)],
     [isCsv, R.always(typeCsv)],
     [isJson, R.always(typeJson)],
     [isMarkdown, R.always(typeMarkdown)],
