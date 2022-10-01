@@ -12,6 +12,7 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import Skeleton from './Skeleton'
 import TextEditor from './TextEditor'
+import QuiltConfigEditor from './QuiltConfigEditor'
 import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
 
@@ -110,7 +111,9 @@ function EditorSuspended({
   onChange,
   type,
 }: EditorProps) {
-  loadMode(type.brace || 'plain_text') // TODO: loaders#typeText.brace
+  if (type.brace !== '__quiltConfig') {
+    loadMode(type.brace || 'plain_text') // TODO: loaders#typeText.brace
+  }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty) return <TextEditor error={error} type={type} value="" onChange={onChange} />
@@ -126,6 +129,16 @@ function EditorSuspended({
     ),
     Ok: (response: $TSFixMe) => {
       const value = response.Body.toString('utf-8')
+      if (type.brace === '__quiltConfig') {
+        return (
+          <QuiltConfigEditor
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            value={value}
+          />
+        )
+      }
       return (
         <TextEditor
           disabled={disabled}
