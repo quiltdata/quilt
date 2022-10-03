@@ -5,7 +5,7 @@ import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
-import yaml from 'utils/yaml'
+import * as YAML from 'utils/yaml'
 
 import { AsyncData } from './requests'
 
@@ -53,7 +53,7 @@ export const queriesConfig = async ({
       path: quiltConfigs.esQueries,
     })
     // TODO: validate config with JSON Schema
-    return parseQueriesList(yaml(response.Body.toString('utf-8')))
+    return parseQueriesList(YAML.parse(response.Body.toString('utf-8')))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) return []
 

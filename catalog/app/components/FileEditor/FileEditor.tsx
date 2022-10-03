@@ -135,7 +135,7 @@ function EditorSuspended({
             disabled={disabled}
             error={error}
             onChange={onChange}
-            value={value}
+            initialValue={value}
           />
         )
       }
