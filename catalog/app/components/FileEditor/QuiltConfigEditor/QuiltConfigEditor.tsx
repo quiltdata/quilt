@@ -3,10 +3,8 @@ import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
 import JsonValidationErrors from 'components/JsonValidationErrors'
-import type { S3HandleBase } from 'utils/s3paths'
+import type { JsonSchema } from 'utils/json-schema'
 import * as YAML from 'utils/yaml'
-
-import Skeleton from './Skeleton'
 
 const useStyles = M.makeStyles((t) => ({
   errors: {
@@ -14,19 +12,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface QuiltConfigEditorProps {
+export interface QuiltConfigEditorProps {
   disabled?: boolean
   onChange: (value: string) => void
   initialValue?: string
   error: Error | null
 }
 
-function JsonEditorSuspended({
+export default function QuiltConfigEditorSuspended({
   disabled,
   onChange,
   initialValue,
   error,
-}: QuiltConfigEditorProps) {
+  schema,
+}: QuiltConfigEditorProps & { schema?: JsonSchema }) {
   const classes = useStyles()
   const errors = error ? [error] : []
   const [value, setValue] = React.useState(YAML.parse(initialValue))
@@ -45,18 +44,9 @@ function JsonEditorSuspended({
         multiColumned
         onChange={handleChange}
         value={value}
+        schema={schema}
       />
       <JsonValidationErrors className={classes.errors} error={errors} />
     </>
-  )
-}
-
-export default function QuiltConfigEditor(
-  props: QuiltConfigEditorProps & { handle: S3HandleBase },
-) {
-  return (
-    <React.Suspense fallback={<Skeleton />}>
-      <JsonEditorSuspended {...props} />
-    </React.Suspense>
   )
 }
