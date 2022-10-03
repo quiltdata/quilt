@@ -2,9 +2,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
-// import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 import JsonValidationErrors from 'components/JsonValidationErrors'
+import type { S3HandleBase } from 'utils/s3paths'
 import * as YAML from 'utils/yaml'
+
+import Skeleton from './Skeleton'
 
 const useStyles = M.makeStyles((t) => ({
   errors: {
@@ -19,7 +21,7 @@ interface QuiltConfigEditorProps {
   error: Error | null
 }
 
-export default function QuiltConfigEditor({
+function JsonEditorSuspended({
   disabled,
   onChange,
   initialValue,
@@ -46,5 +48,15 @@ export default function QuiltConfigEditor({
       />
       <JsonValidationErrors className={classes.errors} error={errors} />
     </>
+  )
+}
+
+export default function QuiltConfigEditor(
+  props: QuiltConfigEditorProps & { handle: S3HandleBase },
+) {
+  return (
+    <React.Suspense fallback={<Skeleton />}>
+      <JsonEditorSuspended {...props} />
+    </React.Suspense>
   )
 }

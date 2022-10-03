@@ -132,6 +132,7 @@ function EditorSuspended({
       if (type.brace === '__quiltConfig') {
         return (
           <QuiltConfigEditor
+            handle={handle}
             disabled={disabled}
             error={error}
             onChange={onChange}
