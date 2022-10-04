@@ -116,7 +116,18 @@ function EditorSuspended({
   }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
-  if (empty) return <TextEditor error={error} type={type} value="" onChange={onChange} />
+  if (empty)
+    return type.brace === '__quiltConfig' ? (
+      <QuiltConfigEditor
+        handle={handle}
+        disabled={disabled}
+        error={error}
+        onChange={onChange}
+        initialValue=""
+      />
+    ) : (
+      <TextEditor error={error} type={type} value="" onChange={onChange} />
+    )
   return data.case({
     _: () => <Skeleton />,
     Err: (
