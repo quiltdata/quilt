@@ -1,6 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
-import xlsx from 'xlsx'
+import * as xlsx from 'xlsx'
 
 import * as jsonSchema from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
