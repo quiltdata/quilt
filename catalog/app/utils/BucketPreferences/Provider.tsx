@@ -11,6 +11,7 @@ import * as requests from 'containers/Bucket/requests'
 
 import { BucketPreferences, SentryInstance, parse } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
+import OpenProvider from './OpenProvider'
 
 const BUCKET_PREFERENCES_PATH = [
   '.quilt/catalog/config.yaml',
@@ -75,6 +76,8 @@ export function Provider({ bucket, children }: ProviderProps) {
   const cfg = Config.use()
   const local = cfg.mode === 'LOCAL'
   if (local) return <LocalProvider context={Ctx}>{children}</LocalProvider>
+  const open = cfg.mode === 'OPEN'
+  if (open) return <OpenProvider context={Ctx}>{children}</OpenProvider>
 
   return <CatalogProvider bucket={bucket}>{children}</CatalogProvider>
 }
