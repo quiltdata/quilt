@@ -11,6 +11,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
+    width: '100%',
   },
   errors: {
     marginTop: t.spacing(1),
