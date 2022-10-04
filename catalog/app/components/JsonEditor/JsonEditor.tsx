@@ -12,6 +12,41 @@ import Column from './Column'
 import State from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
 
+interface EmptyStateCaseProps {
+  children: React.ReactNode
+  className: string
+  title: string
+  video: string
+}
+
+function EmptyStateCase({ children, className, title, video }: EmptyStateCaseProps) {
+  const videoRef = React.useRef<HTMLVideoElement | null>(null)
+  const togglePlayback = React.useCallback(() => {
+    const el = videoRef?.current
+    if (el?.paused) {
+      el?.play()
+    } else {
+      el?.pause()
+    }
+  }, [videoRef])
+  return (
+    <M.Card className={className}>
+      <M.CardContent>
+        <M.Typography variant="h5">{title}</M.Typography>
+        <M.Typography variant="body1">{children}</M.Typography>
+        <video
+          ref={videoRef}
+          src={video}
+          width="100%"
+          autoPlay
+          loop
+          onClick={togglePlayback}
+        />
+      </M.CardContent>
+    </M.Card>
+  )
+}
+
 interface EmptyStateProps {
   className: string
   noValue: boolean
@@ -21,29 +56,27 @@ interface EmptyStateProps {
 function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
   if (noValue && notExpanded) {
     return (
-      <M.Card className={className}>
-        <M.CardContent>
-          <M.Typography variant="h5">JSON editor is empty</M.Typography>
-          <M.Typography variant="body1">
-            Start filling empty rows as in Excel. You can enter values by hand. Type{' '}
-            <Code>{`{}`}</Code> to create an object, or <Code>{`[]`}</Code> to create an
-            array, and then traverse it to enter properties.
-          </M.Typography>
-          <video src={illustrationEnterValues} width="100%" autoPlay loop />
-        </M.CardContent>
-      </M.Card>
+      <EmptyStateCase
+        className={className}
+        title="JSON editor is empty"
+        video={illustrationEnterValues}
+      >
+        Start filling empty rows as in Excel. You can enter values by hand. Type{' '}
+        <Code>{`{}`}</Code> to create an object, or <Code>{`[]`}</Code> to create an
+        array, and then traverse it to enter properties.
+      </EmptyStateCase>
     )
   }
 
   if (notExpanded) {
     return (
-      <M.Card className={className}>
-        <M.CardContent>
-          <M.Typography variant="h5">There is more data here</M.Typography>
-          <M.Typography variant="body1">Try to expand object values</M.Typography>
-          <video src={illustrationObjectExpand} width="100%" autoPlay loop />
-        </M.CardContent>
-      </M.Card>
+      <EmptyStateCase
+        className={className}
+        title="There is more data here"
+        video={illustrationObjectExpand}
+      >
+        Try to expand object values
+      </EmptyStateCase>
     )
   }
 
@@ -114,7 +147,6 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
     overflow: 'auto',
     position: 'relative',
-    zIndex: 20,
   },
   column: {
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
@@ -126,7 +158,6 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
     right: 0,
     top: 0,
     width: t.spacing(60),
-    zIndex: 10,
   },
 }))
 
