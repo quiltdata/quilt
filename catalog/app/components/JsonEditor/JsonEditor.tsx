@@ -19,7 +19,7 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
-  if (noValue) {
+  if (noValue && notExpanded) {
     return (
       <M.Card className={className}>
         <M.CardContent>
