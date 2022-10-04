@@ -4,7 +4,7 @@ import * as React from 'react'
 import type * as Model from 'model'
 
 const Ctx = React.createContext<{
-  append: (key: string, file: Model.S3File) => void
+  append: (logicalKey: string, file: Model.S3File) => void
   clear: () => void
   entries: Record<string, Model.S3File>
   merge: (entries: Record<string, Model.S3File>) => void
