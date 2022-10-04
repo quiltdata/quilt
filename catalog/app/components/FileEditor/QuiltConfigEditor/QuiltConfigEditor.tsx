@@ -1,12 +1,17 @@
+import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
 import JsonValidationErrors from 'components/JsonValidationErrors'
-import type { JsonSchema } from 'utils/json-schema'
+import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 import * as YAML from 'utils/yaml'
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
   errors: {
     marginTop: t.spacing(1),
   },
@@ -27,17 +32,21 @@ export default function QuiltConfigEditorSuspended({
   schema,
 }: QuiltConfigEditorProps & { schema?: JsonSchema }) {
   const classes = useStyles()
-  const errors = error ? [error] : []
+  const validate = React.useMemo(() => makeSchemaValidator(schema), [schema])
+  const [errors, setErrors] = React.useState<(Error | ErrorObject)[]>(
+    error ? [error] : [],
+  )
   const [value, setValue] = React.useState(YAML.parse(initialValue))
   const handleChange = React.useCallback(
     (json) => {
+      setErrors(validate(json))
       setValue(json)
       onChange(YAML.stringify(json))
     },
-    [onChange],
+    [onChange, validate],
   )
   return (
-    <>
+    <div className={classes.root}>
       <JsonEditor
         disabled={disabled}
         errors={errors}
@@ -47,6 +56,6 @@ export default function QuiltConfigEditorSuspended({
         schema={schema}
       />
       <JsonValidationErrors className={classes.errors} error={errors} />
-    </>
+    </div>
   )
 }
