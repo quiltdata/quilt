@@ -86,7 +86,7 @@ function ConfirmReadme({ close }: DialogsOpenProps) {
   return (
     <>
       <M.DialogTitle>Add a README file?</M.DialogTitle>
-      <M.DialogContent dividers>
+      <M.DialogContent>
         <M.DialogContentText>
           You are about to push an empty package.
           <br />
