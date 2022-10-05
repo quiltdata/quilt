@@ -138,7 +138,7 @@ function EditorSuspended({
         <PreviewDisplay data={AsyncResult.Err(err)} />
       </div>
     ),
-    Ok: (response: $TSFixMe) => {
+    Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
       if (type.brace === '__quiltConfig') {
         return (
