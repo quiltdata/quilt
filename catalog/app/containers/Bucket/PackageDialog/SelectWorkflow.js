@@ -66,7 +66,9 @@ export default function SelectWorkflow({
           Learn about quality workflows
         </M.Link>
         , or edit{' '}
-        <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>
+        <WorkflowsConfigLink bucket={bucket}>
+          your workflows config file
+        </WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )
