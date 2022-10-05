@@ -20,6 +20,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface SelectWorkflowProps {
+  bucket: string
+  disabled?: boolean
+  error?: React.ReactNode
+  items: workflows.Workflow[]
+  onChange: (v: workflows.Workflow) => void
+  value: workflows.Workflow
+}
+
 export default function SelectWorkflow({
   bucket,
   disabled,
@@ -27,7 +36,7 @@ export default function SelectWorkflow({
   items,
   onChange,
   value,
-}) {
+}: SelectWorkflowProps) {
   const classes = useStyles()
 
   const noChoice = items.length === 1
