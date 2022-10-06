@@ -382,21 +382,18 @@ export default function File({
     }),
   })
 
-  const downloadable =
-    !noDownload &&
-    versionExistsData.case({
-      _: () => false,
-      Ok: requests.ObjectExistence.case({
-        _: () => false,
-        Exists: ({ deleted, archived }) => !deleted && !archived,
-      }),
-    })
-
-  const hash = versionExistsData.case({
-    _: () => false,
+  const { downloadable, hash } = versionExistsData.case({
+    _: () => ({
+      downloadable: false,
+    }),
     Ok: requests.ObjectExistence.case({
-      _: () => false,
-      Exists: (response) => (response.version ? response.version : undefined),
+      _: () => ({
+        downloadable: false,
+      }),
+      Exists: ({ deleted, archived, version: versionHash }) => ({
+        downloadable: !noDownload && !deleted && !archived,
+        hash: versionHash,
+      }),
     }),
   })
 
