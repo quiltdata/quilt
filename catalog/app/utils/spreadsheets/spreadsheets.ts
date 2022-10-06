@@ -21,7 +21,7 @@ export function rowsToJson(rows: MetadataValue[][]) {
       const columnValues = [...values].map((value) =>
         value === undefined ? null : value,
       )
-      return [columnName, columnValues]
+      return [columnName, columnValues.length > 1 ? columnValues : columnValues[0]]
     }),
     R.fromPairs,
   )
