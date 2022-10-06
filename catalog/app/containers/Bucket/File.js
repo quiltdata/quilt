@@ -392,6 +392,14 @@ export default function File({
       }),
     })
 
+  const hash = versionExistsData.case({
+    _: () => false,
+    Ok: requests.ObjectExistence.case({
+      _: () => false,
+      Exists: (response) => (response.version ? response.version : undefined),
+    }),
+  })
+
   const viewModes = useViewModes(path, mode)
 
   const onViewModeChange = React.useCallback(
@@ -402,8 +410,8 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
-    [bucket, path, version],
+    () => ({ bucket, key: path, version: hash }),
+    [bucket, path, hash],
   )
 
   const editorState = FileEditor.useState(handle)

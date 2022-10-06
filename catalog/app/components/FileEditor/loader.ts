@@ -69,18 +69,24 @@ export const isSupportedFileType: (path: string) => boolean = R.pipe(
 export function useWriteData({
   bucket,
   key,
+  version,
 }: S3HandleBase): (value: string) => Promise<Model.S3File> {
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {
-      const { VersionId: version } = await s3
+      const { VersionId: latestVersion } = await s3
+        .headObject({ Bucket: bucket, Key: key })
+        .promise()
+      if (latestVersion !== version) throw new Error('Revision is outdated')
+
+      const { VersionId } = await s3
         .putObject({ Bucket: bucket, Key: key, Body: value })
         .promise()
       const { ContentLength: size } = await s3
-        .headObject({ Bucket: bucket, Key: key, VersionId: version })
+        .headObject({ Bucket: bucket, Key: key, VersionId })
         .promise()
-      return { bucket, key, size, version }
+      return { bucket, key, size, version: VersionId }
     },
-    [bucket, key, s3],
+    [bucket, key, s3, version],
   )
 }
