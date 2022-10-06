@@ -13,6 +13,7 @@
 * [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
 
 ## Catalog, Lambdas
+* [Changed] Update Okta documentation and examples ([#3126](https://github.com/quiltdata/quilt/pull/3126))
 * [Added] Add IGV renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
 * [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
 * [Added] Show bucket collaborators ([#2756](https://github.com/quiltdata/quilt/pull/2756))
