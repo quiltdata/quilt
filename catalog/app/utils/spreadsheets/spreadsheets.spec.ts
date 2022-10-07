@@ -68,7 +68,7 @@ describe('utils/spreadsheets', () => {
       },
     }
 
-    it('parse vertical spreadsheet', () => {
+    it('parse vertical spreadsheet, single value', () => {
       const csv = dedent`
         b,c
         1,2
@@ -76,12 +76,26 @@ describe('utils/spreadsheets', () => {
       const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
-        b: [1],
-        c: [2],
+        b: 1,
+        c: 2,
       })
     })
 
-    it('parse horizontal spreadsheet', () => {
+    it('parse vertical spreadsheet, multiple values', () => {
+      const csv = dedent`
+        b,c
+        1,2
+        3,4
+      `
+      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
+        b: [1, 3],
+        c: [2, 4],
+      })
+    })
+
+    it('parse horizontal spreadsheet, single value', () => {
       const csv = dedent`
         b,1
         c,2
@@ -89,12 +103,25 @@ describe('utils/spreadsheets', () => {
       const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
-        b: [1],
-        c: [2],
+        b: 1,
+        c: 2,
       })
     })
 
-    it('parse as vertical when no keys in common', () => {
+    it('parse horizontal spreadsheet, multiple values', () => {
+      const csv = dedent`
+        b,1,3
+        c,2,4
+      `
+      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
+        b: [1, 3],
+        c: [2, 4],
+      })
+    })
+
+    it('parse as vertical when no keys in common, single value', () => {
       const csv = dedent`
         d,e,f
         1,2,3
@@ -102,9 +129,24 @@ describe('utils/spreadsheets', () => {
       const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
-        d: [1],
-        e: [2],
-        f: [3],
+        d: 1,
+        e: 2,
+        f: 3,
+      })
+    })
+
+    it('parse as vertical when no keys in common, multiple values', () => {
+      const csv = dedent`
+        d,e,f
+        1,2,3
+        4,5,6
+      `
+      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
+        d: [1, 4],
+        e: [2, 5],
+        f: [3, 6],
       })
     })
 
@@ -117,18 +159,21 @@ describe('utils/spreadsheets', () => {
       const bilboSchema = {
         type: 'object',
         properties: {
+          Age: { type: 'array', items: { type: 'number' } },
+          Date: { type: 'array', items: { type: 'date' } },
           Fingers: { type: 'array', items: { type: 'array' } },
           Male: { type: 'array', tems: { type: 'boolean' } },
+          Name: { type: 'array', items: { type: 'string' } },
           Parts: { type: 'array', items: { type: 'array' } },
         },
       }
       const outputRaw = {
-        Age: [131],
-        Date: ['1990-09-22'],
-        Fingers: ['1,2,3,4,5,6,7,8,9,10'],
-        Male: [true],
-        Name: ['Bilbo Beggins'],
-        Parts: ['head,legs,arms'],
+        Age: 131,
+        Date: '1990-09-22',
+        Fingers: '1,2,3,4,5,6,7,8,9,10',
+        Male: true,
+        Name: 'Bilbo Beggins',
+        Parts: 'head,legs,arms',
       }
       const outputSchemed = {
         Age: [131],
