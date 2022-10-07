@@ -382,7 +382,7 @@ export default function File({
     }),
   })
 
-  const { downloadable, hash } = versionExistsData.case({
+  const { downloadable, fileVersionId } = versionExistsData.case({
     _: () => ({
       downloadable: false,
     }),
@@ -390,9 +390,9 @@ export default function File({
       _: () => ({
         downloadable: false,
       }),
-      Exists: ({ deleted, archived, version: versionHash }) => ({
+      Exists: ({ deleted, archived, version: versionId }) => ({
         downloadable: !noDownload && !deleted && !archived,
-        hash: versionHash,
+        fileVersionId: versionId,
       }),
     }),
   })
@@ -407,8 +407,8 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version: hash }),
-    [bucket, path, hash],
+    () => ({ bucket, key: path, version: fileVersionId }),
+    [bucket, path, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
