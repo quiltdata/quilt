@@ -418,6 +418,7 @@ function DirDisplay({
 
           return (
             <>
+              {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {hasReviseButton && (
                   <M.Button

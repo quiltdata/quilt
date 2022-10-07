@@ -53,7 +53,7 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle) {
       const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
       const key = join(name, fileName)
       return urls.bucketFile(bucket, key, {
-        add: key,
+        add: fileName,
         edit: true,
         next,
       })
