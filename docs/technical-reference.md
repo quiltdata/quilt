@@ -290,9 +290,15 @@ and hybrid flows, and check the box to issue ID tokens
 Note: You will need Okta administrator privileges to add a new Application.
 
 1. Go to **Okta > Admin > Applications > Applications**
+
+![](./imgs/okta-add-application.png)
+
 2. Click `Create App Integration`. A new modal window opens.
 3. Assign `Sign-in method` radio button to `OIDC - OpenID Connect`.
 4. Assign `Application type` radio button to `Web Application`.
+
+![](./imgs/okta-add-application-modal.png)
+
 5. Click the `Next` button.
 6. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
 7. Optionally add the Quilt logo for user recognition.
@@ -315,8 +321,6 @@ Note: You will need Okta administrator privileges to add a new Application.
     See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
     for more.
 11. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
-
-![](./imgs/okta-sso-general.png)
 
 ### OneLogin
 
