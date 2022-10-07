@@ -125,3 +125,33 @@ for (k, e) in p.walk():
 
 You can then follow the above with `q3.Package.delete(pname, registry=reg, top_hash=p.top_hash)`.
 
+## How complex can my Athena queries be?
+
+Amazon Athena supports a subset of Data Defintion Language (DDL)
+and Data Manipulation Language (DML) statements, functions, operators,
+and data types, based on [Presto](https://prestodb.io/) and [Trino](https://trino.io/).
+
+This allows for extremely granular querying of your data package name, metadata, and contents
+and includes logical operators, comparison functions, conditional expressions, mathematical functions,
+bitwise functions, date and time functions and operators, regular expression functions, and aggregate
+functions. Please review the references linked below to learn more.
+
+### Helpful examples
+
+`regexp_extract_all(string, pattern)`
+  Return the substring(s) matched by the regular expression `pattern` in `string`
+
+<!--pytest.mark.skip-->
+```sql
+SELECT regexp_extract_all('1a 2b 14m', '\d+');
+```
+
+### Considerations and limitations
+
+There are [many considerations and limitations](https://docs.aws.amazon.com/athena/latest/ug/other-notable-limitations.html)
+when writing Amazon Athena queries.
+
+### References
+* [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
+* [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
+

@@ -1,4 +1,4 @@
-import { basename, join } from 'path'
+import { basename } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -630,13 +630,14 @@ function FileDisplay({
   const isEditable = FileEditor.isSupportedFileType(path) && hashOrTag === 'latest'
   const handleEdit = React.useCallback(() => {
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-    const editUrl = urls.bucketFile(bucket, join(name, path), {
-      add: true,
+    const physicalHandle = s3paths.parseS3Url(file.physicalKey)
+    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
+      add: path,
       edit: true,
       next,
     })
     history.push(editUrl)
-  }, [bucket, history, name, path, urls])
+  }, [file, bucket, history, name, path, urls])
 
   const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({
