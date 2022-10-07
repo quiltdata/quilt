@@ -27,7 +27,7 @@ function useRedirect() {
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
       if (add && addToPackage?.append) {
-        addToPackage.append({ bucket, key, size, version })
+        addToPackage.append(add, { bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, { version }))
     },
