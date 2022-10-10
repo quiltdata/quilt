@@ -58,8 +58,8 @@ or literals to JSONPath expressions of fields to show from package metadata
 in the package list view.
 Strings display as paragraphs. Elements of a list display as tags.
 * `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
-* `ui.search.mode` - search mode inside bucket: 'objects', 'packages' or, if omitted, 
-objects and packages
+* `ui.search.mode` - search mode inside bucket: 'objects', 'packages'
+or, if omitted, objects and packages
 
 #### `ui.sourceBuckets` example
 
