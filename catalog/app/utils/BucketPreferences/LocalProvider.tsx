@@ -19,7 +19,7 @@ const localModePreferences = {
 }
 
 interface LocalProviderProps {
-  context: React.Context<BucketPreferences | null>
+  context: React.Context<{ preferences: BucketPreferences | null }>
   children: React.ReactNode
 }
 
@@ -29,5 +29,5 @@ export default function LocalProvider({ context: Ctx, children }: LocalProviderP
     () => extendDefaults(localModePreferences, sentry),
     [sentry],
   )
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ preferences: value }}>{children}</Ctx.Provider>
 }

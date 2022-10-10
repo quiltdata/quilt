@@ -413,7 +413,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1

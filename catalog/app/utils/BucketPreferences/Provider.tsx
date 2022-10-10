@@ -46,7 +46,9 @@ async function fetchBucketPreferences({
   }
 }
 
-const Ctx = React.createContext<BucketPreferences | null>(null)
+const Ctx = React.createContext<{ preferences: BucketPreferences | null }>({
+  preferences: null,
+})
 
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
@@ -64,7 +66,7 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
     Err: () => parse('', sentry),
     _: () => null,
   })
-  return <Ctx.Provider value={preferences}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ preferences }}>{children}</Ctx.Provider>
 }
 
 export function Provider({ bucket, children }: ProviderProps) {
