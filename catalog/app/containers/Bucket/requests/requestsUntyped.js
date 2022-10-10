@@ -8,6 +8,7 @@ import * as R from 'ramda'
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
@@ -252,7 +253,7 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
   return JSON.parse(response.Body.toString('utf-8'))
 }
 
-export const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+export const WORKFLOWS_CONFIG_PATH = quiltConfigs.workflows
 // TODO: enable this when backend is ready
 // const WORKFLOWS_CONFIG_PATH = [
 //   '.quilt/workflows/config.yaml',
