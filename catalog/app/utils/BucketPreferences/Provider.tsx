@@ -1,14 +1,15 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import Placeholder from 'components/Placeholder'
+import * as bucketErrors from 'containers/Bucket/errors'
+import * as requests from 'containers/Bucket/requests'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import * as AWS from 'utils/AWS'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as Sentry from 'utils/Sentry'
-import * as bucketErrors from 'containers/Bucket/errors'
-import * as requests from 'containers/Bucket/requests'
 
 import { BucketPreferences, SentryInstance, parse } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
@@ -64,7 +65,11 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
     Err: () => parse('', sentry),
     _: () => null,
   })
-  return <Ctx.Provider value={preferences}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={preferences}>
+      {preferences === null ? <Placeholder color="text.secondary" /> : children}
+    </Ctx.Provider>
+  )
 }
 
 export function Provider({ bucket, children }: ProviderProps) {
