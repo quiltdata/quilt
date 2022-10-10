@@ -2,7 +2,9 @@ import * as React from 'react'
 import { useHistory, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Placeholder from 'components/Placeholder'
 import * as SearchResults from 'components/SearchResults'
+import AsyncResult from 'utils/AsyncResult'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
@@ -339,18 +341,34 @@ export default function BucketSearch({
   location: l,
 }) {
   const isInStack = BucketConfig.useIsInStack()
-  const { q: query = '', p, mode: userMode, ...params } = parseSearch(l.search)
-  const { preferences } = BucketPreferences.use()
-  const mode = userMode || preferences?.ui?.search?.mode
+  const { q: query = '', p, mode, ...params } = parseSearch(l.search)
+  const { preferences: prefs, result } = BucketPreferences.use()
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
+  console.log(result, prefs)
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <MetaTitle>{[query || 'Search', bucket]}</MetaTitle>
 
       {isInStack(bucket) ? (
-        <Search {...{ bucket, query, page, mode, retry }} />
+        AsyncResult.case(
+          {
+            Ok: (preferences) => (
+              <Search
+                {...{
+                  bucket,
+                  query,
+                  page,
+                  mode: mode || preferences.ui.search.mode,
+                  retry,
+                }}
+              />
+            ),
+            _: () => <Placeholder color="text.secondary" />,
+          },
+          result,
+        )
       ) : (
         <M.Typography variant="body1">Search unavailable</M.Typography>
       )}
