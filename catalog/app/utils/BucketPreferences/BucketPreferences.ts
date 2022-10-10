@@ -40,6 +40,10 @@ export interface AthenaPreferences {
   defaultWorkgroup?: string
 }
 
+interface SearchPreferences {
+  mode?: 'objects' | 'packages'
+}
+
 interface UiPreferencesInput {
   actions?: Partial<ActionPreferences>
   athena?: AthenaPreferences
@@ -47,6 +51,7 @@ interface UiPreferencesInput {
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
   package_description?: PackagesListPreferencesInput
+  search?: SearchPreferences
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -65,6 +70,7 @@ interface UiPreferences {
   blocks: BlocksPreferences
   nav: NavPreferences
   package_description: PackagesListPreferences
+  search: SearchPreferences
   sourceBuckets: SourceBuckets
 }
 
@@ -98,6 +104,7 @@ const defaultPreferences: BucketPreferences = {
         message: true,
       },
     },
+    search: {},
     sourceBuckets: {
       getDefault: () => '',
       list: [],

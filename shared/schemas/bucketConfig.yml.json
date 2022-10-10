@@ -104,6 +104,16 @@
             }
           }
         },
+        "search": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "description": "Hides Files tab",
+              "type": "string",
+              "enum": ["objects", "packages"]
+            }
+          }
+        },
         "sourceBuckets": {
           "type": "object",
           "description": "Buckets usable as sources for adding objects from while editing a package via web UI.",

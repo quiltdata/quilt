@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import * as SearchResults from 'components/SearchResults'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -338,7 +339,9 @@ export default function BucketSearch({
   location: l,
 }) {
   const isInStack = BucketConfig.useIsInStack()
-  const { q: query = '', p, mode, ...params } = parseSearch(l.search)
+  const { q: query = '', p, mode: userMode, ...params } = parseSearch(l.search)
+  const preferences = BucketPreferences.use()
+  const mode = userMode || preferences?.ui?.search?.mode
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
 
