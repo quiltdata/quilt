@@ -325,6 +325,12 @@ export interface QueryResultsResponse {
   rows: QueryResultsRows
 }
 
+type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
+
+export interface QueryManifestsResponse extends QueryResultsResponse {
+  rows: [ManifestKey[], ...string[][]]
+}
+
 interface QueryResultsArgs {
   athena: Athena
   queryExecutionId: string
@@ -361,15 +367,17 @@ async function fetchQueryResults({
         (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
       ) || emptyList
     const rows = [...(prev?.rows || emptyList), ...parsed]
+    const columns =
+      queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
+        ({ Name, Type }) => ({
+          name: Name,
+          type: Type,
+        }),
+      ) || emptyColumns
+    const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
     return {
-      rows,
-      columns:
-        queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
-          ({ Name, Type }) => ({
-            name: Name,
-            type: Type,
-          }),
-        ) || emptyColumns,
+      rows: isHeadColumns ? rows.slice(1) : rows,
+      columns,
       next: queryResultsOutput.NextToken,
       queryExecution,
     }

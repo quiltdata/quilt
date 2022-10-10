@@ -12,8 +12,11 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import Skeleton from './Skeleton'
 import TextEditor from './TextEditor'
+import QuiltConfigEditor from './QuiltConfigEditor'
 import { detect, loadMode, useWriteData } from './loader'
 import { EditorInputType } from './types'
+
+export { detect, isSupportedFileType } from './loader'
 
 function useRedirect() {
   const addToPackage = AddToPackage.use()
@@ -24,7 +27,7 @@ function useRedirect() {
   return React.useCallback(
     ({ bucket, key, size, version }: Model.S3File) => {
       if (add && addToPackage?.append) {
-        addToPackage.append({ bucket, key, size, version })
+        addToPackage.append(add, { bucket, key, size, version })
       }
       history.push(next || urls.bucketFile(bucket, key, { version }))
     },
@@ -108,10 +111,23 @@ function EditorSuspended({
   onChange,
   type,
 }: EditorProps) {
-  loadMode(type.brace || 'text')
+  if (type.brace !== '__quiltConfig') {
+    loadMode(type.brace || 'plain_text') // TODO: loaders#typeText.brace
+  }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
-  if (empty) return <TextEditor error={error} type={type} value="" onChange={onChange} />
+  if (empty)
+    return type.brace === '__quiltConfig' ? (
+      <QuiltConfigEditor
+        handle={handle}
+        disabled={disabled}
+        error={error}
+        onChange={onChange}
+        initialValue=""
+      />
+    ) : (
+      <TextEditor error={error} type={type} value="" onChange={onChange} />
+    )
   return data.case({
     _: () => <Skeleton />,
     Err: (
@@ -122,8 +138,19 @@ function EditorSuspended({
         <PreviewDisplay data={AsyncResult.Err(err)} />
       </div>
     ),
-    Ok: (response: $TSFixMe) => {
+    Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
+      if (type.brace === '__quiltConfig') {
+        return (
+          <QuiltConfigEditor
+            handle={handle}
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue={value}
+          />
+        )
+      }
       return (
         <TextEditor
           disabled={disabled}

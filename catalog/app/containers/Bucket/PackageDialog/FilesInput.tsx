@@ -44,7 +44,7 @@ const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).has
 
 const hashLimit = pLimit(2)
 
-function computeHash(f: File) {
+export function computeHash(f: File) {
   if (hasHash(f)) return f
   const hashP = hashLimit(PD.hashFile, f)
   const fh = f as FileWithHash
@@ -1152,9 +1152,7 @@ function DirUpload({
   const path = (prefix || '') + name
 
   const onDrop = React.useCallback(
-    (files: FileWithPath[]) => {
-      // TODO: fix File ⟷ DOMFile ⟷ FileWithHash ⟷ FileWithPath interplay
-      // @ts-expect-error
+    (files: File[]) => {
       dispatch(FilesAction.Add({ prefix: path, files: files.map(computeHash) }))
     },
     [dispatch, path],

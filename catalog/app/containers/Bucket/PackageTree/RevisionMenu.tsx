@@ -7,12 +7,14 @@ import Menu from '../Menu'
 
 interface RevisionMenuProps {
   className: string
+  onCreateFile: () => void
   onDelete: () => void
   onDesktop: () => void
 }
 
 export default function RevisionMenu({
   className,
+  onCreateFile,
   onDelete,
   onDesktop,
 }: RevisionMenuProps) {
@@ -20,7 +22,12 @@ export default function RevisionMenu({
   const { desktop }: { desktop: boolean } = Config.use()
 
   const items = React.useMemo(() => {
-    const menu = []
+    const menu = [
+      {
+        onClick: onCreateFile,
+        title: 'Create file',
+      },
+    ]
     if (preferences?.ui?.actions?.deleteRevision) {
       menu.push({
         onClick: onDelete,
@@ -34,7 +41,7 @@ export default function RevisionMenu({
       })
     }
     return menu
-  }, [desktop, onDelete, onDesktop, preferences])
+  }, [desktop, onCreateFile, onDelete, onDesktop, preferences])
 
   if (!items.length) return null
 

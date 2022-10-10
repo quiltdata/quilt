@@ -16,7 +16,11 @@ import * as requests from '../requests'
 
 import Database from './Database'
 
-const ATHENA_REF = 'https://aws.amazon.com/athena/'
+const ATHENA_REF_INDEX = 'https://aws.amazon.com/athena/'
+const ATHENA_REF_SQL =
+  'https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html'
+const ATHENA_REF_FUNCTIONS =
+  'https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html'
 
 const useStyles = M.makeStyles((t) => ({
   editor: {
@@ -53,9 +57,17 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
         />
       </M.Paper>
       <M.FormHelperText>
-        Quilt uses AWS Athena SQL.{' '}
-        <StyledLink href={ATHENA_REF} target="_blank">
-          Learn more
+        Quilt uses AWS Athena SQL. Learn more:{' '}
+        <StyledLink href={ATHENA_REF_INDEX} target="_blank">
+          Introduction
+        </StyledLink>
+        ,{' '}
+        <StyledLink href={ATHENA_REF_SQL} target="_blank">
+          SQL Reference for Amazon Athena
+        </StyledLink>
+        ,{' '}
+        <StyledLink href={ATHENA_REF_FUNCTIONS} target="_blank">
+          Functions in Amazon Athena
         </StyledLink>
         .
       </M.FormHelperText>
