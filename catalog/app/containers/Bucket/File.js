@@ -382,15 +382,20 @@ export default function File({
     }),
   })
 
-  const downloadable =
-    !noDownload &&
-    versionExistsData.case({
-      _: () => false,
-      Ok: requests.ObjectExistence.case({
-        _: () => false,
-        Exists: ({ deleted, archived }) => !deleted && !archived,
+  const { downloadable, fileVersionId } = versionExistsData.case({
+    _: () => ({
+      downloadable: false,
+    }),
+    Ok: requests.ObjectExistence.case({
+      _: () => ({
+        downloadable: false,
       }),
-    })
+      Exists: ({ deleted, archived, version: versionId }) => ({
+        downloadable: !noDownload && !deleted && !archived,
+        fileVersionId: versionId,
+      }),
+    }),
+  })
 
   const viewModes = useViewModes(path, mode)
 
@@ -402,8 +407,8 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
-    [bucket, path, version],
+    () => ({ bucket, key: path, version: fileVersionId }),
+    [bucket, path, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
