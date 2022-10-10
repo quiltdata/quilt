@@ -34,6 +34,7 @@
 * [Added] Edit button for text files in packages ([#3070](https://github.com/quiltdata/quilt/pull/3070))
 * [Added] Add execution context for Athena query execution ([#3062](https://github.com/quiltdata/quilt/pull/3062))
 * [Added] Add confirmation if now every row is valid for creating package from Athena results ([#3073](https://github.com/quiltdata/quilt/pull/3073))
+* [Added] Create file menu item for package ([#3127](https://github.com/quiltdata/quilt/pull/3127))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Fixed] Fix pre-popullation of default dates when using "dateformat" + {"format": "date"} ([#3082](https://github.com/quiltdata/quilt/pull/3082))
