@@ -298,6 +298,8 @@ function DirDisplay({
 
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
+  const prompt = FileEditor.useCreateFileInPackage(packageHandle)
+
   return (
     <>
       <OpenInDesktop.Dialog
@@ -416,6 +418,7 @@ function DirDisplay({
 
           return (
             <>
+              {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {hasReviseButton && (
                   <M.Button
@@ -448,6 +451,7 @@ function DirDisplay({
                   className={classes.button}
                   onDelete={confirmDelete}
                   onDesktop={openInDesktopState.confirm}
+                  onCreateFile={prompt.open}
                 />
               </TopBar>
               {preferences?.ui?.blocks?.code && (
