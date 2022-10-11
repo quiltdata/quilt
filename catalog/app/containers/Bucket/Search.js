@@ -343,7 +343,6 @@ export default function BucketSearch({
   const isInStack = BucketConfig.useIsInStack()
   const { q: query = '', p, mode, ...params } = parseSearch(l.search)
   const { result } = BucketPreferences.use()
-  console.log(result)
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
 
