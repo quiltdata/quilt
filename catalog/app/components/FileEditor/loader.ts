@@ -1,3 +1,4 @@
+import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -74,6 +75,18 @@ export const isSupportedFileType: (path: string) => boolean = R.pipe(
   Boolean,
 )
 
+type AWSError = Error & { code: string }
+
+async function validToWriteFile(s3: S3, bucket: string, key: string, version?: string) {
+  try {
+    const { VersionId } = await s3.headObject({ Bucket: bucket, Key: key }).promise()
+    return VersionId === version
+  } catch (error) {
+    if (error instanceof Error && (error as AWSError).code === 'NotFound') return true
+    throw error
+  }
+}
+
 export function useWriteData({
   bucket,
   key,
@@ -82,11 +95,8 @@ export function useWriteData({
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {
-      const { VersionId: latestVersion } = await s3
-        .headObject({ Bucket: bucket, Key: key })
-        .promise()
-      if (latestVersion !== version) throw new Error('Revision is outdated')
-
+      const valid = await validToWriteFile(s3, bucket, key, version)
+      if (!valid) throw new Error('Revision is outdated')
       const { VersionId } = await s3
         .putObject({ Bucket: bucket, Key: key, Body: value })
         .promise()
