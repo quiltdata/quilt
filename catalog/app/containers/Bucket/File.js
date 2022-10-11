@@ -421,11 +421,9 @@ export default function File({
   const editorState = FileEditor.useState(handle)
   const onSave = editorState.onSave
   const handleEditorSave = React.useCallback(async () => {
-    const h = await onSave()
-    if (h?.version === version) {
-      setResetKey(R.inc)
-    }
-  }, [onSave, version])
+    await onSave()
+    setResetKey(R.inc)
+  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
