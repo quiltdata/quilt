@@ -22,12 +22,13 @@ export default function RevisionMenu({
   const { desktop }: { desktop: boolean } = Config.use()
 
   const items = React.useMemo(() => {
-    const menu = [
-      {
+    const menu = []
+    if (preferences?.ui?.actions?.revisePackage) {
+      menu.push({
         onClick: onCreateFile,
         title: 'Create file',
-      },
-    ]
+      })
+    }
     if (preferences?.ui?.actions?.deleteRevision) {
       menu.push({
         onClick: onDelete,
