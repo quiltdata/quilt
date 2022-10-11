@@ -9,6 +9,7 @@ import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
 import Thumbnail, { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -243,6 +244,7 @@ function Thumbnails({ images, mkUrl }) {
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
+  const preferences = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -261,9 +263,12 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           mkUrl={mkUrl}
         />
       )}
-      {!readme && !path && !!packageHandle && (
-        <AddReadmeSection packageHandle={packageHandle} />
-      )}
+      {!readme &&
+        !path &&
+        !!packageHandle &&
+        !!preferences?.ui?.actions?.revisePackage && (
+          <AddReadmeSection packageHandle={packageHandle} />
+        )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested

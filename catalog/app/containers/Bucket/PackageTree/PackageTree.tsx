@@ -631,7 +631,10 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
-  const isEditable = FileEditor.isSupportedFileType(path) && hashOrTag === 'latest'
+  const isEditable =
+    FileEditor.isSupportedFileType(path) &&
+    hashOrTag === 'latest' &&
+    !!preferences?.ui?.actions?.revisePackage
   const handleEdit = React.useCallback(() => {
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
     const physicalHandle = s3paths.parseS3Url(file.physicalKey)
