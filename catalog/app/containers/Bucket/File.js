@@ -366,12 +366,19 @@ export default function File({
     [bucket, path],
   )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
+  const [resetKey, setResetKey] = React.useState(0)
+  const objExistsData = useData(requests.getObjectExistence, {
+    s3,
+    bucket,
+    key: path,
+    resetKey,
+  })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
     key: path,
     version,
+    resetKey,
   })
 
   const objExists = objExistsData.case({
@@ -412,6 +419,11 @@ export default function File({
   )
 
   const editorState = FileEditor.useState(handle)
+  const onSave = editorState.onSave
+  const handleEditorSave = React.useCallback(async () => {
+    await onSave()
+    setResetKey(R.inc)
+  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -475,7 +487,7 @@ export default function File({
               disabled={editorState.saving}
               editing={editorState.editing}
               className={classes.button}
-              onSave={editorState.onSave}
+              onSave={handleEditorSave}
               onCancel={editorState.onCancel}
               onEdit={editorState.onEdit}
             />

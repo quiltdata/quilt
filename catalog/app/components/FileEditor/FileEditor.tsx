@@ -41,7 +41,7 @@ interface EditorState {
   onCancel: () => void
   onChange: (value: string) => void
   onEdit: () => void
-  onSave: () => Promise<void>
+  onSave: () => Promise<Model.S3File | void>
   type: EditorInputType
   value?: string
 }
@@ -68,8 +68,10 @@ export function useState(handle: S3HandleBase): EditorState {
       setEditing(false)
       setSaving(false)
       redirect(h)
+      return h
     } catch (e) {
-      setError(e instanceof Error ? e : new Error(`${e}`))
+      const err = e instanceof Error ? e : new Error(`${e}`)
+      setError(err)
       setSaving(false)
     }
   }, [redirect, value, writeFile])
