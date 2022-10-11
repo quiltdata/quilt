@@ -345,7 +345,6 @@ export default function BucketSearch({
   const { preferences: prefs, result } = BucketPreferences.use()
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
-  console.log(result, prefs)
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
