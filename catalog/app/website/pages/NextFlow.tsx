@@ -124,9 +124,9 @@ function NextFlow() {
               Quilt brings seamless collaboration to S3 by connecting people, pipelines,
               and machines using visual, verifiable, versioned data packages.
             </strong>
-            Publicly traded companies in life sciences choose Quilt to reconcile all of
+            &nbsp;Innovative companies in life sciences choose Quilt to reconcile all of
             their organizational knowledge into credible decisions that bring drugs and
-            therapies to market faster.
+            discoveries to market faster.
             <M.Box pt={4} />
             Quilt runs privately and securely in your AWS account, as a CloudFormation
             stack.&nbsp; Quilt is powered by scalable and secure services like Amazon S3,
