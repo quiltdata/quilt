@@ -10,7 +10,7 @@ import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 const BucketPreferences = React.lazy(() => import('./BucketPreferences'))
 const Workflows = React.lazy(() => import('./Workflows'))
 
-function DummySchemaFetcher({
+function DummyConfigDetailsFetcher({
   children,
 }: {
   children: (props: { header: null; schema: undefined }) => React.ReactElement
@@ -20,27 +20,27 @@ function DummySchemaFetcher({
 
 const QuiltConfigEditorSuspended = React.lazy(() => import('./QuiltConfigEditor'))
 
-function getSchemaFetcher(handle: S3HandleBase) {
+function getConfigDetailsFetcher(handle: S3HandleBase) {
   if (
     quiltConfigs.bucketPreferences.some((quiltConfig) => quiltConfig.includes(handle.key))
   )
     return BucketPreferences
   if (quiltConfigs.workflows.includes(handle.key)) return Workflows
-  return DummySchemaFetcher
+  return DummyConfigDetailsFetcher
 }
 
 export default ({
   handle,
   ...props
 }: QuiltConfigEditorProps & { handle: S3HandleBase }) => {
-  const SchemaFetcher = getSchemaFetcher(handle)
+  const ConfigDetailsFetcher = getConfigDetailsFetcher(handle)
   return (
     <React.Suspense fallback={<Skeleton />}>
-      <SchemaFetcher>
+      <ConfigDetailsFetcher>
         {({ header, schema }) => (
           <QuiltConfigEditorSuspended {...props} header={header} schema={schema} />
         )}
-      </SchemaFetcher>
+      </ConfigDetailsFetcher>
     </React.Suspense>
   )
 }
