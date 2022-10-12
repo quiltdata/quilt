@@ -7,6 +7,7 @@ import {
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
+import { printObject } from 'utils/string'
 
 import {
   JsonValue,
@@ -40,6 +41,14 @@ function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHel
 
   if (schema?.description) {
     output.push([`Description: ${schema.description}`])
+  }
+
+  if (schema?.examples && schema.examples.length) {
+    output.push(
+      schema.examples.length > 1
+        ? ['Examples:', ...schema.examples.map(printObject)]
+        : [`Example: ${printObject(schema.examples[0])}`],
+    )
   }
 
   return output
