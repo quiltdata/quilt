@@ -5,18 +5,11 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import Skeleton from '../Skeleton'
 
+import Dummy from './Dummy'
 import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
 
 const BucketPreferences = React.lazy(() => import('./BucketPreferences'))
 const Workflows = React.lazy(() => import('./Workflows'))
-
-function DummyConfigDetailsFetcher({
-  children,
-}: {
-  children: (props: { header: null; schema: undefined }) => React.ReactElement
-}) {
-  return children({ header: null, schema: undefined })
-}
 
 const QuiltConfigEditorSuspended = React.lazy(() => import('./QuiltConfigEditor'))
 
@@ -26,7 +19,7 @@ function getConfigDetailsFetcher(handle: S3HandleBase) {
   )
     return BucketPreferences
   if (quiltConfigs.workflows.includes(handle.key)) return Workflows
-  return DummyConfigDetailsFetcher
+  return Dummy
 }
 
 export default ({

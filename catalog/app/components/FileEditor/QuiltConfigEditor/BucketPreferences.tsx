@@ -5,7 +5,8 @@ import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
-import type { JsonSchema } from 'utils/json-schema'
+
+import { ConfigDetailsProps } from './Dummy'
 
 function Header() {
   return (
@@ -18,10 +19,6 @@ function Header() {
   )
 }
 
-interface BucketPreferencesProps {
-  children: (props: { header: React.ReactNode; schema: JsonSchema }) => React.ReactElement
-}
-
-export default function BucketPreferences({ children }: BucketPreferencesProps) {
+export default function BucketPreferences({ children }: ConfigDetailsProps) {
   return children({ header: <Header />, schema: bucketPreferencesSchema })
 }
