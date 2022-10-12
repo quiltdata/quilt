@@ -120,20 +120,17 @@ function NextFlow() {
         }
         detail={
           <>
-            Quilt brings seamless collaboration to S3 by connecting people, pipelines, and
-            machines using visual, verifiable, versioned data packages. Quilt stores,
-            tags, manages, and integrates your data sources so that the output of every
-            pipeline is findable, accessible, interoperable, and reusable (FAIR). Publicly
-            traded companies in life sciences choose Quilt to reconcile all of their
-            organizational knowledge into credible decisions that bring drugs and
+            <strong>
+              Quilt brings seamless collaboration to S3 by connecting people, pipelines,
+              and machines using visual, verifiable, versioned data packages.
+            </strong>
+            Publicly traded companies in life sciences choose Quilt to reconcile all of
+            their organizational knowledge into credible decisions that bring drugs and
             therapies to market faster.
             <M.Box pt={4} />
             Quilt runs privately and securely in your AWS account, as a CloudFormation
-            stack.&nbsp;
-            <strong>
-              Quilt is powered by scalable and secure services like Amazon S3, Amazon
-              OpenSearch, and Amazon Athena.
-            </strong>
+            stack.&nbsp; Quilt is powered by scalable and secure services like Amazon S3,
+            Amazon OpenSearch, and Amazon Athena.
             <M.Box display="flex" flexDirection="column" pt={6}>
               <M.Button variant="contained" color="primary" onClick={talk}>
                 Book a demo
