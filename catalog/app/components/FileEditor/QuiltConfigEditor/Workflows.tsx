@@ -9,7 +9,7 @@ import type { JsonSchema } from 'utils/json-schema'
 
 function Header() {
   return (
-    <M.Typography>
+    <M.Typography variant="body2">
       Configuration for data quality workflows. See{' '}
       <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
         the docs

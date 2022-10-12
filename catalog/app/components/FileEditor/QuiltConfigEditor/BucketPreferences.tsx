@@ -9,7 +9,7 @@ import type { JsonSchema } from 'utils/json-schema'
 
 function Header() {
   return (
-    <M.Typography>
+    <M.Typography variant="body2">
       Configuration for Catalog UI: show and hide features, set default values. See{' '}
       <StyledLink href={`${docs}/catalog/preferences`} target="_blank">
         the docs
@@ -19,7 +19,7 @@ function Header() {
 }
 
 interface BucketPreferencesProps {
-  children: (props: { haeder: React.ReactNode; schema: JsonSchema }) => React.ReactElement
+  children: (props: { header: React.ReactNode; schema: JsonSchema }) => React.ReactElement
 }
 
 export default function BucketPreferences({ children }: BucketPreferencesProps) {
