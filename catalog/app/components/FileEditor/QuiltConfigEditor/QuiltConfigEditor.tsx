@@ -23,9 +23,9 @@ const useStyles = M.makeStyles((t) => ({
 
 export interface QuiltConfigEditorProps {
   disabled?: boolean
-  onChange: (value: string) => void
-  initialValue?: string
   error: Error | null
+  initialValue?: string
+  onChange: (value: string) => void
 }
 
 interface QuiltConfigEditorEssentialProps {
