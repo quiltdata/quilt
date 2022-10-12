@@ -44,7 +44,7 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   })
 }
 
-export function useCreateFileInPackage({ bucket, name }: PackageHandle) {
+export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?: string) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
@@ -69,9 +69,10 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle) {
     [history, toFile],
   )
 
+  const defaultFileName = 'README.md'
   return Dialog.usePrompt({
     onSubmit: createFile,
-    initialValue: 'README.md',
+    initialValue: prefix ? `${prefix}${defaultFileName}` : defaultFileName,
     title: 'Enter file name',
     validate: validateFileName,
   })
