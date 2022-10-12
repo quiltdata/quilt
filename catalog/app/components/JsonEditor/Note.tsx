@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import StyledTooltip from 'utils/StyledTooltip'
 import {
   JsonSchema,
   doesTypeMatchSchema,
@@ -57,7 +58,7 @@ function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHel
 const useTypeHelpStyles = M.makeStyles((t) => ({
   group: {
     '& + &': {
-      borderTop: `1px solid ${t.palette.common.white}`,
+      borderTop: `1px solid ${t.palette.divider}`,
       marginTop: t.spacing(1),
       paddingTop: t.spacing(1),
     },
@@ -117,7 +118,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
   if (!typeHelps.length) return null
 
   return (
-    <M.Tooltip title={<TypeHelp typeHelps={typeHelps} />}>
+    <StyledTooltip title={<TypeHelp typeHelps={typeHelps} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
@@ -125,7 +126,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
       >
         {<M.Icon>info_outlined</M.Icon>}
       </span>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 
