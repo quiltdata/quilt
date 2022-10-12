@@ -298,7 +298,7 @@ function DirDisplay({
 
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
-  const prompt = FileEditor.useCreateFileInPackage(packageHandle)
+  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
 
   return (
     <>
