@@ -7,7 +7,7 @@ import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 import type { JsonSchema } from 'utils/json-schema'
 
-function Toolbar() {
+function Header() {
   return (
     <M.Typography>
       Configuration for Catalog UI: show and hide features, set default values. See{' '}
@@ -19,12 +19,9 @@ function Toolbar() {
 }
 
 interface BucketPreferencesProps {
-  children: (props: {
-    schema: JsonSchema
-    toolbar: React.ReactNode
-  }) => React.ReactElement
+  children: (props: { haeder: React.ReactNode; schema: JsonSchema }) => React.ReactElement
 }
 
 export default function BucketPreferences({ children }: BucketPreferencesProps) {
-  return children({ schema: bucketPreferencesSchema, toolbar: <Toolbar /> })
+  return children({ header: <Header />, schema: bucketPreferencesSchema })
 }

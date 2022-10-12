@@ -7,7 +7,7 @@ import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 import type { JsonSchema } from 'utils/json-schema'
 
-function Toolbar() {
+function Header() {
   return (
     <M.Typography>
       Configuration for data quality workflows. See{' '}
@@ -19,12 +19,9 @@ function Toolbar() {
 }
 
 interface WorkflowsProps {
-  children: (props: {
-    schema: JsonSchema
-    toolbar: React.ReactNode
-  }) => React.ReactElement
+  children: (props: { header: React.ReactNode; schema: JsonSchema }) => React.ReactElement
 }
 
 export default function Workflows({ children }: WorkflowsProps) {
-  return children({ schema: workflowsBaseSchema, toolbar: <Toolbar /> })
+  return children({ header: <Header />, schema: workflowsBaseSchema })
 }

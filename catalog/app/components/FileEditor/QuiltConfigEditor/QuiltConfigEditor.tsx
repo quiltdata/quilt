@@ -16,7 +16,7 @@ const useStyles = M.makeStyles((t) => ({
   errors: {
     marginTop: t.spacing(1),
   },
-  toolbar: {
+  header: {
     marginBottom: t.spacing(2),
   },
 }))
@@ -28,14 +28,19 @@ export interface QuiltConfigEditorProps {
   error: Error | null
 }
 
+interface QuiltConfigEditorEssentialProps {
+  header: React.ReactNode
+  schema?: JsonSchema
+}
+
 export default function QuiltConfigEditorSuspended({
   disabled,
-  onChange,
-  initialValue,
   error,
+  header,
+  initialValue,
+  onChange,
   schema,
-  toolbar,
-}: QuiltConfigEditorProps & { schema?: JsonSchema; toolbar: React.ReactNode }) {
+}: QuiltConfigEditorProps & QuiltConfigEditorEssentialProps) {
   const classes = useStyles()
   const validate = React.useMemo(() => makeSchemaValidator(schema), [schema])
   const [errors, setErrors] = React.useState<(Error | ErrorObject)[]>(
@@ -52,7 +57,7 @@ export default function QuiltConfigEditorSuspended({
   )
   return (
     <div className={classes.root}>
-      {toolbar && <div className={classes.toolbar}>{toolbar}</div>}
+      {header && <div className={classes.header}>{header}</div>}
       <JsonEditor
         disabled={disabled}
         errors={errors}

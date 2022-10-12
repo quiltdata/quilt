@@ -13,9 +13,9 @@ const Workflows = React.lazy(() => import('./Workflows'))
 function DummySchemaFetcher({
   children,
 }: {
-  children: (props: { schema: undefined; toolbar: null }) => React.ReactElement
+  children: (props: { header: null; schema: undefined }) => React.ReactElement
 }) {
-  return children({ schema: undefined, toolbar: null })
+  return children({ header: null, schema: undefined })
 }
 
 const QuiltConfigEditorSuspended = React.lazy(() => import('./QuiltConfigEditor'))
@@ -37,8 +37,8 @@ export default ({
   return (
     <React.Suspense fallback={<Skeleton />}>
       <SchemaFetcher>
-        {({ schema, toolbar }) => (
-          <QuiltConfigEditorSuspended {...props} schema={schema} toolbar={toolbar} />
+        {({ header, schema }) => (
+          <QuiltConfigEditorSuspended {...props} header={header} schema={schema} />
         )}
       </SchemaFetcher>
     </React.Suspense>
