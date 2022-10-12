@@ -89,8 +89,8 @@ function doesTypeMatchCompoundSchema(
 
   if (!isSchemaCompound(optSchema)) return false
 
-  return optSchema[condition]!.filter(R.has('type')).some((subSchema: JsonSchema) =>
-    doesTypeMatchSchema(value, subSchema),
+  return optSchema[condition]!.filter((s: JsonSchema) => s.type || s.$ref).some(
+    (subSchema: JsonSchema) => doesTypeMatchSchema(value, subSchema),
   )
 }
 

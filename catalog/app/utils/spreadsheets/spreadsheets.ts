@@ -104,6 +104,9 @@ export function postProcessValue(
   value: MetadataValue,
   schema?: JsonSchema,
 ): MetadataValue {
+  if (Array.isArray(value) && value.length === 1)
+    return postProcessValue(value[0], schema)
+
   if (isDate(value, schema)) return dateFns.formatISO(value, { representation: 'date' })
 
   if (isArray(value, schema)) return value.split(',').map(parseJSON)
@@ -129,6 +132,13 @@ export function postProcessArrayValue(
   return parseJSON(value)
 }
 
+function isArrayValue(value: MetadataValue, schema?: JsonSchema): value is unknown[] {
+  if (!Array.isArray(value)) return false
+  if (value.length > 1) return true
+  if (schema && jsonSchema.isSchemaArray(schema)) return true
+  return false
+}
+
 export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
@@ -136,7 +146,7 @@ export function postProcess(
   if (Array.isArray(obj)) return obj.map((v) => postProcess(v, schema?.items))
   return R.mapObjIndexed(
     (value: MetadataValue, key: string) =>
-      Array.isArray(value)
+      isArrayValue(value, getSchemaItem(key, schema))
         ? value.map((v) => postProcessArrayValue(v, getSchemaItem(key, schema)))
         : postProcessValue(value, getSchemaItem(key, schema)),
     obj,
