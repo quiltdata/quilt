@@ -4,12 +4,15 @@
   "type": "object",
   "properties": {
     "version": {
-      "const": "1"
+      "const": "1",
+      "examples": ["1"]
     },
     "ui": {
       "type": "object",
+      "description": "Namespace for UI related features",
       "properties": {
         "nav": {
+          "description": "Hide and show bucket tabs",
           "type": "object",
           "properties": {
             "files": {
@@ -31,6 +34,7 @@
         },
         "actions": {
           "type": "object",
+          "description": "Hide and show action buttons",
           "properties": {
             "createPackage": {
               "default": true,
@@ -55,6 +59,7 @@
           }
         },
         "blocks": {
+          "description": "Hide and show UI blocks in package detail page",
           "type": "object",
           "properties": {
             "analytics": {
