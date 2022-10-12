@@ -4,7 +4,7 @@ import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import * as bucketErrors from 'containers/Bucket/errors'
 import { makeSchemaValidator } from 'utils/json-schema'
-import yaml from 'utils/yaml'
+import * as YAML from 'utils/yaml'
 
 export type SentryInstance = (command: 'captureMessage', message: string) => void
 
@@ -187,7 +187,7 @@ export function parse(
   bucketPreferencesYaml: string,
   sentry: SentryInstance,
 ): BucketPreferences {
-  const data = yaml(bucketPreferencesYaml)
+  const data = YAML.parse(bucketPreferencesYaml)
   if (!data) return defaultPreferences
 
   validate(data)
