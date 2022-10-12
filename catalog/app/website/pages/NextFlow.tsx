@@ -24,7 +24,7 @@ import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
-  'https://quilt-web-public.s3.amazonaws.com/deck/Quilt%E2%80%94the+data+hub+for+biotech.pdf'
+  'https://quilt-web-public.s3.amazonaws.com/docs/Quilt+%26+Nextflow+for+trusted+cloud+datasets%E2%80%94Case+Study+at+Tessera+Therapeutics.pdf'
 
 const logos = [
   {
@@ -113,18 +113,19 @@ function NextFlow() {
         variant="flying"
         heading={
           <>
-            Transform data into discoveries
+            Yesterday’s experiment is today’s analysis
             <br />
-            with Quilt + Amazon S3
+            &mdash;and tomorrow’s filing
           </>
         }
         detail={
           <>
-            Quilt stores, tags, manages, and integrates your data sources so that all of
-            your data are findable, accessible, interoperable, and reusable (FAIR).
-            Publicly traded companies in life sciences choose Quilt as their{' '}
-            <strong>scientific data management system (SDMS) </strong>to leverage all of
-            their organizational knowledge into credible decisions that bring drugs and
+            Quilt brings seamless collaboration to S3 by connecting people, pipelines, and
+            machines using visual, verifiable, versioned data packages. Quilt stores,
+            tags, manages, and integrates your data sources so that the output of every
+            pipeline is findable, accessible, interoperable, and reusable (FAIR). Publicly
+            traded companies in life sciences choose Quilt to reconcile all of their
+            organizational knowledge into credible decisions that bring drugs and
             therapies to market faster.
             <M.Box pt={4} />
             Quilt runs privately and securely in your AWS account, as a CloudFormation
@@ -140,7 +141,7 @@ function NextFlow() {
             </M.Box>
             <M.Box pt={2} />
             <ChevronLink href={DECK_URL}>
-              Learn more about Quilt for life sciences (PDF)
+              Read the Case Study on Quilt + Nextflow at Tessera Tx (PDF)
             </ChevronLink>
           </>
         }
