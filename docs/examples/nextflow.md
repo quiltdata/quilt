@@ -3,6 +3,7 @@
 
 ##  Technology preview
 `nf-quilt3` is evolving rapidly and therefore is not yet recommended for production work.
+You may encounter bugs and missing functionality.
 
 ## What is Nextflow?
 
