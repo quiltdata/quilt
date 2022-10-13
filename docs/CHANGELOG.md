@@ -51,6 +51,7 @@
 * [Changed] Allow to save only latest revisions of files ([#3124](https://github.com/quiltdata/quilt/pull/3124))
 
 ## Docs
+* [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
 * [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
 * [Added] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
 * [Added] Object deletion example ([#3097](https://github.com/quiltdata/quilt/pull/3097))
