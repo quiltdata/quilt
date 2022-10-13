@@ -13,7 +13,7 @@ data-intensive, highly scalable, workflows on any infrastructure.
 
 ## Overview
 
-Nextflow plugin for interacting with [Quilt](https://quiltdata.com/) packages as a FileSystem.
+Nextflow plugin for interacting with [quilt packages](https://github.com/quiltdata/quilt) as a FileSystem.
 
 `nf-quilt3` is a plugin developed by Quilt Data that enables you read and write directly to Quilt data packages using `quilt` URLs wherever you currently use `s3`, `az` or `gs` URLs.
 
