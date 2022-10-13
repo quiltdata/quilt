@@ -142,13 +142,54 @@ function collectErrors(allErrors, itemAddress, value) {
   return errors
 }
 
+function getJsonDictItemByParentPath(jsonDict, objPath, parentLevel) {
+  const parentPath = objPath.slice(0, parentLevel)
+  if (!parentPath.length) return undefined
+  const parentAddress = serializeAddress(parentPath)
+  if (!jsonDict[parentAddress]) {
+    return getJsonDictItemByParentPath(jsonDict, objPath, parentLevel - 1)
+  }
+
+  const additionalProperties = jsonDict[parentAddress]?.valueSchema?.additionalProperties
+  if (additionalProperties) {
+    // FIXME: parentLevel -3, -4. etc
+    if (parentLevel === -1) {
+      return getSchemaItem({
+        item: additionalProperties,
+        sortIndex: 0,
+        key: R.last(objPath),
+        parentPath,
+        required: false,
+      })
+    }
+
+    if (parentLevel === -2) {
+      return getSchemaItem({
+        item: additionalProperties.properties[R.last(objPath)],
+        sortIndex: 0,
+        key: R.last(objPath),
+        parentPath,
+        required: false,
+      })
+    }
+  }
+}
+
+function getJsonDictItemByObjPath(jsonDict, objPath) {
+  const itemAddress = serializeAddress(objPath)
+  if (jsonDict[itemAddress]) return jsonDict[itemAddress]
+
+  return getJsonDictItemByParentPath(jsonDict, objPath, -1)
+}
+
 function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
-  const itemAddress = serializeAddress(getAddressPath(key, parentPath))
-  const item = jsonDict[itemAddress]
+  const addressPath = getAddressPath(key, parentPath)
+  const item = getJsonDictItemByObjPath(jsonDict, addressPath)
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
   const value = storedValue === undefined ? getDefaultValue(item) : storedValue
+  const itemAddress = serializeAddress(addressPath)
   const errors = collectErrors(allErrors, itemAddress, value)
   return {
     [COLUMN_IDS.KEY]: key,
@@ -194,9 +235,9 @@ function getSchemaItemKeys(schemaItem) {
 }
 
 function getSchemaItemKeysByPath(jsonDict, objPath) {
-  const itemAddress = serializeAddress(objPath)
-  const item = jsonDict[itemAddress]
-  return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
+  const item = getJsonDictItemByObjPath(jsonDict, objPath)
+  console.log('getSchemaItemKeysByPath', objPath, item?.valueSchema)
+  return item?.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
 }
 
 function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
