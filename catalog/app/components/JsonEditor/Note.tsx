@@ -25,6 +25,13 @@ interface TypeHelpArgs {
   schema?: JsonSchema
 }
 
+function getExamples(examples: JsonValue[]) {
+  if (examples.length > 1) return ['Examples:', ...examples]
+  const example = examples[0]
+  if (typeof example === 'object') return ['Example:', example]
+  return [`Example: ${example}`]
+}
+
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
   const output: string[][] = []
 
@@ -45,11 +52,7 @@ function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHel
   }
 
   if (schema?.examples && schema.examples.length) {
-    output.push(
-      schema.examples.length > 1
-        ? ['Examples:', ...schema.examples.map(printObject)]
-        : [`Example: ${printObject(schema.examples[0])}`],
-    )
+    output.push(getExamples(schema.examples))
   }
 
   return output
@@ -75,9 +78,14 @@ function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
     <div>
       {groups.map((group, i) => (
         <div className={classes.group} key={`typeHelp_group_${i}`}>
-          {group.map((typeHelp, j) => (
-            <p key={`typeHelp_${i}_${j}`}>{typeHelp}</p>
-          ))}
+          {group.map((typeHelp, j) => {
+            const key = `typeHelp_${i}_${j}`
+            return typeof typeHelp === 'string' ? (
+              <p key={key}>{typeHelp}</p>
+            ) : (
+              <pre key={key}>{printObject(typeHelp)}</pre>
+            )
+          })}
         </div>
       ))}
     </div>
