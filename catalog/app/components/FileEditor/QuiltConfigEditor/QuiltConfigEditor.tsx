@@ -57,7 +57,7 @@ export default function QuiltConfigEditorSuspended({
   )
   return (
     <div className={classes.root}>
-      {header && <div className={classes.header}>{header}</div>}
+      {!!header && <div className={classes.header}>{header}</div>}
       <JsonEditor
         disabled={disabled}
         errors={errors}
