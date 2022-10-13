@@ -56,7 +56,7 @@ setup(
     url='https://github.com/quiltdata/quilt',
     keywords='',
     install_requires=[
-        'appdirs>=1.4.0',
+        'platformdirs>=2.5.2',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.10.0',
         'jsonlines==1.2.0',
