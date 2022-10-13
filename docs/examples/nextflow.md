@@ -2,7 +2,7 @@
 # Nextflow nf-quilt3
 
 ##  Beta preview
-`nf-quilt` is changing rapidly and therefore is not yet recommended for production work.
+`nf-quilt3` is changing rapidly and therefore is not yet recommended for production work.
 
 ## What is Nextflow?
 
@@ -124,3 +124,4 @@ Follow these steps to package, upload and publish the plugin:
 ## References
 
 * [Nextflow](https://nextflow.io)
+* [nf-quilt3](https://github.com/quiltdata/nf-quilt3)
