@@ -1,7 +1,7 @@
 <!-- markdownlint-disable -->
 # Nextflow nf-quilt3
 
-##  Beta preview
+##  Technology preview
 `nf-quilt3` is evolving rapidly and therefore is not yet recommended for production work.
 
 ## What is Nextflow?
