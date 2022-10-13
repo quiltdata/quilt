@@ -2,6 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import StyledTooltip from 'utils/StyledTooltip'
 import {
   JsonSchema,
@@ -26,14 +27,16 @@ interface TypeHelpArgs {
 }
 
 function getExamples(examples: JsonValue[]) {
-  if (examples.length > 1) return ['Examples:', ...examples]
-  const example = examples[0]
-  if (typeof example === 'object') return ['Example:', example]
-  return [`Example: ${printObject(example)}`]
+  if (examples.length > 1)
+    return [
+      'Examples:',
+      ...examples.map((example) => <Code>{printObject(example)}</Code>),
+    ]
+  return ['Example:', <Code>{printObject(examples[0])}</Code>]
 }
 
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
-  const output: string[][] = []
+  const output: React.ReactNode[][] = []
 
   if (errors.length) {
     output.push(errors.filter(Boolean).map(({ message }) => message) as string[])
@@ -66,10 +69,13 @@ const useTypeHelpStyles = M.makeStyles((t) => ({
       paddingTop: t.spacing(1),
     },
   },
+  item: {
+    margin: t.spacing(0.5, 0, 0),
+  },
 }))
 
 interface TypeHelpProps {
-  typeHelps: string[][]
+  typeHelps: React.ReactNode[][]
 }
 
 function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
@@ -78,14 +84,11 @@ function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
     <div>
       {groups.map((group, i) => (
         <div className={classes.group} key={`typeHelp_group_${i}`}>
-          {group.map((typeHelp, j) => {
-            const key = `typeHelp_${i}_${j}`
-            return typeof typeHelp === 'string' ? (
-              <p key={key}>{typeHelp}</p>
-            ) : (
-              <pre key={key}>{printObject(typeHelp)}</pre>
-            )
-          })}
+          {group.map((typeHelp, j) => (
+            <p className={classes.item} key={`typeHelp_${i}_${j}`}>
+              {typeHelp}
+            </p>
+          ))}
         </div>
       ))}
     </div>
