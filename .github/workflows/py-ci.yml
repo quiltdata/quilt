@@ -1,4 +1,10 @@
-on: push
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+  pull_request:
 jobs:
   linter:
     runs-on: ubuntu-latest
@@ -145,17 +151,18 @@ jobs:
       matrix:
         path:
           - access_counts
+          - es/indexer
           - molecule
-          - preview
-          - s3select
-          - transcode
-          - pkgselect
-          - shared
-          - s3hash
           - pkgevents
           - pkgpush
+          - pkgselect
+          - preview
+          - s3hash
+          - s3select
+          - shared
+          - status_reports
           - tabular_preview
-          - es/indexer
+          - transcode
         python-version: ['3.7']
         include:
           - path: thumbnail

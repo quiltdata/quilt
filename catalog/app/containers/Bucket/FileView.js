@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 // import Message from 'components/Message'
 import SelectDropdown from 'components/SelectDropdown'
-import * as Auth from 'containers/Auth'
+import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 
@@ -13,7 +13,7 @@ export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-const useDownloadButtonStyles = M.makeStyles((t) => ({
+const useAdaptiveButtonStyles = M.makeStyles((t) => ({
   root: {
     flexShrink: 0,
     marginBottom: -3,
@@ -24,8 +24,8 @@ const useDownloadButtonStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function DownloadButtonLayout({ className, label, icon, ...props }) {
-  const classes = useDownloadButtonStyles()
+export function AdaptiveButtonLayout({ className, label, icon, ...props }) {
+  const classes = useAdaptiveButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
@@ -53,7 +53,7 @@ export function DownloadButtonLayout({ className, label, icon, ...props }) {
 
 export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
-    <DownloadButtonLayout
+    <AdaptiveButtonLayout
       className={className}
       href={url}
       download
@@ -64,7 +64,7 @@ export function DownloadButton({ className, handle }) {
 }
 
 export function ViewModeSelector({ className, ...props }) {
-  const classes = useDownloadButtonStyles()
+  const classes = useAdaptiveButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
@@ -76,7 +76,7 @@ export function ViewModeSelector({ className, ...props }) {
 
 export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
   const { s3Proxy, noDownload } = Config.use()
-  const { token } = redux.useSelector(Auth.selectors.tokens) || {}
+  const { token } = redux.useSelector(tokensSelector) || {}
   if (!token || noDownload) return null
   const action = `${s3Proxy}/zip/${suffix}`
   return (
@@ -87,7 +87,7 @@ export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <DownloadButtonLayout
+      <AdaptiveButtonLayout
         className={className}
         label={label}
         icon="archive"

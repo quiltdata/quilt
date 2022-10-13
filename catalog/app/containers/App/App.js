@@ -69,6 +69,7 @@ const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
+const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
 
 export default function App() {
   const cfg = Config.useConfig()
@@ -115,6 +116,9 @@ export default function App() {
           <Route path={paths.product} component={MProduct} exact />
         )}
         {cfg.mode === 'MARKETING' && <Route path="/bioit" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && (
+          <Route path="/nextflow" component={NextFlow} exact />
+        )}
         {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
 
         {!cfg.disableNavigator && (

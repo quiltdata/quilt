@@ -2,10 +2,12 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import * as requests from '../requests'
+import * as storage from '../requests/storage'
 
 import { Alert, Section } from './Components'
 
@@ -49,6 +51,7 @@ function WorkgroupSelect({
       if (event.target.value === LOAD_MORE) {
         onLoadMore(workgroups)
       } else {
+        storage.setWorkgroup(event.target.value)
         goToWorkgroup(event.target.value)
       }
     },
@@ -93,7 +96,10 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
         <Alert title={error.name} error={error} />
       ) : (
         <Lab.Alert severity="info">
-          <Lab.AlertTitle>No workgroups configured</Lab.AlertTitle>
+          <Lab.AlertTitle>
+            No Athena workgroup available. Please ask an AWS Administrator to create one
+            with an appropriate OutputLocation
+          </Lab.AlertTitle>
         </Lab.Alert>
       )}
 

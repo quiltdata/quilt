@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <!--template:
 # unreleased - YYYY-MM-DD
 ## Python API
@@ -9,6 +10,7 @@
 ## Python API
 * [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
 * [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
+* [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
 
 ## Catalog, Lambdas
 * [Added] Add IGV renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
@@ -21,15 +23,40 @@
 * [Added] Deep search indexing for .pptx ([#2881](https://github.com/quiltdata/quilt/pull/2881))
 * [Added] Stack Status Admin UI ([#2935](https://github.com/quiltdata/quilt/pull/2935))
 * [Added] Render package manifests using Perspective ([#2971](https://github.com/quiltdata/quilt/pull/2971))
+* [Added] Athena default workflow config setting ([#2985](https://github.com/quiltdata/quilt/pull/2985))
+* [Added] Add missing README to package ([#2960](https://github.com/quiltdata/quilt/pull/2960), [#2979](https://github.com/quiltdata/quilt/pull/2979))
+* [Added] View and copy full Athena query by expanding table row ([2993](https://github.com/quiltdata/quilt/pull/2993))
+* [Added] Create packages from Athena query results ([#3004](https://github.com/quiltdata/quilt/pull/3004))
+* [Added] Add "Create text file" menu ([#3017](https://github.com/quiltdata/quilt/pull/3017))
+* [Added] Redirect to last selected Athena workgroup ([#3067](https://github.com/quiltdata/quilt/pull/3067))
+* [Added] `status_reports` lambda ([#2989](https://github.com/quiltdata/quilt/pull/2989), [#3088](https://github.com/quiltdata/quilt/pull/3088))
+* [Added] Stack Status Admin UI: reports ([#3068](https://github.com/quiltdata/quilt/pull/3068))
+* [Added] Edit button for text files in packages ([#3070](https://github.com/quiltdata/quilt/pull/3070))
+* [Added] Add execution context for Athena query execution ([#3062](https://github.com/quiltdata/quilt/pull/3062))
+* [Added] Add confirmation if now every row is valid for creating package from Athena results ([#3073](https://github.com/quiltdata/quilt/pull/3073))
+* [Added] Create file menu item for package ([#3127](https://github.com/quiltdata/quilt/pull/3127))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
+* [Fixed] Fix pre-popullation of default dates when using "dateformat" + {"format": "date"} ([#3082](https://github.com/quiltdata/quilt/pull/3082))
+* [Fixed] Fix editing nested files in packages, fix editing files added from the different location to package ([#3117](https://github.com/quiltdata/quilt/pull/3117))
 * [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
 * [Changed] Make `pkgpush` lambda directly invocable, adjust handling of parameters and errors ([#2776](https://github.com/quiltdata/quilt/pull/2776))
 * [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
 * [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
 * [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointer objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
+* [Changed] Remove ClientRequestToken (idempotency token) for making Athena queries ([#2992](https://github.com/quiltdata/quilt/pull/2992))
+* [Changed] Fixed config and docs mistyping: `ui.athena.defaultWorkflow` should be `ui.athena.defaultWorkgroup` ([#3067](https://github.com/quiltdata/quilt/pull/3067))
+* [Changed] Use dedicated columns field instead of first row, fix duplicated first row in table results ([#3101](https://github.com/quiltdata/quilt/pull/3101))
+* [Changed] Allow pushing empty packages, suggest creating a stub `README.md` file when trying to push an empty package ([#3114](https://github.com/quiltdata/quilt/pull/3114))
+* [Changed] Allow to save only latest revisions of files ([#3124](https://github.com/quiltdata/quilt/pull/3124))
+* [Changed] Render HTML files in LOCAL mode ([#3139](https://github.com/quiltdata/quilt/pull/3139))
 
 ## Docs
+* [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
+* [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
+* [Added] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
+* [Added] Object deletion example ([#3097](https://github.com/quiltdata/quilt/pull/3097))
+* [Added] Using R with Quilt ([#3089](https://github.com/quiltdata/quilt/pull/3089))
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
 
 # 5.0.0 - 2022-03-14

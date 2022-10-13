@@ -6,6 +6,8 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import wait from 'utils/wait'
 
+import * as storage from './storage'
+
 import { AsyncData } from './requests'
 
 // TODO: rename to requests.athena.Query
@@ -81,6 +83,41 @@ export function useQueries(
 
 export type Workgroup = string
 
+function getDefaultWorkgroup(
+  list: Workgroup[],
+  preferences?: BucketPreferences.AthenaPreferences,
+): Workgroup {
+  const workgroupFromConfig = preferences?.defaultWorkgroup
+  if (workgroupFromConfig && list.includes(workgroupFromConfig)) {
+    return workgroupFromConfig
+  }
+  return storage.getWorkgroup() || list[0]
+}
+
+interface WorkgroupArgs {
+  athena: Athena
+  workgroup: Workgroup
+}
+
+async function fetchWorkgroup({
+  athena,
+  workgroup,
+}: WorkgroupArgs): Promise<Workgroup | null> {
+  try {
+    const workgroupOutput = await athena.getWorkGroup({ WorkGroup: workgroup }).promise()
+    if (
+      workgroupOutput?.WorkGroup?.Configuration?.ResultConfiguration?.OutputLocation &&
+      workgroupOutput?.WorkGroup?.State === 'ENABLED' &&
+      workgroupOutput?.WorkGroup?.Name
+    ) {
+      return workgroupOutput.WorkGroup.Name
+    }
+    return null
+  } catch (error) {
+    return null
+  }
+}
+
 export interface WorkgroupsResponse {
   defaultWorkgroup: Workgroup
   list: Workgroup[]
@@ -105,13 +142,12 @@ async function fetchWorkgroups({
     const parsed = (workgroupsOutput.WorkGroups || []).map(
       ({ Name }) => Name || 'Unknown',
     )
-    const list = (prev?.list || []).concat(parsed)
-    const defaultWorkgroup =
-      preferences?.defaultWorkflow && list.includes(preferences?.defaultWorkflow)
-        ? preferences?.defaultWorkflow
-        : list[0]
+    const available = (
+      await Promise.all(parsed.map((workgroup) => fetchWorkgroup({ athena, workgroup })))
+    ).filter(Boolean)
+    const list = (prev?.list || []).concat(available as Workgroup[])
     return {
-      defaultWorkgroup,
+      defaultWorkgroup: getDefaultWorkgroup(list, preferences),
       list,
       next: workgroupsOutput.NextToken,
     }
@@ -137,6 +173,7 @@ export interface QueryExecution {
   completed?: Date
   created?: Date
   db?: string
+  error?: Error
   id?: string
   outputBucket?: string
   query?: string
@@ -169,6 +206,15 @@ function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecut
   }
 }
 
+function parseQueryExecutionError(
+  error: Athena.UnprocessedQueryExecutionId,
+): QueryExecution {
+  return {
+    error: new Error(error?.ErrorMessage || 'Unknown'),
+    id: error?.QueryExecutionId,
+  }
+}
+
 async function fetchQueryExecutions({
   athena,
   prev,
@@ -189,7 +235,13 @@ async function fetchQueryExecutions({
     const executionsOutput = await athena
       ?.batchGetQueryExecution({ QueryExecutionIds: ids })
       .promise()
-    const parsed = (executionsOutput.QueryExecutions || []).map(parseQueryExecution)
+    const parsed = (executionsOutput.QueryExecutions || [])
+      .map(parseQueryExecution)
+      .concat(
+        (executionsOutput.UnprocessedQueryExecutionIds || []).map(
+          parseQueryExecutionError,
+        ),
+      )
     const list = (prev?.list || []).concat(parsed)
     return {
       list,
@@ -219,24 +271,35 @@ export function useQueryExecutions(
 async function waitForQueryStatus(
   athena: Athena,
   QueryExecutionId: string,
-): Promise<Athena.QueryExecution | null> {
+): Promise<QueryExecution> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // NOTE: await is used to intentionally pause loop and make requests in series
     // eslint-disable-next-line no-await-in-loop
     const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
     const status = statusData?.QueryExecution?.Status?.State
-    const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
+    const parsed = statusData?.QueryExecution
+      ? parseQueryExecution(statusData?.QueryExecution)
+      : {
+          id: QueryExecutionId,
+        }
     if (status === 'FAILED' || status === 'CANCELLED') {
-      throw new Error(`${status}: ${reason}`)
+      const reason = statusData?.QueryExecution?.Status?.StateChangeReason || ''
+      return {
+        ...parsed,
+        error: new Error(`${status}: ${reason}`),
+      }
     }
 
     if (!status) {
-      throw new Error('Unknown query execution status')
+      return {
+        ...parsed,
+        error: new Error('Unknown query execution status'),
+      }
     }
 
     if (status === 'SUCCEEDED') {
-      return statusData?.QueryExecution || null
+      return parsed
     }
 
     // eslint-disable-next-line no-await-in-loop
@@ -258,8 +321,14 @@ export type QueryResultsRows = Row[]
 export interface QueryResultsResponse {
   columns: QueryResultsColumns
   next?: string
-  queryExecution: QueryExecution | null
+  queryExecution: QueryExecution
   rows: QueryResultsRows
+}
+
+type ManifestKey = 'hash' | 'logical_key' | 'meta' | 'physical_keys' | 'size'
+
+export interface QueryManifestsResponse extends QueryResultsResponse {
+  rows: [ManifestKey[], ...string[][]]
 }
 
 interface QueryResultsArgs {
@@ -278,29 +347,49 @@ async function fetchQueryResults({
   prev,
 }: QueryResultsArgs): Promise<QueryResultsResponse> {
   const queryExecution = await waitForQueryStatus(athena, queryExecutionId)
+  if (queryExecution.error) {
+    return {
+      rows: emptyList,
+      columns: emptyColumns,
+      queryExecution,
+    }
+  }
 
-  const queryResultsOutput = await athena
-    .getQueryResults({
-      QueryExecutionId: queryExecutionId,
-      NextToken: prev?.next,
-    })
-    .promise()
-  const parsed =
-    queryResultsOutput.ResultSet?.Rows?.map(
-      (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
-    ) || emptyList
-  const rows = [...(prev?.rows || emptyList), ...parsed]
-  return {
-    rows,
-    columns:
+  try {
+    const queryResultsOutput = await athena
+      .getQueryResults({
+        QueryExecutionId: queryExecutionId,
+        NextToken: prev?.next,
+      })
+      .promise()
+    const parsed =
+      queryResultsOutput.ResultSet?.Rows?.map(
+        (row) => row?.Data?.map((item) => item?.VarCharValue || '') || emptyRow,
+      ) || emptyList
+    const rows = [...(prev?.rows || emptyList), ...parsed]
+    const columns =
       queryResultsOutput.ResultSet?.ResultSetMetadata?.ColumnInfo?.map(
         ({ Name, Type }) => ({
           name: Name,
           type: Type,
         }),
-      ) || emptyColumns,
-    next: queryResultsOutput.NextToken,
-    queryExecution: queryExecution ? parseQueryExecution(queryExecution) : null,
+      ) || emptyColumns
+    const isHeadColumns = columns.every(({ name }, index) => name === rows[0][index])
+    return {
+      rows: isHeadColumns ? rows.slice(1) : rows,
+      columns,
+      next: queryResultsOutput.NextToken,
+      queryExecution,
+    }
+  } catch (error) {
+    return {
+      rows: emptyList,
+      columns: emptyColumns,
+      queryExecution: {
+        ...queryExecution,
+        error: error instanceof Error ? error : new Error(`${error}`),
+      },
+    }
   }
 }
 
@@ -316,63 +405,125 @@ export function useQueryResults(
   )
 }
 
-async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
-  const normalizedStr = (workgroup + queryBody).trim().replace(/\s+/g, ' ')
-  const msgUint8 = new TextEncoder().encode(normalizedStr)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  return hashHex
-}
-
 export interface QueryRunResponse {
   id: string
+}
+
+export type CatalogName = string
+export interface CatalogNamesResponse {
+  list: CatalogName[]
+  next?: string
+}
+
+interface CatalogNamesArgs {
+  athena: Athena
+  prev?: CatalogNamesResponse
+}
+
+async function fetchCatalogNames({
+  athena,
+  prev,
+}: CatalogNamesArgs): Promise<CatalogNamesResponse> {
+  const catalogsOutput = await athena
+    ?.listDataCatalogs({ NextToken: prev?.next })
+    .promise()
+  const list =
+    catalogsOutput?.DataCatalogsSummary?.map(
+      ({ CatalogName }) => CatalogName || 'Unknown',
+    ) || []
+  return {
+    list: (prev?.list || []).concat(list),
+    next: catalogsOutput.NextToken,
+  }
+}
+
+export function useCatalogNames(
+  prev: CatalogNamesResponse | null,
+): AsyncData<CatalogNamesResponse> {
+  const athena = AWS.Athena.use()
+  return useData(fetchCatalogNames, { athena, prev })
+}
+
+export type Database = string
+export interface DatabasesResponse {
+  list: CatalogName[]
+  next?: string
+}
+
+interface DatabasesArgs {
+  athena: Athena
+  catalogName: CatalogName
+  prev: DatabasesResponse
+}
+
+async function fetchDatabases({
+  athena,
+  catalogName,
+  prev,
+}: DatabasesArgs): Promise<DatabasesResponse> {
+  const databasesOutput = await athena
+    ?.listDatabases({ CatalogName: catalogName, NextToken: prev?.next })
+    .promise()
+  // TODO: add `Description` besides `Name`
+  const list = databasesOutput?.DatabaseList?.map(({ Name }) => Name || 'Unknown') || []
+  return {
+    list: (prev?.list || []).concat(list),
+    next: databasesOutput.NextToken,
+  }
+}
+
+export function useDatabases(
+  catalogName: CatalogName | null,
+  prev: DatabasesResponse | null,
+): AsyncData<DatabasesResponse> {
+  const athena = AWS.Athena.use()
+  return useData(
+    fetchDatabases,
+    { athena, catalogName, prev },
+    { noAutoFetch: !catalogName },
+  )
+}
+
+export interface ExecutionContext {
+  catalogName: CatalogName
+  database: Database
 }
 
 interface RunQueryArgs {
   athena: Athena
   queryBody: string
   workgroup: string
-  skipHashing?: boolean
+  executionContext: ExecutionContext | null
 }
 
 export async function runQuery({
   athena,
   queryBody,
   workgroup,
-  skipHashing,
+  executionContext,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
-    const hashDigest = skipHashing ? undefined : await hashQueryBody(queryBody, workgroup)
-    const { QueryExecutionId } = await athena
-      .startQueryExecution({
-        ClientRequestToken: hashDigest,
-        QueryString: queryBody,
-        ResultConfiguration: {
-          EncryptionConfiguration: {
-            EncryptionOption: 'SSE_S3',
-          },
+    const options: Athena.Types.StartQueryExecutionInput = {
+      QueryString: queryBody,
+      ResultConfiguration: {
+        EncryptionConfiguration: {
+          EncryptionOption: 'SSE_S3',
         },
-        WorkGroup: workgroup,
-      })
-      .promise()
+      },
+      WorkGroup: workgroup,
+    }
+    if (executionContext) {
+      options.QueryExecutionContext = {
+        Catalog: executionContext.catalogName,
+        Database: executionContext.database,
+      }
+    }
+    const { QueryExecutionId } = await athena.startQueryExecution(options).promise()
     if (!QueryExecutionId) throw new Error('No execution id')
     return {
       id: QueryExecutionId,
     }
   } catch (e) {
-    if (
-      e instanceof Error &&
-      e.name === 'InvalidRequestException' &&
-      e.message === 'Idempotent parameters do not match'
-    ) {
-      return runQuery({
-        athena,
-        queryBody,
-        workgroup,
-        skipHashing: true,
-      })
-    }
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
@@ -381,12 +532,12 @@ export async function runQuery({
   }
 }
 
-export function useQueryRun(workgroup: string): (q: string) => Promise<QueryRunResponse> {
+export function useQueryRun(workgroup: string) {
   const athena = AWS.Athena.use()
   return React.useCallback(
-    (queryBody: string) => {
+    (queryBody: string, executionContext: ExecutionContext | null) => {
       if (!athena) return Promise.reject(new Error('No Athena available'))
-      return runQuery({ athena, queryBody, workgroup })
+      return runQuery({ athena, queryBody, workgroup, executionContext })
     },
     [athena, workgroup],
   )

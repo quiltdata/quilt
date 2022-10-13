@@ -12,6 +12,7 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -365,12 +366,19 @@ export default function File({
     [bucket, path],
   )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
+  const [resetKey, setResetKey] = React.useState(0)
+  const objExistsData = useData(requests.getObjectExistence, {
+    s3,
+    bucket,
+    key: path,
+    resetKey,
+  })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
     key: path,
     version,
+    resetKey,
   })
 
   const objExists = objExistsData.case({
@@ -381,15 +389,20 @@ export default function File({
     }),
   })
 
-  const downloadable =
-    !noDownload &&
-    versionExistsData.case({
-      _: () => false,
-      Ok: requests.ObjectExistence.case({
-        _: () => false,
-        Exists: ({ deleted, archived }) => !deleted && !archived,
+  const { downloadable, fileVersionId } = versionExistsData.case({
+    _: () => ({
+      downloadable: false,
+    }),
+    Ok: requests.ObjectExistence.case({
+      _: () => ({
+        downloadable: false,
       }),
-    })
+      Exists: ({ deleted, archived, version: versionId }) => ({
+        downloadable: !noDownload && !deleted && !archived,
+        fileVersionId: versionId,
+      }),
+    }),
+  })
 
   const viewModes = useViewModes(path, mode)
 
@@ -401,11 +414,16 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
-    [bucket, path, version],
+    () => ({ bucket, key: path, version: fileVersionId }),
+    [bucket, path, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
+  const onSave = editorState.onSave
+  const handleEditorSave = React.useCallback(async () => {
+    await onSave()
+    setResetKey(R.inc)
+  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -426,6 +444,11 @@ export default function File({
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
+  const bookmarks = Bookmarks.use()
+  const isBookmarked = React.useMemo(
+    () => bookmarks?.isBookmarked('main', handle),
+    [bookmarks, handle],
+  )
 
   return (
     <FileView.Root>
@@ -464,11 +487,17 @@ export default function File({
               disabled={editorState.saving}
               editing={editorState.editing}
               className={classes.button}
-              onSave={editorState.onSave}
+              onSave={handleEditorSave}
               onCancel={editorState.onCancel}
               onEdit={editorState.onEdit}
             />
           )}
+          <FileView.AdaptiveButtonLayout
+            className={classes.button}
+            icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
+            label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+            onClick={() => bookmarks?.toggle('main', handle)}
+          />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}

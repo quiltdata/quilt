@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Organizing data in S3 buckets
 
 You can think of your data buckets as a grid. The horizontal dimension reflects
