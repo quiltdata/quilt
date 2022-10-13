@@ -29,7 +29,7 @@ function getExamples(examples: JsonValue[]) {
   if (examples.length > 1) return ['Examples:', ...examples]
   const example = examples[0]
   if (typeof example === 'object') return ['Example:', example]
-  return [`Example: ${example}`]
+  return [`Example: ${printObject(example)}`]
 }
 
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
