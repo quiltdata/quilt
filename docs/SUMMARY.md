@@ -34,6 +34,7 @@
 
 ### Examples
 * [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
+* [Nextflow](examples/nextflow.md)
 
 ### Advanced
 * [Filtering a Package](advanced-features/filtering-a-package.md)
@@ -47,7 +48,6 @@
 * [Cross-account access](CrossAccount.md)
 * [Querying Metadata with Athena](advanced-features/athena.md)
 * [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
-* [Quilt and Nextflow](advanced-features/quilt-and-nextflow.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
