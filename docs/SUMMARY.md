@@ -34,6 +34,7 @@
 
 ### Examples
 * [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
+* [Nextflow](examples/nextflow.md)
 
 ### Advanced
 * [Filtering a Package](advanced-features/filtering-a-package.md)

@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import * as Config from 'utils/Config'
 import { useIsInStack } from 'utils/BucketConfig'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useMemoEq from 'utils/useMemoEq'
@@ -23,8 +24,11 @@ function IFrameLoader({ handle, children }) {
 
 export const Loader = function HtmlLoader({ handle, children }) {
   const isInStack = useIsInStack()
+  const { mode } = Config.use()
   const statusReportsBucket = useStatusReportsBucket()
-  return isInStack(handle.bucket) || handle.bucket === statusReportsBucket ? (
+  return mode === 'LOCAL' ||
+    isInStack(handle.bucket) ||
+    handle.bucket === statusReportsBucket ? (
     <IFrameLoader {...{ handle, children }} />
   ) : (
     <Text.Loader {...{ handle, children }} />
