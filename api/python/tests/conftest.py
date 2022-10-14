@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import sys
 import tempfile
+from functools import partial
 from unittest import mock
 
 import pytest
@@ -35,10 +36,13 @@ def pytest_sessionstart(session):
     Vars.tmpdir_cache = Vars.tmpdir_home / 'platformdirs_cachedir'
     Vars.tmpdir_cache.mkdir()
 
+    def get_dir(*args, d):
+        return str(d / args[0] if args else d)
+
     # Mockers that need to be loaded before any of our code
     Vars.extrasession_mockers.extend([
-        mock.patch('platformdirs.user_data_dir', lambda *x: str(Vars.tmpdir_data / x[0] if x else Vars.tmpdir_data)),
-        mock.patch('platformdirs.user_cache_dir', lambda *x: str(Vars.tmpdir_cache / x[0] if x else Vars.tmpdir_cache)),
+        mock.patch('platformdirs.user_data_dir', partial(get_dir, d=Vars.tmpdir_data)),
+        mock.patch('platformdirs.user_cache_dir', partial(get_dir, d=Vars.tmpdir_cache)),
     ])
 
     for mocker in Vars.extrasession_mockers:
