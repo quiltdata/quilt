@@ -6,6 +6,8 @@ import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
+const JSON_POINTER_PLACEHOLDER = '__*'
+
 // TODO: create JSONPointer module, rename to stringify
 const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
 
@@ -51,7 +53,7 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
     const rawItem = schema.additionalProperties || schema.items
     const item = getSchemaItem({
       item: rawItem,
-      key: '__*',
+      key: JSON_POINTER_PLACEHOLDER,
       parentPath,
       required: false,
       sortIndex: sortOrder.current.counter,
@@ -165,7 +167,9 @@ function collectErrors(allErrors, itemAddress, value) {
 
 function doesPlaceholderPathMatch(placeholder, path) {
   if (placeholder.length !== path.length) return false
-  return placeholder.every((item, index) => item === path[index] || item === '__*')
+  return placeholder.every(
+    (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
+  )
 }
 
 // TODO: extend getJsonDictValue
