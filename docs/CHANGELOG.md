@@ -13,7 +13,6 @@
 * [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
 
 ## Catalog, Lambdas
-* [Changed] Update Okta documentation and examples ([#3126](https://github.com/quiltdata/quilt/pull/3126))
 * [Added] Add IGV renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
 * [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
 * [Added] Show bucket collaborators ([#2756](https://github.com/quiltdata/quilt/pull/2756))
@@ -55,8 +54,9 @@
 
 ## Docs
 * [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
+* [Changed] Update Okta documentation and examples ([#3126](https://github.com/quiltdata/quilt/pull/3126))
 * [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
-* [Added] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
+* [Fixed] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
 * [Added] Object deletion example ([#3097](https://github.com/quiltdata/quilt/pull/3097))
 * [Added] Using R with Quilt ([#3089](https://github.com/quiltdata/quilt/pull/3089))
 * [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
