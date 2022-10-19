@@ -35,6 +35,7 @@
 * [Added] Add execution context for Athena query execution ([#3062](https://github.com/quiltdata/quilt/pull/3062))
 * [Added] Add confirmation if now every row is valid for creating package from Athena results ([#3073](https://github.com/quiltdata/quilt/pull/3073))
 * [Added] Create file menu item for package ([#3127](https://github.com/quiltdata/quilt/pull/3127))
+* [Added] Expose Quilt Catalog automation API as `window.QuiltCatalog` ([#3141](https://github.com/quiltdata/quilt/pull/3143))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
 * [Fixed] Fix pre-popullation of default dates when using "dateformat" + {"format": "date"} ([#3082](https://github.com/quiltdata/quilt/pull/3082))
@@ -50,6 +51,7 @@
 * [Changed] Allow pushing empty packages, suggest creating a stub `README.md` file when trying to push an empty package ([#3114](https://github.com/quiltdata/quilt/pull/3114))
 * [Changed] Allow to save only latest revisions of files ([#3124](https://github.com/quiltdata/quilt/pull/3124))
 * [Changed] Render HTML files in LOCAL mode ([#3139](https://github.com/quiltdata/quilt/pull/3139))
+* [Changed] Support dots in bucket names while using S3 proxy ([#3147](https://github.com/quiltdata/quilt/pull/3147))
 
 ## Docs
 * [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
