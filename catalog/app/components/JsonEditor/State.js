@@ -8,10 +8,10 @@ import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const JSON_POINTER_PLACEHOLDER = '__*'
 
-// TODO: create JSONPointer module, rename to stringify
+// TODO: create JSONPointer module, rename function to `stringify`
 const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
 
-// TODO: create JSONPointer module, rename to parse
+// TODO: create JSONPointer module, rename function to `parse`
 const deserializeAddress = (address) => address.slice(1).split('/')
 
 const getAddressPath = (key, parentPath) =>
@@ -368,15 +368,16 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
     [jsonObject, sortOrder],
   )
 
+  // `jsonDict` and `columns` are main state storages
   return children({
-    addRow,
-    changeValue,
-    columns,
-    fieldPath,
-    jsonDict,
-    menuFieldPath,
-    removeField,
-    setFieldPath,
-    setMenuFieldPath,
+    addRow, // Adds new key/value pair
+    changeValue, // Changes existing key or value
+    columns, // Main source of truth for UI
+    fieldPath, // Where is user's focus inside object
+    jsonDict, // Stores sort order, required fields, types etc.
+    menuFieldPath, // where does user open context menu
+    removeField, // Removes key/value pair
+    setFieldPath, // Focuse on that path inside object
+    setMenuFieldPath, // Open context menu for that path inside object
   })
 }
