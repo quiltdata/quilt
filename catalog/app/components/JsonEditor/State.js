@@ -6,21 +6,15 @@ import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 import * as JSONPointer from 'utils/JSONPointer'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import {
+  getAddressPath,
+  iterateSchema,
+  JSON_POINTER_PLACEHOLDER,
+  noKeys,
+  getSchemaItemKeys,
+} from './State-with-types'
 
-const JSON_POINTER_PLACEHOLDER = '__*'
-
-const getAddressPath = (key, parentPath) =>
-  key === '' ? parentPath : (parentPath || []).concat(key)
-
-const getSchemaType = R.prop('type')
-
-const getSchemaItem = ({ item, sortIndex, key, parentPath, required }) => ({
-  address: getAddressPath(key, parentPath),
-  required,
-  valueSchema: item,
-  sortIndex,
-  type: getSchemaType(item),
-})
+export { iterateSchema } from './State-with-types'
 
 const assocObjValue = R.assocPath
 
@@ -40,52 +34,6 @@ function moveObjValue(oldObjPath, key, obj) {
 }
 
 const dissocObjValue = R.dissocPath
-
-// TODO: consider to use 'json-schema-traverse'
-// NOTE: memo is mutated, sortOrder is React.ref and mutated too
-export function iterateSchema(schema, sortOrder, parentPath, memo) {
-  if (schema.additionalProperties || schema.items) {
-    const rawItem = schema.additionalProperties || schema.items
-    const item = getSchemaItem({
-      item: rawItem,
-      key: JSON_POINTER_PLACEHOLDER,
-      parentPath,
-      required: false,
-      sortIndex: sortOrder.current.counter,
-    })
-    // eslint-disable-next-line no-param-reassign
-    memo[JSONPointer.stringify(item.address)] = item
-    // eslint-disable-next-line no-param-reassign
-    sortOrder.current.counter += 1
-    iterateSchema(rawItem, sortOrder, item.address, memo)
-  }
-
-  if (!schema.properties) return memo
-
-  const requiredKeys = schema.required
-  getSchemaItemKeys(schema).forEach((key) => {
-    // eslint-disable-next-line no-param-reassign
-    sortOrder.current.counter += 1
-
-    const rawItem = schema.properties[key]
-    const required = requiredKeys ? requiredKeys.includes(key) : false
-    const item = getSchemaItem({
-      item: rawItem,
-      key,
-      parentPath,
-      required,
-      sortIndex: sortOrder.current.counter,
-    })
-    // eslint-disable-next-line no-param-reassign
-    memo[JSONPointer.stringify(item.address)] = item
-
-    // eslint-disable-next-line no-param-reassign
-    sortOrder.current.counter += 1
-    iterateSchema(rawItem, sortOrder, item.address, memo)
-  })
-
-  return memo
-}
 
 // NOTE: memo is mutated
 // weird eslint bug?
@@ -207,8 +155,6 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
   }
 }
 
-const noKeys = []
-
 function getObjValueKeys(objValue) {
   if (Array.isArray(objValue)) return R.range(0, objValue.length)
   if (R.is(Object, objValue)) return Object.keys(objValue)
@@ -220,24 +166,6 @@ function getObjValueKeysByPath(obj, objPath, rootKeys) {
 
   const objValue = R.path(objPath, obj)
   return getObjValueKeys(objValue)
-}
-
-function getSchemaItemKeys(schemaItem) {
-  if (!schemaItem || !schemaItem.properties) return noKeys
-  const keys = Object.keys(schemaItem.properties)
-
-  if (!schemaItem.required) return keys
-
-  const sortOrder = schemaItem.required.reduce(
-    (memo, key, index) => ({
-      [key]: index,
-      ...memo,
-    }),
-    {},
-  )
-  const getSortIndex = (key) =>
-    R.ifElse(R.has(key), R.prop(key), R.always(Infinity))(sortOrder)
-  return R.sortBy(getSortIndex, keys)
 }
 
 function getSchemaItemKeysByPath(jsonDict, objPath) {
