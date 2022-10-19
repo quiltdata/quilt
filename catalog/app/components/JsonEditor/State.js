@@ -3,16 +3,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
+import * as JSONPointer from 'utils/JSONPointer'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const JSON_POINTER_PLACEHOLDER = '__*'
-
-// TODO: create JSONPointer module, rename function to `stringify`
-const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
-
-// TODO: create JSONPointer module, rename function to `parse`
-const deserializeAddress = (address) => address.slice(1).split('/')
 
 const getAddressPath = (key, parentPath) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
@@ -30,7 +25,7 @@ const getSchemaItem = ({ item, sortIndex, key, parentPath, required }) => ({
 const assocObjValue = R.assocPath
 
 export const getJsonDictValue = (objPath, jsonDict) =>
-  R.prop(serializeAddress(objPath), jsonDict)
+  R.prop(JSONPointer.stringify(objPath), jsonDict)
 
 export const getObjValue = R.path
 
@@ -59,7 +54,7 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
       sortIndex: sortOrder.current.counter,
     })
     // eslint-disable-next-line no-param-reassign
-    memo[serializeAddress(item.address)] = item
+    memo[JSONPointer.stringify(item.address)] = item
     // eslint-disable-next-line no-param-reassign
     sortOrder.current.counter += 1
     iterateSchema(rawItem, sortOrder, item.address, memo)
@@ -82,7 +77,7 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
       sortIndex: sortOrder.current.counter,
     })
     // eslint-disable-next-line no-param-reassign
-    memo[serializeAddress(item.address)] = item
+    memo[JSONPointer.stringify(item.address)] = item
 
     // eslint-disable-next-line no-param-reassign
     sortOrder.current.counter += 1
@@ -101,7 +96,7 @@ function objToDict(obj, parentPath, memo) {
     obj.forEach((value, index) => {
       const address = getAddressPath(index, parentPath)
       // eslint-disable-next-line no-param-reassign
-      memo[serializeAddress(address)] = value
+      memo[JSONPointer.stringify(address)] = value
 
       objToDict(value, address, memo)
     })
@@ -116,7 +111,7 @@ function objToDict(obj, parentPath, memo) {
     keys.forEach((key) => {
       const address = getAddressPath(key, parentPath)
       // eslint-disable-next-line no-param-reassign
-      memo[serializeAddress(address)] = obj[key]
+      memo[JSONPointer.stringify(address)] = obj[key]
 
       objToDict(obj[key], address, memo)
     })
@@ -127,7 +122,7 @@ function objToDict(obj, parentPath, memo) {
 }
 
 function calcReactId(valuePath, value) {
-  const pathPrefix = serializeAddress(valuePath)
+  const pathPrefix = JSONPointer.stringify(valuePath)
   // TODO: store preview for value, and reuse it for Preview
   return `${pathPrefix}+${JSON.stringify(value)}`
 }
@@ -176,14 +171,14 @@ function doesPlaceholderPathMatch(placeholder, path) {
 // TODO: return address too
 function getJsonDictItemRecursively(jsonDict, parentPath, key) {
   const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
-  const itemAddress = serializeAddress(addressPath)
+  const itemAddress = JSONPointer.stringify(addressPath)
   const item = jsonDict[itemAddress]
   if (item) return item
 
   let weight = 0
   let placeholderItem = undefined
   Object.entries(jsonDict).forEach(([path, value]) => {
-    if (doesPlaceholderPathMatch(deserializeAddress(path), addressPath)) {
+    if (doesPlaceholderPathMatch(JSONPointer.parse(path), addressPath)) {
       if (weight < addressPath.length) {
         weight = addressPath.length
         placeholderItem = value
@@ -194,7 +189,7 @@ function getJsonDictItemRecursively(jsonDict, parentPath, key) {
 }
 
 function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
-  const itemAddress = serializeAddress(getAddressPath(key, parentPath))
+  const itemAddress = JSONPointer.stringify(getAddressPath(key, parentPath))
   // const item = jsonDict[itemAddress]
   const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
@@ -361,7 +356,7 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
       sortOrder.current.counter += 1
 
       const newKeyPath = addFieldPath.concat([key])
-      const itemAddress = serializeAddress(newKeyPath)
+      const itemAddress = JSONPointer.stringify(newKeyPath)
       sortOrder.current.dict[itemAddress] = sortOrder.current.counter
       return assocObjValue(newKeyPath, value, jsonObject)
     },
