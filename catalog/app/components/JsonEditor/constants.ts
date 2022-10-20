@@ -19,9 +19,13 @@ export interface RowData {
   updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
 }
 
+// TODO: use enum, when converstion to typescript will be done
+const KEY: 'key' = 'key'
+const VALUE: 'value' = 'value'
+
 export const COLUMN_IDS = {
-  KEY: 'key',
-  VALUE: 'value',
+  KEY,
+  VALUE,
 }
 
 export const EMPTY_VALUE = Symbol('empty')

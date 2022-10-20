@@ -7,10 +7,9 @@ import * as JSONPointer from 'utils/JSONPointer'
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 import {
   assocObjValue,
-  calcReactId,
-  collectErrors,
-  doesPlaceholderPathMatch,
-  getAddressPath,
+  dissocObjValue,
+  getJsonDictItem,
+  getJsonDictItemRecursively,
   getSchemaItemKeys,
   iterateSchema,
   noKeys,
@@ -18,46 +17,6 @@ import {
 } from './State-with-types'
 
 export { getJsonDictValue, getObjValue, iterateSchema } from './State-with-types'
-
-// TODO: extend getJsonDictValue
-// TODO: return address too
-function getJsonDictItemRecursively(jsonDict, parentPath, key) {
-  const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
-  const itemAddress = JSONPointer.stringify(addressPath)
-  const item = jsonDict[itemAddress]
-  if (item) return item
-
-  let weight = 0
-  let placeholderItem = undefined
-  Object.entries(jsonDict).forEach(([path, value]) => {
-    if (doesPlaceholderPathMatch(JSONPointer.parse(path), addressPath)) {
-      if (weight < addressPath.length) {
-        weight = addressPath.length
-        placeholderItem = value
-      }
-    }
-  }, {})
-  return placeholderItem
-}
-
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
-  const itemAddress = JSONPointer.stringify(getAddressPath(key, parentPath))
-  // const item = jsonDict[itemAddress]
-  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
-  // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
-  const valuePath = getAddressPath(key, parentPath)
-  const storedValue = R.path(valuePath, obj)
-  const value = storedValue === undefined ? getDefaultValue(item) : storedValue
-  const errors = collectErrors(allErrors, itemAddress, value)
-  return {
-    [COLUMN_IDS.KEY]: key,
-    [COLUMN_IDS.VALUE]: value,
-    errors,
-    reactId: calcReactId(valuePath, storedValue),
-    sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
-    ...(item || {}),
-  }
-}
 
 function getObjValueKeys(objValue) {
   if (Array.isArray(objValue)) return R.range(0, objValue.length)

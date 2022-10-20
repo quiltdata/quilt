@@ -7,11 +7,11 @@ import { JsonSchema } from 'utils/json-schema'
 import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 import { Json, JsonRecord } from 'utils/types'
 
-import { EMPTY_VALUE, ValidationErrors } from './constants'
+import { COLUMN_IDS, EMPTY_VALUE, ValidationErrors } from './constants'
 
 export const JSON_POINTER_PLACEHOLDER = '__*'
 
-export const getAddressPath = (key: string, parentPath: JSONPointer.Path) =>
+const getAddressPath = (key: string, parentPath: JSONPointer.Path) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
 
 const getSchemaType = (s: JsonSchema) => s.type as JSONType
@@ -136,6 +136,9 @@ export const getObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonR
 export const getJsonDictValue = (objPath: JSONPointer.Path, jsonDict: JsonDict) =>
   R.prop(JSONPointer.stringify(objPath), jsonDict)
 
+export const dissocObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
+  R.dissocPath
+
 export function moveObjValue(
   oldObjPath: JSONPointer.Path,
   key: any,
@@ -149,9 +152,6 @@ export function moveObjValue(
     dissocObjValue(oldObjPath, obj),
   )
 }
-
-export const dissocObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
-  R.dissocPath
 
 // NOTE: memo is mutated
 // weird eslint bug?
@@ -189,13 +189,13 @@ export function objToDict(obj: JsonRecord, parentPath: JSONPointer.Path, memo: J
 }
 */
 
-export function calcReactId(valuePath: JSONPointer.Path, value: Json): string {
+function calcReactId(valuePath: JSONPointer.Path, value?: Json): string {
   const pathPrefix = JSONPointer.stringify(valuePath)
   // TODO: store preview for value, and reuse it for Preview
   return `${pathPrefix}+${JSON.stringify(value)}`
 }
 
-export function getDefaultValue(jsonDictItem: SchemaItem): Json | typeof EMPTY_VALUE {
+export function getDefaultValue(jsonDictItem?: SchemaItem): Json | typeof EMPTY_VALUE {
   if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
 
   const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
@@ -217,10 +217,10 @@ const bigintError = new Error(
   Please consider converting it to string.`,
 )
 
-export function collectErrors(
+function collectErrors(
   allErrors: ValidationErrors,
   itemAddress: JSONPointer.Pointer,
-  value: Json,
+  value: Json | typeof EMPTY_VALUE,
 ): ValidationErrors {
   const errors = allErrors
     ? allErrors.filter((error) => (error as ErrorObject).instancePath === itemAddress)
@@ -232,7 +232,7 @@ export function collectErrors(
   return errors
 }
 
-export function doesPlaceholderPathMatch(
+function doesPlaceholderPathMatch(
   placeholder: JSONPointer.Path,
   path: JSONPointer.Path,
 ): boolean {
@@ -240,4 +240,65 @@ export function doesPlaceholderPathMatch(
   return placeholder.every(
     (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
   )
+}
+
+interface JsonDictItem extends Partial<SchemaItem> {
+  errors: ValidationErrors
+  reactId: string
+  sortIndex: number
+
+  // TODO: use constants module
+  key: string
+  value: Json | typeof EMPTY_VALUE
+}
+
+// TODO: extend getJsonDictValue
+// TODO: return address too
+export function getJsonDictItemRecursively(
+  jsonDict: JsonDict,
+  parentPath: JSONPointer.Path,
+  key: string,
+): SchemaItem | undefined {
+  const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
+  const itemAddress = JSONPointer.stringify(addressPath)
+  const item = jsonDict[itemAddress]
+  if (item) return item
+
+  let weight = 0
+  let placeholderItem = undefined
+  Object.entries(jsonDict).forEach(([path, value]) => {
+    if (doesPlaceholderPathMatch(JSONPointer.parse(path), addressPath)) {
+      if (weight < addressPath.length) {
+        weight = addressPath.length
+        placeholderItem = value
+      }
+    }
+  }, {})
+  return placeholderItem
+}
+
+export function getJsonDictItem(
+  jsonDict: JsonDict,
+  obj: JsonRecord,
+  parentPath: JSONPointer.Path,
+  key: string,
+  sortOrder: SortOrder,
+  allErrors: ValidationErrors,
+): JsonDictItem {
+  const itemAddress = JSONPointer.stringify(getAddressPath(key, parentPath))
+  // const item = jsonDict[itemAddress]
+  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
+  // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
+  const valuePath = getAddressPath(key, parentPath)
+  const storedValue: Json | undefined = R.path(valuePath, obj)
+  const value = storedValue === undefined ? getDefaultValue(item) : storedValue
+  const errors = collectErrors(allErrors, itemAddress, value)
+  return {
+    [COLUMN_IDS.KEY]: key,
+    [COLUMN_IDS.VALUE]: value,
+    errors,
+    reactId: calcReactId(valuePath, storedValue),
+    sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
+    ...(item || {}),
+  }
 }
