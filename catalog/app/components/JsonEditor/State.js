@@ -174,7 +174,8 @@ function doesPlaceholderPathMatch(placeholder, path) {
 
 // TODO: extend getJsonDictValue
 // TODO: return address too
-function getJsonDictItemRecursively(jsonDict, parentPath, key) {
+// NOTE: returns jsonDictItem by path from JsonDict handling placeholder paths too
+export function getJsonDictItemRecursively(jsonDict, parentPath, key) {
   const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
   const itemAddress = serializeAddress(addressPath)
   const item = jsonDict[itemAddress]
@@ -195,7 +196,6 @@ function getJsonDictItemRecursively(jsonDict, parentPath, key) {
 
 function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
-  // const item = jsonDict[itemAddress]
   const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
