@@ -272,27 +272,6 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 })
 
-/*
-interface StateRenderProps {
-  addRow: (path: JSONPointer.Path, key: string | number, value: JsonValue) => JsonValue
-  changeValue: (
-    path: JSONPointer.Path,
-    key: 'key' | 'value',
-    value: JsonValue | string,
-  ) => JsonValue
-  columns: {
-    items: RowData[]
-    parent?: JsonValue
-  }[]
-  fieldPath: JSONPointer.Path
-  jsonDict: Record<string, JsonValue>
-  removeField: (path: JSONPointer.Path) => JsonValue
-  setFieldPath: (path: JSONPointer.Path) => void
-  menuFieldPath: string[]
-  setMenuFieldPath: (path: JSONPointer.Path) => void
-}
-*/
-
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
