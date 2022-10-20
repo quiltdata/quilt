@@ -7,6 +7,7 @@ import * as JSONPointer from 'utils/JSONPointer'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 import {
+  assocObjValue,
   getAddressPath,
   iterateSchema,
   JSON_POINTER_PLACEHOLDER,
@@ -14,26 +15,7 @@ import {
   getSchemaItemKeys,
 } from './State-with-types'
 
-export { iterateSchema } from './State-with-types'
-
-const assocObjValue = R.assocPath
-
-export const getJsonDictValue = (objPath, jsonDict) =>
-  R.prop(JSONPointer.stringify(objPath), jsonDict)
-
-export const getObjValue = R.path
-
-function moveObjValue(oldObjPath, key, obj) {
-  const oldItem = getObjValue(oldObjPath, obj)
-  const oldValue = oldItem === undefined ? EMPTY_VALUE : oldItem
-  return assocObjValue(
-    R.append(key, R.init(oldObjPath)),
-    oldValue,
-    dissocObjValue(oldObjPath, obj),
-  )
-}
-
-const dissocObjValue = R.dissocPath
+export { getJsonDictValue, getObjValue, iterateSchema } from './State-with-types'
 
 // NOTE: memo is mutated
 // weird eslint bug?

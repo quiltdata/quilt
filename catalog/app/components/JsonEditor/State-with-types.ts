@@ -4,6 +4,9 @@ import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
 import { JsonSchema } from 'utils/json-schema'
+import { JsonRecord } from 'utils/types'
+
+import { EMPTY_VALUE } from './constants'
 
 export const JSON_POINTER_PLACEHOLDER = '__*'
 
@@ -119,3 +122,32 @@ export function iterateSchema(
 
   return memo
 }
+
+export const assocObjValue: (
+  p: JSONPointer.Path,
+  v: any,
+  jsonObject: JsonRecord,
+) => JsonRecord = R.assocPath
+
+export const getObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
+  R.path
+
+export const getJsonDictValue = (objPath: JSONPointer.Path, jsonDict: JsonDict) =>
+  R.prop(JSONPointer.stringify(objPath), jsonDict)
+
+export function moveObjValue(
+  oldObjPath: JSONPointer.Path,
+  key: any,
+  obj: JsonRecord,
+): JsonRecord {
+  const oldItem = getObjValue(oldObjPath, obj)
+  const oldValue = oldItem === undefined ? EMPTY_VALUE : oldItem
+  return assocObjValue(
+    R.append(key, R.init(oldObjPath)),
+    oldValue,
+    dissocObjValue(oldObjPath, obj),
+  )
+}
+
+export const dissocObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
+  R.dissocPath
