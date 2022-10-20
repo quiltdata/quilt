@@ -9,39 +9,11 @@ import {
   assocObjValue,
   dissocObjValue,
   getJsonDictItem,
-  getJsonDictItemRecursively,
-  getSchemaItemKeys,
+  getSchemaAndObjKeys,
   iterateSchema,
-  noKeys,
-  // objToDict,
 } from './State-with-types'
 
 export { getJsonDictValue, getObjValue, iterateSchema } from './State-with-types'
-
-function getObjValueKeys(objValue) {
-  if (Array.isArray(objValue)) return R.range(0, objValue.length)
-  if (R.is(Object, objValue)) return Object.keys(objValue)
-  return noKeys
-}
-
-function getObjValueKeysByPath(obj, objPath, rootKeys) {
-  if (!objPath.length) return rootKeys
-
-  const objValue = R.path(objPath, obj)
-  return getObjValueKeys(objValue)
-}
-
-function getSchemaItemKeysByPath(jsonDict, objPath) {
-  const item = getJsonDictItemRecursively(jsonDict, objPath)
-  return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
-}
-
-function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
-  return R.uniq([
-    ...getSchemaItemKeysByPath(jsonDict, objPath),
-    ...getObjValueKeysByPath(obj, objPath, rootKeys),
-  ])
-}
 
 // TODO: refactor data, decrease number of arguments to three
 export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, errors) {
@@ -72,12 +44,6 @@ export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, e
       }),
     )
   })
-}
-
-export function mergeSchemaAndObjRootKeys(schema, obj) {
-  const schemaKeys = getSchemaItemKeys(schema)
-  const objKeys = getObjValueKeys(obj)
-  return R.uniq([...schemaKeys, ...objKeys])
 }
 
 export default function JsonEditorState({ children, errors, jsonObject, schema }) {

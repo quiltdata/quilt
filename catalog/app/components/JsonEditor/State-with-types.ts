@@ -48,9 +48,9 @@ const getSchemaItem = ({
   type: getSchemaType(item),
 })
 
-export const noKeys = []
+const noKeys: string[] = []
 
-export function getSchemaItemKeys(schemaItem: JsonSchema): string[] {
+function getSchemaItemKeys(schemaItem: JsonSchema): string[] {
   if (!schemaItem || !schemaItem.properties) return noKeys
   const keys = Object.keys(schemaItem.properties)
 
@@ -254,10 +254,10 @@ interface JsonDictItem extends Partial<SchemaItem> {
 
 // TODO: extend getJsonDictValue
 // TODO: return address too
-export function getJsonDictItemRecursively(
+function getJsonDictItemRecursively(
   jsonDict: JsonDict,
   parentPath: JSONPointer.Path,
-  key: string,
+  key?: string,
 ): SchemaItem | undefined {
   const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
   const itemAddress = JSONPointer.stringify(addressPath)
@@ -301,4 +301,50 @@ export function getJsonDictItem(
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
     ...(item || {}),
   }
+}
+
+function getObjValueKeys(objValue?: Json): (string | number)[] {
+  if (Array.isArray(objValue)) return R.range(0, objValue.length)
+  if (R.is(Object, objValue)) return Object.keys(objValue as JsonRecord)
+  return noKeys
+}
+
+function getObjValueKeysByPath(
+  obj: JsonRecord,
+  objPath: JSONPointer.Path,
+  rootKeys: string[],
+): (string | number)[] {
+  if (!objPath.length) return rootKeys
+
+  const objValue = R.path(objPath, obj)
+  return getObjValueKeys(objValue as Json | undefined)
+}
+
+function getSchemaItemKeysByPath(
+  jsonDict: JsonDict,
+  objPath: JSONPointer.Path,
+): string[] {
+  const item = getJsonDictItemRecursively(jsonDict, objPath)
+  return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
+}
+
+export function getSchemaAndObjKeys(
+  obj: JsonRecord,
+  jsonDict: JsonDict,
+  objPath: JSONPointer.Path,
+  rootKeys: string[],
+) {
+  return R.uniq([
+    ...getSchemaItemKeysByPath(jsonDict, objPath),
+    ...getObjValueKeysByPath(obj, objPath, rootKeys),
+  ])
+}
+
+export function mergeSchemaAndObjRootKeys(
+  schema: JsonSchema,
+  obj: JsonRecord,
+): (string | number)[] {
+  const schemaKeys = getSchemaItemKeys(schema)
+  const objKeys = getObjValueKeys(obj)
+  return R.uniq([...schemaKeys, ...objKeys])
 }
