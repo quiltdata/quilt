@@ -1,5 +1,3 @@
-import * as FP from 'fp-ts'
-import * as R from 'ramda'
 import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
@@ -8,43 +6,12 @@ import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 import {
   assocObjValue,
   dissocObjValue,
-  getJsonDictItem,
-  getSchemaAndObjKeys,
+  iterateJsonDict,
   iterateSchema,
+  mergeSchemaAndObjRootKeys,
 } from './State-with-types'
 
 export { getJsonDictValue, getObjValue, iterateSchema } from './State-with-types'
-
-// TODO: refactor data, decrease number of arguments to three
-export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, errors) {
-  if (!fieldPath.length)
-    return [
-      FP.function.pipe(
-        rootKeys,
-        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder, errors)),
-        R.sortBy(R.prop('sortIndex')),
-        (items) => ({
-          parent: obj,
-          items,
-        }),
-      ),
-    ]
-
-  return ['', ...fieldPath].map((_, index) => {
-    const pathPart = R.slice(0, index, fieldPath)
-
-    const keys = getSchemaAndObjKeys(obj, jsonDict, pathPart, rootKeys)
-    return FP.function.pipe(
-      keys,
-      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder, errors)),
-      R.sortBy(R.prop('sortIndex')),
-      (items) => ({
-        parent: R.path(pathPart, obj),
-        items,
-      }),
-    )
-  })
-}
 
 export default function JsonEditorState({ children, errors, jsonObject, schema }) {
   // NOTE: fieldPath is like URL for editor columns

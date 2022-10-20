@@ -1,4 +1,5 @@
 import type { ErrorObject, JSONType } from 'ajv'
+import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -277,7 +278,7 @@ function getJsonDictItemRecursively(
   return placeholderItem
 }
 
-export function getJsonDictItem(
+function getJsonDictItem(
   jsonDict: JsonDict,
   obj: JsonRecord,
   parentPath: JSONPointer.Path,
@@ -303,8 +304,8 @@ export function getJsonDictItem(
   }
 }
 
-function getObjValueKeys(objValue?: Json): (string | number)[] {
-  if (Array.isArray(objValue)) return R.range(0, objValue.length)
+function getObjValueKeys(objValue?: Json): string[] {
+  if (Array.isArray(objValue)) return R.range(0, objValue.length).map((x) => x.toString())
   if (R.is(Object, objValue)) return Object.keys(objValue as JsonRecord)
   return noKeys
 }
@@ -313,7 +314,7 @@ function getObjValueKeysByPath(
   obj: JsonRecord,
   objPath: JSONPointer.Path,
   rootKeys: string[],
-): (string | number)[] {
+): string[] {
   if (!objPath.length) return rootKeys
 
   const objValue = R.path(objPath, obj)
@@ -328,7 +329,7 @@ function getSchemaItemKeysByPath(
   return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
 }
 
-export function getSchemaAndObjKeys(
+function getSchemaAndObjKeys(
   obj: JsonRecord,
   jsonDict: JsonDict,
   objPath: JSONPointer.Path,
@@ -340,11 +341,51 @@ export function getSchemaAndObjKeys(
   ])
 }
 
-export function mergeSchemaAndObjRootKeys(
-  schema: JsonSchema,
-  obj: JsonRecord,
-): (string | number)[] {
+export function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): string[] {
   const schemaKeys = getSchemaItemKeys(schema)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
+}
+
+interface Column {
+  items: JsonDictItem[]
+  parent?: Json
+}
+
+// TODO: refactor data, decrease number of arguments to three
+export function iterateJsonDict(
+  jsonDict: JsonDict,
+  obj: JsonRecord,
+  fieldPath: JSONPointer.Path,
+  rootKeys: string[],
+  sortOrder: SortOrder,
+  errors: ValidationErrors,
+): Column[] {
+  if (!fieldPath.length)
+    return [
+      FP.function.pipe(
+        rootKeys,
+        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder, errors)),
+        R.sortBy(R.prop('sortIndex')),
+        (items) => ({
+          parent: obj,
+          items,
+        }),
+      ),
+    ]
+
+  return ['', ...fieldPath].map((_, index) => {
+    const pathPart = R.slice(0, index, fieldPath)
+
+    const keys = getSchemaAndObjKeys(obj, jsonDict, pathPart, rootKeys)
+    return FP.function.pipe(
+      keys,
+      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder, errors)),
+      R.sortBy(R.prop('sortIndex')),
+      (items) => ({
+        parent: R.path(pathPart, obj),
+        items,
+      }),
+    )
+  })
 }
