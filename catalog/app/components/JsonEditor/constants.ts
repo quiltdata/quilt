@@ -1,7 +1,5 @@
 import type { ErrorObject } from 'ajv'
 
-// import { JsonSchema } from 'utils/json-schema'
-
 import { JsonDictItem } from './State'
 
 // TODO: any JSON or EMPTY_VALUE
