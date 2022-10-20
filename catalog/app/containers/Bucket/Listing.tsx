@@ -592,14 +592,19 @@ const useFooterStyles = M.makeStyles((t) => ({
   },
   cellSecond: {
     paddingLeft: t.spacing(1),
+    paddingRight: t.spacing(1),
     textAlign: 'right',
   },
   cellLast: {
+    overflow: 'hidden',
+    paddingLeft: t.spacing(1),
     paddingRight: t.spacing(1),
     textAlign: 'right',
-    width: COL_MODIFIED_W + t.spacing(1),
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: COL_MODIFIED_W,
     [t.breakpoints.down('sm')]: {
-      width: COL_MODIFIED_W_SM + t.spacing(1),
+      width: COL_MODIFIED_W_SM,
     },
   },
 }))
@@ -1017,7 +1022,11 @@ export function Listing({
           return (
             <CellComponent
               item={i}
-              className={cx(classes.link, i.archived && classes.archived)}
+              className={cx(
+                classes.link,
+                i.archived && classes.archived,
+                classes.ellipsis,
+              )}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.modified == null ? <>&nbsp;</> : i.modified.toLocaleString()}
