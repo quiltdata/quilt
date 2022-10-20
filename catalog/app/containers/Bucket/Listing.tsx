@@ -757,9 +757,9 @@ const localeText = {
 }
 
 const COL_SIZE_W = 114
-const COL_SIZE_W_SM = 80
+const COL_SIZE_W_SM = COL_SIZE_W / 1.3
 const COL_MODIFIED_W = 176
-const COL_MODIFIED_W_SM = 120
+const COL_MODIFIED_W_SM = COL_MODIFIED_W / 1.2
 
 const useStyles = M.makeStyles((t) => ({
   '@global': {
