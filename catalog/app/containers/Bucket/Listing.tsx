@@ -942,6 +942,8 @@ export function Listing({
     }
   })
 
+  // TODO: try to move renderCell to components
+  //       after `sm` change fourth column appears
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
