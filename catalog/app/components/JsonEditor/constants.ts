@@ -10,19 +10,8 @@ export type JsonValue = $TSFixMe
 export type ValidationErrors = (Error | ErrorObject)[]
 
 // TODO: make different types for filled and empty rows
+// TODO: add `updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void`
 export type RowData = JsonDictItem
-/*
-export interface RowData {
-  address: string[]
-  errors: ValidationErrors
-  reactId?: string
-  required: boolean
-  sortIndex: number
-  type: string | string[]
-  valueSchema?: JsonSchema
-   updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
-}
-    */
 
 // TODO: use enum, when converstion to typescript will be done
 const KEY: 'key' = 'key'
