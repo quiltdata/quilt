@@ -6,7 +6,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "pyarrow>=6.0.1,<8",
+        "pyarrow>=7,<8",
         "pandas>=1.3,<1.4",
         "xlrd>=2,<3",
         "openpyxl>=3,<4",
