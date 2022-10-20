@@ -1,12 +1,13 @@
-import type { JSONType } from 'ajv'
+import type { ErrorObject, JSONType } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
 import { JsonSchema } from 'utils/json-schema'
-import { JsonRecord } from 'utils/types'
+import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
+import { Json, JsonRecord } from 'utils/types'
 
-import { EMPTY_VALUE } from './constants'
+import { EMPTY_VALUE, ValidationErrors } from './constants'
 
 export const JSON_POINTER_PLACEHOLDER = '__*'
 
@@ -151,3 +152,92 @@ export function moveObjValue(
 
 export const dissocObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
   R.dissocPath
+
+// NOTE: memo is mutated
+// weird eslint bug?
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/*
+export function objToDict(obj: JsonRecord, parentPath: JSONPointer.Path, memo: JsonDict): JsonDict {
+  const isObjArray = Array.isArray(obj)
+  if (isObjArray) {
+    obj.forEach((value, index) => {
+      const address = getAddressPath(index, parentPath)
+      // eslint-disable-next-line no-param-reassign
+      memo[JSONPointer.stringify(address)] = value
+
+      objToDict(value, address, memo)
+    })
+    return memo
+  }
+
+  if (typeof obj === 'object' && obj !== null && !isObjArray) {
+    const keys = Object.keys(obj)
+
+    if (!keys.length) return memo
+
+    keys.forEach((key) => {
+      const address = getAddressPath(key, parentPath)
+      // eslint-disable-next-line no-param-reassign
+      memo[JSONPointer.stringify(address)] = obj[key]
+
+      objToDict(obj[key], address, memo)
+    })
+    return memo
+  }
+
+  return memo
+}
+*/
+
+export function calcReactId(valuePath: JSONPointer.Path, value: Json): string {
+  const pathPrefix = JSONPointer.stringify(valuePath)
+  // TODO: store preview for value, and reuse it for Preview
+  return `${pathPrefix}+${JSON.stringify(value)}`
+}
+
+export function getDefaultValue(jsonDictItem: SchemaItem): Json | typeof EMPTY_VALUE {
+  if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
+
+  const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
+  if (defaultFromSchema !== undefined) return defaultFromSchema
+
+  // TODO:
+  // get defaults from nested objects
+  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
+  // const nestedDefaultFromSchema = setDefaults()
+  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
+
+  return EMPTY_VALUE
+}
+
+const NO_ERRORS: ValidationErrors = []
+
+const bigintError = new Error(
+  `We don't support numbers larger than ${Number.MAX_SAFE_INTEGER}.
+  Please consider converting it to string.`,
+)
+
+export function collectErrors(
+  allErrors: ValidationErrors,
+  itemAddress: JSONPointer.Pointer,
+  value: Json,
+): ValidationErrors {
+  const errors = allErrors
+    ? allErrors.filter((error) => (error as ErrorObject).instancePath === itemAddress)
+    : NO_ERRORS
+
+  if (typeof value === 'number' && value > Number.MAX_SAFE_INTEGER) {
+    return errors.concat(bigintError)
+  }
+  return errors
+}
+
+export function doesPlaceholderPathMatch(
+  placeholder: JSONPointer.Path,
+  path: JSONPointer.Path,
+): boolean {
+  if (placeholder.length !== path.length) return false
+  return placeholder.every(
+    (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
+  )
+}

@@ -2,100 +2,22 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 import * as JSONPointer from 'utils/JSONPointer'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 import {
   assocObjValue,
+  calcReactId,
+  collectErrors,
+  doesPlaceholderPathMatch,
   getAddressPath,
-  iterateSchema,
-  JSON_POINTER_PLACEHOLDER,
-  noKeys,
   getSchemaItemKeys,
+  iterateSchema,
+  noKeys,
+  // objToDict,
 } from './State-with-types'
 
 export { getJsonDictValue, getObjValue, iterateSchema } from './State-with-types'
-
-// NOTE: memo is mutated
-// weird eslint bug?
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function objToDict(obj, parentPath, memo) {
-  const isObjArray = Array.isArray(obj)
-  if (isObjArray) {
-    obj.forEach((value, index) => {
-      const address = getAddressPath(index, parentPath)
-      // eslint-disable-next-line no-param-reassign
-      memo[JSONPointer.stringify(address)] = value
-
-      objToDict(value, address, memo)
-    })
-    return memo
-  }
-
-  if (typeof obj === 'object' && obj !== null && !isObjArray) {
-    const keys = Object.keys(obj)
-
-    if (!keys.length) return memo
-
-    keys.forEach((key) => {
-      const address = getAddressPath(key, parentPath)
-      // eslint-disable-next-line no-param-reassign
-      memo[JSONPointer.stringify(address)] = obj[key]
-
-      objToDict(obj[key], address, memo)
-    })
-    return memo
-  }
-
-  return memo
-}
-
-function calcReactId(valuePath, value) {
-  const pathPrefix = JSONPointer.stringify(valuePath)
-  // TODO: store preview for value, and reuse it for Preview
-  return `${pathPrefix}+${JSON.stringify(value)}`
-}
-
-function getDefaultValue(jsonDictItem) {
-  if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
-
-  const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
-  if (defaultFromSchema !== undefined) return defaultFromSchema
-
-  // TODO:
-  // get defaults from nested objects
-  // const setDefaults = jsonSchemaUtils.makeSchemaDefaultsSetter(jsonDictItem?.valueSchema)
-  // const nestedDefaultFromSchema = setDefaults()
-  // if (nestedDefaultFromSchema !== undefined) return nestedDefaultFromSchema
-
-  return EMPTY_VALUE
-}
-
-const NO_ERRORS = []
-
-const bigintError = new Error(
-  `We don't support numbers larger than ${Number.MAX_SAFE_INTEGER}.
-  Please consider converting it to string.`,
-)
-
-function collectErrors(allErrors, itemAddress, value) {
-  const errors = allErrors
-    ? allErrors.filter((error) => error.instancePath === itemAddress)
-    : NO_ERRORS
-
-  if (typeof value === 'number' && value > Number.MAX_SAFE_INTEGER) {
-    return errors.concat(bigintError)
-  }
-  return errors
-}
-
-function doesPlaceholderPathMatch(placeholder, path) {
-  if (placeholder.length !== path.length) return false
-  return placeholder.every(
-    (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
-  )
-}
 
 // TODO: extend getJsonDictValue
 // TODO: return address too
