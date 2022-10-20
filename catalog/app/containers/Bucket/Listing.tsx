@@ -598,6 +598,9 @@ const useFooterStyles = M.makeStyles((t) => ({
     paddingRight: t.spacing(1),
     textAlign: 'right',
     width: COL_MODIFIED_W + t.spacing(1),
+    [t.breakpoints.down('sm')]: {
+      width: COL_MODIFIED_W_SM + t.spacing(1),
+    },
   },
 }))
 
@@ -754,7 +757,9 @@ const localeText = {
 }
 
 const COL_SIZE_W = 114
+const COL_SIZE_W_SM = 80
 const COL_MODIFIED_W = 176
+const COL_MODIFIED_W_SM = 120
 
 const useStyles = M.makeStyles((t) => ({
   '@global': {
@@ -894,6 +899,8 @@ export function Listing({
   dataGridProps,
 }: ListingProps) {
   const classes = useStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -985,7 +992,7 @@ export function Listing({
         field: 'size',
         headerName: 'Size',
         type: 'number',
-        width: COL_SIZE_W,
+        width: sm ? COL_SIZE_W_SM : COL_SIZE_W,
         renderCell: (params: DG.GridCellParams) => {
           const i = params.row as unknown as Item
           return (
@@ -1004,7 +1011,7 @@ export function Listing({
         headerName: 'Last modified',
         type: 'dateTime',
         align: 'right',
-        width: COL_MODIFIED_W,
+        width: sm ? COL_MODIFIED_W_SM : COL_MODIFIED_W,
         renderCell: (params: DG.GridCellParams) => {
           const i = params.row as unknown as Item
           return (
@@ -1019,7 +1026,7 @@ export function Listing({
         },
       },
     ],
-    [classes, CellComponent],
+    [classes, CellComponent, sm],
   )
 
   const noRowsLabel = `No files / directories${
