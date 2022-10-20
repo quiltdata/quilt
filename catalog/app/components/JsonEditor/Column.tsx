@@ -43,7 +43,7 @@ const useStyles = M.makeStyles((t) => ({
 function getColumnType(
   columnPath: string[],
   jsonDict: Record<string, JsonValue>,
-  parent: JsonValue,
+  parent?: JsonValue,
 ) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
   if (columnSchema && !parent) return columnSchema.type as JSONType
@@ -111,7 +111,7 @@ interface ColumnProps {
   contextMenuPath: string[]
   data: {
     items: RowData[]
-    parent: JsonValue
+    parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void

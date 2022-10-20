@@ -28,12 +28,12 @@ interface SchemaItemArgs {
 interface SchemaItem {
   address: JSONPointer.Path
   required: boolean
-  valueSchema: JsonSchema
+  valueSchema?: JsonSchema
   sortIndex: number
   type?: string
 }
 
-type JsonDict = Record<JSONPointer.Pointer, SchemaItem>
+export type JsonDict = Record<JSONPointer.Pointer, SchemaItem>
 
 const getSchemaItem = ({
   item,
@@ -243,7 +243,7 @@ function doesPlaceholderPathMatch(
   )
 }
 
-interface JsonDictItem extends Partial<SchemaItem> {
+export interface JsonDictItem extends SchemaItem {
   errors: ValidationErrors
   reactId: string
   sortIndex: number
@@ -299,8 +299,12 @@ function getJsonDictItem(
     [COLUMN_IDS.VALUE]: value,
     errors,
     reactId: calcReactId(valuePath, storedValue),
+    ...(item || {
+      address: [],
+      required: false,
+      valueSchema: undefined,
+    }),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
-    ...(item || {}),
   }
 }
 
@@ -347,7 +351,7 @@ export function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): 
   return R.uniq([...schemaKeys, ...objKeys])
 }
 
-interface Column {
+export interface Column {
   items: JsonDictItem[]
   parent?: Json
 }

@@ -1,30 +1,62 @@
 import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
+import { JsonSchema } from 'utils/json-schema'
+import { JsonRecord } from 'utils/types'
 
-import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { COLUMN_IDS, EMPTY_VALUE, ValidationErrors } from './constants'
 import {
+  moveObjValue,
   assocObjValue,
   dissocObjValue,
   iterateJsonDict,
   iterateSchema,
   mergeSchemaAndObjRootKeys,
+  Column,
+  JsonDict,
 } from './State-with-types'
 
 export { getJsonDictValue, getObjValue, iterateSchema } from './State-with-types'
 
-export default function JsonEditorState({ children, errors, jsonObject, schema }) {
+export interface StateRenderProps {
+  addRow: (p: JSONPointer.Path, v: any, jsonObject: JsonRecord) => JsonRecord // Adds new key/value pair
+  changeValue: (oldObjPath: JSONPointer.Path, key: any, obj: JsonRecord) => JsonRecord // Changes existing key or value
+  columns: Column[] // Main source of truth for UI
+  fieldPath: JSONPointer.Path // Where is user's focus inside object
+  jsonDict: JsonDict // Stores sort order, required fields, types etc.
+  menuFieldPath: JSONPointer.Path // where does user open context menu
+  removeField: (p: JSONPointer.Path) => JsonRecord // Removes key/value pair
+  setFieldPath: (p: JSONPointer.Path) => void // Focus on that path inside object
+  setMenuFieldPath: (p: JSONPointer.Path) => void // Open context menu for that path inside object
+}
+
+interface JsonEditorStateProps {
+  children: (s: StateRenderProps) => React.ReactElement
+  errors: ValidationErrors
+  jsonObject: JsonRecord
+  schema: JsonSchema
+}
+
+export default function JsonEditorState({
+  children,
+  errors,
+  jsonObject,
+  schema,
+}: JsonEditorStateProps) {
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
-  const [fieldPath, setFieldPath] = React.useState([])
+  const [fieldPath, setFieldPath] = React.useState<JSONPointer.Path>([])
 
   // NOTE: similar to fieldPath, shows where to open ContextMenu
-  const [menuFieldPath, setMenuFieldPath] = React.useState([])
+  const [menuFieldPath, setMenuFieldPath] = React.useState<JSONPointer.Path>([])
 
   // NOTE: incremented sortIndex counter,
   //       and cache for sortIndexes: { [keyA]: sortIndexA, [keyB]: sortIndexB }
   //       it's required to place new fields below existing ones
-  const sortOrder = React.useRef({ counter: 0, dict: {} })
+  const sortOrder = React.useRef<{
+    counter: number
+    dict: Record<JSONPointer.Pointer, number>
+  }>({ counter: 0, dict: {} })
 
   // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
   //       it's a main source of data after actual JSON object
@@ -96,7 +128,7 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
     jsonDict, // Stores sort order, required fields, types etc.
     menuFieldPath, // where does user open context menu
     removeField, // Removes key/value pair
-    setFieldPath, // Focuse on that path inside object
+    setFieldPath, // Focus on that path inside object
     setMenuFieldPath, // Open context menu for that path inside object
   })
 }

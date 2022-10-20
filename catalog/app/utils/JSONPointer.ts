@@ -1,4 +1,4 @@
-export type Path = (string | number)[]
+export type Path = string[] // TODO: (number | string)[]
 
 export type Pointer = string
 
@@ -7,5 +7,8 @@ export function stringify(addressPath: Path): string {
 }
 
 export function parse(address: Pointer) {
-  return address.slice(1).split('/')
+  return address
+    .slice(1)
+    .split('/')
+    .map((x) => x.toString())
 }
