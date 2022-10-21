@@ -820,11 +820,11 @@ const useStyles = M.makeStyles((t) => ({
         pointerEvents: 'none',
       },
       // "Size" column
-      '&:nth-last-child(2)': {
+      '&:nth-child(3)': {
         justifyContent: 'flex-end',
       },
       // "Last modified" column
-      '&:last-child': {
+      '&:nth-child(4)': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -942,8 +942,7 @@ export function Listing({
     }
   })
 
-  // TODO: try to move renderCell to components
-  //       after `sm` change fourth column appears
+  // NOTE: after dependencies change fourth column appears
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
