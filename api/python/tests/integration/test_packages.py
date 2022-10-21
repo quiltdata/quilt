@@ -652,7 +652,7 @@ class PackageTest(QuiltTestCase):
         return patch('time.time', return_value=timestamp)
 
     def test_list_local_packages(self):
-        """Verify that list returns packages in the appdirs directory."""
+        """Verify that list returns packages in the platformdirs directory."""
 
         assert not list(quilt3.list_packages())
         assert not list(quilt3.list_package_versions('test/not-exists'))

@@ -637,7 +637,7 @@ def _calculate_etag(file_path):
     """
     size = pathlib.Path(file_path).stat().st_size
     with open(file_path, 'rb') as fd:
-        if size <= s3_transfer_config.multipart_threshold:
+        if size < s3_transfer_config.multipart_threshold:
             contents = fd.read()
             etag = hashlib.md5(contents).hexdigest()
         else:

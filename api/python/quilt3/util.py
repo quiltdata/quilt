@@ -18,7 +18,7 @@ from urllib.request import pathname2url, url2pathname
 import requests
 # Third-Party
 import yaml
-from appdirs import user_cache_dir, user_data_dir
+from platformdirs import user_cache_dir, user_data_dir
 
 
 def get_bool_from_env(var_name: str):
@@ -52,7 +52,7 @@ CONFIG_TEMPLATE = """
 # navigator_url: https://example.com
 navigator_url:
 
-# default_local_registry: <url string, default: local appdirs>
+# default_local_registry: <url string, default: local data directory (platform dependent)>
 # default target registry for operations like install and build
 default_local_registry: "{}"
 
