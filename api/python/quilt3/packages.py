@@ -187,6 +187,12 @@ class PackageEntry:
     def set_meta(self, meta):
         """
         Sets the user_meta for this PackageEntry.
+
+        Args:
+            meta(dict): user level metadata dict
+
+        Warnings:
+            meta(dict) arg value will override any previously defined metadata dict
         """
         self._meta['user_meta'] = meta
 
@@ -215,6 +221,9 @@ class PackageEntry:
 
         Returns:
             self
+
+        Warnings:
+            meta(dict) arg value will override any previously defined metadata dict
         """
         if path is not None:
             self.physical_key = PhysicalKey.from_url(fix_url(path))
@@ -1122,6 +1131,9 @@ class Package:
 
         Returns:
             self
+
+        Warnings:
+            meta(dict) arg value will override any previously defined metadata dict
         """
         return self._set(logical_key=logical_key,
                          entry=entry,
