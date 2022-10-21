@@ -942,7 +942,7 @@ export function Listing({
     }
   })
 
-  // NOTE: after dependencies change fourth column appears
+  // NOTE: after dependencies change fourth empty column appears
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
