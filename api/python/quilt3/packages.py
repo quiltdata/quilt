@@ -827,6 +827,9 @@ class Package:
         Raises:
             PackageException: When `path` doesn't exist.
             ValueError: When `update_policy` is invalid.
+
+        Warnings:
+            meta(dict) arg value will override any previously defined metadata dict
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
