@@ -209,14 +209,14 @@ export interface JsonDictItem extends SchemaItem {
   reactId: string
   sortIndex: number
 
-  // TODO: use constants module
+  // TODO: use ./constants.ts module
   key: string
   value: Json | typeof EMPTY_VALUE
 }
 
 // TODO: extend getJsonDictValue
 // TODO: return address too
-function getJsonDictItemRecursively(
+export function getJsonDictItemRecursively(
   jsonDict: JsonDict,
   parentPath: JSONPointer.Path,
   key?: string,
