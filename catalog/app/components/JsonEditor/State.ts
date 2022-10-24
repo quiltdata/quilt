@@ -247,11 +247,9 @@ function getJsonDictItem(
   sortOrder: SortOrder,
   allErrors: ValidationErrors,
 ): JsonDictItem {
-  const itemAddress = JSONPointer.stringify(getAddressPath(key, parentPath))
-  // const item = jsonDict[itemAddress]
-  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
-  // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
+  const itemAddress = JSONPointer.stringify(valuePath)
+  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
   const storedValue: Json | undefined = R.path(valuePath, obj)
   const value = storedValue === undefined ? getDefaultValue(item) : storedValue
   const errors = collectErrors(allErrors, itemAddress, value)
@@ -261,7 +259,7 @@ function getJsonDictItem(
     errors,
     reactId: calcReactId(valuePath, storedValue),
     ...(item || {
-      address: [],
+      address: valuePath,
       required: false,
       valueSchema: undefined,
     }),
