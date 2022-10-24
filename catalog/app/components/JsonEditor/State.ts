@@ -306,7 +306,7 @@ function getSchemaAndObjKeys(
   ])
 }
 
-function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): string[] {
+export function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): string[] {
   const schemaKeys = getSchemaItemKeys(schema)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
