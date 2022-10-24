@@ -318,7 +318,7 @@ interface Column {
 }
 
 // TODO: refactor data, decrease number of arguments to three
-function iterateJsonDict(
+export function iterateJsonDict(
   jsonDict: JsonDict,
   obj: JsonRecord,
   fieldPath: JSONPointer.Path,
