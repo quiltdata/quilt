@@ -6,7 +6,13 @@ import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
+const JSON_POINTER_PLACEHOLDER = '__*'
+
+// TODO: create JSONPointer module, rename function to `stringify`
 const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
+
+// TODO: create JSONPointer module, rename function to `parse`
+const deserializeAddress = (address) => address.slice(1).split('/')
 
 const getAddressPath = (key, parentPath) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
@@ -40,8 +46,25 @@ function moveObjValue(oldObjPath, key, obj) {
 
 const dissocObjValue = R.dissocPath
 
+// TODO: consider to use 'json-schema-traverse'
 // NOTE: memo is mutated, sortOrder is React.ref and mutated too
 export function iterateSchema(schema, sortOrder, parentPath, memo) {
+  if (schema.additionalProperties || schema.items) {
+    const rawItem = schema.additionalProperties || schema.items
+    const item = getSchemaItem({
+      item: rawItem,
+      key: JSON_POINTER_PLACEHOLDER,
+      parentPath,
+      required: false,
+      sortIndex: sortOrder.current.counter,
+    })
+    // eslint-disable-next-line no-param-reassign
+    memo[serializeAddress(item.address)] = item
+    // eslint-disable-next-line no-param-reassign
+    sortOrder.current.counter += 1
+    iterateSchema(rawItem, sortOrder, item.address, memo)
+  }
+
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
@@ -142,9 +165,38 @@ function collectErrors(allErrors, itemAddress, value) {
   return errors
 }
 
+function doesPlaceholderPathMatch(placeholder, path) {
+  if (placeholder.length !== path.length) return false
+  return placeholder.every(
+    (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
+  )
+}
+
+// TODO: extend getJsonDictValue
+// TODO: return address too
+// NOTE: returns jsonDictItem by path from JsonDict handling placeholder paths too
+export function getJsonDictItemRecursively(jsonDict, parentPath, key) {
+  const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
+  const itemAddress = serializeAddress(addressPath)
+  const item = jsonDict[itemAddress]
+  if (item) return item
+
+  let weight = 0
+  let placeholderItem = undefined
+  Object.entries(jsonDict).forEach(([path, value]) => {
+    if (doesPlaceholderPathMatch(deserializeAddress(path), addressPath)) {
+      if (weight < addressPath.length) {
+        weight = addressPath.length
+        placeholderItem = value
+      }
+    }
+  })
+  return placeholderItem
+}
+
 function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
-  const item = jsonDict[itemAddress]
+  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
@@ -194,8 +246,7 @@ function getSchemaItemKeys(schemaItem) {
 }
 
 function getSchemaItemKeysByPath(jsonDict, objPath) {
-  const itemAddress = serializeAddress(objPath)
-  const item = jsonDict[itemAddress]
+  const item = getJsonDictItemRecursively(jsonDict, objPath)
   return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
 }
 
@@ -317,15 +368,16 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
     [jsonObject, sortOrder],
   )
 
+  // `jsonDict` and `columns` are main state storages
   return children({
-    addRow,
-    changeValue,
-    columns,
-    fieldPath,
-    jsonDict,
-    menuFieldPath,
-    removeField,
-    setFieldPath,
-    setMenuFieldPath,
+    addRow, // Adds new key/value pair
+    changeValue, // Changes existing key or value
+    columns, // Main source of truth for UI
+    fieldPath, // Where is user's focus inside object
+    jsonDict, // Stores sort order, required fields, types etc.
+    menuFieldPath, // where does user open context menu
+    removeField, // Removes key/value pair
+    setFieldPath, // Focuse on that path inside object
+    setMenuFieldPath, // Open context menu for that path inside object
   })
 }
