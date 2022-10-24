@@ -235,7 +235,7 @@ function getJsonDictItemRecursively(
         placeholderItem = value
       }
     }
-  }, {})
+  })
   return placeholderItem
 }
 
