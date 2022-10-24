@@ -28,9 +28,13 @@ function MetadataSchemaField({
   ...rest
 }: FieldProps & M.TextFieldProps) {
   const { urls } = NamedRoutes.use()
-  const href = React.useMemo(() => {
-    urls.bucketFile(bucket, `.quilt/workflows/${input.value}.json`)
-  }, [urls, bucket, input.value])
+  const href = React.useMemo(
+    () =>
+      input.value
+        ? urls.bucketFile(bucket, `.quilt/workflows/${input.value}.json`, { edit: true })
+        : null,
+    [urls, bucket, input.value],
+  )
   const error = meta.submitFailed && (meta.error || meta.submitError)
   const props = {
     error: !!error,
@@ -38,9 +42,9 @@ function MetadataSchemaField({
     disabled: meta.submitting || meta.submitSucceeded,
     InputLabelProps: { shrink: true, ...InputLabelProps },
     InputProps: {
-      endAdornment: (
+      endAdornment: href && (
         <a href={href} target="_blank">
-          <M.IconButton>
+          <M.IconButton size="small">
             <M.Icon>open_in_new</M.Icon>
           </M.IconButton>
         </a>
@@ -174,12 +178,16 @@ function Popup({ bucket, onClose, open }: PopupProps) {
 
 function Toolbar() {
   const location = RRDom.useLocation()
-  const { bucket } = parseSearch(location.search)
+  const { bucket } = parseSearch(location.search, true)
   const [open, setOpen] = React.useState(false)
+
+  // FIXME
+  // if (!bucket) return null
+
   return (
     <>
       <Button onClick={() => setOpen(true)} />
-      <Popup bucket={bucket} open={open} onClose={() => setOpen(false)} />
+      <Popup bucket={bucket || 'fiskus-sandbox-dev'} open={open} onClose={() => setOpen(false)} />
     </>
   )
 }
@@ -188,7 +196,7 @@ function ToolbarWrapper({ columnPath }: ToolbarProps) {
   const pointer = JSONPointer.stringify(columnPath)
   switch (pointer) {
     case '/c':
-      return <Toolbar bucket={bucket} />
+      return <Toolbar />
     default:
       return null
   }
