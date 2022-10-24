@@ -190,7 +190,7 @@ export function getJsonDictItemRecursively(jsonDict, parentPath, key) {
         placeholderItem = value
       }
     }
-  }, {})
+  })
   return placeholderItem
 }
 
