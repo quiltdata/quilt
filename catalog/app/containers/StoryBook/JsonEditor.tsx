@@ -2,8 +2,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
-import * as jsonSchema from 'utils/json-schema'
+import * as Toolbar from 'components/JsonEditor/Toolbar'
 import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
+import * as jsonSchema from 'utils/json-schema'
+
+import toolbarOptions from './Toolbar'
 
 const schema = {
   type: 'object',
@@ -56,13 +59,15 @@ export default function JsonEditorBook() {
         />
       </M.Box>
       <M.Box bgcolor="common.white" py={2}>
-        <JsonEditor
-          errors={errors}
-          multiColumned
-          onChange={onChange}
-          schema={schema}
-          value={value}
-        />
+        <Toolbar.Provider value={toolbarOptions}>
+          <JsonEditor
+            errors={errors}
+            multiColumned
+            onChange={onChange}
+            schema={schema}
+            value={value}
+          />
+        </Toolbar.Provider>
       </M.Box>
     </M.Container>
   )
