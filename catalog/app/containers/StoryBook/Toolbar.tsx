@@ -18,7 +18,7 @@ interface FieldProps {
   meta: RF.FieldMetaState<string>
 }
 
-function MetadataSchemaField({
+function SchemaField({
   bucket,
   input,
   meta,
@@ -56,7 +56,7 @@ function MetadataSchemaField({
   return <M.TextField {...props} />
 }
 
-function validateMetadataSchemaName() {
+function validateSchemaName() {
   return undefined
 }
 
@@ -142,16 +142,52 @@ function Popup({ bucket, onClose, open }: PopupProps) {
                 InputLabelProps={InputLabelProps}
               />
               <RF.Field
-                bucket={bucket}
-                component={MetadataSchemaField}
-                name="metadata_schema"
-                label="Metadata JSON Schema name"
-                placeholder="mySchema1"
-                validate={validateMetadataSchemaName}
+                component={Form.Field}
+                name="description"
+                label="Workflow description"
                 errors={emptyObject}
                 disabled={submitting}
                 fullWidth
                 InputLabelProps={InputLabelProps}
+              />
+              <RF.Field
+                component={Form.Field}
+                name="handle_pattern"
+                label="package_handle, Regular expression to validate package handle"
+                errors={emptyObject}
+                disabled={submitting}
+                fullWidth
+                InputLabelProps={InputLabelProps}
+              />
+              <RF.Field
+                bucket={bucket}
+                component={SchemaField}
+                name="metadata_schema"
+                label="Metadata JSON Schema name"
+                placeholder="mySchema1"
+                validate={validateSchemaName}
+                errors={emptyObject}
+                disabled={submitting}
+                fullWidth
+                InputLabelProps={InputLabelProps}
+              />
+              <RF.Field
+                bucket={bucket}
+                component={SchemaField}
+                name="entries_schema"
+                label="Entries JSON Schema name"
+                placeholder="mySchema1"
+                validate={validateSchemaName}
+                errors={emptyObject}
+                disabled={submitting}
+                fullWidth
+                InputLabelProps={InputLabelProps}
+              />
+              <RF.Field
+                component={Form.Checkbox}
+                type="checkbox"
+                name="is_message_required"
+                label="Is message required"
               />
             </M.DialogContent>
             <M.DialogActions>
@@ -187,7 +223,11 @@ function Toolbar() {
   return (
     <>
       <Button onClick={() => setOpen(true)} />
-      <Popup bucket={bucket || 'fiskus-sandbox-dev'} open={open} onClose={() => setOpen(false)} />
+      <Popup
+        bucket={bucket || 'fiskus-sandbox-dev'}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
     </>
   )
 }
