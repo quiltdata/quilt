@@ -12,6 +12,7 @@ import Cell from './Cell'
 import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
+import * as Toolbar from './Toolbar'
 import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
@@ -20,6 +21,14 @@ const useStyles = M.makeStyles((t) => ({
     padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
+  },
+  breadcrumbs: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.grey[400]}`,
+    borderWidth: '1px 1px 0',
+    color: t.palette.text.hint,
+    display: 'flex',
+    padding: '4px 8px',
   },
   sibling: {
     flex: 1,
@@ -37,6 +46,9 @@ const useStyles = M.makeStyles((t) => ({
   },
   table: {
     tableLayout: 'fixed',
+  },
+  toolbar: {
+    marginLeft: 'auto',
   },
 }))
 
@@ -181,14 +193,28 @@ export default function Column({
     [onAddRow],
   )
 
+  const handleChange = React.useCallback((json) => {
+    // eslint-disable-next-line no-console
+    console.log(json)
+  }, [])
+
+  const toolbar = Toolbar.use()
+
   return (
     <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
       {!!columnPath.length && (
-        <Breadcrumbs
-          tailOnly={hasSiblingColumn}
-          items={columnPath}
-          onSelect={onBreadcrumb}
-        />
+        <div className={classes.breadcrumbs}>
+          <Breadcrumbs
+            tailOnly={hasSiblingColumn}
+            items={columnPath}
+            onSelect={onBreadcrumb}
+          />
+          {toolbar && (
+            <div className={classes.toolbar}>
+              <toolbar.Toolbar columnPath={columnPath} onChange={handleChange} />
+            </div>
+          )}
+        </div>
       )}
 
       <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>

@@ -1,22 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Toolbar from './Toolbar'
-
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    border: `1px solid ${t.palette.grey[400]}`,
-    borderWidth: '1px 1px 0',
-    color: t.palette.text.hint,
-    display: 'flex',
-    padding: '4px 8px',
-  },
-  toolbar: {
-    marginLeft: 'auto',
-  },
-}))
-
 const useOverrideStyles = M.makeStyles({
   li: {
     '&::before': {
@@ -79,10 +63,7 @@ interface BreadcrumbsProps {
 }
 
 export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsProps) {
-  const classes = useStyles()
   const overrideClasses = useOverrideStyles()
-
-  const toolbar = Toolbar.use()
 
   const onBreadcrumb = React.useCallback(
     (index) => {
@@ -93,54 +74,33 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
     [items, onSelect],
   )
 
-  const handleChange = React.useCallback((json) => {
-    // eslint-disable-next-line no-console
-    console.log(json)
-  }, [])
-
   const ref = React.useRef<HTMLElement | null>(null)
   React.useEffect(() => {
     ref.current?.scrollIntoView()
   }, [ref])
 
   return (
-    <div className={classes.root}>
-      <M.Breadcrumbs
-        classes={overrideClasses}
-        ref={ref}
-        separator={<BreadcrumbsDivider />}
-      >
-        {shoudShowItem(0, items.length, tailOnly) && (
-          <Item index={0} onClick={onBreadcrumb}>
-            <M.Icon fontSize="small">home</M.Icon>
-          </Item>
-        )}
-
-        {items.map((item, index) => {
-          const actualIndex = index + 1
-
-          if (!shoudShowItem(actualIndex, items.length, tailOnly)) return null
-
-          if (index === items.length - 1)
-            return <CurrentItem key="last-breadcrumb">{item}</CurrentItem>
-
-          return (
-            <Item
-              key={`${item}_${actualIndex}`}
-              index={actualIndex}
-              onClick={onBreadcrumb}
-            >
-              {item}
-            </Item>
-          )
-        })}
-      </M.Breadcrumbs>
-
-      {toolbar && (
-        <div className={classes.toolbar}>
-          <toolbar.Toolbar columnPath={items} onChange={handleChange} />
-        </div>
+    <M.Breadcrumbs classes={overrideClasses} ref={ref} separator={<BreadcrumbsDivider />}>
+      {shoudShowItem(0, items.length, tailOnly) && (
+        <Item index={0} onClick={onBreadcrumb}>
+          <M.Icon fontSize="small">home</M.Icon>
+        </Item>
       )}
-    </div>
+
+      {items.map((item, index) => {
+        const actualIndex = index + 1
+
+        if (!shoudShowItem(actualIndex, items.length, tailOnly)) return null
+
+        if (index === items.length - 1)
+          return <CurrentItem key="last-breadcrumb">{item}</CurrentItem>
+
+        return (
+          <Item key={`${item}_${actualIndex}`} index={actualIndex} onClick={onBreadcrumb}>
+            {item}
+          </Item>
+        )
+      })}
+    </M.Breadcrumbs>
   )
 }
