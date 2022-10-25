@@ -1,9 +1,11 @@
 import * as React from 'react'
 
 import * as JSONPointer from 'utils/JSONPointer'
+import type { JsonRecord } from 'utils/types'
 
 export interface ToolbarProps {
   columnPath: JSONPointer.Path
+  onChange: (value: JsonRecord) => void
 }
 
 interface ToolbarOptions {

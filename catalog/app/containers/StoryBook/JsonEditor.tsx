@@ -6,7 +6,7 @@ import * as Toolbar from 'components/JsonEditor/Toolbar'
 import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
 import * as jsonSchema from 'utils/json-schema'
 
-import toolbarOptions from './Toolbar'
+import WorkflowsToolbar from './Toolbar'
 
 const schema = {
   type: 'object',
@@ -31,6 +31,9 @@ const schema = {
 
 const validate = jsonSchema.makeSchemaValidator(schema)
 const noop = () => {}
+const toolbarOptions = {
+  Toolbar: WorkflowsToolbar,
+}
 
 export default function JsonEditorBook() {
   const [value, setValue] = React.useState<JsonValue>({

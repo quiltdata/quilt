@@ -5,11 +5,13 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Form from 'components/Form'
-import type { ToolbarProps } from 'components/JsonEditor/Toolbar'
+import type { ToolbarProps as ToolbarWrapperProps } from 'components/JsonEditor/Toolbar'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
+import type { JsonRecord } from 'utils/types'
 import * as validators from 'utils/validators'
+import type { WorkflowYaml } from 'utils/workflows'
 
 interface FieldProps {
   bucket: string
@@ -99,21 +101,16 @@ const FormControlProps = { margin: 'normal', size: 'small' }
 
 const emptyObject = {}
 
-interface FormValues {
-  name: string
-}
+type FormValues = WorkflowYaml
 
 interface PopupProps {
   bucket: string
   open: boolean
   onClose: () => void
+  onSubmit: (value: FormValues) => void
 }
 
-function Popup({ bucket, onClose, open }: PopupProps) {
-  const onSubmit = React.useCallback((values: FormValues) => {
-    // eslint-disable-next-line no-console
-    console.log(values)
-  }, [])
+function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
   return (
     <M.Dialog onClose={onClose} open={open} fullWidth maxWidth="sm">
       <RF.Form onSubmit={onSubmit}>
@@ -220,10 +217,21 @@ function Popup({ bucket, onClose, open }: PopupProps) {
   )
 }
 
-function Toolbar() {
+interface ToolbarProps {
+  onChange: (value: JsonRecord) => void
+}
+
+function Toolbar({ onChange }: ToolbarProps) {
   const location = RRDom.useLocation()
   const { bucket } = parseSearch(location.search, true)
   const [open, setOpen] = React.useState(false)
+  const handleSubmit = React.useCallback(
+    (value: FormValues) => {
+      onChange(value as unknown as JsonRecord)
+      setOpen(false)
+    },
+    [onChange],
+  )
 
   // FIXME
   // if (!bucket) return null
@@ -235,21 +243,18 @@ function Toolbar() {
         bucket={bucket || 'fiskus-sandbox-dev'}
         open={open}
         onClose={() => setOpen(false)}
+        onSubmit={handleSubmit}
       />
     </>
   )
 }
 
-function ToolbarWrapper({ columnPath }: ToolbarProps) {
+export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const pointer = JSONPointer.stringify(columnPath)
   switch (pointer) {
     case '/c':
-      return <Toolbar />
+      return <Toolbar onChange={onChange} />
     default:
       return null
   }
-}
-
-export default {
-  Toolbar: ToolbarWrapper,
 }

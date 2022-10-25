@@ -93,6 +93,11 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
     [items, onSelect],
   )
 
+  const handleChange = React.useCallback((json) => {
+    // eslint-disable-next-line no-console
+    console.log(json)
+  }, [])
+
   const ref = React.useRef<HTMLElement | null>(null)
   React.useEffect(() => {
     ref.current?.scrollIntoView()
@@ -133,7 +138,7 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
 
       {toolbar && (
         <div className={classes.toolbar}>
-          <toolbar.Toolbar columnPath={items} />
+          <toolbar.Toolbar columnPath={items} onChange={handleChange} />
         </div>
       )}
     </div>
