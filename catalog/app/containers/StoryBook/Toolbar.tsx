@@ -4,8 +4,8 @@ import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Form from 'components/Form'
 import type { ToolbarProps } from 'components/JsonEditor/Toolbar'
-import * as Form from 'containers/Admin/Form'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -95,7 +95,7 @@ function FormError({ error }: FormErrorProps) {
   )
 }
 
-const InputLabelProps = { shrink: true }
+const FormControlProps = { margin: 'normal', size: 'small' }
 
 const emptyObject = {}
 
@@ -130,60 +130,68 @@ function Popup({ bucket, onClose, open }: PopupProps) {
             <M.DialogContent>
               <RF.Field
                 component={Form.Field}
-                name="name"
-                label="Workflow name"
-                placeholder="e.g. Workflow A"
-                validate={validators.required as FF.FieldValidator<string>}
                 errors={{
                   required: 'Enter workflow name',
                 }}
                 disabled={submitting}
                 fullWidth
-                InputLabelProps={InputLabelProps}
+                label="Workflow name"
+                margin="normal"
+                name="name"
+                placeholder="e.g. Workflow A"
+                size="small"
+                validate={validators.required as FF.FieldValidator<string>}
               />
               <RF.Field
                 component={Form.Field}
-                name="description"
+                disabled={submitting}
+                errors={emptyObject}
+                fullWidth
                 label="Workflow description"
-                errors={emptyObject}
-                disabled={submitting}
-                fullWidth
-                InputLabelProps={InputLabelProps}
+                margin="normal"
+                name="description"
+                placeholder="e.g. Highly useful workflow"
+                size="small"
               />
               <RF.Field
                 component={Form.Field}
-                name="handle_pattern"
+                disabled={submitting}
+                errors={emptyObject}
+                fullWidth
                 label="package_handle, Regular expression to validate package handle"
-                errors={emptyObject}
-                disabled={submitting}
-                fullWidth
-                InputLabelProps={InputLabelProps}
+                margin="normal"
+                name="handle_pattern"
+                placeholder="e.g. ^foo/bar$"
+                size="small"
               />
               <RF.Field
                 bucket={bucket}
                 component={SchemaField}
-                name="metadata_schema"
+                disabled={submitting}
+                errors={emptyObject}
+                fullWidth
                 label="Metadata JSON Schema name"
-                placeholder="mySchema1"
+                margin="normal"
+                name="metadata_schema"
+                placeholder="e.g. mySchema1"
+                size="small"
                 validate={validateSchemaName}
-                errors={emptyObject}
-                disabled={submitting}
-                fullWidth
-                InputLabelProps={InputLabelProps}
               />
               <RF.Field
                 bucket={bucket}
                 component={SchemaField}
-                name="entries_schema"
-                label="Entries JSON Schema name"
-                placeholder="mySchema1"
-                validate={validateSchemaName}
-                errors={emptyObject}
                 disabled={submitting}
+                errors={emptyObject}
                 fullWidth
-                InputLabelProps={InputLabelProps}
+                label="Entries JSON Schema name"
+                margin="normal"
+                name="entries_schema"
+                placeholder="e.g. mySchema1"
+                size="small"
+                validate={validateSchemaName}
               />
               <RF.Field
+                FormControlProps={FormControlProps}
                 component={Form.Checkbox}
                 type="checkbox"
                 name="is_message_required"
