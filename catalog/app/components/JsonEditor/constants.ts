@@ -11,7 +11,7 @@ export type ValidationErrors = (Error | ErrorObject)[]
 // TODO: add `updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void`
 export type RowData = JsonDictItem
 
-// TODO: use enum, when converstion to typescript will be done
+// TODO: use enum, when conversion to typescript will be done
 const KEY: 'key' = 'key'
 const VALUE: 'value' = 'value'
 

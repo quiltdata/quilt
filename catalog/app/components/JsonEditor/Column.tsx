@@ -45,6 +45,7 @@ function getColumnType(
   jsonDict: Record<string, JsonValue>,
   parent?: JsonValue,
 ) {
+  // TODO: use `getJsonDictItemRecursively`
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
   if (columnSchema && !parent) return columnSchema.type as JSONType
 

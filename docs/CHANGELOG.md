@@ -53,6 +53,7 @@
 * [Changed] Allow to save only latest revisions of files ([#3124](https://github.com/quiltdata/quilt/pull/3124))
 * [Changed] Render HTML files in LOCAL mode ([#3139](https://github.com/quiltdata/quilt/pull/3139))
 * [Changed] Support dots in bucket names while using S3 proxy ([#3147](https://github.com/quiltdata/quilt/pull/3147))
+* [Changed] Support `additonalProperties` and `items` in JsonEditor ([#3144](https://github.com/quiltdata/quilt/pull/3144))
 
 ## Docs
 * [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))

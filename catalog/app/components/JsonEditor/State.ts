@@ -209,14 +209,14 @@ export interface JsonDictItem extends SchemaItem {
   reactId: string
   sortIndex: number
 
-  // TODO: use constants module
+  // TODO: use ./constants.ts module
   key: string
   value: Json | typeof EMPTY_VALUE
 }
 
 // TODO: extend getJsonDictValue
 // TODO: return address too
-function getJsonDictItemRecursively(
+export function getJsonDictItemRecursively(
   jsonDict: JsonDict,
   parentPath: JSONPointer.Path,
   key?: string,
@@ -235,7 +235,7 @@ function getJsonDictItemRecursively(
         placeholderItem = value
       }
     }
-  }, {})
+  })
   return placeholderItem
 }
 
@@ -247,11 +247,9 @@ function getJsonDictItem(
   sortOrder: SortOrder,
   allErrors: ValidationErrors,
 ): JsonDictItem {
-  const itemAddress = JSONPointer.stringify(getAddressPath(key, parentPath))
-  // const item = jsonDict[itemAddress]
-  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
-  // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
+  const itemAddress = JSONPointer.stringify(valuePath)
+  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
   const storedValue: Json | undefined = R.path(valuePath, obj)
   const value = storedValue === undefined ? getDefaultValue(item) : storedValue
   const errors = collectErrors(allErrors, itemAddress, value)
@@ -261,7 +259,7 @@ function getJsonDictItem(
     errors,
     reactId: calcReactId(valuePath, storedValue),
     ...(item || {
-      address: [],
+      address: valuePath,
       required: false,
       valueSchema: undefined,
     }),
@@ -306,7 +304,7 @@ function getSchemaAndObjKeys(
   ])
 }
 
-function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): string[] {
+export function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): string[] {
   const schemaKeys = getSchemaItemKeys(schema)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
@@ -318,7 +316,7 @@ interface Column {
 }
 
 // TODO: refactor data, decrease number of arguments to three
-function iterateJsonDict(
+export function iterateJsonDict(
   jsonDict: JsonDict,
   obj: JsonRecord,
   fieldPath: JSONPointer.Path,
