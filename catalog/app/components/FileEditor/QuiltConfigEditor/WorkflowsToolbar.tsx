@@ -1,8 +1,8 @@
 import * as FF from 'final-form'
+import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Form from 'components/Form'
@@ -10,6 +10,8 @@ import type { ToolbarProps as ToolbarWrapperProps } from 'components/JsonEditor/
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
+import { useRoute } from 'utils/router'
+import type { JsonRecord } from 'utils/types'
 import * as validators from 'utils/validators'
 import type { WorkflowYaml } from 'utils/workflows'
 
@@ -218,12 +220,11 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
 }
 
 interface ToolbarProps {
+  bucket: string
   onChange: (value: WorkflowYaml) => void
 }
 
-function Toolbar({ onChange }: ToolbarProps) {
-  const location = RRDom.useLocation()
-  const { bucket } = parseSearch(location.search, true)
+function Toolbar({ bucket, onChange }: ToolbarProps) {
   const [open, setOpen] = React.useState(false)
   const handleSubmit = React.useCallback(
     (value: FormValues) => {
@@ -232,9 +233,6 @@ function Toolbar({ onChange }: ToolbarProps) {
     },
     [onChange],
   )
-
-  // FIXME
-  // if (!bucket) return null
 
   return (
     <>
@@ -249,17 +247,58 @@ function Toolbar({ onChange }: ToolbarProps) {
   )
 }
 
+function addSchema(schemaName: string) {
+  return R.assocPath(['schemas', schemaName], {
+    url: `s3://.quilt/workflows/${schemaName}.json`,
+  })
+}
+
+function addMetadataSchema({
+  metadata_schema,
+}: WorkflowYaml): (j: JsonRecord) => JsonRecord {
+  return R.ifElse(
+    () => !!metadata_schema,
+    addSchema(metadata_schema as string),
+    R.identity,
+  )
+}
+
+function addEntriesSchema({
+  entries_schema,
+}: WorkflowYaml): (j: JsonRecord) => JsonRecord {
+  return R.ifElse(() => !!entries_schema, addSchema(entries_schema as string), R.identity)
+}
+
+function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
+  const workflowName = workflow.name.replace(' ', '_')
+  return R.assocPath(['workflows', workflowName], workflow)
+}
+
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
-  const pointer = JSONPointer.stringify(columnPath)
+  const { paths } = NamedRoutes.use()
+  const { match } = useRoute(paths.bucketFile, { exact: true })
+
   const handleChange = React.useCallback(
-    (v: WorkflowYaml) => {
-      onChange(R.assocPath(['workflows', v.name], v))
+    (workflow: WorkflowYaml) => {
+      onChange((j: JsonRecord) =>
+        FP.function.pipe(
+          j,
+          addMetadataSchema(workflow),
+          addEntriesSchema(workflow),
+          addWorkflow(workflow),
+        ),
+      )
     },
     [onChange],
   )
+
+  const bucket = match?.params?.bucket
+  if (!bucket) return null
+
+  const pointer = JSONPointer.stringify(columnPath)
   switch (pointer) {
     case '/workflows':
-      return <Toolbar onChange={handleChange} />
+      return <Toolbar bucket={bucket} onChange={handleChange} />
     default:
       return null
   }
