@@ -5,7 +5,7 @@ import type { JsonRecord } from 'utils/types'
 
 export interface ToolbarProps {
   columnPath: JSONPointer.Path
-  onChange: (value: JsonRecord) => void
+  onChange: (func: (v: JsonRecord) => JsonRecord) => void
 }
 
 interface ToolbarOptions {

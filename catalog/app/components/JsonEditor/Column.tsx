@@ -5,6 +5,8 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import type { JsonRecord } from 'utils/types'
+
 import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
@@ -129,10 +131,11 @@ interface ColumnProps {
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: string[]) => void
-  onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
   onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
+  onToolbar: (func: (v: JsonRecord) => JsonRecord) => void
+  onValueChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
 }
 
 export default function Column({
@@ -144,10 +147,11 @@ export default function Column({
   jsonDict,
   onAddRow,
   onBreadcrumb,
-  onChange,
   onContextMenu,
   onExpand,
   onRemove,
+  onToolbar,
+  onValueChange,
 }: ColumnProps) {
   const columns = React.useMemo(
     () =>
@@ -165,12 +169,13 @@ export default function Column({
   const classes = useStyles()
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
-  const onChangeInternal = React.useCallback(
+  // TODO: rename to less tutorial-ish name
+  const updateMyData = React.useCallback(
     (path: string[], id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
-      onChange(path, id, value)
+      onValueChange(path, id, value)
     },
-    [onChange],
+    [onValueChange],
   )
 
   const tableInstance = RTable.useTable({
@@ -179,7 +184,7 @@ export default function Column({
     defaultColumn: {
       Cell,
     },
-    updateMyData: onChangeInternal,
+    updateMyData,
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
@@ -192,11 +197,6 @@ export default function Column({
     },
     [onAddRow],
   )
-
-  const handleChange = React.useCallback((json) => {
-    // eslint-disable-next-line no-console
-    console.log(json)
-  }, [])
 
   const toolbar = Toolbar.use()
 
@@ -211,7 +211,7 @@ export default function Column({
           />
           {toolbar && (
             <div className={classes.toolbar}>
-              <toolbar.Toolbar columnPath={columnPath} onChange={handleChange} />
+              <toolbar.Toolbar columnPath={columnPath} onChange={onToolbar} />
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import * as FF from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
@@ -9,7 +10,6 @@ import type { ToolbarProps as ToolbarWrapperProps } from 'components/JsonEditor/
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import type { JsonRecord } from 'utils/types'
 import * as validators from 'utils/validators'
 import type { WorkflowYaml } from 'utils/workflows'
 
@@ -218,7 +218,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
 }
 
 interface ToolbarProps {
-  onChange: (value: JsonRecord) => void
+  onChange: (value: WorkflowYaml) => void
 }
 
 function Toolbar({ onChange }: ToolbarProps) {
@@ -227,7 +227,7 @@ function Toolbar({ onChange }: ToolbarProps) {
   const [open, setOpen] = React.useState(false)
   const handleSubmit = React.useCallback(
     (value: FormValues) => {
-      onChange(value as unknown as JsonRecord)
+      onChange(value)
       setOpen(false)
     },
     [onChange],
@@ -251,9 +251,15 @@ function Toolbar({ onChange }: ToolbarProps) {
 
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const pointer = JSONPointer.stringify(columnPath)
+  const handleChange = React.useCallback(
+    (v: WorkflowYaml) => {
+      onChange(R.assocPath(['c', v.name], v))
+    },
+    [onChange],
+  )
   switch (pointer) {
     case '/c':
-      return <Toolbar onChange={onChange} />
+      return <Toolbar onChange={handleChange} />
     default:
       return null
   }
