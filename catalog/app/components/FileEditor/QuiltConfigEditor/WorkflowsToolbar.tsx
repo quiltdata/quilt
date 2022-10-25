@@ -253,12 +253,12 @@ export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperP
   const pointer = JSONPointer.stringify(columnPath)
   const handleChange = React.useCallback(
     (v: WorkflowYaml) => {
-      onChange(R.assocPath(['c', v.name], v))
+      onChange(R.assocPath(['workflows', v.name], v))
     },
     [onChange],
   )
   switch (pointer) {
-    case '/c':
+    case '/workflows':
       return <Toolbar onChange={handleChange} />
     default:
       return null
