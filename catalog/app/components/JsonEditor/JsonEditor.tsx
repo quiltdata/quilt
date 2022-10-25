@@ -4,12 +4,13 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import * as JSONPointer from 'utils/JSONPointer'
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
 import illustrationEnterValues from './enter-values.webm'
 import illustrationObjectExpand from './object-expand.webm'
 import Column from './Column'
-import State from './State'
+import State, { StateRenderProps } from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
 
 interface EmptyStateCaseProps {
@@ -85,7 +86,7 @@ function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
 
 interface ColumnData {
   items: RowData[]
-  parent: JsonValue
+  parent?: JsonValue
 }
 
 function shouldSqueezeColumn(columnIndex: number, columns: ColumnData[]) {
@@ -167,7 +168,7 @@ interface JsonEditorProps {
   className?: string
   columns: ColumnData[]
   disabled?: boolean
-  fieldPath: string[]
+  fieldPath: JSONPointer.Path
   jsonDict: Record<string, JsonValue>
   menuFieldPath: string[]
   multiColumned: boolean
@@ -270,25 +271,6 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     </div>
   )
 })
-
-interface StateRenderProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
-  changeValue: (
-    path: string[],
-    key: 'key' | 'value',
-    value: JsonValue | string,
-  ) => JsonValue
-  columns: {
-    items: RowData[]
-    parent: JsonValue
-  }[]
-  fieldPath: string[]
-  jsonDict: Record<string, JsonValue>
-  removeField: (path: string[]) => JsonValue
-  setFieldPath: (path: string[]) => void
-  menuFieldPath: string[]
-  setMenuFieldPath: (path: string[]) => void
-}
 
 interface JsonEditorWrapperProps {
   className?: string

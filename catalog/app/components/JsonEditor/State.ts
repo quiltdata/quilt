@@ -1,25 +1,47 @@
+import type { ErrorObject, JSONType } from 'ajv'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import * as JSONPointer from 'utils/JSONPointer'
+import { JsonSchema } from 'utils/json-schema'
 import * as jsonSchemaUtils from 'utils/json-schema/json-schema'
+import { Json, JsonRecord } from 'utils/types'
 
-import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { COLUMN_IDS, EMPTY_VALUE, ValidationErrors } from './constants'
 
 const JSON_POINTER_PLACEHOLDER = '__*'
 
-// TODO: create JSONPointer module, rename function to `stringify`
-const serializeAddress = (addressPath) => `/${addressPath.join('/')}`
-
-// TODO: create JSONPointer module, rename function to `parse`
-const deserializeAddress = (address) => address.slice(1).split('/')
-
-const getAddressPath = (key, parentPath) =>
+const getAddressPath = (key: string, parentPath: JSONPointer.Path) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
 
-const getSchemaType = R.prop('type')
+const getSchemaType = (s: JsonSchema) => s.type as JSONType
 
-const getSchemaItem = ({ item, sortIndex, key, parentPath, required }) => ({
+interface SchemaItemArgs {
+  item: JsonSchema
+  sortIndex: number
+  key: string
+  parentPath: JSONPointer.Path
+  required: boolean
+}
+
+interface SchemaItem {
+  address: JSONPointer.Path
+  required: boolean
+  valueSchema?: JsonSchema
+  sortIndex: number
+  type?: string
+}
+
+type JsonDict = Record<JSONPointer.Pointer, SchemaItem>
+
+const getSchemaItem = ({
+  item,
+  sortIndex,
+  key,
+  parentPath,
+  required,
+}: SchemaItemArgs): SchemaItem => ({
   address: getAddressPath(key, parentPath),
   required,
   valueSchema: item,
@@ -27,28 +49,39 @@ const getSchemaItem = ({ item, sortIndex, key, parentPath, required }) => ({
   type: getSchemaType(item),
 })
 
-const assocObjValue = R.assocPath
+const noKeys: string[] = []
 
-export const getJsonDictValue = (objPath, jsonDict) =>
-  R.prop(serializeAddress(objPath), jsonDict)
+function getSchemaItemKeys(schemaItem: JsonSchema): string[] {
+  if (!schemaItem || !schemaItem.properties) return noKeys
+  const keys = Object.keys(schemaItem.properties)
 
-export const getObjValue = R.path
+  if (!schemaItem.required) return keys
 
-function moveObjValue(oldObjPath, key, obj) {
-  const oldItem = getObjValue(oldObjPath, obj)
-  const oldValue = oldItem === undefined ? EMPTY_VALUE : oldItem
-  return assocObjValue(
-    R.append(key, R.init(oldObjPath)),
-    oldValue,
-    dissocObjValue(oldObjPath, obj),
+  const sortOrder = schemaItem.required.reduce(
+    (memo: { [x: string]: number }, key: string, index: number) => ({
+      [key]: index,
+      ...memo,
+    }),
+    {} as { [x: string]: number },
   )
+  const getSortIndex = (key: string) =>
+    R.ifElse(R.has(key), R.prop(key), R.always(Infinity))(sortOrder)
+  return R.sortBy(getSortIndex, keys)
 }
 
-const dissocObjValue = R.dissocPath
+type SortOrder = React.MutableRefObject<{
+  counter: number
+  dict: Record<JSONPointer.Pointer, number>
+}>
 
 // TODO: consider to use 'json-schema-traverse'
 // NOTE: memo is mutated, sortOrder is React.ref and mutated too
-export function iterateSchema(schema, sortOrder, parentPath, memo) {
+export function iterateSchema(
+  schema: JsonSchema,
+  sortOrder: SortOrder,
+  parentPath: JSONPointer.Path,
+  memo: JsonDict,
+): JsonDict {
   if (schema.additionalProperties || schema.items) {
     const rawItem = schema.additionalProperties || schema.items
     const item = getSchemaItem({
@@ -59,7 +92,7 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
       sortIndex: sortOrder.current.counter,
     })
     // eslint-disable-next-line no-param-reassign
-    memo[serializeAddress(item.address)] = item
+    memo[JSONPointer.stringify(item.address)] = item
     // eslint-disable-next-line no-param-reassign
     sortOrder.current.counter += 1
     iterateSchema(rawItem, sortOrder, item.address, memo)
@@ -82,7 +115,7 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
       sortIndex: sortOrder.current.counter,
     })
     // eslint-disable-next-line no-param-reassign
-    memo[serializeAddress(item.address)] = item
+    memo[JSONPointer.stringify(item.address)] = item
 
     // eslint-disable-next-line no-param-reassign
     sortOrder.current.counter += 1
@@ -92,47 +125,39 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
   return memo
 }
 
-// NOTE: memo is mutated
-// weird eslint bug?
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function objToDict(obj, parentPath, memo) {
-  const isObjArray = Array.isArray(obj)
-  if (isObjArray) {
-    obj.forEach((value, index) => {
-      const address = getAddressPath(index, parentPath)
-      // eslint-disable-next-line no-param-reassign
-      memo[serializeAddress(address)] = value
+const assocObjValue: (p: JSONPointer.Path, v: any, jsonObject: JsonRecord) => JsonRecord =
+  R.assocPath
 
-      objToDict(value, address, memo)
-    })
-    return memo
-  }
+export const getObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
+  R.path
 
-  if (typeof obj === 'object' && obj !== null && !isObjArray) {
-    const keys = Object.keys(obj)
+export const getJsonDictValue = (objPath: JSONPointer.Path, jsonDict: JsonDict) =>
+  R.prop(JSONPointer.stringify(objPath), jsonDict)
 
-    if (!keys.length) return memo
+const dissocObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
+  R.dissocPath
 
-    keys.forEach((key) => {
-      const address = getAddressPath(key, parentPath)
-      // eslint-disable-next-line no-param-reassign
-      memo[serializeAddress(address)] = obj[key]
-
-      objToDict(obj[key], address, memo)
-    })
-    return memo
-  }
-
-  return memo
+function moveObjValue(
+  oldObjPath: JSONPointer.Path,
+  key: any,
+  obj: JsonRecord,
+): JsonRecord {
+  const oldItem = getObjValue(oldObjPath, obj)
+  const oldValue = oldItem === undefined ? EMPTY_VALUE : oldItem
+  return assocObjValue(
+    R.append(key, R.init(oldObjPath)),
+    oldValue,
+    dissocObjValue(oldObjPath, obj),
+  )
 }
 
-function calcReactId(valuePath, value) {
-  const pathPrefix = serializeAddress(valuePath)
+function calcReactId(valuePath: JSONPointer.Path, value?: Json): string {
+  const pathPrefix = JSONPointer.stringify(valuePath)
   // TODO: store preview for value, and reuse it for Preview
   return `${pathPrefix}+${JSON.stringify(value)}`
 }
 
-function getDefaultValue(jsonDictItem) {
+function getDefaultValue(jsonDictItem?: SchemaItem): Json | typeof EMPTY_VALUE {
   if (!jsonDictItem?.valueSchema) return EMPTY_VALUE
 
   const defaultFromSchema = jsonSchemaUtils.getDefaultValue(jsonDictItem?.valueSchema)
@@ -147,16 +172,20 @@ function getDefaultValue(jsonDictItem) {
   return EMPTY_VALUE
 }
 
-const NO_ERRORS = []
+const NO_ERRORS: ValidationErrors = []
 
 const bigintError = new Error(
   `We don't support numbers larger than ${Number.MAX_SAFE_INTEGER}.
   Please consider converting it to string.`,
 )
 
-function collectErrors(allErrors, itemAddress, value) {
+function collectErrors(
+  allErrors: ValidationErrors,
+  itemAddress: JSONPointer.Pointer,
+  value: Json | typeof EMPTY_VALUE,
+): ValidationErrors {
   const errors = allErrors
-    ? allErrors.filter((error) => error.instancePath === itemAddress)
+    ? allErrors.filter((error) => (error as ErrorObject).instancePath === itemAddress)
     : NO_ERRORS
 
   if (typeof value === 'number' && value > Number.MAX_SAFE_INTEGER) {
@@ -165,26 +194,42 @@ function collectErrors(allErrors, itemAddress, value) {
   return errors
 }
 
-function doesPlaceholderPathMatch(placeholder, path) {
+function doesPlaceholderPathMatch(
+  placeholder: JSONPointer.Path,
+  path: JSONPointer.Path,
+): boolean {
   if (placeholder.length !== path.length) return false
   return placeholder.every(
     (item, index) => item === path[index] || item === JSON_POINTER_PLACEHOLDER,
   )
 }
 
+export interface JsonDictItem extends SchemaItem {
+  errors: ValidationErrors
+  reactId: string
+  sortIndex: number
+
+  // TODO: use ./constants.ts module
+  key: string
+  value: Json | typeof EMPTY_VALUE
+}
+
 // TODO: extend getJsonDictValue
 // TODO: return address too
-// NOTE: returns jsonDictItem by path from JsonDict handling placeholder paths too
-export function getJsonDictItemRecursively(jsonDict, parentPath, key) {
+export function getJsonDictItemRecursively(
+  jsonDict: JsonDict,
+  parentPath: JSONPointer.Path,
+  key?: string,
+): SchemaItem | undefined {
   const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
-  const itemAddress = serializeAddress(addressPath)
+  const itemAddress = JSONPointer.stringify(addressPath)
   const item = jsonDict[itemAddress]
   if (item) return item
 
   let weight = 0
   let placeholderItem = undefined
   Object.entries(jsonDict).forEach(([path, value]) => {
-    if (doesPlaceholderPathMatch(deserializeAddress(path), addressPath)) {
+    if (doesPlaceholderPathMatch(JSONPointer.parse(path), addressPath)) {
       if (weight < addressPath.length) {
         weight = addressPath.length
         placeholderItem = value
@@ -194,12 +239,18 @@ export function getJsonDictItemRecursively(jsonDict, parentPath, key) {
   return placeholderItem
 }
 
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
-  const itemAddress = serializeAddress(getAddressPath(key, parentPath))
-  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
-  // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
+function getJsonDictItem(
+  jsonDict: JsonDict,
+  obj: JsonRecord,
+  parentPath: JSONPointer.Path,
+  key: string,
+  sortOrder: SortOrder,
+  allErrors: ValidationErrors,
+): JsonDictItem {
   const valuePath = getAddressPath(key, parentPath)
-  const storedValue = R.path(valuePath, obj)
+  const itemAddress = JSONPointer.stringify(valuePath)
+  const item = getJsonDictItemRecursively(jsonDict, parentPath, key)
+  const storedValue: Json | undefined = R.path(valuePath, obj)
   const value = storedValue === undefined ? getDefaultValue(item) : storedValue
   const errors = collectErrors(allErrors, itemAddress, value)
   return {
@@ -207,58 +258,72 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder, allErrors) {
     [COLUMN_IDS.VALUE]: value,
     errors,
     reactId: calcReactId(valuePath, storedValue),
+    ...(item || {
+      address: valuePath,
+      required: false,
+      valueSchema: undefined,
+    }),
     sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
-    ...(item || {}),
   }
 }
 
-const noKeys = []
-
-function getObjValueKeys(objValue) {
-  if (Array.isArray(objValue)) return R.range(0, objValue.length)
-  if (R.is(Object, objValue)) return Object.keys(objValue)
+function getObjValueKeys(objValue?: Json): string[] {
+  if (Array.isArray(objValue)) return R.range(0, objValue.length).map((x) => x.toString())
+  if (R.is(Object, objValue)) return Object.keys(objValue as JsonRecord)
   return noKeys
 }
 
-function getObjValueKeysByPath(obj, objPath, rootKeys) {
+function getObjValueKeysByPath(
+  obj: JsonRecord,
+  objPath: JSONPointer.Path,
+  rootKeys: string[],
+): string[] {
   if (!objPath.length) return rootKeys
 
   const objValue = R.path(objPath, obj)
-  return getObjValueKeys(objValue)
+  return getObjValueKeys(objValue as Json | undefined)
 }
 
-function getSchemaItemKeys(schemaItem) {
-  if (!schemaItem || !schemaItem.properties) return noKeys
-  const keys = Object.keys(schemaItem.properties)
-
-  if (!schemaItem.required) return keys
-
-  const sortOrder = schemaItem.required.reduce(
-    (memo, key, index) => ({
-      [key]: index,
-      ...memo,
-    }),
-    {},
-  )
-  const getSortIndex = (key) =>
-    R.ifElse(R.has(key), R.prop(key), R.always(Infinity))(sortOrder)
-  return R.sortBy(getSortIndex, keys)
-}
-
-function getSchemaItemKeysByPath(jsonDict, objPath) {
+function getSchemaItemKeysByPath(
+  jsonDict: JsonDict,
+  objPath: JSONPointer.Path,
+): string[] {
   const item = getJsonDictItemRecursively(jsonDict, objPath)
   return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
 }
 
-function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
+function getSchemaAndObjKeys(
+  obj: JsonRecord,
+  jsonDict: JsonDict,
+  objPath: JSONPointer.Path,
+  rootKeys: string[],
+) {
   return R.uniq([
     ...getSchemaItemKeysByPath(jsonDict, objPath),
     ...getObjValueKeysByPath(obj, objPath, rootKeys),
   ])
 }
 
+export function mergeSchemaAndObjRootKeys(schema: JsonSchema, obj: JsonRecord): string[] {
+  const schemaKeys = getSchemaItemKeys(schema)
+  const objKeys = getObjValueKeys(obj)
+  return R.uniq([...schemaKeys, ...objKeys])
+}
+
+interface Column {
+  items: JsonDictItem[]
+  parent?: Json
+}
+
 // TODO: refactor data, decrease number of arguments to three
-export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, errors) {
+export function iterateJsonDict(
+  jsonDict: JsonDict,
+  obj: JsonRecord,
+  fieldPath: JSONPointer.Path,
+  rootKeys: string[],
+  sortOrder: SortOrder,
+  errors: ValidationErrors,
+): Column[] {
   if (!fieldPath.length)
     return [
       FP.function.pipe(
@@ -288,24 +353,45 @@ export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder, e
   })
 }
 
-export function mergeSchemaAndObjRootKeys(schema, obj) {
-  const schemaKeys = getSchemaItemKeys(schema)
-  const objKeys = getObjValueKeys(obj)
-  return R.uniq([...schemaKeys, ...objKeys])
+export interface StateRenderProps {
+  addRow: (p: JSONPointer.Path, v: any, jsonObject: JsonRecord) => JsonRecord // Adds new key/value pair
+  changeValue: (oldObjPath: JSONPointer.Path, key: any, obj: JsonRecord) => JsonRecord // Changes existing key or value
+  columns: Column[] // Main source of truth for UI
+  fieldPath: JSONPointer.Path // Where is user's focus inside object
+  jsonDict: JsonDict // Stores sort order, required fields, types etc.
+  menuFieldPath: JSONPointer.Path // where does user open context menu
+  removeField: (p: JSONPointer.Path) => JsonRecord // Removes key/value pair
+  setFieldPath: (p: JSONPointer.Path) => void // Focus on that path inside object
+  setMenuFieldPath: (p: JSONPointer.Path) => void // Open context menu for that path inside object
 }
 
-export default function JsonEditorState({ children, errors, jsonObject, schema }) {
+interface JsonEditorStateProps {
+  children: (s: StateRenderProps) => React.ReactElement
+  errors: ValidationErrors
+  jsonObject: JsonRecord
+  schema: JsonSchema
+}
+
+export default function JsonEditorState({
+  children,
+  errors,
+  jsonObject,
+  schema,
+}: JsonEditorStateProps) {
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
-  const [fieldPath, setFieldPath] = React.useState([])
+  const [fieldPath, setFieldPath] = React.useState<JSONPointer.Path>([])
 
   // NOTE: similar to fieldPath, shows where to open ContextMenu
-  const [menuFieldPath, setMenuFieldPath] = React.useState([])
+  const [menuFieldPath, setMenuFieldPath] = React.useState<JSONPointer.Path>([])
 
   // NOTE: incremented sortIndex counter,
   //       and cache for sortIndexes: { [keyA]: sortIndexA, [keyB]: sortIndexB }
   //       it's required to place new fields below existing ones
-  const sortOrder = React.useRef({ counter: 0, dict: {} })
+  const sortOrder = React.useRef<{
+    counter: number
+    dict: Record<JSONPointer.Pointer, number>
+  }>({ counter: 0, dict: {} })
 
   // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
   //       it's a main source of data after actual JSON object
@@ -361,7 +447,7 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
       sortOrder.current.counter += 1
 
       const newKeyPath = addFieldPath.concat([key])
-      const itemAddress = serializeAddress(newKeyPath)
+      const itemAddress = JSONPointer.stringify(newKeyPath)
       sortOrder.current.dict[itemAddress] = sortOrder.current.counter
       return assocObjValue(newKeyPath, value, jsonObject)
     },
@@ -377,7 +463,7 @@ export default function JsonEditorState({ children, errors, jsonObject, schema }
     jsonDict, // Stores sort order, required fields, types etc.
     menuFieldPath, // where does user open context menu
     removeField, // Removes key/value pair
-    setFieldPath, // Focuse on that path inside object
+    setFieldPath, // Focus on that path inside object
     setMenuFieldPath, // Open context menu for that path inside object
   })
 }

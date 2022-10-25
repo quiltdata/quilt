@@ -134,7 +134,7 @@ describe('components/JsonEditor/State', () => {
         rootKeys,
         sortOrder,
       )
-      expect(columns).toEqual(deeplyNestedObject.columns1)
+      expect(columns).toMatchObject(deeplyNestedObject.columns1)
     })
 
     it('should set same sortIndexes on re-render', () => {
