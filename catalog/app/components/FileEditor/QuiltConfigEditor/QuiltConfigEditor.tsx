@@ -3,16 +3,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
-import * as Toolbar from 'components/JsonEditor/Toolbar'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 import * as YAML from 'utils/yaml'
-
-import WorkflowsToolbar from './WorkflowsToolbar'
-
-const toolbarOptions = {
-  Toolbar: WorkflowsToolbar,
-}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -65,16 +58,14 @@ export default function QuiltConfigEditorSuspended({
   return (
     <div className={classes.root}>
       {!!header && <div className={classes.header}>{header}</div>}
-      <Toolbar.Provider value={toolbarOptions}>
-        <JsonEditor
-          disabled={disabled}
-          errors={errors}
-          multiColumned
-          onChange={handleChange}
-          value={value}
-          schema={schema}
-        />
-      </Toolbar.Provider>
+      <JsonEditor
+        disabled={disabled}
+        errors={errors}
+        multiColumned
+        onChange={handleChange}
+        value={value}
+        schema={schema}
+      />
       <JsonValidationErrors className={classes.errors} error={errors} />
     </div>
   )
