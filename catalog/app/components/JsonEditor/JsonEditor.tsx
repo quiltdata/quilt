@@ -251,11 +251,11 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               key={columnPath.join(',')}
               onAddRow={handleRowAdd}
               onBreadcrumb={setFieldPath}
+              onChange={handleValueChange}
               onContextMenu={setMenuFieldPath}
               onExpand={setFieldPath}
               onRemove={handleRowRemove}
               onToolbar={handleToolbar}
-              onValueChange={handleValueChange}
             />
           )
         })}

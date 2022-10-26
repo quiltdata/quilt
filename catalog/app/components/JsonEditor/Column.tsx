@@ -131,11 +131,11 @@ interface ColumnProps {
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: string[]) => void
+  onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
   onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
   onToolbar: (func: (v: JsonRecord) => JsonRecord) => void
-  onValueChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
 }
 
 export default function Column({
@@ -147,11 +147,11 @@ export default function Column({
   jsonDict,
   onAddRow,
   onBreadcrumb,
+  onChange,
   onContextMenu,
   onExpand,
   onRemove,
   onToolbar,
-  onValueChange,
 }: ColumnProps) {
   const columns = React.useMemo(
     () =>
@@ -173,9 +173,9 @@ export default function Column({
   const updateMyData = React.useCallback(
     (path: string[], id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
-      onValueChange(path, id, value)
+      onChange(path, id, value)
     },
-    [onValueChange],
+    [onChange],
   )
 
   const tableInstance = RTable.useTable({
