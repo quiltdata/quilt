@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as Form from 'components/Form'
 import type { ToolbarProps as ToolbarWrapperProps } from 'components/JsonEditor/Toolbar'
 import * as JSONPointer from 'utils/JSONPointer'
@@ -133,6 +134,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 }}
                 disabled={submitting}
                 fullWidth
+                helperText={<Code>name</Code>}
                 label="Workflow name"
                 margin="normal"
                 name="name"
@@ -145,6 +147,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 disabled={submitting}
                 errors={emptyObject}
                 fullWidth
+                helperText={<Code>description</Code>}
                 label="Workflow description"
                 margin="normal"
                 name="description"
@@ -156,7 +159,8 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 disabled={submitting}
                 errors={emptyObject}
                 fullWidth
-                label="package_handle, Regular expression to validate package handle"
+                helperText={<Code>package_handle</Code>}
+                label="Regular expression to validate package handle"
                 margin="normal"
                 name="handle_pattern"
                 placeholder="e.g. ^foo/bar$"
@@ -168,6 +172,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 disabled={submitting}
                 errors={emptyObject}
                 fullWidth
+                helperText={<Code>metadata_schema</Code>}
                 label="Metadata JSON Schema name"
                 margin="normal"
                 name="metadata_schema"
@@ -181,6 +186,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 disabled={submitting}
                 errors={emptyObject}
                 fullWidth
+                helperText={<Code>entries_schema</Code>}
                 label="Entries JSON Schema name"
                 margin="normal"
                 name="entries_schema"
@@ -191,9 +197,10 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
               <RF.Field
                 FormControlProps={FormControlProps}
                 component={Form.Checkbox}
-                type="checkbox"
-                name="is_message_required"
+                helperText={<Code>is_message_required</Code>}
                 label="Is message required"
+                name="is_message_required"
+                type="checkbox"
               />
             </M.DialogContent>
             <M.DialogActions>
@@ -248,7 +255,7 @@ function Toolbar({ bucket, onChange }: ToolbarProps) {
 
 function addSchema(schemaName: string) {
   return R.assocPath(['schemas', schemaName], {
-    url: `s3://.quilt/workflows/${schemaName}.json`,
+    url: `s3://.quilt/workflows/${encodeURIComponent(schemaName)}.json`,
   })
 }
 
@@ -268,9 +275,12 @@ function addEntriesSchema({
   return R.ifElse(() => !!entries_schema, addSchema(entries_schema as string), R.identity)
 }
 
+function createSlug(name: string): string {
+  return name.replace(/ /g, '_').replace(/[^A-Za-z0-9-_]/g, '')
+}
+
 function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
-  const workflowName = workflow.name.replace(' ', '_')
-  return R.assocPath(['workflows', workflowName], workflow)
+  return R.assocPath(['workflows', createSlug(workflow.name)], workflow)
 }
 
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
