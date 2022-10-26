@@ -273,7 +273,6 @@ function App() {
     Sentry.Provider,
     Store.Provider,
     Cache.Provider,
-    [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     Embedder,
   )
