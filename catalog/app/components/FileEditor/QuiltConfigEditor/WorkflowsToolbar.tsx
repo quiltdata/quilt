@@ -197,7 +197,6 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
               <RF.Field
                 FormControlProps={FormControlProps}
                 component={Form.Checkbox}
-                helperText={<Code>is_message_required</Code>}
                 label="Is message required"
                 name="is_message_required"
                 type="checkbox"
