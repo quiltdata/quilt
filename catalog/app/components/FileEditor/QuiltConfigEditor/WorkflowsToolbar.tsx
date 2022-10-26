@@ -252,26 +252,32 @@ function Toolbar({ bucket, onChange }: ToolbarProps) {
   )
 }
 
-function addSchema(schemaName: string) {
+function addSchema(bucket: string, schemaName: string) {
   return R.assocPath(['schemas', schemaName], {
-    url: `s3://.quilt/workflows/${encodeURIComponent(schemaName)}.json`,
+    url: `s3://${bucket}/.quilt/workflows/${encodeURIComponent(schemaName)}.json`,
   })
 }
 
-function addMetadataSchema({
-  metadata_schema,
-}: WorkflowYaml): (j: JsonRecord) => JsonRecord {
+function addMetadataSchema(
+  bucket: string,
+  { metadata_schema }: WorkflowYaml,
+): (j: JsonRecord) => JsonRecord {
   return R.ifElse(
     () => !!metadata_schema,
-    addSchema(metadata_schema as string),
+    addSchema(bucket, metadata_schema as string),
     R.identity,
   )
 }
 
-function addEntriesSchema({
-  entries_schema,
-}: WorkflowYaml): (j: JsonRecord) => JsonRecord {
-  return R.ifElse(() => !!entries_schema, addSchema(entries_schema as string), R.identity)
+function addEntriesSchema(
+  bucket: string,
+  { entries_schema }: WorkflowYaml,
+): (j: JsonRecord) => JsonRecord {
+  return R.ifElse(
+    () => !!entries_schema,
+    addSchema(bucket, entries_schema as string),
+    R.identity,
+  )
 }
 
 function createSlug(name: string): string {
@@ -285,22 +291,23 @@ function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const { paths } = NamedRoutes.use()
   const { match } = useRoute(paths.bucketFile, { exact: true })
+  const bucket = match?.params?.bucket
 
   const handleChange = React.useCallback(
     (workflow: WorkflowYaml) => {
+      if (!bucket) return
       onChange((j: JsonRecord) =>
         FP.function.pipe(
           j,
-          addMetadataSchema(workflow),
-          addEntriesSchema(workflow),
+          addMetadataSchema(bucket, workflow),
+          addEntriesSchema(bucket, workflow),
           addWorkflow(workflow),
         ),
       )
     },
-    [onChange],
+    [bucket, onChange],
   )
 
-  const bucket = match?.params?.bucket
   if (!bucket) return null
 
   const pointer = JSONPointer.stringify(columnPath)
