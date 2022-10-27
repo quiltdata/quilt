@@ -243,7 +243,7 @@ function Toolbar({ bucket, onChange }: ToolbarProps) {
     <>
       <Button onClick={() => setOpen(true)} />
       <Popup
-        bucket={bucket || 'fiskus-sandbox-dev'}
+        bucket={bucket}
         open={open}
         onClose={() => setOpen(false)}
         onSubmit={handleSubmit}
