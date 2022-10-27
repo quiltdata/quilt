@@ -128,7 +128,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
             <M.DialogTitle>Add workflow</M.DialogTitle>
             <M.DialogContent>
               <RF.Field
-                component={Form.Field}
+                component={Form.TextField}
                 errors={{
                   required: 'Enter workflow name',
                 }}
@@ -143,7 +143,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 validate={validators.required as FF.FieldValidator<string>}
               />
               <RF.Field
-                component={Form.Field}
+                component={Form.TextField}
                 disabled={submitting}
                 errors={emptyObject}
                 fullWidth
@@ -155,7 +155,7 @@ function Popup({ bucket, open, onClose, onSubmit }: PopupProps) {
                 size="small"
               />
               <RF.Field
-                component={Form.Field}
+                component={Form.TextField}
                 disabled={submitting}
                 errors={emptyObject}
                 fullWidth
