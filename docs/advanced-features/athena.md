@@ -16,7 +16,7 @@ the table must contain the columns `logical_key`, `physical_keys` and `size` as 
 The first step in configuring Athena to query the package contents and metadata
 is to define a set of tables and views that represent the metadata fields as columns.
 The easiest way to do this is using the pre-built CloudFormation templates
-available at https://github.com/quiltdata/examples/tree/master/athena_cfn/.
+available in the [examples repository](https://github.com/quiltdata/examples/tree/master/athena_cfn/).
 
 ## Example: query package-level metadata
 
