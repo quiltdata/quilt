@@ -125,7 +125,7 @@ const defaultHandlers: ErrorHandler[] = [
         <br />
         <StyledLink
           target="_blank"
-          href={`${docs}/references/technical-reference#deploy-a-private-quilt-instance-on-aws`}
+          href={`${docs}/advanced/technical-reference#preparing-an-aws-role-for-use-with-quilt`}
         >
           Learn how to configure the bucket for Quilt
         </StyledLink>
