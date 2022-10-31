@@ -97,11 +97,10 @@ const getConfig = (input: unknown) => {
 
 export type Config = ReturnType<typeof getConfig>
 
-invariant(
-  (window as any).QUILT_CATALOG_CONFIG,
-  'window.QUILT_CATALOG_CONFIG must be defined',
-)
-const CONFIG = getConfig((window as any).QUILT_CATALOG_CONFIG)
+const configKey = 'QUILT_CATALOG_CONFIG'
+const rawConfig = (window as any)[configKey]
+invariant(rawConfig, `window.${configKey} must be defined`)
+const CONFIG = getConfig(rawConfig)
 
 export default CONFIG
 
