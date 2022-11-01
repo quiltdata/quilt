@@ -1,3 +1,4 @@
+import type { JSONType } from 'ajv'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -42,16 +43,17 @@ const useStyles = M.makeStyles((t) => ({
 function getColumnType(
   columnPath: string[],
   jsonDict: Record<string, JsonValue>,
-  parent: JsonValue,
+  parent?: JsonValue,
 ) {
+  // TODO: use `getJsonDictItemRecursively`
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
-  if (columnSchema && !parent) return columnSchema.type
+  if (columnSchema && !parent) return columnSchema.type as JSONType
 
   if (Array.isArray(parent)) return 'array'
 
   if (!columnSchema) return 'object'
 
-  return typeof parent
+  return typeof parent as JSONType
 }
 
 const useEmptyColumnStyles = M.makeStyles((t) => ({
@@ -62,8 +64,9 @@ const useEmptyColumnStyles = M.makeStyles((t) => ({
 }))
 
 interface EmptyColumnProps {
-  columnType: 'array' | 'object'
+  columnType?: JSONType
 }
+
 function EmptyColumn({ columnType }: EmptyColumnProps) {
   const classes = useEmptyColumnStyles()
 
@@ -109,7 +112,7 @@ interface ColumnProps {
   contextMenuPath: string[]
   data: {
     items: RowData[]
-    parent: JsonValue
+    parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void

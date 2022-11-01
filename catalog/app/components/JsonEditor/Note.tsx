@@ -2,11 +2,14 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
+import StyledTooltip from 'utils/StyledTooltip'
 import {
   JsonSchema,
   doesTypeMatchSchema,
   schemaTypeToHumanString,
 } from 'utils/json-schema'
+import { printObject } from 'utils/string'
 
 import {
   JsonValue,
@@ -23,8 +26,17 @@ interface TypeHelpArgs {
   schema?: JsonSchema
 }
 
+function getExamples(examples: JsonValue[]) {
+  if (examples.length > 1)
+    return [
+      'Examples:',
+      ...examples.map((example) => <Code>{printObject(example)}</Code>),
+    ]
+  return ['Example:', <Code>{printObject(examples[0])}</Code>]
+}
+
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
-  const output: string[][] = []
+  const output: React.ReactNode[][] = []
 
   if (errors.length) {
     output.push(errors.filter(Boolean).map(({ message }) => message) as string[])
@@ -42,21 +54,28 @@ function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHel
     output.push([`Description: ${schema.description}`])
   }
 
+  if (schema?.examples && schema.examples.length) {
+    output.push(getExamples(schema.examples))
+  }
+
   return output
 }
 
 const useTypeHelpStyles = M.makeStyles((t) => ({
   group: {
     '& + &': {
-      borderTop: `1px solid ${t.palette.common.white}`,
+      borderTop: `1px solid ${t.palette.divider}`,
       marginTop: t.spacing(1),
       paddingTop: t.spacing(1),
     },
   },
+  item: {
+    margin: t.spacing(0.5, 0, 0),
+  },
 }))
 
 interface TypeHelpProps {
-  typeHelps: string[][]
+  typeHelps: React.ReactNode[][]
 }
 
 function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
@@ -66,7 +85,9 @@ function TypeHelp({ typeHelps: groups }: TypeHelpProps) {
       {groups.map((group, i) => (
         <div className={classes.group} key={`typeHelp_group_${i}`}>
           {group.map((typeHelp, j) => (
-            <p key={`typeHelp_${i}_${j}`}>{typeHelp}</p>
+            <p className={classes.item} key={`typeHelp_${i}_${j}`}>
+              {typeHelp}
+            </p>
           ))}
         </div>
       ))}
@@ -108,7 +129,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
   if (!typeHelps.length) return null
 
   return (
-    <M.Tooltip title={<TypeHelp typeHelps={typeHelps} />}>
+    <StyledTooltip title={<TypeHelp typeHelps={typeHelps} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
@@ -116,7 +137,7 @@ function NoteValue({ errors, schema, value }: NoteValueProps) {
       >
         {<M.Icon>info_outlined</M.Icon>}
       </span>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 

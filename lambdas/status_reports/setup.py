@@ -5,6 +5,7 @@ setup(
     version="0.0.1",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    include_package_data=True,
     install_requires=[
         "Jinja2==3.1.2",
         "aiobotocore==2.3.4",

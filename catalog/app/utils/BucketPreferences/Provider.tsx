@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import * as quiltConfigs from 'constants/quiltConfigs'
 import * as AWS from 'utils/AWS'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
@@ -11,11 +12,6 @@ import * as requests from 'containers/Bucket/requests'
 
 import { BucketPreferences, SentryInstance, parse } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
-
-const BUCKET_PREFERENCES_PATH = [
-  '.quilt/catalog/config.yaml',
-  '.quilt/catalog/config.yml',
-]
 
 interface FetchBucketPreferencesArgs {
   s3: $TSFixMe
@@ -32,7 +28,7 @@ async function fetchBucketPreferences({
     const response = await requests.fetchFile({
       s3,
       bucket,
-      path: BUCKET_PREFERENCES_PATH,
+      path: quiltConfigs.bucketPreferences,
     })
     return parse(response.Body.toString('utf-8'), sentry)
   } catch (e) {

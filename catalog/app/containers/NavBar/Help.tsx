@@ -64,7 +64,7 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
         title: 'Object extension',
       },
       {
-        example: (s) => <>{s}"user/*"</>,
+        example: (s) => <>{s}user\/*</>,
         syntax: 'handle:',
         title: 'Package name',
       },

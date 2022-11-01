@@ -1,0 +1,8 @@
+services:
+  s3proxy:
+    build: .
+    environment:
+      - REGISTRY_HOST
+      - INTERNAL_REGISTRY_URL
+    ports:
+      - "5002:80"

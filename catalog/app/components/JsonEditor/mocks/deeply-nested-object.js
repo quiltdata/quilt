@@ -582,6 +582,32 @@ export const jsonDict = {
     sortIndex: 23,
     type: 'array',
   },
+  '/a/b/c/d/e/f/g/h/i/j/k/testMaxItems/__*': {
+    address: [
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+      'g',
+      'h',
+      'i',
+      'j',
+      'k',
+      'testMaxItems',
+      '__*',
+    ],
+    required: false,
+    sortIndex: 24,
+    type: undefined,
+    valueSchema: [
+      {
+        maxItems: 3,
+        type: 'number',
+      },
+    ],
+  },
 }
 
 export const fieldPathNested = ['a', 'b', 'c']
@@ -701,11 +727,11 @@ export const columns1 = [
   {
     parent: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }],
     items: [
-      { errors: [], key: 0, value: 1, reactId: '/a/b/0+1', sortIndex: 0 },
-      { errors: [], key: 1, value: 2, reactId: '/a/b/1+2', sortIndex: 0 },
+      { errors: [], key: '0', value: 1, reactId: '/a/b/0+1', sortIndex: 0 },
+      { errors: [], key: '1', value: 2, reactId: '/a/b/1+2', sortIndex: 0 },
       {
         errors: [],
-        key: 2,
+        key: '2',
         value: { c: [{ d: { e: [1, 2, 3] } }] },
         reactId: '/a/b/2+{"c":[{"d":{"e":[1,2,3]}}]}',
         sortIndex: 0,
@@ -743,7 +769,7 @@ export const columns1 = [
     items: [
       {
         errors: [],
-        key: 0,
+        key: '0',
         reactId: '/a/b/2/c/0+{"d":{"e":[1,2,3]}}',
         sortIndex: 0,
         value: {
@@ -797,21 +823,21 @@ export const columns1 = [
     items: [
       {
         errors: [],
-        key: 0,
+        key: '0',
         reactId: '/a/b/2/c/0/d/e/0+1',
         sortIndex: 0,
         value: 1,
       },
       {
         errors: [],
-        key: 1,
+        key: '1',
         reactId: '/a/b/2/c/0/d/e/1+2',
         sortIndex: 0,
         value: 2,
       },
       {
         errors: [],
-        key: 2,
+        key: '2',
         reactId: '/a/b/2/c/0/d/e/2+3',
         sortIndex: 0,
         value: 3,

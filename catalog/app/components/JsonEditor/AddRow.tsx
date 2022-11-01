@@ -31,11 +31,14 @@ const emptyKeyProps = {
     original: {
       address: [],
       errors: [],
+      key: '',
+      reactId: '',
       required: false,
       sortIndex: -1,
       type: 'undefined',
-      valueSchema: undefined,
       updateMyData: () => {},
+      value: '',
+      valueSchema: undefined,
     },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
@@ -53,11 +56,14 @@ const emptyValueProps = {
     original: {
       address: [],
       errors: [],
+      key: '',
+      reactId: '',
       required: false,
       sortIndex: -1,
       type: 'undefined',
-      valueSchema: undefined,
       updateMyData: () => {},
+      value: '',
+      valueSchema: undefined,
     },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
