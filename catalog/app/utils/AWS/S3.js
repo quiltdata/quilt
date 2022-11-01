@@ -90,6 +90,14 @@ function useSmartS3() {
               path: req.httpRequest.path,
             }
             const basePath = endpoint.path.replace(/\/$/, '')
+            // handle buckets with dots in their names
+            if (
+              req.httpRequest.path.startsWith(`/${b}`) &&
+              !req.httpRequest.endpoint.host.startsWith(`${b}.`)
+            ) {
+              req.httpRequest.path = req.httpRequest.path.replace(`/${b}`, '')
+            }
+
             req.httpRequest.endpoint = endpoint
             req.httpRequest.path =
               type === 'select'
