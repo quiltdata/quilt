@@ -3,8 +3,8 @@ import { Helmet } from 'react-helmet'
 import * as urql from 'urql'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import cfg from 'constants/config'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
-import cfg from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BUCKET_CONFIGS_QUERY from './LinkedDataBuckets.generated'
