@@ -8,6 +8,7 @@ export interface FieldProps {
   meta: RF.FieldMetaState<string>
 }
 
+// TODO: re-use components/Form/TextField
 export function Field({
   input,
   meta,
@@ -43,6 +44,7 @@ interface CheckboxProps {
   FormControlLabelProps?: M.FormControlLabelProps
 }
 
+// Re-use components/Form/Checkbox
 export function Checkbox({
   input = {} as RF.FieldInputProps<boolean>,
   meta,
