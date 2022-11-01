@@ -35,6 +35,7 @@ export interface ConfigJson {
   serviceBucket: string
   ssoAuth: AuthMethodConfig
   ssoProviders: string
+  desktop?: boolean
   build_version?: string // not sure where this comes from
 }
 
@@ -81,8 +82,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   binaryApiGatewayEndpoint: startWithOrigin(cfg.binaryApiGatewayEndpoint),
   noDownload: !!cfg.noDownload,
   noOverviewImages: !!cfg.noOverviewImages,
-  // XXX: there's no such field in the schema, so it will be stripped from the config when present
-  desktop: !!(cfg as any).desktop,
+  desktop: !!cfg.desktop,
 })
 
 const getConfig = (input: unknown) => {
