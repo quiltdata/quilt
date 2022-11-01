@@ -1,3 +1,11 @@
+/* eslint-disable import/order */
+// initialize config from window.QUILT_CATALOG_CONFIG
+import cfg from 'constants/config'
+import * as Sentry from 'utils/Sentry'
+
+// initialize sentry as early as possible to catch all the errors
+Sentry.init(cfg)
+
 // side-effect: inject global css
 import 'sanitize.css'
 
@@ -22,7 +30,6 @@ import { createBoundary } from 'utils/ErrorBoundary'
 import { GraphQLProvider } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
@@ -353,7 +360,6 @@ export default function Embed() {
     WithGlobalStyles,
     Layout.Root,
     ErrorBoundary,
-    Sentry.Provider,
     [NamedRoutes.Provider, { routes }],
     [Init],
   )

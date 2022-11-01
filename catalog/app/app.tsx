@@ -1,16 +1,26 @@
 /* app.tsx - application entry point */
 /* eslint-disable import/first */
+/* eslint-disable import/order */
+
+import { createBrowserHistory as createHistory } from 'history'
+
+// initialize config from window.QUILT_CATALOG_CONFIG
+import cfg from 'constants/config'
+import * as Sentry from 'utils/Sentry'
+
+// initialize sentry as early as possible to catch all the errors
+const history = createHistory()
+Sentry.init(cfg, history)
 
 // Import all the third party stuff
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { createBrowserHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
 // side-effect: inject global css
 import 'sanitize.css'
 
-// Import root app
+// Import the rest
 import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
@@ -29,7 +39,6 @@ import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
 import { nest } from 'utils/reactTools'
@@ -53,7 +62,6 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
   document.body.classList.add('fontLoaded')
 })
 
-const history = createHistory()
 const MOUNT_NODE = document.getElementById('app')
 
 // TODO: make storage injectable
@@ -70,11 +78,6 @@ const intercomUserSelector = (state: $TSFixMe) => {
   )
 }
 
-const sentryUserSelector = (state: $TSFixMe) => {
-  const { user: u } = Auth.selectors.domain(state)
-  return u ? { username: u.current_user, email: u.email } : {}
-}
-
 const render = () => {
   ReactDOM.render(
     nest(
@@ -82,14 +85,13 @@ const render = () => {
       WithGlobalStyles,
       Errors.FinalBoundary,
       // @ts-expect-error
-      Sentry.Provider,
       [Store.Provider, { history }],
+      Sentry.UserTracker,
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
-      [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,
       AddToPackage.Provider,
       Bookmarks.Provider,
