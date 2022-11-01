@@ -18,7 +18,6 @@ import * as style from 'constants/style'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as BucketCache from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { GraphQLProvider } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -332,7 +331,6 @@ function App({ init }) {
     [Store.Provider, { history }],
     [RouterProvider, { history }],
     Cache.Provider,
-    [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQLProvider,
     Notifications.Provider,
