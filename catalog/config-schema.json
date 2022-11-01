@@ -98,6 +98,9 @@
       "type": "string",
       "description": "Space-separated list of SSO providers."
     },
+    "desktop": {
+      "type": "boolean"
+    },
     "build_version": {
       "type": "string",
       "description": "Optional"
