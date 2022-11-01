@@ -86,7 +86,7 @@ const transformConfig = (cfg: ConfigJson) => ({
   desktop: !!cfg.desktop,
 })
 
-export function getConfig(input: unknown) {
+export function prepareConfig(input: unknown) {
   try {
     validateConfig(input)
     return transformConfig(input)
@@ -96,26 +96,24 @@ export function getConfig(input: unknown) {
   }
 }
 
-export type Config = ReturnType<typeof getConfig>
+export type Config = ReturnType<typeof prepareConfig>
 
-export function getGlobalConfig(configKey: string = 'QUILT_CATALOG_CONFIG') {
-  const rawConfig = (window as any)[configKey]
-  invariant(rawConfig, `window.${configKey} must be defined`)
-  return getConfig(rawConfig)
-}
-
-function cfgMemo(container: any, key: string = '__cfg') {
-  if (!(key in container)) {
-    container[key] = getGlobalConfig()
+let cachedConfig: Config | null = null
+const configKey = 'QUILT_CATALOG_CONFIG'
+export function getConfig() {
+  if (!cachedConfig) {
+    const rawConfig = (window as any)[configKey]
+    invariant(rawConfig, `window.${configKey} must be defined`)
+    cachedConfig = prepareConfig(rawConfig)
   }
-  return container[key]
+  return cachedConfig
 }
 
 export function useConfig(opts: { suspend: false }): { promise: Promise<Config> }
 export function useConfig(): Config
 /** @deprecated Config is now synchronous -- just import 'constants/config' module directly */
 export function useConfig(opts?: { suspend?: boolean }) {
-  const cfg = cfgMemo(useConfig)
+  const cfg = getConfig()
   if (opts?.suspend === false) return { promise: Promise.resolve(cfg) }
   return cfg
 }

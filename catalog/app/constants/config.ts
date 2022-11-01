@@ -1,3 +1,3 @@
-import { getGlobalConfig } from 'utils/Config'
+import { getConfig } from 'utils/Config'
 
-export default getGlobalConfig()
+export default getConfig()
