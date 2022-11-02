@@ -1,8 +1,11 @@
+import type { JSONType } from 'ajv'
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
+
+import type { JsonRecord } from 'utils/types'
 
 import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
@@ -11,6 +14,7 @@ import Cell from './Cell'
 import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
+import * as Toolbar from './Toolbar'
 import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
@@ -19,6 +23,14 @@ const useStyles = M.makeStyles((t) => ({
     padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
+  },
+  breadcrumbs: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.grey[400]}`,
+    borderWidth: '1px 1px 0',
+    color: t.palette.text.hint,
+    display: 'flex',
+    padding: '4px 8px',
   },
   sibling: {
     flex: 1,
@@ -37,21 +49,25 @@ const useStyles = M.makeStyles((t) => ({
   table: {
     tableLayout: 'fixed',
   },
+  toolbar: {
+    marginLeft: 'auto',
+  },
 }))
 
 function getColumnType(
   columnPath: string[],
   jsonDict: Record<string, JsonValue>,
-  parent: JsonValue,
+  parent?: JsonValue,
 ) {
+  // TODO: use `getJsonDictItemRecursively`
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
-  if (columnSchema && !parent) return columnSchema.type
+  if (columnSchema && !parent) return columnSchema.type as JSONType
 
   if (Array.isArray(parent)) return 'array'
 
   if (!columnSchema) return 'object'
 
-  return typeof parent
+  return typeof parent as JSONType
 }
 
 const useEmptyColumnStyles = M.makeStyles((t) => ({
@@ -62,8 +78,9 @@ const useEmptyColumnStyles = M.makeStyles((t) => ({
 }))
 
 interface EmptyColumnProps {
-  columnType: 'array' | 'object'
+  columnType?: JSONType
 }
+
 function EmptyColumn({ columnType }: EmptyColumnProps) {
   const classes = useEmptyColumnStyles()
 
@@ -109,7 +126,7 @@ interface ColumnProps {
   contextMenuPath: string[]
   data: {
     items: RowData[]
-    parent: JsonValue
+    parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
@@ -118,6 +135,7 @@ interface ColumnProps {
   onContextMenu: (path: string[]) => void
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
+  onToolbar: (func: (v: JsonRecord) => JsonRecord) => void
 }
 
 export default function Column({
@@ -133,6 +151,7 @@ export default function Column({
   onContextMenu,
   onExpand,
   onRemove,
+  onToolbar,
 }: ColumnProps) {
   const columns = React.useMemo(
     () =>
@@ -150,7 +169,8 @@ export default function Column({
   const classes = useStyles()
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
-  const onChangeInternal = React.useCallback(
+  // TODO: rename to less tutorial-ish name
+  const updateMyData = React.useCallback(
     (path: string[], id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
       onChange(path, id, value)
@@ -164,7 +184,7 @@ export default function Column({
     defaultColumn: {
       Cell,
     },
-    updateMyData: onChangeInternal,
+    updateMyData,
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
@@ -178,14 +198,23 @@ export default function Column({
     [onAddRow],
   )
 
+  const toolbar = Toolbar.use()
+
   return (
     <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
       {!!columnPath.length && (
-        <Breadcrumbs
-          tailOnly={hasSiblingColumn}
-          items={columnPath}
-          onSelect={onBreadcrumb}
-        />
+        <div className={classes.breadcrumbs}>
+          <Breadcrumbs
+            tailOnly={hasSiblingColumn}
+            items={columnPath}
+            onSelect={onBreadcrumb}
+          />
+          {toolbar && (
+            <div className={classes.toolbar}>
+              <toolbar.Toolbar columnPath={columnPath} onChange={onToolbar} />
+            </div>
+          )}
+        </div>
       )}
 
       <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>

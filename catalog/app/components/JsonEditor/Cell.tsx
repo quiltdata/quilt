@@ -161,7 +161,7 @@ export default function Cell({
           onContextMenu: handleContextMenu,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
-          placeholder: cellPlaceholders[column.id!],
+          placeholder: cellPlaceholders[column.id as 'key' | 'value'],
           title: isEditable ? 'Click to edit' : '',
           value,
         }}
