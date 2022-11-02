@@ -3,6 +3,8 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
+
 import { COLUMN_IDS, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
@@ -29,12 +31,12 @@ const useStyles = M.makeStyles((t) => ({
 
 interface RowProps {
   cells: RTable.Cell<RowData>[]
-  columnPath: string[]
-  contextMenuPath: string[]
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   fresh: boolean
-  onContextMenu: (path: string[]) => void
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
 }
 
 export default function Row({

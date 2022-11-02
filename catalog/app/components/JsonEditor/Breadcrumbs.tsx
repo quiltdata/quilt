@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
+
 const useOverrideStyles = M.makeStyles({
   li: {
     '&::before': {
@@ -57,8 +59,8 @@ function shoudShowItem(index: number, itemsNumber: number, tailOnly: boolean) {
 }
 
 interface BreadcrumbsProps {
-  items: string[]
-  onSelect: (path: string[]) => void
+  items: JSONPointer.Path
+  onSelect: (path: JSONPointer.Path) => void
   tailOnly: boolean
 }
 
