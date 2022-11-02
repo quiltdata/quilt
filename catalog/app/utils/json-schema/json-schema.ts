@@ -36,7 +36,7 @@ export function findTypeInCompoundSchema(
   typeCheck: (schema?: JsonSchema) => boolean,
   optSchema?: JsonSchema,
 ) {
-  if (!isSchemaCompound(optSchema)) return false
+  if (!isSchemaCompound(optSchema)) return optSchema
   if (optSchema?.allOf) return optSchema.allOf.find(typeCheck)
   if (optSchema?.anyOf) return optSchema.anyOf.find(typeCheck)
   if (optSchema?.oneOf) return optSchema?.oneOf.find(typeCheck)
@@ -169,7 +169,14 @@ function doesTypeMatchCompoundSchema(
 export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean {
   if (!optSchema) return true
   return R.cond<JsonSchema, boolean>([
-    [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
+    [
+      isSchemaEnum,
+      () => {
+        const foundSchema = findTypeInCompoundSchema(isSchemaEnum, optSchema)
+        const options = foundSchema?.enum || []
+        return options.includes(value)
+      },
+    ],
     [
       (s) => Array.isArray(s?.type),
       () =>
