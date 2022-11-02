@@ -2,6 +2,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import { isSchemaEnum, findTypeInCompoundSchema } from 'utils/json-schema'
+
 import PreviewValue from './PreviewValue'
 import { JsonValue, EMPTY_VALUE, RowData } from './constants'
 import { stringifyJSON } from './utils'
@@ -33,9 +35,8 @@ export default function EnumSelect({
 }: EnumSelectProps) {
   const classes = useStyles()
 
-  if (!data?.valueSchema?.enum) throw new Error('This is not enum')
-
-  const options = data.valueSchema!.enum!
+  const options = findTypeInCompoundSchema(isSchemaEnum, data.valueSchema).enum
+  if (!options) throw new Error('This is not enum')
 
   const [innerValue, setInnerValue] = React.useState(() =>
     value === EMPTY_VALUE ? '' : JSON.stringify(value),

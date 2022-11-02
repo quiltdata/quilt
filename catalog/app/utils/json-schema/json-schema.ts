@@ -21,7 +21,7 @@ function hasTypeInCompoundSchema(
   optSchema?: JsonSchema,
 ) {
   if (!isSchemaCompound(optSchema)) return false
-  if (optSchema?.allOf) return optSchema.anyOf.every(typeCheck)
+  if (optSchema?.allOf) return optSchema.allOf.every(typeCheck)
   if (optSchema?.anyOf) return optSchema.anyOf.some(typeCheck)
   if (optSchema?.oneOf) {
     const checks = optSchema?.oneOf.map(typeCheck)
@@ -30,6 +30,17 @@ function hasTypeInCompoundSchema(
   }
   if (optSchema?.not) return !typeCheck(optSchema.not)
   if (Array.isArray(optSchema)) return optSchema.some(typeCheck)
+}
+
+export function findTypeInCompoundSchema(
+  typeCheck: (schema?: JsonSchema) => boolean,
+  optSchema?: JsonSchema,
+) {
+  if (!isSchemaCompound(optSchema)) return false
+  if (optSchema?.allOf) return optSchema.allOf.find(typeCheck)
+  if (optSchema?.anyOf) return optSchema.anyOf.find(typeCheck)
+  if (optSchema?.oneOf) return optSchema?.oneOf.find(typeCheck)
+  if (Array.isArray(optSchema)) return optSchema.find(typeCheck)
 }
 
 export function isSchemaArray(optSchema?: JsonSchema) {
