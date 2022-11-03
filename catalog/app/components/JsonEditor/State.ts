@@ -12,7 +12,7 @@ import { COLUMN_IDS, EMPTY_VALUE, ValidationErrors } from './constants'
 
 const JSON_POINTER_PLACEHOLDER = '__*'
 
-const getAddressPath = (key: number | string, parentPath: JSONPointer.Path) =>
+const getAddressPath = (key: ObjectKey, parentPath: JSONPointer.Path) =>
   key === '' ? parentPath : (parentPath || []).concat(key)
 
 const getSchemaType = (s: JsonSchema) => s.type as JSONType
@@ -204,13 +204,15 @@ function doesPlaceholderPathMatch(
   )
 }
 
+type ObjectKey = number | string
+
 export interface JsonDictItem extends SchemaItem {
   errors: ValidationErrors
   reactId: string
   sortIndex: number
 
   // TODO: use ./constants.ts module
-  key: number | string
+  key: ObjectKey
   value: Json | typeof EMPTY_VALUE
 }
 
@@ -219,7 +221,7 @@ export interface JsonDictItem extends SchemaItem {
 export function getJsonDictItemRecursively(
   jsonDict: JsonDict,
   parentPath: JSONPointer.Path,
-  key?: number | string,
+  key?: ObjectKey,
 ): SchemaItem | undefined {
   const addressPath = getAddressPath(typeof key === 'undefined' ? '' : key, parentPath)
   const itemAddress = JSONPointer.stringify(addressPath)
@@ -243,7 +245,7 @@ function getJsonDictItem(
   jsonDict: JsonDict,
   obj: JsonRecord,
   parentPath: JSONPointer.Path,
-  key: number | string,
+  key: ObjectKey,
   sortOrder: SortOrder,
   allErrors: ValidationErrors,
 ): JsonDictItem {
@@ -267,7 +269,7 @@ function getJsonDictItem(
   }
 }
 
-function getObjValueKeys(objValue?: Json): (number | string)[] {
+function getObjValueKeys(objValue?: Json): ObjectKey[] {
   if (Array.isArray(objValue)) return R.range(0, objValue.length)
   if (R.is(Object, objValue)) return Object.keys(objValue as JsonRecord)
   return noKeys
@@ -276,8 +278,8 @@ function getObjValueKeys(objValue?: Json): (number | string)[] {
 function getObjValueKeysByPath(
   obj: JsonRecord,
   objPath: JSONPointer.Path,
-  rootKeys: (number | string)[],
-): (number | string)[] {
+  rootKeys: ObjectKey[],
+): ObjectKey[] {
   if (!objPath.length) return rootKeys
 
   const objValue = R.path(objPath, obj)
@@ -287,7 +289,7 @@ function getObjValueKeysByPath(
 function getSchemaItemKeysByPath(
   jsonDict: JsonDict,
   objPath: JSONPointer.Path,
-): (number | string)[] {
+): ObjectKey[] {
   const item = getJsonDictItemRecursively(jsonDict, objPath)
   return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
 }
@@ -296,7 +298,7 @@ function getSchemaAndObjKeys(
   obj: JsonRecord,
   jsonDict: JsonDict,
   objPath: JSONPointer.Path,
-  rootKeys: (number | string)[],
+  rootKeys: ObjectKey[],
 ) {
   return R.uniq([
     ...getSchemaItemKeysByPath(jsonDict, objPath),
@@ -307,7 +309,7 @@ function getSchemaAndObjKeys(
 export function mergeSchemaAndObjRootKeys(
   schema: JsonSchema,
   obj: JsonRecord,
-): (number | string)[] {
+): ObjectKey[] {
   const schemaKeys = getSchemaItemKeys(schema)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
@@ -323,7 +325,7 @@ export function iterateJsonDict(
   jsonDict: JsonDict,
   obj: JsonRecord,
   fieldPath: JSONPointer.Path,
-  rootKeys: (number | string)[],
+  rootKeys: ObjectKey[],
   sortOrder: SortOrder,
   errors: ValidationErrors,
 ): Column[] {
