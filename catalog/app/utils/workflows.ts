@@ -28,7 +28,7 @@ interface WorkflowsYaml {
   workflows: Record<string, WorkflowYaml>
 }
 
-interface WorkflowYaml {
+export interface WorkflowYaml {
   description?: string
   entries_schema?: string
   handle_pattern?: string

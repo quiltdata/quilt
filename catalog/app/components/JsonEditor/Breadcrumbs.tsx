@@ -1,17 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    border: `1px solid ${t.palette.grey[400]}`,
-    borderWidth: '1px 1px 0',
-    color: t.palette.text.hint,
-    display: 'flex',
-    padding: '4px 8px',
-  },
-}))
-
 const useOverrideStyles = M.makeStyles({
   li: {
     '&::before': {
@@ -74,7 +63,6 @@ interface BreadcrumbsProps {
 }
 
 export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsProps) {
-  const classes = useStyles()
   const overrideClasses = useOverrideStyles()
 
   const onBreadcrumb = React.useCallback(
@@ -92,12 +80,7 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
   }, [ref])
 
   return (
-    <M.Breadcrumbs
-      className={classes.root}
-      classes={overrideClasses}
-      ref={ref}
-      separator={<BreadcrumbsDivider />}
-    >
+    <M.Breadcrumbs classes={overrideClasses} ref={ref} separator={<BreadcrumbsDivider />}>
       {shoudShowItem(0, items.length, tailOnly) && (
         <Item index={0} onClick={onBreadcrumb}>
           <M.Icon fontSize="small">home</M.Icon>

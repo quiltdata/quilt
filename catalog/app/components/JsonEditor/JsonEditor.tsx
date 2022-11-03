@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
-import * as JSONPointer from 'utils/JSONPointer'
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
 import illustrationEnterValues from './enter-values.webm'
@@ -162,20 +161,11 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   },
 }))
 
-interface JsonEditorProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
-  changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => JsonValue
+interface JsonEditorProps extends StateRenderProps {
   className?: string
-  columns: ColumnData[]
   disabled?: boolean
-  fieldPath: JSONPointer.Path
-  jsonDict: Record<string, JsonValue>
-  menuFieldPath: string[]
   multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
-  removeField: (path: string[]) => JsonValue
-  setFieldPath: (path: string[]) => void
-  setMenuFieldPath: (path: string[]) => void
 }
 
 const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function JsonEditor(
@@ -193,6 +183,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     removeField,
     setFieldPath,
     setMenuFieldPath,
+    transformer,
   },
   ref,
 ) {
@@ -222,6 +213,13 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
       if (newData) onChange(newData)
     },
     [changeValue, onChange],
+  )
+
+  const handleToolbar = React.useCallback(
+    (transform) => {
+      onChange(transformer(transform))
+    },
+    [onChange, transformer],
   )
 
   if (!columns.length) throw new Error('No column data')
@@ -257,6 +255,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               onContextMenu={setMenuFieldPath}
               onExpand={setFieldPath}
               onRemove={handleRowRemove}
+              onToolbar={handleToolbar}
             />
           )
         })}

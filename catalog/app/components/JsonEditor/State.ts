@@ -363,6 +363,7 @@ export interface StateRenderProps {
   removeField: (p: JSONPointer.Path) => JsonRecord // Removes key/value pair
   setFieldPath: (p: JSONPointer.Path) => void // Focus on that path inside object
   setMenuFieldPath: (p: JSONPointer.Path) => void // Open context menu for that path inside object
+  transformer: (transform: (jsonObject: JsonRecord) => JsonRecord) => void
 }
 
 interface JsonEditorStateProps {
@@ -454,6 +455,11 @@ export default function JsonEditorState({
     [jsonObject, sortOrder],
   )
 
+  const transformer = React.useCallback(
+    (transform) => transform(jsonObject),
+    [jsonObject],
+  )
+
   // `jsonDict` and `columns` are main state storages
   return children({
     addRow, // Adds new key/value pair
@@ -465,5 +471,6 @@ export default function JsonEditorState({
     removeField, // Removes key/value pair
     setFieldPath, // Focus on that path inside object
     setMenuFieldPath, // Open context menu for that path inside object
+    transformer,
   })
 }
