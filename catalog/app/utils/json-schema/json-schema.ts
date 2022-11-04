@@ -36,10 +36,16 @@ export function findTypeInCompoundSchema(
   typeCheck: (schema?: JsonSchema) => boolean,
   optSchema?: JsonSchema,
 ) {
-  if (!isSchemaCompound(optSchema)) return optSchema
-  if (optSchema?.allOf) return optSchema.allOf.find(typeCheck)
+  if (!isSchemaCompound(optSchema)) return typeCheck(optSchema) ? optSchema : undefined
+  if (optSchema?.allOf)
+    return hasTypeInCompoundSchema(typeCheck, optSchema)
+      ? optSchema.allOf.find(typeCheck)
+      : undefined
   if (optSchema?.anyOf) return optSchema.anyOf.find(typeCheck)
-  if (optSchema?.oneOf) return optSchema?.oneOf.find(typeCheck)
+  if (optSchema?.oneOf)
+    return hasTypeInCompoundSchema(typeCheck, optSchema)
+      ? optSchema?.oneOf.find(typeCheck)
+      : undefined
   if (Array.isArray(optSchema)) return optSchema.find(typeCheck)
 }
 

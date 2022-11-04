@@ -35,7 +35,7 @@ export default function EnumSelect({
 }: EnumSelectProps) {
   const classes = useStyles()
 
-  const options = findTypeInCompoundSchema(isSchemaEnum, data.valueSchema).enum
+  const options = findTypeInCompoundSchema(isSchemaEnum, data.valueSchema)?.enum
   if (!options) throw new Error('This is not enum')
 
   const [innerValue, setInnerValue] = React.useState(() =>
