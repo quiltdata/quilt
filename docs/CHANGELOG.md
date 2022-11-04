@@ -60,6 +60,7 @@
 * [Changed] Initialize Catalog configuration synchronously from `QUILT_CATALOG_CONFIG` global var ([#3166](https://github.com/quiltdata/quilt/pull/3166))
 
 ## Docs
+* [Fixed] Meeting scheduling link, mailto, package deletion ([#3161](https://github.com/quiltdata/quilt/pull/3161))
 * [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
 * [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
 * [Added] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
