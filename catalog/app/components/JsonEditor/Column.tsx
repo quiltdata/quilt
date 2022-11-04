@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
 import type { JsonRecord } from 'utils/types'
 
 import AddArrayItem from './AddArrayItem'
@@ -55,7 +56,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function getColumnType(
-  columnPath: string[],
+  columnPath: JSONPointer.Path,
   jsonDict: Record<string, JsonValue>,
   parent?: JsonValue,
 ) {
@@ -122,19 +123,19 @@ function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps)
 interface ColumnProps {
   hasSiblingColumn: boolean
   className: string
-  columnPath: string[]
-  contextMenuPath: string[]
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   data: {
     items: RowData[]
     parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
-  onAddRow: (path: string[], key: string | number, value: JsonValue) => void
-  onBreadcrumb: (path: string[]) => void
-  onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
-  onContextMenu: (path: string[]) => void
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onAddRow: (path: JSONPointer.Path, key: string | number, value: JsonValue) => void
+  onBreadcrumb: (path: JSONPointer.Path) => void
+  onChange: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
   onToolbar: (func: (v: JsonRecord) => JsonRecord) => void
 }
 
@@ -171,7 +172,7 @@ export default function Column({
   const [hasNewRow, setHasNewRow] = React.useState(false)
   // TODO: rename to less tutorial-ish name
   const updateMyData = React.useCallback(
-    (path: string[], id: 'key' | 'value', value: JsonValue) => {
+    (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
       onChange(path, id, value)
     },
@@ -191,7 +192,7 @@ export default function Column({
   const columnType = getColumnType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
-    (path: string[], key: string | number, value: JsonValue) => {
+    (path: JSONPointer.Path, key: string | number, value: JsonValue) => {
       setHasNewRow(true)
       onAddRow(path, key, value)
     },
