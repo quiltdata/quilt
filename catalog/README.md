@@ -36,7 +36,7 @@ but that's handled in a separate domain (`state.route`) via reducer composition;
 - An accurate check for a successful fetch() would include checking that the promise resolved, then checking that the Response.ok property has a value of true. The code would look something like this:
 [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
 
-## Deployment
+## Deployment (for Quilt internal usage)
 ```sh
 firebase use ENV
 firebase deploy --only hosting
