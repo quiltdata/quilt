@@ -174,7 +174,11 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
       () => {
         const foundSchema = findTypeInCompoundSchema(isSchemaEnum, optSchema)
         const options = foundSchema?.enum || []
-        return options.includes(value)
+        // Note that value and enum items can be objects
+        const includesEnum = R.includes(value)
+        // TODO: use R.includes(value, options) without aux const
+        //       ramda types incorectly set return type
+        return includesEnum(options)
       },
     ],
     [
