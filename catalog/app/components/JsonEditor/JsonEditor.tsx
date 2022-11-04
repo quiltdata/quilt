@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import * as JSONPointer from 'utils/JSONPointer'
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
 import illustrationEnterValues from './enter-values.webm'
@@ -106,7 +107,7 @@ const useSqueezeStyles = M.makeStyles((t) => ({
 }))
 
 interface SqueezeProps {
-  columnPath: string[]
+  columnPath: JSONPointer.Path
   onClick: () => void
 }
 
@@ -192,7 +193,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   const md = M.useMediaQuery(t.breakpoints.down('md'))
 
   const handleRowAdd = React.useCallback(
-    (path: string[], key: string | number, value: JsonValue) => {
+    (path: JSONPointer.Path, key: string | number, value: JsonValue) => {
       const newData = addRow(path, key, value)
       if (newData) onChange(newData)
     },
@@ -200,7 +201,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleRowRemove = React.useCallback(
-    (path: string[]) => {
+    (path: JSONPointer.Path) => {
       const newData = removeField(path)
       if (newData) onChange(newData)
     },
@@ -208,7 +209,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleValueChange = React.useCallback(
-    (path: string[], key: 'key' | 'value', value: JsonValue | string) => {
+    (path: JSONPointer.Path, key: 'key' | 'value', value: JsonValue | string) => {
       const newData = changeValue(path, key, value)
       if (newData) onChange(newData)
     },
