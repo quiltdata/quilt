@@ -1,8 +1,8 @@
-import { basename, join } from 'path'
+import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as FileEditor from 'components/FileEditor'
