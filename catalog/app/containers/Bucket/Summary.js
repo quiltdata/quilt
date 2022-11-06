@@ -206,9 +206,6 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
   )
   const { readme, images, summarize } = extractSummary(files)
 
-  const showAddReadme =
-    !readme && !path && !!packageHandle && !!preferences?.ui?.actions?.revisePackage
-
   return (
     <>
       {readme && (
@@ -218,7 +215,12 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           mkUrl={mkUrl}
         />
       )}
-      {showAddReadme && <AddReadmeSection packageHandle={packageHandle} path={path} />}
+      {!readme &&
+        !path &&
+        !!packageHandle &&
+        !!preferences?.ui?.actions?.revisePackage && (
+          <AddReadmeSection packageHandle={packageHandle} path={path} />
+        )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested
