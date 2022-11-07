@@ -96,8 +96,21 @@
                   {
                     "type": "object",
                     "properties": {
-                      "expanded": {
-                        "type": ["boolean", "number"]
+                      "user_meta": {
+                        "type": "object",
+                        "properties": {
+                          "expanded": {
+                            "type": ["boolean", "number"]
+                          }
+                        }
+                      },
+                      "workflows": {
+                        "type": "object",
+                        "properties": {
+                          "expanded": {
+                            "type": ["boolean", "number"]
+                          }
+                        }
                       }
                     }
                   }
