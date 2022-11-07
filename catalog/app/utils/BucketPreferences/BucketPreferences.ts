@@ -102,6 +102,15 @@ export interface BucketPreferences {
   ui: UiPreferences
 }
 
+const defaultBlockMeta: MetaBlockPreferences = {
+  userMeta: {
+    expanded: false,
+  },
+  workflows: {
+    expanded: false,
+  },
+}
+
 const defaultPreferences: BucketPreferences = {
   ui: {
     actions: {
@@ -116,14 +125,7 @@ const defaultPreferences: BucketPreferences = {
       analytics: true,
       browser: true,
       code: true,
-      meta: {
-        userMeta: {
-          expanded: false,
-        },
-        workflows: {
-          expanded: false,
-        },
-      },
+      meta: defaultBlockMeta,
     },
     nav: {
       files: true,
@@ -169,11 +171,10 @@ function parseMetaBlock(
   meta?: boolean | MetaBlockPreferencesInput,
 ): false | MetaBlockPreferences {
   if (meta === false) return false
-  if (meta === true || meta === undefined) return defaultPreferences.ui.blocks.meta
-  const defaultOption = { expanded: false }
+  if (meta === true || meta === undefined) return defaultBlockMeta
   return {
-    userMeta: meta.user_meta || defaultOption,
-    workflows: meta.workflows || defaultOption,
+    userMeta: meta.user_meta || defaultBlockMeta.userMeta,
+    workflows: meta.workflows || defaultBlockMeta.workflows,
   }
 }
 
