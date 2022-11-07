@@ -83,7 +83,7 @@ interface PackageMetaProps extends Partial<SectionProps> {
 
 function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   const { message, user_meta: userMeta, workflow } = meta
   const metaPrefs =
     typeof preferences?.ui?.blocks?.meta === 'object' ? preferences?.ui?.blocks?.meta : {}
