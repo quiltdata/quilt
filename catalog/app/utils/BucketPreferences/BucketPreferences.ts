@@ -13,7 +13,16 @@ export type ActionPreferences = Record<
   boolean
 >
 
-type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boolean>
+interface MetaBlockPreferences {
+  expanded: boolean
+}
+
+interface BlocksPreferences {
+  analytics: boolean
+  browser: boolean
+  code: boolean
+  meta: boolean | MetaBlockPreferences
+}
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 

@@ -90,7 +90,19 @@
             "meta": {
               "default": true,
               "description": "Show/hide metadata block",
-              "type": "boolean",
+              "type": {
+                "oneOf": [
+                  { "type": "boolean" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "expanded": {
+                        "type": ["boolean", "number"]
+                      }
+                    }
+                  }
+                ]
+              },
               "examples": [true, false]
             }
           }
