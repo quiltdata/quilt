@@ -90,33 +90,38 @@
             "meta": {
               "default": true,
               "description": "Show/hide metadata block",
-              "type": {
-                "oneOf": [
-                  { "type": "boolean" },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "user_meta": {
-                        "type": "object",
-                        "properties": {
-                          "expanded": {
-                            "type": ["boolean", "number"]
-                          }
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "user_meta": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
                         }
-                      },
-                      "workflows": {
-                        "type": "object",
-                        "properties": {
-                          "expanded": {
-                            "type": ["boolean", "number"]
-                          }
+                      }
+                    },
+                    "workflows": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
                         }
                       }
                     }
                   }
-                ]
-              },
-              "examples": [true, false]
+                }
+              ],
+              "examples": [
+                true,
+                false,
+                {
+                  "user_meta": { "expanded": true },
+                  "workflows": { "expanded": 1 }
+                }
+              ]
             }
           }
         },

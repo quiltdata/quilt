@@ -79,16 +79,12 @@ interface WrapperProps extends Partial<SectionProps> {
 
 interface PackageMetaProps extends Partial<SectionProps> {
   meta: MetaData
-  preferences: BucketPreferences.MetaBlockPreferences | boolean
+  preferences: BucketPreferences.MetaBlockPreferences
 }
 
 function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
   const { message, user_meta: userMeta, workflow } = meta
-  const { user_meta, workflows } =
-    typeof preferences === 'object'
-      ? preferences
-      : ({} as BucketPreferences.MetaBlockPreferences)
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
       <M.Table className={classes.table} size="small" data-testid="package-meta">
@@ -114,7 +110,10 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
               </HeadCell>
               <M.TableCell>
                 {/* @ts-expect-error */}
-                <JsonDisplay defaultExpanded={user_meta?.expanded} value={userMeta} />
+                <JsonDisplay
+                  defaultExpanded={preferences.userMeta.expanded}
+                  value={userMeta}
+                />
               </M.TableCell>
             </M.TableRow>
           )}
@@ -129,7 +128,10 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
               </HeadCell>
               <M.TableCell>
                 {/* @ts-expect-error */}
-                <JsonDisplay defaultExpanded={workflows?.expanded} value={workflow} />
+                <JsonDisplay
+                  defaultExpanded={preferences.workflows.expanded}
+                  value={workflow}
+                />
               </M.TableCell>
             </M.TableRow>
           )}
@@ -147,13 +149,14 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
         if (!meta || R.isEmpty(meta)) return null
         return AsyncResult.case(
           {
-            Ok: (preferences: BucketPreferences.BucketPreferences) => (
-              <PackageMetaSection
-                meta={meta}
-                preferences={preferences.ui.blocks.meta}
-                {...props}
-              />
-            ),
+            Ok: (preferences: BucketPreferences.BucketPreferences) =>
+              !!preferences.ui.blocks.meta && (
+                <PackageMetaSection
+                  meta={meta}
+                  preferences={preferences.ui.blocks.meta}
+                  {...props}
+                />
+              ),
             Err: errorHandler,
             _: noop,
           },

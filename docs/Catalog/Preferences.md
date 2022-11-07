@@ -25,7 +25,11 @@ ui:
     analytics: True
     browser: True
     code: True
-    meta: True
+    meta:
+      user_meta:
+        expanded: False
+      workflows:
+        expanded: False
   package_description:
     .*:
       message: True
@@ -45,8 +49,8 @@ drag-and-drop or from folders in S3
 * `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
 * `ui.blocks.meta: False` - hide Metadata block on Package page
-* `ui.blocks.meta.expanded: True` - expands Metadata properties
-* `ui.blocks.meta.expanded: 2` - expands Metadata properties two level deep
+* `ui.blocks.meta.user_meta.expanded: True` - expands user_meta properties
+* `ui.blocks.meta.workflows.expanded: 2` - expands workflows properties two level deep
 * `ui.sourceBuckets` - a dictionary of S3 bucket names
 that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks
@@ -127,6 +131,7 @@ ui:
 ui:
   blocks:
     meta:
-      expanded: True
+      user_meta:
+        expanded: True
 ```
 

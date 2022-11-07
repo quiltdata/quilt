@@ -13,7 +13,7 @@ export type ActionPreferences = Record<
   boolean
 >
 
-export interface MetaBlockPreferences {
+export interface MetaBlockPreferencesInput {
   user_meta?: {
     expanded: boolean | number
   }
@@ -22,11 +22,27 @@ export interface MetaBlockPreferences {
   }
 }
 
+export interface MetaBlockPreferences {
+  userMeta: {
+    expanded: boolean | number
+  }
+  workflows: {
+    expanded: boolean | number
+  }
+}
+
+interface BlocksPreferencesInput {
+  analytics?: boolean
+  browser?: boolean
+  code?: boolean
+  meta?: boolean | MetaBlockPreferencesInput
+}
+
 interface BlocksPreferences {
   analytics: boolean
   browser: boolean
   code: boolean
-  meta: boolean | MetaBlockPreferences
+  meta: false | MetaBlockPreferences
 }
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
@@ -57,7 +73,7 @@ export interface AthenaPreferences {
 interface UiPreferencesInput {
   actions?: Partial<ActionPreferences>
   athena?: AthenaPreferences
-  blocks?: Partial<BlocksPreferences>
+  blocks?: Partial<BlocksPreferencesInput>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
   package_description?: PackagesListPreferencesInput
@@ -100,7 +116,14 @@ const defaultPreferences: BucketPreferences = {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: {
+        userMeta: {
+          expanded: false,
+        },
+        workflows: {
+          expanded: false,
+        },
+      },
     },
     nav: {
       files: true,
@@ -139,6 +162,26 @@ function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
         }
       : null),
     ...rest,
+  }
+}
+
+function parseMetaBlock(
+  meta?: boolean | MetaBlockPreferencesInput,
+): false | MetaBlockPreferences {
+  if (meta === false) return false
+  if (meta === true || meta === undefined) return defaultPreferences.ui.blocks.meta
+  const defaultOption = { expanded: false }
+  return {
+    userMeta: meta.user_meta || defaultOption,
+    workflows: meta.workflows || defaultOption,
+  }
+}
+
+function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
+  return {
+    ...defaultPreferences.ui.blocks,
+    ...blocks,
+    meta: parseMetaBlock(blocks?.meta),
   }
 }
 
@@ -187,6 +230,7 @@ export function extendDefaults(
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       athena: parseAthena(data?.ui?.athena),
+      blocks: parseBlocks(data?.ui?.blocks),
       package_description: parsePackages(data?.ui?.package_description),
       sourceBuckets: parseSourceBuckets(
         sentry,
