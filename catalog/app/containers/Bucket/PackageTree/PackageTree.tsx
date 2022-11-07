@@ -457,7 +457,7 @@ function DirDisplay({
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
               )}
-              {preferences?.ui?.blocks?.meta && (
+              {!!preferences?.ui?.blocks?.meta && (
                 <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
               )}
               <M.Box mt={2}>

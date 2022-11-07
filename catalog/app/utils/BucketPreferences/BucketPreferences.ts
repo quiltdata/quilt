@@ -14,7 +14,12 @@ export type ActionPreferences = Record<
 >
 
 interface MetaBlockPreferences {
-  expanded: boolean
+  user_meta?: {
+    expanded: boolean | number
+  }
+  workflows?: {
+    expanded: boolean | number
+  }
 }
 
 interface BlocksPreferences {
@@ -95,7 +100,14 @@ const defaultPreferences: BucketPreferences = {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: {
+        user_meta: {
+          expanded: 2,
+        },
+        workflows: {
+          expanded: 1,
+        },
+      },
     },
     nav: {
       files: true,

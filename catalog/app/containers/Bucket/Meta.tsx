@@ -6,6 +6,7 @@ import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { JsonRecord } from 'utils/types'
 
 import Section, { SectionProps } from './Section'
@@ -82,7 +83,10 @@ interface PackageMetaProps extends Partial<SectionProps> {
 
 function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
+  const preferences = BucketPreferences.use()
   const { message, user_meta: userMeta, workflow } = meta
+  const metaPrefs =
+    typeof preferences?.ui?.blocks?.meta === 'object' ? preferences?.ui?.blocks?.meta : {}
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
       <M.Table className={classes.table} size="small" data-testid="package-meta">
@@ -108,7 +112,10 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
               </HeadCell>
               <M.TableCell>
                 {/* @ts-expect-error */}
-                <JsonDisplay value={userMeta} />
+                <JsonDisplay
+                  defaultExpanded={metaPrefs.user_meta?.expanded}
+                  value={userMeta}
+                />
               </M.TableCell>
             </M.TableRow>
           )}
@@ -123,7 +130,10 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
               </HeadCell>
               <M.TableCell>
                 {/* @ts-expect-error */}
-                <JsonDisplay value={workflow} />
+                <JsonDisplay
+                  defaultExpanded={metaPrefs.workflows?.expanded}
+                  value={workflow}
+                />
               </M.TableCell>
             </M.TableRow>
           )}
