@@ -100,14 +100,7 @@ const defaultPreferences: BucketPreferences = {
       analytics: true,
       browser: true,
       code: true,
-      meta: {
-        user_meta: {
-          expanded: 2,
-        },
-        workflows: {
-          expanded: 1,
-        },
-      },
+      meta: true,
     },
     nav: {
       files: true,
