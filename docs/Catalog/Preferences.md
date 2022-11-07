@@ -50,7 +50,7 @@ drag-and-drop or from folders in S3
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
 * `ui.blocks.meta: False` - hide Metadata block on Package page
 * `ui.blocks.meta.user_meta.expanded: True` - expands user_meta properties
-* `ui.blocks.meta.workflows.expanded: 2` - expands workflows properties two level deep
+* `ui.blocks.meta.workflows.expanded: 2` - expands workflows two level deep
 * `ui.sourceBuckets` - a dictionary of S3 bucket names
 that map to an empty object reserved for future enhancements;
 buckets in this dictionary are the ones offered when the user clicks
@@ -109,7 +109,8 @@ ui:
 
 #### `ui.blocks.meta`
 
-User could set it to boolean or object with additional properties. Object is a truthy value, so any object acts like `True`
+User could set it to boolean or object with additional properties.
+Object is a truthy value, so any object acts like `True`.
 
 ``` yaml
 # default value, show Metadata block
@@ -134,4 +135,3 @@ ui:
       user_meta:
         expanded: True
 ```
-
