@@ -13,7 +13,7 @@ export type ActionPreferences = Record<
   boolean
 >
 
-interface MetaBlockPreferences {
+export interface MetaBlockPreferences {
   user_meta?: {
     expanded: boolean | number
   }
