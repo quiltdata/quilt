@@ -289,7 +289,7 @@ and hybrid flows, and check the box to issue ID tokens
 
 Note: You will need Okta administrator privileges to add a new Application.
 
-1. Go to **Okta > Admin > Applications > Applications**
+1. Go to Okta > Admin > Applications > Applications
 
 ![](./imgs/okta-add-application.png)
 
@@ -301,7 +301,7 @@ Note: You will need Okta administrator privileges to add a new Application.
 
 5. Click the `Next` button.
 6. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
-7. Optionally add the Quilt logo for user recognition.
+7. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 8. Configure the new web app integration as follows:
   8.1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
   8.2. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
