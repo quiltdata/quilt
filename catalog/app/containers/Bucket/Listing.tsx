@@ -592,12 +592,20 @@ const useFooterStyles = M.makeStyles((t) => ({
   },
   cellSecond: {
     paddingLeft: t.spacing(1),
+    paddingRight: t.spacing(1),
     textAlign: 'right',
   },
   cellLast: {
+    overflow: 'hidden',
+    paddingLeft: t.spacing(1),
     paddingRight: t.spacing(1),
     textAlign: 'right',
-    width: COL_MODIFIED_W + t.spacing(1),
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: COL_MODIFIED_W,
+    [t.breakpoints.down('sm')]: {
+      width: COL_MODIFIED_W_SM,
+    },
   },
 }))
 
@@ -754,7 +762,9 @@ const localeText = {
 }
 
 const COL_SIZE_W = 114
+const COL_SIZE_W_SM = COL_SIZE_W / 1.3
 const COL_MODIFIED_W = 176
+const COL_MODIFIED_W_SM = COL_MODIFIED_W / 1.2
 
 const useStyles = M.makeStyles((t) => ({
   '@global': {
@@ -810,11 +820,11 @@ const useStyles = M.makeStyles((t) => ({
         pointerEvents: 'none',
       },
       // "Size" column
-      '&:nth-last-child(2)': {
+      '&:nth-child(3)': {
         justifyContent: 'flex-end',
       },
       // "Last modified" column
-      '&:last-child': {
+      '&:nth-child(4)': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -894,6 +904,8 @@ export function Listing({
   dataGridProps,
 }: ListingProps) {
   const classes = useStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const [filteredToZero, setFilteredToZero] = React.useState(false)
 
@@ -930,6 +942,7 @@ export function Listing({
     }
   })
 
+  // NOTE: after dependencies change fourth empty column appears
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
@@ -985,7 +998,7 @@ export function Listing({
         field: 'size',
         headerName: 'Size',
         type: 'number',
-        width: COL_SIZE_W,
+        width: sm ? COL_SIZE_W_SM : COL_SIZE_W,
         renderCell: (params: DG.GridCellParams) => {
           const i = params.row as unknown as Item
           return (
@@ -1004,13 +1017,17 @@ export function Listing({
         headerName: 'Last modified',
         type: 'dateTime',
         align: 'right',
-        width: COL_MODIFIED_W,
+        width: sm ? COL_MODIFIED_W_SM : COL_MODIFIED_W,
         renderCell: (params: DG.GridCellParams) => {
           const i = params.row as unknown as Item
           return (
             <CellComponent
               item={i}
-              className={cx(classes.link, i.archived && classes.archived)}
+              className={cx(
+                classes.link,
+                i.archived && classes.archived,
+                classes.ellipsis,
+              )}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.modified == null ? <>&nbsp;</> : i.modified.toLocaleString()}
@@ -1019,7 +1036,7 @@ export function Listing({
         },
       },
     ],
-    [classes, CellComponent],
+    [classes, CellComponent, sm],
   )
 
   const noRowsLabel = `No files / directories${
