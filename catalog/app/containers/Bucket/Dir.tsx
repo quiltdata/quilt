@@ -291,7 +291,7 @@ export default function Dir({
   const { urls } = NamedRoutes.use<RouteMap>()
   const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
