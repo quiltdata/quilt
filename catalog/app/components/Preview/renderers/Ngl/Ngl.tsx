@@ -27,10 +27,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export interface NglProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface NglFile {
   blob: Blob
   ext: string
 }
+
+// type NglProps = NglFile & React.HTMLAttributes<HTMLDivElement>
+interface NglProps extends NglFile, React.HTMLAttributes<HTMLDivElement> {}
 
 export default function Ngl({ blob, ext, ...props }: NglProps) {
   const classes = useStyles()

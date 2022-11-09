@@ -18,20 +18,24 @@ type ResponseFile = string | Uint8Array
 async function parseResponse(
   file: ResponseFile,
   handle: S3HandleBase,
-): Promise<{ file: ResponseFile; ext: string }> {
+): Promise<[{ file: ResponseFile; ext: string }]> {
   const { Molecule } = await openchem
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
-    return {
-      ext,
-      file,
-    }
+    return [
+      {
+        ext,
+        file,
+      },
+    ]
   const strFile = file.toString()
-  if (strFile.indexOf('V3000') === -1) return { ext, file }
-  return {
-    ext: 'mol',
-    file: Molecule.fromMolfile(strFile).toMolfile(),
-  }
+  if (strFile.indexOf('V3000') === -1) return [{ ext, file }]
+  return [
+    {
+      ext: 'mol',
+      file: Molecule.fromMolfile(strFile).toMolfile(),
+    },
+  ]
 }
 
 export const detect = R.pipe(
@@ -53,8 +57,10 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
     async (r: PromiseResult<{ Body: ResponseFile }, null>) => {
       const compression = utils.getCompression(handle.key)
       const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
-      const { file, ext } = await parseResponse(body, handle)
-      return PreviewData.Ngl({ blob: new Blob([file]), ext })
+      const files = await parseResponse(body, handle)
+      return PreviewData.Ngl({
+        files: files.map(({ file, ext }) => ({ blob: new Blob([file]), ext })),
+      })
     },
   )
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
