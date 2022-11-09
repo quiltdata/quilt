@@ -20,7 +20,7 @@ async function parseMol(
   file: ResponseFile,
   ext: string,
 ): Promise<{ file: ResponseFile; ext: string }> {
-  if (content.indexOf('V3000') === -1) return { ext, file }
+  // if (content.indexOf('V3000') === -1) return { ext, file: content }
   const { Molecule } = await openchem
   return {
     ext: 'mol',
@@ -31,7 +31,7 @@ async function parseMol(
 async function parseResponse(
   file: ResponseFile,
   handle: S3HandleBase,
-): Promise<[{ file: ResponseFile; ext: string }]> {
+): Promise<{ file: ResponseFile; ext: string }[]> {
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
     return [
@@ -40,10 +40,13 @@ async function parseResponse(
         file,
       },
     ]
-  return file
-    .toString()
-    .split('$$$$')
-    .map((part) => parseMol(part, file, ext))
+  return Promise.all(
+    file
+      .toString()
+      .split('$$$$')
+      .filter((x) => !!x.trim())
+      .map((part) => parseMol(part + '$$$$', file, ext)),
+  )
 }
 
 export const detect = R.pipe(
