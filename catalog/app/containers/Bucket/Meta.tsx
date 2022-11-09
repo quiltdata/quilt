@@ -6,6 +6,7 @@ import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { JsonRecord } from 'utils/types'
 
 import Section, { SectionProps } from './Section'
@@ -78,9 +79,10 @@ interface WrapperProps extends Partial<SectionProps> {
 
 interface PackageMetaProps extends Partial<SectionProps> {
   meta: MetaData
+  preferences: BucketPreferences.MetaBlockPreferences
 }
 
-function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
+function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
   const { message, user_meta: userMeta, workflow } = meta
   return (
@@ -108,7 +110,10 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
               </HeadCell>
               <M.TableCell>
                 {/* @ts-expect-error */}
-                <JsonDisplay value={userMeta} />
+                <JsonDisplay
+                  defaultExpanded={preferences.userMeta.expanded}
+                  value={userMeta}
+                />
               </M.TableCell>
             </M.TableRow>
           )}
@@ -123,7 +128,10 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
               </HeadCell>
               <M.TableCell>
                 {/* @ts-expect-error */}
-                <JsonDisplay value={workflow} />
+                <JsonDisplay
+                  defaultExpanded={preferences.workflows.expanded}
+                  value={workflow}
+                />
               </M.TableCell>
             </M.TableRow>
           )}
@@ -134,11 +142,26 @@ function PackageMetaSection({ meta, ...props }: PackageMetaProps) {
 }
 
 export function PackageMeta({ data, ...props }: WrapperProps) {
+  const { result } = BucketPreferences.use()
   return AsyncResult.case(
     {
       Ok: (meta?: MetaData) => {
         if (!meta || R.isEmpty(meta)) return null
-        return <PackageMetaSection meta={meta} {...props} />
+        return AsyncResult.case(
+          {
+            Ok: (preferences: BucketPreferences.BucketPreferences) =>
+              !!preferences.ui.blocks.meta && (
+                <PackageMetaSection
+                  meta={meta}
+                  preferences={preferences.ui.blocks.meta}
+                  {...props}
+                />
+              ),
+            Err: errorHandler,
+            _: noop,
+          },
+          result,
+        )
       },
       Err: errorHandler,
       _: noop,
