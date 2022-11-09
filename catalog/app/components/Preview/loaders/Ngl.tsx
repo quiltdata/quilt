@@ -15,11 +15,23 @@ const openchem = import('openchemlib/minimal')
 
 type ResponseFile = string | Uint8Array
 
+async function parseMol(
+  content: string,
+  file: ResponseFile,
+  ext: string,
+): Promise<{ file: ResponseFile; ext: string }> {
+  if (content.indexOf('V3000') === -1) return { ext, file }
+  const { Molecule } = await openchem
+  return {
+    ext: 'mol',
+    file: Molecule.fromMolfile(content).toMolfile(),
+  }
+}
+
 async function parseResponse(
   file: ResponseFile,
   handle: S3HandleBase,
 ): Promise<[{ file: ResponseFile; ext: string }]> {
-  const { Molecule } = await openchem
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
     return [
@@ -28,14 +40,10 @@ async function parseResponse(
         file,
       },
     ]
-  const strFile = file.toString()
-  if (strFile.indexOf('V3000') === -1) return [{ ext, file }]
-  return [
-    {
-      ext: 'mol',
-      file: Molecule.fromMolfile(strFile).toMolfile(),
-    },
-  ]
+  return file
+    .toString()
+    .split('$$$$')
+    .map((part) => parseMol(part, file, ext))
 }
 
 export const detect = R.pipe(
