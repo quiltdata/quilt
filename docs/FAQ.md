@@ -182,3 +182,11 @@ review the official Amazon S3 documentation linked below.
 
 ### References
 * [Creating object key names](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)
+
+## How many IPs does a standard Quilt stack require?
+
+Currently, a full size, multi-Availability Zone deployment (without
+[Voila](https://docs.quiltdata.com/catalog/visualizationdashboards#voila))
+requires at least 256 IPs. This means a minimum CIDR block of `/24`.
+
+Optional additional features (such as automated data packaging) require additional IPs.
