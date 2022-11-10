@@ -62,6 +62,7 @@
 * [Changed] Handle rendering multiple molecules in one .sdf file ([#3179](https://github.com/quiltdata/quilt/pull/3179))
 
 ## Docs
+* [Removed] Delete out-of-date Roadmap section ([#3177](https://github.com/quiltdata/quilt/pull/3177))
 * [Fixed] Meeting scheduling link, mailto, package deletion ([#3161](https://github.com/quiltdata/quilt/pull/3161))
 * [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
 * [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
