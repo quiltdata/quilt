@@ -340,7 +340,7 @@ export default function File({
   const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const path = decode(encodedPath)
 

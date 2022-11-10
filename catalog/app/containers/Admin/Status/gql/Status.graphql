@@ -1,8 +1,4 @@
-query (
-  $statsWindow: Int!,
-  $reportsPerPage: Int!,
-  $reportsOrder: StatusReportListOrder!,
-) {
+query ($statsWindow: Int!, $reportsPerPage: Int!, $reportsOrder: StatusReportListOrder!) {
   status {
     __typename
     ... on Status {
