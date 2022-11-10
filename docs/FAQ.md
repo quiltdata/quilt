@@ -155,3 +155,30 @@ when writing Amazon Athena queries.
 * [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
 * [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
 
+## Are there any limitations on characters in Quilt filenames?
+
+Yes. Quilt is built on top of Amazon S3, and has the same character limitations.
+Although any UTF-8 character is supported in an object key
+name (filename), using certain characters can result in problems with some
+applications and protocols. The following guideline will help you
+maximize compliance. For a comprehensive list of safe characters, characters
+that might require special handling, and characters to avoid, please
+review the official Amazon S3 documentation linked below.
+
+### List of safe characters
+* Alphanumeric characters:
+  * 0-9
+  * a-z
+  * A-Z
+* Special characters:
+  * Exclamation point (`!`)
+  * Hyphen (`-`)
+  * Underscore (`_`)
+  * Period (`.`)
+  * Asterisk (`*`)
+  * Single quote (`'`)
+  * Open parenthesis (`(`)
+  * Close parenthesis (`)`)
+
+### References
+* [Creating object key names](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)
