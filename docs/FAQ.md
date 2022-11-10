@@ -53,7 +53,7 @@ quilt3 --version
 1. Copy the row labeled TemplateBuildMetadata
 1. "git_revision" is your template version
 
-## Hashing takes a long time. Can I speed it up?
+## Hashing during `push` takes a long time. Can I speed it up?
 
 Yes. Follow these steps:
 
