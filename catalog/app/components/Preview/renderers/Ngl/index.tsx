@@ -18,13 +18,25 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
 const Ngl = RT.mkLazy(() => import('./Ngl'), SuspensePlaceholder)
 
-export default (
+const useStyles = M.makeStyles({
+  root: {
+    flexDirection: 'column',
+    width: '100%',
+  },
+})
+
+export default function NglWrapper(
   data: { files: NglFile[] },
   props: React.HTMLAttributes<HTMLDivElement>,
-) => (
-  <ErrorBoundary>
-    {data.files.map((file, index) => (
-      <Ngl key={`nlg_${index}`} {...file} {...props} />
-    ))}
-  </ErrorBoundary>
-)
+) {
+  const classes = useStyles()
+  return (
+    <ErrorBoundary>
+      <div className={classes.root}>
+        {data.files.map((file, index) => (
+          <Ngl key={`nlg_${index}`} {...file} {...props} />
+        ))}
+      </div>
+    </ErrorBoundary>
+  )
+}

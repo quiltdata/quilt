@@ -27,7 +27,7 @@ async function parseMol(
   }
 }
 
-async function parseResponse(
+export async function parseResponse(
   file: ResponseFile,
   handle: S3HandleBase,
 ): Promise<{ file: ResponseFile; ext: string }[]> {
