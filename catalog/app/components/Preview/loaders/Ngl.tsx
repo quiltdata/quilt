@@ -17,14 +17,13 @@ type ResponseFile = string | Uint8Array
 
 async function parseMol(
   content: string,
-  file: ResponseFile,
   ext: string,
 ): Promise<{ file: ResponseFile; ext: string }> {
-  // if (content.indexOf('V3000') === -1) return { ext, file: content }
+  if (content.indexOf('V3000') === -1) return { ext, file: content }
   const { Molecule } = await openchem
   return {
     ext: 'mol',
-    file: Molecule.fromMolfile(content).toMolfile(),
+    file: Molecule.fromMolfile(content.trim()).toMolfile(),
   }
 }
 
@@ -44,8 +43,9 @@ async function parseResponse(
     file
       .toString()
       .split('$$$$')
-      .filter((x) => !!x.trim())
-      .map((part) => parseMol(part + '$$$$', file, ext)),
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map((part) => parseMol(`${part}\n$$$$\n`, ext)),
   )
 }
 
