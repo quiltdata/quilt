@@ -25,18 +25,22 @@ const useStyles = M.makeStyles({
   },
 })
 
+function Wrapper({ children }: React.PropsWithChildren<{}>) {
+  const classes = useStyles()
+  return <div className={classes.root}>{children}</div>
+}
+
 export default function NglWrapper(
   data: { files: NglFile[] },
   props: React.HTMLAttributes<HTMLDivElement>,
 ) {
-  const classes = useStyles()
   return (
     <ErrorBoundary>
-      <div className={classes.root}>
+      <Wrapper>
         {data.files.map((file, index) => (
           <Ngl key={`nlg_${index}`} {...file} {...props} />
         ))}
-      </div>
+      </Wrapper>
     </ErrorBoundary>
   )
 }

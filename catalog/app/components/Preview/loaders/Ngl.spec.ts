@@ -3,8 +3,7 @@ import { parseResponse } from './Ngl'
 const fileA = `fileA.sdf
 Molecule A description
 
-1 2 3 4 V2000
-`
+1 2 3 4 V2000`
 
 const fileB = `fileB.sdf
 Molecule B description
@@ -12,8 +11,7 @@ Molecule B description
 0 0 0 0 0 999 V3000
 M V30 BEGIN CTAB
 M V30 END CTAB
-M END
-`
+M END`
 
 const fileBConverted = `
 Actelion Java MolfileCreator 1.0
@@ -25,8 +23,7 @@ M  END
 const fileC = `fileC.sdf
 Molecule C description
 
-1 2 3 4 V2000
-`
+1 2 3 4 V2000`
 
 const compoundFile = `${fileA}
 $$$$
@@ -42,7 +39,7 @@ describe('components/Preview/loaders/Ngl', () => {
     it('parses single file', async () => {
       const result = [
         {
-          file: `${fileA}$$$$\n`,
+          file: fileA,
           ext: 'sdf',
         },
       ]
@@ -50,21 +47,24 @@ describe('components/Preview/loaders/Ngl', () => {
         result,
       )
       expect(
+        await parseResponse(`${fileA}\n$$$$\n`, { bucket: '', key: 'fileA.sdf' }),
+      ).toMatchObject(result)
+      expect(
         await parseResponse(Buffer.from(fileA), { bucket: '', key: 'fileA.sdf' }),
       ).toMatchObject(result)
     })
     it('parses multiple files', async () => {
       const result = [
         {
-          file: `${fileA}$$$$\n`,
+          file: fileA,
           ext: 'sdf',
         },
         {
-          file: `${fileBConverted}`,
+          file: fileBConverted,
           ext: 'mol',
         },
         {
-          file: `${fileC}$$$$\n`,
+          file: fileC,
           ext: 'sdf',
         },
       ]

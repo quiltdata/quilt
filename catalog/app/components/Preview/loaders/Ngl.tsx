@@ -45,7 +45,7 @@ export async function parseResponse(
       .split('$$$$')
       .map((x) => x.trim())
       .filter(Boolean)
-      .map((part) => parseMol(`${part}\n$$$$\n`, ext)),
+      .map((part) => parseMol(part, ext)),
   )
 }
 
