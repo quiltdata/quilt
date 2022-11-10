@@ -1292,7 +1292,7 @@ class Package:
 
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=..., force=False):
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=..., force=False, dedupe=False):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1337,9 +1337,9 @@ class Package:
         Returns:
             A new package that points to the copied objects.
         """
-        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force)
+        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force, dedupe=dedupe)
 
-    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info, force):
+    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info, force, dedupe):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
@@ -1398,17 +1398,22 @@ class Package:
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
+        def get_latest_hash():
+            try:
+                return get_bytes(registry.pointer_latest_pk(name)).decode()
+            except botocore.exceptions.ClientError as ex:
+                if ex.response['Error']['Code'] == 'NoSuchKey':
+                    # Expected
+                    return None
+                raise
+
         def check_latest_hash():
             if force:
                 return
 
-            try:
-                latest_hash = get_bytes(registry.pointer_latest_pk(name)).decode()
-            except botocore.exceptions.ClientError as ex:
-                if ex.response['Error']['Code'] == 'NoSuchKey':
-                    # Expected
-                    return
-                raise
+            latest_hash = get_latest_hash()
+            if latest_hash is None:
+                return
 
             if self._origin is None or latest_hash != self._origin.top_hash:
                 raise QuiltConflictException(
@@ -1427,6 +1432,13 @@ class Package:
         pkg._set_commit_message(message)
         top_hash = self._calculate_top_hash(pkg._meta, self.walk())
         pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+
+        if dedupe:
+            latest_hash = get_latest_hash()
+            if top_hash == latest_hash:
+                if print_info:
+                    print(f"Package with hash {latest_hash} already exists at the destination; skipping.")
+                return
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
