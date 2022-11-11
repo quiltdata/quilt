@@ -202,14 +202,17 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe):
     try:
         pkg = Package.browse(name, None)
     except FileNotFoundError:
         pkg = Package()
 
     pkg.set_dir('.', dir, meta=meta)
-    pkg.push(name, registry=registry, dest=dest, message=message, workflow=workflow, force=force)
+    pkg.push(
+        name, registry=registry, dest=dest, message=message,
+        workflow=workflow, force=force, dedupe=dedupe
+    )
 
 
 def create_parser():
@@ -455,6 +458,14 @@ def create_parser():
         help="""
             Skip the parent top hash check and create a new revision
             even if your local state is behind the remote registry.
+            """,
+    )
+    optional_args.add_argument(
+        "--dedupe",
+        action="store_true",
+        help="""
+            Skip the push if the local package hash matches the remote hash.
+            Requires --force.
             """,
     )
     push_p.set_defaults(func=cmd_push)

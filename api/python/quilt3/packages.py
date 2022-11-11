@@ -1395,6 +1395,9 @@ class Package:
                         f"in the {registry!r} package registry specified by 'registry'."
                     )
 
+        if dedupe and not force:
+            raise QuiltException("dedupe=True requires force=True")
+
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
