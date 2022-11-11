@@ -18,12 +18,17 @@ const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
 const Ngl = RT.mkLazy(() => import('./Ngl'), SuspensePlaceholder)
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {
     flexDirection: 'column',
     width: '100%',
+    '& > div+div': {
+      borderTop: `1px solid ${t.palette.divider}`,
+      marginTop: t.spacing(2),
+      paddingTop: t.spacing(2),
+    },
   },
-})
+}))
 
 function Wrapper({ children }: React.PropsWithChildren<{}>) {
   const classes = useStyles()

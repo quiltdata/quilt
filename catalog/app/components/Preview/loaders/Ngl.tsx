@@ -9,7 +9,7 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData } from '../types'
 
-import mol from './formatters/mol'
+import * as mol from './formatters/mol'
 import * as utils from './utils'
 
 type ResponseFile = string | Uint8Array
@@ -17,13 +17,13 @@ type ResponseFile = string | Uint8Array
 export async function parseResponse(
   file: ResponseFile,
   handle: S3HandleBase,
-): Promise<{ file: ResponseFile; ext: string }[]> {
+): Promise<{ file: ResponseFile; ext: string; meta?: mol.MolMeta }[]> {
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
   switch (ext) {
     case 'sdf':
     case 'mol':
     case 'mol2':
-      return mol(file, ext)
+      return mol.parse(file, ext)
     default:
       return [
         {
@@ -55,7 +55,7 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
       const body = compression === 'gz' ? gzipDecompress(r.Body as string) : r.Body
       const files = await parseResponse(body, handle)
       return PreviewData.Ngl({
-        files: files.map(({ file, ext }) => ({ blob: new Blob([file]), ext })),
+        files: files.map(({ file, ...rest }) => ({ blob: new Blob([file]), ...rest })),
       })
     },
   )

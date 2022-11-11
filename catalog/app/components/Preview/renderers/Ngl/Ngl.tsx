@@ -2,6 +2,10 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import type { Stage } from 'ngl'
 
+import { JsonRecord } from 'utils/types'
+
+import Meta from './Meta'
+
 const NGLLibrary = import('ngl')
 
 async function renderNgl(blob: Blob, ext: string, wrapperEl: HTMLDivElement, t: M.Theme) {
@@ -20,6 +24,18 @@ async function renderNgl(blob: Blob, ext: string, wrapperEl: HTMLDivElement, t: 
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    position: 'relative',
+  },
+  meta: {
+    left: t.spacing(0),
+    opacity: 0.7,
+    position: 'absolute',
+    top: t.spacing(2),
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+  wrapper: {
     height: t.spacing(50),
     overflow: 'auto',
     resize: 'vertical',
@@ -30,12 +46,14 @@ const useStyles = M.makeStyles((t) => ({
 export interface NglFile {
   blob: Blob
   ext: string
+  meta?: JsonRecord
 }
 
 // type NglProps = NglFile & React.HTMLAttributes<HTMLDivElement>
 interface NglProps extends NglFile, React.HTMLAttributes<HTMLDivElement> {}
 
-export default function Ngl({ blob, ext, ...props }: NglProps) {
+export default function Ngl({ blob, ext, meta, ...props }: NglProps) {
+  console.log('NGL', meta, JSON.stringify(meta))
   const classes = useStyles()
 
   const t = M.useTheme()
@@ -67,5 +85,14 @@ export default function Ngl({ blob, ext, ...props }: NglProps) {
 
   if (error) throw error
 
-  return <div ref={viewport} className={classes.root} {...props} />
+  return (
+    <div className={classes.root}>
+      <div ref={viewport} className={classes.wrapper} {...props} />
+      {!!meta && (
+        <M.Paper className={classes.meta}>
+          <Meta meta={meta} />
+        </M.Paper>
+      )}
+    </div>
+  )
 }
