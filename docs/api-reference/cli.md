@@ -137,7 +137,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force]
+                   [--force] [--dedupe]
                    name
 
 Pushes the new package to the remote registry
@@ -162,6 +162,8 @@ optional arguments:
   --force              Skip the parent top hash check and create a new
                        revision even if your local state is behind the remote
                        registry.
+  --dedupe             Skip the push if the local package hash matches the
+                       remote hash. Requires --force.
 ```
 ## `verify`
 ```
