@@ -1437,7 +1437,7 @@ class Package:
             latest_hash = get_latest_hash()
             if top_hash == latest_hash:
                 if print_info:
-                    print(f"Package with hash {latest_hash} already exists at the destination; skipping.")
+                    print(f"Skipping since package with hash {latest_hash} already exists at the destination and dedupe parameter is true.")
                 return
 
         # Since all that is modified is physical keys, pkg will have the same top hash
