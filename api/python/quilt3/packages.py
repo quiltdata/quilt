@@ -1294,7 +1294,7 @@ class Package:
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force=False, dedupe=False
+        workflow=..., force: bool=False, dedupe: bool=False
     ):
         """
         Copies objects to path, then creates a new package that points to those objects.
@@ -1336,6 +1336,7 @@ class Package:
                 push the local file to s3 (instead of pushing all data to the destination bucket).
             %(workflow)s
             force: skip the top hash check and overwrite any existing package
+            dedupe: don't push if the top hash matches the existing package top hash; return the current package
 
         Returns:
             A new package that points to the copied objects.
@@ -1347,7 +1348,7 @@ class Package:
 
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow, print_info, force, dedupe
+        workflow, print_info, force: bool, dedupe: bool
     ):
         if selector_fn is None:
             def selector_fn(*args):
@@ -1404,9 +1405,6 @@ class Package:
                         f"in the {registry!r} package registry specified by 'registry'."
                     )
 
-        if dedupe and not force:
-            raise QuiltException("dedupe=True requires force=True")
-
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
@@ -1455,7 +1453,7 @@ class Package:
                     f"Skipping since package with hash {latest_hash} already exists "
                     "at the destination and dedupe parameter is true."
                 )
-            return
+            return self
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
