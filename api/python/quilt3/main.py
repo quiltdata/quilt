@@ -463,10 +463,7 @@ def create_parser():
     optional_args.add_argument(
         "--dedupe",
         action="store_true",
-        help="""
-            Skip the push if the local package hash matches the remote hash.
-            Requires --force.
-            """,
+        help="Skip the push if the local package hash matches the remote hash.",
     )
     push_p.set_defaults(func=cmd_push)
 
