@@ -32,21 +32,26 @@ export async function parseResponse(
   handle: S3HandleBase,
 ): Promise<{ file: ResponseFile; ext: string }[]> {
   const ext = extname(utils.stripCompression(handle.key)).substring(1)
-  if (ext !== 'sdf' && ext !== 'mol' && ext !== 'mol2')
-    return [
-      {
-        ext,
-        file,
-      },
-    ]
-  return Promise.all(
-    file
-      .toString()
-      .split('$$$$')
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .map((part) => parseMol(part, ext)),
-  )
+  switch (ext) {
+    case 'sdf':
+    case 'mol':
+    case 'mol2':
+      return Promise.all(
+        file
+          .toString()
+          .split('$$$$')
+          .map((x) => x.trim())
+          .filter(Boolean)
+          .map((part) => parseMol(part, ext)),
+      )
+    default:
+      return [
+        {
+          ext,
+          file,
+        },
+      ]
+  }
 }
 
 export const detect = R.pipe(
