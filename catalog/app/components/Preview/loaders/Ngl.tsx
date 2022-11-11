@@ -9,23 +9,10 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData } from '../types'
 
+import mol from './formatters/mol'
 import * as utils from './utils'
 
-const openchem = import('openchemlib/minimal')
-
 type ResponseFile = string | Uint8Array
-
-async function parseMol(
-  content: string,
-  ext: string,
-): Promise<{ file: ResponseFile; ext: string }> {
-  if (content.indexOf('V3000') === -1) return { ext, file: content }
-  const { Molecule } = await openchem
-  return {
-    ext: 'mol',
-    file: Molecule.fromMolfile(content.trim()).toMolfile(),
-  }
-}
 
 export async function parseResponse(
   file: ResponseFile,
@@ -36,14 +23,7 @@ export async function parseResponse(
     case 'sdf':
     case 'mol':
     case 'mol2':
-      return Promise.all(
-        file
-          .toString()
-          .split('$$$$')
-          .map((x) => x.trim())
-          .filter(Boolean)
-          .map((part) => parseMol(part, ext)),
-      )
+      return mol(file, ext)
     default:
       return [
         {
