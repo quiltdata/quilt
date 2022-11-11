@@ -1407,11 +1407,7 @@ class Package:
                     return None
                 raise
 
-        def check_latest_hash():
-            if force:
-                return
-
-            latest_hash = get_latest_hash()
+        def check_hash_conficts(latest_hash):
             if latest_hash is None:
                 return
 
@@ -1422,8 +1418,16 @@ class Package:
                     "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
+        # Get the latest hash if we're either checking for conflicts or deduping.
+        # Otherwise, avoid making unnecessary network calls.
+        if not force or dedupe:
+            latest_hash = get_latest_hash()
+        else:
+            latest_hash = None
+
         # Check the top hash and fail early if it's unexpected.
-        check_latest_hash()
+        if not force:
+            check_hash_conficts(latest_hash)
 
         self._fix_sha256()
 
@@ -1433,12 +1437,13 @@ class Package:
         top_hash = self._calculate_top_hash(pkg._meta, self.walk())
         pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
-        if dedupe:
-            latest_hash = get_latest_hash()
-            if top_hash == latest_hash:
-                if print_info:
-                    print(f"Skipping since package with hash {latest_hash} already exists at the destination and dedupe parameter is true.")
-                return
+        if dedupe and top_hash == latest_hash:
+            if print_info:
+                print(
+                    f"Skipping since package with hash {latest_hash} already exists "
+                    "at the destination and dedupe parameter is true."
+                )
+            return
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
@@ -1489,7 +1494,9 @@ class Package:
                 self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.
-        check_latest_hash()
+        if not force:
+            latest_hash = get_latest_hash()
+            check_hash_conficts(latest_hash)
 
         pkg._push_manifest(name, registry, top_hash)
 
