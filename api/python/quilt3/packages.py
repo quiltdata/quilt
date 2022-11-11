@@ -1294,7 +1294,7 @@ class Package:
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force: bool=False, dedupe: bool=False
+        workflow=..., force: bool = False, dedupe: bool = False
     ):
         """
         Copies objects to path, then creates a new package that points to those objects.

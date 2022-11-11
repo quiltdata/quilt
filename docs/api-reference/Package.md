@@ -270,7 +270,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force=False, dedupe=False)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -315,6 +315,7 @@ __Arguments__
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
 
 * __force__:  skip the top hash check and overwrite any existing package
+* __dedupe__:  don't push if the top hash matches the existing package top hash; return the current package
 
 __Returns__
 

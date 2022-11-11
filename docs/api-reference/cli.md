@@ -163,7 +163,7 @@ optional arguments:
                        revision even if your local state is behind the remote
                        registry.
   --dedupe             Skip the push if the local package hash matches the
-                       remote hash. Requires --force.
+                       remote hash.
 ```
 ## `verify`
 ```
