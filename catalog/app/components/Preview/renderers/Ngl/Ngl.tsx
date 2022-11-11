@@ -53,7 +53,6 @@ export interface NglFile {
 interface NglProps extends NglFile, React.HTMLAttributes<HTMLDivElement> {}
 
 export default function Ngl({ blob, ext, meta, ...props }: NglProps) {
-  console.log('NGL', meta, JSON.stringify(meta))
   const classes = useStyles()
 
   const t = M.useTheme()

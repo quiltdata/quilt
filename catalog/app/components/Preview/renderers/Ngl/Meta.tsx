@@ -17,7 +17,8 @@ interface MetaProps {
 export default function Meta({ meta }: MetaProps) {
   const classes = useStyles()
   const entries = React.useMemo(
-    () => Object.entries(meta).filter(([key, value]) => !!value),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    () => Object.entries(meta).filter(([_1, value]) => !!value),
     [meta],
   )
   return (
