@@ -5,7 +5,7 @@ import { createBoundary } from 'utils/ErrorBoundary'
 import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
-import type { NglFile } from './Ngl'
+import type { NglFile, NglProps } from './Ngl'
 
 function NglError() {
   // TODO: <a href={docs}>Learn more</a>
@@ -16,13 +16,15 @@ const ErrorBoundary = createBoundary(() => () => <NglError />)
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Ngl = RT.mkLazy(() => import('./Ngl'), SuspensePlaceholder)
+const Ngl: React.FC<NglProps> = RT.mkLazy(() => import('./Ngl'), SuspensePlaceholder)
 
 const useStyles = M.makeStyles((t) => ({
   root: {
     flexDirection: 'column',
     width: '100%',
-    '& > div+div': {
+  },
+  item: {
+    '& + &': {
       borderTop: `1px solid ${t.palette.divider}`,
       marginTop: t.spacing(2),
       paddingTop: t.spacing(2),
@@ -30,9 +32,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Wrapper({ children }: React.PropsWithChildren<{}>) {
+interface NglWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
+  files: NglFile[]
+}
+
+function NglRenderer({ files, className, ...props }: NglWrapperProps) {
   const classes = useStyles()
-  return <div className={classes.root}>{children}</div>
+  return (
+    <div className={classes.root} {...props}>
+      {files.map((file, index) => (
+        <Ngl {...file} className={classes.item} key={`nlg_${index}`} />
+      ))}
+    </div>
+  )
 }
 
 export default function NglWrapper(
@@ -41,11 +53,7 @@ export default function NglWrapper(
 ) {
   return (
     <ErrorBoundary>
-      <Wrapper>
-        {data.files.map((file, index) => (
-          <Ngl key={`nlg_${index}`} {...file} {...props} />
-        ))}
-      </Wrapper>
+      <NglRenderer files={data.files} {...props} />
     </ErrorBoundary>
   )
 }

@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import type { Stage } from 'ngl'
@@ -49,10 +50,11 @@ export interface NglFile {
   meta?: JsonRecord
 }
 
-// type NglProps = NglFile & React.HTMLAttributes<HTMLDivElement>
-interface NglProps extends NglFile, React.HTMLAttributes<HTMLDivElement> {}
+export interface NglProps extends NglFile {
+  className: string
+}
 
-export default function Ngl({ blob, ext, meta, ...props }: NglProps) {
+export default function Ngl({ blob, className, ext, meta }: NglProps) {
   const classes = useStyles()
 
   const t = M.useTheme()
@@ -85,8 +87,8 @@ export default function Ngl({ blob, ext, meta, ...props }: NglProps) {
   if (error) throw error
 
   return (
-    <div className={classes.root}>
-      <div ref={viewport} className={classes.wrapper} {...props} />
+    <div className={cx(classes.root, className)}>
+      <div ref={viewport} className={classes.wrapper} />
       {!!meta && (
         <M.Paper className={classes.meta}>
           <Meta meta={meta} />
