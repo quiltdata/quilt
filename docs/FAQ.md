@@ -125,6 +125,18 @@ for (k, e) in p.walk():
 
 You can then follow the above with `q3.delete_package(pname, registry=reg, top_hash=p.top_hash)`.
 
+## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
+
+Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) 
+and `quilt3` will use the same for its API calls. Select among multiple profiles in your shell as follows:
+```bash
+export AWS_PROFILE=your_profile
+```
+
+The S3 permissions needed by `quilt3` are similar to
+[this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies)
+but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
+
 ## How complex can my Athena queries be?
 
 Amazon Athena supports a subset of Data Defintion Language (DDL)
