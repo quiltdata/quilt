@@ -13,7 +13,37 @@ export type ActionPreferences = Record<
   boolean
 >
 
-type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boolean>
+export interface MetaBlockPreferencesInput {
+  user_meta?: {
+    expanded: boolean | number
+  }
+  workflows?: {
+    expanded: boolean | number
+  }
+}
+
+export interface MetaBlockPreferences {
+  userMeta: {
+    expanded: boolean | number
+  }
+  workflows: {
+    expanded: boolean | number
+  }
+}
+
+interface BlocksPreferencesInput {
+  analytics?: boolean
+  browser?: boolean
+  code?: boolean
+  meta?: boolean | MetaBlockPreferencesInput
+}
+
+interface BlocksPreferences {
+  analytics: boolean
+  browser: boolean
+  code: boolean
+  meta: false | MetaBlockPreferences
+}
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
@@ -43,7 +73,7 @@ export interface AthenaPreferences {
 interface UiPreferencesInput {
   actions?: Partial<ActionPreferences>
   athena?: AthenaPreferences
-  blocks?: Partial<BlocksPreferences>
+  blocks?: Partial<BlocksPreferencesInput>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
   package_description?: PackagesListPreferencesInput
@@ -72,6 +102,15 @@ export interface BucketPreferences {
   ui: UiPreferences
 }
 
+const defaultBlockMeta: MetaBlockPreferences = {
+  userMeta: {
+    expanded: false,
+  },
+  workflows: {
+    expanded: false,
+  },
+}
+
 const defaultPreferences: BucketPreferences = {
   ui: {
     actions: {
@@ -86,7 +125,7 @@ const defaultPreferences: BucketPreferences = {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: defaultBlockMeta,
     },
     nav: {
       files: true,
@@ -125,6 +164,25 @@ function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
         }
       : null),
     ...rest,
+  }
+}
+
+function parseMetaBlock(
+  meta?: boolean | MetaBlockPreferencesInput,
+): false | MetaBlockPreferences {
+  if (meta === false) return false
+  if (meta === true || meta === undefined) return defaultBlockMeta
+  return {
+    userMeta: meta.user_meta || defaultBlockMeta.userMeta,
+    workflows: meta.workflows || defaultBlockMeta.workflows,
+  }
+}
+
+function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
+  return {
+    ...defaultPreferences.ui.blocks,
+    ...blocks,
+    meta: parseMetaBlock(blocks?.meta),
   }
 }
 
@@ -173,6 +231,7 @@ export function extendDefaults(
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       athena: parseAthena(data?.ui?.athena),
+      blocks: parseBlocks(data?.ui?.blocks),
       package_description: parsePackages(data?.ui?.package_description),
       sourceBuckets: parseSourceBuckets(
         sentry,

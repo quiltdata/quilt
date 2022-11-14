@@ -16,7 +16,14 @@ const expectedDefaults = {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: {
+        userMeta: {
+          expanded: false,
+        },
+        workflows: {
+          expanded: false,
+        },
+      },
     },
     nav: {
       files: true,

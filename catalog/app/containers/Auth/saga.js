@@ -120,6 +120,10 @@ function* signOut() {
  * @throws {AuthError}
  */
 function* signIn(credentials) {
+  if (typeof credentials.token === 'string' && typeof credentials.exp === 'number') {
+    return { token: credentials.token, exp: credentials.exp }
+  }
+
   try {
     const { token, exp } = yield call(apiRequest, {
       auth: false,

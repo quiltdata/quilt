@@ -237,7 +237,7 @@ function usePackageMeta(
   revision: { message: string | null; userMeta: JsonRecord | null } | null,
 ) {
   // TODO: move visible meta calculation to the graphql
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   return React.useMemo(() => {
     const output: (string | string[])[] = []
     try {
@@ -546,7 +546,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,

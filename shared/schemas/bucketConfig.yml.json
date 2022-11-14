@@ -90,8 +90,38 @@
             "meta": {
               "default": true,
               "description": "Show/hide metadata block",
-              "type": "boolean",
-              "examples": [true, false]
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "user_meta": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
+                        }
+                      }
+                    },
+                    "workflows": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": [
+                true,
+                false,
+                {
+                  "user_meta": { "expanded": true },
+                  "workflows": { "expanded": 1 }
+                }
+              ]
             }
           }
         },
