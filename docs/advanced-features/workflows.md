@@ -423,6 +423,10 @@ and
 
 ## Known limitations
 * Only [Draft 7 Json Schemas](https://json-schema.org/specification-links.html#draft-7) are supported
-  * If a workflow schema includes a non-supported keyword, the user interface displays an `unknown keyword: <non-supported keyword>` error
-* Schemas with [`$ref`](https://json-schema.org/draft-07/json-schema-core.html#rfc.section.8.3) are not supported
+  * If a workflow schema includes a non-supported keyword, the user
+  interface displays an `unknown keyword: <non-supported keyword>`
+  error
+* Schemas with
+[`$ref`](https://json-schema.org/draft-07/json-schema-core.html#rfc.section.8.3)
+are not supported
 * Schemas must be in an S3 bucket for which the Quilt user has read permissions
