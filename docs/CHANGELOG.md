@@ -59,6 +59,7 @@
 * [Changed] Support dots in bucket names while using S3 proxy ([#3147](https://github.com/quiltdata/quilt/pull/3147))
 * [Changed] Support `additonalProperties` and `items` in JsonEditor ([#3144](https://github.com/quiltdata/quilt/pull/3144))
 * [Changed] Initialize Catalog configuration synchronously from `QUILT_CATALOG_CONFIG` global var ([#3166](https://github.com/quiltdata/quilt/pull/3166))
+* [Changed] Handle rendering multiple molecules in one .sdf file ([#3179](https://github.com/quiltdata/quilt/pull/3179))
 
 ## Docs
 * [Added] Add number of IPs used; S3 filename limitations; multi-molecule SDF support ([#3180](https://github.com/quiltdata/quilt/pull/3180))
