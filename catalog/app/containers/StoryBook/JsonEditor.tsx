@@ -2,8 +2,8 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
-import * as jsonSchema from 'utils/json-schema'
 import { JsonValue, ValidationErrors } from 'components/JsonEditor/constants'
+import * as jsonSchema from 'utils/json-schema'
 
 const schema = {
   type: 'object',

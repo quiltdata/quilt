@@ -238,7 +238,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
     history.push(urls.bucketPackageList(bucket))
@@ -457,7 +457,7 @@ function DirDisplay({
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
               )}
-              {preferences?.ui?.blocks?.meta && (
+              {!!preferences?.ui?.blocks?.meta && (
                 <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
               )}
               <M.Box mt={2}>
@@ -615,7 +615,7 @@ function FileDisplay({
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const packageHandle = React.useMemo(
     () => ({ bucket, name, hash }),

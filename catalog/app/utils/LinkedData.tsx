@@ -3,8 +3,8 @@ import { Helmet } from 'react-helmet'
 import * as urql from 'urql'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import cfg from 'constants/config'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
-import { useConfig } from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import BUCKET_CONFIGS_QUERY from './LinkedDataBuckets.generated'
@@ -20,8 +20,8 @@ const catalogRef = (name: string) => ({
 interface BucketDescriptor {
   name: string
   title: string
-  description?: string
-  tags?: string[]
+  description?: string | null
+  tags?: $TSFixMe // string[] | null
   linkedData?: $TSFixMe
 }
 
@@ -90,7 +90,7 @@ const mkCatalogAnnotation = ({
 
 interface MkBucketAnnotationOpts {
   config: BucketConfig
-  catalog: string
+  catalog: string | undefined
   urls: NamedRoutes.Urls<BucketRootRoutes>
 }
 
@@ -120,7 +120,7 @@ interface MkPackageAnnotationOpts {
   hash: string
   modified: Date
   header: PackageHeader
-  catalog: string
+  catalog: string | undefined
   urls: NamedRoutes.Urls<BucketRootRoutes & PackageRoutes>
 }
 
@@ -160,11 +160,13 @@ const renderJsonLd = (ld: object) => (
 )
 
 export function CatalogData() {
-  const cfg = useConfig()
+  const { linkedData } = cfg
   const buckets = useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use<BucketRootRoutes>()
-  if (!cfg.linkedData?.name) return null
-  const ld = mkCatalogAnnotation({ ...cfg.linkedData, buckets, urls })
+  if (!linkedData) return null
+  const { name, description } = linkedData
+  if (!name) return null
+  const ld = mkCatalogAnnotation({ name, description, buckets, urls })
   return renderJsonLd(ld)
 }
 
@@ -173,7 +175,6 @@ interface BucketDataProps {
 }
 
 export function BucketData({ bucket }: BucketDataProps) {
-  const cfg = useConfig()
   const { urls } = NamedRoutes.use<BucketRootRoutes>()
   const [{ data }] = urql.useQuery({
     query: BUCKET_CONFIGS_QUERY,
@@ -198,7 +199,6 @@ interface PackageDataProps {
 }
 
 export function PackageData({ bucket, name, hash, modified, header }: PackageDataProps) {
-  const cfg = useConfig()
   const { urls } = NamedRoutes.use<PackageRoutes & BucketRootRoutes>()
   if (!cfg.linkedData) return null
   const ld = mkPackageAnnotation({

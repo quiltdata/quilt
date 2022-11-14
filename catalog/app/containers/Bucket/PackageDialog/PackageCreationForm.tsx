@@ -750,7 +750,7 @@ export function usePackageCreationDialog({
     { noAutoFetch: !bucket },
   )
   // XXX: use AsyncResult
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,

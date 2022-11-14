@@ -26,7 +26,6 @@ import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
 import { GraphQLProvider } from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import GlobalAPI from 'utils/GlobalAPI'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
@@ -89,7 +88,6 @@ const render = () => {
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
       Cache.Provider,
-      [Config.Provider, { path: '/config.json' }],
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,
