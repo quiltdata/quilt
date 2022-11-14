@@ -190,9 +190,6 @@ class PackageEntry:
 
         Args:
             meta(dict): user level metadata dict
-
-        Warnings:
-            meta(dict) arg value will override any previously defined metadata dict
         """
         self._meta['user_meta'] = meta
 
@@ -223,7 +220,7 @@ class PackageEntry:
             self
 
         Warnings:
-            meta(dict) arg value will override any previously defined metadata dict
+            meta(dict) will override any previously defined metadata
         """
         if path is not None:
             self.physical_key = PhysicalKey.from_url(fix_url(path))
@@ -838,7 +835,7 @@ class Package:
             ValueError: When `update_policy` is invalid.
 
         Warnings:
-            meta(dict) arg value will override any previously defined metadata dict
+            meta(dict) will override any previously defined metadata
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
@@ -1133,7 +1130,7 @@ class Package:
             self
 
         Warnings:
-            meta(dict) arg value will override any previously defined metadata dict
+            meta(dict) will override any previously defined metadata
         """
         return self._set(logical_key=logical_key,
                          entry=entry,
