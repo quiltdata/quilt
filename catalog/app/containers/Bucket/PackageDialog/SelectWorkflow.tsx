@@ -20,6 +20,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface SelectWorkflowProps {
+  bucket: string
+  disabled?: boolean
+  error?: React.ReactNode
+  items: workflows.Workflow[]
+  onChange: (v: workflows.Workflow) => void
+  value: workflows.Workflow
+}
+
 export default function SelectWorkflow({
   bucket,
   disabled,
@@ -27,7 +36,7 @@ export default function SelectWorkflow({
   items,
   onChange,
   value,
-}) {
+}: SelectWorkflowProps) {
   const classes = useStyles()
 
   const noChoice = items.length === 1
@@ -63,10 +72,12 @@ export default function SelectWorkflow({
       <M.FormHelperText>
         {!!error && <span className={classes.error}>{error}</span>}
         <M.Link href={`${docs}/advanced/workflows`} target="_blank">
-          Learn about quality workflows
+          Learn about data quality workflows
         </M.Link>
         , or edit{' '}
-        <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>
+        <WorkflowsConfigLink bucket={bucket}>
+          your workflows config file
+        </WorkflowsConfigLink>
       </M.FormHelperText>
     </M.FormControl>
   )

@@ -26,7 +26,7 @@ import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
 import { GraphQLProvider } from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
+import GlobalAPI from 'utils/GlobalAPI'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
@@ -42,6 +42,10 @@ import '!file-loader?name=[name].[ext]!./favicon.ico'
 import '!file-loader?name=[name].[ext]!./quilt-og.png'
 // Import CSS reset and Global Styles
 import WithGlobalStyles from './global-styles'
+
+const globalApi = new GlobalAPI()
+globalApi.attach(window)
+const GlobalAPIProvider = globalApi.getProvider()
 
 // listen for Roboto fonts
 fontLoader('Roboto', 'Roboto Mono').then(() => {
@@ -80,10 +84,10 @@ const render = () => {
       // @ts-expect-error
       Sentry.Provider,
       [Store.Provider, { history }],
+      GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
       Cache.Provider,
-      [Config.Provider, { path: '/config.json' }],
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,

@@ -1,8 +1,8 @@
 query (
-  $page: Int!,
-  $perPage: Int!,
-  $filter: StatusReportListFilter!,
-  $order: StatusReportListOrder!,
+  $page: Int!
+  $perPage: Int!
+  $filter: StatusReportListFilter!
+  $order: StatusReportListOrder!
 ) {
   status {
     __typename

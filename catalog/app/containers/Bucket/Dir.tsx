@@ -1,4 +1,4 @@
-import { basename, join, extname } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -8,8 +8,7 @@ import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
-import * as Dialog from 'components/Dialog'
-import { detect } from 'components/FileEditor/loader'
+import * as FileEditor from 'components/FileEditor'
 import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -39,31 +38,7 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const { urls } = NamedRoutes.use<RouteMap>()
-  const history = RRDom.useHistory()
-
-  const createFile = React.useCallback(
-    (name: string) => {
-      if (!name) return
-      history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
-    },
-    [bucket, history, path, urls],
-  )
-  const validateFileName = React.useCallback((value: string) => {
-    if (!value) {
-      return new Error('File name is required')
-    }
-    if (!detect(value).brace || extname(value) === '.' || !extname(value)) {
-      // TODO: get list of supported extensions from FileEditor
-      return new Error('Supported file formats are JSON, Markdown, YAML and text')
-    }
-  }, [])
-  const prompt = Dialog.usePrompt({
-    onSubmit: createFile,
-    initialValue: 'README.md',
-    title: 'Enter file name',
-    validate: validateFileName,
-  })
+  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
   const menuItems = React.useMemo(
     () => [
       {
@@ -316,7 +291,7 @@ export default function Dir({
   const { urls } = NamedRoutes.use<RouteMap>()
   const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket

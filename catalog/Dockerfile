@@ -11,6 +11,8 @@ COPY build /usr/share/nginx/html
 # Copy config file
 COPY config.json.tmpl config.json.tmpl
 
-# Substitute environment variables into config.js before starting nginx.
+# Substitute environment variables into config.json and generate config.js based on that before starting nginx.
 # Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
-CMD envsubst < config.json.tmpl > /usr/share/nginx/html/config.json && exec nginx -g 'daemon off;'
+CMD envsubst < config.json.tmpl > /usr/share/nginx/html/config.json \
+    && echo "window.QUILT_CATALOG_CONFIG = `cat /usr/share/nginx/html/config.json`" > /usr/share/nginx/html/config.js \
+    && exec nginx -g 'daemon off;'

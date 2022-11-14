@@ -2,6 +2,7 @@ const path = require('path')
 
 module.exports = {
   preset: 'ts-jest/presets/js-with-ts',
+  testEnvironment: 'jsdom',
   collectCoverageFrom: [
     'app/**/*.{j,t}s{,x}',
     '!app/**/*.test.{j,t}s{,x}',
@@ -27,7 +28,10 @@ module.exports = {
     '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/internals/mocks/image.js',
   },
-  setupFiles: ['jest-localstorage-mock'],
+  setupFiles: [
+    'jest-localstorage-mock',
+    './setup-jest.ts',
+  ],
   testRegex: '.*\\.(test|spec)\\.[jt]sx?$',
   testURL: 'https://quilt-test',
   transformIgnorePatterns: [
