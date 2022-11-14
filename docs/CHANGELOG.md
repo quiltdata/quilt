@@ -61,6 +61,7 @@
 * [Changed] Initialize Catalog configuration synchronously from `QUILT_CATALOG_CONFIG` global var ([#3166](https://github.com/quiltdata/quilt/pull/3166))
 
 ## Docs
+* [Added] Add note on non-supported JSON schema keyword UI errors ([#3183](https://github.com/quiltdata/quilt/pull/3183))
 * [Added] Add number of IPs used; S3 filename limitations; multi-molecule SDF support ([#3180](https://github.com/quiltdata/quilt/pull/3180))
 * [Removed] Delete out-of-date Roadmap section ([#3177](https://github.com/quiltdata/quilt/pull/3177))
 * [Fixed] Meeting scheduling link, mailto, package deletion ([#3161](https://github.com/quiltdata/quilt/pull/3161))
