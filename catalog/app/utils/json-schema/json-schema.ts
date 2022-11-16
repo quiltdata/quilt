@@ -230,6 +230,7 @@ export function makeSchemaValidator(
   const { $id } = schemas[0]
   const options: Options = {
     allErrors: true,
+    allowUnionTypes: true,
     schemaId: '$id',
     schemas,
     useDefaults: true,
