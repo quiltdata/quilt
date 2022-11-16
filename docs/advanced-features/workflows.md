@@ -225,6 +225,33 @@ keyword `dateformat` in your schemas. For example:
 The `dateformat` template follows
 [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table).
 
+### Drop-down list of predefined values
+Quilt supports the [`array` data type](https://json-schema.org/understanding-json-schema/reference/array.html). 
+Arrays are used for ordered elements. If you need your users to
+select one or more metadata entries from a strict list of values, then use
+the `array` data type. This is important for consistency across
+your data package metadata.
+
+Define your list items with the `items` keyword,
+then in a list use the `enum` data type to strictly define the
+available options in a tuple. You also need to define a minimum number
+of entries using the `minItems` keyword and a maximum number of
+entries using the `maxItems` keyword. For example:
+
+```json
+{
+    "type": "array",
+    "items": [
+        {"enum": ["Fixed Value 1","Fixed Value 2","Fixed Value 3","Fixed Value 4"]}
+    ],
+    "minItems": 2,
+    "maxItems": 4
+}
+```
+
+Note that we use the Draft 4 Json Schema where tuples are validated with `items`, and not `prefixItems`.
+The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.
+
 ## Data quality controls
 In addition to package-level metadata. Quilt workflows enable you to validate
 package names, and basic file metadata.
