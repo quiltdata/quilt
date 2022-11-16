@@ -10,4 +10,4 @@
 - [ ] Documentation
     - [ ] [Python: Run `build.py`](../gendocs/build.py) for new docstrings
     - [ ] JavaScript: basic explanation and screenshot of new features
-- [ ] [Changelog](CHANGELOG.md) entry
+- [ ] [Changelog](CHANGELOG.md) entry (does not apply to documentation changes)
