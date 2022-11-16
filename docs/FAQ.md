@@ -6,8 +6,7 @@ p = quilt3.Package()
 p.set_dir(".", ".")
 p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
-
-Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
+> Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
 for more control over which files `set_dir()` includes.
 
 ## How does Quilt versioning relate to S3 object versioning?
@@ -129,11 +128,7 @@ You can then follow the above with `q3.delete_package(pname, registry=reg, top_h
 ## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
 
 Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) 
-and `quilt3` will use the same for its API calls.
-
-Note: be sure to run `quilt3 logout` if you've previously logged in.
-
-Select among multiple profiles in your shell as follows:
+and `quilt3` will use the same for its API calls. Select among multiple profiles in your shell as follows:
 ```bash
 export AWS_PROFILE=your_profile
 ```
