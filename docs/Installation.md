@@ -3,10 +3,11 @@
 
 # Installation
 
-Quilt has two user-facing components:
+Quilt has three user-facing components:
 
 * A Python client
 * A web catalog
+* A command line interface 
 
 ## Python client
 
@@ -16,7 +17,7 @@ Python 3.6 or higher is required.
 $ pip install quilt3[pyarrow]
 ```
 
-If you do not need to serialize and deserialize dataframes with Quilt, you can
+If you do not need to serialize and deserialize dataframes with Quilt <!-- SK: How do I know? --> , you can
 obtain a smaller install, useful in disk-constrained environments like AWS Lambda,
 with `pip install quilt3`.
 
