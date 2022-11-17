@@ -42,6 +42,8 @@ export default function EnumSelect({
     value === EMPTY_VALUE ? '' : JSON.stringify(value),
   )
 
+  const handleBlur = React.useCallback(() => onChange(innerValue), [innerValue, onChange])
+
   return (
     <div className={classes.root} onContextMenu={onContextMenu}>
       <Lab.Autocomplete
@@ -67,6 +69,7 @@ export default function EnumSelect({
             }}
             // eslint-disable-next-line react/jsx-no-duplicate-props
             inputProps={inputProps}
+            onBlur={handleBlur}
           />
         )}
         renderOption={(option) => <PreviewValue value={option} />}
