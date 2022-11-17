@@ -19,6 +19,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
 * [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
 * [Changed] Use `platformdirs` instead of unmaintained `appdirs` ([#3140](https://github.com/quiltdata/quilt/pull/3140))
+* [Added] `dedupe` parameter for `Package.push()` ([#3181](https://github.com/quiltdata/quilt/pull/3181))
 
 ## CLI
 * [Added] `--dedupe` flag for `quilt3 push` ([#3181](https://github.com/quiltdata/quilt/pull/3181))
