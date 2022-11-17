@@ -225,31 +225,137 @@ keyword `dateformat` in your schemas. For example:
 The `dateformat` template follows
 [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table).
 
-### Drop-down list of predefined values
+### Arrays, tuples and enums
 Quilt supports the [`array` data type](https://json-schema.org/understanding-json-schema/reference/array.html). 
-Arrays are used for ordered elements. If you need your users to
-select one or more metadata entries from a strict list of values, then use
-the `array` data type. This is important for consistency across
-your data package metadata.
+You can use `array` if you need to define a list of metadata values for a metadata key.
+These elements can be of any type.
 
-Define your list items with the `items` keyword,
-then in a list use the `enum` data type to strictly define the
-available options in a tuple. You also need to define a minimum number
-of entries using the `minItems` keyword and a maximum number of
-entries using the `maxItems` keyword. For example:
+If the order in the list is not significant, use "arrays" (using `"items"` and `"anyOf"`):
+
+```json
+{
+    "type": "array",
+    "items": {
+        "anyOf": [
+            {
+                "type": "string"
+            },
+            {
+                "type": "number"
+            }
+        ]
+    }
+}
+```
+
+With this Schema you can create a list of metadata values such as:
+`["Any string A", 123, "Any string B"]` or `[123, "Any string", 456]`
+
+If the order in the list is important and the list is fixed in
+length, then use "tuples" (using `"items"`, `"minItems"`, and `"maxItems"`):
 
 ```json
 {
     "type": "array",
     "items": [
-        {"enum": ["Fixed Value 1","Fixed Value 2","Fixed Value 3","Fixed Value 4"]}
+        {
+            "type": "string"
+        },
+        {
+            "type": "number"
+        }
     ],
     "minItems": 2,
-    "maxItems": 4
+    "maxItems": 2
 }
 ```
 
-Note that we use the Draft 4 Json Schema where tuples are validated with `items`, and not `prefixItems`.
+With this Schema you can create strictly ordered lists, such as `["Any string", 123]`.
+
+An incorrect order will return an error `[123, "Any string"] // invalid`.
+
+> Remember that you should define `"minItems"` and `"maxItems"` or
+`"minItems"` and `"additonalItems": false`, because "tuples" must have
+a fixed size.
+
+Instead of letting users set any metadata value, you can define list of
+available options with `enum`:
+
+```json
+{
+    "type": "array",
+    "items": {
+        "type": "string",
+        "enum": ["Fixed 1", "Fixed 2"]
+    }
+}
+```
+
+With this Schema you can create a list of any length
+with predefined values, such as `["Fixed 1", "Fixed 2", "Fixed 1"]`.
+
+```json
+{
+    "type": "array",
+    "items": [
+        "type": "string",
+        "enum": ["Fixed 1", "Fixed 2"]
+    ],
+    "minItems": 1,
+    "additionalItems": false,
+}
+```
+
+With this Schema users are allowed to create tuples like `["Fixed 1"]` or `["Fixed 2"]`.
+
+If you want to provide users with a list of predefined metadata values but
+additionally let them add any values outside of this list, you can use the `anyOf`
+keyword:
+
+```json
+{
+    "type": "array",
+    "items": {
+        "anyOf": [
+            {
+                "type": "string"
+                "enum": ["Fixed 1", "Fixed 2"]
+            },
+            {
+                "type": "string"
+            }
+        ]
+    }
+}
+```
+
+Metadata lists such as 
+`["Fixed 1", "Fixed 2"]`, `["Fixed 1", "Any string"]` or `["Any string 1", "Any string 2"]` 
+are all valid.
+
+In certain use cases you may want to define metadata lists that
+have first-ordered items of predefined values, and the rest are any
+other outside of the predefined values. Then you create
+tuples with `"additionalItems": true`:
+
+```json
+{
+    "type": "array",
+    "items": [
+        "type": "string",
+        "enum": ["Fixed 1", "Fixed 2"]
+    ],
+    "minItems": 1,
+    "additionalItems": true,
+}
+```
+
+With this Schema lists such as 
+`["Fixed 1", "Any string", 123]` 
+are valid but `["Any string", 123]` are invalid.
+
+> Quilt currently uses the Draft 4 Json Schema where tuples are
+validated with `items`, and not `prefixItems`.
 The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.
 
 ## Data quality controls
