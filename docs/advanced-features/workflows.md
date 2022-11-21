@@ -406,7 +406,7 @@ Enums of `array` and `object` data types are also supported:
 
 Additionally, you can mix the two data types together:
 
-```
+```json
 {
     "type": "array",
     "enum": [
