@@ -354,33 +354,12 @@ With this Schema lists such as
 `["Fixed 1", "Any string", 123]` 
 are valid but `["Any string", 123]` are invalid.
 
-### Objects
-Quilt also supports the [`object` data type](https://json-schema.org/understanding-json-schema/reference/object.html).
-You can use `object` if you need to define a list of metadata values
-that are objects themselves by using the `properties` keyword on an object
-(key-value pairs).
+### Example properties
+The following examples show how you can specify complex properties
+such as `object` and `array` data types with arbitrary nesting.
 
-```json
-{
-    "type": "array",
-    "items": {
-        "type": "object",
-        "properties": {
-            "id": {
-              "default": 123,
-              "type": "number"
-            },
-            "name": {
-              "default": "Optional default value",
-              "type": "string"
-            }
-        }
-    }
-}
-```
 
-### Compound enums
-Enums of `array` and `object` data types are also supported:
+#### Compound enums: arrays
 
 ```json
 {
@@ -393,6 +372,8 @@ Enums of `array` and `object` data types are also supported:
 }
 ```
 
+#### Compound enums: objects
+
 ```json
 {
     "type": "object",
@@ -404,7 +385,7 @@ Enums of `array` and `object` data types are also supported:
 }
 ```
 
-Additionally, you can mix the two data types together:
+#### Compound enums: arrays and objects
 
 ```json
 {
