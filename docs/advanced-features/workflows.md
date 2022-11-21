@@ -423,8 +423,8 @@ Additionally, you can mix the two data types together:
 }
 ```
 
-This allows for extensible schema definition, and hence validation, of
-multiple metadata schemas to any depth.
+This allows for flexible and extensible schema definition, and hence
+validation, of complex metadata schemas to any depth.
 
 > Quilt currently uses the Draft 4 Json Schema where tuples are
 validated with `items`, and not `prefixItems`.
