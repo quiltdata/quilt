@@ -354,6 +354,34 @@ With this Schema lists such as
 `["Fixed 1", "Any string", 123]` 
 are valid but `["Any string", 123]` are invalid.
 
+### Objects
+Quilt also supports the [`object` data type](https://json-schema.org/understanding-json-schema/reference/object.html).
+You can use `object` if you need to define a list of metadata values
+that are objects themselves by using the `properties` keyword on an object
+(key-value pairs).
+
+```json
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+              "default": 123,
+              "type": "number"
+            },
+            "name": {
+              "default": "Optional default value",
+              "type": "string"
+            }
+        }
+    }
+}
+```
+
+This allows for extensible schema definition, and hence validation, of
+multiple metadata key-value pairs to any depth.
+
 > Quilt currently uses the Draft 4 Json Schema where tuples are
 validated with `items`, and not `prefixItems`.
 The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.

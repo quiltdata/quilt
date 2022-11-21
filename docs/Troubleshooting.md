@@ -34,3 +34,13 @@ any issues
 1. Send screenshots to [Quilt support](mailto:support@quiltdata.io).
 1. It is not recommended that you adjust ElasticSearch via Edit domain, as these
 changes will be lost the next time that you update Quilt
+
+## Error on running quilt3.config("https://quilt.companyname.com")
+
+If you are connecting to your installation of Quilt for the first time and you
+encounter a `ConnectionError` or `Connection timed out` error there are potentially 
+several root causes.
+
+Please refer to the [Quilt Enterprise install Architecture
+documentation](https://docs.quiltdata.com/advanced/technical-reference#architecture)
+
