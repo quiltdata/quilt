@@ -382,6 +382,31 @@ that are objects themselves by using the `properties` keyword on an object
 This allows for extensible schema definition, and hence validation, of
 multiple metadata key-value pairs to any depth.
 
+### Compound enums
+Enums of `array` and `object` data types are also supported:
+
+```json
+{
+    "type": "array",
+    "enum": [
+        [1, 2, 3],
+        [3, 4, 5],
+        [6, 7, 8]
+    ]
+}
+```
+
+```json
+{
+    "type": "object",
+    "enum": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3}
+    ]
+}
+```
+
 > Quilt currently uses the Draft 4 Json Schema where tuples are
 validated with `items`, and not `prefixItems`.
 The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.
