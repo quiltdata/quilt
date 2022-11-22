@@ -21,6 +21,7 @@ import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
 import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
 import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
+import { Strong } from 'fp-ts/lib/Reader'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
@@ -113,13 +114,22 @@ function ReInvent() {
         variant="flying"
         heading={
           <>
-            Transform data into discoveries
+            Supercharge Life Sciences Collaboration
             <br />
-            with Quilt + Amazon S3
+            with Quilt Data Mesh
           </>
         }
         detail={
           <>
+          <M.Box alignContent={"left"}><img src={imageArch} width="5%"></img></M.Box>
+            Quilt platform combines a suite of interlocking capabilities which allow Life Sciences organizations to move fast. 
+            Initially, it enables the creation of <strong>data packages</strong> which allows data to be 
+            logically organized, enables it to flow into the cloud seamlessly, and makes 
+            it searchable, version controlled, and beautiful. 
+            
+            The <strong>Quilt Data Catalog</strong> allows users to view their organizations' data beautifully displayed, supported by rich 
+            visualizations*.
+            <br />
             Quilt stores, tags, manages, and integrates your data sources so that all of
             your data are findable, accessible, interoperable, and reusable (FAIR).
             Publicly traded companies in life sciences choose Quilt as their{' '}
