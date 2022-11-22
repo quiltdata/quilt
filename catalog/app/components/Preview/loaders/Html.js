@@ -10,6 +10,7 @@ import { PreviewData } from '../types'
 
 import * as Text from './Text'
 import * as utils from './utils'
+import DataLoader from './DataHtml'
 
 export const detect = utils.extIn(['.htm', '.html'])
 
@@ -19,7 +20,11 @@ function IFrameLoader({ handle, children }) {
     sign(handle, { ResponseContentType: 'text/html' }),
   )
   // TODO: issue a head request to ensure existence and get storage class
-  return children(AsyncResult.Ok(PreviewData.IFrame({ src })))
+  return (
+    <DataLoader handle={handle}>
+      {(data) => children(AsyncResult.Ok(PreviewData.IFrame({ data, src })))}
+    </DataLoader>
+  )
 }
 
 export const Loader = function HtmlLoader({ handle, children }) {
