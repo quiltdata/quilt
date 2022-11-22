@@ -21,19 +21,31 @@ import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
 import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
 import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
+import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
+import logoCellarity from 'website/pages/Landing/Logos/logo-cellarity.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
 
 const logos = [
+  // Needs to be turned white
   {
-    src: logoCelsius,
-    title: 'Celsius Therapeutics',
+    src: logoTessera,
+    title: 'Tessera Therapeutics'
+  },
+  // Needs to be turned white
+  {
+    src: logoCellarity,
+    title: 'Cellarity'
   },
   {
     src: logoVir,
     title: 'Vir Bio',
+  },
+  {
+    src: logoCelsius,
+    title: 'Celsius Therapeutics',
   },
   {
     src: logoNeumora,
@@ -51,6 +63,7 @@ const logos = [
     src: logoAllencell,
     title: 'Allen Institute for Cell Science',
   },
+
 ]
 const useVideoStyles = M.makeStyles({
   wrapper: {
@@ -96,7 +109,7 @@ const useReInventStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 'auto', 2),
     [t.breakpoints.up('sm')]: {
       float: 'left',
-      height: t.spacing(32),
+      height: t.spacing(28),
       margin: t.spacing(0, 2, 0, 0),
     },
   },
@@ -132,10 +145,9 @@ function ReInvent() {
             visualizations*.
           <br />
           <M.Box pt={4} />
-            
-          {/* SRK To:Do Note this section runs into the foot on the graphic to the right on my (SK) Browser. */}
+        
           <M.Box mr={10}>
-            {/* This does not fix it */}
+    
           Quilt runs privately and securely in your AWS account, as a 
           CloudFormation stack.&nbsp;
           <strong>
@@ -165,9 +177,12 @@ function ReInvent() {
       />
 
       {/* Add Logo Carosel here */}
-      <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
+      <M.Box zIndex={1}> 
+        <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
+      </M.Box>
+
       {/* Breakout boxes */}
-      <M.Box pb={{ xs: 0, md: 2 }} />
+      {/* <M.Box pb={{ xs: 0, md: 2 }} /> */}
       <Lede
         heading={<>Data Management Democratized</>}
         variant="left"
@@ -195,13 +210,28 @@ function ReInvent() {
         variant="center"
         detail={
           <>
-            Your company rapidly accumulates data from instruments, CROs, scientists, and
-            computational pipelines. But simply storing data brings cost without benefit.
-            Data without context (labels, documentation, links, and charts) quickly
-            becomes meaningless. With Quilt, your team builds your data schema from the bottom up, using Quilt’s 
-            rich metadata discovery and management tools. This way, everyone in the organization is empowered to 
-            cultivate, cleanse and enrich data into powerful Data Products which can be presented across domains, 
-            across the organization, or across the industry.
+            The Quilt Data Catalog has incredible visualizations built into it.
+
+            Each team is welcome to bring data into Quilt the way that is most convenient for them. 
+            Rich Metadata descriptions can be attached to packages of data, allowing for them to be 
+            more quickly searched and reused in the future.
+
+            Our goal is to have each type of dataset that customers frequently touch be natively supported 
+            in Quilt, to enhance the ability for users to find what they're looking for without having to download first.
+            <br /><br />
+            <strong>Supported Data Formats: </strong>
+            <br />
+            <strong>Structured:</strong> CSV, TSV, JSON, Parquet
+            <br />
+            <strong></strong>Scientific: Jupyter, FASTA, BAM, NGS
+            <br />
+            <strong></strong>Image: TIFF, PDF, PNG, HDP5
+            <br />
+            <strong></strong>Productivity: Markdown, PDF, Excel, PowerPoint
+
+
+            Each package maintains documentation 
+
               {/* Decision quality suffers, experiments are needlessly
             repeated, and teams waste months doing "data archaeology" to reconstruct past
             results. */}
