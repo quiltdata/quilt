@@ -29,12 +29,12 @@ const DECK_URL =
   'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
 
 const logos = [
-  // Needs to be turned white
+  // Rob: Needs to be turned white
   {
     src: logoTessera,
     title: 'Tessera Therapeutics'
   },
-  // Needs to be turned white
+  // Rob: Needs to be turned white
   {
     src: logoCellarity,
     title: 'Cellarity'
@@ -80,7 +80,7 @@ const useVideoStyles = M.makeStyles({
 function Video() {
   const classes = useVideoStyles()
   return (
-    <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
+    <M.Box alignItems="right" display="flex" flexDirection="column" pb={8} pt={8}>
       <div className={classes.wrapper}>
         <M.Box
           position="relative"
@@ -165,13 +165,6 @@ function ReInvent() {
             <ChevronLink href={DECK_URL}>
             Deck: Quilt the Data Meshfor Life Sciences (PDF)
           </ChevronLink>
-        
-            {/* SRK For Removal: Quilt stores, tags, manages, and integrates your data sources so that all of
-            your data are findable, accessible, interoperable, and reusable (FAIR).
-            Publicly traded companies in life sciences choose Quilt as their{' '}
-            <strong>scientific data management system (SDMS) </strong>to leverage all of
-            their organizational knowledge into credible decisions that bring drugs and
-            therapies to market faster. */}
           </>
         }
       />
@@ -181,8 +174,10 @@ function ReInvent() {
         <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
       </M.Box>
 
-      {/* Breakout boxes */}
-      {/* <M.Box pb={{ xs: 0, md: 2 }} /> */}
+      {/* Breakout boxes
+      
+      Rob: I need to be able to drop images aside these items. For this first one, 
+      I need to be able to drop in an image to the right of this section.*/}
       <Lede
         heading={<>Data Management Democratized</>}
         variant="left"
@@ -191,31 +186,28 @@ function ReInvent() {
             Your company rapidly accumulates data from instruments, CROs, scientists, and
             computational pipelines. But simply storing data brings cost without benefit.
             Data without context (labels, documentation, links, and charts) quickly
-            becomes meaningless. With Quilt, your team builds your data schema from the bottom up, using Quilt’s 
+            becomes meaningless. 
+            <br /> <br />
+            With Quilt, your team builds your data schema from the bottom up, using Quilt’s 
             rich metadata discovery and management tools. This way, everyone in the organization is empowered to 
             cultivate, cleanse and enrich data into powerful Data Products which can be presented across domains, 
             across the organization, or across the industry.
-
-            <M.Box pt={2} />
-            
-            {/* Decision quality suffers, experiments are needlessly
-            repeated, and teams waste months doing "data archaeology" to reconstruct past
-            results. */}
           </>
         }
       />
       <M.Box pb={{ xs: 0, md: 2 }} />
+      {/* Rob: For this one, I'd like to be able to drop an image to the left and the right. */}
       <Lede
         heading={<>Rich Visualizations</>}
         variant="center"
         detail={
           <>
             The Quilt Data Catalog has incredible visualizations built into it.
-
+            <br />
             Each team is welcome to bring data into Quilt the way that is most convenient for them. 
             Rich Metadata descriptions can be attached to packages of data, allowing for them to be 
             more quickly searched and reused in the future.
-
+            <br /> <br />
             Our goal is to have each type of dataset that customers frequently touch be natively supported 
             in Quilt, to enhance the ability for users to find what they're looking for without having to download first.
             <br /><br />
@@ -230,15 +222,30 @@ function ReInvent() {
             <strong></strong>Productivity: Markdown, PDF, Excel, PowerPoint
 
 
-            Each package maintains documentation 
-
               {/* Decision quality suffers, experiments are needlessly
             repeated, and teams waste months doing "data archaeology" to reconstruct past
             results. */}
           </>
         }
       />
-      <Section>
+      <Lede
+        heading={<>Your proven AWS partner</>}
+        detail={
+          <>
+            <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
+            As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
+            demonstrate deep knowledge, experience, and customer success with Amazon Web
+            Services. Below are a few of Quilt's life science customers, followed by case
+            studies.
+            <M.Box pt={2} />
+            Quilt is an AWS-native application that invokes Amazon services like S3,
+            OpenSearch, Athena, Lambda, RDS, and more. See the following diagram for
+            details on the Quilt solution architecture.
+          </>
+        }
+        maxWidth="55rem"
+      />
+      {/* <Section>
         <Tabs
           sections={[
             {
@@ -298,8 +305,8 @@ function ReInvent() {
             },
           ]}
         />
-      </Section>
-      <Lede
+      </Section> */}
+      {/* <Lede
         heading={<>Your data grow wildly</>}
         variant="center"
         detail={
@@ -312,7 +319,9 @@ function ReInvent() {
             results.
           </>
         }
-      />
+      /> */}
+      
+      {/* Rob: Another grid arrangement task. Can the Lede be left and the Video be right?*/}
       <Lede
         heading={<>Gain confident control with cloud data management</>}
         detail={
@@ -325,40 +334,25 @@ function ReInvent() {
             commercial-stage immunology company focused on combining immunologic insights
             with cutting-edge technologies to treat and prevent serious infectious
             diseases.
+            <Video />
           </>
         }
       />
-      <Section>
-        <Video />
-      </Section>
-      <Lede
-        heading={<>Your proven AWS partner</>}
-        detail={
-          <>
-            <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
-            As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
-            demonstrate deep knowledge, experience, and customer success with Amazon Web
-            Services. Below are a few of Quilt's life science customers, followed by case
-            studies.
-            <M.Box pt={2} />
-            Quilt is an AWS-native application that invokes Amazon services like S3,
-            OpenSearch, Athena, Lambda, RDS, and more. See the following diagram for
-            details on the Quilt solution architecture.
-          </>
-        }
-        maxWidth="55rem"
-      />
-      <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
+      
+      {/* <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
         <img src={imageArch} width="80%" />
-      </M.Box>
-      <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" />
-      <CaseStudies />
+      </M.Box> */}
+      {/* <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" /> */}
+      {/* <CaseStudies /> */}
       <M.Box pt={2} />
       <Section>
-        <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
+        <M.Box display="flex" flexDirection="row" alignItems="center" pb={2} pt={15}>
           <M.Button variant="contained" color="primary" onClick={talk}>
             Schedule a demo
           </M.Button>
+          <br />
+      </M.Box>
+      <M.Box display="flex" flexDirection="row" alignItems="center" pb={15} pt={2}>
           <M.Box pt={3} />
           <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
           <M.Box pt={2} />
