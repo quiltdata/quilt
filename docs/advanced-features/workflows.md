@@ -355,9 +355,29 @@ With this Schema lists such as
 are valid but `["Any string", 123]` are invalid.
 
 ### Example properties
-The following examples show how you can specify complex properties
-such as `object` and `array` data types with arbitrary nesting.
+The following examples show how you can specify complex `properties`
+such as `object`, `array`, and compound `enum` types.
 
+#### Objects
+
+```json
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+              "default": 123,
+              "type": "number"
+            },
+            "name": {
+              "default": "Optional default value",
+              "type": "string"
+            }
+        }
+    }
+}
+```
 
 #### Compound enums: arrays
 
