@@ -71,6 +71,8 @@ const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
 const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
 
+const ReInvent = RT.mkLazy(() => import('website/pages/ReInvent'), Placeholder)
+
 export default function App() {
   const cfg = Config.useConfig()
   const protect = React.useMemo(
@@ -116,6 +118,7 @@ export default function App() {
           <Route path={paths.product} component={MProduct} exact />
         )}
         {cfg.mode === 'MARKETING' && <Route path="/bioit" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && <Route path="/reinvent" component={ReInvent} exact />}
         {cfg.mode === 'MARKETING' && (
           <Route path="/nextflow" component={NextFlow} exact />
         )}
