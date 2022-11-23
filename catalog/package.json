@@ -61,7 +61,7 @@
     "@material-ui/styles": "^4.11.4",
     "@material-ui/system": "^4.11.3",
     "@rehooks/component-size": "^1.0.3",
-    "@sentry/browser": "^6.19.7",
+    "@sentry/browser": "^7.21.1",
     "@urql/devtools": "^2.0.3",
     "@urql/exchange-graphcache": "^4.4.3",
     "ace-builds": "^1.9.6",
