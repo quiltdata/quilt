@@ -54,7 +54,15 @@ const hasDeleteButton = (
   columnId: 'key' | 'value',
   value: JsonValue,
   schema?: JsonSchema,
-) => columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
+) => {
+  // Remove button is shown in key field
+  if (columnId !== COLUMN_IDS.KEY) return false
+  // Remove button is shown only when key is set
+  if (value === EMPTY_VALUE) return false
+  // No button if key is a placeholder from Schema and it's not array index
+  if (schema && typeof value !== 'number') return false
+  return true
+}
 
 interface PreviewProps {
   columnId: 'key' | 'value'

@@ -24,6 +24,11 @@ The following file formats are supported:
 * .ent
 * .pdb
 
+### ⚠ Warning: Previewing multiple molecules from a single .sdf file
+
+Currently, the Quilt catalog does not support visualization of
+multiple molecules with titles from a single .sdf file.
+
 ## Binary and special file format previews
 * Excel (.xls, .xlsx)
 * FCS Flow Cytometry files (.fcs)
