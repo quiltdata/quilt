@@ -32,6 +32,7 @@ function generateCsvUrl(handle: s3paths.S3HandleBase, endpoint: string, sign: Si
     `${endpoint}/tabular-preview${mkSearch({
       url: sign(handle),
       input: 'csv',
+      size: 'large',
     })}`,
   )
 }
@@ -153,7 +154,7 @@ function IFrameLoader({ env, handle, children }: IFrameLoaderProps) {
       return PreviewData.IFrame({ srcDoc, src, note, warnings })
     },
   )
-  return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
+  return <>{children(utils.useErrorHandling(processed, { handle, retry: fetch }))}</>
 }
 
 interface IFrameEnvLoaderProps {
