@@ -3,7 +3,9 @@ import * as React from 'react'
 
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
+import { mkSearch } from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -49,6 +51,7 @@ function useIFrameInjector(handle: FileHandle) {
     [handle, sign],
   )
 
+  const { apiGatewayEndpoint } = Config.use()
   const files = React.useMemo(
     () =>
       data.case({
@@ -60,10 +63,16 @@ function useIFrameInjector(handle: FileHandle) {
               bucket,
               key,
             },
-            url: sign({ bucket, key }),
+            url: encodeURIComponent(
+              `${apiGatewayEndpoint}/preview${mkSearch({
+                url: sign({ bucket, key }),
+                input: 'txt',
+                max_bytes: 20 * 1024 * 1024,
+              })}`,
+            ),
           })),
       }),
-    [data, sign],
+    [apiGatewayEndpoint, data, sign],
   )
 
   const credentials = AWS.Credentials.use()
