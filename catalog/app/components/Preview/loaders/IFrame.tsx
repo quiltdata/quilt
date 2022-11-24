@@ -14,6 +14,48 @@ import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
 
+type Sign = (handle: s3paths.S3HandleBase) => string
+
+function generateJsonUrl(handle: s3paths.S3HandleBase, endpoint: string, sign: Sign) {
+  return encodeURIComponent(
+    `${endpoint}/preview${mkSearch({
+      url: sign(handle),
+      input: 'txt',
+      max_bytes: 20 * 1024 * 1024,
+    })}`,
+  )
+}
+
+function generateCsvUrl(handle: s3paths.S3HandleBase, endpoint: string, sign: Sign) {
+  return encodeURIComponent(
+    `${endpoint}/tabular-preview${mkSearch({
+      url: sign(handle),
+      input: 'csv',
+      max_bytes: 20 * 1024 * 1024,
+    })}`,
+  )
+}
+
+function prepareFiles(
+  files: requests.BucketListingFile[],
+  config: Config.Config,
+  sign: Sign,
+) {
+  return files.map(({ bucket, key }) => {
+    const handle = { bucket, key }
+    if (utils.extIs('.csv')) {
+      return {
+        handle,
+        url: generateCsvUrl(handle, config.binaryApiGatewayEndpoint, sign),
+      }
+    }
+    return {
+      handle,
+      url: generateJsonUrl(handle, config.apiGatewayEndpoint, sign),
+    }
+  })
+}
+
 interface AWSCredentials {
   accessKeyId: string
   secretAccessKey: string
@@ -37,47 +79,40 @@ interface FileHandle extends s3paths.S3HandleBase {
   packageHandle: PackageHandle
 }
 
-function useIFrameInjector(handle: FileHandle) {
+function prepareSrcDoc(html: string, env: Env) {
+  return html.replace(
+    '</head>',
+    `
+<script>
+window.env = ${JSON.stringify(env)}
+</script>
+</head>`,
+  )
+}
+
+function useContextEnv(handle: FileHandle): Env {
   const s3 = AWS.S3.use()
+  const sign = AWS.Signer.useS3Signer()
+  const credentials = AWS.Credentials.use()
+  const config = Config.use()
+
   const data = useData(requests.bucketListing, {
     s3,
     bucket: handle.bucket,
     path: s3paths.ensureSlash(dirname(handle.key)),
   })
-
-  const sign = AWS.Signer.useS3Signer()
-  const src = React.useMemo(
-    () => sign(handle, { ResponseContentType: 'text/html' }),
-    [handle, sign],
-  )
-
-  const { apiGatewayEndpoint } = Config.use()
   const files = React.useMemo(
     () =>
       data.case({
         Err: () => [],
         _: () => [],
         Ok: (result: requests.BucketListingResult) =>
-          result.files.map(({ bucket, key }) => ({
-            handle: {
-              bucket,
-              key,
-            },
-            url: encodeURIComponent(
-              `${apiGatewayEndpoint}/preview${mkSearch({
-                url: sign({ bucket, key }),
-                input: 'txt',
-                max_bytes: 20 * 1024 * 1024,
-              })}`,
-            ),
-          })),
+          prepareFiles(result.files, config, sign),
       }),
-    [apiGatewayEndpoint, data, sign],
+    [config, data, sign],
   )
-
-  const credentials = AWS.Credentials.use()
   const { packageHandle, ...fileHandle } = handle
-  const env: Env = React.useMemo(
+  return React.useMemo(
     () => ({
       credentials,
       fileHandle,
@@ -87,23 +122,6 @@ function useIFrameInjector(handle: FileHandle) {
       },
     }),
     [credentials, fileHandle, files, packageHandle],
-  )
-  return React.useCallback(
-    (html: string) => {
-      const srcDoc = html.replace(
-        '</head>',
-        `
-<script>
-window.env = ${JSON.stringify(env)}
-</script>
-</head>`,
-      )
-      return {
-        srcDoc,
-        src,
-      }
-    },
-    [env, src],
   )
 }
 
@@ -124,7 +142,12 @@ interface IFrameLoaderProps {
 }
 
 export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const iframeInjector = useIFrameInjector(handle)
+  const sign = AWS.Signer.useS3Signer()
+  const src = React.useMemo(
+    () => sign(handle, { ResponseContentType: 'text/html' }),
+    [handle, sign],
+  )
+  const contextEnv = useContextEnv(handle)
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,
@@ -135,7 +158,7 @@ export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderPr
     ({ info: { data, note, warnings } }: TextDataOutput) => {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
-      const { srcDoc, src } = iframeInjector([head, tail].join('\n'))
+      const srcDoc = prepareSrcDoc([head, tail].join('\n'), contextEnv)
       return PreviewData.IFrame({ srcDoc, src, note, warnings })
     },
   )
