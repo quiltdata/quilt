@@ -2,14 +2,23 @@
 <!-- markdownlint-disable -->
 Once your package is ready it's time to save and distribute it.
 
-Building a package requires providing it with a name. Packages names
-must follow the `"${namespace}/${packagename}"` format. For small
-teams, we recommend using the package author's name as the namespace.
+## Saving a package manifest locally
+
+To save a package to your local disk use `build`.
+
+
+```python
+import quilt3
+p = quilt3.Package()
+
+top_hash = p.build("aneesh/test_data")
+```
+
+Building a package requires providing it with a name. Packages names must follow the `"${namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
 
 ## Authenticating to a remote registry
 
-To share a package with others via a remote registry you will first
-need to authenticate against, if you haven't done so already:
+To share a package with others via a remote registry you will first need to authenticate against, if you haven't done so already:
 
 ```python
 # only need to run this once
@@ -33,11 +42,9 @@ p.push(
 )
 ```
 
-`s3://quilt-example` is the *registry*&mdash;the storage backend
-that the package is available from.
+`s3://quilt-example` is the *registry*&mdash;the storage backend that the package is available from.
 
-You can omit the registry argument if you configure a
-`default_remote_registry` (this setting persists between sessions):
+You can omit the registry argument if you configure a `default_remote_registry` (this setting persists between sessions):
 
 ```python
 quilt3.config(default_remote_registry='s3://quilt-example')
@@ -55,23 +62,18 @@ p.push(
 )
 ```
 
-> For even more fine-grained control of object landing paths see
-[Materialization](../advanced-features/materialization.md).
+>For even more fine-grained control of object landing paths see [Materialization](../advanced-features/materialization.md).
 
 ## Saving a package on a remote registry
 
-`push` will send both a package manifest and its data to a remote
-registry. This will involve copying your data to Amazon S3. Occassionally
-you may wish to save _only_ the package manifest to Amazon S3 without
-any data copying. In this scenario, use `build`:
+`push` will send both a package manifest and its data to a remote registry. This will involve copying your data to S3. To save just the package manifest to S3 without any data copying, use `build`:
 
 ```python
 p = quilt3.Package()
 p.build("aneesh/test_data", "s3://quilt-example")
 ```
 
-This will create a new version of your package with all of its
-physical keys preserved.
+This will create a new version of your package with all of its physical keys preserved.
 
 ## Delete a package from a registry
 
@@ -85,6 +87,4 @@ quilt3.delete_package("aneesh/test_data")
 quilt3.delete_package("aneesh/test_data", "s3://quilt-example")
 ```
 
-Note that this will not delete any package data, only the package
-manifest. See [Frequently Asked Questions](../FAQ.md) to learn
-how to delete both the package manifest and all of the package data.
+Note that this will not delete any package data, only the package manifest.
