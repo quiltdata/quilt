@@ -6,7 +6,7 @@ import * as Cache from 'utils/ResourceCache'
 export const UsersResource = Cache.createResource({
   name: 'Admin.data.users',
   fetch: ({ req }) =>
-    req({ endpoint: '/users/list' }).then(
+    req({ endpoint: `/users/list?_cachebust=${Math.random()}` }).then(
       R.pipe(
         R.prop('results'),
         R.map((u) => ({
