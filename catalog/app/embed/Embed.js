@@ -1,21 +1,26 @@
-/* eslint-disable import/order */
+// Embed entry point
+
+// Import all the third party stuff
+import { createMemoryHistory as createHistory } from 'history'
+import * as R from 'ramda'
+import * as React from 'react'
+import * as redux from 'react-redux'
+import { Route, Switch, useLocation } from 'react-router-dom'
+import * as M from '@material-ui/core'
+
 // initialize config from window.QUILT_CATALOG_CONFIG
 import cfg from 'constants/config'
+
+// init Sentry before importing other modules
+// to allow importing it directly in other modules and capturing errors
 import * as Sentry from 'utils/Sentry'
 
-// initialize sentry as early as possible to catch all the errors
 Sentry.init(cfg)
 
 // side-effect: inject global css
 import 'sanitize.css'
 
-import * as R from 'ramda'
-import * as React from 'react'
-import * as redux from 'react-redux'
-import { Route, Switch, useLocation } from 'react-router-dom'
-import { createMemoryHistory as createHistory } from 'history'
-import * as M from '@material-ui/core'
-
+// Import the rest of our modules
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'

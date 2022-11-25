@@ -1,25 +1,25 @@
-/* app.tsx - application entry point */
-/* eslint-disable import/order */
-
-import { createBrowserHistory as createHistory } from 'history'
-
-// initialize config from window.QUILT_CATALOG_CONFIG
-import cfg from 'constants/config'
-import * as Sentry from 'utils/Sentry'
-
-// initialize sentry as early as possible to catch all the errors
-const history = createHistory()
-Sentry.init(cfg, history)
+// Application entry point
 
 // Import all the third party stuff
+import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import * as M from '@material-ui/core'
 
+// initialize config from window.QUILT_CATALOG_CONFIG
+import cfg from 'constants/config'
+
+// init Sentry before importing other modules
+// to allow importing it directly in other modules and capturing errors
+import * as Sentry from 'utils/Sentry'
+
+const history = createHistory()
+Sentry.init(cfg, history)
+
 // side-effect: inject global css
 import 'sanitize.css'
 
-// Import the rest
+// Import the rest of our modules
 import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
