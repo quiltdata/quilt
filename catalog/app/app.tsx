@@ -1,5 +1,4 @@
 /* app.tsx - application entry point */
-/* eslint-disable import/first */
 /* eslint-disable import/order */
 
 import { createBrowserHistory as createHistory } from 'history'
