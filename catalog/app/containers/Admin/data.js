@@ -1,13 +1,12 @@
 import * as R from 'ramda'
 
 import * as Cache from 'utils/ResourceCache'
-import cachebust from 'utils/cachebust'
 
 // TODO: remove after migrating this data to gql
 export const UsersResource = Cache.createResource({
   name: 'Admin.data.users',
   fetch: ({ req }) =>
-    req({ endpoint: `/users/list?${cachebust()}` }).then(
+    req({ endpoint: `/users/list?_cachebust=${Math.random()}` }).then(
       R.pipe(
         R.prop('results'),
         R.map((u) => ({

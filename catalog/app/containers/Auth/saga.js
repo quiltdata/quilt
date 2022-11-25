@@ -1,7 +1,6 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
 
 import { apiRequest, HTTPError } from 'utils/APIConnector'
-import cachebust from 'utils/cachebust'
 import defer from 'utils/defer'
 import { waitTil } from 'utils/sagaTools'
 import { timestamp } from 'utils/time'
@@ -167,7 +166,7 @@ function* fetchUser(tokens) {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: `/me?${cachebust()}`,
+      endpoint: `/me?_cachebust=${Math.random()}`,
     })
     return auth
   } catch (e) {
