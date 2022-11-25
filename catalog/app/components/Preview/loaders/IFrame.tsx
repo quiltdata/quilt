@@ -1,4 +1,6 @@
 import { dirname } from 'path'
+
+import * as R from 'ramda'
 import * as React from 'react'
 
 import * as requests from 'containers/Bucket/requests'
@@ -11,6 +13,8 @@ import * as s3paths from 'utils/s3paths'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { PreviewData } from '../types'
+
+import * as iframeSdk from './IframeSdk'
 import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
@@ -78,6 +82,23 @@ function prepareSrcDoc(html: string, env: Env) {
     `
   <script>
     window.env = ${JSON.stringify(env)}
+
+    window.requestEvent = ${iframeSdk.requestEvent.toString()}
+
+    window.listFiles = () => window.requestEvent('list-files')
+    window.fetchFile = async (handle) => {
+      const url = await window.requestEvent('fetch-file', handle)
+      return window.fetch(decodeURIComponent(url))
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const filesList = await window.listFiles()
+      console.log('LIST FILES', filesList)
+
+      const fileResponse = await window.fetchFile({ bucket: 'fiskus-sandbox-dev', key: 'fiskus/iframe/igv.json'})
+      const fileData = await fileResponse.json()
+      console.log('FETCH FILE', fileData)
+    })
   </script>
 </head>`,
   )
@@ -125,10 +146,35 @@ interface IFrameLoaderProps {
 }
 
 function IFrameLoader({ env, handle, children }: IFrameLoaderProps) {
+  const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
+  const { apiGatewayEndpoint, binaryApiGatewayEndpoint } = Config.use()
+
   const src = React.useMemo(
     () => sign(handle, { ResponseContentType: 'text/html' }),
     [handle, sign],
+  )
+  const onMessage = React.useCallback(
+    async ({ name, payload }) => {
+      switch (name) {
+        case 'list-files':
+          const response = await requests.bucketListing({
+            s3,
+            bucket: 'fiskus-sandbox-dev',
+            path: 'fiskus/iframe/',
+          })
+          return response.files.map(R.pick(['bucket', 'key']))
+        case 'fetch-file':
+          const h = payload as s3paths.S3HandleBase
+          if (utils.extIs('.csv')(h.key)) {
+            return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
+          }
+          return generateJsonUrl(h, apiGatewayEndpoint, sign)
+        default:
+          return null
+      }
+    },
+    [apiGatewayEndpoint, binaryApiGatewayEndpoint, sign, s3],
   )
   const { result, fetch } = utils.usePreview({
     type: 'txt',
@@ -141,7 +187,7 @@ function IFrameLoader({ env, handle, children }: IFrameLoaderProps) {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const srcDoc = prepareSrcDoc([head, tail].join('\n'), env)
-      return PreviewData.IFrame({ srcDoc, src, note, warnings })
+      return PreviewData.IFrame({ srcDoc, src, onMessage, note, warnings })
     },
   )
   return <>{children(utils.useErrorHandling(processed, { handle, retry: fetch }))}</>
