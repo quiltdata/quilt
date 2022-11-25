@@ -65,7 +65,6 @@ interface AWSCredentials {
 }
 
 interface Env {
-  credentials: AWSCredentials
   fileHandle: s3paths.S3HandleBase
   package: {
     files: {
@@ -94,7 +93,6 @@ function prepareSrcDoc(html: string, env: Env) {
 function useContextEnv(handle: FileHandle): Env {
   const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
-  const credentials = AWS.Credentials.use()
   const config = Config.use()
 
   const { packageHandle, ...fileHandle } = handle
@@ -106,7 +104,6 @@ function useContextEnv(handle: FileHandle): Env {
   const processed = utils.useProcessing(
     result,
     ({ files }: requests.BucketListingResult) => ({
-      credentials,
       fileHandle,
       package: {
         files: prepareFiles(files, config, sign),
