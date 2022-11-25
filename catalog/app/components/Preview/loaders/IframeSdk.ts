@@ -7,11 +7,15 @@ export function requestEvent(eventName: EventName, payload?: JsonRecord) {
 
   return new Promise((resolve, reject) => {
     try {
-      window.addEventListener('message', (event) => {
-        const { name, data } = event.data
-        if (name !== `${EVENT_NAMESPACE}-${eventName}`) return
-        resolve(data)
-      })
+      window.addEventListener(
+        'message',
+        (event) => {
+          const { name, data } = event.data
+          if (name !== `${EVENT_NAMESPACE}-${eventName}`) return
+          resolve(data)
+        },
+        { once: true },
+      )
       window?.top?.postMessage({
         name: `${EVENT_NAMESPACE}-${eventName}`,
         payload,

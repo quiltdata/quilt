@@ -187,7 +187,7 @@ function IFrameLoader({ env, handle, children }: IFrameLoaderProps) {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       const srcDoc = prepareSrcDoc([head, tail].join('\n'), env)
-      return PreviewData.IFrame({ srcDoc, src, onMessage, note, warnings })
+      return PreviewData.IFrame({ onMessage, srcDoc, src, note, warnings })
     },
   )
   return <>{children(utils.useErrorHandling(processed, { handle, retry: fetch }))}</>

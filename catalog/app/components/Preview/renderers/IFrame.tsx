@@ -22,10 +22,9 @@ interface IFrameProps extends React.HTMLProps<HTMLIFrameElement> {
 }
 
 function IFrame({ onMessage, ...props }: IFrameProps) {
-  const handleIframeEvents = React.useCallback(() => {
-    if (!onMessage) return
-    window.addEventListener('message', async (event: IframeEvent) => {
-      if (!event.data.name) return
+  const handleIframeEvents = React.useCallback(
+    async (event: IframeEvent) => {
+      if (!onMessage || !event.data.name) return
       const name = event.data.name.split(`${EVENT_NAMESPACE}-`)[1] as EventName
       if (!name) return
       const data = await onMessage({ ...event.data, name })
@@ -33,13 +32,14 @@ function IFrame({ onMessage, ...props }: IFrameProps) {
         name: `${EVENT_NAMESPACE}-${name}`,
         data,
       })
-    })
-  }, [onMessage])
+    },
+    [onMessage],
+  )
 
   React.useEffect(() => {
     if (!onMessage) return
-
-    handleIframeEvents()
+    window.addEventListener('message', handleIframeEvents)
+    return () => window.removeEventListener('message', handleIframeEvents)
   }, [onMessage, handleIframeEvents])
   const classes = useStyles()
   return (
