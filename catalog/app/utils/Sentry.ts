@@ -73,7 +73,7 @@ export const UserTracker = function SentryUserTracker({
 
 /** @deprecated */
 async function callSentry(method: string, ...args: $TSFixMe[]) {
-  ;(Sentry as $TSFixMe)[method](...args)
+  return (Sentry as $TSFixMe)[method](...args)
 }
 
 /** @deprecated */
