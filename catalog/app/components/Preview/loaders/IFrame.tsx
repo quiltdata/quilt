@@ -57,13 +57,6 @@ function prepareFiles(
   })
 }
 
-interface AWSCredentials {
-  accessKeyId: string
-  secretAccessKey: string
-  sessionToken: string
-  getPromise: () => Promise<void>
-}
-
 interface Env {
   fileHandle: s3paths.S3HandleBase
   package: {
