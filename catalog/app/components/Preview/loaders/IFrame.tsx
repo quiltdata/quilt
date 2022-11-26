@@ -85,7 +85,9 @@ function prepareSrcDoc(html: string, env: Env) {
 
     const listFiles = () => requestEvent("${iframeSdk.EVENT_NAME.LIST_FILES}")
     const findFile = async (partialHandle) => {
-      const url = await requestEvent("${iframeSdk.EVENT_NAME.FIND_FILE_URL}", partialHandle)
+      const url = await requestEvent("${
+        iframeSdk.EVENT_NAME.FIND_FILE_URL
+      }", partialHandle)
       return window.fetch(decodeURIComponent(url))
     }
     const fetchFile = async (handle) => {
