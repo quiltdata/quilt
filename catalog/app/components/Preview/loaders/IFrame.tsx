@@ -83,13 +83,13 @@ function prepareSrcDoc(html: string, env: Env) {
   <script>
     const requestEvent = ${iframeSdk.requestEvent.toString()}
 
-    const listFiles = () => requestEvent('list-files')
+    const listFiles = () => requestEvent("${iframeSdk.EVENT_NAME.LIST_FILES}")
     const findFile = async (partialHandle) => {
-      const url = await requestEvent('find-file-url', partialHandle)
+      const url = await requestEvent("${iframeSdk.EVENT_NAME.FIND_FILE_URL}", partialHandle)
       return window.fetch(decodeURIComponent(url))
     }
     const fetchFile = async (handle) => {
-      const url = await requestEvent('get-file-url', handle)
+      const url = await requestEvent("${iframeSdk.EVENT_NAME.GET_FILE_URL}", handle)
       return window.fetch(decodeURIComponent(url))
     }
 
