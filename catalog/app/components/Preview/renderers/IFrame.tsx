@@ -13,7 +13,7 @@ const useStyles = M.makeStyles({
 
 export const EVENT_NAMESPACE = 'quilt-iframe-request'
 
-export type EventName = 'list-files' | 'fetch-file'
+export type EventName = 'list-files' | 'get-file-url'
 
 interface IframeEvent extends MessageEvent<{ name: string; payload?: JsonRecord }> {}
 

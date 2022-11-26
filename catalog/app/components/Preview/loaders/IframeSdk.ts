@@ -1,7 +1,6 @@
 import type { JsonRecord } from 'utils/types'
 
-// TOOD: get-file-url, find-file-url
-type EventName = 'list-files' | 'fetch-file' | 'find-file'
+type EventName = 'list-files' | 'get-file-url' | 'find-file-url'
 
 export function requestEvent(eventName: EventName, payload?: JsonRecord) {
   const EVENT_NAMESPACE = 'quilt-iframe-request'

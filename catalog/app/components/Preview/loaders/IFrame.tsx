@@ -85,11 +85,11 @@ function prepareSrcDoc(html: string, env: Env) {
 
     const listFiles = () => requestEvent('list-files')
     const findFile = async (partialHandle) => {
-      const url = await requestEvent('find-file', partialHandle)
+      const url = await requestEvent('find-file-url', partialHandle)
       return window.fetch(decodeURIComponent(url))
     }
     const fetchFile = async (handle) => {
-      const url = await requestEvent('fetch-file', handle)
+      const url = await requestEvent('get-file-url', handle)
       return window.fetch(decodeURIComponent(url))
     }
 
@@ -189,14 +189,14 @@ function IFrameLoader({ env, handle, children }: IFrameLoaderProps) {
           })
           return response.files.map(R.pick(['bucket', 'key']))
         }
-        case 'fetch-file': {
+        case 'get-file-url': {
           const h = payload as s3paths.S3HandleBase
           if (utils.extIs('.csv')(h.key)) {
             return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
           }
           return generateJsonUrl(h, apiGatewayEndpoint, sign)
         }
-        case 'find-file': {
+        case 'find-file-url': {
           const { key: searchKey } = payload as { key: string }
           const response = await requests.bucketListing({
             s3,
