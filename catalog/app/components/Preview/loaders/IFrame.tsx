@@ -81,23 +81,47 @@ function prepareSrcDoc(html: string, env: Env) {
     '</head>',
     `
   <script>
-    window.env = ${JSON.stringify(env)}
+    const requestEvent = ${iframeSdk.requestEvent.toString()}
 
-    window.requestEvent = ${iframeSdk.requestEvent.toString()}
-
-    window.listFiles = () => window.requestEvent('list-files')
-    window.fetchFile = async (handle) => {
-      const url = await window.requestEvent('fetch-file', handle)
+    const listFiles = () => requestEvent('list-files')
+    const findFile = async (partialHandle) => {
+      const url = await requestEvent('find-file', partialHandle)
+      return window.fetch(decodeURIComponent(url))
+    }
+    const fetchFile = async (handle) => {
+      const url = await requestEvent('fetch-file', handle)
       return window.fetch(decodeURIComponent(url))
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      const filesList = await window.listFiles()
+    function onReady(callback) {
+      const env = ${JSON.stringify(env)}
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          callback(env)
+        })
+      } else {
+        callback(env)
+      }
+    }
+
+    window.quilt = {
+      fetchFile,
+      findFile,
+      listFiles,
+      onReady,
+    }
+
+    window.quilt.onReady(async (env) => {
+      const filesList = await window.quilt.listFiles()
       console.log('LIST FILES', filesList)
 
-      const fileResponse = await window.fetchFile({ bucket: 'fiskus-sandbox-dev', key: 'fiskus/iframe/igv.json'})
+      const fileResponse = await window.quilt.fetchFile({ bucket: 'fiskus-sandbox-dev', key: 'fiskus/iframe/igv.json'})
       const fileData = await fileResponse.json()
       console.log('FETCH FILE', fileData)
+
+      const foundResponse = await window.quilt.findFile({ key: 'movies.json' })
+      const foundData = await foundResponse.json()
+      console.log('FIND FILE', foundData)
     })
   </script>
 </head>`,
@@ -157,24 +181,43 @@ function IFrameLoader({ env, handle, children }: IFrameLoaderProps) {
   const onMessage = React.useCallback(
     async ({ name, payload }) => {
       switch (name) {
-        case 'list-files':
+        case 'list-files': {
           const response = await requests.bucketListing({
             s3,
-            bucket: 'fiskus-sandbox-dev',
-            path: 'fiskus/iframe/',
+            bucket: handle.bucket,
+            path: s3paths.ensureSlash(dirname(handle.key)),
           })
           return response.files.map(R.pick(['bucket', 'key']))
-        case 'fetch-file':
+        }
+        case 'fetch-file': {
           const h = payload as s3paths.S3HandleBase
           if (utils.extIs('.csv')(h.key)) {
             return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
           }
           return generateJsonUrl(h, apiGatewayEndpoint, sign)
-        default:
+        }
+        case 'find-file': {
+          const { key: searchKey } = payload as { key: string }
+          const response = await requests.bucketListing({
+            s3,
+            bucket: handle.bucket,
+            path: s3paths.ensureSlash(dirname(handle.key)),
+          })
+          const h = response.files
+            .map(R.pick(['bucket', 'key']))
+            .find(({ key }) => key.endsWith(searchKey))
+          if (!h) return null
+          if (utils.extIs('.csv')(h.key)) {
+            return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
+          }
+          return generateJsonUrl(h, apiGatewayEndpoint, sign)
+        }
+        default: {
           return null
+        }
       }
     },
-    [apiGatewayEndpoint, binaryApiGatewayEndpoint, sign, s3],
+    [apiGatewayEndpoint, binaryApiGatewayEndpoint, handle, sign, s3],
   )
   const { result, fetch } = utils.usePreview({
     type: 'txt',
