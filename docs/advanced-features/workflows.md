@@ -354,6 +354,79 @@ With this Schema lists such as
 `["Fixed 1", "Any string", 123]` 
 are valid but `["Any string", 123]` are invalid.
 
+### Example properties
+The following examples show how you can specify complex `properties`
+such as `object`, `array`, and compound `enum` types.
+
+#### Objects
+
+```json
+{
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+              "default": 123,
+              "type": "number"
+            },
+            "name": {
+              "default": "Optional default value",
+              "type": "string"
+            }
+        }
+    }
+}
+```
+
+#### Compound enums: arrays
+
+```json
+{
+    "type": "array",
+    "enum": [
+        [1, 2, 3],
+        [3, 4, 5],
+        [6, 7, 8]
+    ]
+}
+```
+
+#### Compound enums: objects
+
+```json
+{
+    "type": "object",
+    "enum": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3}
+    ]
+}
+```
+
+#### Compound enums: arrays and objects
+
+```json
+{
+    "type": "array",
+    "enum": [
+        ["miles", {
+            "format": "12h"
+        }],
+        ["kilometers", {
+            "format": "24h"
+        }],
+        {
+            "name": "unspecified"
+        }
+    ]
+}
+```
+
+This allows for flexible and extensible schema definition, and hence
+validation, of complex metadata schemas to any depth.
+
 > Quilt currently uses the Draft 4 Json Schema where tuples are
 validated with `items`, and not `prefixItems`.
 The `prefixItems` keyword was added in Draft 2020-12, and is not currently supported.
