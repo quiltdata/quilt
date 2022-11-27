@@ -6,7 +6,6 @@ import MetaTitle from 'utils/MetaTitle'
 
 import AwsPartner from 'website/components/AwsPartner'
 import CaseStudies from 'website/pages/Landing/CaseStudies'
-import useStyles from 'website/pages/Landing/CaseStudies'
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
@@ -24,63 +23,11 @@ import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 import logoCellarity from 'website/pages/Landing/Logos/logo-cellarity.png'
-//import { useStyles } from './Landing/CaseStudies/CaseStudies'
+//import useStyles from 'website/pages/Landing/CaseStudies'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
-
-  const useStyles = M.makeStyles((t) => ({
-    root: {
-      background: 'linear-gradient(to right, #30266e, #1b194f)',
-      paddingBottom: t.spacing(12),
-      paddingTop: t.spacing(10),
-      position: 'relative',
-    },
-    studies: {
-      alignItems: 'flex-start',
-      display: 'flex',
-      justifyContent: 'space-around',
-      [t.breakpoints.down('sm')]: {
-        alignItems: 'center',
-        flexDirection: 'column',
-      },
-    },
-    study: {
-      display: 'grid',
-      gridTemplateColumns: '128px 1fr',
-      gridTemplateRows: 'auto auto auto',
-      gridTemplateAreas: `
-        "logo heading"
-        "logo body"
-        "logo link"
-      `,
-      gridRowGap: t.spacing(2),
-      marginTop: t.spacing(7),
-      maxWidth: 500,
-      width: `calc(50% - ${t.spacing(6)}px)`,
-      [t.breakpoints.down('sm')]: {
-        width: '100%',
-      },
-    },
-    studyHeading: {
-      color: t.palette.text.primary,
-      gridArea: 'heading',
-      ...t.typography.h4,
-    },
-    studyBody: {
-      color: t.palette.text.secondary,
-      gridArea: 'body',
-      ...t.typography.body2,
-    },
-    studyLink: {
-      gridArea: 'link',
-    },
-    studyLogo: {
-      backgroundRepeat: 'no-repeat',
-      gridArea: 'logo',
-    },
-  }))
 
 const logos = [
   // Rob: Needs to be turned white
@@ -156,66 +103,57 @@ function Video() {
   )
 }
 
-function ReInventCaseStudies() {
-  const classes = useStyles()
-  return (
-    <div className={classes.root}>
-      <M.Container maxWidth="lg" className={classes.container}>
-        <M.Typography variant="h1" color="textPrimary" align="center">
-          Case studies
-        </M.Typography>
-        <div className={classes.studies}>
-          <article className={classes.study}>
-            <div
-              className={classes.studyLogo}
-              style={{ backgroundImage: `url(${logoAllen})` }}
-            />
-            <h1 className={classes.studyHeading}>
-              Distributing terabytes of versioned images to researchers
-            </h1>
-            <p className={classes.studyBody}>
-              Dedicated to understanding and predicting the behavior of cells, the Allen
-              Institute for Cell Science believes in scientific transparency,
-              accessibility, and reproducibility. Learn how the Allen Institute partners
-              with Quilt to distribute terabytes of cell images worldwide.
-            </p>
-            <M.Link
-              className={classes.studyLink}
-              href="https://aws.amazon.com/partners/success/allen-cell-quilt-data/"
-              color="secondary"
-              underline="always"
-              variant="body1"
-            >
-              <b>Read more</b>
-            </M.Link>
-          </article>
-          <article className={classes.study}>
-            <div
-              className={classes.studyLogo}
-              style={{ backgroundImage: `url(${logoPulse})` }}
-            />
-            <h1 className={classes.studyHeading}>
-              The future of data collaboration in S3
-            </h1>
-            <p className={classes.studyBody}>
-              We surveyed 100 IT executives on the importance of data versioning, machine
-              learning hubs, data quality, and the role of S3.
-            </p>
-            <M.Link
-              className={classes.studyLink}
-              href="https://quilt-web-public.s3.amazonaws.com/docs/The+Future+of+Data+Collaboration+in+S3.pdf"
-              color="secondary"
-              underline="always"
-              variant="body1"
-            >
-              <b>Read more</b>
-            </M.Link>
-          </article>
-        </div>
-      </M.Container>
-    </div>
-  )
-}
+const useReinventStyles = M.makeStyles((t) => ({
+  root: {
+    background: 'linear-gradient(to right, #30266e, #1b194f)',
+    paddingBottom: t.spacing(12),
+    paddingTop: t.spacing(10),
+    position: 'relative',
+  },
+  studies: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    justifyContent: 'space-around',
+    [t.breakpoints.down('sm')]: {
+      alignItems: 'center',
+      flexDirection: 'column',
+    },
+  },
+  study: {
+    display: 'grid',
+    gridTemplateColumns: '128px 1fr',
+    gridTemplateRows: 'auto auto auto',
+    gridTemplateAreas: `
+      "logo heading"
+      "logo body"
+      "logo link"
+    `,
+    gridRowGap: t.spacing(2),
+    marginTop: t.spacing(7),
+    maxWidth: 500,
+    width: `calc(50% - ${t.spacing(6)}px)`,
+    [t.breakpoints.down('sm')]: {
+      width: '100%',
+    },
+  },
+  studyHeading: {
+    color: t.palette.text.primary,
+    gridArea: 'heading',
+    ...t.typography.h4,
+  },
+  studyBody: {
+    color: t.palette.text.secondary,
+    gridArea: 'body',
+    ...t.typography.body2,
+  },
+  studyLink: {
+    gridArea: 'link',
+  },
+  studyLogo: {
+    backgroundRepeat: 'no-repeat',
+    gridArea: 'logo',
+  },
+}))
 
 const useReInventStyles = M.makeStyles((t) => ({
   awsPartner: {
@@ -248,26 +186,26 @@ function ReInvent() {
         }
         detail={
           <>
-          {/* SRK To:Do 
-          Add MailChimp Form to the right, adjust the Images to suit. 
+          {/* SRK To:Do
+          Add MailChimp Form to the right, adjust the Images to suit.
           */}
             Quilt's Data Platform allows Life Sciences organizations to move fast and safe, while providing users across the organization with access to their data.
             <br />
             Our customers have likened it to a combination of Box and Github for data, but with the unlimited scalability of Amazon S3.
-            
-            Quilt gives users the power of Data Packages, which are are structure-agnostic data containers containers, and map instrument and analysis metadata to 
+
+            Quilt gives users the power of Data Packages, which are are structure-agnostic data containers containers, and map instrument and analysis metadata to
             specific versions of massive data files (even in other buckets). They can be created and retrieved via automated integrations, shell commands, or the open-source Python API.
            <br />
-           
+
           <M.Box pt={4} />
-            The <strong>Quilt Data Catalog</strong> allows users to view their organizations' data beautifully displayed, supported by rich 
+            The <strong>Quilt Data Catalog</strong> allows users to view their organizations' data beautifully displayed, supported by rich
             visualizations*, and simple but powerful search features.
           <br />
           <M.Box pt={4} />
-        
+
           <M.Box mr={10}>
-    
-          Quilt runs privately and securely in your AWS account, as a 
+
+          Quilt runs privately and securely in your AWS account, as a
           CloudFormation stack.&nbsp;
           <strong>
             Quilt is powered by scalable and secure services like Amazon S3, Amazon
@@ -280,7 +218,7 @@ function ReInvent() {
             </M.Button>
           </M.Box>
           <M.Box pt={2} />
-        
+
             <ChevronLink href={DECK_URL}>
             Deck: Quilt the Data Mesh for Life Sciences (PDF)
           </ChevronLink>
@@ -290,13 +228,13 @@ function ReInvent() {
       <M.Box zIndex={1}><CaseStudies /> </M.Box>
 
       {/* Add Logo Carosel here */}
-      <M.Box zIndex={1}> 
+      <M.Box zIndex={1}>
         <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
       </M.Box>
 
       {/* Breakout boxes
-      
-      Rob: I need to be able to drop images aside these items. For this first one, 
+
+      Rob: I need to be able to drop images aside these items. For this first one,
       I need to be able to drop in an image to the right of this section.*/}
       <Lede
         heading={<>Data Management Democratized</>}
@@ -306,11 +244,11 @@ function ReInvent() {
             Your company rapidly accumulates data from instruments, CROs, scientists, and
             computational pipelines. But simply storing data brings cost without benefit.
             Data without context (labels, documentation, links, and charts) quickly
-            becomes meaningless. 
+            becomes meaningless.
             <br /> <br />
-            With Quilt, your team builds your data schema from the bottom up, using Quilt’s 
-            rich metadata discovery and management tools. This way, everyone in the organization is empowered to 
-            cultivate, cleanse and enrich data into powerful Data Products which can be presented across domains, 
+            With Quilt, your team builds your data schema from the bottom up, using Quilt’s
+            rich metadata discovery and management tools. This way, everyone in the organization is empowered to
+            cultivate, cleanse and enrich data into powerful Data Products which can be presented across domains,
             across the organization, or across the industry.
           </>
         }
@@ -329,7 +267,7 @@ function ReInvent() {
             if you run into a PDB (Protein Visualization file), we'll display a 3D Model of that protein. If you run into a CSV,
             we'll parse that CSV, and provide grouping, graphing and sorting. All without needing to download or have run software locally.
 
-            
+
             <br /><br />
             <strong>Supported Data Formats: </strong>
             <br />
@@ -440,7 +378,7 @@ function ReInvent() {
           </>
         }
       /> */}
-      
+
       {/* Rob: Another grid arrangement task. Can the Lede be left and the Video be right?*/}
       <Lede
         heading={<>Gain confident control with cloud data management</>}
@@ -458,12 +396,12 @@ function ReInvent() {
           </>
         }
       />
-      
+
       {/* <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
         <img src={imageArch} width="80%" />
       </M.Box> */}
       {/* <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" /> */}
-      
+
       <M.Box pt={2} />
       <Section>
         <M.Box display="flex" flexDirection="row" alignItems="center" pb={2} pt={15}>
@@ -487,7 +425,7 @@ function ReInvent() {
 
 export default function ReInventWrapper() {
   // Layout injects TalkToUs provider into the component tree
-  // (required for BioIT component)
+  // (required for ReInvent component)
   return (
     <Layout>
       <ReInvent />
