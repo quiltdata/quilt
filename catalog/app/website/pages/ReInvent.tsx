@@ -6,7 +6,7 @@ import MetaTitle from 'utils/MetaTitle'
 
 import AwsPartner from 'website/components/AwsPartner'
 import CaseStudies from 'website/pages/Landing/CaseStudies'
-import useStyles from 'website/pages/Landing/CaseStudies'
+// import useStyles from 'website/pages/Landing/CaseStudies'
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
@@ -24,6 +24,7 @@ import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 import logoCellarity from 'website/pages/Landing/Logos/logo-cellarity.png'
+import logoResilience from 'website/pages/Landing/Logos/logo-resilience.png'
 //import { useStyles } from './Landing/CaseStudies/CaseStudies'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
@@ -31,6 +32,13 @@ const DECK_URL =
   'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
 
   const useStyles = M.makeStyles((t) => ({
+    container: {
+      alignItems: 'center',
+      display: 'flex',
+      marginBottom: t.spacing(-2),
+      marginLeft: t.spacing(3),
+      marginTop: t.spacing(-2),
+    },
     root: {
       background: 'linear-gradient(to right, #30266e, #1b194f)',
       paddingBottom: t.spacing(12),
@@ -168,20 +176,20 @@ function ReInventCaseStudies() {
           <article className={classes.study}>
             <div
               className={classes.studyLogo}
-              style={{ backgroundImage: `url(${logoAllen})` }}
+              style={{ backgroundImage: `url(${logoResilience})` }}
             />
             <h1 className={classes.studyHeading}>
-              Distributing terabytes of versioned images to researchers
+              Cataloging tens of Terabytes from hundreds of instruments.
             </h1>
             <p className={classes.studyBody}>
-              Dedicated to understanding and predicting the behavior of cells, the Allen
-              Institute for Cell Science believes in scientific transparency,
-              accessibility, and reproducibility. Learn how the Allen Institute partners
-              with Quilt to distribute terabytes of cell images worldwide.
+              Dedicated to creating the AWS of Biotechnology, Resilience is in the 
+              business of managing huge data. Learn how Resilience collects data from 
+              dozens of sites and makes it available to their global team nearly instantly
+              with Quilt.
             </p>
             <M.Link
               className={classes.studyLink}
-              href="https://aws.amazon.com/partners/success/allen-cell-quilt-data/"
+              href=""
               color="secondary"
               underline="always"
               variant="body1"
@@ -192,7 +200,7 @@ function ReInventCaseStudies() {
           <article className={classes.study}>
             <div
               className={classes.studyLogo}
-              style={{ backgroundImage: `url(${logoPulse})` }}
+              style={{ backgroundImage: `url(${logoTessera})` }}
             />
             <h1 className={classes.studyHeading}>
               The future of data collaboration in S3
