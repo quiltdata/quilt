@@ -12,9 +12,7 @@ import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 import Layout from 'website/components/Layout'
 import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
-import Tabs from 'website/components/Tabs'
 
-import imageArch from 'website/pages/Landing/Assets/quilt-architecture.png'
 import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
@@ -23,7 +21,6 @@ import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 import logoCellarity from 'website/pages/Landing/Logos/logo-cellarity.png'
-//import useStyles from 'website/pages/Landing/CaseStudies'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL = 'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
@@ -64,94 +61,6 @@ const logos = [
     title: 'Allen Institute for Cell Science',
   },
 ]
-const useVideoStyles = M.makeStyles({
-  wrapper: {
-    maxWidth: '900px',
-    width: '100%',
-  },
-  video: {
-    position: 'absolute',
-    height: '100%',
-    width: '100%',
-  },
-})
-
-function Video() {
-  const classes = useVideoStyles()
-  return (
-    <M.Box alignItems="right" display="flex" flexDirection="column" pb={8} pt={8}>
-      <div className={classes.wrapper}>
-        <M.Box
-          position="relative"
-          maxWidth={900}
-          width="100%"
-          bgcolor="common.black"
-          pb="56.25%"
-        >
-          <iframe
-            className={classes.video}
-            frameBorder="0"
-            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            src="https://www.youtube.com/embed/ykmvxb_kTc4"
-          />
-        </M.Box>
-      </div>
-    </M.Box>
-  )
-}
-
-const useReinventStyles = M.makeStyles((t) => ({
-  root: {
-    background: 'linear-gradient(to right, #30266e, #1b194f)',
-    paddingBottom: t.spacing(12),
-    paddingTop: t.spacing(10),
-    position: 'relative',
-  },
-  studies: {
-    alignItems: 'flex-start',
-    display: 'flex',
-    justifyContent: 'space-around',
-    [t.breakpoints.down('sm')]: {
-      alignItems: 'center',
-      flexDirection: 'column',
-    },
-  },
-  study: {
-    display: 'grid',
-    gridTemplateColumns: '128px 1fr',
-    gridTemplateRows: 'auto auto auto',
-    gridTemplateAreas: `
-      "logo heading"
-      "logo body"
-      "logo link"
-    `,
-    gridRowGap: t.spacing(2),
-    marginTop: t.spacing(7),
-    maxWidth: 500,
-    width: `calc(50% - ${t.spacing(6)}px)`,
-    [t.breakpoints.down('sm')]: {
-      width: '100%',
-    },
-  },
-  studyHeading: {
-    color: t.palette.text.primary,
-    gridArea: 'heading',
-    ...t.typography.h4,
-  },
-  studyBody: {
-    color: t.palette.text.secondary,
-    gridArea: 'body',
-    ...t.typography.body2,
-  },
-  studyLink: {
-    gridArea: 'link',
-  },
-  studyLogo: {
-    backgroundRepeat: 'no-repeat',
-    gridArea: 'logo',
-  },
-}))
 
 const useReInventStyles = M.makeStyles((t) => ({
   awsPartner: {
@@ -228,7 +137,6 @@ function ReInvent() {
           </>
         }
       />
-
       <Lede
         variant="flying"
         heading={
