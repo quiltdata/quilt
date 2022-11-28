@@ -36,3 +36,41 @@ multiple molecules with titles from a single .sdf file.
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
+
+## Advanced
+
+You can use visualizations inside iframes.
+
+To retrieve data from you can use simple `quilt` JS API:
+
+```
+quilt.onReady: (env) => void` // when iframe's quilt API is ready, env argument in callback is `{ fileHandle, packageHandle }`
+quilt.listFiles: () => Promise<{ bucket: string, key: string }[]> // returns list of files in current directory
+quilt.findFile: ({ key: string }) => Promise<Response> // returns window Fetch API response with content of file
+quilt.fetchFile: ({ key: string }) => Promise<Response> // returns window Fetch API response with content of file
+```
+
+Example:
+```tsx
+<html>
+  <script "http://download-perspective-from-cdn.js"></script>
+
+  <perspective-viewer></perspective-viewer>
+
+  <script>
+    async function initDashboard() {
+      const response = await quilt.findFile({ key: 'data.json' })
+      const data = await response.json()
+
+      const worker = perspective.worker()
+      const table = await worker.table(data)
+      perspective.load(table)
+    }
+
+    quilt.onReady((env) => {
+      console.log(env)
+      initDashboard()
+    })
+  </script>
+</html>
+```
