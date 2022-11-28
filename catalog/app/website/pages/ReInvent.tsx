@@ -26,19 +26,18 @@ import logoCellarity from 'website/pages/Landing/Logos/logo-cellarity.png'
 //import useStyles from 'website/pages/Landing/CaseStudies'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
-const DECK_URL =
-  'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
+const DECK_URL = 'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
 
 const logos = [
   // Rob: Needs to be turned white
   {
     src: logoTessera,
-    title: 'Tessera Therapeutics'
+    title: 'Tessera Therapeutics',
   },
   // Rob: Needs to be turned white
   {
     src: logoCellarity,
-    title: 'Cellarity'
+    title: 'Cellarity',
   },
   {
     src: logoVir,
@@ -64,7 +63,6 @@ const logos = [
     src: logoAllencell,
     title: 'Allen Institute for Cell Science',
   },
-
 ]
 const useVideoStyles = M.makeStyles({
   wrapper: {
@@ -176,249 +174,182 @@ function ReInvent() {
       <MetaTitle />
       <Dots />
       <Lede
+        heading={<>Improve Return on Data</>}
+        variant="left"
+        detail={
+          <>
+            <Section>
+              <M.Box display="flex" flexDirection="column" pt={6}>
+                <M.Button variant="contained" color="primary" onClick={talk}>
+                  Book a demo
+                </M.Button>
+              </M.Box>
+              <M.Box pt={3} />
+              <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
+              <M.Box pt={3} />
+              <ChevronLink href={DECK_URL}>
+                Deck: Quilt the Data Mesh for Life Sciences (PDF)
+              </ChevronLink>
+            </Section>
+          </>
+        }
+      />
+      <Lede
+        variant="flying"
+        heading={<>FAIR data are a mirage until people are enrolled</>}
+        detail={
+          <>
+            Successful discoveries in the wet and dry sciences are not about how many
+            experiments you run or how well you design them, but how effectively you
+            retain the knowledge from each experiment—in order to plan future experiments
+            and author trusted filings. Although FLAIR (findable, linkable, accessible,
+            interoperable, reusable) is a widely touted destination for data, the FAIR
+            framework fails to provide a means to achieve FAIRness. This leaves science
+            teams stuck facing real-world data that are often FOUL (fragmented, opaque,
+            unreliable, and lost), frustrated.
+          </>
+        }
+      />
+      <Lede
+        variant="flying"
+        heading={<>Ensure reusability with human-readable data containers</>}
+        detail={
+          <>
+            Quilt Packages are open source, human-readable collections of data, metadata,
+            charts, documentation, and lineage. They track the{' '}
+            <strong>data chain of custody</strong> from instrument, to pipeline, to
+            scientist, to filing—so that cross-functional teams of wet and dry scientists
+            can bring impactful discoveries to market with confidence. Packages are the
+            building blocks for the Quilt Data Mesh for life sciences, which turns
+            ordinary S3 buckets into trusted, accessible repositories of knowledge. The
+            Quilt data mesh embraces data of any structure or size, and provides an
+            end-to-end data lifecycle for refining datasets from raw, to refined, to
+            curated.
+          </>
+        }
+      />
+
+      <Lede
         variant="flying"
         heading={
           <>
-            Supercharge Life Sciences Collaboration
+            Quilt: The Full-Stack Solution
             <br />
-            with Quilt Data Mesh
+            for retaining the knowledge from every experiment
           </>
         }
         detail={
           <>
-          {/* SRK To:Do
-          Add MailChimp Form to the right, adjust the Images to suit.
-          */}
-            Quilt's Data Platform allows Life Sciences organizations to move fast and safe, while providing users across the organization with access to their data.
-            <br />
-            Our customers have likened it to a combination of Box and Github for data, but with the unlimited scalability of Amazon S3.
-
-            Quilt gives users the power of Data Packages, which are are structure-agnostic data containers containers, and map instrument and analysis metadata to
-            specific versions of massive data files (even in other buckets). They can be created and retrieved via automated integrations, shell commands, or the open-source Python API.
-           <br />
-
-          <M.Box pt={4} />
-            The <strong>Quilt Data Catalog</strong> allows users to view their organizations' data beautifully displayed, supported by rich
-            visualizations*, and simple but powerful search features.
-          <br />
-          <M.Box pt={4} />
-
-          <M.Box mr={10}>
-
-          Quilt runs privately and securely in your AWS account, as a
-          CloudFormation stack.&nbsp;
-          <strong>
-            Quilt is powered by scalable and secure services like Amazon S3, Amazon
-            OpenSearch, and Amazon Athena.
-          </strong>
-          </M.Box>
-          <M.Box display="flex" flexDirection="column" pt={6}>
-            <M.Button variant="contained" color="primary" onClick={talk}>
-              Book a demo
-            </M.Button>
-          </M.Box>
-          <M.Box pt={2} />
-
-            <ChevronLink href={DECK_URL}>
-            Deck: Quilt the Data Mesh for Life Sciences (PDF)
-          </ChevronLink>
+            <ol>
+              <li>
+                <b className="feature">Visual Web Catalog.</b> Quilt's self-service web
+                catalog makes it easy for non-developers to find, curate, visualize, and
+                explore the data they care about <em>without asking IT for anything</em>.
+              </li>
+              <li>
+                <b className="feature">Augment any ELN with URLs for datasets.</b>ELNs are
+                good for metadata and protocols, but fail to capture the "full data
+                context" in the form of large instrument files, analyses, and pipeline
+                outputs. Each dataset in the Quilt data mesh includes an{' '}
+                <strong>immutable revision history</strong>, safeguarding data against
+                deletion and unwanted edits, and verifying the integrity of your datasets
+                and conclusions with a cryptographic fingerprint and the full data lineage
+                of every change to the dataset. Link unlimited and sealed data to ELNs
+                with a simple URL.
+              </li>
+              <li>
+                <b className="feature">Accessible to developers and non-developers.</b>
+                Quilt packages are human-readable collections with charts and
+                documentation that can be accessed via a Python API or private web
+                catalog.
+              </li>
+              <li>
+                <b className="feature">Built for the private cloud.</b>Quilt's data plane
+                and control plane run in your Amazon accounts, ensuring that no third
+                party ever has access to your data, and guaranteeing that your data can
+                never be held hostage by any vendor.
+              </li>
+              <li>
+                <b className="feature">No schema? No problem.</b>Quilt packages can
+                include data of any size or structure. FASTQs, Excel files, PowerPoints,
+                JSON—bring them all together in a Quilt package and gradually refine and
+                discover the structure of your data—instead of planning it up front—with
+                Quilt's <strong>emergent data lifecycle</strong> that gives you guide
+                rails to transition data from raw, to refined, to curated.
+              </li>
+              <li>
+                <b className="feature">
+                  Powered by Amazon S3, EventBridge, OpenSearch, Athena.
+                </b>{' '}
+                Quilt is a cloud-native platform that interoperates with the entire Amazon
+                ecosystem so that you can choose from the broadest variety of compute
+                services and integrate all of your cloud services into a single data mesh.
+              </li>
+              <li>
+                <b className="feature">Standardized Metadata Workflows</b> allow you to
+                define, edit, require, and reliably search organization-specific or
+                industry-standard taxonomies (represented as JSON Schemas).
+              </li>
+            </ol>
           </>
         }
       />
-      <M.Box zIndex={1}><CaseStudies /> </M.Box>
+
+      {/* Rob: For this one, I'd like to be able to drop an image to the left and the right. */}
+      <Lede
+        heading={<>Supported Data Formats</>}
+        variant="flying"
+        detail={
+          <>
+            The following are a few of the file types the Quilt Catalog for Amazon S3
+            supports:
+            <ul>
+              <li>
+                <strong>Structured:</strong> CSV, TSV, JSON, Parquet
+              </li>
+              <li>
+                <strong>Scientific:</strong> FASTA, FASTQ, BAM, NGS, VCF, FCS, and many
+                more
+              </li>
+              <li>
+                <strong>Image:</strong> TIFF, PDF, PNG, JPG, HDP5, CZI, OME-TIFF
+              </li>
+              <li>
+                <strong>Productivity:</strong> Markdown, PDF, Excel, PowerPoint
+              </li>
+              <li>
+                <strong>Interactive:</strong> Jupyter, Altair, eCharts, Voila, iPyWidgets,
+                IGV
+              </li>
+            </ul>
+          </>
+        }
+      />
 
       {/* Add Logo Carosel here */}
       <M.Box zIndex={1}>
         <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
       </M.Box>
 
-      {/* Breakout boxes
+      <M.Box zIndex={1}>
+        <CaseStudies />{' '}
+      </M.Box>
 
-      Rob: I need to be able to drop images aside these items. For this first one,
-      I need to be able to drop in an image to the right of this section.*/}
       <Lede
-        heading={<>Data Management Democratized</>}
-        variant="left"
-        detail={
-          <>
-            Your company rapidly accumulates data from instruments, CROs, scientists, and
-            computational pipelines. But simply storing data brings cost without benefit.
-            Data without context (labels, documentation, links, and charts) quickly
-            becomes meaningless.
-            <br /> <br />
-            With Quilt, your team builds your data schema from the bottom up, using Quilt’s
-            rich metadata discovery and management tools. This way, everyone in the organization is empowered to
-            cultivate, cleanse and enrich data into powerful Data Products which can be presented across domains,
-            across the organization, or across the industry.
-          </>
-        }
-      />
-      <M.Box pb={{ xs: 0, md: 2 }} />
-      {/* Rob: For this one, I'd like to be able to drop an image to the left and the right. */}
-      <Lede
-        heading={<>Rich Visualizations</>}
-        variant="center"
-        detail={
-          <>
-            The Quilt Data Catalog has powerful Life Science Industry specific visualizations built into it.
-            <br />
-             Quilt's visualization
-            engine allows users to visualize the contents of files, so that they can contextualize immediately. This means
-            if you run into a PDB (Protein Visualization file), we'll display a 3D Model of that protein. If you run into a CSV,
-            we'll parse that CSV, and provide grouping, graphing and sorting. All without needing to download or have run software locally.
-
-
-            <br /><br />
-            <strong>Supported Data Formats: </strong>
-            <br />
-            <strong>Structured:</strong> CSV, TSV, JSON, Parquet
-            <br />
-            <strong></strong>Scientific: Jupyter, FASTA, BAM, NGS
-            <br />
-            <strong></strong>Image: TIFF, PDF, PNG, HDP5
-            <br />
-            <strong></strong>Productivity: Markdown, PDF, Excel, PowerPoint
-
-
-              {/* Decision quality suffers, experiments are needlessly
-            repeated, and teams waste months doing "data archaeology" to reconstruct past
-            results. */}
-          </>
-        }
-      />
-      <Lede
-        heading={<>Your proven AWS partner</>}
+        heading={<>About Quilt Data and AWS</>}
         detail={
           <>
             <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
-            As an AWS Advanced Technology Partner, the Quilt solution and Quilt team
-            demonstrate deep knowledge, experience, and customer success with Amazon Web
-            Services. Below are a few of Quilt's life science customers, followed by case
-            studies.
-            <M.Box pt={2} />
-            Quilt is an AWS-native application that invokes Amazon services like S3,
-            OpenSearch, Athena, Lambda, RDS, and more. See the following diagram for
-            details on the Quilt solution architecture.
+            Quilt Data is an Amazon Advanced Technology Partner. Quilt brings seamless
+            collaboration to Amazon S3 by connecting people, pipelines, and machines using
+            visual, verifiable, versioned data packages.
+            <M.Box pt={2} /> Amazon Web Services provides secure, cost-effective, and
+            scalable big data services that can help you build a Data Lake to collect,
+            store, and analyze massive volumes of heterogeneous data.
           </>
         }
         maxWidth="55rem"
       />
-      {/* <Section>
-        <Tabs
-          sections={[
-            {
-              title: 'Use cases',
-              bullets: [
-                <>
-                  Link large datasets to any notebook, ELN, or lab information management
-                  system (LIMS) with immutable URLs
-                </>,
-                <>Find, document, and understand all of your data in a central catalog</>,
-                <>Schedule pipelines to run in a single click (e.g. CRISPResso2)</>,
-                <>
-                  Confidently capture data, metadata, and documentation in immutable
-                  collections, known as Quilt packages
-                </>,
-                <>
-                  Automate pipelines to analyze data (e.g. FASTQs), produce charts, and
-                  notify collaborators as soon as the results are ready (reducing the need
-                  for tedious meetings and slide presentations)
-                </>,
-                <>
-                  Share charts and visualizations on the web—no backend coding required
-                </>,
-                <>Collaboratively create, tag, and document datasets for FAIR reuse</>,
-                <>
-                  Longitudinally query all experiments with natural language, SQL, or
-                  Python
-                </>,
-              ],
-            },
-            {
-              title: 'Benefits',
-              bullets: [
-                <>
-                  Know the lineage and provenance of every datum your company creates
-                  (who, when, where, why, and how)
-                </>,
-                <>
-                  Make informed decisions faster from a single, trusted source of truth
-                </>,
-                <>Ensure that your data are FAIR for decades to come</>,
-                <>
-                  Trust immutable data versions to preserve data and knowledge over
-                  decades
-                </>,
-              ],
-            },
-            {
-              title: 'Security and scale',
-              bullets: [
-                <>Quilt runs in your Virtual Private Cloud (VPC)</>,
-                <>Integrate with Single Sign-On (SSO)</>,
-                <>Integrate with your VPN</>,
-                <>Integrate with Amazon S3</>,
-                <>Customize security policies with Amazon IAM</>,
-              ],
-            },
-          ]}
-        />
-      </Section> */}
-      {/* <Lede
-        heading={<>Your data grow wildly</>}
-        variant="center"
-        detail={
-          <>
-            Your company rapidly accumulates data from instruments, CROs, scientists, and
-            computational pipelines. But simply storing data brings cost without benefit.
-            Data without context (labels, documentation, links, and charts) quickly
-            becomes meaningless. Decision quality suffers, experiments are needlessly
-            repeated, and teams waste months doing "data archaeology" to reconstruct past
-            results.
-          </>
-        }
-      /> */}
-
-      {/* Rob: Another grid arrangement task. Can the Lede be left and the Video be right?*/}
-      <Lede
-        heading={<>Gain confident control with cloud data management</>}
-        detail={
-          <>
-            Quilt stores your data in open file formats, in your Amazon S3 buckets, under
-            IAM policies that you control.
-            <M.Box pt={4} />
-            Watch Alex Bangs, CIO of Vir Biotechnology, explain how he deployed Vir's
-            scientific data management system on Quilt and AWS. Vir Bio is a
-            commercial-stage immunology company focused on combining immunologic insights
-            with cutting-edge technologies to treat and prevent serious infectious
-            diseases.
-            <Video />
-          </>
-        }
-      />
-
-      {/* <M.Box alignItems="center" display="flex" flexDirection="column" padding={4}>
-        <img src={imageArch} width="80%" />
-      </M.Box> */}
-      {/* <LogosCarousel logos={logos} title="Your peers trust Quilt for data management" /> */}
-
-      <M.Box pt={2} />
-      <Section>
-        <M.Box display="flex" flexDirection="row" alignItems="center" pb={2} pt={15}>
-          <M.Button variant="contained" color="primary" onClick={talk}>
-            Schedule a demo
-          </M.Button>
-          <br />
-      </M.Box>
-      <M.Box display="flex" flexDirection="row" alignItems="center" pb={15} pt={2}>
-          <M.Box pt={3} />
-          <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
-          <M.Box pt={2} />
-          <ChevronLink href={DECK_URL}>
-            Learn more about Quilt for life sciences (PDF)
-          </ChevronLink>
-        </M.Box>
-      </Section>
     </>
   )
 }
