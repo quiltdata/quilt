@@ -127,8 +127,8 @@ __Arguments__
 
 __Returns__
 
-``list``: Return value structure has not yet been permanently decided
-Currently, it's a `tuple` of `list` objects, containing the
+```list```: Return value structure has not yet been permanently decided
+Currently, it's a ``tuple`` of ``list`` objects, containing the
 `following`: (directory info, file/object info, delete markers).
 
 
