@@ -11,7 +11,6 @@ import ChevronLink from 'website/components/ChevronLink'
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 import Layout from 'website/components/Layout'
 import Lede from 'website/components/Lede'
-import Section from 'website/components/Section'
 
 import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
 import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
@@ -26,12 +25,10 @@ const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL = 'https://s3.amazonaws.com/quilt-sales-public/Quilt-Data_Mesh.pdf'
 
 const logos = [
-  // Rob: Needs to be turned white
   {
     src: logoTessera,
     title: 'Tessera Therapeutics',
   },
-  // Rob: Needs to be turned white
   {
     src: logoCellarity,
     title: 'Cellarity',
@@ -84,28 +81,28 @@ function ReInvent() {
       <Dots />
       <Lede
         heading={<>Improve Return on Data</>}
-        variant="left"
         detail={
-          <>
-            <Section>
-              <M.Box display="flex" flexDirection="column" pt={6}>
-                <M.Button variant="contained" color="primary" onClick={talk}>
-                  Book a demo
-                </M.Button>
-              </M.Box>
-              <M.Box pt={3} />
-              <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
-              <M.Box pt={3} />
-              <ChevronLink href={DECK_URL}>
-                Deck: Quilt the Data Mesh for Life Sciences (PDF)
-              </ChevronLink>
-            </Section>
-          </>
+          <M.Box display="flex" flexDirection="column" pt={2} maxWidth="30rem">
+            <M.Button variant="contained" color="primary" onClick={talk}>
+              Book a demo
+            </M.Button>
+            <M.Box pt={4} />
+            <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
+            <ChevronLink href={DECK_URL} target="_blank">
+              Deck: Quilt the Data Mesh for Life Sciences (PDF)
+            </ChevronLink>
+          </M.Box>
         }
       />
       <Lede
         variant="flying"
-        heading={<>FAIR data are a mirage until people are enrolled</>}
+        heading={
+          <>
+            FAIR data are a mirage
+            <br />
+            until people are enrolled
+          </>
+        }
         detail={
           <>
             Successful discoveries in the wet and dry sciences are not about how many
@@ -119,9 +116,15 @@ function ReInvent() {
           </>
         }
       />
+      <M.Box pt={5} />
       <Lede
-        variant="flying"
-        heading={<>Ensure reusability with human-readable data containers</>}
+        heading={
+          <>
+            Ensure reusability
+            <br />
+            with human-readable data containers
+          </>
+        }
         detail={
           <>
             Quilt Packages are open source, human-readable collections of data, metadata,
@@ -138,25 +141,27 @@ function ReInvent() {
         }
       />
       <Lede
-        variant="flying"
+        variant="center"
         heading={
           <>
             Quilt: The Full-Stack Solution
             <br />
-            for retaining the knowledge from every experiment
+            for retaining the knowledge
+            <br />
+            from every experiment
           </>
         }
         detail={
           <>
-            <ol>
+            <ol style={{ textAlign: 'left' }}>
               <li>
                 <b className="feature">Visual Web Catalog.</b> Quilt's self-service web
                 catalog makes it easy for non-developers to find, curate, visualize, and
                 explore the data they care about <em>without asking IT for anything</em>.
               </li>
               <li>
-                <b className="feature">Augment any ELN with URLs for datasets.</b>ELNs are
-                good for metadata and protocols, but fail to capture the "full data
+                <b className="feature">Augment any ELN with URLs for datasets.</b> ELNs
+                are good for metadata and protocols, but fail to capture the "full data
                 context" in the form of large instrument files, analyses, and pipeline
                 outputs. Each dataset in the Quilt data mesh includes an{' '}
                 <strong>immutable revision history</strong>, safeguarding data against
@@ -166,19 +171,19 @@ function ReInvent() {
                 with a simple URL.
               </li>
               <li>
-                <b className="feature">Accessible to developers and non-developers.</b>
+                <b className="feature">Accessible to developers and non-developers.</b>{' '}
                 Quilt packages are human-readable collections with charts and
                 documentation that can be accessed via a Python API or private web
                 catalog.
               </li>
               <li>
-                <b className="feature">Built for the private cloud.</b>Quilt's data plane
+                <b className="feature">Built for the private cloud.</b> Quilt's data plane
                 and control plane run in your Amazon accounts, ensuring that no third
                 party ever has access to your data, and guaranteeing that your data can
                 never be held hostage by any vendor.
               </li>
               <li>
-                <b className="feature">No schema? No problem.</b>Quilt packages can
+                <b className="feature">No schema? No problem.</b> Quilt packages can
                 include data of any size or structure. FASTQs, Excel files, PowerPoints,
                 JSON—bring them all together in a Quilt package and gradually refine and
                 discover the structure of your data—instead of planning it up front—with
@@ -205,13 +210,13 @@ function ReInvent() {
 
       {/* Rob: For this one, I'd like to be able to drop an image to the left and the right. */}
       <Lede
+        variant="center"
         heading={<>Supported Data Formats</>}
-        variant="flying"
         detail={
           <>
             The following are a few of the file types the Quilt Catalog for Amazon S3
             supports:
-            <ul>
+            <ul style={{ textAlign: 'left' }}>
               <li>
                 <strong>Structured:</strong> CSV, TSV, JSON, Parquet
               </li>
@@ -234,13 +239,12 @@ function ReInvent() {
         }
       />
 
-      {/* Add Logo Carosel here */}
       <M.Box zIndex={1}>
         <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
       </M.Box>
 
       <M.Box zIndex={1}>
-        <CaseStudies />{' '}
+        <CaseStudies />
       </M.Box>
 
       <Lede
