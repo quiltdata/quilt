@@ -120,7 +120,7 @@ function useMessageBus(handle: FileHandle) {
   return React.useCallback(
     async ({ name, payload }) => {
       switch (name) {
-        case 'list-files': {
+        case iframeSdk.EVENT_NAME.LIST_FILES: {
           const response = await requests.bucketListing({
             s3,
             bucket: handle.bucket,
@@ -128,14 +128,14 @@ function useMessageBus(handle: FileHandle) {
           })
           return response.files.map(R.pick(['bucket', 'key']))
         }
-        case 'get-file-url': {
+        case iframeSdk.EVENT_NAME.GET_FILE_URL: {
           const h = payload as s3paths.S3HandleBase
           if (utils.extIs('.csv')(h.key)) {
             return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
           }
           return generateJsonUrl(h, apiGatewayEndpoint, sign)
         }
-        case 'find-file-url': {
+        case iframeSdk.EVENT_NAME.FIND_FILE_URL: {
           const { key: searchKey } = payload as { key: string }
           const response = await requests.bucketListing({
             s3,
