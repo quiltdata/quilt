@@ -70,9 +70,7 @@ function prepareSrcDoc(html: string, env: Env) {
     function onReady(callback) {
       const env = ${JSON.stringify(env)}
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-          callback(env)
-        })
+        document.addEventListener('DOMContentLoaded', () => callback(env))
       } else {
         callback(env)
       }
@@ -84,19 +82,6 @@ function prepareSrcDoc(html: string, env: Env) {
       listFiles,
       onReady,
     }
-
-    window.quilt.onReady(async (env) => {
-      const filesList = await window.quilt.listFiles()
-      console.log('LIST FILES', filesList)
-
-      const fileResponse = await window.quilt.fetchFile({ bucket: 'fiskus-sandbox-dev', key: 'fiskus/iframe/igv.json'})
-      const fileData = await fileResponse.json()
-      console.log('FETCH FILE', fileData)
-
-      const foundResponse = await window.quilt.findFile({ key: 'movies.json' })
-      const foundData = await foundResponse.json()
-      console.log('FIND FILE', foundData)
-    })
   </script>
 </head>`,
   )

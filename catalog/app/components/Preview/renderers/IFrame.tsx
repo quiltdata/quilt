@@ -41,6 +41,7 @@ function IFrame({ onMessage, ...props }: IFrameProps) {
     window.addEventListener('message', handleIframeEvents)
     return () => window.removeEventListener('message', handleIframeEvents)
   }, [onMessage, handleIframeEvents])
+
   const classes = useStyles()
   return (
     <iframe
