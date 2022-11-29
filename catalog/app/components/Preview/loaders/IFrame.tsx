@@ -1,5 +1,6 @@
 import { dirname } from 'path'
 
+import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -107,6 +108,11 @@ function prepareSrcDoc(html: string, env: Env) {
   )
 }
 
+interface PartialS3Handle {
+  bucket?: string
+  key: string
+}
+
 function useContextEnv(handle: FileHandle): Env {
   return React.useMemo(() => {
     const { packageHandle, ...fileHandle } = handle
@@ -115,6 +121,35 @@ function useContextEnv(handle: FileHandle): Env {
       packageHandle,
     }
   }, [handle])
+}
+
+function generateSignedUrl(
+  partialHandle: PartialS3Handle,
+  endpoint: string,
+  binaryEndpoint: string,
+  sign: Sign,
+  baseHandle: s3paths.S3HandleBase,
+): string {
+  const handle = {
+    key: partialHandle.key,
+    bucket: partialHandle.bucket || baseHandle.bucket,
+  }
+  if (utils.extIs('.csv')(handle.key)) {
+    return generateCsvUrl(handle, binaryEndpoint, sign)
+  }
+  return generateJsonUrl(handle, endpoint, sign)
+}
+
+async function listFiles(
+  s3: S3,
+  baseHandle: s3paths.S3HandleBase,
+): Promise<s3paths.S3HandleBase[]> {
+  const response = await requests.bucketListing({
+    s3,
+    bucket: baseHandle.bucket,
+    path: s3paths.ensureSlash(dirname(baseHandle.key)),
+  })
+  return response.files.map(R.pick(['bucket', 'key']))
 }
 
 function useMessageBus(handle: FileHandle) {
@@ -126,35 +161,29 @@ function useMessageBus(handle: FileHandle) {
     async ({ name, payload }) => {
       switch (name) {
         case iframeSdk.EVENT_NAME.LIST_FILES: {
-          const response = await requests.bucketListing({
-            s3,
-            bucket: handle.bucket,
-            path: s3paths.ensureSlash(dirname(handle.key)),
-          })
-          return response.files.map(R.pick(['bucket', 'key']))
+          return listFiles(s3, handle)
         }
         case iframeSdk.EVENT_NAME.GET_FILE_URL: {
-          const h = payload as s3paths.S3HandleBase
-          if (utils.extIs('.csv')(h.key)) {
-            return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
-          }
-          return generateJsonUrl(h, apiGatewayEndpoint, sign)
+          return generateSignedUrl(
+            payload as PartialS3Handle,
+            apiGatewayEndpoint,
+            binaryApiGatewayEndpoint,
+            sign,
+            handle,
+          )
         }
         case iframeSdk.EVENT_NAME.FIND_FILE_URL: {
-          const { key: searchKey } = payload as { key: string }
-          const response = await requests.bucketListing({
-            s3,
-            bucket: handle.bucket,
-            path: s3paths.ensureSlash(dirname(handle.key)),
-          })
-          const h = response.files
-            .map(R.pick(['bucket', 'key']))
-            .find(({ key }) => key.endsWith(searchKey))
+          const { key: searchKey } = payload as PartialS3Handle
+          const files = await listFiles(s3, handle)
+          const h = files.find(({ key }) => key.endsWith(searchKey))
           if (!h) return null
-          if (utils.extIs('.csv')(h.key)) {
-            return generateCsvUrl(h, binaryApiGatewayEndpoint, sign)
-          }
-          return generateJsonUrl(h, apiGatewayEndpoint, sign)
+          return generateSignedUrl(
+            h,
+            apiGatewayEndpoint,
+            binaryApiGatewayEndpoint,
+            sign,
+            handle,
+          )
         }
         default: {
           return null
