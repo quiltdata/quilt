@@ -240,21 +240,6 @@ function ReInvent() {
       <MetaTitle />
       <Dots />
       <Lede
-        heading={<>Improve Return on Data</>}
-        detail={
-          <M.Box display="flex" flexDirection="column" pt={2} maxWidth="30rem">
-            <M.Button variant="contained" color="primary" onClick={talk}>
-              Book a demo
-            </M.Button>
-            <M.Box pt={4} />
-            <ChevronLink href={SALES_ADDRESS}>Email us a question</ChevronLink>
-            <ChevronLink href={DECK_URL} target="_blank">
-              Deck: Quilt the Data Mesh for Life Sciences (PDF)
-            </ChevronLink>
-          </M.Box>
-        }
-      />
-      <Lede
         variant="flying"
         heading={
           <>
@@ -268,16 +253,38 @@ function ReInvent() {
             Successful discoveries in the wet and dry sciences are not about how many
             experiments you run or how well you design them, but how effectively you
             retain the knowledge from each experiment—in order to plan future experiments
-            and author trusted filings. Although FLAIR (findable, linkable, accessible,
-            interoperable, reusable) is a widely touted destination for data, the FAIR
+            and author trusted filings. 
+            <M.Box pt={2} />
+            Although <strong>FLAIR</strong> (findable, linkable, accessible,
+            interoperable, reusable) is a widely touted destination for data, the <strong>FAIR </strong> 
             framework fails to provide a means to achieve FAIRness. This leaves science
-            teams stuck facing real-world data that are often FOUL (fragmented, opaque,
+            teams stuck facing real-world data that are often <strong>FOUL</strong> (fragmented, opaque,
             unreliable, and lost), frustrated.
+
+            <M.Box display="flex" flexDirection="column" pt={2} maxWidth="30rem">
+            <M.Button variant="contained" color="primary" onClick={talk}>
+              Book a demo
+            </M.Button>
+            <M.Box pt={4} />
+            <ChevronLink href={SALES_ADDRESS}>Get in touch with us</ChevronLink>
+            <ChevronLink href={DECK_URL} target="_blank">
+              Deck: Quilt the Data Mesh for Life Sciences (PDF)
+            </ChevronLink>
+          </M.Box>
           </>
         }
       />
-      <M.Box pt={5} />
-      <Lede
+      <M.Box zIndex={1}>
+        <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
+      </M.Box>
+
+      <M.Box zIndex={1}>
+        <CaseStudies />
+      </M.Box>
+
+      <M.Box pt={2} />
+
+      {/* <Lede
         heading={
           <>
             Ensure reusability
@@ -299,8 +306,9 @@ function ReInvent() {
             curated.
           </>
         }
-      />
-      <Lede
+        
+      /> */}
+      {/* <Lede
         variant="center"
         heading={
           <>
@@ -366,10 +374,8 @@ function ReInvent() {
             </ol>
           </>
         }
-      />
-
-      {/* Rob: For this one, I'd like to be able to drop an image to the left and the right. */}
-      <Lede
+      /> */}
+      {/* <Lede
         variant="center"
         heading={<>Supported Data Formats</>}
         detail={
@@ -397,18 +403,9 @@ function ReInvent() {
             </ul>
           </>
         }
-      />
-
-      <M.Box zIndex={1}>
-        <LogosCarousel logos={logos} title="Life Sciences Organizations Run on Quilt" />
-      </M.Box>
-
-      <M.Box zIndex={1}>
-        <CaseStudies />
-      </M.Box>
-
+      /> */}
       <Lede
-        heading={<>About Quilt Data and AWS</>}
+        heading={<>Quilt and AWS</>}
         detail={
           <>
             <AwsPartner className={classes.awsPartner} style={{ marginRight: '32px' }} />
