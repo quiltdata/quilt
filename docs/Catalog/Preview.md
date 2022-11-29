@@ -44,10 +44,20 @@ You can use visualizations inside iframes.
 To retrieve data from you can use simple `quilt` JS API:
 
 ```
-quilt.onReady: (env) => void` // when iframe's quilt API is ready, env argument in callback is `{ fileHandle, packageHandle }`
-quilt.listFiles: () => Promise<{ bucket: string, key: string }[]> // returns list of files in current directory
-quilt.findFile: ({ key: string }) => Promise<Response> // returns window Fetch API response with content of file
-quilt.fetchFile: ({ key: string }) => Promise<Response> // returns window Fetch API response with content of file
+// when iframe's quilt API is ready, `env` argument in callback is `{ fileHandle, packageHandle }`
+quilt.onReady: (env) => void`
+
+// returns list of files in current directory
+quilt.listFiles: () => Promise<{ bucket: string, key: string }[]>
+
+// returns parsed JSON or ArrayBuffer if file is .json or .csv,
+// otherwise returns window Fetch API response
+quilt.findFile: ({ key: string }) => Promise<Response>
+
+// returns the same as findFile,
+// but faster than `findFile` 
+// use it if you know full file's key exactly
+quilt.fetchFile: ({ key: string }) => Promise<Response>
 ```
 
 Example:
