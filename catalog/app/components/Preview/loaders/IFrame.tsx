@@ -158,6 +158,7 @@ function useMessageBus(handle: FileHandle) {
 
   return React.useCallback(
     async ({ name, payload }) => {
+      // TODO: error handling
       switch (name) {
         case iframeSdk.EVENT_NAME.LIST_FILES: {
           return listFiles(s3, handle)
