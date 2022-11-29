@@ -109,13 +109,6 @@ export function getConfig() {
   return cachedConfig
 }
 
-export function useConfig(opts: { suspend: false }): { promise: Promise<Config> }
-export function useConfig(): Config
-/** @deprecated Config is now synchronous -- just import 'constants/config' module directly */
-export function useConfig(opts?: { suspend?: boolean }) {
-  const cfg = getConfig()
-  if (opts?.suspend === false) return { promise: Promise.resolve(cfg) }
-  return cfg
-}
-
+/** @deprecated Just import 'constants/config' */
+export const useConfig = getConfig
 export { useConfig as use }

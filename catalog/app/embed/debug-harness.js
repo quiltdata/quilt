@@ -14,7 +14,6 @@ import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as Okta from 'utils/Okta'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import mkSearch from 'utils/mkSearch'
 import * as RT from 'utils/reactTools'
@@ -270,7 +269,6 @@ function App() {
     [M.MuiThemeProvider, { theme: style.appTheme }],
     WithGlobalStyles,
     Layout.Root,
-    Sentry.Provider,
     Store.Provider,
     Cache.Provider,
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
