@@ -125,8 +125,7 @@ function useContextEnv(handle: FileHandle): Env {
 
 function generateSignedUrl(
   partialHandle: PartialS3Handle,
-  endpoint: string,
-  binaryEndpoint: string,
+  config: Config.Config,
   sign: Sign,
   baseHandle: s3paths.S3HandleBase,
 ): string {
@@ -135,9 +134,9 @@ function generateSignedUrl(
     bucket: partialHandle.bucket || baseHandle.bucket,
   }
   if (utils.extIs('.csv')(handle.key)) {
-    return generateCsvUrl(handle, binaryEndpoint, sign)
+    return generateCsvUrl(handle, config.binaryApiGatewayEndpoint, sign)
   }
-  return generateJsonUrl(handle, endpoint, sign)
+  return generateJsonUrl(handle, config.apiGatewayEndpoint, sign)
 }
 
 async function listFiles(
@@ -155,7 +154,7 @@ async function listFiles(
 function useMessageBus(handle: FileHandle) {
   const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint, binaryApiGatewayEndpoint } = Config.use()
+  const config = Config.use()
 
   return React.useCallback(
     async ({ name, payload }) => {
@@ -164,33 +163,21 @@ function useMessageBus(handle: FileHandle) {
           return listFiles(s3, handle)
         }
         case iframeSdk.EVENT_NAME.GET_FILE_URL: {
-          return generateSignedUrl(
-            payload as PartialS3Handle,
-            apiGatewayEndpoint,
-            binaryApiGatewayEndpoint,
-            sign,
-            handle,
-          )
+          return generateSignedUrl(payload as PartialS3Handle, config, sign, handle)
         }
         case iframeSdk.EVENT_NAME.FIND_FILE_URL: {
           const { key: searchKey } = payload as PartialS3Handle
           const files = await listFiles(s3, handle)
           const h = files.find(({ key }) => key.endsWith(searchKey))
           if (!h) return null
-          return generateSignedUrl(
-            h,
-            apiGatewayEndpoint,
-            binaryApiGatewayEndpoint,
-            sign,
-            handle,
-          )
+          return generateSignedUrl(h, config, sign, handle)
         }
         default: {
           return null
         }
       }
     },
-    [apiGatewayEndpoint, binaryApiGatewayEndpoint, handle, sign, s3],
+    [config, handle, sign, s3],
   )
 }
 
