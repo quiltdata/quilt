@@ -1,4 +1,11 @@
 <!-- markdownlint-disable -->
+<!--
+Entries inside each section should be ordered by type:
+1. Removed
+2. Added
+3. Fixed
+4. Changed
+!-->
 <!--template:
 # unreleased - YYYY-MM-DD
 ## Python API
