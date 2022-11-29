@@ -12,15 +12,17 @@ export function requestEvent(eventName: EventName, payload?: JsonRecord) {
   const EVENT_NAMESPACE = 'quilt-iframe-request'
 
   return new Promise((resolve, reject) => {
+    const eventId = `quilt-event-id-${(window as any).counter++}`
     const handler = (event: MessageEvent) => {
-      const { name, data } = event.data
-      if (name !== `${EVENT_NAMESPACE}-${eventName}`) return
+      const { id, data } = event.data
+      if (id !== eventId) return
       window.removeEventListener('message', handler)
       resolve(data)
     }
     try {
       window.addEventListener('message', handler)
       window?.top?.postMessage({
+        id: eventId,
         name: `${EVENT_NAMESPACE}-${eventName}`,
         payload,
       })

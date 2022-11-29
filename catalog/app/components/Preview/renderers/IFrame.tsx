@@ -15,7 +15,8 @@ export const EVENT_NAMESPACE = 'quilt-iframe-request'
 
 export type EventName = 'list-files' | 'get-file-url'
 
-interface IframeEvent extends MessageEvent<{ name: string; payload?: JsonRecord }> {}
+interface IframeEvent
+  extends MessageEvent<{ id: string; name: string; payload?: JsonRecord }> {}
 
 interface IFrameProps extends React.HTMLProps<HTMLIFrameElement> {
   onMessage?: (event: { name: EventName; payload?: JsonRecord }) => Promise<any>
@@ -26,9 +27,10 @@ function IFrame({ onMessage, ...props }: IFrameProps) {
     async (event: IframeEvent) => {
       if (!onMessage || !event.data.name) return
       const name = event.data.name.split(`${EVENT_NAMESPACE}-`)[1] as EventName
-      if (!name) return
+      if (!name || !event.data.id) return
       const data = await onMessage({ ...event.data, name })
       event?.source?.postMessage({
+        id: event.data.id,
         name: `${EVENT_NAMESPACE}-${name}`,
         data,
       })

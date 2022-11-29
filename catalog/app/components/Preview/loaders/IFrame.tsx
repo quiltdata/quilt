@@ -53,18 +53,38 @@ function prepareSrcDoc(html: string, env: Env) {
     '</head>',
     `
   <script>
+    window.counter = 0
     const requestEvent = ${iframeSdk.requestEvent.toString()}
+
+    async function parseResponse(response, handle) {
+      const contentType = response.headers.get('content-type')
+      if (contentType === 'application/json') {
+        const json = await response.json()
+        return JSON.parse(
+          [
+            json?.info?.data?.head?.join('\\n'),
+            json?.info?.data?.tail?.join('\\n')
+          ].join('\\n')
+        )
+      }
+      if (contentType === 'application/vnd.apache.arrow.file') {
+        return response.arrayBuffer()
+      }
+      return response
+    }
 
     const listFiles = () => requestEvent("${iframeSdk.EVENT_NAME.LIST_FILES}")
     const findFile = async (partialHandle) => {
       const url = await requestEvent("${
         iframeSdk.EVENT_NAME.FIND_FILE_URL
       }", partialHandle)
-      return window.fetch(decodeURIComponent(url))
+      const response = await window.fetch(decodeURIComponent(url))
+      return parseResponse(response, partialHandle)
     }
     const fetchFile = async (handle) => {
       const url = await requestEvent("${iframeSdk.EVENT_NAME.GET_FILE_URL}", handle)
-      return window.fetch(decodeURIComponent(url))
+      const response = await window.fetch(decodeURIComponent(url))
+      return parseResponse(response, handle)
     }
 
     function onReady(callback) {
@@ -181,9 +201,10 @@ export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderPr
     ({ info: { data, note, warnings } }: TextDataOutput) => {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
+      // TODO: get storage class
       const srcDoc = prepareSrcDoc([head, tail].join('\n'), env)
       return PreviewData.IFrame({ onMessage, srcDoc, src, note, warnings })
     },
   )
-  return <>{children(utils.useErrorHandling(processed, { handle, retry: fetch }))}</>
+  return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
 }
