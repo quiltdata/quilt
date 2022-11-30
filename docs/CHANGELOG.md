@@ -16,8 +16,8 @@ Entries inside each section should be ordered by type:
 !-->
 ## Python API
 * [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
-* [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
 * [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
+* [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
 * [Changed] Use `platformdirs` instead of unmaintained `appdirs` ([#3140](https://github.com/quiltdata/quilt/pull/3140))
 
 ## CLI
@@ -73,19 +73,6 @@ Entries inside each section should be ordered by type:
 * [Changed] Initialize Catalog configuration synchronously from `QUILT_CATALOG_CONFIG` global var ([#3166](https://github.com/quiltdata/quilt/pull/3166))
 * [Changed] Handle rendering multiple molecules in one .sdf file ([#3179](https://github.com/quiltdata/quilt/pull/3179))
 * [Changed] Refactor Sentry set-up, add more integrations / instrumentation ([#3164](https://github.com/quiltdata/quilt/pull/3164))
-
-## Docs
-* [Added] Add note on non-supported JSON schema keyword UI errors ([#3183](https://github.com/quiltdata/quilt/pull/3183))
-* [Added] Add number of IPs used; S3 filename limitations; multi-molecule SDF support ([#3180](https://github.com/quiltdata/quilt/pull/3180))
-* [Removed] Delete out-of-date Roadmap section ([#3177](https://github.com/quiltdata/quilt/pull/3177))
-* [Fixed] Meeting scheduling link, mailto, package deletion ([#3161](https://github.com/quiltdata/quilt/pull/3161))
-* [Added] Add Quilt and Nextflow integration ([#3136](https://github.com/quiltdata/quilt/pull/3136))
-* [Changed] Update Okta documentation and examples ([#3126](https://github.com/quiltdata/quilt/pull/3126))
-* [Added] Add Amazon Athena documentation, examples and references ([#3116](https://github.com/quiltdata/quilt/pull/3116))
-* [Fixed] Fix four-deep headers so auto-link generation works ([#3100](https://github.com/quiltdata/quilt/pull/3100))
-* [Added] Object deletion example ([#3097](https://github.com/quiltdata/quilt/pull/3097))
-* [Added] Using R with Quilt ([#3089](https://github.com/quiltdata/quilt/pull/3089))
-* [Added] Querying metadata with Athena ([#2901](https://github.com/quiltdata/quilt/pull/2901))
 
 # 5.0.0 - 2022-03-14
 ## CLI
