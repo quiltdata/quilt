@@ -41,7 +41,7 @@ multiple molecules with titles from a single .sdf file.
 
 You can use visualizations inside iframes.
 
-To retrieve data from you can use simple `quilt` JS API:
+To retrieve data you can use simple `quilt` JS API:
 
 ```ts
 // Callback is fired when quilt's API is ready.
@@ -51,7 +51,7 @@ interface Env {
   packageHandle: { bucket: string, name: string, hash: string },
 
 }
-quilt.onReady: (env: Env) => void`
+quilt.onReady: (env: Env) => void
 
 // Lists sibling files in the same directory as iframe.
 // Returns array of `{ bucket: stirng, key: string }`.
@@ -63,7 +63,7 @@ quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Respo
 
 // Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
 // This is slower because technicaly we need to list first then find that file.
-quilt.fetchFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>```
+quilt.fetchFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
 ```
 
 Example:
