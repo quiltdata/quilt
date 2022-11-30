@@ -43,7 +43,7 @@ You can use visualizations inside iframes.
 
 To retrieve data from you can use simple `quilt` JS API:
 
-```
+```ts
 // Callback is fired when quilt's API is ready.
 // First argument of a callback  is an object containing context data.
 interface Env {
@@ -64,6 +64,7 @@ quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Respo
 // Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
 // This is slower because technicaly we need to list first then find that file.
 quilt.fetchFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>```
+```
 
 Example:
 ```tsx
