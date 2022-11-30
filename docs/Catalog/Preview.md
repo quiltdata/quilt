@@ -57,13 +57,13 @@ quilt.onReady: (env: Env) => void`
 // Returns array of `{ bucket: stirng, key: string }`.
 quilt.listFiles: () => Promise<{ bucket: string, key: string }[]>
 
-// Returns contents of the file (JSON or ArrayBuffer)
+// Returns contents of the file (JSON, ArrayBuffer or text)
 // or window Fetch API response.
-quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | Response>
+quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
 
 // Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
 // This is slower because technicaly we need to list first then find that file.
-quilt.fetchFile: ({ key: string }) => Promise<JSON | Arraybuffer | Response>```
+quilt.fetchFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>```
 
 Example:
 ```tsx
@@ -97,11 +97,14 @@ Example:
     quilt.onReady(async (env) => {
       const { packageHanlde, fileHandle } = env
       const files = await quilt.listFiles()
+      const readme = await quilt.findFile({ key: 'README.md' })
       console.log({
         s3Urls: files.map(({ bucket, key }) => `s3://${bucket}/${key}`),
         iframePath: 'env.fileHandle.key',
         packageName: env.packageHandle.name,
+        readme,
       })
+
 
       initDashboard()
     })
