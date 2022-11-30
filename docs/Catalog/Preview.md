@@ -39,7 +39,8 @@ multiple molecules with titles from a single .sdf file.
 
 ## Advanced
 
-You can use visualizations inside iframes.
+You can use visualizations inside iframes using any libraries you want.
+It's up to you what JS library you'll import and use.
 
 To retrieve data you can use simple `quilt` JS API:
 
