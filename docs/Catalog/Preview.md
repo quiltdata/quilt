@@ -58,7 +58,7 @@ quilt.onReady: (env: Env) => void`
 quilt.listFiles: () => Promise<{ bucket: string, key: string }[]>
 
 // Returns contents of the file (JSON, ArrayBuffer or text)
-// or window Fetch API response.
+// or in rare edge cases window Fetch API response.
 quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
 
 // Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
