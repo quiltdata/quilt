@@ -59,11 +59,11 @@ quilt.listFiles: () => Promise<{ bucket: string, key: string }[]>
 
 // Returns contents of the file (JSON, ArrayBuffer or text)
 // or in rare edge cases window Fetch API response.
-quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
+quilt.fetchFile: ({ bucket: string, key: string }) => Promise<JSON | Arraybuffer | string | Response>
 
 // Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
 // This is slower because technicaly we need to list first then find that file.
-quilt.fetchFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
+quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
 ```
 
 Example:
