@@ -70,7 +70,7 @@ Example:
 ```tsx
 <html>
 <head>
-  <script "http://download-perspective-from-cdn.js"></script>
+  <script src="http://download-perspective-from-cdn.js"></script>
 </head>
 
 <body>
@@ -105,7 +105,6 @@ Example:
         packageName: env.packageHandle.name,
         readme,
       })
-
 
       initDashboard()
     })
