@@ -49,6 +49,8 @@ interface FileHandle extends s3paths.S3HandleBase {
   packageHandle: PackageHandle
 }
 
+// TODO: return info and warnings as well
+//       and render them with lambda warnings
 function prepareSrcDoc(html: string, env: Env) {
   return html.replace(
     '</head>',
@@ -58,15 +60,29 @@ function prepareSrcDoc(html: string, env: Env) {
     const requestEvent = ${iframeSdk.requestEvent.toString()}
 
     async function parseResponse(response, handle) {
+      if (response.status !== 200) {
+        return Promise.reject(
+          new Error([
+            response.statusText,
+            ': s3://',
+            handle.bucket || "${env.packageHandle.bucket}",
+            '/',
+            handle.key,
+          ].join(''))
+        )
+      }
       const contentType = response.headers.get('content-type')
       if (contentType === 'application/json') {
         const json = await response.json()
-        return JSON.parse(
-          [
+        const text = [
             json?.info?.data?.head?.join('\\n'),
             json?.info?.data?.tail?.join('\\n')
           ].join('\\n')
-        )
+        try {
+          return JSON.parse(text)
+        } catch (e) {
+          return text
+        }
       }
       if (contentType === 'application/vnd.apache.arrow.file') {
         return response.arrayBuffer()
