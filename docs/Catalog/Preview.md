@@ -45,15 +45,20 @@ To retrieve data from you can use simple `quilt` JS API:
 
 ```
 // Callback is fired when quilt's API is ready.
-// First argument of a callback  is an object `{ fileHandle, packageHandle }`.
-quilt.onReady: (env) => void`
+// First argument of a callback  is an object containing context data.
+interface Env {
+  fileHandle: { bucket: string, key: string, version?: string },
+  packageHandle: { bucket: string, name: string, hash: string },
+
+}
+quilt.onReady: (env: Env) => void`
 
 // Lists sibling files in the same directory as iframe.
-// Returns array of `{ bucket: stirng, key: string }`
+// Returns array of `{ bucket: stirng, key: string }`.
 quilt.listFiles: () => Promise<{ bucket: string, key: string }[]>
 
 // Returns contents of the file (JSON or ArrayBuffer)
-// or window Fetch API response
+// or window Fetch API response.
 quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | Response>
 
 // Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
