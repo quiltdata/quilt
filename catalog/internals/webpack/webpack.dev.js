@@ -20,6 +20,7 @@ module.exports = require('./webpack.base')({
         { from: /^\/__embed$/, to: '/embed.html' },
         { from: /^\/__embed-debug$/, to: '/embed-debug-harness.html' },
         { from: /^\/oauth-callback$/, to: '/oauth-callback.html' },
+        { from: /^\/__iframe-sdk$/, to: '/iframe.html' },
       ],
     },
     watchFiles: ['app/**/*', 'static-dev/*'],
