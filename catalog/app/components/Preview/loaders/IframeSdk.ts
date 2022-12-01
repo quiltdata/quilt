@@ -84,7 +84,6 @@ function listFiles() {
 async function findFile(partialHandle: PartialS3Handle) {
   const url = (await requestEvent(EVENT_NAME.FIND_FILE_URL, partialHandle)) as string
   const response = await window.fetch(decodeURIComponent(url))
-  console.log('findFile', partialHandle, response)
   return parseResponse(response, partialHandle)
 }
 
