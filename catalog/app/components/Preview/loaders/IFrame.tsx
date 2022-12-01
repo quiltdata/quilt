@@ -49,6 +49,8 @@ interface FileHandle extends s3paths.S3HandleBase {
   packageHandle: PackageHandle
 }
 
+// TODO: return info and warnings as well
+//       and render them with lambda warnings
 function prepareSrcDoc(html: string, env: Env, scripts: string) {
   return html.replace(
     '</head>',
@@ -56,16 +58,16 @@ function prepareSrcDoc(html: string, env: Env, scripts: string) {
 
   <script>
     function onReady(callback) {
-      const env = ${JSON.stringify(env)}
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => callback(env))
+        document.addEventListener('DOMContentLoaded', () => callback(window.quilt.env))
       } else {
-        callback(env)
+        callback(window.quilt.env)
       }
     }
     if (!window.quilt) {
       window.quilt = {}
     }
+    window.quilt.env = ${JSON.stringify(env)}
     window.quilt.onReady = onReady
   </script>
 </head>`,

@@ -183,6 +183,7 @@
     "@types/react-test-renderer": "^17.0.2",
     "@types/remarkable": "^2.0.3",
     "@types/semver": "^7.3.12",
+    "@types/uuid": "^9.0.0",
     "@types/zxcvbn": "^4.4.1",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
     "@typescript-eslint/parser": "^5.36.2",

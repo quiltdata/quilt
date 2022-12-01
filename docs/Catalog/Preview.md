@@ -39,48 +39,77 @@ multiple molecules with titles from a single .sdf file.
 
 ## Advanced
 
-You can use visualizations inside iframes.
+You can use visualizations inside iframes using any libraries you want.
+It's up to you what JS library you'll import and use.
 
-To retrieve data from you can use simple `quilt` JS API:
+To retrieve data you can use simple `quilt` JS API:
 
-```
-// when iframe's quilt API is ready, `env` argument in callback is `{ fileHandle, packageHandle }`
-quilt.onReady: (env) => void`
+```ts
+// Callback is fired when quilt's API is ready.
+// First argument of a callback  is an object containing context data.
+interface Env {
+  fileHandle: { bucket: string, key: string, version?: string },
+  packageHandle: { bucket: string, name: string, hash: string },
 
-// returns list of files in current directory
+}
+quilt.onReady: (env: Env) => void
+
+// Lists sibling files in the same directory as iframe.
+// Returns array of `{ bucket: stirng, key: string }`.
 quilt.listFiles: () => Promise<{ bucket: string, key: string }[]>
 
-// returns parsed JSON or ArrayBuffer if file is .json or .csv,
-// otherwise returns window Fetch API response
-quilt.findFile: ({ key: string }) => Promise<Response>
+// Returns contents of the file (JSON, ArrayBuffer or text)
+// or in rare edge cases window Fetch API response.
+quilt.fetchFile: ({ bucket: string, key: string }) => Promise<JSON | Arraybuffer | string | Response>
 
-// returns the same as findFile,
-// but faster than `findFile` 
-// use it if you know full file's key exactly
-quilt.fetchFile: ({ key: string }) => Promise<Response>
+// Almost the same as `fetchFile`, but `bucket` is optional, and key can be partial.
+// This is slower because technicaly we need to list first then find that file.
+quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
 ```
 
 Example:
 ```tsx
 <html>
-  <script "http://download-perspective-from-cdn.js"></script>
+<head>
+  <script src="http://download-perspective-from-cdn.js"></script>
+</head>
 
-  <perspective-viewer></perspective-viewer>
+<body>
+  <perspective-workspace>
+    <perspective-viewer table="tableA"></perspective-viewer>
+  </perspective-workspace>
 
   <script>
     async function initDashboard() {
-      const response = await quilt.findFile({ key: 'data.json' })
-      const data = await response.json()
+      const worker = perspective.worker();
 
-      const worker = perspective.worker()
-      const table = await worker.table(data)
-      perspective.load(table)
+      const arrayBuffer = await quilt.findFile({
+        key: 'data.csv'
+      })
+      const table = await worker.table(arrayBuffer)
+      window.workspace.tables.set('tableA', table)
+
+      const layout = await quilt.fetchFile({
+        bucket: 'bucketA',
+        key: 'package/name/layout.json'
+      })
+      window.workspace.restore(layout);
     }
 
-    quilt.onReady((env) => {
-      console.log(env)
+    quilt.onReady(async (env) => {
+      const { packageHanlde, fileHandle } = env
+      const files = await quilt.listFiles()
+      const readme = await quilt.findFile({ key: 'README.md' })
+      console.log({
+        s3Urls: files.map(({ bucket, key }) => `s3://${bucket}/${key}`),
+        iframePath: 'env.fileHandle.key',
+        packageName: env.packageHandle.name,
+        readme,
+      })
+
       initDashboard()
     })
   </script>
+</body>
 </html>
 ```
