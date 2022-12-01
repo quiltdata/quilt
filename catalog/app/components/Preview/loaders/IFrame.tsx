@@ -49,45 +49,12 @@ interface FileHandle extends s3paths.S3HandleBase {
   packageHandle: PackageHandle
 }
 
-function prepareSrcDoc(html: string, env: Env) {
+function prepareSrcDoc(html: string, env: Env, scripts: string) {
   return html.replace(
     '</head>',
-    `
+    `${scripts}
+
   <script>
-    window.counter = 0
-    const requestEvent = ${iframeSdk.requestEvent.toString()}
-
-    async function parseResponse(response, handle) {
-      const contentType = response.headers.get('content-type')
-      if (contentType === 'application/json') {
-        const json = await response.json()
-        return JSON.parse(
-          [
-            json?.info?.data?.head?.join('\\n'),
-            json?.info?.data?.tail?.join('\\n')
-          ].join('\\n')
-        )
-      }
-      if (contentType === 'application/vnd.apache.arrow.file') {
-        return response.arrayBuffer()
-      }
-      return response
-    }
-
-    const listFiles = () => requestEvent("${iframeSdk.EVENT_NAME.LIST_FILES}")
-    const findFile = async (partialHandle) => {
-      const url = await requestEvent("${
-        iframeSdk.EVENT_NAME.FIND_FILE_URL
-      }", partialHandle)
-      const response = await window.fetch(decodeURIComponent(url))
-      return parseResponse(response, partialHandle)
-    }
-    const fetchFile = async (handle) => {
-      const url = await requestEvent("${iframeSdk.EVENT_NAME.GET_FILE_URL}", handle)
-      const response = await window.fetch(decodeURIComponent(url))
-      return parseResponse(response, handle)
-    }
-
     function onReady(callback) {
       const env = ${JSON.stringify(env)}
       if (document.readyState === 'loading') {
@@ -96,13 +63,10 @@ function prepareSrcDoc(html: string, env: Env) {
         callback(env)
       }
     }
-
-    window.quilt = {
-      fetchFile,
-      findFile,
-      listFiles,
-      onReady,
+    if (!window.quilt) {
+      window.quilt = {}
     }
+    window.quilt.onReady = onReady
   </script>
 </head>`,
   )
@@ -182,6 +146,14 @@ function useMessageBus(handle: FileHandle) {
   )
 }
 
+function useInjectedScripts() {
+  return React.useCallback(async () => {
+    const response = await window.fetch('/__iframe-sdk')
+    const html = await response.text()
+    return html.replace('<html>', '').replace('</html>', '')
+  }, [])
+}
+
 interface TextDataOutput {
   info: {
     data: {
@@ -204,6 +176,8 @@ export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderPr
   const sign = AWS.Signer.useS3Signer()
   const onMessage = useMessageBus(handle)
 
+  const injectScripts = useInjectedScripts()
+
   const src = React.useMemo(
     () => sign(handle, { ResponseContentType: 'text/html' }),
     [handle, sign],
@@ -213,13 +187,14 @@ export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderPr
     handle,
     query: { max_bytes: MAX_BYTES },
   })
-  const processed = utils.useProcessing(
+  const processed = utils.useAsyncProcessing(
     result,
-    ({ info: { data, note, warnings } }: TextDataOutput) => {
+    async ({ info: { data, note, warnings } }: TextDataOutput) => {
+      const scripts = await injectScripts()
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       // TODO: get storage class
-      const srcDoc = prepareSrcDoc([head, tail].join('\n'), env)
+      const srcDoc = prepareSrcDoc([head, tail].join('\n'), env, scripts)
       return PreviewData.IFrame({ onMessage, srcDoc, src, note, warnings })
     },
   )

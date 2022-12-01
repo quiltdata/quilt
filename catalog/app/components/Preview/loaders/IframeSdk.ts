@@ -1,4 +1,4 @@
-import type { JsonRecord } from 'utils/types'
+import type { S3HandleBase } from 'utils/s3paths'
 
 type EventName = 'list-files' | 'get-file-url' | 'find-file-url'
 
@@ -8,7 +8,17 @@ export const EVENT_NAME: Record<string, EventName> = {
   LIST_FILES: 'list-files',
 }
 
-export function requestEvent(eventName: EventName, payload?: JsonRecord) {
+interface PartialS3Handle {
+  bucket?: string
+  key: string
+}
+
+type Payload = S3HandleBase | PartialS3Handle
+
+export function requestEvent(
+  eventName: EventName,
+  payload?: Payload,
+): Promise<S3HandleBase[] | string> {
   const EVENT_NAMESPACE = 'quilt-iframe-request'
 
   return new Promise((resolve, reject) => {
@@ -31,3 +41,43 @@ export function requestEvent(eventName: EventName, payload?: JsonRecord) {
     }
   })
 }
+
+window.counter = 0
+
+async function parseResponse(response: Response) {
+  const contentType = response.headers.get('content-type')
+  if (contentType === 'application/json') {
+    const json = await response.json()
+    const head = json?.info?.data?.head?.join('\n')
+    const tail = json?.info?.data?.tail?.join('\n')
+    return JSON.parse([head, tail].join('\n'))
+  }
+  if (contentType === 'application/vnd.apache.arrow.file') {
+    return response.arrayBuffer()
+  }
+  return response
+}
+
+function listFiles() {
+  return requestEvent(EVENT_NAME.LIST_FILES) as Promise<S3HandleBase[]>
+}
+
+async function findFile(partialHandle: PartialS3Handle) {
+  const url = (await requestEvent(EVENT_NAME.FIND_FILE_URL, partialHandle)) as string
+  const response = await window.fetch(decodeURIComponent(url))
+  return parseResponse(response)
+}
+
+async function fetchFile(handle: S3HandleBase) {
+  const url = (await requestEvent(EVENT_NAME.GET_FILE_URL, handle)) as string
+  const response = await window.fetch(decodeURIComponent(url))
+  return parseResponse(response)
+}
+
+if (!window.quilt) {
+  window.quilt = {} as QuiltSdk
+}
+
+window.quilt.listFiles = listFiles
+window.quilt.findFile = findFile
+window.quilt.fetchFile = fetchFile
