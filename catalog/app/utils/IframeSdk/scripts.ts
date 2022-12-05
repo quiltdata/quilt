@@ -36,7 +36,11 @@ const SUPPORTED_SCRIPTS: SupportedScriptsConfig = {
 
 type LibraryName = keyof typeof SUPPORTED_SCRIPTS
 
-type Result = { libraryName: string; version: string; path?: string }
+interface Result {
+  libraryName: string
+  version: string
+  path?: string
+}
 
 function loadStyle(
   libraryName: LibraryName,
