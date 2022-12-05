@@ -97,3 +97,21 @@ export async function install(
 
   return Promise.all(queue)
 }
+
+export function list() {
+  return Object.entries(SUPPORTED_SCRIPTS).map(([name, config]) => {
+    const output: [string, string[]?] = [name]
+    if (config.scripts) {
+      output.push(
+        Object.entries(config.scripts).map(([n, c]) => (c.path ? `${n}/${c.path}` : n)),
+      )
+    }
+    if (config.styles) {
+      output.push(
+        Object.entries(config.styles).map(([n, c]) => (c.path ? `${n}/${c.path}` : n)),
+      )
+    }
+    if (output.length === 1) return output[0]
+    return output
+  })
+}
