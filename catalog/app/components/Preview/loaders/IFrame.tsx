@@ -10,10 +10,10 @@ import * as Config from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 import type { PackageHandle } from 'utils/packageHandle'
+import * as iframeSdk from 'utils/iframeSdk'
 
 import { PreviewData } from '../types'
 
-import * as iframeSdk from './IframeSdk'
 import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
