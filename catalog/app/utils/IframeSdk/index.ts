@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid'
 
 import type { S3HandleBase } from 'utils/s3paths'
 
+import * as scripts from './scripts'
+
 type EventName = 'list-files' | 'get-file-url' | 'find-file-url'
 
 export const EVENT_NAME: Record<string, EventName> = {
@@ -100,3 +102,4 @@ if (!window.quilt) {
 window.quilt.listFiles = listFiles
 window.quilt.findFile = findFile
 window.quilt.fetchFile = fetchFile
+window.quilt.scripts = scripts

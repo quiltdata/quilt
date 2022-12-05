@@ -10,7 +10,7 @@ import * as Config from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 import type { PackageHandle } from 'utils/packageHandle'
-import * as iframeSdk from 'utils/iframeSdk'
+import * as iframeSdk from 'utils/IframeSdk'
 
 import { PreviewData } from '../types'
 
@@ -69,6 +69,10 @@ function prepareSrcDoc(html: string, env: Env, scripts: string) {
     }
     window.quilt.env = ${JSON.stringify(env)}
     window.quilt.onReady = onReady
+
+    quilt.onReady(() => {
+      const results = quilt.scripts.install('perspective')
+    })
   </script>
 </head>`,
   )

@@ -22,6 +22,12 @@ interface QuiltSdk {
   listFiles: () => Promise<Handle[]>
   findFile: (h: PartialHandle) => Promise<JSON | ArrayBuffer | string | Response>
   fetchFile: (h: Handle) => Promise<JSON | ArrayBuffer | string | Response>
+  scripts: {
+    install: (
+      name: string,
+      version?: string,
+    ) => Promise<{ libraryName: string; version: string; path?: string }[]>
+  }
 }
 
 interface Window {
