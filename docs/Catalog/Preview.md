@@ -67,6 +67,22 @@ quilt.fetchFile: ({ bucket: string, key: string }) => Promise<JSON | Arraybuffer
 quilt.findFile: ({ key: string }) => Promise<JSON | Arraybuffer | string | Response>
 ```
 
+There are helper functions for importing JS libraries:
+
+```ts
+// Lists available libraries names
+// Some libraries or namespacess have dependencies
+quilt.scripts.list: () => (string, [string, string[]])[]
+
+// Imports library
+interface ImportedLibrary {
+  libraryName: string
+  version: string
+  path?: string
+}
+quilt.scripts.install: (name: string, version?: string) => Promise<ImportedLibrary[]>
+```
+
 Example:
 ```tsx
 <html>
