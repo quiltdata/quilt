@@ -69,10 +69,6 @@ function prepareSrcDoc(html: string, env: Env, scripts: string) {
     }
     window.quilt.env = ${JSON.stringify(env)}
     window.quilt.onReady = onReady
-
-    quilt.onReady(() => {
-      const results = quilt.scripts.install('perspective')
-    })
   </script>
 </head>`,
   )
