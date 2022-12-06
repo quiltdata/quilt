@@ -55,3 +55,9 @@ export function useIsInStack() {
     [bucketConfigs],
   )
 }
+
+export function useBucketConfig(bucket: string) {
+  // FIXME: load only bucket
+  const bucketConfigs = useBucketConfigs()
+  return bucketConfigs.find(({ name }) => name === bucket)
+}

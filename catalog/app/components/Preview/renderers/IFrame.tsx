@@ -45,14 +45,11 @@ function IFrame({ onMessage, ...props }: IFrameProps) {
   }, [onMessage, handleIframeEvents])
 
   const classes = useStyles()
-  return (
-    <iframe
-      className={classes.root}
-      title="Preview"
-      sandbox="allow-scripts allow-same-origin"
-      {...props}
-    />
+  const sandbox = React.useMemo(
+    () => (!!onMessage ? 'allow-scripts allow-same-origin' : 'allow-scripts'),
+    [],
   )
+  return <iframe className={classes.root} sandbox={sandbox} title="Preview" {...props} />
 }
 
 export default (ifr: IFrameProps, props: React.HTMLProps<HTMLIFrameElement>) => (

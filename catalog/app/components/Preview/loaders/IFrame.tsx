@@ -6,6 +6,7 @@ import * as React from 'react'
 
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
@@ -172,7 +173,10 @@ interface IFrameLoaderProps {
   handle: FileHandle
 }
 
-export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderProps) {
+export const ExtendedLoader = function ExtendedIFrameLoader({
+  handle,
+  children,
+}: IFrameLoaderProps) {
   const env = useContextEnv(handle)
 
   const sign = AWS.Signer.useS3Signer()
@@ -201,4 +205,13 @@ export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderPr
     },
   )
   return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
+}
+
+export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderProps) {
+  const sign = AWS.Signer.useS3Signer()
+  const src = React.useMemo(
+    () => sign(handle, { ResponseContentType: 'text/html' }),
+    [handle, sign],
+  )
+  return children(AsyncResult.Ok(PreviewData.IFrame({ src })))
 }
