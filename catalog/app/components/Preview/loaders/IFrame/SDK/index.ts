@@ -103,13 +103,13 @@ if (!window.quilt) {
   window.quilt = {} as QuiltSdk
 }
 
+const signUrl = (url: string) => requestEvent(EVENT_NAME.SIGN_URL, url) as Promise<string>
+
 window.quilt.listFiles = listFiles
 window.quilt.findFile = findFile
 window.quilt.fetchFile = fetchFile
 window.quilt.scripts = scripts
 window.quilt.signer = {
-  igv: signer.igv.bind(
-    null,
-    (path: string) => requestEvent(EVENT_NAME.SIGN_URL, path) as Promise<string>,
-  ),
+  igv: signer.igv.bind(null, signUrl),
+  url: signUrl,
 }
