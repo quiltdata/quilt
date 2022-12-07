@@ -29,8 +29,9 @@ interface QuiltSdk {
     ) => Promise<{ libraryName: string; version: string; path?: string }[]>
   }
   signer: {
-    url: (u: string) => Promise<string>
+    echarts: (object: {}) => Promise<{}>
     igv: (object: {}) => Promise<{}>
+    url: (u: string) => Promise<string>
   }
 }
 

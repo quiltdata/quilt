@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 
-import type { S3HandleBase } from 'utils/s3paths'
+import { S3HandleBase, parseS3Url } from 'utils/s3paths'
 
 import * as scripts from './scripts'
 import * as signer from './signer'
@@ -50,19 +50,13 @@ export function requestEvent(
   })
 }
 
-async function parseResponse(response: Response, handle: PartialS3Handle) {
+async function parseResponse(response: Response, handle: PartialS3Handle | string) {
   if (response.status !== 200) {
-    return Promise.reject(
-      new Error(
-        [
-          response.statusText,
-          ': s3://',
-          handle.bucket || window.quilt.env.packageHandle.bucket,
-          '/',
-          handle.key,
-        ].join(''),
-      ),
-    )
+    const url =
+      typeof handle === 'string'
+        ? handle
+        : `s3://${handle.bucket || window.quilt.env.packageHandle.bucket}/${handle.key}`
+    return Promise.reject(new Error(`${response.statusText} ${url}`))
   }
   const contentType = response.headers.get('content-type')
   if (contentType === 'application/json') {
@@ -105,11 +99,23 @@ if (!window.quilt) {
 
 const signUrl = (url: string) => requestEvent(EVENT_NAME.SIGN_URL, url) as Promise<string>
 
+const signAndFetch = async (url: string) => {
+  try {
+    const handle = parseS3Url(url)
+    return await fetchFile(handle)
+  } catch (error) {
+    const signedUrl = await (requestEvent(EVENT_NAME.SIGN_URL, url) as Promise<string>)
+    const response = await window.fetch(decodeURIComponent(signedUrl))
+    return parseResponse(response, url)
+  }
+}
+
 window.quilt.listFiles = listFiles
 window.quilt.findFile = findFile
 window.quilt.fetchFile = fetchFile
 window.quilt.scripts = scripts
 window.quilt.signer = {
   igv: signer.igv.bind(null, signUrl),
+  echarts: signer.echarts.bind(null, signAndFetch),
   url: signUrl,
 }

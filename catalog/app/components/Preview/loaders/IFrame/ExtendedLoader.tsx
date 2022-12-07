@@ -28,20 +28,20 @@ function prepareSrcDoc(html: string, env: Env, scripts: string) {
     '<head>',
     `<head>
     ${scripts}
-  <script>
-    function onReady(callback) {
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => callback(window.quilt.env))
-      } else {
-        callback(window.quilt.env)
+    <script>
+      function onReady(callback) {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => callback(window.quilt.env))
+        } else {
+          callback(window.quilt.env)
+        }
       }
-    }
-    if (!window.quilt) {
-      window.quilt = {}
-    }
-    window.quilt.env = ${JSON.stringify(env)}
-    window.quilt.onReady = onReady
-  </script>`,
+      if (!window.quilt) {
+        window.quilt = {}
+      }
+      window.quilt.env = ${JSON.stringify(env)}
+      window.quilt.onReady = onReady
+    </script>`,
   )
 }
 

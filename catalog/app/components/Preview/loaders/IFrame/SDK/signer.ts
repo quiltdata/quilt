@@ -21,6 +21,14 @@ const traverseIgvUrls = (fn: (v: any) => any, json: JsonRecord) =>
     json,
   )
 
+const traverseEchartsUrls = (fn: (v: any) => any, json: JsonRecord) =>
+  R.evolve(
+    {
+      source: fn,
+    },
+    json,
+  )
+
 function createObjectUrlsSigner(
   traverseUrls: (fn: (v: any) => any, json: JsonRecord) => JsonRecord,
   processUrl: (path: string) => Promise<string>,
@@ -38,4 +46,11 @@ function createObjectUrlsSigner(
 
 export function igv(processUrl: (path: string) => Promise<string>, json: JsonRecord) {
   return createObjectUrlsSigner(traverseIgvUrls, processUrl)(json)
+}
+
+export function echarts(
+  processUrl: (path: string) => Promise<JsonRecord>,
+  json: JsonRecord,
+) {
+  return createObjectUrlsSigner(traverseEchartsUrls, processUrl)(json)
 }
