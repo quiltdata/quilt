@@ -31,16 +31,19 @@ const traverseEchartsUrls = (fn: (v: any) => any, json: JsonRecord) =>
 
 function createObjectUrlsSigner(
   traverseUrls: (fn: (v: any) => any, json: JsonRecord) => JsonRecord,
-  processUrl: (path: string) => Promise<string>,
+  processUrl: (path: string) => Promise<JsonRecord | string>,
 ) {
   return async (json: JsonRecord) => {
-    const promises: Promise<string>[] = []
+    const promises: Promise<JsonRecord | string>[] = []
     const jsonWithPlaceholders = traverseUrls((url: string): number => {
       const len = promises.push(processUrl(url))
       return len - 1
     }, json)
     const results = await Promise.all(promises)
-    return traverseUrls((idx: number): string => results[idx], jsonWithPlaceholders)
+    return traverseUrls(
+      (idx: number): JsonRecord | string => results[idx],
+      jsonWithPlaceholders,
+    )
   }
 }
 
