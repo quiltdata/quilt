@@ -126,32 +126,29 @@ function useSignedPreviewUrl(baseHandle: s3paths.S3HandleBase) {
   )
 }
 
-function useListFiles() {
+function useListFilesInCurrentDir(baseHandle: s3paths.S3HandleBase) {
   const s3 = AWS.S3.use()
-  return React.useCallback(
-    async (baseHandle: s3paths.S3HandleBase): Promise<s3paths.S3HandleBase[]> => {
-      const response = await requests.bucketListing({
-        s3,
-        bucket: baseHandle.bucket,
-        path: s3paths.ensureSlash(dirname(baseHandle.key)),
-      })
-      return response.files.map(R.pick(['bucket', 'key']))
-    },
-    [s3],
-  )
+  return React.useCallback(async (): Promise<s3paths.S3HandleBase[]> => {
+    const response = await requests.bucketListing({
+      s3,
+      bucket: baseHandle.bucket,
+      path: s3paths.ensureSlash(dirname(baseHandle.key)),
+    })
+    return response.files.map(R.pick(['bucket', 'key']))
+  }, [baseHandle, s3])
 }
 
 function useMessageBus(handle: FileHandle) {
   const signUrl = useSignedUrl(handle)
   const signPreviewUrl = useSignedPreviewUrl(handle)
-  const listFiles = useListFiles()
+  const listFiles = useListFilesInCurrentDir(handle)
 
   return React.useCallback(
     async ({ name, payload }) => {
       // TODO: error handling
       switch (name) {
         case iframeSdk.EVENT_NAME.LIST_FILES: {
-          return listFiles(handle)
+          return listFiles()
         }
         case iframeSdk.EVENT_NAME.GET_FILE_URL: {
           return signPreviewUrl(payload as PartialS3Handle)
@@ -161,7 +158,7 @@ function useMessageBus(handle: FileHandle) {
         }
         case iframeSdk.EVENT_NAME.FIND_FILE_URL: {
           const { key: searchKey } = payload as PartialS3Handle
-          const files = await listFiles(handle)
+          const files = await listFiles()
           const h = files.find(({ key }) => key.endsWith(searchKey))
           if (!h) return null
           return signPreviewUrl(h)
@@ -171,7 +168,7 @@ function useMessageBus(handle: FileHandle) {
         }
       }
     },
-    [handle, listFiles, signUrl, signPreviewUrl],
+    [listFiles, signUrl, signPreviewUrl],
   )
 }
 
