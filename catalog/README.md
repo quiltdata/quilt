@@ -37,71 +37,9 @@ but that's handled in a separate domain (`state.route`) via reducer composition;
 [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
 
 ## Deployment (for Quilt internal usage)
+Be sure to set up `internals/firebase.default.json` first.
 ```sh
 firebase use ENV
 firebase deploy --only hosting
 ```
 
-### firebase.json
-```json
-{
-  "database": {
-    "rules": "database.rules.json"
-  },
-  "hosting": {
-    "public": "build",
-    // route all paths to single page app
-    "rewrites": [{
-      "source": "**",
-      "destination": "/index.html"
-    }],
-		"ignore": [
-			// ignore anything that starts with .
-      "**/.*"
-    ],
-    "headers": [
-      {
-        // cache images for 3 mos.
-        "source": "**/*.@(jpg|jpeg|gif|png)",
-        "headers": [{
-            "key": "Cache-Control",
-            "value": "max-age=7776000"
-        }]
-      },
-      {
-        "source": "main*.js",
-        "headers": [{
-            "key": "Cache-Control",
-            "value": "max-age=7776000"
-        }]
-      },
-      // hold all webpack-versioned js for 3 mos.
-      // if chunk content changes name will change so cache irrelevant
-      {
-        "source": "*.chunk.js",
-        "headers": [{
-            "key": "Cache-Control",
-            "value": "max-age=7776000"
-        }]
-      },
-      {
-	    // in order for SW to work properly, do not cache it
-	    // https://github.com/react-boilerplate/react-boilerplate/issues/645
-        "source": "**/sw.js)",
-        "headers": [{
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-        }]
-      },
-      {
-        // all changes hang off of index.html; hold it for only 10 min.
-        "source": "index.html",
-        "headers": [{
-            "key": "Cache-Control",
-            "value": "max-age=18000"
-        }]
-      }
-    ]
-  }
-}
-```
