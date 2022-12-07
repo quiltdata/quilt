@@ -108,9 +108,8 @@ window.quilt.findFile = findFile
 window.quilt.fetchFile = fetchFile
 window.quilt.scripts = scripts
 window.quilt.signer = {
-  igv: (json) =>
-    signer.igv(
-      json,
-      (path: string) => requestEvent(EVENT_NAME.SIGN_URL, path) as Promise<string>,
-    ),
+  igv: signer.igv.bind(
+    null,
+    (path: string) => requestEvent(EVENT_NAME.SIGN_URL, path) as Promise<string>,
+  ),
 }

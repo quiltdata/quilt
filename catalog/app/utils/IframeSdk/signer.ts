@@ -21,16 +21,6 @@ const traverseIgvUrls = (fn: (v: any) => any, json: JsonRecord) =>
     json,
   )
 
-export async function igv(
-  json: JsonRecord,
-  processUrl: (path: string) => Promise<string>,
-) {
-  const signer = createObjectUrlsSigner(traverseIgvUrls, processUrl)
-  const result = await signer(json)
-  console.log({ result })
-  return result
-}
-
 function createObjectUrlsSigner(
   traverseUrls: (fn: (v: any) => any, json: JsonRecord) => JsonRecord,
   processUrl: (path: string) => Promise<string>,
@@ -44,4 +34,8 @@ function createObjectUrlsSigner(
     const results = await Promise.all(promises)
     return traverseUrls((idx: number): string => results[idx], jsonWithPlaceholders)
   }
+}
+
+export function igv(processUrl: (path: string) => Promise<string>, json: JsonRecord) {
+  return createObjectUrlsSigner(traverseIgvUrls, processUrl)(json)
 }
