@@ -21,11 +21,12 @@
     ></script>
     <!-- <script defer src="/static-dev/config.js"></script> -->
     <script>
+      console.log(window.__webpack_public_path__)
       window.QUILT_CATALOG_CONFIG = {
         "alwaysRequiresAuth": false,
         "analyticsBucket": "",
-        "apiGatewayEndpoint": `/__lambda`,
-        "binaryApiGatewayEndpoint": `/__lambda`,
+        "apiGatewayEndpoint": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__lambda`,
+        "binaryApiGatewayEndpoint": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__lambda`,
         "googleClientId": "",
         "mixpanelToken": "",
         "mode": "LOCAL",
@@ -35,8 +36,8 @@
         "oneLoginBaseUrl": "",
         "oneLoginClientId": "",
         "passwordAuth": "DISABLED",
-        "registryUrl": `/__reg`,
-        "s3Proxy": `/__s3proxy`,
+        "registryUrl": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__reg`,
+        "s3Proxy": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__s3proxy`,
         "sentryDSN": "",
         "serviceBucket": "",
         "signInRedirect": "/",
