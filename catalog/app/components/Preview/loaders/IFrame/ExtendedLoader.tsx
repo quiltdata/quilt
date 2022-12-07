@@ -25,9 +25,9 @@ interface PreviewHandle extends s3paths.S3HandleBase {
 //       and render them with lambda warnings
 function prepareSrcDoc(html: string, env: Env, scripts: string) {
   return html.replace(
-    '</head>',
-    `${scripts}
-
+    '<head>',
+    `<head>
+    ${scripts}
   <script>
     function onReady(callback) {
       if (document.readyState === 'loading') {
@@ -41,8 +41,7 @@ function prepareSrcDoc(html: string, env: Env, scripts: string) {
     }
     window.quilt.env = ${JSON.stringify(env)}
     window.quilt.onReady = onReady
-  </script>
-</head>`,
+  </script>`,
   )
 }
 
