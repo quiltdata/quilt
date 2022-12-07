@@ -10,12 +10,13 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 import type { PackageHandle } from 'utils/packageHandle'
-import * as iframeSdk from 'utils/IframeSdk'
 
 import { PreviewData } from '../../types'
 
 import { createPathResolver, createUrlProcessor } from '../useSignObjectUrls'
 import * as utils from '../utils'
+
+import * as iframeSdk from './SDK'
 
 type Sign = (handle: s3paths.S3HandleBase) => string
 
