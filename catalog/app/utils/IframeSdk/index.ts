@@ -3,13 +3,15 @@ import { v4 as uuidv4 } from 'uuid'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import * as scripts from './scripts'
+import * as signer from './signer'
 
-type EventName = 'list-files' | 'get-file-url' | 'find-file-url'
+type EventName = 'list-files' | 'get-file-url' | 'find-file-url' | 'sign-url'
 
 export const EVENT_NAME: Record<string, EventName> = {
   FIND_FILE_URL: 'find-file-url',
   GET_FILE_URL: 'get-file-url',
   LIST_FILES: 'list-files',
+  SIGN_URL: 'sign-url',
 }
 
 interface PartialS3Handle {
@@ -17,7 +19,7 @@ interface PartialS3Handle {
   key: string
 }
 
-type Payload = S3HandleBase | PartialS3Handle
+type Payload = S3HandleBase | PartialS3Handle | string
 
 export function requestEvent(
   eventName: EventName,
@@ -34,6 +36,8 @@ export function requestEvent(
       resolve(data)
     }
     try {
+      // TODO: replace with one permanent event listener
+      //       add new events to queue
       window.addEventListener('message', handler)
       window?.top?.postMessage({
         id: eventId,
@@ -103,3 +107,10 @@ window.quilt.listFiles = listFiles
 window.quilt.findFile = findFile
 window.quilt.fetchFile = fetchFile
 window.quilt.scripts = scripts
+window.quilt.signer = {
+  igv: (json) =>
+    signer.igv(
+      json,
+      (path: string) => requestEvent(EVENT_NAME.SIGN_URL, path) as Promise<string>,
+    ),
+}

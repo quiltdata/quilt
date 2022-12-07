@@ -28,6 +28,9 @@ interface QuiltSdk {
       version?: string,
     ) => Promise<{ libraryName: string; version: string; path?: string }[]>
   }
+  signer: {
+    igv: (object: any) => any
+  }
 }
 
 interface Window {
