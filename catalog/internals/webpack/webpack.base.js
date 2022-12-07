@@ -11,21 +11,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
 const { execSync } = require('child_process')
 
-class HtmlBasePathPlugin {
-  apply (compiler) {
-    compiler.hooks.compilation.tap('HtmlBasePathPlugin', (compilation) => {
-      HtmlWebpackPlugin.getHooks(compilation). beforeAssetTagGeneration.tapAsync(
-        'HtmlBasePathPlugin', // <-- Set a meaningful name here for stacktraces
-        (data, cb) => {
-          // Manipulate the publicPath
-          data.assets.publicPath = "/test" + data.assets.publicPath
-          // Tell webpack to move on
-          cb(null, data)
-        }
-      )
-    })
-  }
-}
 
 const revisionHash = execSync('git rev-parse HEAD').toString()
 
