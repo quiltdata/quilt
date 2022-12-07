@@ -1,0 +1,597 @@
+directive @admin on FIELD_DEFINITION
+
+scalar Datetime
+
+scalar Json
+
+scalar JsonRecord
+
+scalar PackageContentsFlatMap
+
+# bucket + key + version (aka physical key)
+scalar S3ObjectLocation
+
+type OperationError {
+  message: String!
+  name: String!
+  context: JsonRecord
+}
+
+type InputError {
+  path: String
+  message: String!
+  name: String!
+  context: JsonRecord
+}
+
+type InvalidInput {
+  errors: [InputError!]!
+}
+
+type Ok {
+  _: Boolean
+}
+
+type Unavailable {
+  _: Boolean
+}
+
+type ContentIndexingSettings {
+  extensions: [String!]!
+  bytesDefault: Int!
+  bytesMin: Int!
+  bytesMax: Int!
+}
+
+type Config {
+  contentIndexingSettings: ContentIndexingSettings! @admin
+}
+
+type Canary {
+  name: String!
+  # TODO: full AWS console URL instead?
+  region: String!
+  group: String!
+  title: String!
+  description: String!
+  schedule: String!
+  ok: Boolean
+  lastRun: Datetime
+}
+
+type TestStats {
+  passed: Int!
+  failed: Int!
+  running: Int!
+}
+
+type TestStatsTimeSeries {
+  datetimes: [Datetime!]!
+  passed: [Int!]!
+  failed: [Int!]!
+}
+
+type StatusReport {
+  timestamp: Datetime! # can be used as id / cache key
+  renderedReportLocation: S3ObjectLocation!
+}
+
+enum StatusReportListOrder {
+  NEW_FIRST
+  OLD_FIRST
+}
+
+type StatusReportList {
+  total: Int!
+  page(
+    number: Int! = 1
+    perPage: Int! = 25
+    order: StatusReportListOrder! = NEW_FIRST
+  ): [StatusReport!]!
+}
+
+input StatusReportListFilter {
+  timestampFrom: Datetime
+  timestampTo: Datetime
+}
+
+type Status {
+  canaries: [Canary!]!
+  latestStats: TestStats!
+  stats(window: Int = 30): TestStatsTimeSeries!
+  reports(filter: StatusReportListFilter): StatusReportList!
+  reportsBucket: String!
+}
+
+union StatusResult = Status | Unavailable
+
+type Collaborator {
+  email: String!
+  username: String!
+}
+
+type CollaboratorBucketConnection {
+  collaborator: Collaborator!
+  permissionLevel: BucketPermissionLevel!
+}
+
+type BucketConfig {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int!
+  lastIndexed: Datetime
+  snsNotificationArn: String @admin
+  scannerParallelShardsDepth: Int @admin
+  skipMetaDataIndexing: Boolean @admin
+  fileExtensionsToIndex: [String!] @admin
+  indexContentBytes: Int @admin
+  associatedPolicies: [PolicyBucketPermission!]! @admin
+  associatedRoles: [RoleBucketPermission!]! @admin
+  collaborators: [CollaboratorBucketConnection!]!
+}
+
+# XXX: consider unifying ManagedRole and UnmanagedRole
+type UnmanagedRole {
+  id: ID!
+  name: String!
+  arn: String!
+}
+
+type ManagedRole {
+  id: ID!
+  name: String!
+  arn: String!
+  policies: [Policy!]!
+  permissions: [RoleBucketPermission!]!
+}
+
+union Role = UnmanagedRole | ManagedRole
+
+type Policy {
+  id: ID!
+  title: String!
+  arn: String!
+  managed: Boolean!
+  permissions: [PolicyBucketPermission!]!
+  roles: [ManagedRole!]!
+}
+
+enum BucketPermissionLevel {
+  READ
+  READ_WRITE
+}
+
+interface BucketPermission {
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type PolicyBucketPermission implements BucketPermission {
+  policy: Policy!
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type RoleBucketPermission implements BucketPermission {
+  role: Role!
+  bucket: BucketConfig!
+  level: BucketPermissionLevel!
+}
+
+type AccessCountForDate {
+  date: Datetime!
+  value: Int!
+}
+
+type AccessCounts {
+  total: Int!
+  counts: [AccessCountForDate!]!
+}
+
+type PackageDir {
+  path: String!
+  metadata: JsonRecord
+  # 32-bit Int is too small to represent dir size which quite often exceeds several GB
+  size: Float!
+  children: [PackageEntry!]!
+}
+
+type PackageFile {
+  path: String!
+  metadata: JsonRecord
+  # 32-bit Int is too small to represent file size which quite often exceeds several GB
+  size: Float!
+  physicalKey: String!
+  # XXX: expose hash?
+}
+
+union PackageEntry = PackageFile | PackageDir
+
+type PackageWorkflow {
+  config: String!
+  id: String
+}
+
+type PackageRevision {
+  # XXX: backlink to package?
+  hash: String!
+  modified: Datetime!
+  message: String
+  metadata: JsonRecord!
+  userMeta: JsonRecord
+  workflow: PackageWorkflow
+  totalEntries: Int
+  # 32-bit Int is too small to represent package size which quite often exceeds several GB
+  totalBytes: Float
+  dir(path: String!): PackageDir
+  file(path: String!): PackageFile
+  accessCounts(window: Int = 30): AccessCounts
+  # null when more than max entries
+  contentsFlatMap(max: Int = 1000): PackageContentsFlatMap
+}
+
+type PackageRevisionList {
+  total: Int!
+  page(number: Int = 1, perPage: Int = 10): [PackageRevision!]!
+}
+
+type Package {
+  bucket: String!
+  name: String!
+  modified: Datetime!
+  revisions: PackageRevisionList!
+  revision(hashOrTag: String = "latest"): PackageRevision
+  accessCounts(window: Int = 30): AccessCounts
+}
+
+enum PackageListOrder {
+  NAME
+  MODIFIED
+}
+
+type PackageList {
+  total: Int!
+  page(
+    number: Int = 1
+    perPage: Int = 30
+    order: PackageListOrder = NAME
+  ): [Package!]!
+}
+
+type Query {
+  config: Config!
+  bucketConfigs: [BucketConfig!]!
+  bucketConfig(name: String!): BucketConfig
+  potentialCollaborators: [Collaborator!]!
+  packages(bucket: String!, filter: String): PackageList
+  package(bucket: String!, name: String!): Package
+  policies: [Policy!]! @admin
+  policy(id: ID!): Policy @admin
+  roles: [Role!]! @admin
+  role(id: ID!): Role @admin
+  defaultRole: Role @admin
+  status: StatusResult! @admin
+}
+
+input BucketAddInput {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
+  delayScan: Boolean
+}
+
+input BucketUpdateInput {
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
+}
+
+type BucketAddSuccess {
+  bucketConfig: BucketConfig!
+}
+
+type BucketNotFound {
+  _: Boolean
+}
+
+type BucketAlreadyAdded {
+  _: Boolean
+}
+
+type BucketDoesNotExist {
+  _: Boolean
+}
+
+type BucketFileExtensionsToIndexInvalid {
+  _: Boolean
+}
+
+type BucketIndexContentBytesInvalid {
+  _: Boolean
+}
+
+type SnsInvalid {
+  _: Boolean
+}
+
+type NotificationConfigurationError {
+  _: Boolean
+}
+
+type NotificationTopicNotFound {
+  _: Boolean
+}
+
+type InsufficientPermissions {
+  _: Boolean
+}
+
+type IndexingInProgress {
+  _: Boolean
+}
+
+union BucketAddResult =
+    BucketAddSuccess
+  | BucketAlreadyAdded
+  | BucketDoesNotExist
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
+  | InsufficientPermissions
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
+  | SnsInvalid
+
+type BucketUpdateSuccess {
+  bucketConfig: BucketConfig!
+}
+
+union BucketUpdateResult =
+    BucketUpdateSuccess
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
+  | BucketNotFound
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
+  | SnsInvalid
+
+type BucketRemoveSuccess {
+  _: Boolean
+}
+
+union BucketRemoveResult =
+    BucketRemoveSuccess
+  | BucketNotFound
+  | IndexingInProgress
+
+input PermissionInput {
+  bucket: String!
+  level: BucketPermissionLevel!
+}
+
+input UnmanagedRoleInput {
+  name: String!
+  arn: String!
+}
+
+input ManagedRoleInput {
+  name: String!
+  policies: [ID!]!
+}
+
+# XXX: consider making these `OperationError`s
+type RoleNameReserved {
+  _: Boolean
+}
+
+type RoleNameExists {
+  _: Boolean
+}
+
+type RoleNameInvalid {
+  _: Boolean
+}
+
+type RoleDoesNotExist {
+  _: Boolean
+}
+
+type RoleIsManaged {
+  _: Boolean
+}
+
+type RoleIsUnmanaged {
+  _: Boolean
+}
+
+type RoleHasTooManyPoliciesToAttach {
+  _: Boolean
+}
+
+type RoleCreateSuccess {
+  role: Role!
+}
+
+union RoleCreateResult =
+    RoleCreateSuccess
+  | RoleNameReserved
+  | RoleNameExists
+  | RoleNameInvalid
+  | RoleHasTooManyPoliciesToAttach
+
+type RoleUpdateSuccess {
+  role: Role!
+}
+
+union RoleUpdateResult =
+    RoleUpdateSuccess
+  | RoleNameReserved
+  | RoleNameExists
+  | RoleNameInvalid
+  | RoleIsManaged
+  | RoleIsUnmanaged
+  | RoleHasTooManyPoliciesToAttach
+
+type RoleDeleteSuccess {
+  _: Boolean
+}
+
+type RoleAssigned {
+  _: Boolean
+}
+
+union RoleDeleteResult =
+    RoleDeleteSuccess
+  | RoleDoesNotExist
+  | RoleNameReserved
+  | RoleAssigned
+
+union RoleSetDefaultResult = RoleSetDefaultSuccess | RoleDoesNotExist
+
+type RoleSetDefaultSuccess {
+  role: Role!
+}
+
+input ManagedPolicyInput {
+  title: String!
+  permissions: [PermissionInput!]!
+  roles: [ID!]!
+}
+
+input UnmanagedPolicyInput {
+  title: String!
+  arn: String!
+  roles: [ID!]!
+}
+
+union PolicyResult = Policy | InvalidInput | OperationError
+
+union PolicyDeleteResult = Ok | InvalidInput | OperationError
+
+input PackagePushParams {
+  message: String
+  userMeta: JsonRecord
+  workflow: String
+  bucket: String!
+  name: String!
+}
+
+input PackageConstructEntry {
+  logicalKey: String!
+  physicalKey: String!
+  hash: String
+  # 32-bit Int may be too small to represent file size which may exceed several GB
+  size: Float
+  meta: JsonRecord
+}
+
+input PackageConstructSource {
+  entries: [PackageConstructEntry!]!
+}
+
+input PackagePromoteSource {
+  bucket: String!
+  name: String!
+  hash: String!
+}
+
+input PackageFromFolderEntry {
+  isDir: Boolean!
+  logicalKey: String!
+  path: String!
+}
+
+input PackageFromFolderSource {
+  bucket: String!
+  entries: [PackageFromFolderEntry!]!
+}
+
+type PackagePushSuccess {
+  package: Package!
+  revision: PackageRevision!
+}
+
+type PackageRevisionDeleteSuccess {
+  _: Boolean
+}
+
+union PackageConstructResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackagePromoteResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackageFromFolderResult =
+    PackagePushSuccess
+  | InvalidInput
+  | OperationError
+
+union PackageRevisionDeleteResult =
+    PackageRevisionDeleteSuccess
+  | OperationError
+
+type Mutation {
+  packageConstruct(
+    params: PackagePushParams!
+    src: PackageConstructSource!
+  ): PackageConstructResult!
+  packagePromote(
+    params: PackagePushParams!
+    src: PackagePromoteSource!
+  ): PackagePromoteResult!
+  packageFromFolder(
+    params: PackagePushParams!
+    src: PackageFromFolderSource!
+  ): PackageFromFolderResult!
+  packageRevisionDelete(
+    bucket: String!
+    name: String!
+    hash: String!
+  ): PackageRevisionDeleteResult!
+
+  bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
+    @admin
+  bucketRemove(name: String!): BucketRemoveResult! @admin
+
+  policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
+  policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyUpdateManaged(id: ID!, input: ManagedPolicyInput!): PolicyResult! @admin
+  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyDelete(id: ID!): PolicyDeleteResult! @admin
+
+  roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
+  roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
+  roleUpdateManaged(id: ID!, input: ManagedRoleInput!): RoleUpdateResult! @admin
+  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
+    @admin
+  roleDelete(id: ID!): RoleDeleteResult! @admin
+  roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
+}

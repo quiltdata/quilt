@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "quilt3_local"
+version = "1.2.0"
+description = "Quilt3 catalog: local development mode"
+readme = "README.md"
+license = "Apache-2.0"
+authors = ["quiltdata <contact@quiltdata.io>"]
+homepage = "https://quiltdata.com"
+repository = "https://github.com/quiltdata/local"
+documentation = "https://docs.quiltdata.com"
+include = ["quilt3_local/catalog_bundle/*"]
+
+[tool.poetry.dependencies]
+python = ">=3.7.1,<3.11"
+ariadne = "^0.14.1"
+boto3 = "^1.10.0"
+fastapi = "^0.70.0"
+importlib-resources = "^5.3.0"
+imageio = "~2.5.0"
+aicsimageio = "~3.1.4"
+pandas = "^1.3.4"
+fcsparser = "^0.2.4"
+xlrd = "^2.0.1"
+pyarrow = "^7"
+psutil = "^5.8.0"
+nbformat = "^5.1.3"
+nbconvert = "^6.3.0"
+requests = "^2.26.0"
+botocore = "^1.23.14"
+jsonschema = "^3.0.1"
+numpy = "^1.21.4"
+Pillow = ">=8.4,<10.0"
+aiohttp = "^3.8.1"
+aiobotocore = "^2.1.0"
+cachetools = "^5.0.0"
+openpyxl = "^3.0.9"
+fsspec = {version = ">=2022.1.0", extras = ["http"]}
+
+[tool.poetry.dev-dependencies]
+asgiproxy = "^0.0"
+black = "^22.10.0"
+uvicorn = {version = "^0.15.0", extras = ["standard"]}
+
+[tool.poetry.scripts]
+quilt3-local = "quilt3_local.main:run"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

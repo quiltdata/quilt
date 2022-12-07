@@ -19,8 +19,32 @@
       defer
       src="https://polyfill.io/v3/polyfill.min.js?features=Intl%2Cdefault%2CResizeObserver%2CBlob%2Cfetch%2Ces2016%2Ces2017%2Ces2018%2Ces2019%2Ces2015%2CIntl.RelativeTimeFormat"
     ></script>
-    <!-- webpackIgnore: true -->
-    <script defer src="/config.js"></script>
+    <!-- <script defer src="/static-dev/config.js"></script> -->
+    <script>
+      window.QUILT_CATALOG_CONFIG = {
+        "alwaysRequiresAuth": false,
+        "analyticsBucket": "",
+        "apiGatewayEndpoint": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__lambda`,
+        "binaryApiGatewayEndpoint": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__lambda`,
+        "googleClientId": "",
+        "mixpanelToken": "",
+        "mode": "LOCAL",
+        "noDownload": true,
+        "oktaBaseUrl": "",
+        "oktaClientId": "",
+        "oneLoginBaseUrl": "",
+        "oneLoginClientId": "",
+        "passwordAuth": "DISABLED",
+        "registryUrl": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__reg`,
+        "s3Proxy": `${window.__webpack_public_path__ || new URLSearchParams(location.search).get("base")}__s3proxy`,
+        "sentryDSN": "",
+        "serviceBucket": "",
+        "signInRedirect": "/",
+        "signOutRedirect": "/",
+        "ssoAuth": "DISABLED",
+        "ssoProviders": "",
+      }
+    </script>
   </head>
   <body>
     <!--[if lte IE 10]>

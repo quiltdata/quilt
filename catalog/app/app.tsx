@@ -1,4 +1,5 @@
 // Application entry point
+__webpack_public_path__ = new URLSearchParams(location.search).get("base")
 
 // Import all the third party stuff
 import { createBrowserHistory as createHistory } from 'history'

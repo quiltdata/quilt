@@ -11,6 +11,22 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const webpack = require('webpack')
 const { execSync } = require('child_process')
 
+class HtmlBasePathPlugin {
+  apply (compiler) {
+    compiler.hooks.compilation.tap('HtmlBasePathPlugin', (compilation) => {
+      HtmlWebpackPlugin.getHooks(compilation). beforeAssetTagGeneration.tapAsync(
+        'HtmlBasePathPlugin', // <-- Set a meaningful name here for stacktraces
+        (data, cb) => {
+          // Manipulate the publicPath
+          data.assets.publicPath = "/test" + data.assets.publicPath
+          // Tell webpack to move on
+          cb(null, data)
+        }
+      )
+    })
+  }
+}
+
 const revisionHash = execSync('git rev-parse HEAD').toString()
 
 // TODO: use webpack-merge, it's already in node_modules
@@ -24,7 +40,7 @@ module.exports = (options) => ({
   output: {
     // Compile into js/build.js
     path: path.resolve(process.cwd(), 'build'),
-    publicPath: '/',
+    // publicPath: '/',
     // Merge with env dependent settings
     ...options.output,
   },
@@ -113,6 +129,7 @@ module.exports = (options) => ({
     ],
   },
   plugins: options.plugins.concat([
+    // new HtmlBasePathPlugin(),
     new CopyWebpackPlugin({ patterns: [{ from: 'static' }] }),
 
     new HtmlWebpackPlugin({
