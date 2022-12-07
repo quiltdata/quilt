@@ -39,6 +39,9 @@ but that's handled in a separate domain (`state.route`) via reducer composition;
 ## Deployment (for Quilt internal usage)
 Be sure to set up `internals/firebase.default.json` first.
 ```sh
+cd catalog
+npm run build
+cp static-dev/config.js build/
 firebase use ENV
 firebase deploy --only hosting
 ```
