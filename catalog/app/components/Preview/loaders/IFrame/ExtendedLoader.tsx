@@ -5,7 +5,6 @@ import * as React from 'react'
 
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import { mkSearch } from 'utils/NamedRoutes'
@@ -13,14 +12,14 @@ import * as s3paths from 'utils/s3paths'
 import type { PackageHandle } from 'utils/packageHandle'
 import * as iframeSdk from 'utils/IframeSdk'
 
-import { PreviewData } from '../types'
+import { PreviewData } from '../../types'
 
-import { createPathResolver, createUrlProcessor } from './useSignObjectUrls'
-import * as utils from './utils'
-
-export const MAX_BYTES = 10 * 1024
+import { createPathResolver, createUrlProcessor } from '../useSignObjectUrls'
+import * as utils from '../utils'
 
 type Sign = (handle: s3paths.S3HandleBase) => string
+
+const MAX_BYTES = 10 * 1024
 
 function generateJsonUrl(handle: s3paths.S3HandleBase, endpoint: string, sign: Sign) {
   return encodeURIComponent(
@@ -138,6 +137,7 @@ function useListFilesInCurrentDir(baseHandle: s3paths.S3HandleBase) {
   }, [baseHandle, s3])
 }
 
+// TODO: Move to utils/IframeSdk/messageBus.ts
 function useMessageBus(handle: FileHandle) {
   const signUrl = useSignedUrl(handle)
   const signPreviewUrl = useSignedPreviewUrl(handle)
@@ -196,10 +196,7 @@ interface IFrameLoaderProps {
   handle: FileHandle
 }
 
-export const ExtendedLoader = function ExtendedIFrameLoader({
-  handle,
-  children,
-}: IFrameLoaderProps) {
+export default function ExtendedIFrameLoader({ handle, children }: IFrameLoaderProps) {
   const env = useContextEnv(handle)
 
   const sign = AWS.Signer.useS3Signer()
@@ -228,13 +225,4 @@ export const ExtendedLoader = function ExtendedIFrameLoader({
     },
   )
   return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
-}
-
-export const Loader = function IFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const sign = AWS.Signer.useS3Signer()
-  const src = React.useMemo(
-    () => sign(handle, { ResponseContentType: 'text/html' }),
-    [handle, sign],
-  )
-  return children(AsyncResult.Ok(PreviewData.IFrame({ src })))
 }
