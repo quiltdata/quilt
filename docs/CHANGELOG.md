@@ -15,6 +15,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 ## Python API
+* [Added] `dedupe` parameter for `Package.push()` ([#3181](https://github.com/quiltdata/quilt/pull/3181))
 * [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
 * [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
 * [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
