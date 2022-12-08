@@ -37,12 +37,11 @@ but that's handled in a separate domain (`state.route`) via reducer composition;
 [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
 
 ## Deployment (for Quilt internal usage)
-Be sure to set up `internals/firebase.default.json` first.
 ```sh
 cd catalog
 npm run build
 cp static-dev/config.js build/
+vi build/config.js # edit config file as required
 firebase use ENV
 firebase deploy --only hosting
 ```
-

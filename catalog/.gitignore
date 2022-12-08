@@ -13,5 +13,4 @@ stats.json
 npm-debug.log
 .idea
 .firebase*
-firebase.json
 firebase-debug.log
