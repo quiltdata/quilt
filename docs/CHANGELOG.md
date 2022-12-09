@@ -14,6 +14,8 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+
+# 5.1.0 - 2022-12-09
 ## Python API
 * [Added] `dedupe` parameter for `Package.push()` ([#3181](https://github.com/quiltdata/quilt/pull/3181))
 * [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
