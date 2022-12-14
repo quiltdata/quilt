@@ -239,6 +239,9 @@ At present, ECharts in Quilt does not support custom JavaScript. You are therefo
 limited to JSON types (numbers, strings, objects, arrays, etc.). Functions like [`symbolSize`](https://echarts.apache.org/en/option.html#series-scatter.symbolSize)
 are not available.
 
+### Live packages
+- [Various EChart types](https://open.quiltdata.com/b/quilt-example/packages/examples/echarts)
+
 ## Voila
 *This feature is a Developer preview, details are subject to change.*
 
