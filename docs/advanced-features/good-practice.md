@@ -38,6 +38,8 @@ and provides access to current and historical status reports.
 canary error notifications (available as `CanaryNotificationsTopic`
 stack output).
 
+![](../imgs/catalog-status-example-status-report.png)
+
 ### Setting up status monitoring for a Quilt instance
 
 In order to enable status monitoring for a Quilt instance, the
@@ -62,21 +64,42 @@ allowed Amazon S3 buckets
 catalog package creation dialog
 - `Search`: Search S3 objects and Quilt packages in the Quilt catalog
 
-#### Quilt instance CloudFormation deployment configuration
+#### Quilt instance CloudFormation deployment parameters
 
-When deploying a Quilt instance using a CloudFormation template with canaries enabled, you will have to provide the following parameters:
+When deploying a Quilt instance using a CloudFormation template
+with canaries enabled, you will have to provide the following
+parameters:
 
-- `CanaryNotificationsEmail` (if enabled): A valid email address to send canary failure and error notifications
+- `CanaryNotificationsEmail` (if enabled): A valid email address
+to send canary failure and error notifications
 
 ### Accessing current operational status and reports archive
 
-Go to your Quilt web-based catalog administration panel, Status tab (under /admin/status URL).
+Go to your Quilt web-based catalog administration panel, "Status"
+tab (under the /admin/status URL).
 There you can see the stack's current operational status (as well
 as the chart with historic data for the last month) and the reports
 table (which can be sorted / filtered) where you can preview or
 download stored reports (HTML files).
 
 ![](../imgs/catalog-status-overview.png)
+
+### Getting notifications about canary failures
+
+For convenience, the following canary-related events are forwarded
+to an SNS topic (available as `CanaryNotificationsTopic` in the
+Quilt instance CloudFormation deployment Outputs tab):
+
+1. A canary entering error state
+2. A canary run failure
+
+Quilt administrators can subscribe to this SNS topic to receive
+these event notifications and process them appropriately (e.g. notifying first
+responders or sending to incident management systems).
+
+If enabled (see set-up instructions above), these events will be
+also sent as emails to the configured address (`CanaryNotificationsEmail`
+CloudFormation template parameter).
 
 
 
