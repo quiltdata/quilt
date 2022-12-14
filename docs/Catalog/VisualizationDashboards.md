@@ -144,6 +144,17 @@ alt.Chart(df).mark_area(
 ).save("vega.json")
 ```
 
+> To create plots that directly embed a dataset with more than 5000
+rows (a large dataset), you will encounter a `MaxRowsError`. You
+can get around this error in [several different
+ways](https://altair-viz.github.io/user_guide/faq.html#maxrowserror-how-can-i-plot-large-datasets)
+
+### Live packages
+- [Interactive map of California with slider
+scale](https://open.quiltdata.com/b/quilt-example/packages/akarve/reef-check)
+- [Interactive map of 2015 United States by-county smoking & poverty
+data](https://open.quiltdata.com/b/quilt-example/packages/robnewman/us_county_smoking_vs_poverty)
+
 ## ECharts
 To render an [EChart](https://echarts.apache.org/), you provide a JSON file (a dictionary that
 specifies the ECharts [option parameter](https://echarts.apache.org/en/option.html))
@@ -362,6 +373,9 @@ All filters and columns will be restored:
 ]
 ```
 
+### Live packages
+- [CSV file automatically rendered in Perspective Datagrid](https://open.quiltdata.com/b/quilt-example/packages/examples/smart-report)
+
 ## Integrative Genomics Viewer (IGV)
 
 To render genome tracks, you can select "View as IGV" in the catalog,
@@ -399,3 +413,6 @@ HTTP URLs will remain unchanged.
   }]
 }
 ```
+
+### Live packages
+- [Single and multiple track genome sequences](https://open.quiltdata.com/b/quilt-example/tree/examples/simple-igv/) 
