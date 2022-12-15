@@ -270,7 +270,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force=False)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -306,14 +306,16 @@ __Arguments__
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3.
     The function takes in two arguments, logical_key and package_entry, and should return False if that
-    PackageEntry should be skipped during push. If for example you have a package where the files
-    are spread over multiple buckets and you add a single local file, you can use selector_fn to
-    only push the local file to s3 (instead of pushing all data to the destination bucket).
+    PackageEntry should not be copied to the destination registry during push.
+    If for example you have a package where the files are spread over multiple buckets
+    and you add a single local file, you can use selector_fn to only
+    push the local file to s3 (instead of pushing all data to the destination bucket).
 * __workflow__:  workflow ID or `None` to skip workflow validation.
     If not specified, the default workflow will be used.
 * __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
 
 * __force__:  skip the top hash check and overwrite any existing package
+* __dedupe__:  don't push if the top hash matches the existing package top hash; return the current package
 
 __Returns__
 
