@@ -5,16 +5,16 @@
 
 Data can be added to your Amazon S3 buckets manually by internal
 team members and/or external collaborators, or automatically via
-instrumentation. No matter how it arrives in your institution's
-buckets, it is helpful, and sometimes crucial, to be notified
-of this data migration.
+instrumentation. No matter how it arrives into your buckets, it 
+is helpful, and sometimes crucial, to be notified of this data 
+migration.
 
 Quilt's *Event-Driven Packaging* service (EDP) monitors S3 object events
 for a given Amazon S3 bucket prefix and generates a `files_ready`
 event on the receiving [EventBridge](https://aws.amazon.com/eventbridge/)
 in order to notify users and/or other AWS services that a group of S3
-objects are ready to be packaged. This makes it easy to ingest data into
-Quilt data packages from AWS data migration services such as [Storage
+objects are ready to be packaged. *This makes it easy to ingest data into
+Quilt data packages from AWS data migration services* such as [Storage
 Gateway](https://aws.amazon.com/storagegateway/) and [Data
 Sync](https://aws.amazon.com/datasync/).
 
