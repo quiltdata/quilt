@@ -237,6 +237,11 @@ in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
 PosixPath('/foo/Quilt/v0')
 ```
 
+> Quilt gets the cache directory when `quilt3` is imported, so
+changing it later won't make a difference.
+> As a workaround, you can modify `quilt3.util.CACHE_PATH` to change
+the base directory.
+
 
 ## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
 
