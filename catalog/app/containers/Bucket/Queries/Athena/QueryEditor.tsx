@@ -22,6 +22,26 @@ const ATHENA_REF_SQL =
 const ATHENA_REF_FUNCTIONS =
   'https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html'
 
+function Helper() {
+  return (
+    <M.FormHelperText>
+      Quilt uses AWS Athena SQL. Learn more:{' '}
+      <StyledLink href={ATHENA_REF_INDEX} target="_blank">
+        Introduction
+      </StyledLink>
+      ,{' '}
+      <StyledLink href={ATHENA_REF_SQL} target="_blank">
+        SQL Reference for Amazon Athena
+      </StyledLink>
+      ,{' '}
+      <StyledLink href={ATHENA_REF_FUNCTIONS} target="_blank">
+        Functions in Amazon Athena
+      </StyledLink>
+      .
+    </M.FormHelperText>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   editor: {
     padding: t.spacing(1),
@@ -56,21 +76,7 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
           width="100%"
         />
       </M.Paper>
-      <M.FormHelperText>
-        Quilt uses AWS Athena SQL. Learn more:{' '}
-        <StyledLink href={ATHENA_REF_INDEX} target="_blank">
-          Introduction
-        </StyledLink>
-        ,{' '}
-        <StyledLink href={ATHENA_REF_SQL} target="_blank">
-          SQL Reference for Amazon Athena
-        </StyledLink>
-        ,{' '}
-        <StyledLink href={ATHENA_REF_FUNCTIONS} target="_blank">
-          Functions in Amazon Athena
-        </StyledLink>
-        .
-      </M.FormHelperText>
+      <Helper />
     </div>
   )
 }
@@ -162,7 +168,7 @@ function FormSkeleton({ className }: FormSkeletonProps) {
         <Skeleton className={classes.numbers} animate />
         <Skeleton className={classes.canvas} animate />
       </div>
-      <Skeleton className={classes.helper} animate />
+      <Helper />
       <Skeleton className={classes.button} animate />
     </div>
   )
