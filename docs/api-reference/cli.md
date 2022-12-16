@@ -240,7 +240,9 @@ PosixPath('/foo/Quilt/v0')
 Quilt gets the cache directory when `quilt3` is imported, so
 changing it later won't make a difference.
 
-> The best solution is to add `XDG_CACHE_HOME=/tmp/.cache/` to the AWS Lambda config.
+> The best solution is to add `XDG_CACHE_HOME=/tmp/.cache/` to your
+[AWS Lambda environment
+variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html)
 > As a workaround, you can modify `quilt3.util.CACHE_PATH` to change
 the base directory.
 
