@@ -40,6 +40,7 @@ For instance, AWS Lambda requires the user to use `/tmp/*` as the scratch
 directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` will succeed
 in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
 
+<!--pytest.mark.skip-->
 ```python
 >>> import os
 >>> os.environ["XDG_CACHE_HOME"] = "/tmp/.cache"
