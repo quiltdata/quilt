@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Quilt3 CLI and environment
 
 ## `catalog`
@@ -226,6 +227,15 @@ standard (see [platformdirs docs](https://pypi.org/project/platformdirs/)).
 For instance, AWS Lambda requires the user to use `tmp/*` as the scratch
 directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` will succeed
 in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
+
+```python
+>>> import os
+>>> os.environ["XDG_CACHE_HOME"] = "/foo"
+>>> 
+>>> import quilt3
+>>> quilt3.util.CACHE_PATH 
+PosixPath('/foo/Quilt/v0')
+```
 
 
 ## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
