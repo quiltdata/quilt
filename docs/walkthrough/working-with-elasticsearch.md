@@ -1,53 +1,81 @@
 <!-- markdownlint-disable -->
 
-### About elastic search
+## About ElasticSearch
 
-Quilt is currently pinned to ElasticSearch 6.7
-### Upload package
+The [Quilt web catalog
+search](../walkthrough/working-with-the-catalog#search) is powered
+by ElasticSearch. To write specialized queries against your data
+stored in Amazon S3 buckets you may wish to connect directly to
+your Quilt ElasticSearch cluster.
 
-You can upload a new package providing the name of the package, commit message, files, metadata, and [workflow](../advanced-features/workflows.md).
+> Note that Quilt is currently pinned to ElasticSearch 6.7
 
-The name should have the format `namespace/package-name`.
+Each Amazon S3 bucket connected to Quilt has two ElasticSearch indexes:
+1. `<s3-bucket>`: For S3 object documents
+2. `<s3-bucket>_packages`: For Quilt data package documents
 
-The message needs to add notes on a new revision for this package.
+Provided you have IAM permissions, you can write queries against
+the indexes which will search across all your Amazon S3 buckets
+connected to Quilt.
 
-Files are the content of your package.
+## Connecting to your indexes
 
-The associated workflow contains the rules for validating your package.
+Before writing your specialized queries, you will need to ensure
+that you have authenticated and have access to AWS resources. The
+best way to do this is to [configure your AWS CLI
+credentials](https://docs.quiltdata.com/more/faq#do-i-have-to-login-via-quilt3-to-use-the-quilt-apis-how-do-i-push-to-quilt-from-a-headless-environme).
 
-The metadata can be added with JSON editor, represented as a key/value table with infinite nesting. If workflow contains JSON schema, you will have predefined key/value pairs according to the schema.
+```
+% export AWS_PROFILE=<your-aws-profile>
+```
 
-#### JSON editor
+You can then connect directly to the ElasticSearch cluster to write
+custom queries. This is faster than writing queries to multiple S3
+buckets due to how registries are laid out in Amazon S3. 
 
-To add a new key/value field double click on an empty cell and type key name, then press "Enter" or "Tab", or click outside of the cell. To change value double click on that value.
+### Example
 
-Values can be strings, numbers, arrays, or objects. Every value that you type will be parsed as JSON.
+Below is an example using Python to search the Quilt data package 
+documents index (`*_packages`) across all S3 buckets (`*`), 
+returning the top `1000` results.
 
-We don't support references and compound types yet.
+<!--pytest.mark.skip-->
+```python
+from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
+from elasticsearch import Elasticsearch, RequestsHttpConnection
 
-### Push to bucket
+es_host = "check.aws.console.for.your.host.us-east-1.es.amazonaws.com"
 
-You can push the existing package from one bucket to another. To use this feature consult [workflows](../advanced-features/workflows.md) page.
+auth = BotoAWSRequestsAuth(
+    aws_host=es_host,
+    aws_region='us-east-1',
+    aws_service='es'
+)
 
-### Summarize
+elastic = Elasticsearch(
+    hosts=[
+        {"host": f"{es_host}", "port": 443}
+    ],
+    http_auth=auth,
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection,
+    timeout=27
+)
 
-Adding a `quilt_summarize.json` file to a data package (or S3 directory path) will enable content preview right on the landing page.
+query = rbody = {
+    "query": {
+        # query body here
+    }
+}
 
-![](../imgs/catalog_package_landing_page.png)
+to_search = "*_packages"
+_source = ['*']
 
-Colocating data with context in this way is a simple way of making your data projects approachable and accessible to collaborators.
-
-`quilt_summarize.json` can be a list of paths to files in S3 that you want to include in your summary. For example: `["description.md", "../notebooks/exploration.ipynb"]`. Additionally, note that if a `README.md` file is present, it will always be rendered as well.
-
-> There are currently some small limitations with preview:
->
-> * Objects linked to in `quilt_summarize.json` are always previewed as of the latest version, even if you are browsing an old version of a package.
-> * Object titles and image thumbnails link to the file view, even if you are in the package view.
-
-## Admin UI
-
-The Quilt catalog includes an admin panel that allows you to manage users and buckets in your stack and to customize your Quilt catalog.
-See [Admin UI docs](../Catalog/Admin.md) for details.
-
-
-**[To learn more, check out the public demo catalog](https://open.quiltdata.com/b/quilt-example)**.
+elastic.search(
+    index=to_search,
+    body=rbody,
+    _source=_source,
+    size=1000,
+)
+```
