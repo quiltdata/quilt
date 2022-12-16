@@ -22,7 +22,7 @@ const ATHENA_REF_SQL =
 const ATHENA_REF_FUNCTIONS =
   'https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html'
 
-function Helper() {
+function HelperText() {
   return (
     <M.FormHelperText>
       Quilt uses AWS Athena SQL. Learn more:{' '}
@@ -76,7 +76,7 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
           width="100%"
         />
       </M.Paper>
-      <Helper />
+      <HelperText />
     </div>
   )
 }
@@ -168,7 +168,7 @@ function FormSkeleton({ className }: FormSkeletonProps) {
         <Skeleton className={classes.numbers} animate />
         <Skeleton className={classes.canvas} animate />
       </div>
-      <Helper />
+      <HelperText />
       <Skeleton className={classes.button} animate />
     </div>
   )
