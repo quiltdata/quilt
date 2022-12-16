@@ -36,10 +36,27 @@ Quilt uses platformdirs for Python to determine where to write data. You can the
 override the following path constants with environment variables using the XDG
 standard (see [platformdirs docs](https://pypi.org/project/platformdirs/)).
 
-For instance, AWS Lambda requires the user to use `tmp/*` as the scratch
+For instance, AWS Lambda requires the user to use `/tmp/*` as the scratch
 directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` will succeed
 in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
 
+```python
+>>> import os
+>>> os.environ["XDG_CACHE_HOME"] = "/tmp/.cache"
+>>> 
+>>> import quilt3
+>>> quilt3.util.CACHE_PATH 
+PosixPath('/tmp/.cache/Quilt/v0')
+```
+
+Quilt gets the cache directory when `quilt3` is imported, so
+changing it later won't make a difference.
+
+> The best solution is to add `XDG_CACHE_HOME=/tmp/.cache/` to your
+[AWS Lambda environment
+variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html)
+> As a workaround, you can modify `quilt3.util.CACHE_PATH` to change
+the base directory.
 
 ## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
 

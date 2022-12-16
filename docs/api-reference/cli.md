@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 # Quilt3 CLI and environment
 
 ## `catalog`
@@ -234,7 +233,7 @@ in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
 >>> 
 >>> import quilt3
 >>> quilt3.util.CACHE_PATH 
-PosixPath('/foo/Quilt/v0')
+PosixPath('/tmp/.cache/Quilt/v0')
 ```
 
 Quilt gets the cache directory when `quilt3` is imported, so
