@@ -1,6 +1,9 @@
 <!-- markdownlint-disable -->
 # Event-Driven Packaging (EDP)
 
+> EDP is currently in private preview. Please contact Quilt
+directly to discuss pricing.
+
 ## Overview
 
 Data can be added to your Amazon S3 buckets manually by internal
