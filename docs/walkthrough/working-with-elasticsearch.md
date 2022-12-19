@@ -25,6 +25,7 @@ that you have authenticated and have access to AWS resources. The
 best way to do this is to [configure your AWS CLI
 credentials](https://docs.quiltdata.com/more/faq#do-i-have-to-login-via-quilt3-to-use-the-quilt-apis-how-do-i-push-to-quilt-from-a-headless-environme).
 
+<!--pytest.mark.skip-->
 ```bash
 % export AWS_PROFILE=<your-aws-profile>
 ```
