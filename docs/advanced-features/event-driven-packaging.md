@@ -105,6 +105,7 @@ For example with `p.set_dir(".",
 f"s3://{e['detail']['bucket']}/{e['detail']['prefix']}")`, followed
 by `p.push()`.
 
+<!--pytest.mark.skip-->
 ```json
 {
     "version":"0",
@@ -132,6 +133,7 @@ S3 bucket and that a user-specified interval has elapsed to ensure
 that time-driven processes like File Gateway have synchronized their
 state to that of the S3 bucket.
 
+<!--pytest.mark.skip-->
 ```json
 {
     "version": "0",
@@ -177,4 +179,3 @@ specially named files (e.g. "quilt_metadata.json")
 contents to a File Gateway where it has read permissions to ensure
 that new EDP-created Quilt packages are available to Gateway clients
 like Windows Workspaces.
-
