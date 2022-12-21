@@ -14,6 +14,7 @@ const MODES = {
   igv: 'IGV',
   json: 'JSON',
   jupyter: 'Jupyter',
+  txt: 'Plain Text',
   vega: 'Vega',
   voila: 'Voila',
 }
@@ -64,21 +65,21 @@ export function useViewModes(
     switch (extname(path)) {
       case '.ipynb':
         return !!packageHandle && voilaAvailable
-          ? ['jupyter', 'json', 'voila']
-          : ['jupyter', 'json']
+          ? ['jupyter', 'json', 'voila', 'txt']
+          : ['jupyter', 'json', 'txt']
       case '.json':
         return PreviewData.case(
           {
             Vega: (json: any) =>
-              isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
+              isVegaSchema(json.spec?.$schema) ? ['vega', 'json', 'txt'] : [],
             Json: (json: any) => {
-              if (isVegaSchema(json.rendered?.$schema)) return ['vega', 'json']
-              if (isIgvTracks(json.rendered)) return ['json', 'igv']
-              if (isEchartsDatasource(json.rendered)) return ['json', 'echarts']
-              return []
+              if (isVegaSchema(json.rendered?.$schema)) return ['vega', 'json', 'txt']
+              if (isIgvTracks(json.rendered)) return ['json', 'igv', 'txt']
+              if (isEchartsDatasource(json.rendered)) return ['json', 'echarts', 'txt']
+              return ['txt']
             },
-            _: () => [],
-            __: () => [],
+            _: () => ['txt'],
+            __: () => ['txt'],
           },
           previewResult,
         )

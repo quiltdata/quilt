@@ -44,7 +44,16 @@ const loaderChain = [
 ]
 
 function findLoader(key, options) {
-  return loaderChain.find(({ detect }) => detect(key, options))
+  switch (mode) {
+    case 'json':
+      return Json
+    case 'echarts':
+      return Echarts
+    case 'igv':
+      return Igv
+    default:
+      return loaderChain.find(({ detect }) => detect(key, options))
+  }
 }
 
 export function getRenderProps(key, options) {
