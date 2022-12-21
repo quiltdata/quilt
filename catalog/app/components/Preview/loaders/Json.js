@@ -5,7 +5,8 @@ import * as React from 'react'
 import AsyncResult from 'utils/AsyncResult'
 
 import { PreviewData, PreviewError } from '../types'
-import * as IgvLoader from './Igv'
+import * as Igv from './Igv'
+import * as Echarts from './Echarts'
 import useSignObjectUrls from './useSignObjectUrls'
 
 import * as Text from './Text'
@@ -109,8 +110,10 @@ function findLoader(mode, firstBytes) {
   switch (mode) {
     case 'json':
       return JsonLoader
+    case 'echarts':
+      return Echarts.Loader
     case 'igv':
-      return IgvLoader.Loader
+      return Igv.Loader
     default:
       return detectSchema(firstBytes) ? VegaLoader : JsonLoader
   }

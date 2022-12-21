@@ -10,6 +10,7 @@ import { PackageHandle } from 'utils/packageHandle'
 import { JsonRecord } from 'utils/types'
 
 const MODES = {
+  echarts: 'ECharts',
   igv: 'IGV',
   json: 'JSON',
   jupyter: 'Jupyter',
@@ -19,7 +20,10 @@ const MODES = {
 
 export type ViewMode = keyof typeof MODES
 
-const isIgvTracks = (json: JsonRecord) => Array.isArray(json?.tracks)
+const isIgvTracks = (json?: JsonRecord) => Array.isArray(json?.tracks)
+
+const isEchartsDatasource = (json?: JsonRecord) =>
+  !!json?.dataset || Array.isArray(json?.series)
 
 const isVegaSchema = (schema: string) => {
   if (!schema) return false
@@ -70,6 +74,7 @@ export function useViewModes(
             Json: (json: any) => {
               if (isVegaSchema(json.rendered?.$schema)) return ['vega', 'json']
               if (isIgvTracks(json.rendered)) return ['json', 'igv']
+              if (isEchartsDatasource(json.rendered)) return ['json', 'echarts']
               return []
             },
             _: () => [],

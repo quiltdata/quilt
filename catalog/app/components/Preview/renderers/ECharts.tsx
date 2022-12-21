@@ -5,6 +5,7 @@ import * as echarts from 'echarts'
 const useStyles = M.makeStyles({
   root: {
     height: '400px',
+    width: '100%',
   },
 })
 
