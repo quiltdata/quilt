@@ -103,7 +103,6 @@ function JsonLoader({ gated, handle, children }) {
   )
 }
 
-// TODO: !Igv.detect(key, options) && !Echarts.detect(key, options)
 export const detect = utils.extIs('.json')
 
 function findLoader(mode, firstBytes) {
