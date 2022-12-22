@@ -5,63 +5,13 @@ import * as React from 'react'
 import AsyncResult from 'utils/AsyncResult'
 
 import { PreviewData, PreviewError } from '../types'
-import * as Igv from './Igv'
-import * as Echarts from './Echarts'
-import useSignObjectUrls from './useSignObjectUrls'
 
 import * as Text from './Text'
+import * as Vega from './Vega'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
-const SCHEMA_RE =
-  /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
 const BYTES_TO_SCAN = 128 * 1024
-
-const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
-
-export const traverseUrls = (fn, spec) =>
-  R.evolve(
-    {
-      data: map(R.evolve({ url: fn })),
-      layer: map((l) => traverseUrls(fn, l)),
-    },
-    spec,
-  )
-
-const detectSchema = (txt) => {
-  const m = txt.match(SCHEMA_RE)
-  if (!m) return false
-  const [, library, version] = m
-  if (library !== 'vega' && library !== 'vega-lite') return false
-  return { library, version }
-}
-
-function VegaLoader({ handle, gated, children }) {
-  const signSpec = useSignObjectUrls(handle, traverseUrls)
-  const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
-  const processed = utils.useAsyncProcessing(
-    data.result,
-    async (r) => {
-      try {
-        const contents = r.Body.toString('utf-8')
-        const spec = JSON.parse(contents)
-        return PreviewData.Vega({ spec: await signSpec(spec) })
-      } catch (e) {
-        if (e instanceof SyntaxError) {
-          throw PreviewError.MalformedJson({ handle, message: e.message })
-        }
-        throw e
-      }
-    },
-    [signSpec, handle],
-  )
-  const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
-  const result =
-    gated && AsyncResult.Init.is(handled)
-      ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
-      : handled
-  return children(result)
-}
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
@@ -105,23 +55,14 @@ function JsonLoader({ gated, handle, children }) {
 
 export const detect = utils.extIs('.json')
 
-function findLoader(mode, firstBytes) {
-  switch (mode) {
-    case 'json':
-      return JsonLoader
-    case 'echarts':
-      return Echarts.Loader
-    case 'igv':
-      return Igv.Loader
-    default:
-      return detectSchema(firstBytes) ? VegaLoader : JsonLoader
-  }
+function findLoader(firstBytes) {
+  return Vega.detectSchema(firstBytes) ? VegaLoader : JsonLoader
 }
 
-export const Loader = function GatedJsonLoader({ handle, children, options }) {
+export const Loader = function GatedJsonLoader({ handle, children }) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) => {
-      const LoaderComponent = findLoader(options.mode, firstBytes)
+      const LoaderComponent = findLoader(firstBytes)
       return (
         <LoaderComponent {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       )

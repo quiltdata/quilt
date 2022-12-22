@@ -45,6 +45,8 @@ const loaderChain = [
 
 function findLoader(key, options) {
   switch (mode) {
+    case 'voila':
+      return Voila
     case 'json':
       return Json
     case 'echarts':

@@ -3,8 +3,6 @@ import * as React from 'react'
 
 import { PreviewData } from '../types'
 import * as utils from './utils'
-import * as Json from './Json'
-import * as Voila from './Voila'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.ipynb'))
 
@@ -20,13 +18,6 @@ function NotebookLoader({ handle, children }) {
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
 
-export const Loader = function WrappedNotebookLoader({ handle, children, options }) {
-  switch (options.mode) {
-    case 'voila':
-      return <Voila.Loader {...{ handle, children }} />
-    case 'json':
-      return <Json.Loader {...{ handle, children, options }} />
-    default:
-      return <NotebookLoader {...{ handle, children }} />
-  }
+export const Loader = function WrappedNotebookLoader({ handle, children }) {
+  return <NotebookLoader {...{ handle, children }} />
 }
