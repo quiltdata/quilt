@@ -16,6 +16,8 @@ import * as utils from './utils'
 const MAX_SIZE = 20 * 1024 * 1024
 const BYTES_TO_SCAN = 128 * 1024
 
+export const MODE = modes.Json
+
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
 function guessAvailableModes(json, jsonStr) {

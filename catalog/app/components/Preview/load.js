@@ -44,20 +44,9 @@ const loaderChain = [
 ]
 
 function findLoader(key, options) {
-  switch (options.mode) {
-    case 'voila':
-      return Voila
-    case 'json':
-      return Json
-    case 'echarts':
-      return Echarts
-    case 'igv':
-      return Igv
-    case 'txt':
-      return Text
-    default:
-      return loaderChain.find(({ detect }) => detect(key, options))
-  }
+  return loaderChain.find(
+    ({ MODE, detect }) => (MODE && options?.mode === MODE) || detect(key, options),
+  )
 }
 
 export function getRenderProps(key, options) {

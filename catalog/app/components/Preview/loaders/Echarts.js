@@ -15,6 +15,8 @@ import * as summarize from './summarize'
 import * as modes from './modes'
 import * as utils from './utils'
 
+export const MODE = modes.Echarts
+
 export const detect = (key, options) => summarize.detect('echarts')(options)
 
 export const hasEchartsDatasource = (json) =>

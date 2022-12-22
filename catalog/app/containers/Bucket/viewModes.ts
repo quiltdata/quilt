@@ -1,18 +1,23 @@
 import * as React from 'react'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
+import * as modes from 'components/Preview/loaders/modes'
 import { PreviewData } from 'components/Preview/types'
 import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 
 const MODES = {
-  echarts: 'ECharts',
-  igv: 'IGV',
-  json: 'JSON',
-  jupyter: 'Jupyter',
-  txt: 'Plain Text',
-  vega: 'Vega',
-  voila: 'Voila',
+  [modes.Echarts]: 'ECharts',
+  [modes.Html]: 'HTML',
+  [modes.Igv]: 'IGV',
+  [modes.Json]: 'JSON',
+  [modes.Jupyter]: 'Jupyter',
+  [modes.Markdown]: 'Markdown',
+  [modes.Ngl]: 'NGL',
+  [modes.Tabular]: 'Tabular Data',
+  [modes.Text]: 'Plain Text',
+  [modes.Vega]: 'Vega',
+  [modes.Voila]: 'Voila',
 }
 
 export type ViewMode = keyof typeof MODES
@@ -28,7 +33,11 @@ export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null 
   )
 }
 
-export function useViewModes(modeInput: string | null | undefined) {
+export function useViewModes(modeInput: string | null | undefined): {
+  modes: ViewMode[]
+  mode: ViewMode | null
+  handlePreviewResult: (x: any) => any
+} {
   const [previewResult, setPreviewResult] = React.useState(null)
 
   const handlePreviewResult = React.useCallback(
@@ -44,7 +53,7 @@ export function useViewModes(modeInput: string | null | undefined) {
     () =>
       PreviewData.case(
         {
-          _: ({ value }: $TSFixMe) => value.modes || [],
+          _: ({ value }: { value: { modes: ViewMode[] } }) => value.modes || [],
           __: () => [],
         },
         previewResult,
@@ -52,8 +61,10 @@ export function useViewModes(modeInput: string | null | undefined) {
     [previewResult],
   )
 
-  const mode = (
-    viewModes.includes(modeInput as any) ? modeInput : viewModes[0] || null
+  const mode: ViewMode | null = (
+    viewModes.includes(modeInput as ViewMode)
+      ? (modeInput as ViewMode)
+      : viewModes[0] || null
   ) as ViewMode | null
 
   return { modes: viewModes, mode, handlePreviewResult }

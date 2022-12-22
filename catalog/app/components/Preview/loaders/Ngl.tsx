@@ -10,9 +10,12 @@ import type { S3HandleBase } from 'utils/s3paths'
 import { PreviewData } from '../types'
 
 import * as mol from './formatters/mol'
+import * as modes from './modes'
 import * as utils from './utils'
 
 type ResponseFile = string | Uint8Array
+
+export const MODE = modes.Ngl
 
 export async function parseResponse(
   file: ResponseFile,
@@ -56,6 +59,7 @@ export const Loader = function NglLoader({ handle, children }: NglLoaderProps) {
       const files = await parseResponse(body, handle)
       return PreviewData.Ngl({
         files: files.map(({ file, ...rest }) => ({ blob: new Blob([file]), ...rest })),
+        modes: [modes.Ngl, modes.Text],
       })
     },
   )
