@@ -20,25 +20,26 @@ import * as Vcf from './loaders/Vcf'
 import * as Video from './loaders/Video'
 import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
+import * as summarize from './loaders/summarize'
 
 const loaderChain = [
+  Audio,
+  Echarts,
   Fcs,
-  Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
-  Igv, // should be before Json, or TODO: add "type is not 'igv'" to Json.detect
+  Html,
+  Igv,
+  Image,
   Json,
   Manifest,
   Markdown,
-  Ngl,
-  Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
   NamedPackage,
+  Ngl,
   Notebook,
   Pdf,
-  Vcf,
-  Html,
-  Image,
-  Video,
-  Audio,
   Tabular,
+  Vcf,
+  Video,
+  Voila,
   Text,
   fallback,
 ]
@@ -50,7 +51,7 @@ function findLoader(key, options) {
   }
   if (options.types) {
     // Detect by quilt_summarize.json type
-    return loaderChain.find(({ MODE }) => summarize.detect(MODE)(options))
+    return loaderChain.find(({ MODE }) => MODE ? summarize.detect(MODE)(options) : false)
   }
   // Detect by extension
   return loaderChain.find(({ detect }) => detect(key, options))
