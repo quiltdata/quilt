@@ -6,8 +6,8 @@ import { Redirect } from 'react-router-dom'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import { push as notify } from 'containers/Notifications/actions'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
@@ -29,7 +29,6 @@ export default ({ location: { search } }) => {
   const { urls } = NamedRoutes.use()
   const sentry = Sentry.use()
   const authenticated = redux.useSelector(selectors.authenticated)
-  const cfg = Config.useConfig()
 
   const back = React.useCallback(() => dispatch(goBack()), [dispatch])
 
