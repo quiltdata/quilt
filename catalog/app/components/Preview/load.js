@@ -44,7 +44,7 @@ const loaderChain = [
 ]
 
 function findLoader(key, options) {
-  switch (mode) {
+  switch (options.mode) {
     case 'voila':
       return Voila
     case 'json':
@@ -53,6 +53,8 @@ function findLoader(key, options) {
       return Echarts
     case 'igv':
       return Igv
+    case 'txt':
+      return Text
     default:
       return loaderChain.find(({ detect }) => detect(key, options))
   }

@@ -622,7 +622,7 @@ function FileDisplay({
     [bucket, name, hash],
   )
 
-  const viewModes = useViewModes(path, mode, packageHandle)
+  const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
     (m) => {

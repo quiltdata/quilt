@@ -9,6 +9,7 @@ import type { JsonRecord } from 'utils/types'
 import { PreviewData, PreviewError } from '../types'
 
 import useSignObjectUrls from './useSignObjectUrls'
+import * as modes from './modes'
 import * as summarize from './summarize'
 import * as utils from './utils'
 
@@ -33,6 +34,8 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
 
 export const detect = (key: string, options: summarize.File) =>
   summarize.detect('igv')(options)
+
+export const hasIgvTracks = (json?: JsonRecord) => Array.isArray(json?.tracks)
 
 const hl = (language: string) => (contents: string) =>
   hljs.highlight(contents, { language }).value
@@ -70,7 +73,10 @@ export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderP
       try {
         const options = JSON.parse([head, tail].join('\n'))
         const auxOptions = await signUrls(options)
-        return PreviewData.Igv({ options: auxOptions })
+        return PreviewData.Igv({
+          options: auxOptions,
+          modes: [modes.Igv, modes.Json, modes.Text],
+        })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error(e)

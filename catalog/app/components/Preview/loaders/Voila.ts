@@ -7,8 +7,11 @@ import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
 
+import * as modes from './modes'
 import * as summarize from './summarize'
 import * as utils from './utils'
+
+export const MODE = modes.Voila
 
 interface AWSCredentials {
   accessKeyId: string
@@ -81,7 +84,11 @@ function waitForIframe(src: string) {
 async function loadVoila({ src }: { src: string }) {
   // Preload iframe, then insert cached iframe
   await waitForIframe(src)
-  return PreviewData.Voila({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
+  return PreviewData.Voila({
+    src,
+    sandbox: IFRAME_SANDBOX_ATTRIBUTES,
+    modes: [modes.Jupyter, modes.Json, modes.Voila, modes.Text],
+  })
 }
 
 interface FileHandle {

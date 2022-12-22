@@ -22,8 +22,6 @@ const previewDataVega = PreviewData.Vega({ spec: { $schema: VEGA_SCHEMA } })
 const render = (...args: Parameters<typeof useViewModes>) =>
   renderHook(() => useViewModes(...args))
 
-const packageHandle = { name: 'a', bucket: 'b', hash: 'c' }
-
 describe('containers/Bucket/viewModes', () => {
   describe('viewModeToSelectOption', () => {
     it('returns null when given null', () => {
@@ -38,17 +36,15 @@ describe('containers/Bucket/viewModes', () => {
 
   describe('useViewModes', () => {
     describe('for files with no alternative view modes', () => {
-      const path = 'test.md'
-
       it('returns empty mode list and null mode when given no mode input', () => {
-        expect(render(path, null, packageHandle).result.current).toMatchObject({
+        expect(render(null).result.current).toMatchObject({
           modes: [],
           mode: null,
         })
       })
 
       it('returns empty mode list and null mode when given any mode input', () => {
-        expect(render(path, 'some-mode', packageHandle).result.current).toMatchObject({
+        expect(render('some-mode').result.current).toMatchObject({
           modes: [],
           mode: null,
         })
@@ -56,8 +52,6 @@ describe('containers/Bucket/viewModes', () => {
     })
 
     describe('for Jupyter notebook files', () => {
-      const path = 'test.ipynb'
-
       describe('when Voila is available', () => {
         beforeEach(() => {
           ;(voila as any).override(true)
@@ -68,28 +62,28 @@ describe('containers/Bucket/viewModes', () => {
         })
 
         it('returns Jupyter, JSON and Voila modes and defaults to Jupyter mode when no mode is given', () => {
-          expect(render(path, null, packageHandle).result.current).toMatchObject({
+          expect(render(null).result.current).toMatchObject({
             modes: ['jupyter', 'json', 'voila'],
             mode: 'jupyter',
           })
         })
 
         it('returns Jupyter, JSON and Voila modes and selected mode when correct mode is given', () => {
-          expect(render(path, 'voila', packageHandle).result.current).toMatchObject({
+          expect(render('voila').result.current).toMatchObject({
             modes: ['jupyter', 'json', 'voila'],
             mode: 'voila',
           })
         })
 
         it('returns Jupyter, JSON and Voila modes and defaults to Jupyter mode when incorrect mode is given', () => {
-          expect(render(path, 'bad', packageHandle).result.current).toMatchObject({
+          expect(render('bad').result.current).toMatchObject({
             modes: ['jupyter', 'json', 'voila'],
             mode: 'jupyter',
           })
         })
 
         it('returns Jupyter and JSON and Voila modes and defaults to Jupyter mode when package is not provided', () => {
-          expect(render(path, 'voila').result.current).toMatchObject({
+          expect(render('voila').result.current).toMatchObject({
             modes: ['jupyter', 'json'],
             mode: 'jupyter',
           })
@@ -98,7 +92,7 @@ describe('containers/Bucket/viewModes', () => {
 
       describe('when Voila is unavailable', () => {
         it('returns Jupyter and JSON modes and defaults to Jupyter mode when no mode is given', () => {
-          expect(render(path, null, packageHandle).result.current).toMatchObject({
+          expect(render(null).result.current).toMatchObject({
             modes: ['jupyter', 'json'],
             mode: 'jupyter',
           })
@@ -107,17 +101,15 @@ describe('containers/Bucket/viewModes', () => {
     })
 
     describe('for JSON files', () => {
-      const path = 'test.json'
-
       it('initially returns empty mode list and null mode when given any mode', () => {
-        expect(render(path, 'vega', packageHandle).result.current).toMatchObject({
+        expect(render('vega').result.current).toMatchObject({
           modes: [],
           mode: null,
         })
       })
 
       it('ignores non-Ok results', () => {
-        const { result } = render(path, null, packageHandle)
+        const { result } = render(null)
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Pending())
         })
@@ -129,7 +121,7 @@ describe('containers/Bucket/viewModes', () => {
       })
 
       it('only sets result once', () => {
-        const { result } = render(path, null, packageHandle)
+        const { result } = render(null)
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonVega))
         })
@@ -141,7 +133,7 @@ describe('containers/Bucket/viewModes', () => {
       })
 
       it('returns Vega and JSON modes and defaults to Vega mode for Vega preview data', () => {
-        const { result } = render(path, null, packageHandle)
+        const { result } = render(null)
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Ok(previewDataVega))
         })
@@ -149,7 +141,7 @@ describe('containers/Bucket/viewModes', () => {
       })
 
       it('returns Vega and JSON modes and defaults to Vega mode for JSON preview data with vega schema', () => {
-        const { result } = render(path, null, packageHandle)
+        const { result } = render(null)
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonVega))
         })
@@ -157,7 +149,7 @@ describe('containers/Bucket/viewModes', () => {
       })
 
       it('returns empty mode list and null mode for JSON preview data without vega schema', () => {
-        const { result } = render(path, null, packageHandle)
+        const { result } = render(null)
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonPlain))
         })
@@ -165,7 +157,7 @@ describe('containers/Bucket/viewModes', () => {
       })
 
       it('returns empty mode list and null mode for other preview data', () => {
-        const { result } = render(path, null, packageHandle)
+        const { result } = render(null)
         act(() => {
           result.current.handlePreviewResult(AsyncResult.Ok(PreviewData.Image()))
         })

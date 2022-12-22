@@ -1,0 +1,7 @@
+export const Echarts = 'echarts'
+export const Igv = 'igv'
+export const Json = 'json'
+export const Jupyter = 'jupyter'
+export const Text = 'txt'
+export const Vega = 'vega'
+export const Voila = 'voila'
