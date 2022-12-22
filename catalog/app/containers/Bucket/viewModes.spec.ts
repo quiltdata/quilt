@@ -7,11 +7,8 @@ import { renderHook, act } from '@testing-library/react-hooks'
 // NOTE: module imported selectively because Preview's deps break unit-tests
 import { PreviewData } from 'components/Preview/types'
 import AsyncResult from 'utils/AsyncResult'
-import * as voila from 'utils/voila'
 
 import { useViewModes, viewModeToSelectOption } from './viewModes'
-
-jest.mock('utils/voila')
 
 const VEGA_SCHEMA = 'https://vega.github.io/schema/a/b.json'
 
