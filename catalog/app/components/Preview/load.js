@@ -51,7 +51,9 @@ function findLoader(key, options) {
   }
   if (options.types) {
     // Detect by quilt_summarize.json type
-    return loaderChain.find(({ MODE }) => MODE ? summarize.detect(MODE)(options) : false)
+    return loaderChain.find(({ MODE }) =>
+      MODE ? summarize.detect(MODE, options) : false,
+    )
   }
   // Detect by extension
   return loaderChain.find(({ detect }) => detect(key, options))
