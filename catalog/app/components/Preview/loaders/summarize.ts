@@ -41,9 +41,8 @@ export interface FileExtended {
 
 export type File = FileShortcut | FileExtended
 
-export function detect(fileType: TypeShorthand) {
-  return (options: File): Type | undefined =>
-    (options as FileExtended)?.types?.find(
-      (type) => type === fileType || (type as TypeExtended).name === fileType,
-    )
+export function detect(fileType: TypeShorthand, options: File): Type | undefined {
+  return (options as FileExtended)?.types?.find(
+    (type) => type === fileType || (type as TypeExtended).name === fileType,
+  )
 }

@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
+import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
 import { docs } from 'constants/urls'
 import * as APIConnector from 'utils/APIConnector'
@@ -21,14 +22,6 @@ import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
 import * as errors from './errors'
-
-type SummaryFileTypeShorthand = 'echarts' | 'voila'
-type SummaryFileTypeExtended = {
-  name: SummaryFileTypeShorthand
-  style?: { height: string }
-}
-type SummaryFileType = SummaryFileTypeShorthand | SummaryFileTypeExtended
-type SummaryFileTypes = SummaryFileType[]
 
 interface S3Handle extends LogicalKeyResolver.S3SummarizeHandle {
   error?: errors.BucketError
