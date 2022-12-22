@@ -44,7 +44,16 @@ const loaderChain = [
 ]
 
 function findLoader(key, options) {
-  if (options.mode) return loaderChain.find(({ MODE }) => MODE && options?.mode === MODE)
+  if (options.mode) {
+    // Detect by user selected mode
+    return loaderChain.find(({ MODE }) => MODE && options?.mode === MODE)
+  }
+  // FIXME: what about options as file shortcut?
+  if (options.types) {
+    // Detect by quilt_summarize.json type
+    return loaderChain.find(({ MODE }) => summarize.detect(MODE)(options))
+  }
+  // Detect by extension
   return loaderChain.find(({ detect }) => detect(key, options))
 }
 

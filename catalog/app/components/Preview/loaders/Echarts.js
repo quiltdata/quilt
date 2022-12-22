@@ -11,13 +11,12 @@ import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 
-import * as summarize from './summarize'
 import * as modes from './modes'
 import * as utils from './utils'
 
 export const MODE = modes.Echarts
 
-export const detect = (key, options) => summarize.detect(modes.Voila)(options)
+export const detect = () => false
 
 export const hasEchartsDatasource = (json) =>
   !!json?.dataset || Array.isArray(json?.series)

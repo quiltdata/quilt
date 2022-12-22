@@ -10,7 +10,6 @@ import { PreviewData, PreviewError } from '../types'
 
 import useSignObjectUrls from './useSignObjectUrls'
 import * as modes from './modes'
-import * as summarize from './summarize'
 import * as utils from './utils'
 
 export const MODE = modes.Igv
@@ -34,8 +33,7 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
     json,
   )
 
-export const detect = (key: string, options: summarize.File) =>
-  summarize.detect(modes.Igv)(options)
+export const detect = () => false
 
 export const hasIgvTracks = (json?: JsonRecord) => Array.isArray(json?.tracks)
 
