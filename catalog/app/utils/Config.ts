@@ -120,7 +120,3 @@ export function getConfig() {
   }
   return cachedConfig
 }
-
-/** @deprecated Just import 'constants/config' */
-export const useConfig = getConfig
-export { useConfig as use }
