@@ -38,7 +38,7 @@ function usePackageQuery(packageHandle: PackageHandle) {
 }
 
 export const detect = (key: string, options: summarize.File) =>
-  summarize.detect('voila')(options)
+  summarize.detect(modes.Voila)(options)
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
 const IFRAME_LOAD_TIMEOUT = 30000

@@ -44,9 +44,8 @@ const loaderChain = [
 ]
 
 function findLoader(key, options) {
-  return loaderChain.find(
-    ({ MODE, detect }) => (MODE && options?.mode === MODE) || detect(key, options),
-  )
+  if (options.mode) return loaderChain.find(({ MODE }) => MODE && options?.mode === MODE)
+  return loaderChain.find(({ detect }) => detect(key, options))
 }
 
 export function getRenderProps(key, options) {

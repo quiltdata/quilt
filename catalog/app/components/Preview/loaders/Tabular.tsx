@@ -30,7 +30,7 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIn(['.tsv', '.tab'])
 
-const detectBySummarizeType = summarize.detect('perspective')
+const detectBySummarizeType = summarize.detect(modes.Tabular)
 
 const detectByExtension: (key: string) => boolean = R.pipe(
   utils.stripCompression,

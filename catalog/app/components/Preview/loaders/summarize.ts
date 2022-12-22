@@ -1,13 +1,15 @@
 import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
 
+import * as modes from 'components/Preview/loaders/modes'
+
 export type TypeShorthand =
-  | 'echarts'
-  | 'igv'
-  | 'json'
-  | 'jupyter'
-  | 'perspective'
-  | 'vega'
-  | 'voila'
+  | typeof modes.Echarts
+  | typeof modes.Igv
+  | typeof modes.Json
+  | typeof modes.Jupyter
+  | typeof modes.Tabular
+  | typeof modes.Vega
+  | typeof modes.Voila
 
 export type FileShortcut = string
 

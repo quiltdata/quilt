@@ -35,7 +35,7 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
   )
 
 export const detect = (key: string, options: summarize.File) =>
-  summarize.detect('igv')(options)
+  summarize.detect(modes.Igv)(options)
 
 export const hasIgvTracks = (json?: JsonRecord) => Array.isArray(json?.tracks)
 
