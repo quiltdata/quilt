@@ -70,7 +70,10 @@ export default (variants) => {
     )
     invariant(
       R.all(R.contains(R.__, ['_', '__', ...variants]), R.keys(cases)),
-      `${scope}/case: cases may only include type variants and placeholders (_ and __)`,
+      `${scope}/case: cases may only include type variants and placeholders (_ and __). Extra variants are ${R.without(
+        ['_', '__', ...variants],
+        R.keys(cases),
+      )}`,
     )
     invariant(exhaustive(variants, cases), `${scope}/case: non-exhaustive cases`)
 
