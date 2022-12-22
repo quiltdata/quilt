@@ -53,7 +53,7 @@ export function useViewModes(modeInput: string | null | undefined): {
     () =>
       PreviewData.case(
         {
-          _: ({ value }: { value: { modes: ViewMode[] } }) => value.modes || [],
+          _: ({ value }: { value: { modes?: ViewMode[] } }) => value?.modes || [],
           __: () => [],
         },
         previewResult,

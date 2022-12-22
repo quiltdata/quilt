@@ -16,8 +16,6 @@ jest.mock('utils/voila')
 const VEGA_SCHEMA = 'https://vega.github.io/schema/a/b.json'
 
 const previewDataJsonPlain = PreviewData.Json({ rendered: { a: 1 } })
-const previewDataJsonVega = PreviewData.Json({ rendered: { $schema: VEGA_SCHEMA } })
-const previewDataVega = PreviewData.Vega({ spec: { $schema: VEGA_SCHEMA } })
 
 const render = (...args: Parameters<typeof useViewModes>) =>
   renderHook(() => useViewModes(...args))
@@ -51,55 +49,6 @@ describe('containers/Bucket/viewModes', () => {
       })
     })
 
-    describe('for Jupyter notebook files', () => {
-      describe('when Voila is available', () => {
-        beforeEach(() => {
-          ;(voila as any).override(true)
-        })
-
-        afterEach(() => {
-          ;(voila as any).reset()
-        })
-
-        it('returns Jupyter, JSON and Voila modes and defaults to Jupyter mode when no mode is given', () => {
-          expect(render(null).result.current).toMatchObject({
-            modes: ['jupyter', 'json', 'voila'],
-            mode: 'jupyter',
-          })
-        })
-
-        it('returns Jupyter, JSON and Voila modes and selected mode when correct mode is given', () => {
-          expect(render('voila').result.current).toMatchObject({
-            modes: ['jupyter', 'json', 'voila'],
-            mode: 'voila',
-          })
-        })
-
-        it('returns Jupyter, JSON and Voila modes and defaults to Jupyter mode when incorrect mode is given', () => {
-          expect(render('bad').result.current).toMatchObject({
-            modes: ['jupyter', 'json', 'voila'],
-            mode: 'jupyter',
-          })
-        })
-
-        it('returns Jupyter and JSON and Voila modes and defaults to Jupyter mode when package is not provided', () => {
-          expect(render('voila').result.current).toMatchObject({
-            modes: ['jupyter', 'json'],
-            mode: 'jupyter',
-          })
-        })
-      })
-
-      describe('when Voila is unavailable', () => {
-        it('returns Jupyter and JSON modes and defaults to Jupyter mode when no mode is given', () => {
-          expect(render(null).result.current).toMatchObject({
-            modes: ['jupyter', 'json'],
-            mode: 'jupyter',
-          })
-        })
-      })
-    })
-
     describe('for JSON files', () => {
       it('initially returns empty mode list and null mode when given any mode', () => {
         expect(render('vega').result.current).toMatchObject({
@@ -123,7 +72,14 @@ describe('containers/Bucket/viewModes', () => {
       it('only sets result once', () => {
         const { result } = render(null)
         act(() => {
-          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonVega))
+          result.current.handlePreviewResult(
+            AsyncResult.Ok(
+              PreviewData.Json({
+                rendered: { $schema: VEGA_SCHEMA },
+                modes: ['vega', 'json'],
+              }),
+            ),
+          )
         })
         expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
         act(() => {
@@ -135,15 +91,14 @@ describe('containers/Bucket/viewModes', () => {
       it('returns Vega and JSON modes and defaults to Vega mode for Vega preview data', () => {
         const { result } = render(null)
         act(() => {
-          result.current.handlePreviewResult(AsyncResult.Ok(previewDataVega))
-        })
-        expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
-      })
-
-      it('returns Vega and JSON modes and defaults to Vega mode for JSON preview data with vega schema', () => {
-        const { result } = render(null)
-        act(() => {
-          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonVega))
+          result.current.handlePreviewResult(
+            AsyncResult.Ok(
+              PreviewData.Vega({
+                spec: { $schema: VEGA_SCHEMA },
+                modes: ['vega', 'json'],
+              }),
+            ),
+          )
         })
         expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
       })
@@ -151,7 +106,9 @@ describe('containers/Bucket/viewModes', () => {
       it('returns empty mode list and null mode for JSON preview data without vega schema', () => {
         const { result } = render(null)
         act(() => {
-          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonPlain))
+          result.current.handlePreviewResult(
+            AsyncResult.Ok(PreviewData.Json({ rendered: { a: 1 }, modes: [] })),
+          )
         })
         expect(result.current).toMatchObject({ modes: [], mode: null })
       })
