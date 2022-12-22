@@ -48,7 +48,6 @@ function findLoader(key, options) {
     // Detect by user selected mode
     return loaderChain.find(({ MODE }) => MODE && options?.mode === MODE)
   }
-  // FIXME: what about options as file shortcut?
   if (options.types) {
     // Detect by quilt_summarize.json type
     return loaderChain.find(({ MODE }) => summarize.detect(MODE)(options))
