@@ -2,7 +2,7 @@ import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
 
 import FileType from './fileType'
 
-// FIXME: enable all file types?
+// TODO: enable all available file types?
 export type TypeShorthand =
   | typeof FileType.ECharts
   | typeof FileType.Igv
