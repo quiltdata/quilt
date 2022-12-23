@@ -1,26 +1,27 @@
 import * as React from 'react'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
-import * as modes from 'components/Preview/loaders/modes'
+import Modes from 'components/Preview/loaders/modes'
 import { PreviewData } from 'components/Preview/types'
 import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 
 const MODES = {
-  [modes.Echarts]: 'ECharts',
-  [modes.Html]: 'HTML',
-  [modes.Igv]: 'IGV',
-  [modes.Json]: 'JSON',
-  [modes.Jupyter]: 'Jupyter',
-  [modes.Markdown]: 'Markdown',
-  [modes.Ngl]: 'NGL',
-  [modes.Tabular]: 'Tabular Data',
-  [modes.Text]: 'Plain Text',
-  [modes.Vega]: 'Vega',
-  [modes.Voila]: 'Voila',
+  [Modes.Echarts]: 'ECharts',
+  [Modes.Html]: 'HTML',
+  [Modes.Igv]: 'IGV',
+  [Modes.Json]: 'JSON',
+  [Modes.Jupyter]: 'Jupyter',
+  [Modes.Markdown]: 'Markdown',
+  [Modes.Ngl]: 'NGL',
+  [Modes.Tabular]: 'Tabular Data',
+  [Modes.Text]: 'Plain Text',
+  [Modes.Vega]: 'Vega',
+  [Modes.Voila]: 'Voila',
 }
 
-export type ViewMode = keyof typeof MODES
+// FIXME: Dont create this type, use modes
+export type ViewMode = Modes
 
 export function viewModeToSelectOption(m: ViewMode): SelectOption
 export function viewModeToSelectOption(m: null): null

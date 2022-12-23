@@ -5,12 +5,12 @@ import * as R from 'ramda'
 
 import { PreviewData } from '../types'
 
-import * as modes from './modes'
+import Modes from './modes'
 import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
 
-export const MODE = modes.Text
+export const MODE = Modes.Text
 
 const LANGS = {
   accesslog: /\.log$/,

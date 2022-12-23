@@ -7,11 +7,11 @@ import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
 
-import * as modes from './modes'
+import Modes from './modes'
 import useSignObjectUrls from './useSignObjectUrls'
 import * as utils from './utils'
 
-export const MODE = modes.Vega
+export const MODE = Modes.Vega
 
 const SCHEMA_RE =
   /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
@@ -52,7 +52,7 @@ export const Loader = function VegaLoader({ handle, gated, children }: VegaLoade
         const spec = JSON.parse(contents)
         return PreviewData.Vega({
           spec: await signSpec(spec),
-          modes: [modes.Vega, modes.Json, modes.Text],
+          modes: [Modes.Vega, Modes.Json, Modes.Text],
         })
       } catch (e) {
         if (e instanceof SyntaxError) {

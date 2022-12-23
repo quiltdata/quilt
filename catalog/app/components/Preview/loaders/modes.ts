@@ -1,11 +1,14 @@
-export const Echarts = 'echarts'
-export const Html = 'html'
-export const Igv = 'igv'
-export const Json = 'json'
-export const Jupyter = 'jupyter'
-export const Markdown = 'markdown'
-export const Ngl = 'ngl'
-export const Tabular = 'perspective'
-export const Text = 'txt'
-export const Vega = 'vega'
-export const Voila = 'voila'
+enum Modes {
+  Echarts = 'echarts',
+  Html = 'html',
+  Igv = 'igv',
+  Json = 'json',
+  Jupyter = 'jupyter',
+  Markdown = 'markdown',
+  Ngl = 'ngl',
+  Tabular = 'perspective',
+  Text = 'txt',
+  Vega = 'vega',
+  Voila = 'voila',
+}
+export default Modes

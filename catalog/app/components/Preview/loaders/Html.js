@@ -9,12 +9,12 @@ import useMemoEq from 'utils/useMemoEq'
 import { PreviewData } from '../types'
 
 import * as Text from './Text'
-import * as modes from './modes'
+import Modes from './modes'
 import * as utils from './utils'
 
 export const detect = utils.extIn(['.htm', '.html'])
 
-export const MODE = modes.Html
+export const MODE = Modes.Html
 
 function IFrameLoader({ handle, children }) {
   const sign = AWS.Signer.useS3Signer()
@@ -23,7 +23,7 @@ function IFrameLoader({ handle, children }) {
   )
   // TODO: issue a head request to ensure existence and get storage class
   return children(
-    AsyncResult.Ok(PreviewData.IFrame({ src, modes: [modes.Html, modes.Text] })),
+    AsyncResult.Ok(PreviewData.IFrame({ src, modes: [Modes.Html, Modes.Text] })),
   )
 }
 

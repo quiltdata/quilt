@@ -1,15 +1,16 @@
 import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
 
-import * as modes from 'components/Preview/loaders/modes'
+import Modes from 'components/Preview/loaders/modes'
 
+// FIXME: Modes?
 export type TypeShorthand =
-  | typeof modes.Echarts
-  | typeof modes.Igv
-  | typeof modes.Json
-  | typeof modes.Jupyter
-  | typeof modes.Tabular
-  | typeof modes.Vega
-  | typeof modes.Voila
+  | typeof Modes.Echarts
+  | typeof Modes.Igv
+  | typeof Modes.Json
+  | typeof Modes.Jupyter
+  | typeof Modes.Tabular
+  | typeof Modes.Vega
+  | typeof Modes.Voila
 
 export type FileShortcut = string
 

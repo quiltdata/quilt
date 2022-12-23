@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useVoila } from 'utils/voila'
 
 import { PreviewData } from '../types'
-import * as modes from './modes'
+import Modes from './modes'
 import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.ipynb'))
@@ -19,8 +19,8 @@ function NotebookLoader({ handle, children }) {
       warnings: json.info.warnings,
       modes:
         !!handle.packageHandle && voilaAvailable
-          ? [modes.Jupyter, modes.Json, modes.Voila, modes.Text]
-          : [modes.Jupyter, modes.Json, modes.Text],
+          ? [Modes.Jupyter, Modes.Json, Modes.Voila, Modes.Text]
+          : [Modes.Jupyter, Modes.Json, Modes.Text],
     }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
