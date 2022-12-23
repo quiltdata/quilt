@@ -16,7 +16,7 @@ import * as utils from './utils'
 
 export const FILE_TYPE = FileType.Echarts
 
-export const detect = () => false
+export const detect = R.F
 
 export const hasEchartsDatasource = (json) =>
   !!json?.dataset || Array.isArray(json?.series)

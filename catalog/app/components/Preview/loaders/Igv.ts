@@ -33,7 +33,7 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
     json,
   )
 
-export const detect = () => false
+export const detect = R.F
 
 export const hasIgvTracks = (json?: JsonRecord) => Array.isArray(json?.tracks)
 

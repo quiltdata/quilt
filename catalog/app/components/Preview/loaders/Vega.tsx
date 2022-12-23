@@ -13,7 +13,7 @@ import * as utils from './utils'
 
 export const FILE_TYPE = FileType.Vega
 
-export const detect = () => false
+export const detect = R.F
 
 const SCHEMA_RE =
   /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/

@@ -1,3 +1,5 @@
+import * as R from 'ramda'
+
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as Config from 'utils/Config'
@@ -36,7 +38,7 @@ function usePackageQuery(packageHandle: PackageHandle) {
   }
 }
 
-export const detect = () => false
+export const detect = R.F
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
 const IFRAME_LOAD_TIMEOUT = 30000

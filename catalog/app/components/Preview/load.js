@@ -46,9 +46,9 @@ const loaderChain = [
   fallback,
 ]
 
-// `options` stores:
+// `options` contains:
 //   * quilt_summarize.json types
-//   * `context` - where files was rendered
+//   * `context` - where file was rendered
 //   * `mode` - user set fileType
 function findLoader(key, options) {
   if (options.mode) {
