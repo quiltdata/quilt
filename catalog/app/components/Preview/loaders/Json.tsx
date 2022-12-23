@@ -13,6 +13,7 @@ import * as Igv from './Igv'
 import * as Text from './Text'
 import * as Vega from './Vega'
 import FileType from './fileType'
+import * as summarize from './summarize'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
@@ -96,16 +97,29 @@ function JsonLoader({ gated, handle, children }: JsonLoaderProps) {
 
 export const detect = utils.extIs('.json')
 
-function findLoader(firstBytes: string) {
+interface LoaderOptions extends summarize.FileExtended {
+  mode?: FileType
+}
+
+function findLoader(firstBytes: string, options: LoaderOptions) {
+  if (options.mode || options.types) {
+    // User already choose this loader
+    return JsonLoader
+  }
   return Vega.detectSchema(firstBytes) ? Vega.Loader : JsonLoader
 }
 
 interface LoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: S3HandleBase
+  options: LoaderOptions
 }
 
-export const Loader = function GatedJsonLoader({ handle, children }: LoaderProps) {
+export const Loader = function GatedJsonLoader({
+  handle,
+  children,
+  options,
+}: LoaderProps) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({
       firstBytes,
@@ -114,7 +128,7 @@ export const Loader = function GatedJsonLoader({ handle, children }: LoaderProps
       firstBytes: string
       contentLength: number
     }) => {
-      const LoaderComponent = findLoader(firstBytes)
+      const LoaderComponent = findLoader(firstBytes, options)
       return (
         <LoaderComponent {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       )

@@ -17,6 +17,7 @@ import * as Pdf from './loaders/Pdf'
 import * as Tabular from './loaders/Tabular'
 import * as Text from './loaders/Text'
 import * as Vcf from './loaders/Vcf'
+import * as Vega from './loaders/Vega'
 import * as Video from './loaders/Video'
 import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
@@ -38,12 +39,17 @@ const loaderChain = [
   Pdf,
   Tabular,
   Vcf,
+  Vega,
   Video,
   Voila,
   Text,
   fallback,
 ]
 
+// `options` stores:
+//   * quilt_summarize.json types
+//   * `context` - where files was rendered
+//   * mode - user set fileType
 function findLoader(key, options) {
   if (options.mode) {
     // Detect by user selected mode
