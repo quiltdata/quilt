@@ -10,10 +10,10 @@ import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
 
-import Modes from './modes'
+import FileType from './fileType'
 import * as utils from './utils'
 
-export const MODE = Modes.Tabular
+export const FILE_TYPE = FileType.Tabular
 
 const isCsv = utils.extIs('.csv')
 
@@ -213,7 +213,7 @@ export const Loader = function TabularLoader({
       PreviewData.Perspective({
         data: csv,
         handle,
-        modes: [Modes.Tabular, Modes.Text],
+        modes: [FileType.Tabular, FileType.Text],
         parquetMeta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,

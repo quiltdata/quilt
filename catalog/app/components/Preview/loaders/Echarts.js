@@ -11,10 +11,10 @@ import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 
-import Modes from './modes'
+import FileType from './fileType'
 import * as utils from './utils'
 
-export const MODE = Modes.Echarts
+export const FILE_TYPE = FileType.Echarts
 
 export const detect = () => false
 
@@ -125,7 +125,7 @@ function EChartsLoader({ gated, handle, children }) {
         }
         return PreviewData.ECharts({
           option,
-          modes: [Modes.Json, Modes.Echarts, Modes.Text],
+          modes: [FileType.Json, FileType.Echarts, FileType.Text],
         })
       } catch (e) {
         // eslint-disable-next-line no-console

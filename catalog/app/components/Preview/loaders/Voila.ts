@@ -7,10 +7,10 @@ import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
 
-import Modes from './modes'
+import FileType from './fileType'
 import * as utils from './utils'
 
-export const MODE = Modes.Voila
+export const FILE_TYPE = FileType.Voila
 
 interface AWSCredentials {
   accessKeyId: string
@@ -85,7 +85,7 @@ async function loadVoila({ src }: { src: string }) {
   return PreviewData.Voila({
     src,
     sandbox: IFRAME_SANDBOX_ATTRIBUTES,
-    modes: [Modes.Jupyter, Modes.Json, Modes.Voila, Modes.Text],
+    modes: [FileType.Jupyter, FileType.Json, FileType.Voila, FileType.Text],
   })
 }
 

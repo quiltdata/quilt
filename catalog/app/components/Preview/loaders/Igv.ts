@@ -9,10 +9,10 @@ import type { JsonRecord } from 'utils/types'
 import { PreviewData, PreviewError } from '../types'
 
 import useSignObjectUrls from './useSignObjectUrls'
-import Modes from './modes'
+import FileType from './fileType'
 import * as utils from './utils'
 
-export const MODE = Modes.Igv
+export const FILE_TYPE = FileType.Igv
 
 const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
   R.evolve(
@@ -75,7 +75,7 @@ export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderP
         const auxOptions = await signUrls(options)
         return PreviewData.Igv({
           options: auxOptions,
-          modes: [Modes.Igv, Modes.Json, Modes.Text],
+          modes: [FileType.Igv, FileType.Json, FileType.Text],
         })
       } catch (e) {
         // eslint-disable-next-line no-console

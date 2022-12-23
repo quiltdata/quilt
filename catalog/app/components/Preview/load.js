@@ -46,14 +46,18 @@ const loaderChain = [
 
 function findLoader(key, options) {
   if (options.mode) {
+    const found = loaderChain.find(
+      ({ FILE_TYPE }) => FILE_TYPE && options?.mode === FILE_TYPE,
+    )
+    if (found) return found
     // Detect by user selected mode
-    return loaderChain.find(({ MODE }) => MODE && options?.mode === MODE)
   }
   if (options.types) {
     // Detect by quilt_summarize.json type
-    return loaderChain.find(({ MODE }) =>
+    const found = loaderChain.find(({ MODE }) =>
       MODE ? summarize.detect(MODE, options) : false,
     )
+    if (found) return found
   }
   // Detect by extension
   return loaderChain.find(({ detect }) => detect(key, options))

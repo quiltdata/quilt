@@ -1,42 +1,41 @@
 import * as React from 'react'
 
+import FileType from 'components/Preview/loaders/fileType'
 // NOTE: module imported selectively because Preview's deps break unit-tests
-import Modes from 'components/Preview/loaders/modes'
 import { PreviewData } from 'components/Preview/types'
 import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 
-const MODES = {
-  [Modes.Echarts]: 'ECharts',
-  [Modes.Html]: 'HTML',
-  [Modes.Igv]: 'IGV',
-  [Modes.Json]: 'JSON',
-  [Modes.Jupyter]: 'Jupyter',
-  [Modes.Markdown]: 'Markdown',
-  [Modes.Ngl]: 'NGL',
-  [Modes.Tabular]: 'Tabular Data',
-  [Modes.Text]: 'Plain Text',
-  [Modes.Vega]: 'Vega',
-  [Modes.Voila]: 'Voila',
+export type { default as FileType } from 'components/Preview/loaders/fileType'
+
+const FILE_TYPE_TITLES_MAP = {
+  [FileType.Echarts]: 'ECharts',
+  [FileType.Html]: 'HTML',
+  [FileType.Igv]: 'IGV',
+  [FileType.Json]: 'JSON',
+  [FileType.Jupyter]: 'Jupyter',
+  [FileType.Markdown]: 'Markdown',
+  [FileType.Ngl]: 'NGL',
+  [FileType.Tabular]: 'Tabular Data',
+  [FileType.Text]: 'Plain Text',
+  [FileType.Vega]: 'Vega',
+  [FileType.Voila]: 'Voila',
 }
 
-// FIXME: Dont create this type, use modes
-export type ViewMode = Modes
-
-export function viewModeToSelectOption(m: ViewMode): SelectOption
+export function viewModeToSelectOption(m: FileType): SelectOption
 export function viewModeToSelectOption(m: null): null
-export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null {
+export function viewModeToSelectOption(m: FileType | null): SelectOption | null {
   return (
     m && {
-      toString: () => MODES[m],
+      toString: () => FILE_TYPE_TITLES_MAP[m],
       valueOf: () => m,
     }
   )
 }
 
 export function useViewModes(modeInput: string | null | undefined): {
-  modes: ViewMode[]
-  mode: ViewMode | null
+  modes: FileType[]
+  mode: FileType | null
   handlePreviewResult: (x: any) => any
 } {
   const [previewResult, setPreviewResult] = React.useState(null)
@@ -50,11 +49,11 @@ export function useViewModes(modeInput: string | null | undefined): {
     [previewResult, setPreviewResult],
   )
 
-  const viewModes: ViewMode[] = React.useMemo(
+  const viewModes: FileType[] = React.useMemo(
     () =>
       PreviewData.case(
         {
-          _: ({ value }: { value: { modes?: ViewMode[] } }) => value?.modes || [],
+          _: ({ value }: { value: { modes?: FileType[] } }) => value?.modes || [],
           __: () => [],
         },
         previewResult,
@@ -62,11 +61,11 @@ export function useViewModes(modeInput: string | null | undefined): {
     [previewResult],
   )
 
-  const mode: ViewMode | null = (
-    viewModes.includes(modeInput as ViewMode)
-      ? (modeInput as ViewMode)
+  const mode: FileType | null = (
+    viewModes.includes(modeInput as FileType)
+      ? (modeInput as FileType)
       : viewModes[0] || null
-  ) as ViewMode | null
+  ) as FileType | null
 
   return { modes: viewModes, mode, handlePreviewResult }
 }

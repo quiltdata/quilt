@@ -10,21 +10,22 @@ import * as Echarts from './Echarts'
 import * as Igv from './Igv'
 import * as Text from './Text'
 import * as Vega from './Vega'
-import Modes from './modes'
+import FileType from './fileType'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
 const BYTES_TO_SCAN = 128 * 1024
 
-export const MODE = Modes.Json
+export const FILE_TYPE = FileType.Json
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
 function guessAvailableModes(json, jsonStr) {
-  if (Vega.detectSchema(jsonStr)) return [Modes.Vega, Modes.Json, Modes.Text]
-  if (Igv.hasIgvTracks(json)) return [Modes.Json, Modes.Igv, Modes.Text]
-  if (Echarts.hasEchartsDatasource(json)) return [Modes.Json, Modes.Echarts, Modes.Text]
-  return [Modes.Json, Modes.Text]
+  if (Vega.detectSchema(jsonStr)) return [FileType.Vega, FileType.Json, FileType.Text]
+  if (Igv.hasIgvTracks(json)) return [FileType.Json, FileType.Igv, FileType.Text]
+  if (Echarts.hasEchartsDatasource(json))
+    return [FileType.Json, FileType.Echarts, FileType.Text]
+  return [FileType.Json, FileType.Text]
 }
 
 function JsonLoader({ gated, handle, children }) {

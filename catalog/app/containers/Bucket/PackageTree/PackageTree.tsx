@@ -46,7 +46,7 @@ import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
-import { ViewMode, useViewModes, viewModeToSelectOption } from '../viewModes'
+import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -480,7 +480,7 @@ function DirDisplay({
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
-  mode: ViewMode | null,
+  mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
 ) => {
   if (deleted) {

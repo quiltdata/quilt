@@ -6,7 +6,7 @@ import { renderHook, act } from '@testing-library/react-hooks'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
 import { PreviewData } from 'components/Preview/types'
-import Modes from 'components/Preview/loaders/modes'
+import FileType from 'components/Preview/loaders/fileType'
 import AsyncResult from 'utils/AsyncResult'
 
 import { useViewModes, viewModeToSelectOption } from './viewModes'
@@ -24,7 +24,7 @@ describe('containers/Bucket/viewModes', () => {
       expect(viewModeToSelectOption(null)).toBe(null)
     })
     it('returns propery formatted select option when given a view mode', () => {
-      const opt = viewModeToSelectOption(Modes.Json)
+      const opt = viewModeToSelectOption(FileType.Json)
       expect(opt.toString()).toBe('JSON')
       expect(opt.valueOf()).toBe('json')
     })
