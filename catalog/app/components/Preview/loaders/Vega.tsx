@@ -68,5 +68,5 @@ export const Loader = function VegaLoader({ handle, gated, children }: VegaLoade
     gated && AsyncResult.Init.is(handled)
       ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
       : handled
-  return children(result)
+  return <>{children(result)}</>
 }
