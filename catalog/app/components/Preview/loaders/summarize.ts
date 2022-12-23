@@ -4,7 +4,7 @@ import FileType from './fileType'
 
 // FIXME: enable all file types?
 export type TypeShorthand =
-  | typeof FileType.Echarts
+  | typeof FileType.ECharts
   | typeof FileType.Igv
   | typeof FileType.Json
   | typeof FileType.Jupyter
@@ -28,7 +28,7 @@ interface TypeExtendedEssentials {
 }
 
 // Add new specific options like this:
-// export type TypeExtended = TypeExtendedEssentials & (PerspectiveOptions | EchartsOptions)
+// export type TypeExtended = TypeExtendedEssentials & (PerspectiveOptions | EChartsOptions)
 export type TypeExtended = TypeExtendedEssentials & PerspectiveOptions
 
 export type Type = TypeShorthand | TypeExtended

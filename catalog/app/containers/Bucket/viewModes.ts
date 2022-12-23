@@ -9,7 +9,7 @@ import AsyncResult from 'utils/AsyncResult'
 export type { default as FileType } from 'components/Preview/loaders/fileType'
 
 const FILE_TYPE_TITLES_MAP = {
-  [FileType.Echarts]: 'ECharts',
+  [FileType.ECharts]: 'ECharts',
   [FileType.Html]: 'HTML',
   [FileType.Igv]: 'IGV',
   [FileType.Json]: 'JSON',

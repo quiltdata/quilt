@@ -6,7 +6,7 @@
 //       But we need conversion from content-type to summarize type then,
 //       or update summarize spec
 enum FileType {
-  Echarts = 'echarts',
+  ECharts = 'echarts',
   Html = 'html',
   Igv = 'igv',
   Json = 'json',

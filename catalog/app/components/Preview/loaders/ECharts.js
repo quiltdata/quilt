@@ -14,11 +14,11 @@ import { PreviewData, PreviewError } from '../types'
 import FileType from './fileType'
 import * as utils from './utils'
 
-export const FILE_TYPE = FileType.Echarts
+export const FILE_TYPE = FileType.ECharts
 
 export const detect = R.F
 
-export const hasEchartsDatasource = (json) =>
+export const hasEChartsDatasource = (json) =>
   !!json?.dataset || Array.isArray(json?.series)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
@@ -125,7 +125,7 @@ function EChartsLoader({ gated, handle, children }) {
         }
         return PreviewData.ECharts({
           option,
-          modes: [FileType.Json, FileType.Echarts, FileType.Text],
+          modes: [FileType.Json, FileType.ECharts, FileType.Text],
         })
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -155,7 +155,7 @@ function EChartsLoader({ gated, handle, children }) {
   )
 }
 
-export const Loader = function GatedEchartsLoader({ handle, children }) {
+export const Loader = function GatedEChartsLoader({ handle, children }) {
   const data = utils.useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({

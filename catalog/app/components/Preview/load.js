@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as Audio from './loaders/Audio'
-import * as Echarts from './loaders/Echarts'
+import * as ECharts from './loaders/ECharts'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
 import * as Igv from './loaders/Igv'
@@ -25,7 +25,7 @@ import * as summarize from './loaders/summarize'
 
 const loaderChain = [
   Audio,
-  Echarts,
+  ECharts,
   Fcs,
   Html,
   Igv,

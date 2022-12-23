@@ -8,7 +8,7 @@ import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
 
-import * as Echarts from './Echarts'
+import * as ECharts from './ECharts'
 import * as Igv from './Igv'
 import * as Text from './Text'
 import * as Vega from './Vega'
@@ -29,8 +29,8 @@ const hl =
 function guessAvailableModes(json: JsonRecord, jsonStr: string) {
   if (Vega.detectSchema(jsonStr)) return [FileType.Vega, FileType.Json, FileType.Text]
   if (Igv.hasIgvTracks(json)) return [FileType.Json, FileType.Igv, FileType.Text]
-  if (Echarts.hasEchartsDatasource(json))
-    return [FileType.Json, FileType.Echarts, FileType.Text]
+  if (ECharts.hasEChartsDatasource(json))
+    return [FileType.Json, FileType.ECharts, FileType.Text]
   return [FileType.Json, FileType.Text]
 }
 
