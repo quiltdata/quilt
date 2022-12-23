@@ -49,7 +49,7 @@ const loaderChain = [
 // `options` stores:
 //   * quilt_summarize.json types
 //   * `context` - where files was rendered
-//   * mode - user set fileType
+//   * `mode` - user set fileType
 function findLoader(key, options) {
   if (options.mode) {
     // Detect by user selected mode
