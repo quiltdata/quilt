@@ -20,7 +20,7 @@ export default function Meta({ meta }: MetaProps) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     () =>
       Object.entries(meta).filter(
-        ([_1, value]) => !!(typeof value === string ? value.trim() : value),
+        ([_1, value]) => !!(typeof value === 'string' ? value.trim() : value),
       ),
     [meta],
   )
