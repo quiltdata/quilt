@@ -103,7 +103,7 @@ interface LoaderOptions extends summarize.FileExtended {
 
 function findLoader(firstBytes: string, options: LoaderOptions) {
   if (options.mode || options.types) {
-    // User already choose this loader
+    // User already chose this loader
     return JsonLoader
   }
   return Vega.detectSchema(firstBytes) ? Vega.Loader : JsonLoader
