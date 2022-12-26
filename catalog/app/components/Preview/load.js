@@ -60,8 +60,8 @@ function findLoader(key, options) {
   }
   if (options.types) {
     // Detect by quilt_summarize.json type
-    const found = loaderChain.find(({ FILE_TYPE }) =>
-      FILE_TYPE ? summarize.detect(FILE_TYPE, options) : false,
+    const found = loaderChain.find(
+      ({ FILE_TYPE }) => FILE_TYPE && summarize.detect(FILE_TYPE, options),
     )
     if (found) return found
   }
