@@ -5,8 +5,8 @@ import GoogleLogin from 'react-google-login'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
@@ -19,7 +19,6 @@ const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
 
 export default function SSOGoogle({ mutex, next, ...props }) {
-  const cfg = Config.useConfig()
   invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
 
   const sentry = Sentry.use()
@@ -66,7 +65,7 @@ export default function SSOGoogle({ mutex, next, ...props }) {
         release(MUTEX_REQUEST)
       }
     },
-    [dispatch, claim, release, sentry, notify, cfg.ssoAuth, next, urls],
+    [dispatch, claim, release, sentry, notify, next, urls],
   )
 
   const handleFailure = React.useCallback(

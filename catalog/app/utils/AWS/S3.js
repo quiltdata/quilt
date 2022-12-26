@@ -3,9 +3,9 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
-import { useConfig } from 'utils/Config'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useConstant from 'utils/useConstant'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
@@ -36,8 +36,6 @@ function useTrackingFn(fn) {
 }
 
 function useSmartS3() {
-  const cfg = useConfig()
-  const selectEndpoint = `${cfg.binaryApiGatewayEndpoint}/s3select/`
   const isAuthenticated = useTracking(redux.useSelector(authSelectors.authenticated))
   const isInStack = useTrackingFn(BucketConfig.useIsInStack())
   const statusReportsBucket = useStatusReportsBucket()
@@ -79,7 +77,7 @@ function useSmartS3() {
 
         if (b) {
           const endpoint = new AWS.Endpoint(
-            type === 'select' ? selectEndpoint : cfg.s3Proxy,
+            type === 'select' ? `${cfg.apiGatewayEndpoint}/s3select/` : cfg.s3Proxy,
           )
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return

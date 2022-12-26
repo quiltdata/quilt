@@ -4,8 +4,8 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Okta from 'utils/Okta'
 import * as Sentry from 'utils/Sentry'
@@ -20,7 +20,6 @@ const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
 export default function SSOOkta({ mutex, next, ...props }) {
-  const cfg = Config.useConfig()
   invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
   invariant(!!cfg.oktaBaseUrl, 'Auth.SSO.Okta: config missing "oktaBaseUrl"')
   const authenticate = Okta.use({ clientId: cfg.oktaClientId, baseUrl: cfg.oktaBaseUrl })
@@ -74,7 +73,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
       }
       mutex.release(MUTEX_POPUP)
     }
-  }, [authenticate, dispatch, mutex, sentry, notify, cfg.ssoAuth, next, urls])
+  }, [authenticate, dispatch, mutex, sentry, notify, next, urls])
 
   return (
     <M.Button
