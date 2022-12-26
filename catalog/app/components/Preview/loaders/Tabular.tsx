@@ -1,9 +1,9 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
 import type { S3HandleBase } from 'utils/s3paths'
@@ -114,7 +114,6 @@ export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata 
 
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
-  endpoint: string
   handle: S3HandleBase
   sign: (h: S3HandleBase) => string
   type: TabularType
@@ -130,7 +129,6 @@ interface TabularDataOutput {
 
 const loadTabularData = async ({
   compression,
-  endpoint,
   size,
   handle,
   sign,
@@ -138,7 +136,7 @@ const loadTabularData = async ({
 }: LoadTabularDataArgs): Promise<TabularDataOutput> => {
   const url = sign(handle)
   const r = await fetch(
-    `${endpoint}/tabular-preview${mkSearch({
+    `${cfg.apiGatewayEndpoint}/tabular-preview${mkSearch({
       compression,
       input: type,
       size,
@@ -192,7 +190,6 @@ export const Loader = function TabularLoader({
   options,
 }: TabularLoaderProps) {
   const [gated, setGated] = React.useState(true)
-  const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const type = React.useMemo(() => detectTabularType(handle.key), [handle.key])
   const onLoadMore = React.useCallback(() => setGated(false), [setGated])
@@ -204,7 +201,6 @@ export const Loader = function TabularLoader({
   const compression = utils.getCompression(handle.key)
   const data = Data.use(loadTabularData, {
     compression,
-    endpoint,
     size,
     handle,
     sign,

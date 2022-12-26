@@ -8,7 +8,7 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import { takeEvery, call, put } from 'redux-saga/effects'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as SagaInjector from 'utils/SagaInjector'
 import defer from 'utils/defer'
 import { BaseError } from 'utils/error'
@@ -314,7 +314,7 @@ export const use = useApi
 
 // fetch: window.fetch, middleware: ((any) => any)[]
 export function Provider({ fetch, middleware, children }) {
-  const base = `${Config.useConfig().registryUrl}/api`
+  const base = `${cfg.registryUrl}/api`
   SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
 
   const dispatch = redux.useDispatch()
