@@ -1,6 +1,6 @@
+import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 
@@ -9,7 +9,7 @@ import * as utils from './utils'
 
 export const detect = utils.extIn(['.pdf', '.pptx'])
 
-async function loadPdf({ endpoint, sign, handle }) {
+async function loadPdf({ sign, handle }) {
   try {
     const url = sign(handle)
     const type = (handle.logicalKey || handle.key).toLowerCase().endsWith('.pptx')
@@ -21,7 +21,7 @@ async function loadPdf({ endpoint, sign, handle }) {
       size: 'w1024h768',
       countPages: true,
     })
-    const r = await fetch(`${endpoint}/thumbnail${search}`)
+    const r = await fetch(`${cfg.apiGatewayEndpoint}/thumbnail${search}`)
     if (r.status >= 400) {
       const text = await r.text()
       throw new HTTPError(r, text)
@@ -45,8 +45,7 @@ async function loadPdf({ endpoint, sign, handle }) {
 }
 
 export const Loader = function PdfLoader({ handle, children }) {
-  const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
-  const data = Data.use(loadPdf, { endpoint, sign, handle })
+  const data = Data.use(loadPdf, { sign, handle })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }

@@ -14,11 +14,11 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import cfg from 'constants/config'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
@@ -57,30 +57,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-/*
-function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
-  const sign = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
-  const data = useData(requests.getRevisionData, {
-    sign,
-    endpoint,
-    bucket,
-    hash,
-    maxKeys: 0,
-  })
-  return data.case({
-    _: () => null,
-    Ok: ({ header }) => (
-      <React.Suspense fallback={null}>
-        <LinkedData.PackageData
-          {...{ bucket: bucketCfg, name, hash, modified, header }}
-        />
-      </React.Suspense>
-    ),
-  })
-}
-*/
 
 interface PkgCodeProps {
   bucket: string
@@ -611,7 +587,6 @@ function FileDisplay({
   file,
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
-  const { noDownload } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
@@ -707,7 +682,7 @@ function FileDisplay({
                     onChange={onViewModeChange}
                   />
                 )}
-                {!noDownload && !deleted && !archived && (
+                {!cfg.noDownload && !deleted && !archived && (
                   <FileView.DownloadButton className={classes.button} handle={handle} />
                 )}
               </TopBar>

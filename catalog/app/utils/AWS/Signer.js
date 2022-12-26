@@ -1,9 +1,9 @@
 import * as React from 'react'
 import * as redux from 'react-redux'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import { handleToHttpsUri } from 'utils/s3paths'
 
@@ -21,13 +21,12 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
   const authenticated = redux.useSelector(authSelectors.authenticated)
-  const cfg = Config.useConfig()
   const isInStack = BucketConfig.useIsInStack()
   const statusReportsBucket = useStatusReportsBucket()
   const s3 = S3.use()
   const inStackOrSpecial = React.useCallback(
     (b) => isInStack(b) || cfg.analyticsBucket === b || statusReportsBucket === b,
-    [isInStack, cfg.analyticsBucket, statusReportsBucket],
+    [isInStack, statusReportsBucket],
   )
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
@@ -42,7 +41,7 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
             ...opts,
           })
         : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
-    [cfg.mode, inStackOrSpecial, authenticated, s3, urlExpiration, forceProxy],
+    [inStackOrSpecial, authenticated, s3, urlExpiration, forceProxy],
   )
 }
 
