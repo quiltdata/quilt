@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import * as Config from 'utils/Config'
 import mkSearch from 'utils/mkSearch'
 import { PackageHandle } from 'utils/packageHandle'
 import useMemoEq from 'utils/useMemoEq'
@@ -100,13 +100,12 @@ interface FileHandle {
 
 const useVoilaUrl = (handle: FileHandle) => {
   const sign = AWS.Signer.useS3Signer()
-  const endpoint = Config.use().registryUrl
   const credentialsQuery = useCredentialsQuery()
   const packageQuery = usePackageQuery(handle.packageHandle)
   return useMemoEq(
-    [credentialsQuery, endpoint, handle, packageQuery, sign],
+    [credentialsQuery, handle, packageQuery, sign],
     () =>
-      `${endpoint}/voila/voila/render/${mkSearch({
+      `${cfg.registryUrl}/voila/voila/render/${mkSearch({
         url: sign(handle),
         ...credentialsQuery,
         ...packageQuery,

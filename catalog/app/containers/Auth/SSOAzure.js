@@ -4,8 +4,8 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Azure from 'utils/Azure'
 import * as Sentry from 'utils/Sentry'
@@ -20,7 +20,6 @@ const MUTEX_POPUP = 'sso:azure:popup'
 const MUTEX_REQUEST = 'sso:azure:request'
 
 export default function SSOAzure({ mutex, next, ...props }) {
-  const cfg = Config.useConfig()
   invariant(!!cfg.azureClientId, 'Auth.SSO.Azure: config missing "azureClientId"')
   invariant(!!cfg.azureBaseUrl, 'Auth.SSO.Azure: config missing "azureBaseUrl"')
   const authenticate = Azure.use({
@@ -78,17 +77,7 @@ export default function SSOAzure({ mutex, next, ...props }) {
       mutex.release(MUTEX_POPUP)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    authenticate,
-    cfg.ssoAuth,
-    dispatch,
-    mutex.claim,
-    mutex.release,
-    next,
-    notify,
-    sentry,
-    urls,
-  ])
+  }, [authenticate, dispatch, mutex.claim, mutex.release, next, notify, sentry, urls])
 
   return (
     <M.Button
