@@ -5,6 +5,7 @@ import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
 import Perspective from 'components/Preview/renderers/Perspective'
+import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
@@ -34,16 +35,20 @@ function useLinkProcessor() {
         const column = R.last(meta.column_header)
         if (column !== 'physical_keys') return
 
-        const s3Url = meta.value.replace(/^\[/, '').replace(/\]$/, '')
-        const handle = s3paths.parseS3Url(s3Url)
-        const url = urls.bucketFile(handle.bucket, handle.key, {
-          version: handle.version,
-        })
+        try {
+          const s3Url = meta.value.replace(/^\[/, '').replace(/\]$/, '')
+          const handle = s3paths.parseS3Url(s3Url)
+          const url = urls.bucketFile(handle.bucket, handle.key, {
+            version: handle.version,
+          })
 
-        const link = document.createElement('a')
-        link.addEventListener('click', () => history.push(url))
-        link.textContent = s3Url
-        td.replaceChildren(link)
+          const link = document.createElement('a')
+          link.addEventListener('click', () => history.push(url))
+          link.textContent = s3Url
+          td.replaceChildren(link)
+        } catch (error) {
+          log.warn(error)
+        }
       })
     },
     [history, urls],
