@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 
+import type { RegularTableElement } from 'regular-table'
 import perspective from '@finos/perspective'
 import type { Table, TableData } from '@finos/perspective'
 import type {
@@ -45,6 +46,7 @@ function usePerspective(
   data: PerspectiveInput,
   attrs: React.HTMLAttributes<HTMLDivElement>,
   config?: PerspectiveViewerConfig,
+  onRenderCell?: (x: { detail: RegularTableElement }) => void,
 ) {
   const [state, setState] = React.useState<State | null>(null)
 
@@ -58,6 +60,12 @@ function usePerspective(
 
       viewer = renderViewer(container, attrs)
       table = await renderTable(data, viewer)
+
+      const regularTable: RegularTableElement | null =
+        viewer.querySelector('regular-table')
+      if (onRenderCell && regularTable?.addStyleListener) {
+        regularTable.addStyleListener(onRenderCell)
+      }
 
       if (config) {
         await viewer.restore(config)
@@ -89,7 +97,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, config, container, data])
+  }, [attrs, config, container, data, onRenderCell])
 
   return state
 }
