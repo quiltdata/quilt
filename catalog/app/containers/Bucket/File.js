@@ -396,7 +396,7 @@ export default function File({
     }),
   })
 
-  const viewModes = useViewModes(path, mode)
+  const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
     (m) => {
