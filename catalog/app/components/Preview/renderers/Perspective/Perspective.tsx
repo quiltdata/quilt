@@ -215,7 +215,7 @@ export interface PerspectiveProps
   packageMeta?: JsonRecord
   parquetMeta?: ParquetMetadata
   onLoadMore?: () => void
-  onRenderCell?: (x: { detail: RegularTableElement }) => void
+  onRenderCell?: (tableEl: RegularTableElement) => void
   truncated: boolean
 }
 

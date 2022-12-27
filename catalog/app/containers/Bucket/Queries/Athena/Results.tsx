@@ -65,9 +65,9 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
   const processLink = useLinkProcessor()
 
   const onRenderCell = React.useCallback(
-    ({ detail }: { detail: RegularTableElement }) => {
-      detail.querySelectorAll('td').forEach((td) => {
-        const meta = detail.getMeta(td)
+    (tableEl: RegularTableElement) => {
+      tableEl.querySelectorAll('td').forEach((td) => {
+        const meta = tableEl.getMeta(td)
         if (!meta.column_header || !meta.value || typeof meta.value !== 'string') return
         const column = R.last(meta.column_header)
         if (column === 'physical_keys') {
