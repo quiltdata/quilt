@@ -46,7 +46,7 @@ function usePerspective(
   data: PerspectiveInput,
   attrs: React.HTMLAttributes<HTMLDivElement>,
   config?: PerspectiveViewerConfig,
-  onRenderCell?: (tableEl: RegularTableElement) => void,
+  onRender?: (tableEl: RegularTableElement) => void,
 ) {
   const [state, setState] = React.useState<State | null>(null)
 
@@ -63,9 +63,9 @@ function usePerspective(
 
       const regularTable: RegularTableElement | null =
         viewer.querySelector('regular-table')
-      if (onRenderCell && regularTable?.addStyleListener) {
-        onRenderCell(regularTable)
-        regularTable.addStyleListener(({ detail }) => onRenderCell(detail))
+      if (onRender && regularTable?.addStyleListener) {
+        onRender(regularTable)
+        regularTable.addStyleListener(({ detail }) => onRender(detail))
       }
 
       if (config) {
@@ -98,7 +98,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, config, container, data, onRenderCell])
+  }, [attrs, config, container, data, onRender])
 
   return state
 }

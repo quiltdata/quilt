@@ -215,7 +215,7 @@ export interface PerspectiveProps
   packageMeta?: JsonRecord
   parquetMeta?: ParquetMetadata
   onLoadMore?: () => void
-  onRenderCell?: (tableEl: RegularTableElement) => void
+  onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
 }
 
@@ -226,7 +226,7 @@ export default function Perspective({
   parquetMeta,
   packageMeta,
   onLoadMore,
-  onRenderCell,
+  onRender,
   truncated,
   config,
   ...props
@@ -236,7 +236,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const state = perspective.use(root, data, attrs, config, onRenderCell)
+  const state = perspective.use(root, data, attrs, config, onRender)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>

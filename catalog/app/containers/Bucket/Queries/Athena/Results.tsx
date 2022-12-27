@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
@@ -22,7 +23,7 @@ function Empty() {
   )
 }
 
-export function useLinkProcessor() {
+function useLinkProcessor() {
   const { urls } = NamedRoutes.use()
   return React.useCallback(
     (s3Url) => {
@@ -64,7 +65,8 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
 
   const processLink = useLinkProcessor()
 
-  const onRenderCell = React.useCallback(
+  const history = RRDom.useHistory()
+  const onRender = React.useCallback(
     (tableEl: RegularTableElement) => {
       tableEl.querySelectorAll('td').forEach((td) => {
         const meta = tableEl.getMeta(td)
@@ -72,7 +74,10 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
         const column = R.last(meta.column_header)
         if (column === 'physical_keys') {
           const key = meta.value.replace(/^\[/, '').replace(/\]$/, '')
-          td.innerHTML = `<a href="${processLink(key)}">${key}</a>`
+          const link = document.createElement('a')
+          link.addEventListener('click', () => history.push(processLink(key)))
+          link.textContent = key
+          td.replaceChildren(link)
         }
       })
     },
@@ -88,7 +93,7 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
         data={data}
         onLoadMore={onLoadMore}
         truncated={!!onLoadMore}
-        onRenderCell={onRenderCell}
+        onRender={onRender}
       />
     </M.Paper>
   )
