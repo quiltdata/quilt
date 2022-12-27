@@ -76,7 +76,7 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
         }
       })
     },
-    [],
+    [processLink],
   )
 
   if (!data.length) return <Empty />
