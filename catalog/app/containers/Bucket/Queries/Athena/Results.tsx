@@ -25,12 +25,28 @@ function Empty() {
 
 function useLinkProcessor() {
   const { urls } = NamedRoutes.use()
+  const history = RRDom.useHistory()
   return React.useCallback(
-    (s3Url) => {
-      const handle = s3paths.parseS3Url(s3Url)
-      return urls.bucketFile(handle.bucket, handle.key, { version: handle.version })
+    (tableEl: RegularTableElement) => {
+      tableEl.querySelectorAll('td').forEach((td) => {
+        const meta = tableEl.getMeta(td)
+        if (!meta.column_header || !meta.value || typeof meta.value !== 'string') return
+        const column = R.last(meta.column_header)
+        if (column !== 'physical_keys') return
+
+        const s3Url = meta.value.replace(/^\[/, '').replace(/\]$/, '')
+        const handle = s3paths.parseS3Url(s3Url)
+        const url = urls.bucketFile(handle.bucket, handle.key, {
+          version: handle.version,
+        })
+
+        const link = document.createElement('a')
+        link.addEventListener('click', () => history.push(url))
+        link.textContent = s3Url
+        td.replaceChildren(link)
+      })
     },
-    [urls],
+    [history, urls],
   )
 }
 
@@ -65,25 +81,6 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
 
   const processLink = useLinkProcessor()
 
-  const history = RRDom.useHistory()
-  const onRender = React.useCallback(
-    (tableEl: RegularTableElement) => {
-      tableEl.querySelectorAll('td').forEach((td) => {
-        const meta = tableEl.getMeta(td)
-        if (!meta.column_header || !meta.value || typeof meta.value !== 'string') return
-        const column = R.last(meta.column_header)
-        if (column === 'physical_keys') {
-          const key = meta.value.replace(/^\[/, '').replace(/\]$/, '')
-          const link = document.createElement('a')
-          link.addEventListener('click', () => history.push(processLink(key)))
-          link.textContent = key
-          td.replaceChildren(link)
-        }
-      })
-    },
-    [processLink],
-  )
-
   if (!data.length) return <Empty />
 
   return (
@@ -93,7 +90,7 @@ export default function Results({ className, columns, onLoadMore, rows }: Result
         data={data}
         onLoadMore={onLoadMore}
         truncated={!!onLoadMore}
-        onRender={onRender}
+        onRender={processLink}
       />
     </M.Paper>
   )
