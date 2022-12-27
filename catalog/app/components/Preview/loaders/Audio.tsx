@@ -1,8 +1,8 @@
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData } from '../types'
@@ -17,7 +17,6 @@ interface AudioLoaderProps {
 }
 
 function useAudioSrc(handle: S3HandleBase): string {
-  const { binaryApiGatewayEndpoint: endpoint } = Config.use()
   const sign = AWS.Signer.useS3Signer()
   const url = React.useMemo(() => sign(handle), [handle, sign])
   const query = new URLSearchParams({
@@ -25,7 +24,7 @@ function useAudioSrc(handle: S3HandleBase): string {
     format: 'audio/mpeg',
     url,
   })
-  return `${endpoint}/transcode?${query.toString()}`
+  return `${cfg.apiGatewayEndpoint}/transcode?${query.toString()}`
 }
 
 export const Loader = function AudioLoader({ handle, children }: AudioLoaderProps) {

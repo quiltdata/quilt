@@ -8,40 +8,116 @@ type CompoundCondition = 'anyOf' | 'oneOf' | 'not' | 'allOf'
 // TODO: use more detailed `Ajv.JSONSchemaType` instead
 export type JsonSchema = SchemaObject
 
-export const isSchemaArray = (optSchema?: JsonSchema) => optSchema?.type === 'array'
-
-export const isSchemaObject = (optSchema?: JsonSchema) => optSchema?.type === 'object'
-
-const isSchemaString = (optSchema?: JsonSchema) => optSchema?.type === 'string'
-
-const isSchemaNumber = (optSchema?: JsonSchema) => optSchema?.type === 'number'
-
-const isSchemaInteger = (optSchema?: JsonSchema) => optSchema?.type === 'integer'
-
-export const isSchemaBoolean = (optSchema?: JsonSchema) => optSchema?.type === 'boolean'
-
-const isSchemaNull = (optSchema?: JsonSchema) => optSchema?.type === 'null'
-
-export const isSchemaEnum = (optSchema?: JsonSchema) => !!optSchema?.enum
-
-export const isSchemaOneOf = (optSchema?: JsonSchema) => !!optSchema?.oneOf
-
-export const isSchemaAnyOf = (optSchema?: JsonSchema) => !!optSchema?.anyOf
-
-export const isSchemaAllOf = (optSchema?: JsonSchema) => !!optSchema?.allOf
-
-const isSchemaConst = (optSchema?: JsonSchema) => !!optSchema?.const
-
-function isSchemaCompound(optSchema?: JsonSchema) {
+export function isSchemaCompound(optSchema?: JsonSchema) {
   if (!optSchema) return false
+  if (Array.isArray(optSchema)) return true
   return ['anyOf', 'oneOf', 'not', 'allOf'].some(
     (key) => optSchema[key as 'anyOf' | 'oneOf' | 'not' | 'allOf'],
   )
 }
 
-const isSchemaReference = (optSchema: JsonSchema) => !!optSchema?.$ref
+function hasTypeInCompoundSchema(
+  typeCheck: (schema?: JsonSchema) => boolean,
+  optSchema?: JsonSchema,
+) {
+  if (!isSchemaCompound(optSchema)) return false
+  if (optSchema?.allOf) return optSchema.allOf.every(typeCheck)
+  if (optSchema?.anyOf) return optSchema.anyOf.some(typeCheck)
+  if (optSchema?.oneOf) {
+    const checks = optSchema?.oneOf.map(typeCheck)
+    // [true,false,false] => [1,0,0] => sum === 1
+    return checks.reduce((memo: number, check: boolean) => memo + Number(check), 0) === 1
+  }
+  if (optSchema?.not) return !typeCheck(optSchema.not)
+  if (Array.isArray(optSchema)) return optSchema.some(typeCheck)
+}
 
-export const isNestedType = R.either(isSchemaArray, isSchemaObject)
+export function findTypeInCompoundSchema(
+  typeCheck: (schema?: JsonSchema) => boolean,
+  optSchema?: JsonSchema,
+) {
+  if (!isSchemaCompound(optSchema)) return typeCheck(optSchema) ? optSchema : undefined
+  if (optSchema?.allOf)
+    return hasTypeInCompoundSchema(typeCheck, optSchema)
+      ? optSchema.allOf.find(typeCheck)
+      : undefined
+  if (optSchema?.anyOf) return optSchema.anyOf.find(typeCheck)
+  if (optSchema?.oneOf)
+    return hasTypeInCompoundSchema(typeCheck, optSchema)
+      ? optSchema?.oneOf.find(typeCheck)
+      : undefined
+  if (Array.isArray(optSchema)) return optSchema.find(typeCheck)
+}
+
+export function isSchemaArray(optSchema?: JsonSchema) {
+  return optSchema?.type === 'array' || hasTypeInCompoundSchema(isSchemaArray, optSchema)
+}
+
+export function isSchemaObject(optSchema?: JsonSchema) {
+  return (
+    optSchema?.type === 'object' || hasTypeInCompoundSchema(isSchemaObject, optSchema)
+  )
+}
+
+function isSchemaString(optSchema?: JsonSchema) {
+  return (
+    optSchema?.type === 'string' || hasTypeInCompoundSchema(isSchemaString, optSchema)
+  )
+}
+
+function isSchemaNumber(optSchema?: JsonSchema) {
+  return (
+    optSchema?.type === 'number' || hasTypeInCompoundSchema(isSchemaNumber, optSchema)
+  )
+}
+
+function isSchemaInteger(optSchema?: JsonSchema) {
+  return (
+    optSchema?.type === 'integer' || hasTypeInCompoundSchema(isSchemaInteger, optSchema)
+  )
+}
+
+export function isSchemaBoolean(optSchema?: JsonSchema) {
+  return (
+    optSchema?.type === 'boolean' || hasTypeInCompoundSchema(isSchemaBoolean, optSchema)
+  )
+}
+
+function isSchemaNull(optSchema?: JsonSchema) {
+  return optSchema?.type === 'null' || hasTypeInCompoundSchema(isSchemaNull, optSchema)
+}
+
+export function isSchemaEnum(optSchema?: JsonSchema) {
+  return !!optSchema?.enum || hasTypeInCompoundSchema(isSchemaEnum, optSchema)
+}
+
+export function isSchemaOneOf(optSchema?: JsonSchema) {
+  return !!optSchema?.oneOf || hasTypeInCompoundSchema(isSchemaOneOf, optSchema)
+}
+
+export function isSchemaAnyOf(optSchema?: JsonSchema) {
+  return !!optSchema?.anyOf || hasTypeInCompoundSchema(isSchemaAnyOf, optSchema)
+}
+
+export function isSchemaAllOf(optSchema?: JsonSchema) {
+  return !!optSchema?.allOf || hasTypeInCompoundSchema(isSchemaAllOf, optSchema)
+}
+
+function isSchemaConst(optSchema?: JsonSchema) {
+  return !!optSchema?.const || hasTypeInCompoundSchema(isSchemaConst, optSchema)
+}
+
+function isSchemaReference(optSchema?: JsonSchema) {
+  return !!optSchema?.$ref || hasTypeInCompoundSchema(isSchemaReference, optSchema)
+}
+
+export function isNestedType(optSchema?: JsonSchema) {
+  return (
+    isSchemaArray(optSchema) ||
+    isSchemaObject(optSchema) ||
+    hasTypeInCompoundSchema(isNestedType, optSchema)
+  )
+}
 
 function compoundTypeToHumanString(
   optSchema: JsonSchema,
@@ -58,6 +134,10 @@ function compoundTypeToHumanString(
 export function schemaTypeToHumanString(optSchema?: JsonSchema) {
   if (!optSchema) return ''
   return R.cond<JsonSchema, string>([
+    [isSchemaAnyOf, () => compoundTypeToHumanString(optSchema, 'anyOf', '|')],
+    [isSchemaOneOf, () => compoundTypeToHumanString(optSchema, 'oneOf', '|')],
+    [isSchemaAllOf, () => compoundTypeToHumanString(optSchema, 'allOf', '&')],
+    [isSchemaCompound, () => 'compound'],
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
     [isSchemaBoolean, () => 'boolean'],
@@ -71,10 +151,6 @@ export function schemaTypeToHumanString(optSchema?: JsonSchema) {
           ? optSchema.type.join('|')
           : (optSchema.type as string),
     ],
-    [isSchemaAnyOf, () => compoundTypeToHumanString(optSchema, 'anyOf', '|')],
-    [isSchemaOneOf, () => compoundTypeToHumanString(optSchema, 'oneOf', '|')],
-    [isSchemaAllOf, () => compoundTypeToHumanString(optSchema, 'allOf', '&')],
-    [isSchemaCompound, () => 'compound'],
     [isSchemaReference, () => '$ref'],
     [R.T, () => 'undefined'],
   ])(optSchema)
@@ -98,8 +174,23 @@ function doesTypeMatchCompoundSchema(
 // TODO: rename and redesign function to avoid "if no schema -> return true aka 'type matches schema'"
 export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean {
   if (!optSchema) return true
+
   return R.cond<JsonSchema, boolean>([
-    [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
+    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, 'anyOf', optSchema)],
+    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, 'oneOf', optSchema)],
+    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, 'allOf', optSchema)],
+    [
+      isSchemaEnum,
+      () => {
+        const foundSchema = findTypeInCompoundSchema(isSchemaEnum, optSchema)
+        const options = foundSchema?.enum || []
+        // Note that value and enum items can be objects
+        const includesEnum = R.includes(value)
+        // TODO: use R.includes(value, options) without aux const
+        //       ramda types incorectly set return type
+        return includesEnum(options)
+      },
+    ],
     [
       (s) => Array.isArray(s?.type),
       () =>
@@ -107,9 +198,6 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
           doesTypeMatchSchema(value, subSchema),
         ),
     ],
-    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, 'anyOf', optSchema)],
-    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, 'oneOf', optSchema)],
-    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, 'allOf', optSchema)],
     [isSchemaArray, () => Array.isArray(value)],
     [isSchemaObject, () => R.is(Object, value)],
     [isSchemaString, () => R.is(String, value)],
@@ -142,6 +230,7 @@ export function makeSchemaValidator(
   const { $id } = schemas[0]
   const options: Options = {
     allErrors: true,
+    allowUnionTypes: true,
     schemaId: '$id',
     schemas,
     useDefaults: true,

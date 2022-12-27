@@ -1,4 +1,9 @@
-import { makeSchemaDefaultsSetter, makeSchemaValidator } from './json-schema'
+import {
+  isSchemaEnum,
+  findTypeInCompoundSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from './json-schema'
 
 import * as booleansNulls from './mocks/booleans-nulls'
 import * as compound from './mocks/compound'
@@ -411,6 +416,52 @@ describe('utils/json-schema', () => {
         g: '2020-01-30',
       })
       jest.useRealTimers()
+    })
+  })
+
+  describe('type checkers', () => {
+    describe('isSchemaEnum', () => {
+      const simpleString = { type: 'string' }
+      const enumString = { type: 'string', enum: ['one', 'two'] }
+      const simpleNumber = { type: 'number' }
+      const enumNumber = { type: 'number', enum: [1, 2] }
+      const numberOrString = { anyOf: [{ type: 'number' }, simpleString] }
+      const numberOrEnum = { anyOf: [simpleNumber, enumString] }
+      const numberAndString = { allOf: [simpleNumber, simpleString] }
+      const numberAndEnum = { allOf: [simpleNumber, enumString] }
+      const enumAndEnum = { allOf: [enumNumber, enumString] }
+
+      it('should detect simple enum', () => {
+        expect(isSchemaEnum(simpleString)).toBe(false)
+        expect(isSchemaEnum(enumString)).toBe(true)
+      })
+
+      it('should detect enum in complex types', () => {
+        expect(isSchemaEnum(numberOrString)).toBe(false)
+        expect(isSchemaEnum(numberOrEnum)).toBe(true)
+        expect(isSchemaEnum(numberAndString)).toBe(false)
+        expect(isSchemaEnum(numberAndEnum)).toBe(false)
+        expect(isSchemaEnum(enumAndEnum)).toBe(true)
+      })
+
+      it('should find simple enum', () => {
+        expect(findTypeInCompoundSchema(isSchemaEnum, simpleString)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, enumString)).toMatchObject(
+          enumString,
+        )
+      })
+
+      it('should find enum in complex types', () => {
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberOrString)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberOrEnum)).toMatchObject(
+          enumString,
+        )
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberAndString)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberAndEnum)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, enumAndEnum)).toMatchObject(
+          enumNumber,
+        )
+      })
     })
   })
 })

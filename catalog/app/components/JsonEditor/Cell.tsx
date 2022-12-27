@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
 import { isSchemaEnum } from 'utils/json-schema'
 
 import ContextMenu from './ContextMenu'
@@ -31,14 +32,14 @@ const cellPlaceholders = {
 
 interface CellProps {
   column: RTable.Column<{ id: 'key' | 'value' }>
-  columnPath: string[]
-  contextMenuPath: string[]
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   editing: boolean
-  onContextMenu: (path: string[]) => void
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
   row: Pick<RTable.Row<RowData>, 'original' | 'values'>
-  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  updateMyData: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
   value: JsonValue
 }
 

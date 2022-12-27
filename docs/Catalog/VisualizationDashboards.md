@@ -144,6 +144,17 @@ alt.Chart(df).mark_area(
 ).save("vega.json")
 ```
 
+> To create plots that directly embed a dataset with more than 5000
+rows (a large dataset), you will encounter a `MaxRowsError`. You
+can get around this error in [several different
+ways](https://altair-viz.github.io/user_guide/faq.html#maxrowserror-how-can-i-plot-large-datasets)
+
+### Live packages
+- [Interactive map of California with slider
+scale](https://open.quiltdata.com/b/quilt-example/packages/akarve/reef-check)
+- [Interactive map of 2015 United States by-county smoking & poverty
+data](https://open.quiltdata.com/b/quilt-example/packages/robnewman/us_county_smoking_vs_poverty)
+
 ## ECharts
 To render an [EChart](https://echarts.apache.org/), you provide a JSON file (a dictionary that
 specifies the ECharts [option parameter](https://echarts.apache.org/en/option.html))
@@ -228,6 +239,9 @@ At present, ECharts in Quilt does not support custom JavaScript. You are therefo
 limited to JSON types (numbers, strings, objects, arrays, etc.). Functions like [`symbolSize`](https://echarts.apache.org/en/option.html#series-scatter.symbolSize)
 are not available.
 
+### Live packages
+- [Various EChart types](https://open.quiltdata.com/b/quilt-example/packages/examples/echarts)
+
 ## Voila
 *This feature is a Developer preview, details are subject to change.*
 
@@ -245,7 +259,7 @@ in Linux containers that have network access but do not have access to persisten
 storage. The catalog users's AWS credentials are passed to Jupyter kernel as
 [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list).
 
-## Environment variables
+### Environment variables
 When you have a Voila dashboard inside of a Quilt package, you may wish to reference files
 *in the current package revision*. The Quilt catalog sets the following environment variables
 and passes them to the Voila kernel:
@@ -362,6 +376,25 @@ All filters and columns will be restored:
 ]
 ```
 
+### Known issues
+
+Several customers have reported that Perspective Datagrids fail to
+automatically render in the Quilt web catalog. We have isolated
+this problem to clashes with third party browser extensions in both
+Mozilla Firefox and Google Chrome. At least one extension, [Zotero
+Connector](https://chrome.google.com/webstore/detail/zotero-connector/ekhagklcjbdpajgpjgmbionohlpdbjgc?hl=en),
+has been reported and the error reproduced.
+
+If you encounter a rendering error, please first try a different browser (Firefox,
+Safari, Edge) on the same machine. If the error persists, next disable all third-party
+extensions, turning each one back on, one-by-one, until the problem
+extension is identified. Please then notify
+[support@quiltdata.io](mailto:support@quiltdata.io) with the extension
+name and version.
+
+### Live packages
+- [CSV file automatically rendered in Perspective Datagrid](https://open.quiltdata.com/b/quilt-example/packages/examples/smart-report)
+
 ## Integrative Genomics Viewer (IGV)
 
 To render genome tracks, you can select "View as IGV" in the catalog,
@@ -406,3 +439,6 @@ Note that tracks are
   }]
 }
 ```
+
+### Live packages
+- [Single and multiple track genome sequences](https://open.quiltdata.com/b/quilt-example/tree/examples/simple-igv/) 

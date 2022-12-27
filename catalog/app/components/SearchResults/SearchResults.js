@@ -9,10 +9,10 @@ import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useBucketExistence } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -433,7 +433,6 @@ function ObjectHit({ hit, ...props }) {
 }
 
 function FileHit({ showBucket, hit: { path, versions, bucket } }) {
-  const cfg = Config.use()
   const s3 = AWS.S3.use()
 
   const v = versions[0]

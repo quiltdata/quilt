@@ -53,7 +53,7 @@ quilt3 --version
 1. Copy the row labeled TemplateBuildMetadata
 1. "git_revision" is your template version
 
-## Hashing takes a long time. Can I speed it up?
+## Hashing during `push` takes a long time. Can I speed it up?
 
 Yes. Follow these steps:
 
@@ -123,7 +123,22 @@ for (k, e) in p.walk():
     s3.delete_object(Bucket=pk.bucket, Key=pk.path, VersionId=pk.version_id)
 ```
 
-You can then follow the above with `q3.Package.delete(pname, registry=reg, top_hash=p.top_hash)`.
+You can then follow the above with `q3.delete_package(pname, registry=reg, top_hash=p.top_hash)`.
+
+## Do I have to login via quilt3 to use the Quilt APIs? How do I push to Quilt from a headless environment like a Docker container?
+
+Configure [AWS CLI credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html) 
+and `quilt3` will use the same for its API calls.
+
+> Be sure to run `quilt3 logout` if you've previously logged in. 
+
+Select among multiple profiles in your shell as follows:
+```bash
+export AWS_PROFILE=your_profile
+```
+
+The S3 permissions needed by `quilt3` are similar to
+[this bucket policy](https://docs.quiltdata.com/advanced/crossaccount#bucket-policies)                                                                                                  but `quilt3` does not need either `s3:GetBucketNotification` or `s3:PutBucketNotification`.
 
 ## How complex can my Athena queries be?
 
@@ -155,3 +170,38 @@ when writing Amazon Athena queries.
 * [SQL reference for Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html)
 * [Functions in Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html)
 
+## Are there any limitations on characters in Quilt filenames?
+
+Yes. Quilt is built on top of Amazon S3, and has the same character limitations.
+Although any UTF-8 character is supported in an object key
+name (filename), using certain characters can result in problems with some
+applications and protocols. The following guideline will help you
+maximize compliance. For a comprehensive list of safe characters, characters
+that might require special handling, and characters to avoid, please
+review the official Amazon S3 documentation linked below.
+
+### List of safe characters
+* Alphanumeric characters:
+  * 0-9
+  * a-z
+  * A-Z
+* Special characters:
+  * Exclamation point (`!`)
+  * Hyphen (`-`)
+  * Underscore (`_`)
+  * Period (`.`)
+  * Asterisk (`*`)
+  * Single quote (`'`)
+  * Open parenthesis (`(`)
+  * Close parenthesis (`)`)
+
+### References
+* [Creating object key names](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-keys.html)
+
+## How many IPs does a standard Quilt stack require?
+
+Currently, a full size, multi-Availability Zone deployment (without
+[Voila](https://docs.quiltdata.com/catalog/visualizationdashboards#voila))
+requires at least 256 IPs. This means a minimum CIDR block of `/24`.
+
+Optional additional features (such as automated data packaging) require additional IPs.

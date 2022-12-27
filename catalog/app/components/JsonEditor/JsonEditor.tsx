@@ -107,7 +107,7 @@ const useSqueezeStyles = M.makeStyles((t) => ({
 }))
 
 interface SqueezeProps {
-  columnPath: string[]
+  columnPath: JSONPointer.Path
   onClick: () => void
 }
 
@@ -162,20 +162,11 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   },
 }))
 
-interface JsonEditorProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
-  changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => JsonValue
+interface JsonEditorProps extends StateRenderProps {
   className?: string
-  columns: ColumnData[]
   disabled?: boolean
-  fieldPath: JSONPointer.Path
-  jsonDict: Record<string, JsonValue>
-  menuFieldPath: string[]
   multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
-  removeField: (path: string[]) => JsonValue
-  setFieldPath: (path: string[]) => void
-  setMenuFieldPath: (path: string[]) => void
 }
 
 const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function JsonEditor(
@@ -193,6 +184,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     removeField,
     setFieldPath,
     setMenuFieldPath,
+    transformer,
   },
   ref,
 ) {
@@ -201,7 +193,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   const md = M.useMediaQuery(t.breakpoints.down('md'))
 
   const handleRowAdd = React.useCallback(
-    (path: string[], key: string | number, value: JsonValue) => {
+    (path: JSONPointer.Path, key: string | number, value: JsonValue) => {
       const newData = addRow(path, key, value)
       if (newData) onChange(newData)
     },
@@ -209,7 +201,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleRowRemove = React.useCallback(
-    (path: string[]) => {
+    (path: JSONPointer.Path) => {
       const newData = removeField(path)
       if (newData) onChange(newData)
     },
@@ -217,11 +209,18 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleValueChange = React.useCallback(
-    (path: string[], key: 'key' | 'value', value: JsonValue | string) => {
+    (path: JSONPointer.Path, key: 'key' | 'value', value: JsonValue | string) => {
       const newData = changeValue(path, key, value)
       if (newData) onChange(newData)
     },
     [changeValue, onChange],
+  )
+
+  const handleToolbar = React.useCallback(
+    (transform) => {
+      onChange(transformer(transform))
+    },
+    [onChange, transformer],
   )
 
   if (!columns.length) throw new Error('No column data')
@@ -257,6 +256,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               onContextMenu={setMenuFieldPath}
               onExpand={setFieldPath}
               onRemove={handleRowRemove}
+              onToolbar={handleToolbar}
             />
           )
         })}
