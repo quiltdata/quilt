@@ -12,8 +12,10 @@ the `/config.js` path.
 $ cd catalog
 # copy and edit config file
 $ cp config.js.example static-dev/config.js
-$ vi static-dev/config.js
-$ npm start
+$ vi static-dev/config.js # optional
+$ npm install
+$ npm start &
+$ open http://localhost:3000
 ```
 
 ## Notes
