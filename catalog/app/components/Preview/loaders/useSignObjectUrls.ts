@@ -9,7 +9,7 @@ import type { JsonRecord } from 'utils/types'
 
 import { PreviewError } from '../types'
 
-const createPathResolver = (
+export const createPathResolver = (
   resolveLogicalKey: LogicalKeyResolver.LogicalKeyResolver | null,
   handle: LogicalKeyResolver.S3SummarizeHandle,
 ): ((path: string) => Promise<LogicalKeyResolver.S3SummarizeHandle>) =>
@@ -35,7 +35,7 @@ const createPathResolver = (
           key: s3paths.resolveKey(handle.key, path),
         })
 
-const createUrlProcessor = (
+export const createUrlProcessor = (
   sign: (handle: s3paths.S3HandleBase) => string,
   resolvePath: (path: string) => Promise<s3paths.S3HandleBase>,
 ) =>

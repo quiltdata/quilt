@@ -1,16 +1,21 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import type { RegularTableElement } from 'regular-table'
 
 import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
+import log from 'utils/Logging'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import mkSearch from 'utils/mkSearch'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
 
+import * as Image from './Image'
 import FileType from './fileType'
+import { createPathResolver, createUrlProcessor } from './useSignObjectUrls'
 import * as utils from './utils'
 
 export const FILE_TYPE = FileType.Tabular
@@ -164,6 +169,40 @@ const loadTabularData = async ({
   }
 }
 
+function useImageResolver(handle: S3HandleBase) {
+  const sign = AWS.Signer.useS3Signer()
+  const resolveLogicalKey = LogicalKeyResolver.use()
+  const resolvePath = React.useMemo(
+    () => createPathResolver(resolveLogicalKey, handle),
+    [resolveLogicalKey, handle],
+  )
+  const processUrl = React.useMemo(
+    () => createUrlProcessor(sign, resolvePath),
+    [sign, resolvePath],
+  )
+  return React.useCallback(
+    (tableEl: RegularTableElement) => {
+      tableEl.querySelectorAll('td').forEach(async (td) => {
+        const meta = tableEl.getMeta(td)
+        if (typeof meta.value !== 'string' || !Image.detect(meta.value)) return
+        try {
+          const src = await processUrl(meta.value.trim())
+
+          const img = document.createElement('img')
+          img.setAttribute('style', `max-height: ${td.clientHeight}px;`)
+          img.addEventListener('load', () => {
+            if (tableEl.contains(td)) td.replaceChildren(img)
+          })
+          img.src = src
+        } catch (error) {
+          log.warn(error)
+        }
+      })
+    },
+    [processUrl],
+  )
+}
+
 function getNeededSize(context: string, gated: boolean) {
   switch (context) {
     case CONTEXT.FILE:
@@ -193,6 +232,7 @@ export const Loader = function TabularLoader({
     () => getNeededSize(options.context, gated),
     [options.context, gated],
   )
+  const resolveImage = useImageResolver(handle)
 
   const compression = utils.getCompression(handle.key)
   const data = Data.use(loadTabularData, {
@@ -213,6 +253,7 @@ export const Loader = function TabularLoader({
         parquetMeta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,
+        onRender: resolveImage,
       }),
   )
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
