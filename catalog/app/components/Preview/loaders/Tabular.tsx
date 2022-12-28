@@ -194,6 +194,7 @@ function useImageResolver(handle: S3HandleBase) {
             if (tableEl.contains(td)) td.replaceChildren(img)
           })
           img.src = src
+          img.title = meta.value
         } catch (error) {
           log.warn(error)
         }
