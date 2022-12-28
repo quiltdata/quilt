@@ -21,7 +21,6 @@ const Ngl: React.FC<NglProps> = RT.mkLazy(() => import('./Ngl'), SuspensePlaceho
 const useStyles = M.makeStyles((t) => ({
   root: {
     flexDirection: 'column',
-    width: '100%',
   },
   item: {
     '& + &': {

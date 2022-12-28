@@ -193,7 +193,6 @@ const useStyles = M.makeStyles((t) => ({
     // NOTE: padding is required because perspective-viewer covers resize handle
     padding: '0 0 8px',
     resize: 'vertical',
-    width: '100%',
   },
   meta: {
     marginBottom: t.spacing(1),

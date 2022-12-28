@@ -22,9 +22,6 @@ const renderMath = (el) => {
 }
 
 const useStyles = M.makeStyles({
-  root: {
-    width: '100%',
-  },
   contents: {
     // workaround to speed-up browser rendering / compositing
     '& pre': {
@@ -37,7 +34,7 @@ const useStyles = M.makeStyles({
 function Notebook({ children, className, note, warnings, ...props } = {}) {
   const classes = useStyles()
   return (
-    <div className={cx(classes.root, className)} {...props}>
+    <div className={className} {...props}>
       {renderWarnings(warnings)}
       <div
         title={note}

@@ -1,13 +1,9 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
-  },
   wrapper: {
     overflow: 'auto',
 
@@ -38,7 +34,7 @@ const useStyles = M.makeStyles((t) => ({
 function DataFrame({ children, className, note, warnings, ...props } = {}) {
   const classes = useStyles()
   return (
-    <div className={cx(className, classes.root)} {...props}>
+    <div className={className} {...props}>
       {renderWarnings(warnings)}
       <div
         title={note}
@@ -50,6 +46,7 @@ function DataFrame({ children, className, note, warnings, ...props } = {}) {
   )
 }
 
+// TODO: it is unused, remove it
 export default ({ preview, note, warnings }, props) => (
   <DataFrame {...{ note, warnings }} {...props}>
     {preview}
