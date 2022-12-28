@@ -1,0 +1,44 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": "build",
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "ignore": ["**/.*"],
+    "headers": [
+      {
+        "source": "**/*.@(jpg|jpeg|gif|png)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=7776000"
+          }
+        ]
+      },
+      {
+        "source": "*.chunk.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=7776000"
+          }
+        ]
+      },
+      {
+        "source": "index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "max-age=600"
+          }
+        ]
+      }
+    ]
+  }
+}

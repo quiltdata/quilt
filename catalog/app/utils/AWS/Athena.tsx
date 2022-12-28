@@ -2,7 +2,7 @@ import Athena from 'aws-sdk/clients/athena'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as CatalogConfig from 'utils/Config'
+import cfg from 'constants/config'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
 
 import * as Config from './Config'
@@ -14,6 +14,8 @@ const getRegion: (input: string) => string = R.pipe(
   R.defaultTo('us-east-1'),
 )
 
+const region = getRegion(cfg.apiGatewayEndpoint)
+
 const AthenaContext = React.createContext<() => Athena | null>(() => null)
 
 type AthenaProviderProps = React.PropsWithChildren<Partial<Athena.ClientConfiguration>>
@@ -23,12 +25,6 @@ export const Provider = function AthenaProvider({
   ...overrides
 }: AthenaProviderProps) {
   const awsConfig = Config.use()
-  const catalogConfig = CatalogConfig.use()
-
-  const region = React.useMemo(
-    () => getRegion(catalogConfig.apiGatewayEndpoint),
-    [catalogConfig],
-  )
 
   const client: () => Athena = useMemoEqLazy(
     {

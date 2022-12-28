@@ -6,10 +6,10 @@ import customScalarsExchange from 'urql-custom-scalars-exchange'
 import * as DevTools from '@urql/devtools'
 import * as GraphCache from '@urql/exchange-graphcache'
 
-import schema from 'model/graphql/schema.generated'
+import cfg from 'constants/config'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import { useAuthExchange } from 'containers/Auth/urqlExchange'
-import * as Config from 'utils/Config'
+import schema from 'model/graphql/schema.generated'
 
 const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExchange] : []
 
@@ -65,9 +65,6 @@ function invalidateAffectedRoles(policy: any, cache: GraphCache.Cache) {
 }
 
 export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
-  const { registryUrl } = Config.use()
-  const url = `${registryUrl}/graphql`
-
   const sessionId: number = redux.useSelector(AuthSelectors.sessionId)
 
   const authExchange = useAuthExchange()
@@ -310,7 +307,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
   const client = React.useMemo(
     () =>
       urql.createClient({
-        url,
+        url: `${cfg.registryUrl}/graphql`,
         suspense: true,
         exchanges: [
           ...devtools,
@@ -321,7 +318,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           urql.fetchExchange,
         ],
       }),
-    [url, authExchange, cacheExchange, scalarsExchange],
+    [authExchange, cacheExchange, scalarsExchange],
   )
   return <urql.Provider value={client}>{children}</urql.Provider>
 }

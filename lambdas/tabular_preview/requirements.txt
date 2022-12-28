@@ -14,7 +14,7 @@ asynctest==0.13.0
     # via aiohttp
 attrs==21.4.0
     # via aiohttp
-certifi==2021.10.8
+certifi==2022.12.7
     # via requests
 charset-normalizer==2.0.12
     # via

@@ -145,9 +145,11 @@ npm run test
 
 1. Once you are ready to cut a new release, you update the version in
 [`VERSION`](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/VERSION)
-file and create a new git tag with `git tag $VERSION`, e.g. `git tag 3.1.8`.
-2. Once you push the tag to GitHub with `git push --tags` a new CircleCI build is triggered.
-3. Merge the new PR into master so the `setup.py` reflects the latest package.
+file and in [`CHANGELOG`](https://github.com/quiltdata/quilt/blob/master/docs/CHANGELOG.md).
+1. Create PR with these changes.
+1. Once PR is merged, create a tag from commit with merge: `git tag $VERSION $COMMIT_HASH`.
+1. Once you push the tag to GitHub with `git push origin $VERSION` a new CI build that makes
+PyPI release is triggered.
 
 ## Updating documentation
 

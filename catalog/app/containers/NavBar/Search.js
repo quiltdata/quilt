@@ -7,8 +7,8 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as Lab from '@material-ui/lab'
 
+import cfg from 'constants/config'
 import * as style from 'constants/style'
-import * as Config from 'utils/Config'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -294,7 +294,6 @@ function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
 }
 
 function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
-  const cfg = Config.useConfig()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.search)
   const { q: query = '', buckets } = match ? parse(l.search) : {}

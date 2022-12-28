@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
@@ -83,7 +83,6 @@ function GlobalControls({ iconized, disableSearch }) {
 
 function BucketControls({ bucket, iconized, disableSearch }) {
   const [state, setState] = React.useState(null)
-  const cfg = Config.use()
   const select = React.useCallback(() => {
     setState('select')
   }, [setState])
