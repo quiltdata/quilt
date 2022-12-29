@@ -201,17 +201,16 @@ function useImageResolver(handle: S3HandleBase) {
               resolved = true
               resolve(false)
             }
-          }, 300)
+          }, 100)
           img.addEventListener('load', () => {
-            const isInDom = tableEl.contains(td)
-            if (isInDom) td.replaceChildren(img)
             if (!resolved) {
               resolved = true
               clearTimeout(timer)
-              resolve(isInDom)
+              resolve(tableEl.contains(td))
             }
           })
           img.src = src
+          if (tableEl.contains(td)) td.replaceChildren(img)
         })
         try {
           return await result
