@@ -6,9 +6,9 @@ import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import log from 'utils/Logging'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import mkSearch from 'utils/mkSearch'
+import type { RenderResult } from 'utils/perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
@@ -181,25 +181,44 @@ function useImageResolver(handle: S3HandleBase) {
     [sign, resolvePath],
   )
   return React.useCallback(
-    (tableEl: RegularTableElement) => {
-      tableEl.querySelectorAll('td').forEach(async (td) => {
+    async (tableEl: RegularTableElement) => {
+      const resultsAsync: Promise<Error | boolean>[] = Array.from(
+        tableEl.querySelectorAll('td'),
+      ).map(async (td) => {
         const meta = tableEl.getMeta(td)
-        if (typeof meta.value !== 'string' || !Image.detect(meta.value)) return
+        if (typeof meta.value !== 'string' || !Image.detect(meta.value)) return false
         try {
           const src = await processUrl(meta.value.trim())
-
-          const img = document.createElement('img')
-          img.setAttribute('style', `max-height: ${td.clientHeight}px;`)
-          img.addEventListener('load', () => {
-            if (tableEl.contains(td)) td.replaceChildren(img)
+          const result: Promise<boolean> = new Promise((resolve) => {
+            const img = document.createElement('img')
+            img.setAttribute('style', `max-height: ${td.clientHeight}px;`)
+            img.title = meta.value as string
+            img.addEventListener('load', () => {
+              const isInDom = tableEl.contains(td)
+              if (isInDom) td.replaceChildren(img)
+              resolve(isInDom)
+            })
+            img.src = src
           })
-          img.src = src
-          img.title = meta.value
+          return await result
         } catch (error) {
-          log.warn(error)
+          return error as Error
         }
       })
-      return Promise.resolve({ error: null, processed: true })
+      return (await Promise.all(resultsAsync)).reduce(
+        (memo, result) => {
+          const processed = memo.processed || result === true
+          const messages = memo.error ? [memo.error.message] : []
+          if (result instanceof Error) {
+            messages.push(result.message)
+          }
+          return {
+            error: messages.length ? new Error(messages.join('\n')) : null,
+            processed,
+          }
+        },
+        { error: null, processed: false } as RenderResult,
+      )
     },
     [processUrl],
   )
