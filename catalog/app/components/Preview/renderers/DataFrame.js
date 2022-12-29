@@ -46,7 +46,7 @@ function DataFrame({ children, className, note, warnings, ...props } = {}) {
   )
 }
 
-// TODO: it is unused, remove it
+// TODO: this loader is unused, remove it
 export default ({ preview, note, warnings }, props) => (
   <DataFrame {...{ note, warnings }} {...props}>
     {preview}
