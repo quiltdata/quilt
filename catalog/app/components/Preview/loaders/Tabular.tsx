@@ -186,23 +186,37 @@ function useImageResolver(handle: S3HandleBase) {
         tableEl.querySelectorAll('td'),
       ).map(async (td) => {
         const meta = tableEl.getMeta(td)
-        if (typeof meta.value !== 'string' || !Image.detect(meta.value)) return false
-        try {
+        const result: Promise<boolean> = new Promise(async (resolve) => {
+          if (typeof meta.value !== 'string' || !Image.detect(meta.value)) {
+            return resolve(false)
+          }
           const src = await processUrl(meta.value.trim())
-          const result: Promise<boolean> = new Promise((resolve) => {
-            const img = document.createElement('img')
-            img.setAttribute('style', `max-height: ${td.clientHeight}px;`)
-            img.title = meta.value as string
-            img.addEventListener('load', () => {
-              const isInDom = tableEl.contains(td)
-              if (isInDom) td.replaceChildren(img)
+          const img = document.createElement('img')
+          img.setAttribute('style', `max-height: ${td.clientHeight}px;`)
+          img.title = meta.value
+
+          let resolved = false
+          const timer = setTimeout(() => {
+            if (!resolved) {
+              resolved = true
+              resolve(false)
+            }
+          }, 300)
+          img.addEventListener('load', () => {
+            const isInDom = tableEl.contains(td)
+            if (isInDom) td.replaceChildren(img)
+            if (!resolved) {
+              resolved = true
+              clearTimeout(timer)
               resolve(isInDom)
-            })
-            img.src = src
+            }
           })
+          img.src = src
+        })
+        try {
           return await result
         } catch (error) {
-          return error as Error
+          return error instanceof Error ? error : false
         }
       })
       return (await Promise.all(resultsAsync)).reduce(
