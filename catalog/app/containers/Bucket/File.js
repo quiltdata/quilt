@@ -319,6 +319,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginBottom: t.spacing(2),
   },
+  preview: {
+    width: '100%',
+  },
 }))
 
 export default function File({
@@ -530,13 +533,15 @@ export default function File({
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                  {versionExistsData.case({
-                    _: () => <CenteredProgress />,
-                    Err: (e) => {
-                      throw e
-                    },
-                    Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                  })}
+                  <div className={classes.preview}>
+                    {versionExistsData.case({
+                      _: () => <CenteredProgress />,
+                      Err: (e) => {
+                        throw e
+                      },
+                      Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                    })}
+                  </div>
                 </Section>
               )}
             </>

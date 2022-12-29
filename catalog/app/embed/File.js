@@ -343,6 +343,9 @@ const useStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(2),
   },
+  preview: {
+    width: '100%',
+  },
 }))
 
 const previewOptions = { context: Preview.CONTEXT.FILE }
@@ -475,13 +478,15 @@ export default function File({
                 <Analytics {...{ bucket, path }} />
               )}
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                {versionExistsData.case({
-                  _: () => <CenteredProgress />,
-                  Err: (e) => {
-                    throw e
-                  },
-                  Ok: withPreview(renderPreview()),
-                })}
+                <div className={classes.preview}>
+                  {versionExistsData.case({
+                    _: () => <CenteredProgress />,
+                    Err: (e) => {
+                      throw e
+                    },
+                    Ok: withPreview(renderPreview()),
+                  })}
+                </div>
               </Section>
               <Meta bucket={bucket} path={path} version={version} />
             </>
