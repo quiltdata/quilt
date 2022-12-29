@@ -16,6 +16,7 @@ Entries inside each section should be ordered by type:
 !-->
 ## Catalog, Lambdas
 * [Added] Add 'ECharts' and 'Text' file type switcher, significantly refactor this switcher ([#3240](https://github.com/quiltdata/quilt/pull/3240))
+* [Added] Add link to file from Athena results ([#3242](https://github.com/quiltdata/quilt/pull/3242))
 * [Changed] Make file preview wrapper consistently 100% width ([#3245](https://github.com/quiltdata/quilt/pull/3245))
 
 # 5.1.0 - 2022-12-09

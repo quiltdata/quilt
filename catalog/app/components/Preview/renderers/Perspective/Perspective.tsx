@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
@@ -213,6 +214,7 @@ export interface PerspectiveProps
   packageMeta?: JsonRecord
   parquetMeta?: ParquetMetadata
   onLoadMore?: () => void
+  onRender?: (tableEl: RegularTableElement) => void
   truncated: boolean
 }
 
@@ -223,6 +225,7 @@ export default function Perspective({
   parquetMeta,
   packageMeta,
   onLoadMore,
+  onRender,
   truncated,
   config,
   ...props
@@ -232,7 +235,7 @@ export default function Perspective({
   const [root, setRoot] = React.useState<HTMLDivElement | null>(null)
 
   const attrs = React.useMemo(() => ({ className: classes.viewer }), [classes])
-  const state = perspective.use(root, data, attrs, config)
+  const state = perspective.use(root, data, attrs, config, onRender)
 
   return (
     <div className={cx(className, classes.root)} ref={setRoot} {...props}>
