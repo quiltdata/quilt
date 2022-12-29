@@ -9,6 +9,7 @@ import type {
   PerspectiveViewerConfig,
 } from '@finos/perspective-viewer'
 
+import log from 'utils/Logging'
 import { themes } from 'utils/perspective-pollution'
 
 export interface State {
@@ -41,12 +42,17 @@ export async function renderTable(
   return table
 }
 
+export interface RenderResult {
+  error: Error | null
+  processed: boolean
+}
+
 function usePerspective(
   container: HTMLDivElement | null,
   data: PerspectiveInput,
   attrs: React.HTMLAttributes<HTMLDivElement>,
   config?: PerspectiveViewerConfig,
-  onRender?: (tableEl: RegularTableElement) => void,
+  onRender?: (tableEl: RegularTableElement) => Promise<RenderResult>,
 ) {
   const [state, setState] = React.useState<State | null>(null)
 
@@ -64,12 +70,19 @@ function usePerspective(
       const regularTable: RegularTableElement | null =
         viewer.querySelector('regular-table')
       if (onRender && regularTable?.addStyleListener) {
-        onRender(regularTable)
-        regularTable.addStyleListener(({ detail }) => onRender(detail))
+        regularTable.addStyleListener(async ({ detail }) => {
+          const { error, processed } = await onRender(detail)
+          if (error) log.error(error)
+          if (processed) detail.invalidate()
+        })
       }
 
       if (config) {
         await viewer.restore(config)
+      } else {
+        // Trigger style listener
+        const c = await viewer.save()
+        viewer.restore(c)
       }
 
       const size = await table.size()

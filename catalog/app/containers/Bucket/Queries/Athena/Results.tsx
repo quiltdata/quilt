@@ -5,7 +5,6 @@ import type { RegularTableElement } from 'regular-table'
 import * as M from '@material-ui/core'
 
 import Perspective from 'components/Preview/renderers/Perspective'
-import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as s3paths from 'utils/s3paths'
 
@@ -29,6 +28,8 @@ function useLinkProcessor() {
   const history = RRDom.useHistory()
   return React.useCallback(
     (tableEl: RegularTableElement) => {
+      let error: Error | null = null
+      let processed = false
       tableEl.querySelectorAll('td').forEach((td) => {
         const meta = tableEl.getMeta(td)
         if (!meta.column_header || !meta.value || typeof meta.value !== 'string') return
@@ -46,10 +47,14 @@ function useLinkProcessor() {
           link.addEventListener('click', () => history.push(url))
           link.textContent = s3Url
           td.replaceChildren(link)
-        } catch (error) {
-          log.warn(error)
+          processed = true
+        } catch (e) {
+          const messages = error ? [error.message] : []
+          messages.push((e as Error).message)
+          error = new Error(messages.join('\n'))
         }
       })
+      return Promise.resolve({ error, processed })
     },
     [history, urls],
   )

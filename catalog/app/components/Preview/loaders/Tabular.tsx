@@ -199,6 +199,7 @@ function useImageResolver(handle: S3HandleBase) {
           log.warn(error)
         }
       })
+      return Promise.resolve({ error: null, processed: true })
     },
     [processUrl],
   )
