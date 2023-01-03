@@ -49,12 +49,19 @@ const HeadCell = ({ className, children, title }: HeadCellProps) => {
   )
 }
 
-const usePackageMetaStyles = M.makeStyles({
+const usePackageMetaStyles = M.makeStyles((t) => ({
   headCell: {
     width: '137px',
   },
+  cellExpanded: {
+    borderBottom: 0,
+  },
+  metaExpanded: {
+    paddingTop: 0,
+    paddingBottom: t.spacing(1.5),
+  },
   message: {
-    paddingLeft: '4px',
+    paddingLeft: t.spacing(0.5),
   },
   row: {
     '&:last-child th, &:last-child td': {
@@ -71,7 +78,7 @@ const usePackageMetaStyles = M.makeStyles({
   wrapper: {
     width: '100%',
   },
-})
+}))
 
 interface WrapperProps extends Partial<SectionProps> {
   data: $TSFixMe
@@ -85,6 +92,9 @@ interface PackageMetaProps extends Partial<SectionProps> {
 function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
   const { message, user_meta: userMeta, workflow } = meta
+  const [metaExpanded, setMetaExpanded] = React.useState(preferences.userMeta.expanded)
+  const onMetaExpand = React.useCallback(() => setMetaExpanded(1), [])
+  const onMetaCollapse = React.useCallback(() => setMetaExpanded(false), [])
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
       <M.Table className={classes.table} size="small" data-testid="package-meta">
@@ -105,14 +115,36 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
               data-key="user_meta"
               data-value={JSON.stringify(userMeta)}
             >
-              <HeadCell className={classes.headCell} title="/user_meta">
+              <HeadCell
+                className={cx(classes.headCell, { [classes.cellExpanded]: metaExpanded })}
+                title="/user_meta"
+              >
                 User metadata:
               </HeadCell>
-              <M.TableCell>
+              <M.TableCell className={cx({ [classes.cellExpanded]: metaExpanded })}>
+                {!metaExpanded && (
+                  /* @ts-expect-error */
+                  <JsonDisplay
+                    defaultExpanded={metaExpanded}
+                    value={userMeta}
+                    onToggle={onMetaExpand}
+                  />
+                )}
+              </M.TableCell>
+            </M.TableRow>
+          )}
+          {!!userMeta && !!metaExpanded && (
+            <M.TableRow
+              className={classes.row}
+              data-key="user_meta"
+              data-value={JSON.stringify(userMeta)}
+            >
+              <M.TableCell colSpan={2} className={classes.metaExpanded}>
                 {/* @ts-expect-error */}
                 <JsonDisplay
-                  defaultExpanded={preferences.userMeta.expanded}
+                  defaultExpanded={metaExpanded}
                   value={userMeta}
+                  onToggle={onMetaCollapse}
                 />
               </M.TableCell>
             </M.TableRow>

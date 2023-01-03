@@ -157,11 +157,19 @@ function CompoundEntry({
   defaultExpanded = false,
   showKeysWhenCollapsed,
   classes,
+  onToggle,
 }) {
   const braces = Array.isArray(value) ? '[]' : '{}'
   const entries = React.useMemo(() => Object.entries(value), [value])
   const [stateExpanded, setExpanded] = React.useState(!!defaultExpanded)
-  const toggle = React.useCallback(() => setExpanded((e) => !e), [])
+  const toggle = React.useCallback(() => {
+    const newStateExpanded = !stateExpanded
+    if (onToggle) {
+      onToggle(newStateExpanded)
+    } else {
+      setExpanded(newStateExpanded)
+    }
+  }, [onToggle, stateExpanded])
   const empty = !entries.length
   const expanded = !empty && stateExpanded
 
@@ -300,6 +308,7 @@ export default function JsonDisplay({
   // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
   showKeysWhenCollapsed = 'auto',
   className,
+  onToggle,
   ...props
 }) {
   const classes = useStyles()
@@ -316,7 +325,7 @@ export default function JsonDisplay({
     <M.Box className={cx(className, classes.root)} {...props}>
       <React.Suspense fallback={<WaitingJsonRender />}>
         <JsonDisplayInner
-          {...{ name, value, topLevel, defaultExpanded, classes }}
+          {...{ name, value, topLevel, defaultExpanded, classes, onToggle }}
           showKeysWhenCollapsed={computedKeys}
         />
       </React.Suspense>
