@@ -154,26 +154,29 @@ const useRevisionAttributesStyles = M.makeStyles((t) => ({
 
 interface RevisionAttributesProps {
   className: string
+  bucket: string
+  name: string
   revisions: {
     total: number
   }
   modified: Date
 }
 
-function RevisionAttributes({ className, modified, revisions }: RevisionAttributesProps) {
+function RevisionAttributes({ className, bucket, modified, name, revisions }: RevisionAttributesProps) {
   const classes = useRevisionAttributesStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const { urls } = NamedRoutes.use()
   return (
     <div className={className}>
-      <span className={classes.revisionsNumber}>
+      <RRDom.Link className={classes.revisionsNumber} to={urls.bucketPackageRevisions(bucket, name)}>
         {revisions.total}{' '}
         {xs ? (
           'Rev.'
         ) : (
           <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
         )}
-      </span>
+      </RRDom.Link>
       <span
         className={classes.updated}
         title={modified ? modified.toString() : undefined}
@@ -340,6 +343,8 @@ function Package({
           className={classes.attributes}
           modified={modified}
           revisions={revisions}
+          bucket={bucket}
+          name={name}
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
