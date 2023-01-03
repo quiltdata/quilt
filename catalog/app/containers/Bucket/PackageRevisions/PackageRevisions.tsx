@@ -367,7 +367,7 @@ function Revision({
         !!userMeta &&
         !R.isEmpty(userMeta) && (
           // @ts-expect-error
-          <JsonDisplay name="Metadata" value={userMeta} pl={1.5} py={1.75} pr={2} />
+          <JsonDisplay name="User metadata" value={userMeta} pl={1.5} py={1.75} pr={2} />
         )
       }
       hash={
