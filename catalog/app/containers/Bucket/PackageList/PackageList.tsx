@@ -162,14 +162,23 @@ interface RevisionAttributesProps {
   modified: Date
 }
 
-function RevisionAttributes({ className, bucket, modified, name, revisions }: RevisionAttributesProps) {
+function RevisionAttributes({
+  className,
+  bucket,
+  modified,
+  name,
+  revisions,
+}: RevisionAttributesProps) {
   const classes = useRevisionAttributesStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const { urls } = NamedRoutes.use()
   return (
     <div className={className}>
-      <RRDom.Link className={classes.revisionsNumber} to={urls.bucketPackageRevisions(bucket, name)}>
+      <RRDom.Link
+        className={classes.revisionsNumber}
+        to={urls.bucketPackageRevisions(bucket, name)}
+      >
         {revisions.total}{' '}
         {xs ? (
           'Rev.'
