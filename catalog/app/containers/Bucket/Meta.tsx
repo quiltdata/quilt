@@ -24,56 +24,37 @@ const errorHandler = (error: Error) => (
 
 const noop = () => null
 
-const useHeadCellStyles = M.makeStyles((t) => ({
-  root: {
-    paddingTop: t.spacing(1),
-    verticalAlign: 'top',
-    whiteSpace: 'nowrap',
-  },
-}))
-
-interface HeadCellProps {
-  children: React.ReactNode
-  className?: string
-  title: string
-}
-
-const HeadCell = ({ className, children, title }: HeadCellProps) => {
-  const classes = useHeadCellStyles()
-  return (
-    <M.TableCell className={cx(classes.root, className)} component="th" scope="row">
-      <M.Tooltip title={title}>
-        <span>{children}</span>
-      </M.Tooltip>
-    </M.TableCell>
-  )
-}
-
 const usePackageMetaStyles = M.makeStyles((t) => ({
   headCell: {
+    paddingTop: t.spacing(0.25),
     width: '137px',
   },
   cellExpanded: {
-    borderBottom: 0,
-  },
-  metaExpanded: {
-    paddingTop: 0,
-    paddingBottom: t.spacing(1.5),
+    paddingTop: t.spacing(1),
+    width: '100%',
   },
   message: {
     paddingLeft: t.spacing(0.5),
   },
   row: {
-    '&:last-child th, &:last-child td': {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    flexWrap: 'wrap',
+    margin: 0,
+    padding: t.spacing(0.75, 2),
+    '&:last-child': {
       borderBottom: 0,
     },
-    '&:only-child th': {
+    '&:only-child dt': {
       paddingLeft: 0,
     },
   },
   table: {
     tableLayout: 'fixed',
     width: '100%',
+  },
+  valueCell: {
+    margin: 0,
   },
   wrapper: {
     width: '100%',
@@ -92,83 +73,78 @@ interface PackageMetaProps extends Partial<SectionProps> {
 function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
   const { message, user_meta: userMeta, workflow } = meta
-  const [metaExpanded, setMetaExpanded] = React.useState(preferences.userMeta.expanded)
-  const onMetaExpand = React.useCallback(() => setMetaExpanded(1), [])
-  const onMetaCollapse = React.useCallback(() => setMetaExpanded(false), [])
+  const [expanded, setExpanded] = React.useState({
+    meta: preferences.userMeta.expanded,
+    workflow: preferences.workflows.expanded,
+  })
+  const onMetaToggle = React.useCallback(
+    () => setExpanded((e) => R.assoc('meta', Number(!e.meta), e)),
+    [],
+  )
+  const onWorkflowToggle = React.useCallback(
+    () => setExpanded((e) => R.assoc('workflow', Number(!e.workflow), e)),
+    [],
+  )
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      <M.Table className={classes.table} size="small" data-testid="package-meta">
-        <M.TableBody>
-          {message && (
-            <M.TableRow className={classes.row} data-key="message" data-value={message}>
-              <HeadCell className={classes.headCell} title="/message">
-                Message:
-              </HeadCell>
-              <M.TableCell>
-                <M.Typography className={classes.message}>{message}</M.Typography>
-              </M.TableCell>
-            </M.TableRow>
-          )}
-          {userMeta && (
-            <M.TableRow
-              className={classes.row}
-              data-key="user_meta"
-              data-value={JSON.stringify(userMeta)}
+      <div className={classes.table} data-testid="package-meta">
+        {message && (
+          <dl className={classes.row} data-key="message" data-value={message}>
+            <dt className={classes.headCell} title="/message">
+              Message:
+            </dt>
+            <dd className={classes.valueCell}>
+              <M.Typography className={classes.message}>{message}</M.Typography>
+            </dd>
+          </dl>
+        )}
+        {userMeta && (
+          <dl
+            className={classes.row}
+            data-key="user_meta"
+            data-value={JSON.stringify(userMeta)}
+          >
+            <dt className={classes.headCell} title="/user_meta">
+              User metadata:
+            </dt>
+            <dd
+              className={cx(classes.valueCell, {
+                [classes.cellExpanded]: expanded.meta,
+              })}
             >
-              <HeadCell
-                className={cx(classes.headCell, { [classes.cellExpanded]: metaExpanded })}
-                title="/user_meta"
-              >
-                User metadata:
-              </HeadCell>
-              <M.TableCell className={cx({ [classes.cellExpanded]: metaExpanded })}>
-                {!metaExpanded && (
-                  /* @ts-expect-error */
-                  <JsonDisplay
-                    defaultExpanded={metaExpanded}
-                    value={userMeta}
-                    onToggle={onMetaExpand}
-                  />
-                )}
-              </M.TableCell>
-            </M.TableRow>
-          )}
-          {!!userMeta && !!metaExpanded && (
-            <M.TableRow
-              className={classes.row}
-              data-key="user_meta"
-              data-value={JSON.stringify(userMeta)}
+              {/* @ts-expect-error */}
+              <JsonDisplay
+                defaultExpanded={expanded.meta}
+                value={userMeta}
+                onToggle={onMetaToggle}
+              />
+            </dd>
+          </dl>
+        )}
+        {workflow && (
+          <dl
+            className={classes.row}
+            data-key="workflow"
+            data-value={JSON.stringify(workflow)}
+          >
+            <dt className={classes.headCell} title="/workflow">
+              Workflow:
+            </dt>
+            <dd
+              className={cx(classes.valueCell, {
+                [classes.cellExpanded]: expanded.workflow,
+              })}
             >
-              <M.TableCell colSpan={2} className={classes.metaExpanded}>
-                {/* @ts-expect-error */}
-                <JsonDisplay
-                  defaultExpanded={metaExpanded}
-                  value={userMeta}
-                  onToggle={onMetaCollapse}
-                />
-              </M.TableCell>
-            </M.TableRow>
-          )}
-          {workflow && (
-            <M.TableRow
-              className={classes.row}
-              data-key="workflow"
-              data-value={JSON.stringify(workflow)}
-            >
-              <HeadCell className={classes.headCell} title="/workflow">
-                Workflow:
-              </HeadCell>
-              <M.TableCell>
-                {/* @ts-expect-error */}
-                <JsonDisplay
-                  defaultExpanded={preferences.workflows.expanded}
-                  value={workflow}
-                />
-              </M.TableCell>
-            </M.TableRow>
-          )}
-        </M.TableBody>
-      </M.Table>
+              {/* @ts-expect-error */}
+              <JsonDisplay
+                defaultExpanded={expanded.workflow}
+                value={workflow}
+                onToggle={onWorkflowToggle}
+              />
+            </dd>
+          </dl>
+        )}
+      </div>
     </Section>
   )
 }
