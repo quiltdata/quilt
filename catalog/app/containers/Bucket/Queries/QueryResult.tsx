@@ -24,6 +24,7 @@ export default function QueryResult({ results }: QueryResultProps) {
     <div>
       <M.Typography variant="body1">Search results</M.Typography>
       <M.Paper className={classes.content}>
+        {/* @ts-expect-error */}
         <JsonDisplay
           className=""
           value={results}
