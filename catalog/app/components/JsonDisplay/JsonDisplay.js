@@ -299,6 +299,7 @@ export default function JsonDisplay({
   defaultExpanded,
   // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
   showKeysWhenCollapsed = 'auto',
+  showValuesWhenCollapsed = false,
   className,
   ...props
 }) {
@@ -316,7 +317,14 @@ export default function JsonDisplay({
     <M.Box className={cx(className, classes.root)} {...props}>
       <React.Suspense fallback={<WaitingJsonRender />}>
         <JsonDisplayInner
-          {...{ name, value, topLevel, defaultExpanded, classes }}
+          {...{
+            name,
+            value,
+            topLevel,
+            defaultExpanded,
+            classes,
+            showValuesWhenCollapsed,
+          }}
           showKeysWhenCollapsed={computedKeys}
         />
       </React.Suspense>
