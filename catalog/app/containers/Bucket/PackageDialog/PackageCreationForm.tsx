@@ -10,12 +10,12 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
+import cfg from 'constants/config'
 import * as AddToPackage from 'containers/AddToPackage'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
 import assertNever from 'utils/assertNever'
@@ -200,7 +200,6 @@ function PackageCreationForm({
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
-  const { desktop }: { desktop: boolean } = Config.use()
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
@@ -412,7 +411,7 @@ function PackageCreationForm({
   const onSubmitWrapped = async (args: SubmitWebArgs | SubmitElectronArgs) => {
     setSubmitting(true)
     try {
-      if (desktop) {
+      if (cfg.desktop) {
         return await onSubmitElectron(args as SubmitElectronArgs)
       }
       return await onSubmitWeb(args as SubmitWebArgs)
@@ -586,7 +585,7 @@ function PackageCreationForm({
                 </Layout.LeftColumn>
 
                 <Layout.RightColumn>
-                  {desktop ? (
+                  {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
                         [classes.filesWithError]: !!entriesError,
