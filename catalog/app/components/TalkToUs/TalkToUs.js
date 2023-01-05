@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { useConfig } from 'utils/Config'
+import cfg from 'constants/config'
 import { useTracker } from 'utils/tracking'
 
 const Ctx = React.createContext()
@@ -52,13 +52,12 @@ const getCalendlyEvent = (e) =>
   e?.data?.event?.startsWith('calendly.') && e?.data?.event?.substring('calendly.'.length)
 
 function useCalendlyLink() {
-  const cfg = useConfig()
   return React.useCallback(
     (extra) =>
       extra?.src === 'bioit'
         ? 'https://calendly.com/quilt-founders/quilt-at-bio-it-world'
         : cfg.calendlyLink,
-    [cfg.calendlyLink],
+    [],
   )
 }
 

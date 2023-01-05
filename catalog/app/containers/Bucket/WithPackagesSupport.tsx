@@ -1,8 +1,8 @@
 import * as React from 'react'
 
 import Message from 'components/Message'
+import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 
 interface WithPackagesSupportProps {
   bucket: string
@@ -13,11 +13,10 @@ export default function WithPackagesSupport({
   bucket,
   children,
 }: WithPackagesSupportProps) {
-  const localMode = Config.use().mode === 'LOCAL'
   const isInStack = BucketConfig.useIsInStack()
   const inStack = React.useMemo(() => isInStack(bucket), [bucket, isInStack])
 
-  return inStack || localMode ? (
+  return inStack || cfg.mode === 'LOCAL' ? (
     <>{children}</>
   ) : (
     <Message headline="Packages temporarily hidden">
