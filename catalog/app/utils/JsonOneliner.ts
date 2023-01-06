@@ -1,5 +1,3 @@
-import * as R from 'ramda'
-
 import log from 'utils/Logging'
 import { Json, JsonArray, JsonRecord } from 'utils/types'
 
@@ -15,6 +13,7 @@ export const enum Types {
 }
 
 interface SyntaxItem {
+  childrenCount?: number
   original?: Json
   size: number
   type: Types
@@ -22,6 +21,7 @@ interface SyntaxItem {
 }
 
 interface SyntaxItemObject extends SyntaxItem {
+  childrenCount: number
   original: JsonArray | JsonRecord
   type: Types.Object
   value: string
@@ -119,21 +119,25 @@ function calcValue(value: Json): SyntaxItem {
     }
   }
   if (typeof value === 'object' && Array.isArray(value)) {
-    const v = `[ …${value.length} ]`
+    const childrenCount = value.length
+    const v = `[ …${childrenCount} ]`
     return {
       value: v,
       type: Types.Object,
       size: v.length,
       original: value,
+      childrenCount,
     }
   }
   if (typeof value === 'object') {
-    const v = `{ …${Object.keys(value).length} }`
+    const childrenCount = Object.keys(value).length
+    const v = `{ …${childrenCount} }`
     return {
       value: v,
       type: Types.Object,
       size: v.length,
       original: value,
+      childrenCount,
     }
   }
   log.warn('Unexpected JSON type')
@@ -288,16 +292,31 @@ export function print(
       availableSpace,
     } as SyntaxData,
   )
-  if (firstLevel.availableSpace < 0) {
-    // FIXME: replace objects with brace + more + brace
-    return firstLevel
-  }
   return firstLevel.parts.reduce(
     (memo, item) => {
       if (!isNestedStructure(item)) {
         return {
           ...memo,
           parts: [...memo.parts, item],
+        }
+      }
+      if (memo.availableSpace <= 0) {
+        const value = `<…${item.childrenCount}>`
+        const more = {
+          size: value.length,
+          type: Types.More,
+          value,
+        }
+        const leftBrace = Array.isArray(item.original) ? SQUARE_LEFT : BRACE_LEFT
+        const rightBrace = Array.isArray(item.original) ? SQUARE_RIGHT : BRACE_RIGHT
+        return {
+          parts: [...memo.parts, leftBrace, more, rightBrace],
+          availableSpace:
+            memo.availableSpace +
+            item.size -
+            leftBrace.size -
+            more.size -
+            rightBrace.size,
         }
       }
       const secondLevel = print(
