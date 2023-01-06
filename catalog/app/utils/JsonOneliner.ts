@@ -223,7 +223,7 @@ function isEnoughForRestKeys(items: SyntaxPart[], index: number, availableSpace:
   return availableSpace - (items[index].size - spaceForRestKeys(items, index)) > 0
 }
 
-function getMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
+function getFirstLevelMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
   const moreItems = items.slice(index).filter((x) => !isSyntaxItem(x))
   const value = index > 0 ? `, <…${moreItems.length}>` : `<…${moreItems.length}>`
   return moreItems.length
@@ -235,6 +235,15 @@ function getMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
     : Empty
 }
 
+function getSecondLevelMoreItems(item: SyntaxItemObject): SyntaxItem {
+  const value = `<…${item.childrenCount}>`
+  return {
+    size: value.length,
+    type: Types.More,
+    value,
+  }
+}
+
 function isEnoughForBraces(
   items: SyntaxPart[],
   more: SyntaxItem,
@@ -243,7 +252,11 @@ function isEnoughForBraces(
   return availableSpace - (items[0].size + items[items.length - 1].size + more.size) > 0
 }
 
-function wrapBraces(memo: SyntaxData, items: SyntaxPart[], item: SyntaxItem): SyntaxData {
+function wrapBracesOnFirstLevel(
+  memo: SyntaxData,
+  items: SyntaxPart[],
+  item: SyntaxItem,
+): SyntaxData {
   const braceLeft = items[0]
   const braceRight = items[items.length - 1]
 
@@ -251,6 +264,17 @@ function wrapBraces(memo: SyntaxData, items: SyntaxPart[], item: SyntaxItem): Sy
   const center = reduceElement(left, item)
   const right = reduceElement(center, braceRight)
   return right
+}
+
+function wrapBracesOnSecondLevel(memo: SyntaxData, item: SyntaxItemObject): SyntaxData {
+  const more = getSecondLevelMoreItems(item)
+  const leftBrace = Array.isArray(item.original) ? SQUARE_LEFT : BRACE_LEFT
+  const rightBrace = Array.isArray(item.original) ? SQUARE_RIGHT : BRACE_RIGHT
+  return {
+    parts: [...memo.parts, leftBrace, more, rightBrace],
+    availableSpace:
+      memo.availableSpace + item.size - leftBrace.size - more.size - rightBrace.size,
+  }
 }
 
 export function print(
@@ -265,12 +289,12 @@ export function print(
 
       if (isSyntaxItem(item)) {
         const output = reduceElement(memo, item)
-        const more = getMoreItems(items, index)
+        const more = getFirstLevelMoreItems(items, index)
         if (isEnoughForBraces(items, more, output.availableSpace)) {
           return output
         }
         return {
-          ...wrapBraces(memo, items, more),
+          ...wrapBracesOnFirstLevel(memo, items, more),
           done: true,
         }
       }
@@ -301,23 +325,7 @@ export function print(
         }
       }
       if (memo.availableSpace <= 0) {
-        const value = `<…${item.childrenCount}>`
-        const more = {
-          size: value.length,
-          type: Types.More,
-          value,
-        }
-        const leftBrace = Array.isArray(item.original) ? SQUARE_LEFT : BRACE_LEFT
-        const rightBrace = Array.isArray(item.original) ? SQUARE_RIGHT : BRACE_RIGHT
-        return {
-          parts: [...memo.parts, leftBrace, more, rightBrace],
-          availableSpace:
-            memo.availableSpace +
-            item.size -
-            leftBrace.size -
-            more.size -
-            rightBrace.size,
-        }
+        return wrapBracesOnSecondLevel(memo, item)
       }
       const secondLevel = print(
         item.original,
