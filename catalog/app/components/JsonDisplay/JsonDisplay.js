@@ -8,7 +8,7 @@ import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
-import * as JsonOneliner from 'utils/JsonOneliner'
+import * as JSONOneliner from 'utils/JSONOneliner'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -138,37 +138,37 @@ const CHAR_W = 8.6
 
 function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
   const classes = useStyles()
-  const data = JsonOneliner.print(value, availableSpace, showValuesWhenCollapsed)
+  const data = JSONOneliner.print(value, availableSpace, showValuesWhenCollapsed)
   return (
     <div>
       {data.parts.map((item, index) => {
         const key = `json_print${index}`
         switch (item.type) {
-          case JsonOneliner.Types.Key:
+          case JSONOneliner.Types.Key:
             return (
               <span className={classes.key} key={key}>
                 {item.value}
               </span>
             )
-          case JsonOneliner.Types.Separator:
+          case JSONOneliner.Types.Separator:
             return (
               <span className={classes.separator} key={key}>
                 {item.value}
               </span>
             )
-          case JsonOneliner.Types.More:
+          case JSONOneliner.Types.More:
             return (
               <span className={classes.more} key={key}>
                 {item.value}
               </span>
             )
-          case JsonOneliner.Types.Brace:
+          case JSONOneliner.Types.Brace:
             return (
               <span className={classes.brace} key={key}>
                 {item.value}
               </span>
             )
-          case JsonOneliner.Types.String:
+          case JSONOneliner.Types.String:
             return (
               <span key={key}>
                 <span className={classes.brace}>&quot;</span>

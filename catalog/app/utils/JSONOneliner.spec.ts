@@ -1,4 +1,4 @@
-import * as JSONOneliner from './JsonOneliner'
+import * as JSONOneliner from './JSONOneliner'
 
 function printData(data: JSONOneliner.SyntaxData) {
   return data.parts.reduce((memo, p) => memo + p.value, '')
