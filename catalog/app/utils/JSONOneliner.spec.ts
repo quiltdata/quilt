@@ -93,5 +93,38 @@ describe('utils/JSONOneliner', () => {
     expect(arrayData.availableSpace).toBe(62)
     expect(objectData.availableSpace).toBe(10)
   })
-})
 
+  it('should print placeholders instead object values when enough space', () => {
+    const objectOfObjects = {
+      A: [1, 2, 3],
+      B: 'Lorem',
+      C: { a: 1, b: 2 },
+      D: { a: [1, { c: 3 }, 'a'], b: 2 },
+      E: [1, { b: ['c', { d: 'e' }] }, 'a'],
+    }
+
+    const objectData130 = JSONOneliner.print(objectOfObjects, 130, true)
+    expect(printData(objectData130)).toBe(
+      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { <…1> } ] }, "a" ] }`,
+    )
+    expect(objectData130.availableSpace).toBe(2)
+
+    const objectData120 = JSONOneliner.print(objectOfObjects, 120, true)
+    expect(printData(objectData120)).toBe(
+      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ <…2> ] }, "a" ] }`,
+    )
+    expect(objectData120.availableSpace).toBe(1)
+
+    const objectData110 = JSONOneliner.print(objectOfObjects, 110, true)
+    expect(printData(objectData110)).toBe(
+      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { <…1> }, <…1> ] }`,
+    )
+    expect(objectData110.availableSpace).toBe(-3)
+
+    const objectData50 = JSONOneliner.print(objectOfObjects, 50, true)
+    expect(printData(objectData50)).toBe(
+      `{ A: [ <…3> ], B: "Lorem", C: { <…2> }, D: { <…2> }, <…1> }`,
+    )
+    expect(objectData50.availableSpace).toBe(-9)
+  })
+})
