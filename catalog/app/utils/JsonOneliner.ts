@@ -186,13 +186,13 @@ function calcObject(obj: JsonArray | JsonRecord, showValues: boolean): SyntaxPar
   return [BRACE_LEFT, ...itemsWithSeparators, BRACE_RIGHT]
 }
 
-interface SyntaxData {
-  parts: SyntaxPart[]
+export interface SyntaxData {
+  parts: SyntaxItem[]
   availableSpace: number
   done?: boolean
 }
 
-function reduceElement(memo: SyntaxData, element: SyntaxPart): SyntaxData {
+function reduceElement(memo: SyntaxData, element: SyntaxItem): SyntaxData {
   return {
     parts: [...memo.parts, element],
     availableSpace: memo.availableSpace - element.size,
@@ -257,8 +257,8 @@ function wrapBracesOnFirstLevel(
   items: SyntaxPart[],
   item: SyntaxItem,
 ): SyntaxData {
-  const braceLeft = items[0]
-  const braceRight = items[items.length - 1]
+  const braceLeft = items[0] as SyntaxItem
+  const braceRight = items[items.length - 1] as SyntaxItem
 
   const left = memo.parts.length > 0 ? memo : reduceElement(memo, braceLeft)
   const center = reduceElement(left, item)
