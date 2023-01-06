@@ -81,14 +81,17 @@ describe('utils/JSONOneliner', () => {
       A: [1, 2, 3],
       B: 'Lorem',
       C: { a: 1, b: 2 },
+      D: { a: [1, { c: 3 }, 'a'], b: 2 },
+      E: [1, { b: ['c', { d: 'e' }] }, 'a'],
     }
     const arrayData = JSONOneliner.print(arrayOfObjects, 100, true)
-    const objectData = JSONOneliner.print(objectOfObjects, 100, true)
+    const objectData = JSONOneliner.print(objectOfObjects, 140, true)
     expect(printData(arrayData)).toBe(`[ [ 1, 2, 3 ], "Lorem", [ "a", "b" ] ]`)
     expect(printData(objectData)).toBe(
-      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 } }`,
+      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { d: "e" } ] }, "a" ] }`,
     )
     expect(arrayData.availableSpace).toBe(62)
-    expect(objectData.availableSpace).toBe(51)
+    expect(objectData.availableSpace).toBe(10)
   })
 })
+
