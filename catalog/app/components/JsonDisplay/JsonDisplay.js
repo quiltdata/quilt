@@ -36,6 +36,12 @@ const useStyles = M.makeStyles((t) => ({
   key: {
     fontWeight: t.typography.fontWeightBold,
   },
+  separator: {
+    opacity: 0.7,
+  },
+  brace: {
+    color: t.palette.secondary.dark,
+  },
 }))
 
 const IconBlank = ({ classes }) => <div className={classes.iconBlank} />
@@ -152,27 +158,47 @@ const join = (s1, s2) =>
   )
 
 function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
+  const classes = useStyles()
   const data = JsonOneliner.print(value, availableSpace, showValuesWhenCollapsed)
   return (
     <div>
       {data.parts.map((item, index) => {
+        const key = `json_print${index}`
         switch (item.type) {
           case JsonOneliner.Types.Key:
-            return <strong key={`json_print${index}`}>{item.value}</strong>
+            return (
+              <span className={classes.key} key={key}>
+                {item.value}
+              </span>
+            )
           case JsonOneliner.Types.Separator:
             return (
-              <span style={{ opacity: 0.7 }} key={`json_print${index}`}>
+              <span className={classes.separator} key={key}>
+                {item.value}
+              </span>
+            )
+          case JsonOneliner.Types.More:
+            return (
+              <span className={classes.more} key={key}>
                 {item.value}
               </span>
             )
           case JsonOneliner.Types.Brace:
             return (
-              <span style={{ color: 'brown' }} key={`json_print${index}`}>
+              <span className={classes.brace} key={key}>
                 {item.value}
               </span>
             )
+          case JsonOneliner.Types.String:
+            return (
+              <span key={key}>
+                <span className={classes.brace}>&quot;</span>
+                {item.original}
+                <span className={classes.brace}>&quot;</span>
+              </span>
+            )
           default:
-            return <span key={`json_print${index}`}>{item.value}</span>
+            return <span key={key}>{item.value}</span>
         }
       })}
     </div>
