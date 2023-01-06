@@ -1,37 +1,27 @@
 import log from 'utils/Logging'
 import { Json, JsonArray, JsonRecord } from 'utils/types'
 
-type SyntaxType =
-  | 'brace'
-  | 'equal'
-  | 'key'
-  | 'object'
-  | 'primitive'
-  | 'separator'
-  | 'string'
-  | 'more'
-
-export const Types: Record<string, SyntaxType> = {
-  Brace: 'brace',
-  Equal: 'equal',
-  Key: 'key',
-  Object: 'object',
-  Primitive: 'primitive',
-  Separator: 'separator',
-  String: 'string',
-  More: 'more',
+export const enum Types {
+  Brace = 'brace',
+  Equal = 'equal',
+  Key = 'key',
+  Object = 'object',
+  Primitive = 'primitive',
+  Separator = 'separator',
+  String = 'string',
+  More = 'more',
 }
 
 interface SyntaxItem {
   original?: Json
   size: number
-  type: SyntaxType
+  type: Types
   value: string
 }
 
 interface SyntaxItemObject extends SyntaxItem {
   original: JsonArray | JsonRecord
-  type: 'object'
+  type: Types.Object
   value: string
 }
 
@@ -212,7 +202,7 @@ function isSyntaxGroup(item: SyntaxPart): item is SyntaxGroup {
 }
 
 function isNestedStructure(item: SyntaxPart): item is SyntaxItemObject {
-  return (item as SyntaxItem).type === 'object'
+  return (item as SyntaxItem).type === Types.Object
 }
 
 function spaceForRestKeys(items: SyntaxPart[], index: number): number {
@@ -229,7 +219,7 @@ function isEnoughForRestKeys(items: SyntaxPart[], index: number, availableSpace:
 
 function getMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
   const moreItems = items.slice(index).filter((x) => !isSyntaxItem(x))
-  const value = index > 0 ? `, <…${moreItems.length}>` : `<…${moreItems.length}>`
+  const value = index > 0 ? `, <!${moreItems.length}>` : `<!${moreItems.length}>`
   return moreItems.length
     ? {
         size: value.length,
@@ -263,8 +253,6 @@ export function print(
         if (isEnoughForBraces(items, more, output.availableSpace)) {
           return output
         }
-        // const braceRight = Array.isArray(obj) ? SQUARE_RIGHT : BRACE_RIGHT;
-        // const braceLeft = Array.isArray(obj) ? SQUARE_LEFT : BRACE_LEFT;
         const braceRight = items[items.length - 1]
         const braceLeft = items[0]
         const moreEl = reduceElement(
