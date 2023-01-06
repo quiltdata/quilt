@@ -5,47 +5,82 @@ function printData(data: JSONOneliner.SyntaxData) {
 }
 
 describe('utils/JSONOneliner', () => {
+  it('should print empty brackets for empty array', () => {
+    const t = {
+      value: [],
+      limit: 10,
+      result: `[  ]`,
+    }
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
+  })
+
   it('should print empty brackets for empty object', () => {
-    const arrayData = JSONOneliner.print([], 10, true)
-    const objectData = JSONOneliner.print({}, 10, true)
-    expect(printData(arrayData)).toBe('[  ]')
-    expect(printData(objectData)).toBe('{  }')
-    expect(arrayData.availableSpace).toBe(6)
-    expect(objectData.availableSpace).toBe(6)
+    const t = {
+      value: {},
+      limit: 10,
+      result: '{  }',
+    }
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
   })
 
-  it('should print all primitive values when enough space', () => {
-    const arrayOfPrimitives = [1, true, false, 'Lorem', null]
-    const objectOfPrimitives = {
-      A: 1,
-      B: true,
-      C: false,
-      D: 'Lorem',
-      E: null,
+  it('should print all primitive values in array when enough space', () => {
+    const t = {
+      value: [1, true, false, 'Lorem', null],
+      limit: 100,
+      result: `[ 1, true, false, "Lorem", null ]`,
     }
-    const arrayData = JSONOneliner.print(arrayOfPrimitives, 100, true)
-    const objectData = JSONOneliner.print(objectOfPrimitives, 100, true)
-    expect(printData(arrayData)).toBe(`[ 1, true, false, "Lorem", null ]`)
-    expect(printData(objectData)).toBe(`{ A: 1, B: true, C: false, D: "Lorem", E: null }`)
-    expect(arrayData.availableSpace).toBe(67)
-    expect(objectData.availableSpace).toBe(52)
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
   })
 
-  it('should print placeholders when not enough space', () => {
-    const arrayOfPrimitives = [1, true, false, 'Lorem', null]
-    const objectOfPrimitives = {
-      A: 1,
-      B: true,
-      C: false,
-      D: 'Lorem',
-      E: null,
+  it('should print all primitive values in object when enough space', () => {
+    const t = {
+      value: {
+        A: 1,
+        B: true,
+        C: false,
+        D: 'Lorem',
+        E: null,
+      },
+      limit: 100,
+      result: `{ A: 1, B: true, C: false, D: "Lorem", E: null }`,
     }
-    const arrayData = JSONOneliner.print(arrayOfPrimitives, 30, true)
-    const objectData = JSONOneliner.print(objectOfPrimitives, 30, true)
-    expect(printData(arrayData)).toBe(`[ 1, true, false, "Lorem", <…1> ]`)
-    expect(printData(objectData)).toBe(`{ A: 1, B: true, C: false, <…2> }`)
-    expect(arrayData.availableSpace).toBe(-3)
-    expect(objectData.availableSpace).toBe(-3)
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
+  })
+
+  it('should print placeholders in array when not enough space', () => {
+    const t = {
+      value: [1, true, false, 'Lorem', null],
+      limit: 30,
+      result: `[ 1, true, false, "Lorem", <…1> ]`,
+    }
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
+  })
+
+  it('should print placeholders in object when not enough space', () => {
+    const t = {
+      value: {
+        A: 1,
+        B: true,
+        C: false,
+        D: 'Lorem',
+        E: null,
+      },
+      limit: 30,
+      result: `{ A: 1, B: true, C: false, <…2> }`,
+    }
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
   })
 
   // TODO: fix it
