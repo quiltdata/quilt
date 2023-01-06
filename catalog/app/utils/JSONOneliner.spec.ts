@@ -85,51 +85,68 @@ describe('utils/JSONOneliner', () => {
 
   // TODO: fix it
   it.skip('should print placeholders in arrays for long values when not enough space', () => {
-    const arrayOfPrimitives = [
-      1,
-      'https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0',
-      true,
-      false,
-      null,
-    ]
-    const arrayData = JSONOneliner.print(arrayOfPrimitives, 30, true)
-    expect(printData(arrayData)).toBe(`[ 1, <…1>, true, false, null ]`)
-    expect(arrayData.availableSpace).toBe(-3)
+    const t = {
+      value: [
+        1,
+        'https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0',
+        true,
+        false,
+        null,
+      ],
+      limit: 30,
+      result: `[ 1, <…1>, true, false, null ]`,
+    }
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
   })
 
-  it('should key only if value is too long and not enough space', () => {
-    const objectOfPrimitives = {
-      A: 1,
-      D: 'https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0',
-      B: true,
-      C: false,
-      E: null,
+  it('should show key only if value is too long and not enough space', () => {
+    const t = {
+      value: {
+        A: 1,
+        D: 'https://ru.wikipedia.org/wiki/%D0%97%D0%B0%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0',
+        B: true,
+        C: false,
+        E: null,
+      },
+      limit: 30,
+      result: `{ A: 1, D, B: true, <…2> }`,
     }
-    const objectData = JSONOneliner.print(objectOfPrimitives, 30, true)
-    expect(printData(objectData)).toBe(`{ A: 1, D, B: true, <…2> }`)
-    expect(objectData.availableSpace).toBe(4)
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
+  })
+
+  it('should print all array values when enough space', () => {
+    const t = {
+      value: [[1, 2, 3], 'Lorem', ['a', 'b']],
+      limit: 100,
+      result: `[ [ 1, 2, 3 ], "Lorem", [ "a", "b" ] ]`,
+    }
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
   })
 
   it('should print all object values when enough space', () => {
-    const arrayOfObjects = [[1, 2, 3], 'Lorem', ['a', 'b']]
-    const objectOfObjects = {
-      A: [1, 2, 3],
-      B: 'Lorem',
-      C: { a: 1, b: 2 },
-      D: { a: [1, { c: 3 }, 'a'], b: 2 },
-      E: [1, { b: ['c', { d: 'e' }] }, 'a'],
+    const t = {
+      value: {
+        A: [1, 2, 3],
+        B: 'Lorem',
+        C: { a: 1, b: 2 },
+        D: { a: [1, { c: 3 }, 'a'], b: 2 },
+        E: [1, { b: ['c', { d: 'e' }] }, 'a'],
+      },
+      limit: 140,
+      result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { d: "e" } ] }, "a" ] }`,
     }
-    const arrayData = JSONOneliner.print(arrayOfObjects, 100, true)
-    const objectData = JSONOneliner.print(objectOfObjects, 140, true)
-    expect(printData(arrayData)).toBe(`[ [ 1, 2, 3 ], "Lorem", [ "a", "b" ] ]`)
-    expect(printData(objectData)).toBe(
-      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { d: "e" } ] }, "a" ] }`,
-    )
-    expect(arrayData.availableSpace).toBe(62)
-    expect(objectData.availableSpace).toBe(10)
+    const d = JSONOneliner.print(t.value, t.limit, true)
+    expect(printData(d)).toBe(t.result)
+    expect(d.availableSpace).toBe(t.limit - t.result.length)
   })
 
-  it('should print placeholders instead object values when enough space', () => {
+  it('should print placeholders instead object values when not enough space', () => {
     const objectOfObjects = {
       A: [1, 2, 3],
       B: 'Lorem',
