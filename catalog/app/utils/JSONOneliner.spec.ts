@@ -59,6 +59,7 @@ describe('utils/JSONOneliner', () => {
     const t = {
       value: [1, true, false, 'Lorem', null],
       limit: 30,
+      // TODO: result is longer then limit (33)
       result: `[ 1, true, false, "Lorem", <…1> ]`,
     }
     const d = JSONOneliner.print(t.value, t.limit, true)
@@ -76,6 +77,7 @@ describe('utils/JSONOneliner', () => {
         E: null,
       },
       limit: 30,
+      // TODO: result is longer then limit (33)
       result: `{ A: 1, B: true, C: false, <…2> }`,
     }
     const d = JSONOneliner.print(t.value, t.limit, true)
@@ -166,10 +168,12 @@ describe('utils/JSONOneliner', () => {
         },
         {
           limit: 110,
+          // TODO: result is longer than limit (113)
           result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { <…1> }, <…1> ] }`,
         },
         {
           limit: 50,
+          // TODO: result is longer than limit (59)
           result: `{ A: [ <…3> ], B: "Lorem", C: { <…2> }, D: { <…2> }, <…1> }`,
         },
       ],
