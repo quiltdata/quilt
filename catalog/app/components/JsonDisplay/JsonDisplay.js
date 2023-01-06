@@ -132,30 +132,9 @@ function PrimitiveEntry({ name, value, topLevel = true, classes }) {
   )
 }
 
-const SEP = ', '
 const SEP_LEN = 2
 const MORE_LEN = 4
 const CHAR_W = 8.6
-
-function More({ keys, classes }) {
-  return (
-    <span className={classes.more}>
-      {'<'}&hellip;{keys}
-      {'>'}
-    </span>
-  )
-}
-
-const join = (s1, s2) =>
-  s1 ? (
-    <>
-      {s1}
-      {SEP}
-      {s2}
-    </>
-  ) : (
-    s2
-  )
 
 function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
   const classes = useStyles()

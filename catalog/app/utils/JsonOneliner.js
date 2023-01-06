@@ -123,9 +123,10 @@ function calcObject(obj, showValues) {
         size: value.size,
       }
     })
-    const itemsWithSeparators = items.reduce((memo, item, index) => {
-      return index > 0 ? [...memo, SEPARATOR, item] : [...memo, item]
-    }, [])
+    const itemsWithSeparators = items.reduce(
+      (memo, item, index) => (index > 0 ? [...memo, SEPARATOR, item] : [...memo, item]),
+      [],
+    )
     return [SQUARE_LEFT, ...itemsWithSeparators, SQUARE_RIGHT]
   }
 
@@ -144,9 +145,10 @@ function calcObject(obj, showValues) {
       size: key.size + EQUAL.size + value.size,
     }
   })
-  const itemsWithSeparators = items.reduce((memo, item, index) => {
-    return index > 0 ? [...memo, SEPARATOR, item] : [...memo, item]
-  }, [])
+  const itemsWithSeparators = items.reduce(
+    (memo, item, index) => (index > 0 ? [...memo, SEPARATOR, item] : [...memo, item]),
+    [],
+  )
   return [BRACE_LEFT, ...itemsWithSeparators, BRACE_RIGHT]
 }
 
