@@ -1,3 +1,5 @@
+import * as R from 'ramda'
+
 import log from 'utils/Logging'
 import { Json, JsonArray, JsonRecord } from 'utils/types'
 
@@ -219,7 +221,7 @@ function isEnoughForRestKeys(items: SyntaxPart[], index: number, availableSpace:
 
 function getMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
   const moreItems = items.slice(index).filter((x) => !isSyntaxItem(x))
-  const value = index > 0 ? `, <!${moreItems.length}>` : `<!${moreItems.length}>`
+  const value = index > 0 ? `, <…${moreItems.length}>` : `<…${moreItems.length}>`
   return moreItems.length
     ? {
         size: value.length,
@@ -235,6 +237,16 @@ function isEnoughForBraces(
   availableSpace: number,
 ) {
   return availableSpace - (items[0].size + items[items.length - 1].size + more.size) > 0
+}
+
+function wrapBraces(memo: SyntaxData, items: SyntaxPart[], item: SyntaxItem): SyntaxData {
+  const braceLeft = items[0]
+  const braceRight = items[items.length - 1]
+
+  const left = memo.parts.length > 0 ? memo : reduceElement(memo, braceLeft)
+  const center = reduceElement(left, item)
+  const right = reduceElement(center, braceRight)
+  return right
 }
 
 export function print(
@@ -253,15 +265,8 @@ export function print(
         if (isEnoughForBraces(items, more, output.availableSpace)) {
           return output
         }
-        const braceRight = items[items.length - 1]
-        const braceLeft = items[0]
-        const moreEl = reduceElement(
-          index > 0 ? memo : reduceElement(memo, braceLeft),
-          more,
-        )
-        const closeBracket = reduceElement(moreEl, braceRight)
         return {
-          ...closeBracket,
+          ...wrapBraces(memo, items, more),
           done: true,
         }
       }
@@ -284,6 +289,7 @@ export function print(
     } as SyntaxData,
   )
   if (firstLevel.availableSpace < 0) {
+    // FIXME: replace objects with brace + more + brace
     return firstLevel
   }
   return firstLevel.parts.reduce(
