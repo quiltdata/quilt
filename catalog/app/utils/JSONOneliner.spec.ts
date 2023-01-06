@@ -147,36 +147,48 @@ describe('utils/JSONOneliner', () => {
   })
 
   it('should print placeholders instead object values when not enough space', () => {
-    const objectOfObjects = {
-      A: [1, 2, 3],
-      B: 'Lorem',
-      C: { a: 1, b: 2 },
-      D: { a: [1, { c: 3 }, 'a'], b: 2 },
-      E: [1, { b: ['c', { d: 'e' }] }, 'a'],
+    const t = {
+      value: {
+        A: [1, 2, 3],
+        B: 'Lorem',
+        C: { a: 1, b: 2 },
+        D: { a: [1, { c: 3 }, 'a'], b: 2 },
+        E: [1, { b: ['c', { d: 'e' }] }, 'a'],
+      },
+      steps: [
+        {
+          limit: 130,
+          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { <…1> } ] }, "a" ] }`,
+        },
+        {
+          limit: 120,
+          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ <…2> ] }, "a" ] }`,
+        },
+        {
+          limit: 110,
+          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { <…1> }, <…1> ] }`,
+        },
+        {
+          limit: 50,
+          result: `{ A: [ <…3> ], B: "Lorem", C: { <…2> }, D: { <…2> }, <…1> }`,
+        },
+      ],
     }
 
-    const objectData130 = JSONOneliner.print(objectOfObjects, 130, true)
-    expect(printData(objectData130)).toBe(
-      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { <…1> } ] }, "a" ] }`,
-    )
-    expect(objectData130.availableSpace).toBe(2)
+    const d0 = JSONOneliner.print(t.value, t.steps[0].limit, true)
+    expect(printData(d0)).toBe(t.steps[0].result)
+    expect(d0.availableSpace).toBe(t.steps[0].limit - t.steps[0].result.length)
 
-    const objectData120 = JSONOneliner.print(objectOfObjects, 120, true)
-    expect(printData(objectData120)).toBe(
-      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ <…2> ] }, "a" ] }`,
-    )
-    expect(objectData120.availableSpace).toBe(1)
+    const d1 = JSONOneliner.print(t.value, t.steps[1].limit, true)
+    expect(printData(d1)).toBe(t.steps[1].result)
+    expect(d1.availableSpace).toBe(t.steps[1].limit - t.steps[1].result.length)
 
-    const objectData110 = JSONOneliner.print(objectOfObjects, 110, true)
-    expect(printData(objectData110)).toBe(
-      `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { <…1> }, <…1> ] }`,
-    )
-    expect(objectData110.availableSpace).toBe(-3)
+    const d2 = JSONOneliner.print(t.value, t.steps[2].limit, true)
+    expect(printData(d2)).toBe(t.steps[2].result)
+    expect(d2.availableSpace).toBe(t.steps[2].limit - t.steps[2].result.length)
 
-    const objectData50 = JSONOneliner.print(objectOfObjects, 50, true)
-    expect(printData(objectData50)).toBe(
-      `{ A: [ <…3> ], B: "Lorem", C: { <…2> }, D: { <…2> }, <…1> }`,
-    )
-    expect(objectData50.availableSpace).toBe(-9)
+    const d3 = JSONOneliner.print(t.value, t.steps[3].limit, true)
+    expect(printData(d3)).toBe(t.steps[3].result)
+    expect(d3.availableSpace).toBe(t.steps[3].limit - t.steps[3].result.length)
   })
 })
