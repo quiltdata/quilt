@@ -10,6 +10,8 @@ describe('utils/JSONOneliner', () => {
     const objectData = JSONOneliner.print({}, 10, true)
     expect(printData(arrayData)).toBe('[  ]')
     expect(printData(objectData)).toBe('{  }')
+    expect(arrayData.availableSpace).toBe(6)
+    expect(objectData.availableSpace).toBe(6)
   })
 
   it('should print all primitive values when enough space', () => {
@@ -25,5 +27,7 @@ describe('utils/JSONOneliner', () => {
     const objectData = JSONOneliner.print(objectOfPrimitives, 100, true)
     expect(printData(arrayData)).toBe(`[ 1, true, false, "Lorem", null ]`)
     expect(printData(objectData)).toBe(`{ A: 1, B: true, C: false, D: "Lorem", E: null }`)
+    expect(arrayData.availableSpace).toBe(67)
+    expect(objectData.availableSpace).toBe(52)
   })
 })
