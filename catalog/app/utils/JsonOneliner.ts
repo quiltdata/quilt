@@ -1,4 +1,17 @@
-export const Types = {
+import log from 'utils/Logging'
+import { Json, JsonArray, JsonRecord } from 'utils/types'
+
+type SyntaxType =
+  | 'brace'
+  | 'equal'
+  | 'key'
+  | 'object'
+  | 'primitive'
+  | 'separator'
+  | 'string'
+  | 'more'
+
+export const Types: Record<string, SyntaxType> = {
   Brace: 'brace',
   Equal: 'equal',
   Key: 'key',
@@ -9,43 +22,69 @@ export const Types = {
   More: 'more',
 }
 
-const EQUAL = {
+interface SyntaxItem {
+  original?: Json
+  size: number
+  type: SyntaxType
+  value: string
+}
+
+interface SyntaxItemObject extends SyntaxItem {
+  original: JsonArray | JsonRecord
+  type: 'object'
+  value: string
+}
+
+interface SyntaxGroup {
+  elements: SyntaxItem[]
+  size: number
+}
+
+type SyntaxPart = SyntaxItem | SyntaxGroup
+
+const EQUAL: SyntaxItem = {
   type: Types.Equal,
   size: 2,
   value: ': ',
 }
 
-const SEPARATOR = {
+const SEPARATOR: SyntaxItem = {
   type: Types.Separator,
   size: 2,
   value: ', ',
 }
 
-const BRACE_LEFT = {
+const BRACE_LEFT: SyntaxItem = {
   type: Types.Brace,
   size: 2,
   value: '{ ',
 }
 
-const BRACE_RIGHT = {
+const BRACE_RIGHT: SyntaxItem = {
   type: Types.Brace,
   size: 2,
   value: ' }',
 }
 
-const SQUARE_LEFT = {
+const SQUARE_LEFT: SyntaxItem = {
   type: Types.Brace,
   size: 2,
   value: '[ ',
 }
 
-const SQUARE_RIGHT = {
+const SQUARE_RIGHT: SyntaxItem = {
   type: Types.Brace,
   size: 2,
   value: ' ]',
 }
 
-function calcKey(key) {
+const Empty: SyntaxItem = {
+  type: Types.Separator,
+  size: 0,
+  value: '',
+}
+
+function calcKey(key: string): SyntaxItem {
   return {
     value: key,
     type: Types.Key,
@@ -53,7 +92,7 @@ function calcKey(key) {
   }
 }
 
-function calcValue(value) {
+function calcValue(value: Json): SyntaxItem {
   if (typeof value === 'string') {
     return {
       value: JSON.stringify(value),
@@ -105,16 +144,15 @@ function calcValue(value) {
       original: value,
     }
   }
+  log.warn('Unexpected JSON type')
+  return Empty
 }
 
-function calcObject(obj, showValues) {
+function calcObject(obj: JsonArray | JsonRecord, showValues: boolean): SyntaxPart[] {
   if (Array.isArray(obj)) {
     const items = obj.map((v) => {
       if (!showValues) {
-        return {
-          elements: [],
-          size: 0,
-        }
+        return Empty
       }
 
       const value = calcValue(v)
@@ -125,7 +163,7 @@ function calcObject(obj, showValues) {
     })
     const itemsWithSeparators = items.reduce(
       (memo, item, index) => (index > 0 ? [...memo, SEPARATOR, item] : [...memo, item]),
-      [],
+      [] as SyntaxPart[],
     )
     return [SQUARE_LEFT, ...itemsWithSeparators, SQUARE_RIGHT]
   }
@@ -147,55 +185,79 @@ function calcObject(obj, showValues) {
   })
   const itemsWithSeparators = items.reduce(
     (memo, item, index) => (index > 0 ? [...memo, SEPARATOR, item] : [...memo, item]),
-    [],
+    [] as SyntaxPart[],
   )
   return [BRACE_LEFT, ...itemsWithSeparators, BRACE_RIGHT]
 }
 
-function reduceElement(memo, element) {
+interface SyntaxData {
+  parts: SyntaxPart[]
+  availableSpace: number
+  done?: boolean
+}
+
+function reduceElement(memo: SyntaxData, element: SyntaxPart): SyntaxData {
   return {
     parts: [...memo.parts, element],
     availableSpace: memo.availableSpace - element.size,
   }
 }
 
-function spaceForRestKeys(items, index) {
+function isSyntaxItem(item: SyntaxPart): item is SyntaxItem {
+  return !!(item as SyntaxItem).type
+}
+
+function isSyntaxGroup(item: SyntaxPart): item is SyntaxGroup {
+  return !!(item as SyntaxGroup).elements
+}
+
+function isNestedStructure(item: SyntaxPart): item is SyntaxItemObject {
+  return (item as SyntaxItem).type === 'object'
+}
+
+function spaceForRestKeys(items: SyntaxPart[], index: number): number {
   return items.slice(index).reduce((memo, item) => {
-    if (item.type) return memo + item.size
-    if (item.elements) return memo + item.elements[0]?.size || 0
+    if (isSyntaxItem(item)) return memo + item.size
+    if (isSyntaxGroup(item)) return memo + item.elements[0]?.size || 0
     return 0
   }, 0)
 }
 
-function isEnoughForRestKeys(items, index, availableSpace) {
+function isEnoughForRestKeys(items: SyntaxPart[], index: number, availableSpace: number) {
   return availableSpace - (items[index].size - spaceForRestKeys(items, index)) > 0
 }
 
-function getMoreItems(items, index) {
-  const moreItems = items.slice(index).filter((x) => !x.type)
+function getMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
+  const moreItems = items.slice(index).filter((x) => !isSyntaxItem(x))
   const value = index > 0 ? `, <…${moreItems.length}>` : `<…${moreItems.length}>`
   return moreItems.length
     ? {
-        value,
         size: value.length,
+        type: Types.More,
+        value,
       }
-    : {
-        value: '',
-        size: 0,
-      }
+    : Empty
 }
 
-function isEnoughForBraces(items, more, availableSpace) {
+function isEnoughForBraces(
+  items: SyntaxPart[],
+  more: SyntaxItem,
+  availableSpace: number,
+) {
   return availableSpace - (items[0].size + items[items.length - 1].size + more.size) > 0
 }
 
-export function print(obj, availableSpace, showValues) {
+export function print(
+  obj: JsonRecord | JsonArray,
+  availableSpace: number,
+  showValues: boolean,
+): SyntaxData {
   const items = calcObject(obj, showValues)
   const firstLevel = items.reduce(
     (memo, item, index) => {
       if (memo.done) return memo
 
-      if (item.type) {
+      if (isSyntaxItem(item)) {
         const output = reduceElement(memo, item)
         const more = getMoreItems(items, index)
         if (isEnoughForBraces(items, more, output.availableSpace)) {
@@ -216,7 +278,7 @@ export function print(obj, availableSpace, showValues) {
         }
       }
 
-      if (item.elements) {
+      if (isSyntaxGroup(item)) {
         if (!isEnoughForRestKeys(items, index, memo.availableSpace)) {
           return reduceElement(memo, item.elements[0])
         }
@@ -231,14 +293,14 @@ export function print(obj, availableSpace, showValues) {
     {
       parts: [],
       availableSpace,
-    },
+    } as SyntaxData,
   )
   if (firstLevel.availableSpace < 0) {
     return firstLevel
   }
   return firstLevel.parts.reduce(
     (memo, item) => {
-      if (item.type !== 'object') {
+      if (!isNestedStructure(item)) {
         return {
           ...memo,
           parts: [...memo.parts, item],
@@ -257,6 +319,6 @@ export function print(obj, availableSpace, showValues) {
     {
       parts: [],
       availableSpace: firstLevel.availableSpace,
-    },
+    } as SyntaxData,
   )
 }
