@@ -8,6 +8,7 @@ import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
+import * as JsonOneliner from 'utils/JsonOneliner'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -150,12 +151,41 @@ const join = (s1, s2) =>
     s2
   )
 
+function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
+  const data = JsonOneliner.print(value, availableSpace, showValuesWhenCollapsed)
+  return (
+    <div>
+      {data.parts.map((item, index) => {
+        switch (item.type) {
+          case JsonOneliner.Types.Key:
+            return <strong key={`json_print${index}`}>{item.value}</strong>
+          case JsonOneliner.Types.Separator:
+            return (
+              <span style={{ opacity: 0.7 }} key={`json_print${index}`}>
+                {item.value}
+              </span>
+            )
+          case JsonOneliner.Types.Brace:
+            return (
+              <span style={{ color: 'brown' }} key={`json_print${index}`}>
+                {item.value}
+              </span>
+            )
+          default:
+            return <span key={`json_print${index}`}>{item.value}</span>
+        }
+      })}
+    </div>
+  )
+}
+
 function CompoundEntry({
   name,
   value,
   topLevel = true,
   defaultExpanded = false,
   showKeysWhenCollapsed,
+  showValuesWhenCollapsed,
   classes,
 }) {
   const braces = Array.isArray(value) ? '[]' : '{}'
@@ -165,40 +195,15 @@ function CompoundEntry({
   const empty = !entries.length
   const expanded = !empty && stateExpanded
 
-  const renderCollapsed = React.useCallback(() => {
-    const availableSpace =
-      showKeysWhenCollapsed -
-      R.sum([
-        SEP_LEN,
-        MORE_LEN,
-        20 / CHAR_W, // icon / padding
-        name ? name.length + 2 : 0,
-        4, // braces + spaces
-      ])
-    if (availableSpace <= 0 || Array.isArray(value)) {
-      return <More keys={entries.length} classes={classes} />
-    }
-    return entries.reduce(
-      (acc, [k]) => {
-        if (acc.done) return acc
-        return acc.availableSpace < k.length
-          ? {
-              str: join(
-                acc.str,
-                <More keys={entries.length - acc.keys} classes={classes} />,
-              ),
-              done: true,
-            }
-          : {
-              str: join(acc.str, <span className={classes.key}>{k}</span>),
-              availableSpace: acc.availableSpace - k.length - (acc.str ? SEP_LEN : 0),
-              keys: acc.keys + 1,
-              done: false,
-            }
-      },
-      { str: null, availableSpace, keys: 0, done: false },
-    ).str
-  }, [classes, entries, name, showKeysWhenCollapsed, value])
+  const availableSpace =
+    showKeysWhenCollapsed -
+    R.sum([
+      SEP_LEN,
+      MORE_LEN,
+      20 / CHAR_W, // icon / padding
+      name ? name.length + 2 : 0,
+      4, // braces + spaces
+    ])
 
   return (
     <div>
@@ -213,12 +218,13 @@ function CompoundEntry({
           <IconExpand />
         )}
         <Key classes={classes}>{name}</Key>
-        {braces[0]}
+        {expanded && braces[0]}
         {!expanded && (
-          <>
-            {empty ? '' : <span> {renderCollapsed()} </span>}
-            {braces[1]}
-          </>
+          <CollapsedEntry
+            availableSpace={availableSpace}
+            value={value}
+            showValuesWhenCollapsed={showValuesWhenCollapsed || Array.isArray(value)}
+          />
         )}
       </div>
       {expanded && (
@@ -244,6 +250,7 @@ function CompoundEntry({
                     : defaultExpanded
                 }
                 showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
+                showValuesWhenCollapsed={showValuesWhenCollapsed}
               />
             ))}
             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
@@ -299,7 +306,7 @@ export default function JsonDisplay({
   defaultExpanded,
   // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
   showKeysWhenCollapsed = 'auto',
-  showValuesWhenCollapsed = false,
+  showValuesWhenCollapsed = true,
   className,
   ...props
 }) {
