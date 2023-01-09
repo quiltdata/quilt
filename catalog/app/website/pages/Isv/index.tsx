@@ -13,6 +13,7 @@ import Partners from './Partners'
 
 const useStyles = M.makeStyles((t) => ({
   mainActions: {},
+  features: {},
 }))
 
 function ISV() {
@@ -20,17 +21,22 @@ function ISV() {
   return (
     <div>
       <MainActions className={classes.mainActions} />
-      <Features />
+      <M.Container maxWidth="lg">
+        <Features className={classes.features} />
+      </M.Container>
       <Partners />
+
       <CaseStudies />
-      <AWS />
+      <M.Container maxWidth="lg">
+        <AWS />
+      </M.Container>
     </div>
   )
 }
 
 export default function ISVWrapper() {
   // Layout injects TalkToUs provider into the component tree
-  // (required for BioIT component)
+  // (required for ISV component)
   return (
     <Layout>
       <MetaTitle />

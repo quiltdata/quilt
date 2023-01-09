@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import Carousel from 'react-multi-carousel'
 import * as M from '@material-ui/core'
@@ -50,6 +51,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface LogosCarouselProps {
+  className?: string
   title: string
   logos: {
     title: string
@@ -57,11 +59,11 @@ interface LogosCarouselProps {
   }[]
 }
 
-export default function LogosCarousel({ title, logos }: LogosCarouselProps) {
+export default function LogosCarousel({ className, title, logos }: LogosCarouselProps) {
   const classes = useStyles()
 
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       <M.Container maxWidth="lg">
         <M.Typography variant="h1" color="textPrimary" align="center">
           {title}

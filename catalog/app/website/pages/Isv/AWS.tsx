@@ -7,7 +7,7 @@ import AwsPartner from 'website/components/AwsPartner'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    padding: t.spacing(8, 0, 0),
+    padding: t.spacing(8, 0, 6),
   },
   awsPartner: {
     marginRight: t.spacing(4),
