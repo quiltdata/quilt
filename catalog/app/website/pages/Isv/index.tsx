@@ -8,21 +8,29 @@ import Layout from 'website/components/Layout'
 import AWS from './AWS'
 import CaseStudies from './CaseStudies'
 import Features from './Features'
-import MainActions from './MainActions'
+import Hero from './Hero'
+import Form from './Form'
 import Partners from './Partners'
 
 const useStyles = M.makeStyles((t) => ({
-  mainActions: {},
-  features: {},
+  main: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: t.spacing(25, 0, 28),
+  },
 }))
 
 function ISV() {
   const classes = useStyles()
   return (
     <div>
-      <MainActions className={classes.mainActions} />
+      <M.Container maxWidth="lg" className={classes.main}>
+        <Hero />
+        <Form />
+      </M.Container>
       <M.Container maxWidth="lg">
-        <Features className={classes.features} />
+        <Features />
       </M.Container>
       <Partners />
 
