@@ -1,6 +1,9 @@
 import cx from 'classnames'
+import * as FF from 'final-form'
 import * as React from 'react'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
+import TextField from 'components/Form/TextField'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -63,14 +66,9 @@ export default function Form({ className }: FormProps) {
     }),
     [classes],
   )
-  const [firstName, setFirstName] = React.useState('')
-  const [lastName, setLastName] = React.useState('')
-  const [companyName, setCompanyName] = React.useState('')
-  const [companyEmail, setCompanyEmail] = React.useState('')
 
-  const handleSubmit = React.useCallback(
-    (event) => {
-      event.preventDefault()
+  const onSubmit = React.useCallback(
+    ({ firstName, lastName, companyName, companyEmail }) => {
       const data = new URLSearchParams()
       data.append('FNAME', firstName)
       data.append('LNAME', lastName)
@@ -84,57 +82,68 @@ export default function Form({ className }: FormProps) {
         mode: 'no-cors',
       })
     },
-    [firstName, lastName, companyName, companyEmail],
+    [],
   )
   return (
-    <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
-      <M.Typography className={classes.description}>
-        Quilt is available in the AWS Marketplace. We bring seamless collaboration to S3
-        by connecting people, pipelines, and machines using visual, verifiable, versioned
-        data packages.
-      </M.Typography>
-      <div className={classes.group}>
-        <M.InputBase
-          className={classes.input}
-          classes={inputClasses}
-          placeholder="First Name*"
-          onChange={(e) => setFirstName(e.target.value)}
-          value={firstName}
-        />
-        <M.InputBase
-          className={classes.input}
-          classes={inputClasses}
-          placeholder="Last Name*"
-          onChange={(e) => setLastName(e.target.value)}
-          value={lastName}
-        />
-      </div>
-      <div className={classes.group}>
-        <M.InputBase
-          className={classes.input}
-          classes={inputClasses}
-          placeholder="Company Name*"
-          onChange={(e) => setCompanyName(e.target.value)}
-          value={companyName}
-        />
-      </div>
-      <div className={classes.group}>
-        <M.InputBase
-          className={classes.input}
-          classes={inputClasses}
-          placeholder="Company Email*"
-          onChange={(e) => setCompanyEmail(e.target.value)}
-          value={companyEmail}
-        />
-      </div>
-      <M.Typography className={classes.note}>
-        By submitting this form, I agree to receive email updates about Quilt
-      </M.Typography>
-      <div className={classes.actions}>
-        <M.Button type="submit" color="secondary" variant="contained">
-          Submit
-        </M.Button>
-      </div>
-    </form>
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        submitError,
+        error,
+        hasValidationErrors,
+      }) => (
+        <form className={cx(classes.root, className)} onSubmit={handleSubmit}>
+          <M.Typography className={classes.description}>
+            Quilt is available in the AWS Marketplace. We bring seamless collaboration to
+            S3 by connecting people, pipelines, and machines using visual, verifiable,
+            versioned data packages.
+          </M.Typography>
+          <div className={classes.group}>
+            <RF.Field
+              InputProps={{ classes: inputClasses }}
+              className={classes.input}
+              component={TextField}
+              name="firstName"
+              placeholder="First Name*"
+            />
+            <RF.Field
+              InputProps={{ classes: inputClasses }}
+              className={classes.input}
+              component={TextField}
+              name="lastName"
+              placeholder="Last Name*"
+            />
+          </div>
+          <div className={classes.group}>
+            <RF.Field
+              InputProps={{ classes: inputClasses }}
+              className={classes.input}
+              component={TextField}
+              name="companyName"
+              placeholder="Company Name*"
+            />
+          </div>
+          <div className={classes.group}>
+            <RF.Field
+              InputProps={{ classes: inputClasses }}
+              className={classes.input}
+              component={TextField}
+              name="companyEmail"
+              placeholder="Company Email*"
+            />
+          </div>
+          <M.Typography className={classes.note}>
+            By submitting this form, I agree to receive email updates about Quilt
+          </M.Typography>
+          <div className={classes.actions}>
+            <M.Button type="submit" color="secondary" variant="contained">
+              Submit
+            </M.Button>
+          </div>
+        </form>
+      )}
+    </RF.Form>
   )
 }
