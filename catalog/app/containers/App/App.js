@@ -74,6 +74,7 @@ const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
 const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
+const ISV = RT.mkLazy(() => import('website/pages/ISV'), Placeholder)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
@@ -114,6 +115,9 @@ export default function App() {
           <Route path="/nextflow" component={NextFlow} exact />
         )}
         {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && (
+          <Route path="/quilt-and-aws" component={ISV} exact />
+        )}
 
         {!cfg.disableNavigator && (
           <Route path={paths.activate} component={Activate} exact />
