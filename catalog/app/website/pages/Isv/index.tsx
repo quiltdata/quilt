@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -12,12 +13,53 @@ import Hero from './Hero'
 import Form from './Form'
 import Partners from './Partners'
 
+const useAttributionStyles = M.makeStyles((t) => ({
+  root: {
+    background: 'linear-gradient(to right, #30266e, #1b194f)',
+    color: t.palette.text.disabled,
+  },
+  text: {
+    padding: t.spacing(1, 0),
+    textAlign: 'center',
+  },
+}))
+
+interface AttributionProps {
+  className: string
+}
+
+function Attribution({ className }: AttributionProps) {
+  const classes = useAttributionStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Container maxWidth="lg">
+        <M.Typography className={classes.text} variant="caption" component="p">
+          Icons used: “
+          <a href="https://thenounproject.com/icon/data-sharing-5406825/">Data Sharing</a>
+          ” by Candy Design “
+          <a href="https://thenounproject.com/icon/upload-database-322726/">
+            Upload Database
+          </a>
+          ” by Smashicons “
+          <a href="https://thenounproject.com/icon/data-visualization-5039056/">
+            data visualization
+          </a>
+          ” by SAM Designs from Noun Project
+        </M.Typography>
+      </M.Container>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   main: {
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
     padding: t.spacing(25, 0, 28),
+  },
+  attribution: {
+    marginTop: t.spacing(16),
   },
 }))
 
@@ -37,6 +79,7 @@ function ISV() {
       <M.Container maxWidth="lg">
         <AWS />
       </M.Container>
+      <Attribution className={classes.attribution} />
     </div>
   )
 }
