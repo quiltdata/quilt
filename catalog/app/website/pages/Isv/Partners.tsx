@@ -38,11 +38,11 @@ const logos = [
   },
 ]
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles({
   root: {
     padding: '0 0 70px',
   },
-}))
+})
 
 interface PartnersProps {
   className?: string

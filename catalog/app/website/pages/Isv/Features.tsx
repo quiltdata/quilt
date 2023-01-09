@@ -41,14 +41,14 @@ function Feature({ className, title, content }: FeatureProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles({
   root: {
     columnGap: '46px',
     display: 'grid',
     gridTemplateColumns: '1fr 1fr 1fr',
     padding: '55px 0',
   },
-}))
+})
 
 interface FeaturesProps {
   className?: string

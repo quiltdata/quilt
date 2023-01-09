@@ -52,13 +52,17 @@ const getCalendlyEvent = (e) =>
   e?.data?.event?.startsWith('calendly.') && e?.data?.event?.substring('calendly.'.length)
 
 function useCalendlyLink() {
-  return React.useCallback(
-    (extra) =>
-      extra?.src === 'bioit'
-        ? 'https://calendly.com/quilt-founders/quilt-at-bio-it-world'
-        : cfg.calendlyLink,
-    [],
-  )
+  return React.useCallback((extra) => {
+    const src = extra?.src || ''
+    switch (src) {
+      case 'bioit':
+        return 'https://calendly.com/quilt-founders/quilt-at-bio-it-world'
+      case 'intro':
+        return 'https://calendly.com/d/g4y-d3j-zh8/quilt-discussion'
+      default:
+        return cfg.calendlyLink
+    }
+  }, [])
 }
 
 export function TalkToUsProvider({ children }) {

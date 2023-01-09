@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { useTalkToUs } from 'components/TalkToUs'
+
 import logos from './logos.svg'
 
 const useStyles = M.makeStyles((t) => ({
@@ -56,6 +58,8 @@ interface MainActionsProps {
 
 export default function MainActions({ className }: MainActionsProps) {
   const classes = useStyles()
+  const bookIntro = useTalkToUs({ src: 'intro' })
+  const bookDemo = useTalkToUs()
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.logos} />
@@ -67,10 +71,20 @@ export default function MainActions({ className }: MainActionsProps) {
         organizations better manage and find the data that they’ve created.
       </M.Typography>
       <div className={classes.buttons}>
-        <M.Button className={classes.button} variant="contained" color="primary">
+        <M.Button
+          className={classes.button}
+          variant="contained"
+          color="primary"
+          onClick={bookIntro}
+        >
           Intro to customer
         </M.Button>
-        <M.Button className={classes.button} variant="contained" color="primary">
+        <M.Button
+          className={classes.button}
+          variant="contained"
+          color="primary"
+          onClick={bookDemo}
+        >
           Book a demo
         </M.Button>
       </div>
