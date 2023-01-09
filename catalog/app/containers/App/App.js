@@ -74,7 +74,7 @@ const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
 const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
-const ISV = RT.mkLazy(() => import('website/pages/ISV'), Placeholder)
+const ISV = RT.mkLazy(() => import('website/pages/Isv'), Placeholder)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 

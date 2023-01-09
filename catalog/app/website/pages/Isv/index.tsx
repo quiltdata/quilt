@@ -5,11 +5,11 @@ import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
 
-import AWS from './Isv/AWS'
-import CaseStudies from './Isv/CaseStudies'
-import Features from './Isv/Features'
-import MainActions from './Isv/MainActions'
-import Partners from './Isv/Partners'
+import AWS from './AWS'
+import CaseStudies from './CaseStudies'
+import Features from './Features'
+import MainActions from './MainActions'
+import Partners from './Partners'
 
 const useStyles = M.makeStyles((t) => ({
   mainActions: {},
