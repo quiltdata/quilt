@@ -18,12 +18,36 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(3),
   },
   buttons: {
-    marginBottom: t.spacing(4),
-    display: 'flex',
     alignItems: 'center',
+    display: 'flex',
     justifyContent: 'center',
+    marginBottom: t.spacing(4),
   },
-  links: {},
+  button: {
+    minWidth: t.spacing(26),
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
+  },
+  links: {
+    textAlign: 'center',
+  },
+  link: {
+    color: t.palette.text.primary,
+    fontSize: '16px',
+    lineHeight: '32px',
+    '&:hover $linkIcon': {
+      left: '2px',
+    },
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
+  },
+  linkIcon: {
+    color: t.palette.primary.main,
+    position: 'relative',
+    verticalAlign: 'middle',
+  },
 }))
 
 interface MainActionsProps {
@@ -43,14 +67,33 @@ export default function MainActions({ className }: MainActionsProps) {
         organizations better manage and find the data that they’ve created.
       </M.Typography>
       <div className={classes.buttons}>
-        <M.Button variant="contained" color="primary">
+        <M.Button className={classes.button} variant="contained" color="primary">
           Intro to customer
         </M.Button>
-        <M.Button variant="contained" color="primary">
+        <M.Button className={classes.button} variant="contained" color="primary">
           Book a demo
         </M.Button>
       </div>
-      <div className={classes.links}></div>
+      <div className={classes.links}>
+        <a className={classes.link} href="mailto:sales@quiltdata.io">
+          Email us
+          <M.Icon className={classes.linkIcon} color="inherit">
+            chevron_right
+          </M.Icon>
+        </a>
+        <a className={classes.link} href="#" target="_blank">
+          One Pager (PDF)
+          <M.Icon className={classes.linkIcon} color="inherit">
+            chevron_right
+          </M.Icon>
+        </a>
+        <a className={classes.link} href="#" target="_blank">
+          Marketplace Listing
+          <M.Icon className={classes.linkIcon} color="inherit">
+            chevron_right
+          </M.Icon>
+        </a>
+      </div>
     </div>
   )
 }

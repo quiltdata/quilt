@@ -24,8 +24,9 @@ const useStyles = M.makeStyles((t) => ({
   note: {
     color: t.palette.text.primary,
     fontSize: '16px',
-    lineHeight: '22px',
+    lineHeight: '32px',
     marginTop: '28px',
+    textAlign: 'center',
   },
   group: {
     display: 'flex',
@@ -39,13 +40,13 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   inputRoot: {
-    padding: '0 12px',
     background: t.palette.common.white,
     border: '2px solid #9ba7b6',
     borderRadius: '7px',
     color: t.palette.getContrastText(t.palette.common.white),
     fontSize: '16px',
     lineHeight: '32px',
+    padding: '0 12px',
     width: '100%',
   },
 }))

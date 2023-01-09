@@ -33,7 +33,6 @@ function ISV() {
         <Features />
       </M.Container>
       <Partners />
-
       <CaseStudies />
       <M.Container maxWidth="lg">
         <AWS />
