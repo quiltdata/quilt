@@ -1,6 +1,6 @@
-import { traverseUrls } from './Json'
+import { traverseUrls } from './Vega'
 
-describe('components/Preview/loaders/Json', () => {
+describe('components/Preview/loaders/Vega', () => {
   describe('traverseUrls', () => {
     const transformFn = (url) => `A${url}B`
 
