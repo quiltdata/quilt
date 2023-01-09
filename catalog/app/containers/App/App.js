@@ -116,7 +116,7 @@ export default function App() {
         )}
         {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
         {cfg.mode === 'MARKETING' && (
-          <Route path="/quilt-and-aws" component={ISV} exact />
+          <Route path="/aws-marketplace" component={ISV} exact />
         )}
 
         {!cfg.disableNavigator && (
