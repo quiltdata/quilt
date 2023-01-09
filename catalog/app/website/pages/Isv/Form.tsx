@@ -70,7 +70,18 @@ export default function Form({ className }: FormProps) {
   const handleSubmit = React.useCallback(
     (event) => {
       event.preventDefault()
-      console.log({ firstName, lastName, companyName, companyEmail })
+      const data = new URLSearchParams()
+      data.append('FNAME', firstName)
+      data.append('LNAME', lastName)
+      data.append('CNAME', companyName)
+      data.append('EMAIL', companyEmail)
+      const url =
+        'https://quiltdata.us12.list-manage.com/subscribe/post?u=d1897bee98443ff9c75985a98&id=8730da7955&f_id=0012bfe0f0'
+      window.fetch(url, {
+        method: 'POST',
+        body: data,
+        mode: 'no-cors',
+      })
     },
     [firstName, lastName, companyName, companyEmail],
   )
