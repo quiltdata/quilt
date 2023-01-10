@@ -58,7 +58,7 @@ interface MainActionsProps {
 
 export default function MainActions({ className }: MainActionsProps) {
   const classes = useStyles()
-  const bookIntro = useTalkToUs({ src: 'intro' })
+  const bookIntro = useTalkToUs({ src: 'awsmarketplace' })
   const bookDemo = useTalkToUs()
   return (
     <div className={cx(classes.root, className)}>
