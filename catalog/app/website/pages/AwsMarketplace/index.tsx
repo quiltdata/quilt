@@ -6,7 +6,7 @@ import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
 
-import AWS from './AWS'
+import AwsPartner from './AwsPartner'
 import CaseStudies from './CaseStudies'
 import Features from './Features'
 import Hero from './Hero'
@@ -77,7 +77,7 @@ function AwsMarketplace() {
       <Partners />
       <CaseStudies />
       <M.Container maxWidth="lg">
-        <AWS />
+        <AwsPartner />
       </M.Container>
       <Attribution className={classes.attribution} />
     </div>
