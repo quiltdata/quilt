@@ -31,7 +31,10 @@ const useCaseStudyStyles = M.makeStyles((t) => ({
     lineHeight: '32px',
   },
   link: {
-    color: '#5471F1',
+    color: t.palette.secondary.main,
+    '&:hover': {
+      color: t.palette.secondary.light,
+    },
   },
 }))
 
