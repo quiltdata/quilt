@@ -64,11 +64,11 @@ export default function MainActions({ className }: MainActionsProps) {
     <div className={cx(classes.root, className)}>
       <div className={classes.logos} />
       <M.Typography className={classes.tagline}>
-        Effective data management is crucial for successful scientific research, as it
-        allows researchers to retain knowledge from past experiments and use it to plan
-        future ones. Quilt makes it easy to apply best practice standards of FLAIR
+        Effective data management is crucial for successful scientific research,
+        as it allows researchers to retain knowledge from past experiments and use it to
+        plan future ones. Quilt makes it easy to apply best practice standards of FLAIR
         principles (findable, linkable, accessible, interoperable, reusable) to help
-        organizations better manage and find the data that they’ve created.
+        organizations better manage and find the data that they’ve created.
       </M.Typography>
       <div className={classes.buttons}>
         <M.Button

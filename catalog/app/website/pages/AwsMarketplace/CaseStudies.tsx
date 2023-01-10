@@ -19,7 +19,7 @@ const useCaseStudyStyles = M.makeStyles((t) => ({
     fontSize: '20px',
     lineHeight: '28px',
     textAlign: 'center',
-    marginBottom: '22px',
+    margin: '0 10px 22px',
   },
   content: {
     color: t.palette.text.secondary,
@@ -96,26 +96,28 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
       <M.Typography className={classes.title} variant="h1">
         Case Studies
       </M.Typography>
-      <div className={classes.columns}>
-        <CaseStudy
-          title="Improving Data Management with Quilt and NextFlow"
-          content="Tessera Therapeutics is a pioneer in gene writing, using technology to insert messages into genomes to treat diseases. The company needed to manage and share more than 12 terabytes of scientific data across large teams of wet scientists and computational biologists. To address this, Tessera implemented Quilt Data and Nextflow to ensure that data was findable, accessible, interoperable, and reusable (FAIR) and to accelerate its gene-writing discoveries to market"
-          logo={logoTessera}
-          link="https://quiltdata.com"
-        />
-        <CaseStudy
-          title="Accelerating Data Access and Collaboration with DataSync"
-          content="National Resilience, Inc. (Resilience) is a manufacturing and technology company that uses Quilt Data to manage and share data from its research sites, enabling scientists to access data faster and collaborate more effectively. By using Quilt's deep indexing and free-text search capabilities, Resilience can easily browse and access data from over 100 instruments and 10 million files in Amazon S3. The Quilt API also helps Resilience track data and intellectual property as it moves from research and analysis to downstream, GXP, and manufacturing processes."
-          logo={logoResilience}
-          link="https://quiltdata.com"
-        />
-        <CaseStudy
-          title="Managing and Accessing Data for Single Cell Genomics Research"
-          content="Celsius Therapeutics is using Quilt Data to manage and access data for single cell genomics research in the areas of cancer and autoimmune disease. Quilt helps Celsius maintain full versioning of its data sets and track data down to specific attributes and characteristics. The company has used Quilt to scale from a startup to production, uniformly access all its data types, and build apps to meet the specific needs of scientists."
-          logo={logoCelsius}
-          link="https://quiltdata.com"
-        />
-      </div>
+      <M.Container maxWidth="xl">
+        <div className={classes.columns}>
+          <CaseStudy
+            title="Improving Data Management with Quilt and NextFlow"
+            content="Tessera Therapeutics is a pioneer in gene writing, using technology to insert messages into genomes to treat diseases. The company needed to manage and share more than 12 terabytes of scientific data across large teams of wet scientists and computational biologists. To address this, Tessera implemented Quilt Data and Nextflow to ensure that data was findable, accessible, interoperable, and reusable (FAIR) and to accelerate its gene-writing discoveries to market"
+            logo={logoTessera}
+            link="https://quiltdata.com"
+          />
+          <CaseStudy
+            title="Accelerating Data Access and Collaboration with DataSync"
+            content="National Resilience, Inc. (Resilience) is a manufacturing and technology company that uses Quilt Data to manage and share data from its research sites, enabling scientists to access data faster and collaborate more effectively. By using Quilt's deep indexing and free-text search capabilities, Resilience can easily browse and access data from over 100 instruments and 10 million files in Amazon S3. The Quilt API also helps Resilience track data and intellectual property as it moves from research and analysis to downstream, GXP, and manufacturing processes."
+            logo={logoResilience}
+            link="https://quiltdata.com"
+          />
+          <CaseStudy
+            title="Managing and Accessing Data for Single Cell Genomics Research"
+            content="Celsius Therapeutics is using Quilt Data to manage and access data for single cell genomics research in the areas of cancer and autoimmune disease. Quilt helps Celsius maintain full versioning of its data sets and track data down to specific attributes and characteristics. The company has used Quilt to scale from a startup to production, uniformly access all its data types, and build apps to meet the specific needs of scientists."
+            logo={logoCelsius}
+            link="https://quiltdata.com"
+          />
+        </div>
+      </M.Container>
     </div>
   )
 }

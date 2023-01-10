@@ -9,6 +9,9 @@ import TextField from 'components/Form/TextField'
 import log from 'utils/Logging'
 import * as validators from 'utils/validators'
 
+const API_ENDPOINT =
+  'https://quiltdata.us12.list-manage.com/subscribe/post?u=d1897bee98443ff9c75985a98&id=8730da7955&f_id=0012bfe0f0'
+
 const useSubmitSuccessStyles = M.makeStyles((t) => ({
   root: {
     background: fade('#2b2363', 0.98),
@@ -193,15 +196,13 @@ export default function Form({ className }: FormProps) {
   const onSubmit = React.useCallback(
     ({ firstName, lastName, companyName, companyEmail }) => {
       try {
-        return
-        const data = new URLSearchParams()
-        data.append('FNAME', firstName)
-        data.append('LNAME', lastName)
-        data.append('CNAME', companyName)
-        data.append('EMAIL', companyEmail)
-        const url =
-          'https://quiltdata.us12.list-manage.com/subscribe/post?u=d1897bee98443ff9c75985a98&id=8730da7955&f_id=0012bfe0f0'
-        window.fetch(url, {
+        const data = new URLSearchParams({
+          FNAME: firstName,
+          LNAME: lastName,
+          CNAME: companyName,
+          EMAIL: companyEmail,
+        })
+        window.fetch(API_ENDPOINT, {
           method: 'POST',
           body: data,
           mode: 'no-cors',
