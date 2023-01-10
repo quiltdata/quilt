@@ -71,7 +71,10 @@ const MAbout = RT.mkLazy(() => import('website/pages/About'), Placeholder)
 const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
 const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
-const AwsMarketplace = RT.mkLazy(() => import('website/pages/AwsMarketplace'), Placeholder)
+const AwsMarketplace = RT.mkLazy(
+  () => import('website/pages/AwsMarketplace'),
+  Placeholder,
+)
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
 const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
