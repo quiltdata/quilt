@@ -11,18 +11,7 @@ import * as validators from 'utils/validators'
 
 const useSubmitSuccessStyles = M.makeStyles((t) => ({
   root: {
-    alignItems: 'center',
     background: fade('#2b2363', 0.98),
-    borderRadius: t.spacing(2),
-    bottom: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1,
   },
   icon: {
     marginRight: t.spacing(1),
@@ -37,10 +26,14 @@ const useSubmitSuccessStyles = M.makeStyles((t) => ({
   },
 }))
 
-function SubmitSuccess() {
+interface SubmitSuccessProps {
+  className: string
+}
+
+function SubmitSuccess({ className }: SubmitSuccessProps) {
   const classes = useSubmitSuccessStyles()
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       <div className={classes.message}>
         <M.Icon className={classes.icon}>check_circle_outline</M.Icon>
         <M.Typography className={classes.message}>
@@ -53,7 +46,6 @@ function SubmitSuccess() {
 
 const useSubmitErrorStyles = M.makeStyles((t) => ({
   root: {
-    paddingTop: '14px',
     display: 'flex',
     alignItems: 'center',
   },
@@ -69,13 +61,14 @@ const useSubmitErrorStyles = M.makeStyles((t) => ({
 }))
 
 interface SubmitErrorProps {
+  className: string
   error: string
 }
 
-function SubmitError({ error }: SubmitErrorProps) {
+function SubmitError({ className, error }: SubmitErrorProps) {
   const classes = useSubmitErrorStyles()
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       <M.Icon className={classes.icon}>error_outline</M.Icon>
       <M.Typography className={classes.message}>{error}</M.Typography>
     </div>
@@ -84,8 +77,26 @@ function SubmitError({ error }: SubmitErrorProps) {
 
 const useSubmitSpinnerStyles = M.makeStyles((t) => ({
   root: {
-    alignItems: 'center',
     background: fade(t.palette.common.white, 0.7),
+  },
+}))
+
+interface SubmitSpinnerProps {
+  className: string
+}
+
+function SubmitSpinner({ className }: SubmitSpinnerProps) {
+  const classes = useSubmitSpinnerStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.CircularProgress size={48} variant="indeterminate" />
+    </div>
+  )
+}
+
+const useSubmitStatusStyles = M.makeStyles((t) => ({
+  overlay: {
+    alignItems: 'center',
     borderRadius: t.spacing(2),
     bottom: 0,
     display: 'flex',
@@ -97,16 +108,10 @@ const useSubmitSpinnerStyles = M.makeStyles((t) => ({
     top: 0,
     zIndex: 1,
   },
+  error: {
+    marginTop: '14px',
+  },
 }))
-
-function SubmitSpinner() {
-  const classes = useSubmitSpinnerStyles()
-  return (
-    <div className={classes.root}>
-      <M.CircularProgress size={48} variant="indeterminate" />
-    </div>
-  )
-}
 
 interface SubmitStatusProps {
   submitting: boolean
@@ -115,9 +120,10 @@ interface SubmitStatusProps {
 }
 
 function SubmitStatus({ submitting, error, success }: SubmitStatusProps) {
-  if (submitting) return <SubmitSpinner />
-  if (success) return <SubmitSuccess />
-  if (error) return <SubmitError error={error} />
+  const classes = useSubmitStatusStyles()
+  if (submitting) return <SubmitSpinner className={classes.overlay} />
+  if (success) return <SubmitSuccess className={classes.overlay} />
+  if (error) return <SubmitError error={error} className={classes.error} />
   return null
 }
 
