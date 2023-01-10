@@ -120,7 +120,7 @@ function calcValue(value: Json): SyntaxItem {
   }
   if (typeof value === 'object' && Array.isArray(value)) {
     const childrenCount = value.length
-    const v = `[ …${childrenCount} ]`
+    const v = `[ …<${childrenCount}> ]`
     return {
       value: v,
       type: Types.Object,
@@ -131,7 +131,7 @@ function calcValue(value: Json): SyntaxItem {
   }
   if (typeof value === 'object') {
     const childrenCount = Object.keys(value).length
-    const v = `{ …${childrenCount} }`
+    const v = `{ …<${childrenCount}> }`
     return {
       value: v,
       type: Types.Object,
@@ -220,12 +220,17 @@ function spaceForRestKeys(items: SyntaxPart[], index: number): number {
 }
 
 function isEnoughForRestKeys(items: SyntaxPart[], index: number, availableSpace: number) {
-  return availableSpace - (items[index].size - spaceForRestKeys(items, index)) > 0
+  return availableSpace - (items[index].size + spaceForRestKeys(items, index)) > 0
 }
 
-function getFirstLevelMoreItems(items: SyntaxPart[], index: number): SyntaxItem {
+function getFirstLevelMoreItems(
+  items: SyntaxPart[],
+  index: number,
+  forcedSingle?: boolean,
+): SyntaxItem {
   const moreItems = items.slice(index).filter((x) => !isSyntaxItem(x))
-  const value = index > 0 ? `, <…${moreItems.length}>` : `<…${moreItems.length}>`
+  const value =
+    index === 0 || !!forcedSingle ? `<…${moreItems.length}>` : `, <…${moreItems.length}>`
   return moreItems.length
     ? {
         size: value.length,
@@ -301,7 +306,16 @@ export function print(
 
       if (isSyntaxGroup(item)) {
         if (!isEnoughForRestKeys(items, index, memo.availableSpace)) {
-          return reduceElement(memo, item.elements[0])
+          const output = reduceElement(memo, item.elements[0])
+          const more = getFirstLevelMoreItems(items, index, true)
+          if (isEnoughForBraces(items, more, output.availableSpace)) {
+            return output
+          } else {
+            return {
+              ...wrapBracesOnFirstLevel(memo, items, more),
+              done: true,
+            }
+          }
         }
         return item.elements.reduce((acc, element) => reduceElement(acc, element), memo)
       }

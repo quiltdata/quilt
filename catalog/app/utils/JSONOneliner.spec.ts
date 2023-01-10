@@ -59,8 +59,7 @@ describe('utils/JSONOneliner', () => {
     const t = {
       value: [1, true, false, 'Lorem', null],
       limit: 30,
-      // TODO: result is longer then limit (33)
-      result: `[ 1, true, false, "Lorem", <…1> ]`,
+      result: `[ 1, true, false, <…2> ]`,
     }
     const d = JSONOneliner.print(t.value, t.limit, true)
     expect(printData(d)).toBe(t.result)
@@ -77,8 +76,7 @@ describe('utils/JSONOneliner', () => {
         E: null,
       },
       limit: 30,
-      // TODO: result is longer then limit (33)
-      result: `{ A: 1, B: true, C: false, <…2> }`,
+      result: `{ A: 1, B: true, C, <…2> }`,
     }
     const d = JSONOneliner.print(t.value, t.limit, true)
     expect(printData(d)).toBe(t.result)
@@ -160,21 +158,19 @@ describe('utils/JSONOneliner', () => {
       steps: [
         {
           limit: 130,
-          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", { <…1> } ] }, "a" ] }`,
+          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ "c", <…1> ] }, "a" ] }`,
         },
         {
           limit: 120,
-          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b: [ <…2> ] }, "a" ] }`,
+          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { b }, "a" ] }`,
         },
         {
           limit: 110,
-          // TODO: result is longer than limit (113)
-          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, { <…1> }, <…1> ] }`,
+          result: `{ A: [ 1, 2, 3 ], B: "Lorem", C: { a: 1, b: 2 }, D: { a: [ 1, { c: 3 }, "a" ], b: 2 }, E: [ 1, <…2> ] }`,
         },
         {
           limit: 50,
-          // TODO: result is longer than limit (59)
-          result: `{ A: [ <…3> ], B: "Lorem", C: { <…2> }, D: { <…2> }, <…1> }`,
+          result: `{ A: [ 1, <…2> ], B: "Lorem", C: { <…2> }, <…2> }`,
         },
       ],
     }
