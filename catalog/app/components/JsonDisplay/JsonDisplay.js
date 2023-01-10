@@ -134,7 +134,7 @@ function PrimitiveEntry({ name, value, topLevel = true, classes }) {
 
 const SEP_LEN = 2
 const MORE_LEN = 4
-const CHAR_W = 8.6
+const CHAR_W = 8.55
 
 function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
   const classes = useStyles()
@@ -294,13 +294,20 @@ function JsonDisplayInner(props) {
   return <Component />
 }
 
-function useCurrentBreakpointWidth() {
-  const t = M.useTheme()
-  return ['sm', 'md', 'lg'].reduce(
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    (acc, b) => (M.useMediaQuery(t.breakpoints.up(b)) ? t.breakpoints.width(b) : acc),
-    320, // min supproted width
-  )
+function useCurrentBreakpointWidth(ref) {
+  const [width, setWidth] = React.useState(0)
+  React.useEffect(() => {
+    const resizeObserver = new window.ResizeObserver(() => {
+      if (ref.current) {
+        setWidth(ref.current.clientWidth)
+      }
+    })
+    if (ref.current) {
+      resizeObserver.observe(ref.current)
+    }
+    return () => ref.current && resizeObserver.unobserve(ref.current)
+  }, [])
+  return width
 }
 
 export default function JsonDisplay({
@@ -315,18 +322,18 @@ export default function JsonDisplay({
   className,
   ...props
 }) {
+  const ref = React.useRef(null)
   const classes = useStyles()
-  const currentBPWidth = useCurrentBreakpointWidth()
+  const currentBPWidth = useCurrentBreakpointWidth(ref)
   const computedKeys = React.useMemo(() => {
     if (showKeysWhenCollapsed === true) return Number.POSITIVE_INFINITY
     if (showKeysWhenCollapsed === false) return Number.POSITIVE_INFINITY
-    // 80 is the usual total padding
-    if (showKeysWhenCollapsed === 'auto') return (currentBPWidth - 80) / CHAR_W
+    if (showKeysWhenCollapsed === 'auto') return currentBPWidth / CHAR_W
     return showKeysWhenCollapsed
   }, [showKeysWhenCollapsed, currentBPWidth])
 
   return (
-    <M.Box className={cx(className, classes.root)} {...props}>
+    <M.Box className={cx(className, classes.root)} {...props} ref={ref}>
       <React.Suspense fallback={<WaitingJsonRender />}>
         <JsonDisplayInner
           {...{
