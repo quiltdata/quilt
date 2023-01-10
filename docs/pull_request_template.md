@@ -10,6 +10,6 @@
 - [ ] Documentation
     - [ ] [Python: Run `build.py`](../gendocs/build.py) for new docstrings
     - [ ] JavaScript: basic explanation and screenshot of new features
-    - [ ] Text targeting end users (including first run)
+    - [ ] Markdown somewhere in docs/**/*.md that explains the feature to end users (said .md files should be linked from SUMMARY.md so they appear on https://docs.quiltdata.com)
     - [ ] Text targeting developers (if relevant)
 - [ ] [Changelog](CHANGELOG.md) entry (skip if change is not significant to end users, e.g. docs only)
