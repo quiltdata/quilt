@@ -63,7 +63,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ISV() {
+function AwsMarketplace() {
   const classes = useStyles()
   return (
     <div>
@@ -84,13 +84,13 @@ function ISV() {
   )
 }
 
-export default function ISVWrapper() {
+export default function AwsMarketplaceWrapper() {
   // Layout injects TalkToUs provider into the component tree
-  // (required for ISV component)
+  // (required for AwsMarketplace component)
   return (
     <Layout>
       <MetaTitle />
-      <ISV />
+      <AwsMarketplace />
     </Layout>
   )
 }
