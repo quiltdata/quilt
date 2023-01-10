@@ -9,6 +9,48 @@ import TextField from 'components/Form/TextField'
 import log from 'utils/Logging'
 import * as validators from 'utils/validators'
 
+const useSubmitSuccessStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    background: fade('#2b2363', 0.98),
+    borderRadius: t.spacing(2),
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1,
+  },
+  icon: {
+    marginRight: t.spacing(1),
+    color: t.palette.success.main,
+  },
+  message: {
+    alignItems: 'center',
+    color: t.palette.success.main,
+    display: 'flex',
+    fontSize: '18px',
+    lineHeight: '22px',
+  },
+}))
+
+function SubmitSuccess() {
+  const classes = useSubmitSuccessStyles()
+  return (
+    <div className={classes.root}>
+      <div className={classes.message}>
+        <M.Icon className={classes.icon}>check_circle_outline</M.Icon>
+        <M.Typography className={classes.message}>
+          Thank you for your submission
+        </M.Typography>
+      </div>
+    </div>
+  )
+}
+
 const useSubmitErrorStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: '14px',
@@ -26,10 +68,11 @@ const useSubmitErrorStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface SubmitSpinnerProps {
+interface SubmitErrorProps {
   error: string
 }
-function SubmitError({ error }: SubmitSpinnerProps) {
+
+function SubmitError({ error }: SubmitErrorProps) {
   const classes = useSubmitErrorStyles()
   return (
     <div className={classes.root}>
@@ -63,6 +106,19 @@ function SubmitSpinner() {
       <M.CircularProgress size={48} variant="indeterminate" />
     </div>
   )
+}
+
+interface SubmitStatusProps {
+  submitting: boolean
+  error: string
+  success: boolean
+}
+
+function SubmitStatus({ submitting, error, success }: SubmitStatusProps) {
+  if (submitting) return <SubmitSpinner />
+  if (success) return <SubmitSuccess />
+  if (error) return <SubmitError error={error} />
+  return null
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -131,6 +187,7 @@ export default function Form({ className }: FormProps) {
   const onSubmit = React.useCallback(
     ({ firstName, lastName, companyName, companyEmail }) => {
       try {
+        return
         const data = new URLSearchParams()
         data.append('FNAME', firstName)
         data.append('LNAME', lastName)
@@ -154,6 +211,7 @@ export default function Form({ className }: FormProps) {
     <RF.Form onSubmit={onSubmit}>
       {({
         handleSubmit,
+        submitSucceeded,
         submitting,
         submitFailed,
         submitError,
@@ -220,11 +278,11 @@ export default function Form({ className }: FormProps) {
               }}
             />
           </div>
-          {submitting ? (
-            <SubmitSpinner />
-          ) : (
-            (!!error || !!submitError) && <SubmitError error={error || submitError} />
-          )}
+          <SubmitStatus
+            submitting={submitting}
+            error={error || submitError}
+            success={submitSucceeded}
+          />
           <M.Typography className={classes.note}>
             By submitting this form, I agree to receive email updates about Quilt
           </M.Typography>
