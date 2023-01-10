@@ -303,10 +303,7 @@ export function print(
         if (!isEnoughForRestKeys(items, index, memo.availableSpace)) {
           return reduceElement(memo, item.elements[0])
         }
-        return item.elements.reduce((acc, element) => {
-          const output = reduceElement(acc, element)
-          return output
-        }, memo)
+        return item.elements.reduce((acc, element) => reduceElement(acc, element), memo)
       }
 
       return memo
