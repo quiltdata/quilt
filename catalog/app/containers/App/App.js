@@ -71,10 +71,10 @@ const MAbout = RT.mkLazy(() => import('website/pages/About'), Placeholder)
 const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
 const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
+const AwsMarketplace = RT.mkLazy(() => import('website/pages/AwsMarketplace'), Placeholder)
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
 const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
-const ISV = RT.mkLazy(() => import('website/pages/Isv'), Placeholder)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
@@ -116,7 +116,7 @@ export default function App() {
         )}
         {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
         {cfg.mode === 'MARKETING' && (
-          <Route path="/aws-marketplace" component={ISV} exact />
+          <Route path="/aws-marketplace" component={AwsMarketplace} exact />
         )}
 
         {!cfg.disableNavigator && (
