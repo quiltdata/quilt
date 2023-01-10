@@ -297,16 +297,15 @@ function JsonDisplayInner(props) {
 function useCurrentBreakpointWidth(ref) {
   const [width, setWidth] = React.useState(0)
   React.useEffect(() => {
+    const wrapper = ref.current
+    if (!wrapper) return
     const resizeObserver = new window.ResizeObserver(() => {
-      if (ref.current) {
-        setWidth(ref.current.clientWidth)
-      }
+      if (!wrapper) return
+      setWidth(wrapper.clientWidth)
     })
-    if (ref.current) {
-      resizeObserver.observe(ref.current)
-    }
-    return () => ref.current && resizeObserver.unobserve(ref.current)
-  }, [])
+    resizeObserver.observe(ref.current)
+    return () => resizeObserver.unobserve(wrapper)
+  }, [ref])
   return width
 }
 
