@@ -7,6 +7,7 @@
 
 - [ ] Unit tests
 - [ ] Automated tests (e.g. Preflight)
+- [ ] Confirm this change does not bypass the SSO security model
 - [ ] Documentation
     - [ ] [Python: Run `build.py`](../gendocs/build.py) for new docstrings
     - [ ] JavaScript: basic explanation and screenshot of new features
