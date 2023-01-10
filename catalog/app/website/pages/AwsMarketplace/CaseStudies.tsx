@@ -7,7 +7,6 @@ import logoResilience from './logo-resilience.png'
 import logoTessera from './logo-tessera.png'
 
 const useCaseStudyStyles = M.makeStyles((t) => ({
-  root: {},
   logo: {
     display: 'block',
     margin: '0 auto 22px',
@@ -53,7 +52,7 @@ function CaseStudy({ className, title, content, link, logo }: CaseStudyProps) {
     [logo],
   )
   return (
-    <div className={cx(classes.root, className)}>
+    <div className={className}>
       <div className={classes.logo} style={backgroundImageStyle} />
       <M.Typography className={classes.title}>{title}</M.Typography>
       <M.Typography className={classes.content}>{content}</M.Typography>

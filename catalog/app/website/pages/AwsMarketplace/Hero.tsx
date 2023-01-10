@@ -52,11 +52,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface MainActionsProps {
+interface HeroProps {
   className?: string
 }
 
-export default function MainActions({ className }: MainActionsProps) {
+export default function Hero({ className }: HeroProps) {
   const classes = useStyles()
   const bookIntro = useTalkToUs({ src: 'awsmarketplace' })
   const bookDemo = useTalkToUs()
