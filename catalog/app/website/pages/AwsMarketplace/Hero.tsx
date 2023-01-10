@@ -95,13 +95,21 @@ export default function Hero({ className }: HeroProps) {
             chevron_right
           </M.Icon>
         </a>
-        <a className={classes.link} href="#" target="_blank">
+        <a
+          className={classes.link}
+          href="https://quilt-sales-public.s3.amazonaws.com/Quilt_One_Pager_ReInvent_2022.pdf"
+          target="_blank"
+        >
           One Pager (PDF)
           <M.Icon className={classes.linkIcon} color="inherit">
             chevron_right
           </M.Icon>
         </a>
-        <a className={classes.link} href="#" target="_blank">
+        <a
+          className={classes.link}
+          href="https://aws.amazon.com/marketplace/seller-profile?id=865bcbb9-ae88-4eed-8cfe-c58948910e53"
+          target="_blank"
+        >
           Marketplace Listing
           <M.Icon className={classes.linkIcon} color="inherit">
             chevron_right
