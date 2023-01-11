@@ -13,7 +13,7 @@ const useCaseStudyStyles = M.makeStyles((t) => ({
     height: '64px',
     background: '50% no-repeat',
   },
-  title: {
+  heading: {
     color: t.palette.text.primary,
     fontSize: '20px',
     lineHeight: '28px',
@@ -39,14 +39,14 @@ const useCaseStudyStyles = M.makeStyles((t) => ({
 }))
 
 interface CaseStudyProps {
-  className?: string
   children: React.ReactNode
+  className?: string
+  heading: React.ReactNode
   link: string
   logo: string
-  title: string
 }
 
-function CaseStudy({ className, title, children, link, logo }: CaseStudyProps) {
+function CaseStudy({ children, className, heading, link, logo }: CaseStudyProps) {
   const classes = useCaseStudyStyles()
   const backgroundImageStyle = React.useMemo(
     () => ({
@@ -57,7 +57,7 @@ function CaseStudy({ className, title, children, link, logo }: CaseStudyProps) {
   return (
     <div className={className}>
       <div className={classes.logo} style={backgroundImageStyle} />
-      <M.Typography className={classes.title}>{title}</M.Typography>
+      <M.Typography className={classes.heading}>{heading}</M.Typography>
       <M.Typography className={classes.content}>{children}</M.Typography>
       <p className={classes.readMore}>
         <a className={classes.link} href={link} target="_blank">
@@ -101,9 +101,9 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
       <M.Container maxWidth="xl">
         <div className={classes.columns}>
           <CaseStudy
-            title="Improving Data Management with Quilt and NextFlow"
-            logo={logoTessera}
+            heading="Improving Data Management with Quilt and NextFlow"
             link="https://quiltdata.com"
+            logo={logoTessera}
           >
             Tessera Therapeutics is a pioneer in gene writing, using technology to insert
             messages into genomes to treat diseases. The company needed to manage and
@@ -114,9 +114,9 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
             discoveries to market"
           </CaseStudy>
           <CaseStudy
-            title="Accelerating Data Access and Collaboration with DataSync"
-            logo={logoResilience}
+            heading="Accelerating Data Access and Collaboration with DataSync"
             link="https://quiltdata.com"
+            logo={logoResilience}
           >
             National Resilience, Inc. (Resilience) is a manufacturing and technology
             company that uses Quilt Data to manage and share data from its research sites,
@@ -128,9 +128,9 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
             manufacturing processes.
           </CaseStudy>
           <CaseStudy
-            title="Managing and Accessing Data for Single Cell Genomics Research"
-            logo={logoCelsius}
+            heading="Managing and Accessing Data for Single Cell Genomics Research"
             link="https://quiltdata.com"
+            logo={logoCelsius}
           >
             Celsius Therapeutics is using Quilt Data to manage and access data for single
             cell genomics research in the areas of cancer and autoimmune disease. Quilt

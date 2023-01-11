@@ -12,7 +12,7 @@ const useFeatureStyles = M.makeStyles((t) => ({
     background: `50% 0 / 78px 78px no-repeat`,
     padding: '100px 22px',
   },
-  title: {
+  heading: {
     textAlign: 'center',
     fontSize: '23px',
     lineHeight: '32px',
@@ -27,16 +27,16 @@ const useFeatureStyles = M.makeStyles((t) => ({
 interface FeatureProps {
   children: React.ReactNode
   className?: string
+  heading: string
   logo: string
-  title: string
 }
 
-function Feature({ children, className, logo, title }: FeatureProps) {
+function Feature({ children, className, heading, logo }: FeatureProps) {
   const classes = useFeatureStyles()
   const imgStyles = React.useMemo(() => ({ backgroundImage: `url("${logo}")` }), [logo])
   return (
     <div className={cx(classes.root, className)} style={imgStyles}>
-      <M.Typography className={classes.title}>{title}</M.Typography>
+      <M.Typography className={classes.heading}>{heading}</M.Typography>
       <M.Typography className={classes.content}>{children}</M.Typography>
     </div>
   )
@@ -59,14 +59,14 @@ export default function Features({ className }: FeaturesProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <Feature logo={dataVersionControl} title="Dataset Version Control">
+      <Feature heading="Dataset Version Control" logo={dataVersionControl}>
         Quilt Data provides dataset immutability by allowing users to create and share
         datasets that are sealed and cryptographically verifiable, ensuring that the data
         cannot be altered after it has been shared. This helps to maintain the integrity
         and reliability of the data and ensures that users can trust the data
         they are working with.
       </Feature>
-      <Feature logo={dataCommons} title="Data Commons">
+      <Feature heading="Data Commons" logo={dataCommons}>
         Quilt Data provides data cataloguing by allowing users to create and share data
         packages that include the full data context (metadata, charts, documentation,
         lineage) and are findable via the Quilt web catalog. This helps users to easily
@@ -74,7 +74,7 @@ export default function Features({ className }: FeaturesProps) {
         data. The Quilt web catalog also allows users to search for datasets using
         keywords, making it easy to find the data they need.
       </Feature>
-      <Feature logo={visualizations} title="Visualizations">
+      <Feature heading="Visualizations" logo={visualizations}>
         Quilt Data provides visualization capabilities that allow users to view and
         analyze their data in a variety of formats. These visualizations can be customized
         and shared with others, helping users to understand and communicate the insights
