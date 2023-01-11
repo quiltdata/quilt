@@ -77,11 +77,8 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   const [workflowExpanded, setWorkflowExpanded] = React.useState(
     preferences.workflows.expanded,
   )
-  const onMetaToggle = React.useCallback(() => setMetaExpanded((e) => Number(!e)), [])
-  const onWorkflowToggle = React.useCallback(
-    () => setWorkflowExpanded((e) => Number(!e)),
-    [],
-  )
+  const onMetaToggle = React.useCallback(() => setMetaExpanded(R.not), [])
+  const onWorkflowToggle = React.useCallback(() => setWorkflowExpanded(R.not), [])
   return (
     <Section icon="list" heading="Metadata" defaultExpanded {...props}>
       <div className={classes.table} data-testid="package-meta">
