@@ -73,16 +73,13 @@ interface PackageMetaProps extends Partial<SectionProps> {
 function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   const classes = usePackageMetaStyles()
   const { message, user_meta: userMeta, workflow } = meta
-  const [expanded, setExpanded] = React.useState({
-    meta: preferences.userMeta.expanded,
-    workflow: preferences.workflows.expanded,
-  })
-  const onMetaToggle = React.useCallback(
-    () => setExpanded((e) => R.assoc('meta', Number(!e.meta), e)),
-    [],
+  const [metaExpanded, setMetaExpanded] = React.useState(preferences.userMeta.expanded)
+  const [workflowExpanded, setWorkflowExpanded] = React.useState(
+    preferences.workflows.expanded,
   )
+  const onMetaToggle = React.useCallback(() => setMetaExpanded((e) => Number(!e)), [])
   const onWorkflowToggle = React.useCallback(
-    () => setExpanded((e) => R.assoc('workflow', Number(!e.workflow), e)),
+    () => setWorkflowExpanded((e) => Number(!e)),
     [],
   )
   return (
@@ -109,12 +106,12 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
             </dt>
             <dd
               className={cx(classes.valueCell, {
-                [classes.cellExpanded]: expanded.meta,
+                [classes.cellExpanded]: metaExpanded,
               })}
             >
               {/* @ts-expect-error */}
               <JsonDisplay
-                defaultExpanded={expanded.meta}
+                defaultExpanded={metaExpanded}
                 value={userMeta}
                 onToggle={onMetaToggle}
               />
@@ -132,12 +129,12 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
             </dt>
             <dd
               className={cx(classes.valueCell, {
-                [classes.cellExpanded]: expanded.workflow,
+                [classes.cellExpanded]: workflowExpanded,
               })}
             >
               {/* @ts-expect-error */}
               <JsonDisplay
-                defaultExpanded={expanded.workflow}
+                defaultExpanded={workflowExpanded}
                 value={workflow}
                 onToggle={onWorkflowToggle}
               />
