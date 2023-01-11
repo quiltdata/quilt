@@ -18,6 +18,8 @@ interface FieldProps {
   validating?: boolean
 }
 
+export type TextFieldProps = FieldProps & M.TextFieldProps
+
 export default function Field({
   InputLabelProps,
   helperText,
@@ -26,7 +28,7 @@ export default function Field({
   errors,
   meta,
   ...rest
-}: FieldProps & M.TextFieldProps) {
+}: TextFieldProps) {
   const inputClasses = useFieldInputStyles()
   const readyForValidation = (input.value && meta.modified) || meta.submitFailed
   const errorCode = readyForValidation && meta.error

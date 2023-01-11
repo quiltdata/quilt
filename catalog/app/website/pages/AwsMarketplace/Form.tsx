@@ -5,9 +5,55 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import TextField from 'components/Form/TextField'
+import TextField, { TextFieldProps } from 'components/Form/TextField'
 import log from 'utils/Logging'
 import * as validators from 'utils/validators'
+
+const useInputStyles = M.makeStyles((t) => ({
+  root: {
+    background: fade(t.palette.common.white, 0.1),
+    borderRadius: t.shape.borderRadius,
+    padding: t.spacing(0, 1, 0, 0),
+    transition: `background-color 200ms`,
+    width: '100%',
+    '&:hover': {
+      background: fade(t.palette.common.white, 0.2),
+    },
+  },
+  underline: {
+    '&:before': {
+      borderColor: fade(t.palette.common.white, 0.3),
+    },
+    '&:hover:before': {
+      borderColor: fade(t.palette.common.white, 0.5),
+    },
+  },
+  input: {
+    paddingLeft: t.spacing(1),
+    paddingTop: 8,
+    paddingBottom: 9,
+    textOverflow: 'ellipsis',
+  },
+}))
+
+const useHelperTextStyles = M.makeStyles((t) => ({
+  root: {
+    marginLeft: t.spacing(1),
+  },
+}))
+
+function Input(props: TextFieldProps) {
+  const inputClasses = useInputStyles()
+  const helperTextClasses = useHelperTextStyles()
+  return (
+    <TextField
+      variant="filled"
+      InputProps={{ classes: inputClasses }}
+      FormHelperTextProps={{ classes: helperTextClasses }}
+      {...props}
+    />
+  )
+}
 
 const API_ENDPOINT =
   'https://quiltdata.us12.list-manage.com/subscribe/post?u=d1897bee98443ff9c75985a98&id=8730da7955&f_id=0012bfe0f0'
@@ -168,16 +214,6 @@ const useStyles = M.makeStyles((t) => ({
       marginLeft: t.spacing(1),
     },
   },
-  inputRoot: {
-    background: t.palette.common.white,
-    border: '2px solid #9ba7b6',
-    borderRadius: '7px',
-    color: t.palette.getContrastText(t.palette.common.white),
-    fontSize: '16px',
-    lineHeight: '32px',
-    padding: '0 12px',
-    width: '100%',
-  },
 }))
 
 interface FormProps {
@@ -186,13 +222,6 @@ interface FormProps {
 
 export default function Form({ className }: FormProps) {
   const classes = useStyles()
-  const inputClasses = React.useMemo(
-    () => ({
-      root: classes.inputRoot,
-    }),
-    [classes],
-  )
-
   const onSubmit = React.useCallback(
     ({ firstName, lastName, companyName, companyEmail }) => {
       try {
@@ -233,24 +262,22 @@ export default function Form({ className }: FormProps) {
           </M.Typography>
           <div className={classes.group}>
             <RF.Field
-              InputProps={{ classes: inputClasses }}
               className={classes.input}
-              component={TextField}
+              component={Input}
+              disabled={submitting}
               name="firstName"
               placeholder="First Name*"
-              disabled={submitting}
               validate={validators.required as FF.FieldValidator<any>}
               errors={{
                 required: 'First name is required',
               }}
             />
             <RF.Field
-              InputProps={{ classes: inputClasses }}
               className={classes.input}
-              component={TextField}
+              component={Input}
+              disabled={submitting}
               name="lastName"
               placeholder="Last Name*"
-              disabled={submitting}
               validate={validators.required as FF.FieldValidator<any>}
               errors={{
                 required: 'Last name is required',
@@ -259,9 +286,8 @@ export default function Form({ className }: FormProps) {
           </div>
           <div className={classes.group}>
             <RF.Field
-              InputProps={{ classes: inputClasses }}
+              component={Input}
               className={classes.input}
-              component={TextField}
               name="companyName"
               placeholder="Company Name*"
               disabled={submitting}
@@ -273,12 +299,11 @@ export default function Form({ className }: FormProps) {
           </div>
           <div className={classes.group}>
             <RF.Field
-              InputProps={{ classes: inputClasses }}
               className={classes.input}
-              component={TextField}
+              component={Input}
+              disabled={submitting}
               name="companyEmail"
               placeholder="Company Email*"
-              disabled={submitting}
               validate={validators.required as FF.FieldValidator<any>}
               errors={{
                 required: 'Company email is required',
