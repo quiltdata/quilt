@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { useTalkToUs } from 'components/TalkToUs'
+import ChevronLink from 'website/components/ChevronLink'
 
 import logos from './logos.svg'
 
@@ -35,20 +36,11 @@ const useStyles = M.makeStyles((t) => ({
     textAlign: 'center',
   },
   link: {
-    color: t.palette.text.primary,
     fontSize: '16px',
     lineHeight: '32px',
-    '&:hover $linkIcon': {
-      left: '2px',
-    },
     '& + &': {
       marginLeft: t.spacing(1),
     },
-  },
-  linkIcon: {
-    color: t.palette.primary.main,
-    position: 'relative',
-    verticalAlign: 'middle',
   },
 }))
 
@@ -89,32 +81,27 @@ export default function Hero({ className }: HeroProps) {
         </M.Button>
       </div>
       <div className={classes.links}>
-        <a className={classes.link} href="mailto:sales@quiltdata.io">
+        <ChevronLink
+          className={classes.link}
+          href="mailto:sales@quiltdata.io"
+          target="_blank"
+        >
           Email us
-          <M.Icon className={classes.linkIcon} color="inherit">
-            chevron_right
-          </M.Icon>
-        </a>
-        <a
+        </ChevronLink>
+        <ChevronLink
           className={classes.link}
           href="https://quilt-sales-public.s3.amazonaws.com/Quilt_One_Pager_ReInvent_2022.pdf"
           target="_blank"
         >
           One Pager (PDF)
-          <M.Icon className={classes.linkIcon} color="inherit">
-            chevron_right
-          </M.Icon>
-        </a>
-        <a
+        </ChevronLink>
+        <ChevronLink
           className={classes.link}
           href="https://aws.amazon.com/marketplace/seller-profile?id=865bcbb9-ae88-4eed-8cfe-c58948910e53"
           target="_blank"
         >
           Marketplace Listing
-          <M.Icon className={classes.linkIcon} color="inherit">
-            chevron_right
-          </M.Icon>
-        </a>
+        </ChevronLink>
       </div>
     </div>
   )
