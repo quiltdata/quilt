@@ -111,7 +111,7 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
             >
               {/* @ts-expect-error */}
               <JsonDisplay
-                defaultExpanded={metaExpanded}
+                defaultExpanded={preferences.userMeta.expanded}
                 value={userMeta}
                 onToggle={onMetaToggle}
               />
@@ -134,7 +134,7 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
             >
               {/* @ts-expect-error */}
               <JsonDisplay
-                defaultExpanded={workflowExpanded}
+                defaultExpanded={preferences.workflows.expanded}
                 value={workflow}
                 onToggle={onWorkflowToggle}
               />

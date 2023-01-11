@@ -164,11 +164,8 @@ function CompoundEntry({
   const [stateExpanded, setExpanded] = React.useState(!!defaultExpanded)
   const toggle = React.useCallback(() => {
     const newStateExpanded = !stateExpanded
-    if (onToggle) {
-      onToggle(newStateExpanded)
-    } else {
-      setExpanded(newStateExpanded)
-    }
+    setExpanded(newStateExpanded)
+    if (onToggle) onToggle(newStateExpanded)
   }, [onToggle, stateExpanded])
   const empty = !entries.length
   const expanded = !empty && stateExpanded
