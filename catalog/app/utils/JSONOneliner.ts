@@ -300,7 +300,7 @@ export function print(
       if (isSyntaxItem(item)) {
         const output = reduceElement(memo, item)
         const more = getFirstLevelMoreItems(items, index)
-        // if we have enough space for this item and More element
+        // if we have enough space for _this item_ and More element
         // then show this item
         // otherwise show More element and finish
         return isEnoughForBraces(items, more, output.availableSpace)
@@ -312,17 +312,17 @@ export function print(
       }
 
       if (isSyntaxGroup(item)) {
-        if (!isEnoughForRestKeys(items, index, memo.availableSpace)) {
-          const output = reduceElement(memo, item.elements[0])
-          const more = getFirstLevelMoreItems(items, index, true)
-          return isEnoughForBraces(items, more, output.availableSpace)
-            ? output
-            : {
-                ...wrapBracesOnFirstLevel(memo, items, more),
-                done: true,
-              }
+        if (isEnoughForRestKeys(items, index, memo.availableSpace)) {
+          return item.elements.reduce((acc, element) => reduceElement(acc, element), memo)
         }
-        return item.elements.reduce((acc, element) => reduceElement(acc, element), memo)
+        const output = reduceElement(memo, item.elements[0])
+        const more = getFirstLevelMoreItems(items, index, true)
+        return isEnoughForBraces(items, more, output.availableSpace)
+          ? output
+          : {
+              ...wrapBracesOnFirstLevel(memo, items, more),
+              done: true,
+            }
       }
 
       return memo
