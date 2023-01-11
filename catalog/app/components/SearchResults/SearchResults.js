@@ -373,8 +373,8 @@ function Meta({ meta }) {
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
-      <JsonDisplay defaultExpanded={1} value={meta} />
+    <PreviewBox expanded={expanded} onExpand={onExpand}>
+      <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
 }
