@@ -249,6 +249,11 @@ function getSecondLevelMoreItems(item: SyntaxItemObject): SyntaxItem {
   }
 }
 
+/**
+ * Is it enough space to fit
+ * braces (first and last items)
+ * and More element
+ */
 function isEnoughForBraces(
   items: SyntaxPart[],
   more: SyntaxItem,
@@ -295,27 +300,27 @@ export function print(
       if (isSyntaxItem(item)) {
         const output = reduceElement(memo, item)
         const more = getFirstLevelMoreItems(items, index)
-        if (isEnoughForBraces(items, more, output.availableSpace)) {
-          return output
-        }
-        return {
-          ...wrapBracesOnFirstLevel(memo, items, more),
-          done: true,
-        }
+        // if we have enough space for this item and More element
+        // then show this item
+        // otherwise show More element and finish
+        return isEnoughForBraces(items, more, output.availableSpace)
+          ? output
+          : {
+              ...wrapBracesOnFirstLevel(memo, items, more),
+              done: true,
+            }
       }
 
       if (isSyntaxGroup(item)) {
         if (!isEnoughForRestKeys(items, index, memo.availableSpace)) {
           const output = reduceElement(memo, item.elements[0])
           const more = getFirstLevelMoreItems(items, index, true)
-          if (isEnoughForBraces(items, more, output.availableSpace)) {
-            return output
-          } else {
-            return {
-              ...wrapBracesOnFirstLevel(memo, items, more),
-              done: true,
-            }
-          }
+          return isEnoughForBraces(items, more, output.availableSpace)
+            ? output
+            : {
+                ...wrapBracesOnFirstLevel(memo, items, more),
+                done: true,
+              }
         }
         return item.elements.reduce((acc, element) => reduceElement(acc, element), memo)
       }
