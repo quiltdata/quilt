@@ -49,8 +49,8 @@ unless **all** of the following conditions are met:
 1. A `Source VPN` matches either `vpc-LOCAL` or `vpc-VPN`.
 2. A tag attached to the principal making the request with the key
 `aws:PrincipalTag/NetworkRestrictedExempt` has the value `true`
-3. The request must come from any IP **except** the range `192.0.2.0
-- 192.0.2.255` and `203.0.113.0 - 203.0.113.255`
+3. The request must come from any IP **except** the range 
+`192.0.2.0 - 192.0.2.255` and `203.0.113.0 - 203.0.113.255`
 4. The call to the S3 bucket is beng made by an AWS [service
 principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html#principal-services)
 (the idenitifer for a service, `"aws:PrincipalIsAWSService"`), such
