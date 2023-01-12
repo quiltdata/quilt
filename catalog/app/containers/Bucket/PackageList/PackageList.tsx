@@ -235,6 +235,30 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
   )
 }
 
+function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) {
+  return jsonPaths.reduce(
+    (acc, jPath) =>
+      jsonpath
+        .nodes(obj, jPath)
+        .reduce((memo, { path, value }) => R.assocPath(path.slice(1), value, memo), acc),
+    {},
+  )
+}
+
+function usePackageDescription(
+  name: string,
+): BucketPreferences.PackagePreferences | null {
+  const { preferences } = BucketPreferences.use()
+  return React.useMemo(() => {
+    if (!preferences?.ui.package_description) return null
+    return (
+      Object.entries(preferences?.ui.package_description)
+        .reverse() // The last found config wins
+        .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
+    )
+  }, [name, preferences])
+}
+
 interface SelectiveMeta {
   message: string | null
   userMeta: JsonRecord | null
@@ -242,29 +266,21 @@ interface SelectiveMeta {
 
 function useSelectiveMeta(name: string, revision: SelectiveMeta | null) {
   // TODO: move visible meta calculation to the graphql
-  const { preferences } = BucketPreferences.use()
+  const packageDescription = usePackageDescription(name)
   return React.useMemo(() => {
     const output: { message: string | null; userMeta: JsonRecord | null } = {
       message: null,
       userMeta: null,
     }
     try {
-      if (!preferences?.ui.package_description) return null
-      const { message, userMeta } =
-        Object.entries(preferences?.ui.package_description)
-          .reverse() // The last found config wins
-          .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
-      if (message && revision?.message) output.message = revision.message
-      if (userMeta && revision?.userMeta) {
-        const selectiveUserMeta = userMeta.reduce(
-          (acc, jPath) =>
-            jsonpath
-              .nodes(revision.userMeta, jPath)
-              .reduce(
-                (memo, { path, value }) => R.assocPath(path.slice(1), value, memo),
-                acc,
-              ),
-          {},
+      if (!packageDescription) return null
+      if (packageDescription.message && revision?.message) {
+        output.message = revision.message
+      }
+      if (packageDescription.userMeta && revision?.userMeta) {
+        const selectiveUserMeta = filterObjectByJsonPaths(
+          revision.userMeta,
+          packageDescription.userMeta,
         )
         if (!R.isEmpty(selectiveUserMeta)) {
           output.userMeta = selectiveUserMeta
@@ -276,7 +292,7 @@ function useSelectiveMeta(name: string, revision: SelectiveMeta | null) {
       console.error(error)
       return null
     }
-  }, [name, preferences, revision])
+  }, [packageDescription, revision])
 }
 
 const usePackageStyles = M.makeStyles((t) => ({
