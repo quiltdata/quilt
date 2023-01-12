@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as Model from 'model'
@@ -205,7 +206,7 @@ const useRevisionMetaStyles = M.makeStyles((t) => ({
     borderTop: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2),
     ...t.typography.body2,
-    color: t.palette.text.secondary,
+    color: t.palette.text.primary,
   },
   section: {
     '& + &': {
@@ -220,7 +221,7 @@ const useRevisionMetaStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionMetaProps {
-  sections: (string | string[])[]
+  sections: { message: string | null; userMeta: JsonRecord | null }
 }
 
 function RevisionMeta({ sections }: RevisionMetaProps) {
@@ -228,25 +229,20 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
 
   return (
     <div className={classes.root}>
-      {sections.map((section, i) => (
-        <div className={classes.section} key={`${i}+${section}`}>
-          {Array.isArray(section)
-            ? section.map((label, j) => (
-                <M.Chip
-                  className={classes.tag}
-                  label={label}
-                  key={`${j}+${label}`}
-                  size="small"
-                  variant="outlined"
-                />
-              ))
-            : section}
+      {sections.message && <div className={classes.section}>{sections.message}</div>}
+      {sections.userMeta && (
+        <div className={classes.section}>
+          {Object.entries(sections.userMeta).map(([name, value]) => (
+            /* @ts-expect-error */
+            <JsonDisplay key={`user-meta-section-${name}`} name={name} value={value} />
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
 
+// TODO: move it to RevisionMeta
 function usePackageMeta(
   name: string,
   revision: { message: string | null; userMeta: JsonRecord | null } | null,
@@ -254,21 +250,25 @@ function usePackageMeta(
   // TODO: move visible meta calculation to the graphql
   const { preferences } = BucketPreferences.use()
   return React.useMemo(() => {
-    const output: (string | string[])[] = []
+    const output: { message: string | null; userMeta: JsonRecord | null } = {
+      message: null,
+      userMeta: null,
+    }
     try {
       if (!preferences?.ui.package_description) return output
       const { message, userMeta } =
         Object.entries(preferences?.ui.package_description)
           .reverse() // The last found config wins
           .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
-      if (message && revision?.message) output.push(revision.message)
+      if (message && revision?.message) output.message = revision.message
       if (userMeta && revision?.userMeta)
         userMeta.forEach((jPath) => {
-          const section = jsonpath.value(revision.userMeta, jPath)
-          if (typeof section === 'string') output.push(section)
-          if (Array.isArray(section)) output.push(section.filter(R.is(String)))
+          const results = jsonpath.nodes(revision.userMeta, jPath)
+          results.forEach(({ path, value }) => {
+            output.userMeta = R.assocPath(path.slice(1), value, output.userMeta || {})
+          })
         })
-      return output
+      return output.message || output.userMeta ? output : null
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error)
@@ -360,7 +360,7 @@ function Package({
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      {!!meta && !!meta.length && <RevisionMeta sections={meta} />}
+      {!!meta && <RevisionMeta sections={meta} />}
     </M.Paper>
   )
 }
