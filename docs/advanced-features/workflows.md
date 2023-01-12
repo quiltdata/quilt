@@ -8,6 +8,8 @@ A Quilt *workflow* is a quality gate that you set to ensure the quality of your
 data and metadata *before* it becomes a Quilt package. You can create as many
 workflows as you like to accommodate all of your data creation patterns.
 
+> By default, workflows are **required**.
+
 ## On data quality
 Under the hood, Quilt workflows use [JSON Schema](https://json-schema.org) to check that
 package metadata have the right *shape*. Metadata shape determines which keys are
@@ -31,14 +33,14 @@ and tribal knowledge is lost).
 * Ensure that labels are correct and drawn from a controlled vocabulary (e.g.
 ensure that the only labels in a package of images are either "bird" or "not bird";
 avoid data entry errors like "birb")
-* Ensure that users provide a README.md for every new package
+* Ensure that users provide a `README.md` for every new package
 * Ensure that included files are non-empty
 * Ensure that every new package (or dataset) has enough labels so that it can be
 reused (e.g. Date, Creator, Type, etc.)
 
 ## Get started
 To get started, create a configuration file in your Quilt S3 bucket
-at `s3://BUCKET/.quilt/workflows/config.yml`.
+at `s3://BUCKET-NAME/.quilt/workflows/config.yml`.
 
 Here's an example:
 ```yaml
@@ -65,11 +67,11 @@ workflows:
         packages: <%= username %>/production
 schemas:
   superheroes:
-    url: s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json
+    url: s3://quilt-dev-metadata/schemas/superheroes.schema.json
   top-secret:
-    url: s3://quilt-sergey-dev-metadata/schemas/top-secret.schema.json
+    url: s3://quilt-dev-metadata/schemas/top-secret.schema.json
   validate-secrets:
-    url: s3://quilt-sergey-dev-metadata/schemas/validate-secrets.schema.json
+    url: s3://quilt-dev-metadata/schemas/validate-secrets.schema.json
 ```
 
 With the above configuration, you must specify a workflow before you can push:
@@ -78,7 +80,7 @@ With the above configuration, you must specify a workflow before you can push:
 <!--pytest.mark.xfail-->
 ```python
 import quilt3
-quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata')
+quilt3.Package().push('test/package', registry='s3://quilt-dev-metadata')
 
 # QuiltException: Workflow required, but none specified.
 ```
@@ -88,7 +90,7 @@ Let's try with the `workflow=` parameter:
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
 ```python
-quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='alpha')
+quilt3.Package().push('test/package', registry='s3://quilt-dev-metadata', workflow='alpha')
 
 # QuiltException: Commit message is required by workflow, but none was provided.
 ```
@@ -100,11 +102,11 @@ Here's how we can pass the workflow:
 ```python
 quilt3.Package().push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         message='added info about UFO',
         workflow='alpha')
 
-# Package test/package@bc9a838 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@bc9a838 pushed to s3://quilt-dev-metadata
 ```
 
 Now let's push with `workflow='beta'`:
@@ -114,7 +116,7 @@ Now let's push with `workflow='beta'`:
 ```python
 quilt3.Package().push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         workflow='beta')
 
 # QuiltException: Metadata failed validation: 'superhero' is a required property.
@@ -124,7 +126,7 @@ We encountered another exception because the `beta` workflow specifies
 `metadata_schema: superheroes`.
 Therefore, the `test/package` metadata must validate against the
 [JSON Schema](https://json-schema.org/) at
-`s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json`:
+`s3://quilt-dev-metadata/schemas/superheroes.schema.json`:
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -150,10 +152,10 @@ Note that `superhero` is a required property:
 ```python
 quilt3.Package().set_meta({'superhero': 'Batman'}).push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         workflow='beta')
 
-# Package test/package@c4691d8 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@c4691d8 pushed to s3://quilt-dev-metadata
 ```
 
 For the `gamma` workflow, both `is_message_required: true` and `metadata_schema`
@@ -164,31 +166,32 @@ are set, so both `message` and package metadata are validated:
 ```python
 quilt3.Package().push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         workflow='gamma')
 
 # QuiltException: Metadata failed validation: 'answer' is a required property.
 
 quilt3.Package().set_meta({'answer': 42}).push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         workflow='gamma')
 
 # QuiltException: Commit message is required by workflow, but none was provided.
 
 quilt3.Package().set_meta({'answer': 42}).push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         message='at last all is set up',
         workflow='gamma')
 
-# Package test/package@6331508 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@6331508 pushed to s3://quilt-dev-metadata
 ```
 
 ## Bypassing workflow validation and setting a default workflow
-If you wish for your users to be able to skip workflows altogether,
-you can make workflow validation optional with `is_workflow_required:
-false` at the top-level in your `config.yml` file:
+As stated above, by default workflows are **required**. If you wish
+for your users to be able to skip workflow validation altogether, you can
+make workflow validation optional with `is_workflow_required: False`
+at the top-level in your `config.yml` file:
 
 ```yaml
 version:
@@ -204,13 +207,15 @@ Then specify `workflow=None` in any `Package.push()` API calls:
 ```python
 quilt3.Package().push(
         'test/package',
-        registry='s3://quilt-sergey-dev-metadata',
+        registry='s3://quilt-dev-metadata',
         workflow=None)
 
-# Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
+# Package test/package@06b2815 pushed to s3://quilt-dev-metadata
 ```
 
-A `default_workflow` value can also be set at the top-level in your
+Or if using the Quilt CLI, use the argument `--workflow ''`.
+
+In addition, a `default_workflow` value can also be set at the top-level in your
 `config.yml` file:
 
 ```yaml
@@ -225,11 +230,11 @@ workflows:
     metadata_schema: experiment-universal
 schemas:
   experiment-universal:
-    url: s3://quilt-sergey-dev-metadata/.quilt/workflows/schemas/experiment-universal.json
+    url: s3://quilt-dev-metadata/.quilt/workflows/schemas/experiment-universal.json
 ```
 
 This specifies which workflow will be used (`experiment`) if a
-`workflow` parameter in the `Package.push()` API call is not provided.
+`workflow` parameter in the `Package.push()` API call or CLI is not provided.
 
 ## JSON Schema
 - Quilt workflows support the [Draft 7 JSON Schema](https://json-schema.org/specification-links.html#draft-7).
