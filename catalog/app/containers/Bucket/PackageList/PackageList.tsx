@@ -206,33 +206,27 @@ const useRevisionMetaStyles = M.makeStyles((t) => ({
     borderTop: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2),
     ...t.typography.body2,
-    color: t.palette.text.primary,
   },
   section: {
     '& + &': {
       marginTop: t.spacing(1),
     },
   },
-  tag: {
-    '& + &': {
-      marginLeft: t.spacing(1),
-    },
-  },
 }))
 
 interface RevisionMetaProps {
-  sections: { message: string | null; userMeta: JsonRecord | null }
+  revision: SelectiveMeta
 }
 
-function RevisionMeta({ sections }: RevisionMetaProps) {
+function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
 
   return (
     <div className={classes.root}>
-      {sections.message && <div className={classes.section}>{sections.message}</div>}
-      {sections.userMeta && (
+      {revision.message && <div className={classes.section}>{revision.message}</div>}
+      {revision.userMeta && (
         <div className={classes.section}>
-          {Object.entries(sections.userMeta).map(([name, value]) => (
+          {Object.entries(revision.userMeta).map(([name, value]) => (
             /* @ts-expect-error */
             <JsonDisplay key={`user-meta-section-${name}`} name={name} value={value} />
           ))}
@@ -242,11 +236,12 @@ function RevisionMeta({ sections }: RevisionMetaProps) {
   )
 }
 
-// TODO: move it to RevisionMeta
-function usePackageMeta(
-  name: string,
-  revision: { message: string | null; userMeta: JsonRecord | null } | null,
-) {
+interface SelectiveMeta {
+  message: string | null
+  userMeta: JsonRecord | null
+}
+
+function useSelectiveMeta(name: string, revision: SelectiveMeta | null) {
   // TODO: move visible meta calculation to the graphql
   const { preferences } = BucketPreferences.use()
   return React.useMemo(() => {
@@ -272,7 +267,7 @@ function usePackageMeta(
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error)
-      return output
+      return null
     }
   }, [name, preferences, revision])
 }
@@ -338,7 +333,7 @@ function Package({
 }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const meta = usePackageMeta(name, revision)
+  const selectiveMeta = useSelectiveMeta(name, revision)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
@@ -360,7 +355,7 @@ function Package({
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      {!!meta && <RevisionMeta sections={meta} />}
+      {!!selectiveMeta && <RevisionMeta revision={selectiveMeta} />}
     </M.Paper>
   )
 }
