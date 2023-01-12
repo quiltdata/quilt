@@ -200,7 +200,8 @@ version:
 is_workflow_required: False
 ```
 
-Then specify `workflow=None` in any `Package.push()` API calls:
+Now your users can specify `workflow=None` in the Python API (or
+`--workflow ''` in the CLI) when they push packages.
 
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
@@ -212,8 +213,6 @@ quilt3.Package().push(
 
 # Package test/package@06b2815 pushed to s3://quilt-dev-metadata
 ```
-
-Or if using the Quilt CLI, use the argument `--workflow ''`.
 
 In addition, a `default_workflow` value can also be set at the top-level in your
 `config.yml` file:
