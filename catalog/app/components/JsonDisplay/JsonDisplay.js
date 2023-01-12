@@ -166,13 +166,19 @@ function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
             const prev = data.parts[index - 1]
             const next = data.parts[index + 1]
             const braceType = JSONOneliner.Types.Brace
-            const value =
-              (prev && prev.type === braceType) || (next && next.type === braceType)
+            // Collapse spaces in `[]` and `{}`
+            const itemValue =
+              (prev?.type === braceType &&
+                prev?.value?.endsWith(' ') &&
+                item?.value?.startsWith(' ')) ||
+              (next?.type === braceType &&
+                next?.value?.startsWith(' ') &&
+                item?.value?.endsWith(' '))
                 ? item.value.trim()
                 : item.value
             return (
               <span className={classes.brace} key={key}>
-                {value}
+                {itemValue}
               </span>
             )
           case JSONOneliner.Types.String:
