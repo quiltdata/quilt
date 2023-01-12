@@ -481,7 +481,7 @@ function DirHit({
     bucket,
   },
 }) {
-  const handle = { bucket, key: path }
+  const handle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
   return (
     <Section
       data-testid="search-hit"
