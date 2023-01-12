@@ -8,6 +8,7 @@ import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 import wait from 'utils/wait'
+import * as JSONOneliner from 'utils/JSONOneliner'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -34,6 +35,12 @@ const useStyles = M.makeStyles((t) => ({
   },
   key: {
     fontWeight: t.typography.fontWeightBold,
+  },
+  separator: {
+    opacity: 0.7,
+  },
+  brace: {
+    color: t.palette.secondary.dark,
   },
 }))
 
@@ -125,30 +132,70 @@ function PrimitiveEntry({ name, value, topLevel = true, classes }) {
   )
 }
 
-const SEP = ', '
 const SEP_LEN = 2
 const MORE_LEN = 4
-const CHAR_W = 8.6
+const CHAR_W = 8.55
 
-function More({ keys, classes }) {
+function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
+  const classes = useStyles()
+  const data = JSONOneliner.print(value, availableSpace, showValuesWhenCollapsed)
   return (
-    <span className={classes.more}>
-      {'<'}&hellip;{keys}
-      {'>'}
-    </span>
+    <div>
+      {data.parts.map((item, index) => {
+        const key = `json_print${index}`
+        switch (item.type) {
+          case JSONOneliner.Types.Key:
+            return (
+              <span className={classes.key} key={key}>
+                {item.value}
+              </span>
+            )
+          case JSONOneliner.Types.Separator:
+            return (
+              <span className={classes.separator} key={key}>
+                {item.value}
+              </span>
+            )
+          case JSONOneliner.Types.More:
+            return (
+              <span className={classes.more} key={key}>
+                {item.value}
+              </span>
+            )
+          case JSONOneliner.Types.Brace:
+            const prev = data.parts[index - 1]
+            const next = data.parts[index + 1]
+            const braceType = JSONOneliner.Types.Brace
+            // Collapse spaces in `[]` and `{}`
+            const itemValue =
+              (prev?.type === braceType &&
+                prev?.value?.endsWith(' ') &&
+                item?.value?.startsWith(' ')) ||
+              (next?.type === braceType &&
+                next?.value?.startsWith(' ') &&
+                item?.value?.endsWith(' '))
+                ? item.value.trim()
+                : item.value
+            return (
+              <span className={classes.brace} key={key}>
+                {itemValue}
+              </span>
+            )
+          case JSONOneliner.Types.String:
+            return (
+              <span key={key}>
+                <span className={classes.brace}>&quot;</span>
+                {item.original}
+                <span className={classes.brace}>&quot;</span>
+              </span>
+            )
+          default:
+            return <span key={key}>{item.value}</span>
+        }
+      })}
+    </div>
   )
 }
-
-const join = (s1, s2) =>
-  s1 ? (
-    <>
-      {s1}
-      {SEP}
-      {s2}
-    </>
-  ) : (
-    s2
-  )
 
 function CompoundEntry({
   name,
@@ -156,6 +203,7 @@ function CompoundEntry({
   topLevel = true,
   defaultExpanded = false,
   showKeysWhenCollapsed,
+  showValuesWhenCollapsed,
   classes,
 }) {
   const braces = Array.isArray(value) ? '[]' : '{}'
@@ -165,40 +213,15 @@ function CompoundEntry({
   const empty = !entries.length
   const expanded = !empty && stateExpanded
 
-  const renderCollapsed = React.useCallback(() => {
-    const availableSpace =
-      showKeysWhenCollapsed -
-      R.sum([
-        SEP_LEN,
-        MORE_LEN,
-        20 / CHAR_W, // icon / padding
-        name ? name.length + 2 : 0,
-        4, // braces + spaces
-      ])
-    if (availableSpace <= 0 || Array.isArray(value)) {
-      return <More keys={entries.length} classes={classes} />
-    }
-    return entries.reduce(
-      (acc, [k]) => {
-        if (acc.done) return acc
-        return acc.availableSpace < k.length
-          ? {
-              str: join(
-                acc.str,
-                <More keys={entries.length - acc.keys} classes={classes} />,
-              ),
-              done: true,
-            }
-          : {
-              str: join(acc.str, <span className={classes.key}>{k}</span>),
-              availableSpace: acc.availableSpace - k.length - (acc.str ? SEP_LEN : 0),
-              keys: acc.keys + 1,
-              done: false,
-            }
-      },
-      { str: null, availableSpace, keys: 0, done: false },
-    ).str
-  }, [classes, entries, name, showKeysWhenCollapsed, value])
+  const availableSpace =
+    showKeysWhenCollapsed -
+    R.sum([
+      SEP_LEN,
+      MORE_LEN,
+      20 / CHAR_W, // icon / padding
+      name ? name.length + 2 : 0,
+      4, // braces + spaces
+    ])
 
   return (
     <div>
@@ -213,12 +236,13 @@ function CompoundEntry({
           <IconExpand />
         )}
         <Key classes={classes}>{name}</Key>
-        {braces[0]}
+        {expanded && braces[0]}
         {!expanded && (
-          <>
-            {empty ? '' : <span> {renderCollapsed()} </span>}
-            {braces[1]}
-          </>
+          <CollapsedEntry
+            availableSpace={availableSpace}
+            value={value}
+            showValuesWhenCollapsed={showValuesWhenCollapsed || Array.isArray(value)}
+          />
         )}
       </div>
       {expanded && (
@@ -244,6 +268,7 @@ function CompoundEntry({
                     : defaultExpanded
                 }
                 showKeysWhenCollapsed={showKeysWhenCollapsed - 20 / CHAR_W}
+                showValuesWhenCollapsed={showValuesWhenCollapsed}
               />
             ))}
             {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
@@ -282,13 +307,19 @@ function JsonDisplayInner(props) {
   return <Component />
 }
 
-function useCurrentBreakpointWidth() {
-  const t = M.useTheme()
-  return ['sm', 'md', 'lg'].reduce(
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    (acc, b) => (M.useMediaQuery(t.breakpoints.up(b)) ? t.breakpoints.width(b) : acc),
-    320, // min supproted width
-  )
+function useElementWidth(ref) {
+  const [width, setWidth] = React.useState(0)
+  React.useEffect(() => {
+    const wrapper = ref.current
+    if (!wrapper) return
+    const resizeObserver = new window.ResizeObserver(() => {
+      if (!wrapper) return
+      setWidth(wrapper.clientWidth)
+    })
+    resizeObserver.observe(ref.current)
+    return () => resizeObserver.unobserve(wrapper)
+  }, [ref])
+  return width
 }
 
 export default function JsonDisplay({
@@ -299,24 +330,32 @@ export default function JsonDisplay({
   defaultExpanded,
   // true (show all keys) | false (dont show keys, just show their number) | int (max length of keys string to show, incl. commas and stuff) | 'auto' (calculate string length based on screen size)
   showKeysWhenCollapsed = 'auto',
+  showValuesWhenCollapsed = true,
   className,
   ...props
 }) {
+  const ref = React.useRef(null)
   const classes = useStyles()
-  const currentBPWidth = useCurrentBreakpointWidth()
+  const currentBPWidth = useElementWidth(ref)
   const computedKeys = React.useMemo(() => {
     if (showKeysWhenCollapsed === true) return Number.POSITIVE_INFINITY
     if (showKeysWhenCollapsed === false) return Number.POSITIVE_INFINITY
-    // 80 is the usual total padding
-    if (showKeysWhenCollapsed === 'auto') return (currentBPWidth - 80) / CHAR_W
+    if (showKeysWhenCollapsed === 'auto') return currentBPWidth / CHAR_W
     return showKeysWhenCollapsed
   }, [showKeysWhenCollapsed, currentBPWidth])
 
   return (
-    <M.Box className={cx(className, classes.root)} {...props}>
+    <M.Box className={cx(className, classes.root)} {...props} ref={ref}>
       <React.Suspense fallback={<WaitingJsonRender />}>
         <JsonDisplayInner
-          {...{ name, value, topLevel, defaultExpanded, classes }}
+          {...{
+            name,
+            value,
+            topLevel,
+            defaultExpanded,
+            classes,
+            showValuesWhenCollapsed,
+          }}
           showKeysWhenCollapsed={computedKeys}
         />
       </React.Suspense>
