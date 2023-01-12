@@ -220,7 +220,6 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
-
   return (
     <div className={classes.root}>
       {revision.message && <div className={classes.section}>{revision.message}</div>}
@@ -250,19 +249,27 @@ function useSelectiveMeta(name: string, revision: SelectiveMeta | null) {
       userMeta: null,
     }
     try {
-      if (!preferences?.ui.package_description) return output
+      if (!preferences?.ui.package_description) return null
       const { message, userMeta } =
         Object.entries(preferences?.ui.package_description)
           .reverse() // The last found config wins
           .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
       if (message && revision?.message) output.message = revision.message
-      if (userMeta && revision?.userMeta)
-        userMeta.forEach((jPath) => {
-          const results = jsonpath.nodes(revision.userMeta, jPath)
-          results.forEach(({ path, value }) => {
-            output.userMeta = R.assocPath(path.slice(1), value, output.userMeta || {})
-          })
-        })
+      if (userMeta && revision?.userMeta) {
+        const selectiveUserMeta = userMeta.reduce(
+          (acc, jPath) =>
+            jsonpath
+              .nodes(revision.userMeta, jPath)
+              .reduce(
+                (memo, { path, value }) => R.assocPath(path.slice(1), value, memo),
+                acc,
+              ),
+          {},
+        )
+        if (!R.isEmpty(selectiveUserMeta)) {
+          output.userMeta = selectiveUserMeta
+        }
+      }
       return output.message || output.userMeta ? output : null
     } catch (error) {
       // eslint-disable-next-line no-console
