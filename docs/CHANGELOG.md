@@ -19,7 +19,7 @@ Entries inside each section should be ordered by type:
 * [Added] Add link to file from Athena results ([#3242](https://github.com/quiltdata/quilt/pull/3242))
 * [Added] Add link to package revisions from package list ([#3256](https://github.com/quiltdata/quilt/pull/3256))
 * [Changed] Make file preview wrapper consistently 100% width ([#3245](https://github.com/quiltdata/quilt/pull/3245))
-* [Changed] Show collapsed values in JSON viwer ([#3249](https://github.com/quiltdata/quilt/pull/3249))
+* [Changed] Show collapsed values in JSON viewer ([#3249](https://github.com/quiltdata/quilt/pull/3249))
 * [Changed] Rename "Metadata" to "User metadata" ([#3255](https://github.com/quiltdata/quilt/pull/3255))
 
 # 5.1.0 - 2022-12-09
