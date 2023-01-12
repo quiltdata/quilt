@@ -1,6 +1,7 @@
 import log from 'utils/Logging'
 import { Json, JsonArray, JsonRecord } from 'utils/types'
 
+// TODO: add Space type
 export const enum Types {
   Brace = 'brace',
   Equal = 'equal',

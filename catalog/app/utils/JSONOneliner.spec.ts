@@ -10,6 +10,7 @@ describe('utils/JSONOneliner', () => {
   it('should print empty brackets for empty array', () => {
     const value: Json = []
     const limit = 10
+    // TODO: add Space type, and merge them
     const result = `[  ]`
     const d = JSONOneliner.print(value, limit, true)
     expect(printData(d)).toBe(result)
