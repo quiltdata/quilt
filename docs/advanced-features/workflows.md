@@ -185,9 +185,19 @@ quilt3.Package().set_meta({'answer': 42}).push(
 # Package test/package@6331508 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-If you wish for your users to be able to skip workflows altogether, you can make
-workflow validation optional with `is_workflow_required: false` in your `config.yml`,
-and specify `workflow=None` in the API:
+## Bypassing workflow validation and setting a default workflow
+If you wish for your users to be able to skip workflows altogether,
+you can make workflow validation optional with `is_workflow_required:
+false` at the top-level in your `config.yml` file:
+
+```yaml
+version:
+  base: "1"
+  catalog: "1"
+is_workflow_required: False
+```
+
+Then specify `workflow=None` in any `Package.push()` API calls:
 
 <!--pytest-codeblocks:cont-->
 <!--pytest.mark.xfail-->
@@ -200,12 +210,32 @@ quilt3.Package().push(
 # Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-Also `default_workflow` can be set in the config to specify which workflow will be used
-if `workflow` parameter is not provided.
+A `default_workflow` value can also be set at the top-level in your
+`config.yml` file:
 
+```yaml
+version:
+  base: "1"
+  catalog: "1"
+default_workflow: "experiment"
+is_workflow_required: False
+workflows:
+  experiment:
+    name: Experiment
+    metadata_schema: experiment-universal
+schemas:
+  experiment-universal:
+    url: s3://quilt-sergey-dev-metadata/.quilt/workflows/schemas/experiment-universal.json
+```
+
+This specifies which workflow will be used (`experiment`) if a
+`workflow` parameter in the `Package.push()` API call is not provided.
 
 ## JSON Schema
-Quilt workflows support the [Draft 7 JSON Schema](https://json-schema.org/specification-links.html#draft-7).
+- Quilt workflows support the [Draft 7 JSON Schema](https://json-schema.org/specification-links.html#draft-7).
+- JSON schemas can be stored anywhere in your Amazon S3 bucket. 
+Provided the path to the file is accessible in `config.yml`, the
+schema will successfully validate your package metadata shape.
 
 ### Default values
 Quilt supports the
