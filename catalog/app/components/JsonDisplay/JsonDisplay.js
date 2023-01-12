@@ -294,7 +294,7 @@ function JsonDisplayInner(props) {
   return <Component />
 }
 
-function useCurrentBreakpointWidth(ref) {
+function useElementWidth(ref) {
   const [width, setWidth] = React.useState(0)
   React.useEffect(() => {
     const wrapper = ref.current
@@ -323,7 +323,7 @@ export default function JsonDisplay({
 }) {
   const ref = React.useRef(null)
   const classes = useStyles()
-  const currentBPWidth = useCurrentBreakpointWidth(ref)
+  const currentBPWidth = useElementWidth(ref)
   const computedKeys = React.useMemo(() => {
     if (showKeysWhenCollapsed === true) return Number.POSITIVE_INFINITY
     if (showKeysWhenCollapsed === false) return Number.POSITIVE_INFINITY
