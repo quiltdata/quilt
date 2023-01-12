@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
@@ -212,6 +213,9 @@ const useRevisionMetaStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  sectionWithToggle: {
+    marginLeft: '-5px',
+  },
 }))
 
 interface RevisionMetaProps {
@@ -227,7 +231,12 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
         <div className={classes.section}>
           {Object.entries(revision.userMeta).map(([name, value]) => (
             /* @ts-expect-error */
-            <JsonDisplay key={`user-meta-section-${name}`} name={name} value={value} />
+            <JsonDisplay
+              className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
+              key={`user-meta-section-${name}`}
+              name={name}
+              value={value}
+            />
           ))}
         </div>
       )}
