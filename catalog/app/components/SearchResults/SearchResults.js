@@ -436,7 +436,10 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
   const s3 = AWS.S3.use()
 
   const v = versions[0]
-  const handle = { bucket, key: path, version: v.id }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version: v.id }),
+    [bucket, path, v.id],
+  )
 
   const bucketExistenceData = useBucketExistence(bucket)
   const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
