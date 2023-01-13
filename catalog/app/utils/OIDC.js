@@ -32,7 +32,7 @@ export function useOIDC({ provider, popupParams }) {
           if (popup.closed) {
             window.removeEventListener('message', handleMessage)
             clearInterval(timer)
-            reject(new OneLoginError('popup_closed_by_user'))
+            reject(new OIDCError('popup_closed_by_user'))
           }
         }, 500)
         const handleMessage = ({ source, origin, data }) => {
@@ -48,17 +48,17 @@ export function useOIDC({ provider, popupParams }) {
               state: respState,
             } = parse(fragment.substr(1))
             if (respState !== state) {
-              throw new OneLoginError(
+              throw new OIDCError(
                 'state_mismatch',
                 "Response state doesn't match request state",
               )
             }
             if (error) {
-              throw new OneLoginError(error, details)
+              throw new OIDCError(error, details)
             }
             const { nonce: respNonce } = JSON.parse(atob(idToken.split('.')[1]))
             if (respNonce !== nonce) {
-              throw new OneLoginError(
+              throw new OIDCError(
                 'nonce_mismatch',
                 "Response nonce doesn't match request nonce",
               )
