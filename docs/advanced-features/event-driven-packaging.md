@@ -1,28 +1,23 @@
 <!-- markdownlint-disable -->
 # Event-Driven Packaging (EDP)
 
-> EDP is currently in private preview. Please contact Quilt
-directly to discuss pricing.
+> EDP is in private preview. Please contact us for details.
 
 ## Overview
 
-Data can be added to your Amazon S3 buckets manually by internal
-team members and/or external collaborators, or automatically via
-instrumentation. No matter how it arrives into your buckets, it 
-is helpful, and sometimes critical, to be notified of this data 
-migration.
+Data tend to be created in logical batches by machines, people, and
+pipelines. Detecting these logical events from Amazon S3 events alone is
+complex and requires extensive custom logic.
 
-Quilt's *Event-Driven Packaging* service (EDP) monitors S3 object events
-for a given Amazon S3 bucket prefix and groups those S3 object
-events into logical batches via custom-defined time, space and
-prefix heuristics. A `files_ready` event is generated on the receiving
-[EventBridge](https://aws.amazon.com/eventbridge/) in order to
-notify users and/or other AWS services that this logical batch of
-S3 objects are ready to be turned into Quilt packages. *This makes
-it easy to ingest data into Quilt data packages from AWS data
-migration services* such as [Storage
-Gateway](https://aws.amazon.com/storagegateway/) and [Data
-Sync](https://aws.amazon.com/datasync/).
+Quilt's *Event-Driven Packaging* service (EDP) smartly groups one
+or more Amazon S3 object events into a single `files_ready` event
+in [AWS EventBridge](https://aws.amazon.com/eventbridge/) so that
+you can easily trigger logical events like package creation that
+depend on batches rather than on individual files.
+
+Quilt EDP works well with services like [AWS Storage
+Gateway](https://aws.amazon.com/storagegateway/) and [AWS Data
+Sync](https://aws.amazon.com/datasync/) that write objects to Amazon S3.
 
 > Any AWS service or action that generates S3 object events may trigger the EDP service.
 
@@ -45,7 +40,7 @@ for all S3 buckets to be monitored by EDP
 
 ## Deployment
 
-To use EDP in your Quilt instance, you will need an additional
+To use EDP in your Quilt instance, you will use a standalone
 CloudFormation template to configure when, and how, events get
 generated.
 
@@ -57,10 +52,9 @@ template during deployment:
 - `VPC`: Same as the existing Quilt instance.
 - `SecurityGroup`: Same as the existing Quilt instance.
 - `Subnets`: Same two subnets as the existing Quilt instance.
-- `BucketName`: Name of the Amazon S3 bucket to monitor. Must be
-read accessible to EDP.
+- `BucketName`: Name of the Amazon S3 bucket to monitor.
 - `BucketIgnorePrefixes`: List of bucket path segments to ignore
-- `BucketPrefixDepth`: The number of `/`-separated path segments
+- `BucketPrefixDepth`: The number of `/`-separated *common* path segments
 at the beginning of an S3 object key. Default value is `2`.
 - `BucketThresholdDuration`: Trigger a notification when this number
 of seconds has elapsed since the last object event in the S3 bucket 
@@ -132,6 +126,8 @@ This event signals that a Quilt package is available in an Amazon
 S3 bucket and that a user-specified interval has elapsed to ensure
 that time-driven processes like File Gateway have synchronized their
 state to that of the S3 bucket.
+
+> This is used internally. Most users won't explicitly use this event.
 
 <!--pytest.mark.skip-->
 ```json
