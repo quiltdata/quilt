@@ -449,7 +449,9 @@ NOTE: This will not work with the default Source=Custom Roles.
 
 #### 1. Add KMS Key Usage to Quilt Permission Boundary
 
-By default, AWS does not allow anything in your account to access KMS. If you haven't done so already,  create an IAM policy that explicitly enables KMS access.
+By default, AWS does not allow anything in your account to access KMS. 
+If you haven't done so already, 
+create an IAM policy that explicitly enables KMS access.
 
 ```json
 {
@@ -465,17 +467,22 @@ By default, AWS does not allow anything in your account to access KMS. If you ha
 }
 ```
 
-Go to CloudFormation > Your Quilt Stack -> Update -> Parameters and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` at the bottom of the page:
+Go to CloudFormation > Your Quilt Stack -> Update -> Parameters 
+and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
+at the bottom of the page:
 
 ![](../imgs/ManagedUserRoleExtraPolicies.png)
 
-If other policies are already in that field, you will need to add a comma before appending the ARN.
+If other policies are already in that field, 
+you will need to add a comma before appending the ARN.
 
 #### 2. Add Quilt Principals to KMS Key Policy
 
-In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
-the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
+In order for Quilt to index buckets with SSE-KMS, 
+you must add certain principals to the corresponding key policy. 
+Go to CloudFormation > Your Quilt Stack > Resources
 and look for IAM roles with the following logical IDs:
+
 * `AmazonECSTaskExecutionRole`
 * `PkgEventsRole`
 * `PkgSelectLambdaRole`
@@ -506,7 +513,8 @@ similar to the following to the KMS key policy:
 
 #### 3. Add KMS Key Access to Quilt Role
 
-Finally, you need create a restricted policy that gives a Quilt role access to the keys for specific buckets, e.g:
+Finally, you need create a restricted policy 
+that gives a Quilt role access to the keys for specific buckets, e.g:
 
 ```json
 {
@@ -526,7 +534,9 @@ Finally, you need create a restricted policy that gives a Quilt role access to t
 ```
 
 You can now create a Quilt Policy from this policy using the Catalog's admin panel.
-Afterwards, you can attach that Policy to a user-defined Quilt Role (which has Source=Quilt in the Roles panel, as opposed to system-defined Source=Custom Roles).
+Afterwards, you can attach that Policy to a user-defined Quilt Role
+(which has Source=Quilt in the Roles panel, 
+as opposed to system-defined Source=Custom Roles).
 
 ## Backup and Recovery
 
