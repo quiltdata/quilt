@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 # Event-Driven Packaging (EDP)
 
 > EDP is in private preview. Please contact us for details.
@@ -99,7 +98,6 @@ For example with `p.set_dir(".",
 f"s3://{e['detail']['bucket']}/{e['detail']['prefix']}")`, followed
 by `p.push()`.
 
-<!--pytest.mark.skip-->
 ```json
 {
     "version":"0",
@@ -129,7 +127,6 @@ state to that of the S3 bucket.
 
 > This is used internally. Most users won't explicitly use this event.
 
-<!--pytest.mark.skip-->
 ```json
 {
     "version": "0",
