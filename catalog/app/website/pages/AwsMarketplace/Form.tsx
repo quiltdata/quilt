@@ -197,7 +197,6 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: '18px',
     lineHeight: '22px',
     marginBottom: '28px',
-    textAlign: 'center',
   },
   actions: {
     display: 'flex',
@@ -209,7 +208,6 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: '16px',
     lineHeight: '32px',
     marginTop: '28px',
-    textAlign: 'center',
   },
   group: {
     display: 'flex',
@@ -330,7 +328,7 @@ export default function Form({ className }: FormProps) {
             success={submitSucceeded}
           />
           <M.Typography className={classes.note}>
-            By submitting this form, I agree to receive email updates about Quilt
+            By clicking SUBMIT, I agree to receive emails from Quilt
           </M.Typography>
           <div className={classes.actions}>
             <M.Button
