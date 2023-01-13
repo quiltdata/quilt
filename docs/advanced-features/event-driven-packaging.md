@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Event-Driven Packaging (EDP)
 
 > EDP is in private preview. Please contact us for details.
@@ -88,6 +89,7 @@ events to external EventBridge buses
 ## Example EDP events
 
 Currently, EDP generates two different events:
+
 - `package-objects-ready`
 - `package-ready`
 
@@ -147,6 +149,7 @@ state to that of the S3 bucket.
 ```
 
 ## Example use case
+
 1. Lab scientist drops files into _s3://RAW/raw/_
 2. Lambda function copies filess to _s3://RAW/other/prefix/_
 3. EDP listens to _s3://RAW/other/*_ and generates a `package-objects-ready`
