@@ -437,6 +437,97 @@ similar to the following to the KMS key policy:
 }
 ```
 
+### S3 buckets with SSE-KMS
+
+In order for Quilt to access and index buckets encrypted with SSE-KMS, you must do three things:
+
+1. Add KMS Key Usage to Quilt Permission Boundary
+2. Add Quilt Principals to KMS Key Policy
+3. Add KMS Key Access to a Scoure=Quilt Role
+
+NOTE: This will not work with the default Source=Custom Roles.
+
+#### 1. Add KMS Key Usage to Quilt Permission Boundary
+
+By default, AWS does not allow anything in your account to access KMS. If you haven't done so already,  create an IAM policy that explicitly enables KMS access.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": [
+      "kms:Encrypt",
+      "kms:Decrypt"
+    ],
+    "Resource": "arn:aws:kms:us-west-2:111122223333:key/*"
+  }
+}
+```
+
+Go to CloudFormation > Your Quilt Stack -> Update -> Parameters and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` at the bottom of the page:
+
+![](../imgs/ManagedUserRoleExtraPolicies.png)
+
+If other policies are already in that field, you will need to add a comma before appending the ARN.
+
+#### 2. Add Quilt Principals to KMS Key Policy
+
+In order for Quilt to index buckets with SSE-KMS, you must add certain principals to
+the corresponding key policy. Go to CloudFormation > Your Quilt Stack > Resources
+and look for IAM roles with the following logical IDs:
+* `AmazonECSTaskExecutionRole`
+* `PkgEventsRole`
+* `PkgSelectLambdaRole`
+* `SearchHandlerRole`
+* `T4BucketReadRole`
+* `T4BucketWriteRole`
+
+Note the ARN for each of the above logical IDs and add an Allow statement
+similar to the following to the KMS key policy:
+
+```json
+{
+    "Effect": "Allow",
+    "Principal": {
+        "AWS": [
+            "<RoleARN-1>",
+            ...
+            "<RoleARN-N>"
+        ]
+    },
+    "Action": [
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
+    ],
+    "Resource": "*"
+}
+```
+
+#### 3. Add KMS Key Access to Quilt Role
+
+Finally, you need create a restricted policy that gives a Quilt role access to the keys for specific buckets, e.g:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": [
+      "kms:Encrypt",
+      "kms:Decrypt"
+    ],
+    "Resource": [
+      "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+      "arn:aws:kms:us-west-2:111122223333:key/0987dcba-09fe-87dc-65ba-ab0987654321"
+    ]
+  }
+}
+```
+
+You can now create a Quilt Policy from this policy using the Catalog's admin panel.
+Afterwards, you can attach that Policy to a user-defined Quilt Role (which has Source=Quilt in the Roles panel, as opposed to system-defined Source=Custom Roles).
+
 ## Backup and Recovery
 
 All data and metadata in Quilt is stored in S3. S3 data is automatically backed up (replicated across multiple available zones). To protect against accidental deletion or overwriting of data, we strongly recommend enabling object versioning for all S3 buckets connected to Quilt.
