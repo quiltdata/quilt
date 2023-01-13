@@ -1,5 +1,4 @@
 import { push } from 'connected-react-router/esm/immutable'
-import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
@@ -20,9 +19,12 @@ const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
 export default function SSOOkta({ mutex, next, ...props }) {
-  invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
-  invariant(!!cfg.oktaBaseUrl, 'Auth.SSO.Okta: config missing "oktaBaseUrl"')
-  const authenticate = Okta.use({ clientId: cfg.oktaClientId, baseUrl: cfg.oktaBaseUrl })
+  const provider = 'okta'
+
+  const authenticate = Okta.use({
+    provider,
+    popupParams: 'width=400,height=600',
+  })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
@@ -35,7 +37,6 @@ export default function SSOOkta({ mutex, next, ...props }) {
 
     try {
       const token = await authenticate()
-      const provider = 'okta'
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
