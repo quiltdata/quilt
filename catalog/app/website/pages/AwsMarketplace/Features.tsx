@@ -60,8 +60,8 @@ export default function Features({ className }: FeaturesProps) {
   return (
     <div className={cx(classes.root, className)}>
       <Feature heading="Verify" logo={dataVersionControl}>
-        Create and share sealed, immutable datasets with cryptographic fingerprints
-        that guarantee data are pristine and unchanged. Maintain data integrity, reliability,
+        Create and share sealed, immutable datasets with cryptographic fingerprints that
+        guarantee data are pristine and unchanged. Maintain data integrity, reliability,
         and lineage so that every dataset is trustworthy.
       </Feature>
       <Feature heading="Collaborate" logo={dataCommons}>
