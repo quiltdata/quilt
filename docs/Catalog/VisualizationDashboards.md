@@ -259,7 +259,7 @@ in Linux containers that have network access but do not have access to persisten
 storage. The catalog users's AWS credentials are passed to Jupyter kernel as
 [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list).
 
-## Environment variables
+### Environment variables
 When you have a Voila dashboard inside of a Quilt package, you may wish to reference files
 *in the current package revision*. The Quilt catalog sets the following environment variables
 and passes them to the Voila kernel:
@@ -375,6 +375,22 @@ All filters and columns will be restored:
   }
 ]
 ```
+
+### Known issues
+
+Several customers have reported that Perspective Datagrids fail to
+automatically render in the Quilt web catalog. We have isolated
+this problem to clashes with third party browser extensions in both
+Mozilla Firefox and Google Chrome. At least one extension, [Zotero
+Connector](https://chrome.google.com/webstore/detail/zotero-connector/ekhagklcjbdpajgpjgmbionohlpdbjgc?hl=en),
+has been reported and the error reproduced.
+
+If you encounter a rendering error, please first try a different browser (Firefox,
+Safari, Edge) on the same machine. If the error persists, next disable all third-party
+extensions, turning each one back on, one-by-one, until the problem
+extension is identified. Please then notify
+[support@quiltdata.io](mailto:support@quiltdata.io) with the extension
+name and version.
 
 ### Live packages
 - [CSV file automatically rendered in Perspective Datagrid](https://open.quiltdata.com/b/quilt-example/packages/examples/smart-report)

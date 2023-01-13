@@ -4,9 +4,13 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 
 import { PreviewData } from '../types'
+
+import FileType from './fileType'
 import * as utils from './utils'
 
 export const MAX_BYTES = 10 * 1024
+
+export const FILE_TYPE = FileType.Text
 
 const LANGS = {
   accesslog: /\.log$/,

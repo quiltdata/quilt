@@ -12,12 +12,12 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -64,7 +64,6 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
 function VersionInfo({ bucket, path, version }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
-  const cfg = Config.use()
   const { push } = Notifications.use()
 
   const containerRef = React.useRef()
@@ -216,7 +215,7 @@ function Meta({ bucket, path, version }) {
   return <FileView.ObjectMeta data={data.result} />
 }
 
-function Analytics({ analyticsBucket, bucket, path }) {
+function Analytics({ bucket, path }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -225,13 +224,7 @@ function Analytics({ analyticsBucket, bucket, path }) {
       date,
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
-  const data = useData(requests.objectAccessCounts, {
-    s3,
-    analyticsBucket,
-    bucket,
-    path,
-    today,
-  })
+  const data = useData(requests.objectAccessCounts, { s3, bucket, path, today })
 
   const defaultExpanded = data.case({
     Ok: ({ total }) => !!total,
@@ -326,6 +319,9 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginBottom: t.spacing(2),
   },
+  preview: {
+    width: '100%',
+  },
 }))
 
 export default function File({
@@ -338,7 +334,6 @@ export default function File({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
-  const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
   const { preferences } = BucketPreferences.use()
 
@@ -398,13 +393,13 @@ export default function File({
         downloadable: false,
       }),
       Exists: ({ deleted, archived, version: versionId }) => ({
-        downloadable: !noDownload && !deleted && !archived,
+        downloadable: !cfg.noDownload && !deleted && !archived,
         fileVersionId: versionId,
       }),
     }),
   })
 
-  const viewModes = useViewModes(path, mode)
+  const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
     (m) => {
@@ -520,8 +515,8 @@ export default function File({
           Exists: () => (
             <>
               {preferences?.ui?.blocks?.code && <Code>{code}</Code>}
-              {!!analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
-                <Analytics {...{ analyticsBucket, bucket, path }} />
+              {!!cfg.analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
+                <Analytics {...{ bucket, path }} />
               )}
               {preferences?.ui?.blocks?.meta && (
                 <Meta bucket={bucket} path={path} version={version} />
@@ -538,13 +533,15 @@ export default function File({
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                  {versionExistsData.case({
-                    _: () => <CenteredProgress />,
-                    Err: (e) => {
-                      throw e
-                    },
-                    Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                  })}
+                  <div className={classes.preview}>
+                    {versionExistsData.case({
+                      _: () => <CenteredProgress />,
+                      Err: (e) => {
+                        throw e
+                      },
+                      Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                    })}
+                  </div>
                 </Section>
               )}
             </>
