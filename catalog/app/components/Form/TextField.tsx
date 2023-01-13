@@ -30,8 +30,7 @@ export default function Field({
   ...rest
 }: TextFieldProps) {
   const inputClasses = useFieldInputStyles()
-  const readyForValidation = (input.value && meta.modified) || meta.submitFailed
-  const errorCode = readyForValidation && meta.error
+  const errorCode = meta.submitFailed && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
     InputLabelProps: { shrink: true, ...InputLabelProps },
