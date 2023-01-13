@@ -10,7 +10,7 @@ pipelines. Detecting these logical events from Amazon S3 events alone is
 complex and requires extensive custom logic.
 
 Quilt's *Event-Driven Packaging* service (EDP) smartly groups one
-or more Amazon S3 object events into a single `files_ready` event
+or more Amazon S3 object events into a single event
 in [AWS EventBridge](https://aws.amazon.com/eventbridge/) so that
 you can easily trigger logical events like package creation that
 depend on batches rather than on individual files.
@@ -74,7 +74,7 @@ number of files have been created (since the prior trigger)
 a maximum duration (`BucketThresholdDuration`) EDP creates a
 package in _s3://target-bucket_ (the _target_ bucket may or may not be
 the same as the _source_ bucket).
-3. Each EDP `files_ready` event contains sufficient information for the
+3. Each EDP event contains sufficient information for the
 recipient to make Quilt data packages from the event:
   - S3 Bucket name
   - Common prefix
@@ -88,11 +88,11 @@ events to external EventBridge buses
 
 ## Example EDP events
 
-Currently, EDP generates two different `files_ready` events:
-- `package-data-ready`
+Currently, EDP generates two different events:
+- `package-objects-ready`
 - `package-ready`
 
-### `package-data-ready`
+### `package-objects-ready`
 
 This event signals that a batch of files is ready to be packaged.
 For example with `p.set_dir(".",
@@ -152,9 +152,9 @@ state to that of the S3 bucket.
 ## Example use case
 1. Lab scientist drops files into _s3://RAW/raw/_
 2. Lambda function copies filess to _s3://RAW/other/prefix/_
-3. EDP listens to _s3://RAW/other/*_ and generates a `package-data-ready`
+3. EDP listens to _s3://RAW/other/*_ and generates a `package-objects-ready`
 event
-4. Second lambda fuction responds to `package-data-ready` event and
+4. Second lambda fuction responds to `package-objects-ready` event and
 pushes Quilt data package to _s3://PROCESSED_ bucket
 5. EDP listens for "package created" (from step above), then emits
 a `package_ready` event which is received in a foreign account bus
