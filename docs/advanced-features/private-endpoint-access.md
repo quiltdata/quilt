@@ -11,7 +11,7 @@ built-in barriers.
 
 You can restrict Amazon S3 bucket access to a particular VPC and VPN traffic
 via a data perimeter pattern, which prevents leaked S3 credentials from 
-bypassing your organizations VPN.
+bypassing your organization's VPN.
 
 > Quilt already has private IPs for all Quilt services (Lambda
 functions, API Gateway, Quilt catalog API).
