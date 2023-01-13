@@ -11,11 +11,6 @@ This is known as **materialization**,
 and it means that `push` creates **materialized packages**: packages
 which point solely to files located in an Amazon S3 bucket.
 
-A materialized package is powerful because Amazon S3 guarantees that
-individual object versions are never lost or destroyed (assuming
-object versioning is enabled).  Furthermore, only materialized
-packages may be browsed in the online Quilt catalog.
-
 ## Pushing unmaterialized packages
 
 There are advanced use cases where automatically copying (potentially
