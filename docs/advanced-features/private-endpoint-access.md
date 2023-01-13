@@ -100,9 +100,16 @@ SCPs should be used in parallel with identity-based or resource-based
 policies to IAM users or roles, or [explicit S3 bucket
 policies](../CrossAccount.md#bucket-policies)
 
-## 2. Configure S3 Gateway Endpoint in Quilt application VPC
+## 2. Configure an Amazon S3 Gateway endpoint
 
-> Whoever manages the VPC route table should manage the Gateway endpoint
+> There can only be one gateway endpoint per VPC.
+> There is no additional charge for using gateway endpoints.
+
+To access Amazon S3 from your VPC you use [gateway VPC
+endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)
+
+It is critical that you create your gateway endpoint in the same
+Region as your S3 buckets.
 
 **TO DO:** Customer instructions if custom VPC
 **TO DO:** Quilt instructions if Quilt-default VPC
@@ -111,7 +118,7 @@ policies](../CrossAccount.md#bucket-policies)
   - AWS PrivateLink for Amazon S3
   - Interface Endpoint overview
 
-> Keeping traffic on provuate networks will incur Transit Gateway,
+> Keeping traffic on private networks will incur Transit Gateway,
 inter-VPC, and Interface Endpoint charges
 > DNS of the VPN clients must assign AWS global and regional S3
 service names to the Interface Endpoint IP addresses
