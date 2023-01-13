@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "husky": "^4.3.8"
+  }
+}
