@@ -14,7 +14,13 @@ import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../requests'
 
-const ATHENA_REF = 'https://aws.amazon.com/athena/'
+import Database from './Database'
+
+const ATHENA_REF_INDEX = 'https://aws.amazon.com/athena/'
+const ATHENA_REF_SQL =
+  'https://docs.aws.amazon.com/athena/latest/ug/ddl-sql-reference.html'
+const ATHENA_REF_FUNCTIONS =
+  'https://docs.aws.amazon.com/athena/latest/ug/presto-functions.html'
 
 const useStyles = M.makeStyles((t) => ({
   editor: {
@@ -51,9 +57,17 @@ function EditorField({ className, query, onChange }: EditorFieldProps) {
         />
       </M.Paper>
       <M.FormHelperText>
-        Quilt uses AWS Athena SQL.{' '}
-        <StyledLink href={ATHENA_REF} target="_blank">
-          Learn more
+        Quilt uses AWS Athena SQL. Learn more:{' '}
+        <StyledLink href={ATHENA_REF_INDEX} target="_blank">
+          Introduction
+        </StyledLink>
+        ,{' '}
+        <StyledLink href={ATHENA_REF_SQL} target="_blank">
+          SQL Reference for Amazon Athena
+        </StyledLink>
+        ,{' '}
+        <StyledLink href={ATHENA_REF_FUNCTIONS} target="_blank">
+          Functions in Amazon Athena
         </StyledLink>
         .
       </M.FormHelperText>
@@ -77,11 +91,11 @@ function useQueryRun(
     [bucket, history, urls, workgroup],
   )
   const onSubmit = React.useCallback(
-    async (value: string) => {
+    async (value: string, executionContext: requests.athena.ExecutionContext | null) => {
       setLoading(true)
       setError(undefined)
       try {
-        const { id } = await runQuery(value)
+        const { id } = await runQuery(value, executionContext)
         if (id === queryExecutionId) notify('Query execution results remain unchanged')
         setLoading(false)
         goToExecution(id)
@@ -158,6 +172,9 @@ export { FormSkeleton as Skeleton }
 
 const useFormStyles = M.makeStyles((t) => ({
   actions: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    display: 'flex',
     margin: t.spacing(2, 0),
   },
   error: {
@@ -168,30 +185,33 @@ const useFormStyles = M.makeStyles((t) => ({
 interface FormProps {
   bucket: string
   className?: string
-  initialValue: string | null
+  onChange: (value: string) => void
   queryExecutionId?: string
+  value: string | null
   workgroup: requests.athena.Workgroup
 }
 
 export function Form({
   bucket,
   className,
-  initialValue,
-  workgroup,
+  onChange,
   queryExecutionId,
+  value,
+  workgroup,
 }: FormProps) {
   const classes = useFormStyles()
-  const [value, setValue] = React.useState<string | null>(initialValue)
+  const [executionContext, setExecutionContext] =
+    React.useState<requests.athena.ExecutionContext | null>(null)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
     if (!value) return
-    onSubmit(value)
-  }, [onSubmit, value])
+    onSubmit(value, executionContext)
+  }, [executionContext, onSubmit, value])
 
   return (
     <div className={className}>
-      <EditorField onChange={setValue} query={value || ''} />
+      <EditorField onChange={onChange} query={value || ''} />
 
       {error && (
         <Lab.Alert className={classes.error} severity="error">
@@ -200,6 +220,7 @@ export function Form({
       )}
 
       <div className={classes.actions}>
+        <Database onChange={setExecutionContext} value={executionContext} />
         <M.Button
           variant="contained"
           color="primary"

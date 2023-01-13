@@ -340,7 +340,7 @@ export default function File({
   const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -366,12 +366,19 @@ export default function File({
     [bucket, path],
   )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
+  const [resetKey, setResetKey] = React.useState(0)
+  const objExistsData = useData(requests.getObjectExistence, {
+    s3,
+    bucket,
+    key: path,
+    resetKey,
+  })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
     key: path,
     version,
+    resetKey,
   })
 
   const objExists = objExistsData.case({
@@ -382,15 +389,20 @@ export default function File({
     }),
   })
 
-  const downloadable =
-    !noDownload &&
-    versionExistsData.case({
-      _: () => false,
-      Ok: requests.ObjectExistence.case({
-        _: () => false,
-        Exists: ({ deleted, archived }) => !deleted && !archived,
+  const { downloadable, fileVersionId } = versionExistsData.case({
+    _: () => ({
+      downloadable: false,
+    }),
+    Ok: requests.ObjectExistence.case({
+      _: () => ({
+        downloadable: false,
       }),
-    })
+      Exists: ({ deleted, archived, version: versionId }) => ({
+        downloadable: !noDownload && !deleted && !archived,
+        fileVersionId: versionId,
+      }),
+    }),
+  })
 
   const viewModes = useViewModes(path, mode)
 
@@ -402,11 +414,16 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
-    [bucket, path, version],
+    () => ({ bucket, key: path, version: fileVersionId }),
+    [bucket, path, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
+  const onSave = editorState.onSave
+  const handleEditorSave = React.useCallback(async () => {
+    await onSave()
+    setResetKey(R.inc)
+  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -470,7 +487,7 @@ export default function File({
               disabled={editorState.saving}
               editing={editorState.editing}
               className={classes.button}
-              onSave={editorState.onSave}
+              onSave={handleEditorSave}
               onCancel={editorState.onCancel}
               onEdit={editorState.onEdit}
             />

@@ -25,12 +25,13 @@ const useResultsStyles = M.makeStyles((t) => ({
 }))
 
 interface ResultsProps {
+  className?: string
   columns: requests.athena.QueryResultsColumns
   onLoadMore?: () => void
   rows: requests.athena.QueryResultsRows
 }
 
-export default function Results({ columns, rows, onLoadMore }: ResultsProps) {
+export default function Results({ className, columns, onLoadMore, rows }: ResultsProps) {
   const classes = useResultsStyles()
   const data = React.useMemo(
     () =>
@@ -50,7 +51,12 @@ export default function Results({ columns, rows, onLoadMore }: ResultsProps) {
 
   return (
     <M.Paper className={classes.root}>
-      <Perspective data={data} onLoadMore={onLoadMore} truncated={!!onLoadMore} />
+      <Perspective
+        className={className}
+        data={data}
+        onLoadMore={onLoadMore}
+        truncated={!!onLoadMore}
+      />
     </M.Paper>
   )
 }

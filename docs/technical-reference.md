@@ -10,13 +10,13 @@ We will make sure that you have the latest version of Quilt,
 and walk you through the CloudFormation deployment.
 
 We recommend that all users do one or more of the following:
-* [Schedule a Quilt engineer](https://www.meetingbird.com/m/quilt-install)
+* [Schedule a Quilt engineer](https://calendly.com/d/g6f-vnd-qf3/engineering-team)
 to guide you through the installation
 
 * [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
 connect with other users
 
-* [Email Quilt](mailto://contact@quiltdata.io)
+* [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
 Each instance consists of a password-protected web catalog on your domain,
@@ -36,7 +36,7 @@ only allowing necessary traffic.
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
 
-#### Elasticsearch Service Configuration
+### Elasticsearch Service Configuration
 By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
 
 ### Cost
@@ -55,7 +55,7 @@ The infrastructure costs of running a Quilt stack vary with usage. Baseline infr
 ### Health and Monitoring
 To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
 
-#### Elasticsearch Cluster
+### Elasticsearch Cluster
 If you notice slow or incomplete search results, check the status of the Quilt Elasticsearch cluster. To find the Quilt search cluster from CloudFormation, click on the Quilt stack, then "Resources." Click on the "Search" resource.
 
 If your cluster status is not "Green" (healthy), please contact Quilt support. Causes of unhealthy search clusters include:
@@ -249,9 +249,9 @@ users to be able to sign up.
 ![](imgs/default-role.png)
 
 
-### Single sign-on (SSO)
+## Single sign-on (SSO)
 
-#### Google
+### Google
 
 You can enable users on your Google domain to sign in to Quilt.
 Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
@@ -263,7 +263,7 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 
 ![](./imgs/google_auth.png)
 
-#### Active Directory
+### Active Directory
 
 1. Go to Azure Portal > Active Directory > App Registrations
 1. Click New Registration
@@ -285,28 +285,44 @@ and hybrid flows, and check the box to issue ID tokens
 
 ![](./imgs/active-directory.png)
 
-#### Okta
+### Okta
 
-1. Go to Okta > Admin > Applications
-1. Click `Add Application`
-1. Select type `Web`
-1. Name the app `Quilt` or something similar
-1. Configure the app as shown below
-1. Add `<QuiltWebHost>` to `Login redirect URIs` and
-`Initiate login URI`
-1. Copy the `Client ID` to a safe place
-1. Go to API > Authorization servers
-1. You should see a default URI that looks something like the following:
+Note: You will need Okta administrator privileges to add a new Application.
+
+1. Go to Okta > Admin > Applications > Applications
+
+![](./imgs/okta-add-application.png)
+
+2. Click `Create App Integration`. A new modal window opens.
+3. Assign `Sign-in method` radio button to `OIDC - OpenID Connect`.
+4. Assign `Application type` radio button to `Web Application`.
+
+![](./imgs/okta-add-application-modal.png)
+
+5. Click the `Next` button.
+6. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
+7. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
+8. Configure the new web app integration as follows:
+  8.1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
+  8.2. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
     ```
-    https://<MY_COMPANY>.okta.com/oauth2
+    https://quilt.<MY_COMPANY>.com/
+    ```
+  8.3. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
+  8.4. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
+9. Once you click the `Save` button you will have a new application integration to review.
+  9.1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
+  9.2. Copy the `Client ID` to a safe place
+10. Go to **Okta > Security > API > Authorization servers**
+  10.1. You should see a `default` entry with the `Audience` value set to `api://default`, and an `Issuer URI` that looks like the following:
+    ```
+    https://<MY_COMPANY>.okta.com/oauth2/default
     ```
     See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
     for more.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+11. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
-![](./imgs/okta-sso-general.png)
-
-#### OneLogin
+### OneLogin
 
 1. Go to Administration : Applications > Custom Connectors
 1. Click `New Connector`
@@ -327,7 +343,7 @@ Quilt
 ![](./imgs/onelogin-sso.png)
 ![](./imgs/onelogin-users.png)
 
-#### Enabling SSO in CloudFormation
+### Enabling SSO in CloudFormation
 
 Now you can connect Quilt to your SSO provider.
 In the Quilt template

@@ -345,6 +345,19 @@ export const FilePreviewSkel = () => (
   </Section>
 )
 
+function getDisplayName(handle: S3Handle): string {
+  // TODO: show crumbs for packages too
+  return s3paths.getBasename(handle.key)
+}
+
+function useFileUrl(handle: S3Handle, mkUrl?: MakeURL): LocationDescriptor {
+  const { urls } = NamedRoutes.use()
+  return React.useMemo(
+    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
+    [handle, mkUrl, urls],
+  )
+}
+
 interface TitleCustomProps {
   handle: S3Handle
   mkUrl?: MakeURL
@@ -352,16 +365,11 @@ interface TitleCustomProps {
 }
 
 function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
-  const { urls } = NamedRoutes.use()
-
-  const filepath = s3paths.withoutPrefix(s3paths.getPrefix(handle.key), handle.key)
-  const route = React.useMemo(
-    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
-    [handle, mkUrl, urls],
-  )
+  const displayName = getDisplayName(handle)
+  const url = useFileUrl(handle, mkUrl)
 
   return (
-    <Link title={filepath} to={route}>
+    <Link title={displayName} to={url}>
       {title}
     </Link>
   )
@@ -373,15 +381,10 @@ interface TitleFilenameProps {
 }
 
 function TitleFilename({ handle, mkUrl }: TitleFilenameProps) {
-  const { urls } = NamedRoutes.use()
+  const displayName = getDisplayName(handle)
+  const url = useFileUrl(handle, mkUrl)
 
-  // TODO: (@nl_0) make a reusable function to compute relative s3 paths or smth
-  const title = s3paths.withoutPrefix(s3paths.getPrefix(handle.key), handle.key)
-  const route = React.useMemo(
-    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
-    [handle, mkUrl, urls],
-  )
-  return <Link to={route}>{title}</Link>
+  return <Link to={url}>{displayName}</Link>
 }
 
 function getHeadingOverride(file: SummarizeFile, mkUrl?: MakeURL) {

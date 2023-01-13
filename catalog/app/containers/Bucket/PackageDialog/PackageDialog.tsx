@@ -13,7 +13,11 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
 import { mkFormError } from 'utils/formTools'
-import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import {
+  JsonSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from 'utils/json-schema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
@@ -169,7 +173,8 @@ export function mkMetaValidator(schema?: JsonSchema) {
     }
 
     if (schema) {
-      const errors = schemaValidator(value || {})
+      const setDefaults = makeSchemaDefaultsSetter(schema)
+      const errors = schemaValidator(setDefaults(value || {}))
       if (errors.length) return errors
     }
 
@@ -192,6 +197,7 @@ const useFieldInputStyles = M.makeStyles({
   },
 })
 
+// TODO: re-use components/Form/TextField
 export function Field({
   error,
   helperText,

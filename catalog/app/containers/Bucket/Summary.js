@@ -1,14 +1,16 @@
-import { basename, join } from 'path'
+import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as FileEditor from 'components/FileEditor'
 import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
 import Thumbnail, { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -25,62 +27,16 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
-const variants = ['README.md', 'README.txt', 'README']
-
-function AddReadmeSection({ packageHandle: { bucket, name } }) {
+function AddReadmeSection({ packageHandle, path }) {
+  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
   const classes = useAddReadmeSectionStyles()
-  const { urls } = NamedRoutes.use()
-  const history = useHistory()
-  const toConfig = React.useCallback(
-    (index) => {
-      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-      return urls.bucketFile(bucket, join(name, variants[index]), {
-        add: true,
-        edit: true,
-        next,
-      })
-    },
-    [bucket, name, urls],
-  )
-  const [selected, setSelected] = React.useState(0)
-  const handleClick = React.useCallback(() => {
-    const url = toConfig(selected)
-    history.push(url)
-  }, [history, toConfig, selected])
-  const options = React.useMemo(() => variants.map((x) => `Add ${x}`), [])
   return (
     <div className={classes.root}>
-      <SplitButton options={options} onClick={handleClick} onChange={setSelected}>
-        {options[selected]}
-      </SplitButton>
+      {prompt.render()}
+      <M.Button color="primary" size="small" variant="contained" onClick={prompt.open}>
+        Add README
+      </M.Button>
     </div>
-  )
-}
-
-function SplitButton({ onClick, children, onChange, options }) {
-  const anchorRef = React.useRef(null)
-  const [anchorEl, setAnchorEl] = React.useState(null)
-  const handleSelect = React.useCallback(
-    (index) => () => {
-      onChange(index)
-      setAnchorEl(null)
-    },
-    [onChange],
-  )
-  return (
-    <>
-      <M.ButtonGroup ref={anchorRef} color="primary" size="small" variant="contained">
-        <M.Button onClick={onClick}>{children}</M.Button>
-        <M.Button onClick={() => setAnchorEl(anchorRef.current)}>
-          <M.Icon>arrow_drop_down</M.Icon>
-        </M.Button>
-      </M.ButtonGroup>
-      <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-        {options.map((option, i) => (
-          <M.MenuItem onClick={handleSelect(i)}>{option}</M.MenuItem>
-        ))}
-      </M.Menu>
-    </>
   )
 }
 
@@ -240,6 +196,7 @@ function Thumbnails({ images, mkUrl }) {
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
+  const { preferences } = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -258,9 +215,12 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           mkUrl={mkUrl}
         />
       )}
-      {!readme && !path && !!packageHandle && (
-        <AddReadmeSection packageHandle={packageHandle} />
-      )}
+      {!readme &&
+        !path &&
+        !!packageHandle &&
+        !!preferences?.ui?.actions?.revisePackage && (
+          <AddReadmeSection packageHandle={packageHandle} path={path} />
+        )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested
