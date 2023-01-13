@@ -32,6 +32,9 @@ const useStyles = M.makeStyles((t) => ({
       marginLeft: t.spacing(1),
     },
   },
+  buttonOutlined: {
+    padding: '7px 15px',
+  },
   links: {
     textAlign: 'center',
   },
@@ -72,8 +75,8 @@ export default function Hero({ className }: HeroProps) {
           Refer a customer
         </M.Button>
         <M.Button
-          className={classes.button}
-          variant="contained"
+          className={cx(classes.button, classes.buttonOutlined)}
+          variant="outlined"
           color="primary"
           onClick={bookDemo}
         >
