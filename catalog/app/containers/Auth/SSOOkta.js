@@ -1,5 +1,4 @@
 import { push } from 'connected-react-router/esm/immutable'
-import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
@@ -7,7 +6,7 @@ import * as M from '@material-ui/core'
 import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Okta from 'utils/Okta'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -20,9 +19,12 @@ const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
 export default function SSOOkta({ mutex, next, ...props }) {
-  invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
-  invariant(!!cfg.oktaBaseUrl, 'Auth.SSO.Okta: config missing "oktaBaseUrl"')
-  const authenticate = Okta.use({ clientId: cfg.oktaClientId, baseUrl: cfg.oktaBaseUrl })
+  const provider = 'okta'
+
+  const authenticate = OIDC.use({
+    provider,
+    popupParams: 'width=300,height=400',
+  })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
@@ -35,7 +37,6 @@ export default function SSOOkta({ mutex, next, ...props }) {
 
     try {
       const token = await authenticate()
-      const provider = 'okta'
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
@@ -62,7 +63,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
         mutex.release(MUTEX_REQUEST)
       }
     } catch (e) {
-      if (e instanceof Okta.OktaError) {
+      if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
           notify(`Unable to sign in with Okta. ${e.details}`)
           sentry('captureException', e)

@@ -9,10 +9,9 @@ import 'sanitize.css' // side-effect: inject global css
 import JsonDisplay from 'components/JsonDisplay'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-import cfg from 'constants/config'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
-import * as Okta from 'utils/Okta'
+import * as OIDC from 'utils/OIDC'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
 import mkSearch from 'utils/mkSearch'
@@ -39,7 +38,10 @@ function useField(init) {
 }
 
 function Embedder() {
-  const authenticate = Okta.use({ clientId: cfg.oktaClientId, baseUrl: cfg.oktaBaseUrl })
+  const authenticate = OIDC.use({
+    provider: 'okta',
+    popupParams: 'width=300,height=400',
+  })
 
   const iframeRef = React.useRef(null)
 
