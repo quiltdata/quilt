@@ -60,7 +60,7 @@ const API_ENDPOINT =
 
 const useSubmitSuccessStyles = M.makeStyles((t) => ({
   root: {
-    background: fade('#2b2363', 0.98),
+    background: fade(t.palette.secondary.dark, 0.98),
   },
   icon: {
     marginRight: t.spacing(1),
@@ -186,7 +186,7 @@ export const validateEmail = (v: string) => {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    background: '#2b2363',
+    background: fade(t.palette.common.white, 0.1),
     borderRadius: t.spacing(2),
     maxWidth: '490px',
     padding: '52px 28px',
