@@ -69,7 +69,7 @@ export default function Hero({ className }: HeroProps) {
           color="primary"
           onClick={bookIntro}
         >
-          Intro to customer
+          Refer a customer
         </M.Button>
         <M.Button
           className={classes.button}

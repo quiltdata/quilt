@@ -59,14 +59,12 @@ export default function Features({ className }: FeaturesProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <Feature heading="Dataset Version Control" logo={dataVersionControl}>
-        Quilt Data provides dataset immutability by allowing users to create and share
-        datasets that are sealed and cryptographically verifiable, ensuring that the data
-        cannot be altered after it has been shared. This helps to maintain the integrity
-        and reliability of the data and ensures that users can trust the data
-        they are working with.
+      <Feature heading="Verify" logo={dataVersionControl}>
+        Create and share sealed, immutable datasets with cryptographic fingerprints
+        that guarantee data are pristine and unchanged. Maintain data integrity, reliability,
+        and lineage so that every dataset is trustworthy.
       </Feature>
-      <Feature heading="Data Commons" logo={dataCommons}>
+      <Feature heading="Collaborate" logo={dataCommons}>
         Quilt Data provides data cataloguing by allowing users to create and share data
         packages that include the full data context (metadata, charts, documentation,
         lineage) and are findable via the Quilt web catalog. This helps users to easily
@@ -74,7 +72,7 @@ export default function Features({ className }: FeaturesProps) {
         data. The Quilt web catalog also allows users to search for datasets using
         keywords, making it easy to find the data they need.
       </Feature>
-      <Feature heading="Visualizations" logo={visualizations}>
+      <Feature heading="Visualize" logo={visualizations}>
         Quilt Data provides visualization capabilities that allow users to view and
         analyze their data in a variety of formats. These visualizations can be customized
         and shared with others, helping users to understand and communicate the insights
