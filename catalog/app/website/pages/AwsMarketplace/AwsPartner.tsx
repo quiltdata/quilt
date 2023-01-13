@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   title: {
     textAlign: 'center',
-    fontSize: '43px',
+    fontSize: '48px',
     lineHeight: '56px',
     margin: t.spacing(4, 0),
   },

@@ -22,8 +22,8 @@ const useCaseStudyStyles = M.makeStyles((t) => ({
   },
   content: {
     color: t.palette.text.secondary,
-    fontSize: '16px',
-    lineHeight: '32px',
+    fontSize: '14px',
+    lineHeight: '28px',
   },
   readMore: {
     marginTop: t.spacing(1),
@@ -71,7 +71,7 @@ function CaseStudy({ children, className, heading, link, logo }: CaseStudyProps)
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: 'linear-gradient(to right, #30266e, #1b194f)',
-    padding: t.spacing(4, 6, 10),
+    padding: t.spacing(10, 6, 12),
   },
   columns: {
     display: 'grid',
