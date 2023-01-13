@@ -44,7 +44,7 @@ export default function Aws({ className }: AwsProps) {
       <div className={classes.content}>
         <AwsPartner className={classes.awsPartner} />
         <M.Typography variant="body1" color="textSecondary">
-          Quilt Data is an Amazon Advanced Technology Partner. Quilt brings seamless
+          Quilt Data is an AWS Advanced Technology Partner. Quilt brings seamless
           collaboration to Amazon S3 by connecting people, pipelines, and machines using
           visual, verifiable, versioned data packages. Amazon Web Services provides
           secure, cost-effective, and scalable big data services that can help you build a
