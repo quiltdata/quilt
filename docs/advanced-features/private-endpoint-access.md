@@ -102,36 +102,28 @@ policies](../CrossAccount.md#bucket-policies)
 
 ## 2. Configure an Amazon S3 Gateway endpoint
 
-> There can only be one gateway endpoint per VPC.
-> There is no additional charge for using gateway endpoints.
+To limit access to Amazon S3 from your VPC you use [gateway VPC
+endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html).
+Note that there is no additional charge for using gateway endpoints.
 
-To access Amazon S3 from your VPC you use [gateway VPC
-endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)
+Follow the [official AWS
+instructions](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html#create-gateway-endpoint-s3)
+to create a gateway endpoint.
 
-It is critical that you create your gateway endpoint in the same
-Region as your S3 buckets.
+Alternatively you can use [AWS PrivateLink for Amazon
+S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html)
+to provision _interface VPC endpoints_ (interface endpoints) in
+your VPC. These are assigned private IP addresses from subnets
+in your VPC.
 
-**TO DO:** Customer instructions if custom VPC
-**TO DO:** Quilt instructions if Quilt-default VPC
+### Important considerations
 
-**TO DO:** Private Amazon S3 endpoint (INTERFACE ENDPOINT/GATEWAY ENDPOINT)
-  - AWS PrivateLink for Amazon S3
-  - Interface Endpoint overview
-
-> Keeping traffic on private networks will incur Transit Gateway,
-inter-VPC, and Interface Endpoint charges
-> DNS of the VPN clients must assign AWS global and regional S3
-service names to the Interface Endpoint IP addresses
-
-## **TO DO:** 3. Configure the application VPC to resolve S3 endpoints to the S3 Interface Endpoints in the central VPC
-
-## **TO DO:** Deployment Playbook Summary (developer or cloud administrator)
-
-1. What do I need to change to make this take effect?
-  1.1. Clean install
-  1.2. Upgrade from an existing stack
-2. What happens when I turn it on?
-
+1. There can only be one gateway endpoint per VPC.
+2. Your S3 buckets must be in the same region at the gateway endpoint.
+2. Keeping traffic on private networks will incur Transit Gateway,
+inter-VPC, and Interface Endpoint charges.
+3. The DNS of any VPN clients must assign AWS global and regional S3
+service names to the Interface Endpoint IP addresses.
 
 ## Further reading
 
@@ -139,9 +131,3 @@ service names to the Interface Endpoint IP addresses
 * [Secure hybrid access to Amazon S3 using AWS PrivateLink](https://aws.amazon.com/blogs/networking-and-content-delivery/secure-hybrid-access-to-amazon-s3-using-aws-privatelink/)
 * [Establishing a Data Perimeter](https://aws.amazon.com/blogs/security/establishing-a-data-perimeter-on-aws/)
 * [Building a Data Perimeter Whitepaper](https://docs.aws.amazon.com/whitepapers/latest/building-a-data-perimeter-on-aws/building-a-data-perimeter-on-aws.html)
-
-## Orphaned content
-
-AWS has [interface VPC
-endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)
-and they give you a private IP.
