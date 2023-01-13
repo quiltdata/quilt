@@ -176,6 +176,14 @@ function SubmitStatus({ submitting, error, success }: SubmitStatusProps) {
   return null
 }
 
+export const validateEmail = (v: string) => {
+  const indexOfAt = v?.indexOf('@')
+  const indexOfDot = v?.indexOf('.', indexOfAt)
+  return indexOfAt > -1 && indexOfDot > -1 && indexOfDot !== v.length - 1
+    ? undefined
+    : 'invalid'
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: '#2b2363',
@@ -304,8 +312,14 @@ export default function Form({ className }: FormProps) {
               disabled={submitting}
               name="companyEmail"
               placeholder="Company Email*"
-              validate={validators.required as FF.FieldValidator<any>}
+              validate={
+                validators.composeAnd(
+                  validators.required,
+                  validateEmail,
+                ) as FF.FieldValidator<any>
+              }
               errors={{
+                invalid: 'Email is invalid',
                 required: 'Company email is required',
               }}
             />
