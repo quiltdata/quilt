@@ -226,8 +226,8 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
   return (
     <div className={classes.root}>
-      {revision.message && <div className={classes.section}>{revision.message}</div>}
-      {revision.userMeta && (
+      {!!revision.message && <div className={classes.section}>{revision.message}</div>}
+      {!!revision.userMeta && (
         <div className={classes.section}>
           {Object.entries(revision.userMeta).map(([name, value]) => (
             /* @ts-expect-error */
