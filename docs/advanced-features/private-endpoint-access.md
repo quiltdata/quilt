@@ -57,7 +57,6 @@ principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_e
 as CloudWatch, or by an AWS service to another service
 (`"aws:ViaAWSService"`).
 
-<!--pytest.mark.skip-->
 ```json
 {
     "Version": "2012-10-17",
