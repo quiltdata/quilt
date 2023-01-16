@@ -5,7 +5,6 @@ const useStyles = M.makeStyles({
   root: {
     border: 'none',
     height: '90vh',
-    width: '100%',
   },
 })
 
