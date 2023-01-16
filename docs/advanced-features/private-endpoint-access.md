@@ -46,7 +46,7 @@ The example policy below denies access (`"Effect": "Deny"`) to all
 Amazon S3 buckets prefixed with the string `quilt`
 unless **all** of the following conditions are met:
 
-1. A `Source VPN` matches either `vpc-LOCAL` or `vpc-VPN`.
+1. A `Source VPC` matches either `vpc-LOCAL` or `vpc-VPN`.
 2. A tag attached to the principal making the request with the key
 `aws:PrincipalTag/NetworkRestrictedExempt` has the value `true`
 3. The request must come from any IP **except** the range 
