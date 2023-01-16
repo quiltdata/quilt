@@ -22,6 +22,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Make file preview wrapper consistently 100% width ([#3245](https://github.com/quiltdata/quilt/pull/3245))
 * [Changed] Show collapsed values in JSON viewer ([#3249](https://github.com/quiltdata/quilt/pull/3249))
 * [Changed] Rename "Metadata" to "User metadata" ([#3255](https://github.com/quiltdata/quilt/pull/3255))
+* [Changed] Show selective metadata for packages as JSON ([#3259](https://github.com/quiltdata/quilt/pull/3259))
 
 # 5.1.0 - 2022-12-09
 ## Python API
