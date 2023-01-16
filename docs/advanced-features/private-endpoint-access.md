@@ -119,7 +119,7 @@ in your VPC.
 ### Important considerations
 
 1. There can only be one gateway endpoint per VPC.
-2. Your S3 buckets must be in the same region at the gateway endpoint.
+2. Your S3 buckets must be in the same region as the gateway endpoint.
 2. Keeping traffic on private networks will incur Transit Gateway,
 inter-VPC, and Interface Endpoint charges.
 3. The DNS of any VPN clients must assign AWS global and regional S3
