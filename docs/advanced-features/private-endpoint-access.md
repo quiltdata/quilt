@@ -71,10 +71,10 @@ as CloudWatch, or by an AWS service to another service
             ],
             "Condition": {
                 "StringNotEqualsIfExists": {
-                        "aws:SourceVpc": [
-                            "vpc-LOCAL",
-                            "vpc-VPN"
-                        ]
+                    "aws:SourceVpc": [
+                        "vpc-LOCAL",
+                        "vpc-VPN"
+                    ]
                 },
                 "Null": {
                     "aws:PrincipalTag/NetworkRestrictedExempt": "true"
