@@ -44,7 +44,7 @@ types"](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_p
 
 The example policy below denies access (`"Effect": "Deny"`) to all
 Amazon S3 buckets prefixed with the string `quilt`
-unless **all** of the following conditions are met:
+unless **any** of the following conditions is met:
 
 1. A `Source VPC` matches either `vpc-LOCAL` or `vpc-VPN`.
 2. A tag attached to the principal making the request with the key
