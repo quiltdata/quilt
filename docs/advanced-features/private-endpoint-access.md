@@ -47,8 +47,7 @@ Amazon S3 buckets prefixed with the string `quilt`
 unless **any** of the following conditions is met:
 
 1. A `Source VPC` matches either `vpc-LOCAL` or `vpc-VPN`.
-2. A tag attached to the principal making the request with the key
-`aws:PrincipalTag/NetworkRestrictedExempt` has the value `true`
+2. The principal making the request has `NetworkRestrictedExempt` tag attached.
 3. The request must come from any IP **except** the range 
 `192.0.2.0 - 192.0.2.255` and `203.0.113.0 - 203.0.113.255`
 4. The call to the S3 bucket is beng made by an AWS [service
