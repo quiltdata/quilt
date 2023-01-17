@@ -21,7 +21,33 @@ functions, API Gateway, Quilt catalog API).
 
 To implement a data perimeter, you will need to take the following steps.
 
-## 1. Configure and deploy a Service Control Policy and Amazon S3 bucket policy
+## 1. Configure an Amazon S3 Gateway endpoint
+
+To limit access to Amazon S3 from your VPC you use [gateway VPC
+endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html).
+Note that there is no additional charge for using gateway endpoints.
+
+Follow the [official AWS
+instructions](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html#create-gateway-endpoint-s3)
+to create a gateway endpoint.
+
+Alternatively you can use [AWS PrivateLink for Amazon
+S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html)
+to provision _interface VPC endpoints_ (interface endpoints) in
+your VPC. These are assigned private IP addresses from subnets
+in your VPC.
+
+## 2. Configure NAT gateway
+
+To allow Quilt services access AWS endpoints other than S3 the traffic
+from the subnets where Quilt is deployed to the internet should be routed
+through NAT gateway.
+
+Follow the [official AWS
+instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating)
+to create a NAT gateway.
+
+## 3. Configure and deploy a Service Control Policy and Amazon S3 bucket policy
 
 Access should be restricted to trusted networks and principals:
 
@@ -100,38 +126,12 @@ SCPs should be used in parallel with identity-based or resource-based
 policies to IAM users or roles, or [explicit S3 bucket
 policies](../CrossAccount.md#bucket-policies)
 
-## 2. Configure an Amazon S3 Gateway endpoint
+## Making sure everything is correctly set up
 
-To limit access to Amazon S3 from your VPC you use [gateway VPC
-endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html).
-Note that there is no additional charge for using gateway endpoints.
-
-Follow the [official AWS
-instructions](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html#create-gateway-endpoint-s3)
-to create a gateway endpoint.
-
-Alternatively you can use [AWS PrivateLink for Amazon
-S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html)
-to provision _interface VPC endpoints_ (interface endpoints) in
-your VPC. These are assigned private IP addresses from subnets
-in your VPC.
-
-## 3. Configure NAT gateway
-
-To allow Quilt services access AWS endpoints other than S3 the traffic
-from the subnets where Quilt is deployed to the internet should be routed
-through NAT gateway.
-
-Follow the [official AWS
-instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating)
-to create a NAT gateway.
-
-### Making sure everything is correctly set up
-
-After doing steps above you might want to check [canaries](./good-practice.md)
+After doing steps above please check your [canaries](./good-practice.md)
 status to make sure everything works as expected.
 
-### Important considerations
+## Important considerations
 
 1. There can only be one gateway endpoint per VPC.
 2. Your S3 buckets must be in the same region as the gateway endpoint.
