@@ -21,11 +21,20 @@ const searchModes = [
 ]
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
+  actions: {
+    display: 'flex',
+  },
+  selectBtn: {
+    minWidth: t.spacing(27),
+    textAlign: 'left',
+  },
   error: {
     margin: t.spacing(1, 0, 0),
     ...t.typography.body2,
     color: t.palette.error.main,
+  },
+  restore: {
+    marginLeft: t.spacing(1),
   },
 }))
 
@@ -63,16 +72,35 @@ export default function SearchSettings() {
     [error, settings, writeSettings],
   )
 
+  const handleReset = React.useCallback(
+    () => handleChange(searchModes[0]),
+    [handleChange],
+  )
+
   return (
-    <div className={classes.root}>
-      <SelectDropdown
-        value={value}
-        options={searchModes}
-        onChange={handleChange}
-        loading={loading}
-        disabled={loading}
-      />
+    <>
+      <div className={classes.actions}>
+        <SelectDropdown
+          value={value}
+          options={searchModes}
+          ButtonProps={{ className: classes.selectBtn }}
+          onChange={handleChange}
+          loading={loading}
+          disabled={loading}
+        />
+        {value.valueOf() && (
+          <M.IconButton
+            className={classes.restore}
+            size="small"
+            onClick={handleReset}
+            disabled={loading}
+            title="Restore defaults"
+          >
+            <M.Icon>restore</M.Icon>
+          </M.IconButton>
+        )}
+      </div>
       {error && <M.Typography className={classes.error}>{error.message}</M.Typography>}
-    </div>
+    </>
   )
 }
