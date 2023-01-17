@@ -51,7 +51,7 @@ interface PackagePreferencesInput {
   message?: true
   user_meta?: ReadonlyArray<string>
 }
-interface PackagePreferences {
+export interface PackagePreferences {
   message?: true
   userMeta?: ReadonlyArray<string>
 }
