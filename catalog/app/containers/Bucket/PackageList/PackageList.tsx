@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
@@ -7,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as Model from 'model'
@@ -143,6 +145,9 @@ const useRevisionAttributesStyles = M.makeStyles((t) => ({
     ...t.typography.subtitle2,
     color: t.palette.text.secondary,
     position: 'relative',
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
   },
   updated: {
     ...t.typography.body2,
@@ -153,6 +158,8 @@ const useRevisionAttributesStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionAttributesProps {
+  bucket: string
+  name: string
   className: string
   revisions: {
     total: number
@@ -160,20 +167,30 @@ interface RevisionAttributesProps {
   modified: Date
 }
 
-function RevisionAttributes({ className, modified, revisions }: RevisionAttributesProps) {
+function RevisionAttributes({
+  bucket,
+  className,
+  name,
+  modified,
+  revisions,
+}: RevisionAttributesProps) {
   const classes = useRevisionAttributesStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const { urls } = NamedRoutes.use()
   return (
     <div className={className}>
-      <span className={classes.revisionsNumber}>
+      <RRDom.Link
+        className={classes.revisionsNumber}
+        to={urls.bucketPackageRevisions(bucket, name)}
+      >
         {revisions.total}{' '}
         {xs ? (
           'Rev.'
         ) : (
           <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
         )}
-      </span>
+      </RRDom.Link>
       <span
         className={classes.updated}
         title={modified ? modified.toString() : undefined}
@@ -190,76 +207,101 @@ const useRevisionMetaStyles = M.makeStyles((t) => ({
     borderTop: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2),
     ...t.typography.body2,
-    color: t.palette.text.secondary,
   },
   section: {
     '& + &': {
       marginTop: t.spacing(1),
     },
   },
-  tag: {
-    '& + &': {
-      marginLeft: t.spacing(1),
-    },
+  sectionWithToggle: {
+    marginLeft: '-5px',
   },
 }))
 
 interface RevisionMetaProps {
-  sections: (string | string[])[]
+  revision: SelectiveMeta
 }
 
-function RevisionMeta({ sections }: RevisionMetaProps) {
+function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
-
   return (
     <div className={classes.root}>
-      {sections.map((section, i) => (
-        <div className={classes.section} key={`${i}+${section}`}>
-          {Array.isArray(section)
-            ? section.map((label, j) => (
-                <M.Chip
-                  className={classes.tag}
-                  label={label}
-                  key={`${j}+${label}`}
-                  size="small"
-                  variant="outlined"
-                />
-              ))
-            : section}
+      {!!revision.message && <div className={classes.section}>{revision.message}</div>}
+      {!!revision.userMeta && (
+        <div className={classes.section}>
+          {Object.entries(revision.userMeta).map(([name, value]) => (
+            /* @ts-expect-error */
+            <JsonDisplay
+              className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
+              key={`user-meta-section-${name}`}
+              name={name}
+              value={value}
+            />
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
 
-function usePackageMeta(
+function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) {
+  return jsonPaths.reduce(
+    (acc, jPath) =>
+      jsonpath
+        .nodes(obj, jPath)
+        .reduce((memo, { path, value }) => R.assocPath(path.slice(1), value, memo), acc),
+    {},
+  )
+}
+
+function usePackageDescription(
   name: string,
-  revision: { message: string | null; userMeta: JsonRecord | null } | null,
-) {
-  // TODO: move visible meta calculation to the graphql
+): BucketPreferences.PackagePreferences | null {
   const { preferences } = BucketPreferences.use()
   return React.useMemo(() => {
-    const output: (string | string[])[] = []
+    if (!preferences?.ui.package_description) return null
+    return (
+      Object.entries(preferences?.ui.package_description)
+        .reverse() // The last found config wins
+        .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
+    )
+  }, [name, preferences])
+}
+
+interface SelectiveMeta {
+  message: string | null
+  userMeta: JsonRecord | null
+}
+
+function useSelectiveMeta(name: string, revision: SelectiveMeta | null) {
+  // TODO: move visible meta calculation to the graphql
+  const packageDescription = usePackageDescription(name)
+  return React.useMemo(() => {
+    const output: { message: string | null; userMeta: JsonRecord | null } = {
+      message: null,
+      userMeta: null,
+    }
     try {
-      if (!preferences?.ui.package_description) return output
-      const { message, userMeta } =
-        Object.entries(preferences?.ui.package_description)
-          .reverse() // The last found config wins
-          .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
-      if (message && revision?.message) output.push(revision.message)
-      if (userMeta && revision?.userMeta)
-        userMeta.forEach((jPath) => {
-          const section = jsonpath.value(revision.userMeta, jPath)
-          if (typeof section === 'string') output.push(section)
-          if (Array.isArray(section)) output.push(section.filter(R.is(String)))
-        })
-      return output
+      if (!packageDescription) return null
+      if (packageDescription.message && revision?.message) {
+        output.message = revision.message
+      }
+      if (packageDescription.userMeta && revision?.userMeta) {
+        const selectiveUserMeta = filterObjectByJsonPaths(
+          revision.userMeta,
+          packageDescription.userMeta,
+        )
+        if (!R.isEmpty(selectiveUserMeta)) {
+          output.userMeta = selectiveUserMeta
+        }
+      }
+      return output.message || output.userMeta ? output : null
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error)
-      return output
+      return null
     }
-  }, [name, preferences, revision])
+  }, [packageDescription, revision])
 }
 
 const usePackageStyles = M.makeStyles((t) => ({
@@ -323,7 +365,7 @@ function Package({
 }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
-  const meta = usePackageMeta(name, revision)
+  const selectiveMeta = useSelectiveMeta(name, revision)
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
@@ -337,13 +379,15 @@ function Package({
           </RRDom.Link>
         </div>
         <RevisionAttributes
+          bucket={bucket}
           className={classes.attributes}
           modified={modified}
+          name={name}
           revisions={revisions}
         />
         {!!accessCounts && <Counts {...accessCounts} />}
       </div>
-      {!!meta && !!meta.length && <RevisionMeta sections={meta} />}
+      {!!selectiveMeta && <RevisionMeta revision={selectiveMeta} />}
     </M.Paper>
   )
 }

@@ -13,7 +13,10 @@ import { resolveKey } from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData, PreviewError } from '../types'
+import FileType from './fileType'
 import * as utils from './utils'
+
+export const FILE_TYPE = FileType.Markdown
 
 // TODO: resolve relative paths inside packages?
 // this will require async processing and remarkable@1 doesnt support that,
@@ -77,7 +80,7 @@ function MarkdownLoader({ gated, handle, children }) {
     (r) => {
       const contents = r.Body.toString('utf-8')
       const rendered = getRenderer({ images: true, processImg, processLink })(contents)
-      return PreviewData.Markdown({ rendered })
+      return PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] })
     },
     [processImg, processLink],
   )

@@ -7,7 +7,7 @@ import { Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Placeholder from 'components/Placeholder'
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
@@ -232,15 +232,13 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
 
 export default ({ location: { search } }) => {
   const authenticated = redux.useSelector(selectors.authenticated)
-  const cfg = Config.useConfig()
   const mutex = useMutex()
 
   const [done, setDone] = React.useState(false)
 
   const ssoEnabled = (provider) => {
     if (cfg.ssoAuth !== true) return false
-    const { ssoProviders = [] } = cfg
-    return provider ? ssoProviders.includes(provider) : !!ssoProviders.length
+    return provider ? cfg.ssoProviders.includes(provider) : !!cfg.ssoProviders.length
   }
 
   const { next } = parseSearch(search)

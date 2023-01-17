@@ -62,7 +62,6 @@ that is selected by default; if it doesn't match any bucket then it's ignored
 that maps package handle regular expressions
 or literals to JSONPath expressions of fields to show from package metadata
 in the package list view.
-Strings display as paragraphs. Elements of a list display as tags.
 * `ui.athena.defaultWorkgroup` - default workgroup to select on the Athena page
 
 #### `ui.sourceBuckets` example

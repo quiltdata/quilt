@@ -27,7 +27,7 @@ class Request:
         self.method = event['httpMethod']
         self.path = event['path']
         self.pathParameters = event.get('pathParameters')
-        self.headers = event['headers'] or {}
+        self.headers = {k.lower(): v for k, v in (event["headers"] or {}).items()}
         self.args = event['queryStringParameters'] or {}
         if event['isBase64Encoded']:
             self.data = b64decode(event['body'])
