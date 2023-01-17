@@ -126,6 +126,11 @@ Follow the [official AWS
 instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating)
 to create a NAT gateway.
 
+### Making sure everything is correctly set up
+
+After doing steps above you might want to check [canaries](./good-practice.md)
+status to make sure everything works as expected.
+
 ### Important considerations
 
 1. There can only be one gateway endpoint per VPC.
