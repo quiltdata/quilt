@@ -309,7 +309,7 @@ export default function Settings() {
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
             <M.Typography variant="h5" className={classes.sectionHeading}>
-              Search settings
+              Default search mode
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
               <SearchSettings />
