@@ -11,6 +11,7 @@ import MetaTitle from 'utils/MetaTitle'
 import * as validators from 'utils/validators'
 
 import * as Form from '../Form'
+import SearchSettings from './SearchSettings'
 import ThemeEditor from './ThemeEditor'
 
 function useBeta(): [boolean, (b: boolean) => Promise<void>] {
@@ -301,6 +302,17 @@ export default function Settings() {
             </M.Typography>
             <React.Suspense fallback={<M.CircularProgress />}>
               <ThemeEditor />
+            </React.Suspense>
+          </M.Paper>
+        </M.Grid>
+
+        <M.Grid item xs={6}>
+          <M.Paper className={classes.group}>
+            <M.Typography variant="h5" className={classes.sectionHeading}>
+              Search settings
+            </M.Typography>
+            <React.Suspense fallback={<M.CircularProgress />}>
+              <SearchSettings />
             </React.Suspense>
           </M.Paper>
         </M.Grid>

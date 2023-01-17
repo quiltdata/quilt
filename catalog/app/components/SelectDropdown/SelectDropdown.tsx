@@ -30,7 +30,7 @@ export interface ValueBase {
   // TODO: use getOptionLabel(): string  similar to M.Autocomplete
   toString: () => string
   // TODO: use isOptionEqualToValue(): bool similar to M.Autocomplete
-  valueOf: () => string | number | boolean
+  valueOf: () => string | number | boolean | null
 }
 
 interface SelectDropdownProps<Value extends ValueBase> {
