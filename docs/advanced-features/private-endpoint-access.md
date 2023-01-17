@@ -1,6 +1,9 @@
 <!-- markdownlint-disable -->
 # Private Endpoint Access
 
+> This page describes a feature that is not enabled by default.
+Ask your Quilt manager to enable it for you.
+
 ## The Data Perimeter concept
 
 Establishing a **data perimeter** pattern that only allows access to trusted
@@ -10,7 +13,7 @@ from unintended access and potential configuration errors via
 built-in barriers.
 
 You can restrict Amazon S3 bucket access to a particular VPC and VPN traffic
-via a data perimeter pattern, which prevents leaked S3 credentials from 
+via a data perimeter pattern, which prevents leaked S3 credentials from
 bypassing your organization's VPN.
 
 > Quilt already has private IPs for all Quilt services (Lambda
@@ -112,6 +115,16 @@ S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-
 to provision _interface VPC endpoints_ (interface endpoints) in
 your VPC. These are assigned private IP addresses from subnets
 in your VPC.
+
+## 3. Configure NAT gateway
+
+To allow Quilt services access AWS endpoints other than S3 the traffic
+from the subnets where Quilt is deployed to the internet should be routed
+through NAT gateway.
+
+Follow the [official AWS
+instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating)
+to create a NAT gateway.
 
 ### Important considerations
 
