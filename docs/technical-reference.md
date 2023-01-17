@@ -303,23 +303,23 @@ Note: You will need Okta administrator privileges to add a new Application.
 6. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
 7. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 8. Configure the new web app integration as follows:
-  8.1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-  8.2. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
-    ```
-    https://quilt.<MY_COMPANY>.com/
-    ```
-  8.3. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
-  8.4. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
+   1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
+   2. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
+      ```
+      https://quilt.<MY_COMPANY>.com/
+      ```
+   3. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
+   4. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 9. Once you click the `Save` button you will have a new application integration to review.
-  9.1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
-  9.2. Copy the `Client ID` to a safe place
+   1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
+   2. Copy the `Client ID` to a safe place
 10. Go to **Okta > Security > API > Authorization servers**
-  10.1. You should see a `default` entry with the `Audience` value set to `api://default`, and an `Issuer URI` that looks like the following:
-    ```
-    https://<MY_COMPANY>.okta.com/oauth2/default
-    ```
-    See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
-    for more.
+    1. You should see a `default` entry with the `Audience` value set to `api://default`, and an `Issuer URI` that looks like the following:
+       ```
+       https://<MY_COMPANY>.okta.com/oauth2/default
+       ```
+       See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
+       for more.
 11. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ### OneLogin
