@@ -104,6 +104,11 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
         title: 'Object version id',
       },
       {
+        example: (s) => <>{s}latest</>,
+        syntax: 'pointer_file:',
+        title: 'Only latest package version',
+      },
+      {
         example: (s) => <>{s}&gt;100</>,
         syntax: 'package_stats\n  .total_files:',
         title: 'Package total files',
