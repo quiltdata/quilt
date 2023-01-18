@@ -169,15 +169,16 @@ text box for further details. Service Catalog users require a license key. See
 
     ![](./imgs/stack-details.png)
 
-If you wish to use a service role, specify it as follows:
+1. If you wish to use a service role, specify it as follows:
 
     ![](./imgs/service-role.png)
 
-1. Service Catalog users, skip this step. Under Stack creation options, enable termination protection.
+1. Service Catalog users, skip this step. Under Stack creation
+options, enable termination protection. This protects the stack
+from accidental deletion. Click Next.
 
     ![](./imgs/term_protect.png)
 
-This protects the stack from accidental deletion. Click Next.
 1. Service Catalog users, skip this step. Check the box asking you
 to acknowledge that CloudFormation may create IAM roles, then click
 Create.
@@ -303,9 +304,9 @@ Note: You will need Okta administrator privileges to add a new Application.
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
     1. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
 
-    ```
-    https://quilt.<MY_COMPANY>.com/
-    ```
+        ```
+        https://quilt.<MY_COMPANY>.com/
+        ```
 
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
@@ -317,13 +318,11 @@ Note: You will need Okta administrator privileges to add a new Application.
     to `api://default`, and an `Issuer URI` that looks like the
     following:
 
-    ```
-    https://<MY_COMPANY>.okta.com/oauth2/default
-    ```
+        ```
+        https://<MY_COMPANY>.okta.com/oauth2/default
+        ```
 
-    1. See [Okta authorization
-    servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
-    for more.
+    1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ### OneLogin
