@@ -57,8 +57,7 @@ The following are all valid search parameters:
 - `metadata`: Package metadata. `metadata:dapi`
 - `size`: Object size in bytes. `size:>=4096`
 - `version_id`: Object version id. `version_id:t.LVVCx*`
-- `pointer_file`: Internal ElasticSearch field, either `latest` or
-a hash. `pointer_file: latest`
+- `pointer_file`: Package revision tag in S3; either "latest" or a top hash. `pointer_file: latest`
 - `package_stats.total_files`: Package total files.
   `package_stats.total_files:>100`
 - `package_stats.total_bytes`: Package total bytes.
