@@ -13,7 +13,7 @@ idna==2.8
 ipython-genutils==0.2.0
 jmespath==0.9.4
 jsonschema==3.2.0
-jupyter-core==4.5.0
+jupyter-core==4.11.2
 nbformat==4.4.0
 numpy==1.21.5
 openpyxl==3.0.7

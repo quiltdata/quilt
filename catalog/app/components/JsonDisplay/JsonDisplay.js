@@ -40,7 +40,7 @@ const useStyles = M.makeStyles((t) => ({
     opacity: 0.7,
   },
   brace: {
-    color: t.palette.secondary.dark,
+    color: t.palette.text.secondary,
   },
 }))
 
