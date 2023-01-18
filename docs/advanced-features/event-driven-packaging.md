@@ -71,7 +71,7 @@ number of files have been created (since the prior trigger)
 
 1. EDP monitors S3 object events for _s3://source-bucket_
 2. After a fixed number of events (`BucketThresholdEventCount`) or
-a maximum duration (`BucketThresholdDuration`) EDP creates a
+a maximum duration within a common prefix (`BucketThresholdDuration`) EDP creates a
 package in _s3://target-bucket_ (the _target_ bucket may or may not be
 the same as the _source_ bucket).
 3. Each EDP event contains sufficient information for the
