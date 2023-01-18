@@ -14,11 +14,11 @@ import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import cfg from 'constants/config'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
@@ -46,7 +46,7 @@ import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
-import { ViewMode, useViewModes, viewModeToSelectOption } from '../viewModes'
+import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -57,30 +57,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-/*
-function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
-  const sign = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
-  const data = useData(requests.getRevisionData, {
-    sign,
-    endpoint,
-    bucket,
-    hash,
-    maxKeys: 0,
-  })
-  return data.case({
-    _: () => null,
-    Ok: ({ header }) => (
-      <React.Suspense fallback={null}>
-        <LinkedData.PackageData
-          {...{ bucket: bucketCfg, name, hash, modified, header }}
-        />
-      </React.Suspense>
-    ),
-  })
-}
-*/
 
 interface PkgCodeProps {
   bucket: string
@@ -480,7 +456,7 @@ function DirDisplay({
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
-  mode: ViewMode | null,
+  mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
 ) => {
   if (deleted) {
@@ -594,6 +570,9 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
       marginBottom: '3px',
     },
   },
+  preview: {
+    width: '100%',
+  },
 }))
 
 interface FileDisplayProps extends FileDisplayQueryProps {
@@ -611,7 +590,6 @@ function FileDisplay({
   file,
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
-  const { noDownload } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
@@ -622,7 +600,7 @@ function FileDisplay({
     [bucket, name, hash],
   )
 
-  const viewModes = useViewModes(path, mode, packageHandle)
+  const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
     (m) => {
@@ -707,7 +685,7 @@ function FileDisplay({
                     onChange={onViewModeChange}
                   />
                 )}
-                {!noDownload && !deleted && !archived && (
+                {!cfg.noDownload && !deleted && !archived && (
                   <FileView.DownloadButton className={classes.button} handle={handle} />
                 )}
               </TopBar>
@@ -718,12 +696,14 @@ function FileDisplay({
                 <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                {withPreview(
-                  { archived, deleted },
-                  handle,
-                  viewModes.mode,
-                  renderPreview(viewModes.handlePreviewResult),
-                )}
+                <div className={classes.preview}>
+                  {withPreview(
+                    { archived, deleted },
+                    handle,
+                    viewModes.mode,
+                    renderPreview(viewModes.handlePreviewResult),
+                  )}
+                </div>
               </Section>
             </>
           ),

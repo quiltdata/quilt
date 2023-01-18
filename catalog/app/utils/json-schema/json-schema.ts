@@ -134,6 +134,10 @@ function compoundTypeToHumanString(
 export function schemaTypeToHumanString(optSchema?: JsonSchema) {
   if (!optSchema) return ''
   return R.cond<JsonSchema, string>([
+    [isSchemaAnyOf, () => compoundTypeToHumanString(optSchema, 'anyOf', '|')],
+    [isSchemaOneOf, () => compoundTypeToHumanString(optSchema, 'oneOf', '|')],
+    [isSchemaAllOf, () => compoundTypeToHumanString(optSchema, 'allOf', '&')],
+    [isSchemaCompound, () => 'compound'],
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
     [isSchemaBoolean, () => 'boolean'],
@@ -147,10 +151,6 @@ export function schemaTypeToHumanString(optSchema?: JsonSchema) {
           ? optSchema.type.join('|')
           : (optSchema.type as string),
     ],
-    [isSchemaAnyOf, () => compoundTypeToHumanString(optSchema, 'anyOf', '|')],
-    [isSchemaOneOf, () => compoundTypeToHumanString(optSchema, 'oneOf', '|')],
-    [isSchemaAllOf, () => compoundTypeToHumanString(optSchema, 'allOf', '&')],
-    [isSchemaCompound, () => 'compound'],
     [isSchemaReference, () => '$ref'],
     [R.T, () => 'undefined'],
   ])(optSchema)
@@ -174,7 +174,11 @@ function doesTypeMatchCompoundSchema(
 // TODO: rename and redesign function to avoid "if no schema -> return true aka 'type matches schema'"
 export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean {
   if (!optSchema) return true
+
   return R.cond<JsonSchema, boolean>([
+    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, 'anyOf', optSchema)],
+    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, 'oneOf', optSchema)],
+    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, 'allOf', optSchema)],
     [
       isSchemaEnum,
       () => {
@@ -194,9 +198,6 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
           doesTypeMatchSchema(value, subSchema),
         ),
     ],
-    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, 'anyOf', optSchema)],
-    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, 'oneOf', optSchema)],
-    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, 'allOf', optSchema)],
     [isSchemaArray, () => Array.isArray(value)],
     [isSchemaObject, () => R.is(Object, value)],
     [isSchemaString, () => R.is(String, value)],
@@ -229,6 +230,7 @@ export function makeSchemaValidator(
   const { $id } = schemas[0]
   const options: Options = {
     allErrors: true,
+    allowUnionTypes: true,
     schemaId: '$id',
     schemas,
     useDefaults: true,

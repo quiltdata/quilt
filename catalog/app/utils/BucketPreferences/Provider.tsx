@@ -1,13 +1,13 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import cfg from 'constants/config'
+import * as quiltConfigs from 'constants/quiltConfigs'
 import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
-import * as quiltConfigs from 'constants/quiltConfigs'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as Sentry from 'utils/Sentry'
 
@@ -76,9 +76,7 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
 }
 
 export function Provider({ bucket, children }: ProviderProps) {
-  const cfg = Config.use()
-  const local = cfg.mode === 'LOCAL'
-  if (local) return <LocalProvider context={Ctx}>{children}</LocalProvider>
+  if (cfg.mode === 'LOCAL') return <LocalProvider context={Ctx}>{children}</LocalProvider>
 
   return <CatalogProvider bucket={bucket}>{children}</CatalogProvider>
 }

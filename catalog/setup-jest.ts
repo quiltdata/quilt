@@ -1,6 +1,5 @@
 ;(window as any).QUILT_CATALOG_CONFIG = {
   "apiGatewayEndpoint": "",
-  "binaryApiGatewayEndpoint": "",
   "alwaysRequiresAuth": true,
   "s3Proxy": "",
   "registryUrl": "",

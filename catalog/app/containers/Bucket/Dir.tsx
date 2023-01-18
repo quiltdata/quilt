@@ -9,10 +9,10 @@ import * as M from '@material-ui/core'
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
+import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -289,7 +289,6 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
   const { preferences } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
@@ -394,7 +393,7 @@ export default function Dir({
             Create package from directory
           </Successors.Button>
         )}
-        {!noDownload && !desktop && (
+        {!cfg.noDownload && !cfg.desktop && (
           <FileView.ZipDownloadForm
             className={classes.button}
             suffix={`dir/${bucket}/${path}`}

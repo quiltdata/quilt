@@ -166,7 +166,7 @@ function* fetchUser(tokens) {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: '/me',
+      endpoint: `/me?_cachebust=${Math.random()}`,
     })
     return auth
   } catch (e) {

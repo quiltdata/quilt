@@ -9,10 +9,10 @@ import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useBucketExistence } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -373,8 +373,8 @@ function Meta({ meta }) {
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
-      <JsonDisplay defaultExpanded={1} value={meta} />
+    <PreviewBox expanded={expanded} onExpand={onExpand}>
+      <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
 }
@@ -433,11 +433,13 @@ function ObjectHit({ hit, ...props }) {
 }
 
 function FileHit({ showBucket, hit: { path, versions, bucket } }) {
-  const cfg = Config.use()
   const s3 = AWS.S3.use()
 
   const v = versions[0]
-  const handle = { bucket, key: path, version: v.id }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version: v.id }),
+    [bucket, path, v.id],
+  )
 
   const bucketExistenceData = useBucketExistence(bucket)
   const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
@@ -479,7 +481,7 @@ function DirHit({
     bucket,
   },
 }) {
-  const handle = { bucket, key: path }
+  const handle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
   return (
     <Section
       data-testid="search-hit"

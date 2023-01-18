@@ -1132,6 +1132,50 @@ class PackageTest(QuiltTestCase):
             with self.assertRaisesRegex(QuiltConflictException, 'already exists'):
                 pkg2.push('Quilt/test', 's3://test-bucket')
 
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_dedupe(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+
+        pkg = Package()
+
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+
+        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
+             patch('quilt3.Package._push_manifest') as push_manifest:
+            # Remote package does not yet exist: normal push.
+
+            self.setup_s3_stubber_resolve_pointer_not_found(
+                pkg_registry, pkg_name, pointer='latest'
+            )
+
+            pkg2 = pkg.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
+            push_manifest.assert_called_once()
+
+            # Remote package exists, but has a different hash: normal push.
+
+            pkg2.set('foo', b'123')
+            pkg2.build('Quilt/test')
+
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash
+            )
+
+            push_manifest.reset_mock()
+            pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
+            push_manifest.assert_called_once()
+
+            # Remote package exists and has the same hash.
+
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
+            )
+
+            push_manifest.reset_mock()
+            pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
+            push_manifest.assert_not_called()
+
     @patch('quilt3.workflows.validate', return_value=None)
     def test_commit_message_on_push(self, mocked_workflow_validate):
         """ Verify commit messages populate correctly on push."""
