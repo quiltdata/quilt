@@ -53,6 +53,7 @@ function useSmartS3() {
             // (not sure if there are any such operations that can be used from the browser)
             !bucket ||
             cfg.analyticsBucket === bucket ||
+            cfg.serviceBucket === bucket ||
             statusReportsBucket === bucket ||
             (cfg.mode !== 'OPEN' && isInStack(bucket))
           ) {
