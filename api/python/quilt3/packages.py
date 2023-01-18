@@ -218,9 +218,6 @@ class PackageEntry:
 
         Returns:
             self
-
-        Warnings:
-            meta(dict) will override any previously defined metadata
         """
         if path is not None:
             self.physical_key = PhysicalKey.from_url(fix_url(path))
