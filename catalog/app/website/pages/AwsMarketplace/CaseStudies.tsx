@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import logoCelsius from './logo-celsius.png'
-import logoResilience from './logo-resilience.png'
+import logoResilience from './logo-resilience.svg'
 import logoTessera from './logo-tessera.png'
 
 const useCaseStudyStyles = M.makeStyles((t) => ({
@@ -91,7 +91,7 @@ const useStyles = M.makeStyles((t) => ({
     background: `50% url(${logoTessera})  no-repeat`,
   },
   logoResilience: {
-    background: `50% / auto 48px url(${logoResilience})  no-repeat`,
+    background: `50% / auto 36px url("${logoResilience}")  no-repeat`,
   },
 }))
 
