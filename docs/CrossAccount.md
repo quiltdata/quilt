@@ -24,7 +24,6 @@ following to buckets in your *DataAccount*.
 > Quilt admins can still control which users do and do not have access to the 
 > following bucket via Admin panel Roles and Policies.
 
-<!--pytest.mark.skip-->
 ```json
 {
     "Version": "2012-10-17",
@@ -76,40 +75,15 @@ relevant *DataAccountTwo* Amazon S3 bucket that provides permissions
 to write to an existing SNS topic in the *ControlAccount*.
 
 1. Create a S3 bucket policy in the *DataAccountTwo* account that
-allows the *ControlAccount* access to all S3 events:
+allows the *ControlAccount* access to all S3 events. This is the
+same as the policy above with just the `Resource` block altered to
+the S3 bucket in the *DataAccountTwo*:
 
-<!--pytest.mark.skip-->
 ```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "GrantQuiltAccountSubscribe",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::CONTROL_ACCOUNT:root"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectTagging",
-                "s3:GetObjectVersion",
-                "s3:GetObjectVersionTagging",
-                "s3:ListBucket",
-                "s3:ListBucketVersions",
-                "s3:DeleteObject",
-                "s3:DeleteObjectVersion",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "s3:GetBucketNotification",
-                "s3:PutBucketNotification"
-            ],
-            "Resource": [
-                "arn:aws:s3:::DATA_ACCOUNT_TWO_BUCKET_NAME"
-                "arn:aws:s3:::DATA_ACCOUNT_TWO_BUCKET_NAME/*"
-            ],
-        }
-    ]
-}
+"Resource": [
+    "arn:aws:s3:::DATA_ACCOUNT_TWO_BUCKET_NAME"
+    "arn:aws:s3:::DATA_ACCOUNT_TWO_BUCKET_NAME/*"
+]
 ```
 
 2. Update the existing Quilt SNS Access Policy in the *ControlAccount*
@@ -118,7 +92,6 @@ to allow *DataAccountTwo* to publish to the Quilt SNS topic:
 To do this, provide the SNS topic ARN (`SNS_TOPIC_ARN`), bucket
 name, and *DataAccountTwo* bucket owner's account ID:
 
-<!--pytest.mark.skip-->
 ```json
 {
     "Version": "2008-10-17",
