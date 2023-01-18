@@ -34,3 +34,46 @@ any issues
 1. Send screenshots to [Quilt support](mailto:support@quiltdata.io).
 1. It is not recommended that you adjust ElasticSearch via Edit domain, as these
 changes will be lost the next time that you update Quilt
+
+## Missing metadata when working with data packages via the API
+
+If you are browsing and pushing a package using the Python `quilt3`
+API be careful to note that `Package.set_dir()` on the root path
+(`.`) currently sets metadata to `None`:
+
+> This is because _folder-level_ metadata overrides _package-level_ metadata.
+
+A common development pattern is to `Package.browse()` to get the most recent
+version of a package, and then `Package.push()` updates. Be sure
+to add any **existing package metadata** to ensure the metadata is not replaced:
+
+<!--pytest.mark.skip-->
+```python
+import quilt3
+
+p = quilt3.Package()
+p.browse(
+    name=f"user-packages/{package_name}", 
+    registry=f"s3://{bucket}"
+)
+
+# Get existing package-level metadata
+metadata = p.meta
+
+# Add all files from path to the package and preserve existing metadata
+p.set_dir(
+    lkey=".",
+    path=f"s3://{bucket}/user-packages/{package_name}/",
+    meta=metadata
+)
+
+# Push changes to the S3 registry
+p.push(
+    name=f"user-packages/{package_name}",
+    registry=f"s3://{bucket}",
+    message=f"Updating package {package_name}",
+    workflow="default"
+)
+```
+
+- [Reference](https://docs.quiltdata.com/api-reference/package#package.set_dir).
