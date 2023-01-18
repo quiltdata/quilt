@@ -88,7 +88,7 @@ async function operationPlugin(schema, documents, config, info) {
       ...(tsOpsResult.prepend || []),
       ...(typedDocumentNodeResult.prepend || []),
     ],
-    content: [tsOpsResult.content, typedDocumentNodeResult.content].join('\n'),
+    content: [tsOpsResult.content, typedDocumentNodeResult.content].join(''),
     append: [defaultExport ? `\nexport { ${defaultExport} as default }` : ''],
   }
 }
