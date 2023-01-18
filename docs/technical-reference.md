@@ -80,23 +80,25 @@ You will need the following:
 1. **An AWS account**.
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
-  1. We recommend that you use a
-[CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
-for stack creation and updates.
-  1. See this [example service role](./cfn-service-role.yml) for minimal permissions
-  to install a Quilt stack.
-> Ensure that your service role is up-to-date with the example before every stack
-update so as to prevent installation failures.
+    1. We recommend that you use a
+    [CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+    for stack creation and updates.
+    1. See this [example service role](./cfn-service-role.yml) for minimal permissions
+    to install a Quilt stack.
+
+    > Ensure that your service role is up-to-date with the example before every stack
+    update so as to prevent installation failures.
+
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
 1. **An SSL certificate in the same region as your Quilt instance** to secure the domain where your users will access your Quilt instance.
-  1. For example, to make your Quilt catalog available at `https://quilt.mycompany.com`,
-  you require a certificate for either `*.mycompany.com` *or* for the following 3 domains:
-  `quilt.mycompany.com`, `quilt-registry.mycompany.com` and `quilt-s3-proxy.mycompany.com`
-  in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/). 
-  1. You may either [create a new certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html), or
-  [import an existing certificate](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
-  1. The ARN for this certificate or set of certificates is required for use as the `CertificateArnELB` CloudFormation parameter.
+    1. For example, to make your Quilt catalog available at `https://quilt.mycompany.com`,
+    you require a certificate for either `*.mycompany.com` *or* for the following 3 domains:
+    `quilt.mycompany.com`, `quilt-registry.mycompany.com` and `quilt-s3-proxy.mycompany.com`
+    in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/). 
+    1. You may either [create a new certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html), or
+    [import an existing certificate](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
+    1. The ARN for this certificate or set of certificates is required for use as the `CertificateArnELB` CloudFormation parameter.
 1. For maximum security, Quilt requires **a region that supports
 [AWS
 Fargate](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)**.
@@ -106,20 +108,24 @@ bucket. The bucket should not have any notifications attached to
 it (`S3 Console > Bucket > Properties > Events`). Quilt will need
 to install its own notifications. Installing Quilt will modify the
 following Bucket characteristics:
-  1. Permissions > CORS configuration (will be modified for secure web access).
-  1. Properties > Object-level logging (will be enabled).
-  1. Properties > Events (will add one notification).
-  > Buckets in Quilt may choose to enable versioning or disable versioning.
-  **It is strongly recommended that you keep versioning either on or off during the entire lifetime
-  of the bucket**. Toggling versioning on and off incurs edge cases that may cause
-  bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
-  of `ObjectRemoved:DeleteMarkerCreated`.
+    1. Permissions > CORS configuration (will be modified for secure web access).
+    1. Properties > Object-level logging (will be enabled).
+    1. Properties > Events (will add one notification).
+
+    > Buckets in Quilt may choose to enable versioning or disable versioning.
+    **It is strongly recommended that you keep versioning either on or off during the entire lifetime
+    of the bucket**. Toggling versioning on and off incurs edge cases that may cause
+    bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
+    of `ObjectRemoved:DeleteMarkerCreated`.
+
 1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 1. A license key or an active subscription to Quilt Business on AWS Marketplace. 
-  1. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. 
-  1. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
+    1. Click `Continue to Subscribe` on the [Quilt Business
+    Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to
+    subscribe then return to this page for installation instructions.
+    1. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
 
 ### AWS Marketplace
 
@@ -152,23 +158,33 @@ you see in Service Catalog.
 _parameters_. Refer to the descriptions displayed above each
 text box for further details. Service Catalog users require a license key. See
 [Before you install Quilt](#before-you-install-quilt) for how to obtain a license key.
-![](./imgs/stack-details.png)
+
+    ![](./imgs/stack-details.png)
+
 If you wish to use a service role, specify it as follows:
-![](./imgs/service-role.png)
+
+    ![](./imgs/service-role.png)
+
 1. Service Catalog users, skip this step. Under Stack creation options, enable termination protection.
-![](./imgs/term_protect.png)
+
+    ![](./imgs/term_protect.png)
+
 This protects the stack from accidental deletion. Click Next.
 1. Service Catalog users, skip this step. Check the box asking you
 to acknowledge that CloudFormation may create IAM roles, then click
 Create.
-![](./imgs/finish.png)
+
+    ![](./imgs/finish.png)
+
 1. CloudFormation takes about 30 minutes to create the resources
 for your stack. You may monitor progress under Events.
 Once the stack is complete, you will see `CREATE_COMPLETE` as the Status for
 your CloudFormation stack.
 ![](./imgs/events.png)
 1. To finish the installation, you will want to view the stack Outputs.
-![](./imgs/outputs.png)
+
+    ![](./imgs/outputs.png)
+
 In a separate browser window, open the DNS settings for your domain.
 Create the following `CNAME` records. **Replace italics** with the
 corresponding stack Outputs.
@@ -261,35 +277,43 @@ and hybrid flows, and check the box to issue ID tokens
 Note: You will need Okta administrator privileges to add a new Application.
 
 1. Go to Okta > Admin > Applications > Applications
-![](./imgs/okta-add-application.png)
+
+    ![](./imgs/okta-add-application.png)
+
 1. Click `Create App Integration`. A new modal window opens.
 1. Assign `Sign-in method` radio button to `OIDC - OpenID Connect`.
 1. Assign `Application type` radio button to `Web Application`.
-![](./imgs/okta-add-application-modal.png)
+
+    ![](./imgs/okta-add-application-modal.png)
+
 1. Click the `Next` button.
 1. Rename the default `App integration name` to `Quilt` or something distinctive for your organization to identify it.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
-  1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-  1. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
-  ```
-  https://quilt.<MY_COMPANY>.com/
-  ```
-  1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
-  1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
+    1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
+    1. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
+
+    ```
+    https://quilt.<MY_COMPANY>.com/
+    ```
+
+    1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
+    1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 1. Once you click the `Save` button you will have a new application integration to review.
-  1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
-  1. Copy the `Client ID` to a safe place
+    1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
+    1. Copy the `Client ID` to a safe place
 1. Go to **Okta > Security > API > Authorization servers**
-  1. You should see a `default` entry with the `Audience` value set
-  to `api://default`, and an `Issuer URI` that looks like the
-  following:
-  ```
-  https://<MY_COMPANY>.okta.com/oauth2/default
-  ```
-  1. See [Okta authorization
-  servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
-  for more.
+    1. You should see a `default` entry with the `Audience` value set
+    to `api://default`, and an `Issuer URI` that looks like the
+    following:
+
+    ```
+    https://<MY_COMPANY>.okta.com/oauth2/default
+    ```
+
+    1. See [Okta authorization
+    servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use)
+    for more.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ### OneLogin
