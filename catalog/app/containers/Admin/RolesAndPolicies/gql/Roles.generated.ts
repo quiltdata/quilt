@@ -3,8 +3,8 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../../model/graphql/types.generated'
 
 import {
-  RoleSelection_UnmanagedRole_Fragment,
   RoleSelection_ManagedRole_Fragment,
+  RoleSelection_UnmanagedRole_Fragment,
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
@@ -16,12 +16,12 @@ export type containers_Admin_RolesAndPolicies_gql_RolesQuery = {
   readonly __typename: 'Query'
 } & {
   readonly roles: ReadonlyArray<
-    | ({ readonly __typename: 'UnmanagedRole' } & RoleSelection_UnmanagedRole_Fragment)
     | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
+    | ({ readonly __typename: 'UnmanagedRole' } & RoleSelection_UnmanagedRole_Fragment)
   >
   readonly defaultRole: Types.Maybe<
-    | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
     | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
+    | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
   >
 }
 

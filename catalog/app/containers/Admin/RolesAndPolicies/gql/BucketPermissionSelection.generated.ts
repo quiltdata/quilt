@@ -23,7 +23,6 @@ export type BucketPermissionSelection_RoleBucketPermission_Fragment = {
 export type BucketPermissionSelectionFragment =
   | BucketPermissionSelection_PolicyBucketPermission_Fragment
   | BucketPermissionSelection_RoleBucketPermission_Fragment
-
 export const BucketPermissionSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

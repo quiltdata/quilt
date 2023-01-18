@@ -11,10 +11,10 @@ export type containers_Admin_RolesAndPolicies_gql_RoleDeleteMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleDelete:
+    | { readonly __typename: 'RoleAssigned' }
     | { readonly __typename: 'RoleDeleteSuccess' }
     | { readonly __typename: 'RoleDoesNotExist' }
     | { readonly __typename: 'RoleNameReserved' }
-    | { readonly __typename: 'RoleAssigned' }
 }
 
 export const containers_Admin_RolesAndPolicies_gql_RoleDeleteDocument = {

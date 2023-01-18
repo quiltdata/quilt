@@ -7,7 +7,6 @@ export type InvalidInputSelectionFragment = { readonly __typename: 'InvalidInput
     { readonly __typename: 'InputError' } & Pick<Types.InputError, 'path' | 'message'>
   >
 }
-
 export const InvalidInputSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

@@ -13,8 +13,8 @@ export type containers_Bucket_PackageTree_gql_DeleteRevisionMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly packageRevisionDelete:
-    | { readonly __typename: 'PackageRevisionDeleteSuccess' }
     | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
+    | { readonly __typename: 'PackageRevisionDeleteSuccess' }
 }
 
 export const containers_Bucket_PackageTree_gql_DeleteRevisionDocument = {

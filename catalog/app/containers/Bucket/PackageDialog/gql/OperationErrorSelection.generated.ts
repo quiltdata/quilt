@@ -5,7 +5,6 @@ import * as Types from '../../../../model/graphql/types.generated'
 export type OperationErrorSelectionFragment = {
   readonly __typename: 'OperationError'
 } & Pick<Types.OperationError, 'message'>
-
 export const OperationErrorSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

@@ -3,9 +3,9 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../../model/graphql/types.generated'
 
 import {
-  PolicyResultSelection_Policy_Fragment,
   PolicyResultSelection_InvalidInput_Fragment,
   PolicyResultSelection_OperationError_Fragment,
+  PolicyResultSelection_Policy_Fragment,
   PolicyResultSelectionFragmentDoc,
 } from './PolicyResultSelection.generated'
 
@@ -19,13 +19,13 @@ export type containers_Admin_RolesAndPolicies_gql_PolicyUpdateManagedMutation = 
   readonly __typename: 'Mutation'
 } & {
   readonly policyUpdate:
-    | ({ readonly __typename: 'Policy' } & PolicyResultSelection_Policy_Fragment)
     | ({
         readonly __typename: 'InvalidInput'
       } & PolicyResultSelection_InvalidInput_Fragment)
     | ({
         readonly __typename: 'OperationError'
       } & PolicyResultSelection_OperationError_Fragment)
+    | ({ readonly __typename: 'Policy' } & PolicyResultSelection_Policy_Fragment)
 }
 
 export const containers_Admin_RolesAndPolicies_gql_PolicyUpdateManagedDocument = {

@@ -16,14 +16,14 @@ export type containers_Admin_Buckets_gql_BucketsUpdateMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly bucketUpdate:
+    | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
+    | { readonly __typename: 'BucketIndexContentBytesInvalid' }
+    | { readonly __typename: 'BucketNotFound' }
     | ({ readonly __typename: 'BucketUpdateSuccess' } & {
         readonly bucketConfig: {
           readonly __typename: 'BucketConfig'
         } & BucketConfigSelectionFragment
       })
-    | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
-    | { readonly __typename: 'BucketIndexContentBytesInvalid' }
-    | { readonly __typename: 'BucketNotFound' }
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }
     | { readonly __typename: 'SnsInvalid' }

@@ -7,10 +7,6 @@ import {
   PolicySelectionFragmentDoc,
 } from './PolicySelection.generated'
 
-export type PolicyResultSelection_Policy_Fragment = {
-  readonly __typename: 'Policy'
-} & PolicySelectionFragment
-
 export type PolicyResultSelection_InvalidInput_Fragment = {
   readonly __typename: 'InvalidInput'
 } & {
@@ -23,11 +19,14 @@ export type PolicyResultSelection_OperationError_Fragment = {
   readonly __typename: 'OperationError'
 } & Pick<Types.OperationError, 'message'>
 
+export type PolicyResultSelection_Policy_Fragment = {
+  readonly __typename: 'Policy'
+} & PolicySelectionFragment
+
 export type PolicyResultSelectionFragment =
-  | PolicyResultSelection_Policy_Fragment
   | PolicyResultSelection_InvalidInput_Fragment
   | PolicyResultSelection_OperationError_Fragment
-
+  | PolicyResultSelection_Policy_Fragment
 export const PolicyResultSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

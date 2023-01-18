@@ -25,13 +25,13 @@ export type containers_Bucket_PackageTree_gql_DirQuery = {
                   'path' | 'metadata'
                 > & {
                     readonly children: ReadonlyArray<
-                      | ({ readonly __typename: 'PackageFile' } & Pick<
-                          Types.PackageFile,
-                          'path' | 'size' | 'physicalKey'
-                        >)
                       | ({ readonly __typename: 'PackageDir' } & Pick<
                           Types.PackageDir,
                           'path' | 'size'
+                        >)
+                      | ({ readonly __typename: 'PackageFile' } & Pick<
+                          Types.PackageFile,
+                          'path' | 'size' | 'physicalKey'
                         >)
                     >
                   }

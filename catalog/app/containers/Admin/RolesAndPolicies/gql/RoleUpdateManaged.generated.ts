@@ -3,8 +3,8 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../../model/graphql/types.generated'
 
 import {
-  RoleSelection_UnmanagedRole_Fragment,
   RoleSelection_ManagedRole_Fragment,
+  RoleSelection_UnmanagedRole_Fragment,
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
@@ -18,19 +18,19 @@ export type containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleUpdate:
+    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
+    | { readonly __typename: 'RoleIsManaged' }
+    | { readonly __typename: 'RoleIsUnmanaged' }
+    | { readonly __typename: 'RoleNameExists' }
+    | { readonly __typename: 'RoleNameInvalid' }
+    | { readonly __typename: 'RoleNameReserved' }
     | ({ readonly __typename: 'RoleUpdateSuccess' } & {
         readonly role:
+          | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
           | ({
               readonly __typename: 'UnmanagedRole'
             } & RoleSelection_UnmanagedRole_Fragment)
-          | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
       })
-    | { readonly __typename: 'RoleNameReserved' }
-    | { readonly __typename: 'RoleNameExists' }
-    | { readonly __typename: 'RoleNameInvalid' }
-    | { readonly __typename: 'RoleIsManaged' }
-    | { readonly __typename: 'RoleIsUnmanaged' }
-    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
 }
 
 export const containers_Admin_RolesAndPolicies_gql_RoleUpdateManagedDocument = {

@@ -11,7 +11,6 @@ export type containers_Admin_RolesAndPolicies_gql_PolicyDeleteMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly policyDelete:
-    | { readonly __typename: 'Ok' }
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
           { readonly __typename: 'InputError' } & Pick<
@@ -20,6 +19,7 @@ export type containers_Admin_RolesAndPolicies_gql_PolicyDeleteMutation = {
           >
         >
       })
+    | { readonly __typename: 'Ok' }
     | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
 }
 

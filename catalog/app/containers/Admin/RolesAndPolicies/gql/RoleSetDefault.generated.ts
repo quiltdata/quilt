@@ -11,12 +11,12 @@ export type containers_Admin_RolesAndPolicies_gql_RoleSetDefaultMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly roleSetDefault:
+    | { readonly __typename: 'RoleDoesNotExist' }
     | ({ readonly __typename: 'RoleSetDefaultSuccess' } & {
         readonly role:
-          | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
           | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
+          | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
       })
-    | { readonly __typename: 'RoleDoesNotExist' }
 }
 
 export const containers_Admin_RolesAndPolicies_gql_RoleSetDefaultDocument = {

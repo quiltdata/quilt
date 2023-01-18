@@ -3,8 +3,8 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../../model/graphql/types.generated'
 
 import {
-  RoleSelection_UnmanagedRole_Fragment,
   RoleSelection_ManagedRole_Fragment,
+  RoleSelection_UnmanagedRole_Fragment,
   RoleSelectionFragmentDoc,
 } from './RoleSelection.generated'
 
@@ -19,15 +19,15 @@ export type containers_Admin_RolesAndPolicies_gql_RoleCreateManagedMutation = {
   readonly roleCreate:
     | ({ readonly __typename: 'RoleCreateSuccess' } & {
         readonly role:
+          | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
           | ({
               readonly __typename: 'UnmanagedRole'
             } & RoleSelection_UnmanagedRole_Fragment)
-          | ({ readonly __typename: 'ManagedRole' } & RoleSelection_ManagedRole_Fragment)
       })
-    | { readonly __typename: 'RoleNameReserved' }
+    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
     | { readonly __typename: 'RoleNameExists' }
     | { readonly __typename: 'RoleNameInvalid' }
-    | { readonly __typename: 'RoleHasTooManyPoliciesToAttach' }
+    | { readonly __typename: 'RoleNameReserved' }
 }
 
 export const containers_Admin_RolesAndPolicies_gql_RoleCreateManagedDocument = {

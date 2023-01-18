@@ -33,7 +33,6 @@ export type PolicySelectionFragment = { readonly __typename: 'Policy' } & Pick<
         }
     >
   }
-
 export const PolicySelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

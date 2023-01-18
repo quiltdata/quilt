@@ -8,15 +8,15 @@ export type containers_Admin_Users_gql_RolesQueryVariables = Types.Exact<{
 
 export type containers_Admin_Users_gql_RolesQuery = { readonly __typename: 'Query' } & {
   readonly roles: ReadonlyArray<
+    | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
     | ({ readonly __typename: 'UnmanagedRole' } & Pick<
         Types.UnmanagedRole,
         'id' | 'name'
       >)
-    | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id' | 'name'>)
   >
   readonly defaultRole: Types.Maybe<
-    | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
     | ({ readonly __typename: 'ManagedRole' } & Pick<Types.ManagedRole, 'id'>)
+    | ({ readonly __typename: 'UnmanagedRole' } & Pick<Types.UnmanagedRole, 'id'>)
   >
 }
 

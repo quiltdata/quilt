@@ -52,7 +52,6 @@ export type PackagePushSuccessSelectionFragment = {
       >
     }
 }
-
 export const PackagePushSuccessSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

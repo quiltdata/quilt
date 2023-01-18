@@ -21,7 +21,6 @@ export type BucketConfigSelectionFragment = {
   | 'skipMetaDataIndexing'
   | 'lastIndexed'
 >
-
 export const BucketConfigSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [

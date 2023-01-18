@@ -25,11 +25,11 @@ export type containers_Bucket_PackageDialog_gql_PackageFromFolderMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly packageFromFolder:
+    | ({ readonly __typename: 'InvalidInput' } & InvalidInputSelectionFragment)
+    | ({ readonly __typename: 'OperationError' } & OperationErrorSelectionFragment)
     | ({
         readonly __typename: 'PackagePushSuccess'
       } & PackagePushSuccessSelectionFragment)
-    | ({ readonly __typename: 'InvalidInput' } & InvalidInputSelectionFragment)
-    | ({ readonly __typename: 'OperationError' } & OperationErrorSelectionFragment)
 }
 
 export const containers_Bucket_PackageDialog_gql_PackageFromFolderDocument = {

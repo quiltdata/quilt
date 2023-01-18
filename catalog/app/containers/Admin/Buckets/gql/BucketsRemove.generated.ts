@@ -10,8 +10,8 @@ export type containers_Admin_Buckets_gql_BucketsRemoveMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly bucketRemove:
-    | { readonly __typename: 'BucketRemoveSuccess' }
     | { readonly __typename: 'BucketNotFound' }
+    | { readonly __typename: 'BucketRemoveSuccess' }
     | { readonly __typename: 'IndexingInProgress' }
 }
 

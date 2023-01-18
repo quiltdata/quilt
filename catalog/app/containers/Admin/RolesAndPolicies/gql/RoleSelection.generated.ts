@@ -2,10 +2,6 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type RoleSelection_UnmanagedRole_Fragment = {
-  readonly __typename: 'UnmanagedRole'
-} & Pick<Types.UnmanagedRole, 'id' | 'name' | 'arn'>
-
 export type RoleSelection_ManagedRole_Fragment = {
   readonly __typename: 'ManagedRole'
 } & Pick<Types.ManagedRole, 'id' | 'name' | 'arn'> & {
@@ -43,10 +39,13 @@ export type RoleSelection_ManagedRole_Fragment = {
     >
   }
 
-export type RoleSelectionFragment =
-  | RoleSelection_UnmanagedRole_Fragment
-  | RoleSelection_ManagedRole_Fragment
+export type RoleSelection_UnmanagedRole_Fragment = {
+  readonly __typename: 'UnmanagedRole'
+} & Pick<Types.UnmanagedRole, 'id' | 'name' | 'arn'>
 
+export type RoleSelectionFragment =
+  | RoleSelection_ManagedRole_Fragment
+  | RoleSelection_UnmanagedRole_Fragment
 export const RoleSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [
