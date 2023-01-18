@@ -79,7 +79,7 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
         title: 'Object key',
       },
       {
-        example: (s) => <>{s}"phase*"</>,
+        example: (s) => <>{s}phase*</>,
         syntax: 'key_text:',
         title: 'Analyzed object key',
       },
