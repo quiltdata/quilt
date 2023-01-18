@@ -138,24 +138,16 @@ with your AWS account ID to request access to Quilt through the
 AWS Service Catalog and to obtain a license key.
 1. Click the service catalog link that you received from Quilt. Arrive at the Service Catalog.
 Click IMPORT, lower right.
-
-    ![](./imgs/import.png)
-
+![](./imgs/import.png)
 1. Navigate to Admin > Portfolios list > Imported Portfolios. Click Quilt Enterprise.
-
-    ![](./imgs/portfolio.png)
-
+![](./imgs/portfolio.png)
 1. On the Portfolio details page, click ADD USER, GROUP OR ROLE. Add any users,
 **including yourself**, whom you would like to be able to install Quilt.
-
-    ![](./imgs/portfolio-users.png)
-
+![](./imgs/portfolio-users.png)
 1. Click Products list, upper left. Click the menu to the left of Quilt CloudFormation
 Template. Click Launch product. (In the future, use the same menu to upgrade
 Quilt when a new version is released.)
-
-    ![](./imgs/products-list.png)
-
+![](./imgs/products-list.png)
 1. Continue to the [CloudFormation](#CloudFormation) section.
 Note: the following screenshots may differ slightly fromm what
 you see in Service Catalog.
@@ -188,9 +180,7 @@ Create.
 for your stack. You may monitor progress under Events.
 Once the stack is complete, you will see `CREATE_COMPLETE` as the Status for
 your CloudFormation stack.
-
-    ![](./imgs/events.png)
-
+![](./imgs/events.png)
 1. To finish the installation, you will want to view the stack Outputs.
 
     ![](./imgs/outputs.png)
