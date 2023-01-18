@@ -94,16 +94,6 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
         title: 'Package metadata',
       },
       {
-        example: (s) => <>{s}&gt;=4096</>,
-        syntax: 'size:',
-        title: 'Object size in bytes',
-      },
-      {
-        example: (s) => <>{s}t.LVVCx*</>,
-        syntax: 'version_id:',
-        title: 'Object version id',
-      },
-      {
         example: (s) => <>{s}&gt;100</>,
         syntax: 'package_stats\n  .total_files:',
         title: 'Package total files',
@@ -112,6 +102,21 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
         example: (s) => <>{s}&lt;100</>,
         syntax: 'package_stats\n  .total_bytes:',
         title: 'Package total bytes',
+      },
+      {
+        example: (s) => <>{s}latest</>,
+        syntax: 'pointer_file:',
+        title: 'Only latest package version',
+      },
+      {
+        example: (s) => <>{s}&gt;=4096</>,
+        syntax: 'size:',
+        title: 'Object size in bytes',
+      },
+      {
+        example: (s) => <>{s}t.LVVCx*</>,
+        syntax: 'version_id:',
+        title: 'Object version id',
       },
     ],
   },
