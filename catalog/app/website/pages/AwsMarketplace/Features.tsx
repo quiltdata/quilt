@@ -42,14 +42,17 @@ function Feature({ children, className, heading, logo }: FeatureProps) {
   )
 }
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {
     columnGap: '46px',
     display: 'grid',
     gridTemplateColumns: '1fr 1fr 1fr',
     padding: '55px 0',
+    [t.breakpoints.down('sm')]: {
+      display: 'block',
+    },
   },
-})
+}))
 
 interface FeaturesProps {
   className?: string

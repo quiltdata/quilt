@@ -19,6 +19,14 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'space-between',
     padding: t.spacing(25, 0, 28),
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
+  },
+  form: {
+    [t.breakpoints.down('sm')]: {
+      marginTop: t.spacing(10),
+    },
   },
   attribution: {
     marginTop: t.spacing(16),
@@ -31,7 +39,7 @@ function AwsMarketplace() {
     <div>
       <M.Container maxWidth="lg" className={classes.main}>
         <Hero />
-        <Form />
+        <Form className={classes.form} />
       </M.Container>
       <M.Container maxWidth="lg">
         <Features />

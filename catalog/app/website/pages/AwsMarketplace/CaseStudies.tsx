@@ -72,10 +72,20 @@ const useStyles = M.makeStyles((t) => ({
     background: 'linear-gradient(to right, #30266e, #1b194f)',
     padding: t.spacing(10, 6, 12),
   },
+  item: {
+    [t.breakpoints.down('sm')]: {
+      '& + &': {
+        marginTop: t.spacing(4),
+      },
+    },
+  },
   columns: {
     display: 'grid',
     gridGap: '98px',
     gridTemplateColumns: '1fr 1fr 1fr',
+    [t.breakpoints.down('sm')]: {
+      display: 'block',
+    },
   },
   title: {
     color: t.palette.text.primary,
@@ -109,6 +119,7 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
       <M.Container maxWidth="xl">
         <div className={classes.columns}>
           <CaseStudy
+            className={classes.item}
             heading="Improving Data Management with Quilt and NextFlow"
             link="https://quiltdata.com"
             logoClassName={classes.logoTessera}
@@ -122,6 +133,7 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
             discoveries to market"
           </CaseStudy>
           <CaseStudy
+            className={classes.item}
             heading="Accelerating Data Access and Collaboration with DataSync"
             link="https://quiltdata.com"
             logoClassName={classes.logoResilience}
@@ -136,6 +148,7 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
             manufacturing processes.
           </CaseStudy>
           <CaseStudy
+            className={classes.item}
             heading="Managing and Accessing Data for Single Cell Genomics Research"
             link="https://quiltdata.com"
             logoClassName={classes.logoCelsius}
