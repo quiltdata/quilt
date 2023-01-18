@@ -38,6 +38,8 @@ RUN apt-get update && \
         fonts-crosextra-caladea \
         fonts-crosextra-carlito \
         fonts-liberation \
+        # WebP support
+        libfreeimage3 \
     && \
     apt-get clean
 
