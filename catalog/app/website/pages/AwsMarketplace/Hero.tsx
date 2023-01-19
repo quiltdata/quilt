@@ -67,7 +67,6 @@ interface HeroProps {
 
 export default function Hero({ className }: HeroProps) {
   const classes = useStyles()
-  const bookIntro = useTalkToUs({ src: 'awsmarketplace' })
   const bookDemo = useTalkToUs()
   return (
     <div className={cx(classes.root, className)}>

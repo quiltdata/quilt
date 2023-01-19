@@ -57,8 +57,6 @@ function useCalendlyLink() {
     switch (src) {
       case 'bioit':
         return 'https://calendly.com/quilt-founders/quilt-at-bio-it-world'
-      case 'awsmarketplace':
-        return 'https://calendly.com/d/g4y-d3j-zh8/quilt-discussion'
       default:
         return cfg.calendlyLink
     }
