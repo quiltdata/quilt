@@ -7,6 +7,9 @@ import ChevronLink from 'website/components/ChevronLink'
 
 import logos from './logos.svg'
 
+const QUILT_PROFILE_URL =
+  'https://aws.amazon.com/marketplace/seller-profile?id=865bcbb9-ae88-4eed-8cfe-c58948910e53'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.up('sm')]: {
@@ -32,10 +35,9 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   button: {
-    minWidth: t.spacing(26),
     '& + &': {
       [t.breakpoints.up('sm')]: {
-        marginLeft: t.spacing(1),
+        marginLeft: t.spacing(3),
       },
       [t.breakpoints.down('sm')]: {
         marginTop: t.spacing(1),
@@ -78,17 +80,12 @@ export default function Hero({ className }: HeroProps) {
         organizations better manage and find the data that they’ve created.
       </M.Typography>
       <div className={classes.buttons}>
-        <M.Button
-          className={classes.button}
-          variant="contained"
-          color="primary"
-          onClick={bookIntro}
-        >
-          Refer a customer
-        </M.Button>
+        <a className={classes.button} href={QUILT_PROFILE_URL} target="_blank">
+          <M.Button color="primary">Install Quilt</M.Button>
+        </a>
         <M.Button
           className={cx(classes.button, classes.buttonOutlined)}
-          variant="outlined"
+          variant="contained"
           color="primary"
           onClick={bookDemo}
         >
