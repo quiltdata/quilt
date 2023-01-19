@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
 
+import Dots from 'website/components/Backgrounds/Dots'
 import Layout from 'website/components/Layout'
 
 import Attribution from './Attribution'
@@ -14,6 +15,9 @@ import Hero from './Hero'
 import Partners from './Partners'
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+  },
   main: {
     alignItems: 'center',
     display: 'flex',
@@ -37,7 +41,7 @@ const useStyles = M.makeStyles((t) => ({
 function AwsMarketplace() {
   const classes = useStyles()
   return (
-    <div>
+    <div className={classes.root}>
       <M.Container maxWidth="lg" className={classes.main}>
         <Hero />
         <Form className={classes.form} />
@@ -61,6 +65,7 @@ export default function AwsMarketplaceWrapper() {
   return (
     <Layout>
       <MetaTitle />
+      <Dots />
       <AwsMarketplace />
     </Layout>
   )
