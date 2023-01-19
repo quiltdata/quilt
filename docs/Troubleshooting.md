@@ -69,10 +69,9 @@ p.set_dir(
 
 # Push changes to the S3 registry
 p.push(
-    name=f"user-packages/{package_name}",
-    registry=f"s3://{bucket}",
-    message=f"Updating package {package_name}",
-    workflow="default"
+    f"user-packages/{package_name}",
+    f"s3://{bucket}",
+    message=f"Updating package {package_name}"
 )
 ```
 
