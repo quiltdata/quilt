@@ -229,15 +229,20 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
       {!!revision.userMeta && (
         <div className={classes.section}>
-          {Object.entries(revision.userMeta).map(([name, value]) => (
-            /* @ts-expect-error */
+          {/* @ts-expect-error */}
+          <JsonDisplay
+            className={classes.sectionWithToggle}
+            name="User metadata"
+            value={revision.userMeta}
+          />
+          {/*Object.entries(revision.userMeta).map(([name, value]) => (
             <JsonDisplay
               className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
               key={`user-meta-section-${name}`}
               name={name}
               value={value}
             />
-          ))}
+          ))*/}
         </div>
       )}
     </div>
