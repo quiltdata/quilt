@@ -9,10 +9,12 @@ import logos from './logos.svg'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    maxWidth: '546px',
+    [t.breakpoints.up('sm')]: {
+      maxWidth: '546px',
+    },
   },
   logos: {
-    background: `50% 50% url("${logos}") no-repeat`,
+    background: `50% 50% / contain url("${logos}") no-repeat`,
     height: '99px',
     marginBottom: t.spacing(6),
   },
@@ -25,11 +27,19 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'center',
     marginBottom: t.spacing(4),
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
   },
   button: {
     minWidth: t.spacing(26),
     '& + &': {
-      marginLeft: t.spacing(1),
+      [t.breakpoints.up('sm')]: {
+        marginLeft: t.spacing(1),
+      },
+      [t.breakpoints.down('sm')]: {
+        marginTop: t.spacing(1),
+      },
     },
   },
   buttonOutlined: {
@@ -39,6 +49,8 @@ const useStyles = M.makeStyles((t) => ({
     textAlign: 'center',
   },
   link: {
+    alignItems: 'center',
+    display: 'inline-flex',
     fontSize: '16px',
     lineHeight: '32px',
     '& + &': {

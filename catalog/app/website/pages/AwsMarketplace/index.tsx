@@ -21,6 +21,7 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(25, 3, 28),
     [t.breakpoints.down('sm')]: {
       flexDirection: 'column',
+      padding: t.spacing(10, 2),
     },
   },
   form: {

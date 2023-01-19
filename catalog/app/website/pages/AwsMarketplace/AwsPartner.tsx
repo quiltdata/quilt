@@ -10,7 +10,13 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(8, 0, 6),
   },
   awsPartner: {
-    marginRight: t.spacing(4),
+    maxWidth: '100%',
+    [t.breakpoints.up('sm')]: {
+      marginRight: t.spacing(4),
+    },
+    [t.breakpoints.down('sm')]: {
+      marginBottom: t.spacing(4),
+    },
   },
   bar: {
     margin: 'auto',
@@ -26,6 +32,9 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     margin: 'auto',
     maxWidth: '860px',
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
   },
 }))
 

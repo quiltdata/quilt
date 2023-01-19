@@ -21,6 +21,9 @@ const useFeatureStyles = M.makeStyles((t) => ({
   content: {
     fontSize: '13px',
     lineHeight: '32px',
+    [t.breakpoints.down('sm')]: {
+      fontSize: '14px',
+    },
   },
 }))
 
