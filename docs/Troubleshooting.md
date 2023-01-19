@@ -41,8 +41,6 @@ changes will be lost the next time that you update Quilt
 > If you do not provide `set_dir(".", foo, meta=baz)` with a value for `meta=`,
 > `set_dir` will set package-level metadata to `None`.
 
-> This is because _folder-level_ metadata overrides _package-level_ metadata.
-
 A common pattern is to `Package.browse()` to get the most recent
 version of a package, and then `Package.push()` updates.
 You can preserve package-level metadata when calling `set_dir(".", ...)`
