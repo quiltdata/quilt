@@ -11,10 +11,16 @@ import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
 import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
+import logoTessera from './logo-tessera.png'
 import logoResilience from './logo-resilience.svg'
 import logoDspconcepts from './logo-dspconcepts.svg'
 
 const logos = [
+  {
+    src: logoTessera,
+    title: 'Tessera',
+    // width: '240px',
+  },
   {
     src: logoResilience,
     title: 'Resilience',
