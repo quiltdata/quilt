@@ -80,11 +80,10 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   columns: {
-    display: 'grid',
-    gridGap: '98px',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    [t.breakpoints.down('sm')]: {
-      display: 'block',
+    [t.breakpoints.up('sm')]: {
+      display: 'grid',
+      gridGap: '98px',
+      gridTemplateColumns: '1fr 1fr 1fr',
     },
   },
   title: {

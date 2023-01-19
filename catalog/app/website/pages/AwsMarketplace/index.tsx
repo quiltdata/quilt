@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    padding: t.spacing(25, 0, 28),
+    padding: t.spacing(25, 3, 28),
     [t.breakpoints.down('sm')]: {
       flexDirection: 'column',
     },
