@@ -43,9 +43,10 @@ changes will be lost the next time that you update Quilt
 
 > This is because _folder-level_ metadata overrides _package-level_ metadata.
 
-A common development pattern is to `Package.browse()` to get the most recent
-version of a package, and then `Package.push()` updates. Be sure
-to add any **existing package metadata** to ensure the metadata is not replaced:
+A common pattern is to `Package.browse()` to get the most recent
+version of a package, and then `Package.push()` updates.
+You can preserve package-level metadata when calling `set_dir(".", ...)`
+as follows:
 
 <!--pytest.mark.skip-->
 ```python
