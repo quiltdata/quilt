@@ -56,6 +56,8 @@ interface LogosCarouselProps {
   logos: {
     title: string
     src: string
+    width?: string
+    height?: string
   }[]
 }
 
@@ -109,6 +111,8 @@ export default function LogosCarousel({ className, title, logos }: LogosCarousel
             alt={l.title}
             src={l.src}
             className={classes.img}
+            height={l.height}
+            width={l.width}
           />
         ))}
       </Carousel>

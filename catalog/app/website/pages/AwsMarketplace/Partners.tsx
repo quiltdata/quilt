@@ -11,7 +11,19 @@ import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
 import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
 import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
+import logoResilience from './logo-resilience.svg'
+import logoDspconcepts from './logo-dspconcepts.svg'
+
 const logos = [
+  {
+    src: logoResilience,
+    title: 'Resilience',
+    width: '240px',
+  },
+  {
+    src: logoDspconcepts,
+    title: 'DSP Concepts',
+  },
   {
     src: logoCelsius,
     title: 'Celsius Therapeutics',
