@@ -52,7 +52,7 @@ import quilt3
 
 p = quilt3.Package.browse(
     "user-packages/geodata", 
-    "s3://bucket_1"
+    registry="s3://bucket_1"
 )
 
 p.set_dir(
@@ -64,7 +64,7 @@ p.set_dir(
 # Push changes to the S3 registry
 p.push(
     "user-packages/geodata",
-    "s3://bucket_1",
+    registry="s3://bucket_1",
     message="Updating package geodata source data"
 )
 ```
