@@ -52,20 +52,15 @@ as follows:
 ```python
 import quilt3
 
-p = quilt3.Package()
-p.browse(
-    name=f"user-packages/{package_name}", 
-    registry=f"s3://{bucket}"
+p = quilt3.Package.browse(
+    f"user-packages/{package_name}", 
+    f"s3://{bucket}"
 )
 
-# Get existing package-level metadata
-metadata = p.meta
-
-# Add all files from path to the package and preserve existing metadata
 p.set_dir(
-    lkey=".",
-    path=f"s3://{bucket}/user-packages/{package_name}/",
-    meta=metadata
+    ".",
+    f"s3://{bucket}/user-packages/{package_name}/",
+    meta=p.meta
 )
 
 # Push changes to the S3 registry
