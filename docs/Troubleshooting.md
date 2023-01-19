@@ -37,9 +37,9 @@ changes will be lost the next time that you update Quilt
 
 ## Missing metadata when working with data packages via the API
 
-If you are browsing and pushing a package using the Python `quilt3`
-API be careful to note that `Package.set_dir()` on the root path
-(`.`) currently sets metadata to `None`:
+> `Package.set_dir()` on the package root (".") overrides package-level metadata.
+> If you do not provide `set_dir(".", foo, meta=baz)` with a value for `meta=`,
+> `set_dir` will set package-level metadata to `None`.
 
 > This is because _folder-level_ metadata overrides _package-level_ metadata.
 
