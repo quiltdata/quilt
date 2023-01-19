@@ -30,18 +30,10 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'center',
     marginBottom: t.spacing(4),
-    [t.breakpoints.down('sm')]: {
-      flexDirection: 'column',
-    },
   },
   button: {
     '& + &': {
-      [t.breakpoints.up('sm')]: {
-        marginLeft: t.spacing(3),
-      },
-      [t.breakpoints.down('sm')]: {
-        marginTop: t.spacing(1),
-      },
+      marginLeft: t.spacing(3),
     },
   },
   buttonOutlined: {
