@@ -548,11 +548,17 @@ workflows:
     name: 'My workflow #2'
     entries_schema: must-contain-readme-summarize-at-least-1byte
     description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
+  myworkflow-3:
+    name: 'My workflow #3'
+    entries_schema: objects-must-have-id
+    description: All objects must have `id` property of string type in their metadata
 schemas:
   must-contain-readme:
     url: s3://bucket/must-contain-readme.json
   must-contain-readme-summarize-at-least-1byte:
     url: s3://bucket/must-contain-readme-summarize-at-least-1byte.json
+  objects-must-have-id:
+    url: s3://bucket/objects-must-have-id.json
 ```
 
 ##### `s3://bucket/must-contain-readme.json`
@@ -620,6 +626,31 @@ Requires a README
       }
     }
   ]
+}
+```
+
+##### `s3://bucket/objects-must-have-id.json`
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    }
+  }
 }
 ```
 
