@@ -21,6 +21,10 @@ const searchModes = [
 ]
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    // compensates difference in height
+    paddingBottom: '6px',
+  },
   actions: {
     display: 'flex',
   },
@@ -78,7 +82,7 @@ export default function SearchSettings() {
   )
 
   return (
-    <>
+    <div className={classes.root}>
       <div className={classes.actions}>
         <SelectDropdown
           value={value}
@@ -101,6 +105,6 @@ export default function SearchSettings() {
         )}
       </div>
       {error && <M.Typography className={classes.error}>{error.message}</M.Typography>}
-    </>
+    </div>
   )
 }
