@@ -31,9 +31,9 @@
     "lint:prettier": "prettier --check",
     "lint:app": "FILES='./app/**/*.[jt]s?(x)'; npm run lint:prettier -- \"$FILES\" && npm run lint:eslint -- \"$FILES\"",
     "pretest": "npm run test:clean",
-    "test": "npm run test:only -- --coverage",
+    "test": "npm run test:only --  --coverage-provider v8 --coverage",
     "test:clean": "rimraf ./coverage",
-    "test:only": "cross-env NODE_ENV=test jest --maxWorkers=50%",
+    "test:only": "cross-env NODE_ENV=test jest",
     "test:watch": "npm run test:only -- --watch",
     "prettify": "prettier --write",
     "gql:generate": "graphql-codegen"
