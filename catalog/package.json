@@ -33,7 +33,7 @@
     "pretest": "npm run test:clean",
     "test": "npm run test:only -- --coverage",
     "test:clean": "rimraf ./coverage",
-    "test:only": "cross-env NODE_ENV=test jest",
+    "test:only": "cross-env NODE_ENV=test jest --maxWorkers=50%",
     "test:watch": "npm run test:only -- --watch",
     "prettify": "prettier --write",
     "gql:generate": "graphql-codegen"
