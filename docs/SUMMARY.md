@@ -14,6 +14,7 @@
 * [Getting Data from a Package](walkthrough/getting-data-from-a-package.md)
 * [Working with the Catalog](walkthrough/working-with-the-catalog.md)
 * [Working with a Bucket](walkthrough/working-with-a-bucket.md)
+* [Working with ElasticSearch](walkthrough/working-with-elasticsearch.md)
 
 ### API Reference
 * [quilt3](api-reference/api.md)
@@ -49,6 +50,7 @@
 * [Querying Metadata with Athena](advanced-features/athena.md)
 * [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
 * [GxP & Quilt](advanced-features/good-practice.md)
+* [Private Endpoint Access](advanced-features/private-endpoint-access.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
