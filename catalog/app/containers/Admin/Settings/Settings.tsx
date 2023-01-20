@@ -305,7 +305,6 @@ export default function Settings() {
             </React.Suspense>
           </M.Paper>
         </M.Grid>
-
         <M.Grid item xs={6}>
           <M.Paper className={classes.group}>
             <M.Typography variant="h5" className={classes.sectionHeading}>
