@@ -35,7 +35,7 @@ any issues
 1. It is not recommended that you adjust ElasticSearch via Edit domain, as these
 changes will be lost the next time that you update Quilt
 
-## Missing metadata when working with data packages via the API
+## Missing metadata when working with Quilt packages via the API
 
 > `Package.set_dir()` on the package root (".") overrides package-level metadata.
 > If you do not provide `set_dir(".", foo, meta=baz)` with a value for `meta=`,
