@@ -6,8 +6,8 @@ You can ask your Quilt account manager to enable it.
 
 ## Data perimeters 
 
-A **data perimeter** ensures that only allows trusted
-principals on expected networks can access trusted resources.
+A **data perimeter** ensures that only **trusted principals** on **expected networks**
+can access **trusted resources**.
 
 For example, you may wish to ensure that only private IPs can access data in
 Amazon S3, Quilt's primary data store. Such a data perimeter strengthens
