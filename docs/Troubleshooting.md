@@ -34,3 +34,39 @@ any issues
 1. Send screenshots to [Quilt support](mailto:support@quiltdata.io).
 1. It is not recommended that you adjust ElasticSearch via Edit domain, as these
 changes will be lost the next time that you update Quilt
+
+## Missing metadata when working with Quilt packages via the API
+
+> `Package.set_dir()` on the package root (".") overrides package-level metadata.
+> If you do not provide `set_dir(".", foo, meta=baz)` with a value for `meta=`,
+> `set_dir` will set package-level metadata to `None`.
+
+A common pattern is to `Package.browse()` to get the most recent
+version of a package, and then `Package.push()` updates.
+You can preserve package-level metadata when calling `set_dir(".", ...)`
+as follows:
+
+<!--pytest.mark.skip-->
+```python
+import quilt3
+
+p = quilt3.Package.browse(
+    "user-packages/geodata", 
+    registry="s3://bucket_1"
+)
+
+p.set_dir(
+    ".",
+    "s3://bucket_2/path/to/new/geofiles",
+    meta=p.meta
+)
+
+# Push changes to the S3 registry
+p.push(
+    "user-packages/geodata",
+    registry="s3://bucket_1",
+    message="Updating package geodata source data"
+)
+```
+
+- [Reference](https://docs.quiltdata.com/api-reference/package#package.set_dir).
