@@ -10,6 +10,7 @@ import * as Lab from '@material-ui/lab'
 import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
@@ -277,12 +278,13 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
 function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
   const isInStack = BucketConfig.useIsInStack()
+  const settings = CatalogSettings.use()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
   const makeUrl = React.useCallback(
-    (q) => urls.bucketSearch(bucket, { q }),
-    [urls, bucket],
+    (q) => urls.bucketSearch(bucket, { q, mode: settings?.search?.mode }),
+    [urls, bucket, settings],
   )
   return isInStack(bucket) && !disabled ? (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
@@ -294,10 +296,14 @@ function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
 }
 
 function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
+  const settings = CatalogSettings.use()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.search)
   const { q: query = '', buckets } = match ? parse(l.search) : {}
-  const makeUrl = React.useCallback((q) => urls.search({ q, buckets }), [urls, buckets])
+  const makeUrl = React.useCallback(
+    (q) => urls.search({ q, buckets, mode: settings?.search?.mode }),
+    [urls, buckets, settings],
+  )
   if (cfg.disableNavigator) return null
   return disabled ? (
     <SearchBox disabled value="Search not available" {...props} />

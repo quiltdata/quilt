@@ -89,7 +89,7 @@ See [S3 Events, EventBridge](EventBridge.md) for more.
 ## Settings
 
 This section allows you to customize your Quilt catalog, including custom links
-in the navbar.
+in the navbar, custom logo and default search mode.
 
 ![](../imgs/admin-settings.png)
 
