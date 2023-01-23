@@ -230,7 +230,7 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
       {!!revision.userMeta && (
         <div className={classes.section}>
-          {preferences?.ui?.packageDescriptionMultiline ? (
+          {preferences?.ui.packageDescription.userMetaMultiline ? (
             Object.entries(revision.userMeta).map(([name, value]) => (
               // @ts-expect-error
               <JsonDisplay

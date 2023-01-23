@@ -58,6 +58,7 @@ export interface PackagePreferences {
 type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
 interface PackagesListPreferences {
   packages: Record<string, PackagePreferences>
+  userMetaMultiline: boolean
 }
 
 type DefaultSourceBucketInput = string
@@ -99,7 +100,6 @@ interface UiPreferences {
   blocks: BlocksPreferences
   nav: NavPreferences
   packageDescription: PackagesListPreferences
-  packageDescriptionMultiline: boolean
   sourceBuckets: SourceBuckets
 }
 
@@ -143,8 +143,8 @@ const defaultPreferences: BucketPreferences = {
           message: true,
         },
       },
+      userMetaMultiline: false,
     },
-    packageDescriptionMultiline: false,
     sourceBuckets: {
       getDefault: () => '',
       list: [],
@@ -194,17 +194,26 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
   }
 }
 
-function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
-  return Object.entries(packages || {}).reduce((memo, [name, { message, user_meta }]) => {
-    return R.assocPath(
-      ['packages', name],
-      {
-        message,
-        userMeta: user_meta,
-      },
-      memo,
-    )
-  }, defaultPreferences.ui.packageDescription)
+function parsePackages(
+  packages?: PackagesListPreferencesInput,
+  userMetaMultiline: boolean = false,
+): PackagesListPreferences {
+  return Object.entries(packages || {}).reduce(
+    (memo, [name, { message, user_meta }]) =>
+      R.assocPath(
+        ['packages', name],
+        {
+          message,
+          userMeta: user_meta,
+        },
+        memo,
+      ),
+    {
+      packages: defaultPreferences.ui.packageDescription.packages,
+      userMetaMultiline:
+        userMetaMultiline || defaultPreferences.ui.packageDescription.userMetaMultiline,
+    },
+  )
 }
 
 function parseSourceBuckets(
@@ -240,8 +249,10 @@ export function extendDefaults(
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
-      packageDescription: parsePackages(data?.ui?.package_description),
-      packageDescriptionMultiline: !!data?.ui?.package_description_multiline,
+      packageDescription: parsePackages(
+        data?.ui?.package_description,
+        data?.ui?.package_description_multiline,
+      ),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,
