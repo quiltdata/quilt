@@ -77,7 +77,7 @@ export default function Table({ collaborators }: TableProps) {
       <M.TableBody>
         {sorted.map(
           ({ collaborator: { email, username }, permissionLevel = 'UNKNOWN' }) => (
-            <M.TableRow key={email + username}>
+            <M.TableRow key={username}>
               <M.TableCell padding="checkbox">
                 <M.Icon>account_circle</M.Icon>
               </M.TableCell>
