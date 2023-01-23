@@ -104,7 +104,7 @@ export default function SearchSettings() {
           </M.IconButton>
         )}
       </div>
-      {error && <M.Typography className={classes.error}>{error.message}</M.Typography>}
+      {!!error && <M.Typography className={classes.error}>{error.message}</M.Typography>}
     </div>
   )
 }
