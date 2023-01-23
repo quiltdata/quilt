@@ -204,7 +204,7 @@ function ThemePreview({}: ThemePreviewProps) {
   )
 }
 
-const useThemeEditorStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
@@ -226,7 +226,7 @@ export default function ThemeEditor() {
 
   const { push } = Notifications.use()
 
-  const classes = useThemeEditorStyles({
+  const classes = useStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
   })
 
