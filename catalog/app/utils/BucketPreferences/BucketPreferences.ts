@@ -94,7 +94,7 @@ interface UiPreferences {
   athena: AthenaPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
-  package_description: PackagesListPreferences
+  packageDescription: PackagesListPreferences
   sourceBuckets: SourceBuckets
 }
 
@@ -132,7 +132,7 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    package_description: {
+    packageDescription: {
       '.*': {
         message: true,
       },
@@ -195,7 +195,7 @@ function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPre
         userMeta: user_meta,
       },
     }),
-    defaultPreferences.ui.package_description,
+    defaultPreferences.ui.packageDescription,
   )
 }
 
@@ -232,7 +232,7 @@ export function extendDefaults(
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
-      package_description: parsePackages(data?.ui?.package_description),
+      packageDescription: parsePackages(data?.ui?.package_description),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,

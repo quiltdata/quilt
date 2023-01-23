@@ -30,7 +30,7 @@ const expectedDefaults = {
       packages: true,
       queries: true,
     },
-    package_description: {
+    packageDescription: {
       '.*': {
         message: true,
       },

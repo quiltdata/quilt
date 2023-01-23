@@ -264,9 +264,9 @@ function usePackageDescription(
 ): BucketPreferences.PackagePreferences | null {
   const { preferences } = BucketPreferences.use()
   return React.useMemo(() => {
-    if (!preferences?.ui.package_description) return null
+    if (!preferences?.ui.packageDescription) return null
     return (
-      Object.entries(preferences?.ui.package_description)
+      Object.entries(preferences?.ui.packageDescription)
         .reverse() // The last found config wins
         .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
     )
