@@ -31,9 +31,12 @@ const expectedDefaults = {
       queries: true,
     },
     packageDescription: {
-      '.*': {
-        message: true,
+      packages: {
+        '.*': {
+          message: true,
+        },
       },
+      userMetaMultiline: false,
     },
     sourceBuckets: {
       list: [],
