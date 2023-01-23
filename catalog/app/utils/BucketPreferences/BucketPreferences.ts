@@ -56,7 +56,9 @@ export interface PackagePreferences {
   userMeta?: ReadonlyArray<string>
 }
 type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
-type PackagesListPreferences = Record<string, PackagePreferences>
+interface PackagesListPreferences {
+  packages: Record<string, PackagePreferences>
+}
 
 type DefaultSourceBucketInput = string
 type PackageDescriptionMultiline = boolean
@@ -136,8 +138,10 @@ const defaultPreferences: BucketPreferences = {
       queries: true,
     },
     packageDescription: {
-      '.*': {
-        message: true,
+      packages: {
+        '.*': {
+          message: true,
+        },
       },
     },
     packageDescriptionMultiline: false,
@@ -191,16 +195,16 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
 }
 
 function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
-  return Object.entries(packages || {}).reduce(
-    (memo, [name, { message, user_meta }]) => ({
-      ...memo,
-      [name]: {
+  return Object.entries(packages || {}).reduce((memo, [name, { message, user_meta }]) => {
+    return R.assocPath(
+      ['packages', name],
+      {
         message,
         userMeta: user_meta,
       },
-    }),
-    defaultPreferences.ui.packageDescription,
-  )
+      memo,
+    )
+  }, defaultPreferences.ui.packageDescription)
 }
 
 function parseSourceBuckets(
