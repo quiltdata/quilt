@@ -59,6 +59,7 @@ type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
 type PackagesListPreferences = Record<string, PackagePreferences>
 
 type DefaultSourceBucketInput = string
+type PackageDescriptionMultiline = boolean
 type SourceBucketsInput = Record<string, null>
 
 export interface AthenaPreferencesInput {
@@ -77,6 +78,7 @@ interface UiPreferencesInput {
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
   package_description?: PackagesListPreferencesInput
+  package_description_multiline?: PackageDescriptionMultiline
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -95,6 +97,7 @@ interface UiPreferences {
   blocks: BlocksPreferences
   nav: NavPreferences
   packageDescription: PackagesListPreferences
+  packageDescriptionMultiline: boolean
   sourceBuckets: SourceBuckets
 }
 
@@ -137,6 +140,7 @@ const defaultPreferences: BucketPreferences = {
         message: true,
       },
     },
+    packageDescriptionMultiline: false,
     sourceBuckets: {
       getDefault: () => '',
       list: [],
@@ -233,6 +237,7 @@ export function extendDefaults(
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
       packageDescription: parsePackages(data?.ui?.package_description),
+      packageDescriptionMultiline: !!data?.ui?.package_description_multiline,
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,

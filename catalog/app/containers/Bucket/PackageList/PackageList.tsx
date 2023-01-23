@@ -224,25 +224,30 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
+  const { preferences } = BucketPreferences.use()
   return (
     <div className={classes.root}>
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
       {!!revision.userMeta && (
         <div className={classes.section}>
-          {/* @ts-expect-error */}
-          <JsonDisplay
-            className={classes.sectionWithToggle}
-            name="User metadata"
-            value={revision.userMeta}
-          />
-          {/*Object.entries(revision.userMeta).map(([name, value]) => (
+          {preferences?.ui?.packageDescriptionMultiline ? (
+            Object.entries(revision.userMeta).map(([name, value]) => (
+              // @ts-expect-error
+              <JsonDisplay
+                className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
+                key={`user-meta-section-${name}`}
+                name={name}
+                value={value}
+              />
+            ))
+          ) : (
+            // @ts-expect-error
             <JsonDisplay
-              className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
-              key={`user-meta-section-${name}`}
-              name={name}
-              value={value}
+              className={classes.sectionWithToggle}
+              name="User metadata"
+              value={revision.userMeta}
             />
-          ))*/}
+          )}
         </div>
       )}
     </div>
