@@ -24,13 +24,16 @@ const useStyles = M.makeStyles((t) => ({
   progress: {
     margin: t.spacing(0, 1),
   },
+  value: {
+    flexGrow: 1,
+  },
 }))
 
 export interface ValueBase {
   // TODO: use getOptionLabel(): string  similar to M.Autocomplete
   toString: () => string
   // TODO: use isOptionEqualToValue(): bool similar to M.Autocomplete
-  valueOf: () => string | number | boolean
+  valueOf: () => string | number | boolean | null
 }
 
 interface SelectDropdownProps<Value extends ValueBase> {
@@ -107,7 +110,7 @@ export default function SelectDropdown<Value extends ValueBase>({
         {children}
         {aboveSm && (
           <>
-            {value.toString()}
+            <span className={classes.value}>{value.toString()}</span>
             {loading && (
               <M.CircularProgress
                 className={classes.progress}
