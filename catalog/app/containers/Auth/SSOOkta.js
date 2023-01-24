@@ -21,10 +21,7 @@ const MUTEX_REQUEST = 'sso:okta:request'
 export default function SSOOkta({ mutex, next, ...props }) {
   const provider = 'okta'
 
-  const authenticate = Okta.use({
-    provider,
-    popupParams: 'width=400,height=600',
-  })
+  const authenticate = Okta.use()
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()

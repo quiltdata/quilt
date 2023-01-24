@@ -38,10 +38,7 @@ function useField(init) {
 }
 
 function Embedder() {
-  const authenticate = Okta.use({
-    provider: 'okta',
-    popupParams: 'width=300,height=400',
-  })
+  const authenticate = Okta.use()
 
   const iframeRef = React.useRef(null)
 

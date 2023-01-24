@@ -10,7 +10,7 @@ export class OktaError extends BaseError {
   }
 }
 
-export function useOkta({ provider, popupParams }) {
+export function useOkta() {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
@@ -24,8 +24,8 @@ export function useOkta({ provider, popupParams }) {
           nonce,
           state,
         })
-        const url = `${cfg.registryUrl}/oidc-authorize/${provider}${query}`
-        const popup = window.open(url, 'quilt_okta_popup', popupParams)
+        const url = `${cfg.registryUrl}/oidc-authorize/okta${query}`
+        const popup = window.open(url, 'quilt_okta_popup', 'width=400,height=600')
         const timer = setInterval(() => {
           if (popup.closed) {
             window.removeEventListener('message', handleMessage)
@@ -70,7 +70,7 @@ export function useOkta({ provider, popupParams }) {
         window.addEventListener('message', handleMessage)
         popup.focus()
       }),
-    [provider, popupParams],
+    [],
   )
 }
 
