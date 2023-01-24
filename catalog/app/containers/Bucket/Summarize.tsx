@@ -167,7 +167,7 @@ interface SectionProps extends M.PaperProps {
   handle?: S3Handle
   heading?: React.ReactNode
   expanded?: boolean
-  onExpand?: () => void
+  onToggle?: () => void
 }
 
 export function Section({
@@ -176,7 +176,7 @@ export function Section({
   description,
   children,
   expanded,
-  onExpand,
+  onToggle,
   ...props
 }: SectionProps) {
   const ft = React.useContext(FileThemeContext)
@@ -185,11 +185,11 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       {!!heading && (
         <div className={classes.heading}>
-          {onExpand && (
+          {onToggle && (
             <ToggleButton
               className={classes.toggle}
               expanded={expanded}
-              onExpand={onExpand}
+              onExpand={onToggle}
             />
           )}
           <div className={classes.headingText}>{heading}</div>
@@ -205,7 +205,7 @@ export function Section({
 interface PreviewBoxProps {
   children: React.ReactNode
   expanded?: boolean
-  onExpand: () => void
+  onToggle: () => void
 }
 
 const usePreviewBoxStyles = M.makeStyles((t) => ({
@@ -251,13 +251,13 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
+function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
       {children}
       {!expanded && (
-        <div className={classes.fade} onClick={onExpand} title="Click to expand">
+        <div className={classes.fade} onClick={onToggle} title="Click to expand">
           <M.Button variant="outlined">Expand</M.Button>
         </div>
       )}
@@ -333,13 +333,10 @@ export function FilePreview({
   )
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const onExpand = React.useCallback(
-    () => setExpanded(!expanded),
-    [setExpanded, expanded],
-  )
+  const onToggle = React.useCallback(() => setExpanded((isExpanded) => !isExpanded), [])
   const renderContents = React.useCallback(
-    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
-    [expanded, onExpand],
+    (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
+    [expanded, onToggle],
   )
 
   // TODO: check for glacier and hide items
@@ -349,7 +346,7 @@ export function FilePreview({
       heading={heading}
       handle={handle}
       expanded={expanded}
-      onExpand={onExpand}
+      onToggle={onToggle}
     >
       {Preview.load(
         previewHandle,
