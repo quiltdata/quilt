@@ -15,9 +15,9 @@ in [AWS EventBridge](https://aws.amazon.com/eventbridge/) so that
 you can easily trigger logical events like package creation that
 depend on batches rather than on individual files.
 
-Quilt EDP works well with services like [AWS Storage
-Gateway](https://aws.amazon.com/storagegateway/) and [AWS Data
-Sync](https://aws.amazon.com/datasync/) that write objects to Amazon S3.
+Quilt EDP works with any Amazon service that syncs data to Amazon
+S3 and any services that can be targeted from AWS EventBridge (such
+as AWS Lambda or AWS Batch).
 
 > Any AWS service or action that generates S3 object events may trigger the EDP service.
 
@@ -40,9 +40,8 @@ for all S3 buckets to be monitored by EDP
 
 ## Deployment
 
-To use EDP in your Quilt instance, you will use a standalone
-CloudFormation template to configure under which conditions events get
-generated.
+EDP is a standalone CloudFormation template to configure under which
+conditions events get generated.
 
 ### Parameters
 
