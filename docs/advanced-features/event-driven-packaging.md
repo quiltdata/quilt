@@ -10,7 +10,7 @@ pipelines. Detecting these logical events from Amazon S3 events alone is
 complex and requires extensive custom logic.
 
 Quilt's *Event-Driven Packaging* service (EDP) smartly groups one
-or more Amazon S3 object events into a single event
+or more Amazon S3 object events into a single batch-level event
 in [AWS EventBridge](https://aws.amazon.com/eventbridge/) so that
 you can easily trigger logical events like package creation that
 depend on batches rather than on individual files.
