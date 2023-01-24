@@ -52,6 +52,7 @@
 * [Event Driven Packaging](advanced-features/event-driven-packaging.md)
 * [GxP & Quilt](advanced-features/good-practice.md)
 * [Private Endpoint Access](advanced-features/private-endpoint-access.md)
+* [Restricting access to specific prefixes in a S3 bucket](advanced-features/s3-prefix-permissions.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
