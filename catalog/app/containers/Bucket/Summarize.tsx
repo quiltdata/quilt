@@ -65,6 +65,42 @@ function DownloadButton({ className, handle }: DownloadButtonProps) {
   ))
 }
 
+const useToggleButtonStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    height: t.spacing(4),
+    justifyContent: 'center',
+    width: t.spacing(3),
+  },
+  icon: {
+    transition: 'ease transform .15s',
+  },
+  iconExpanded: {
+    transform: `rotate(180deg)`,
+  },
+}))
+
+interface ToggleButtonProps {
+  className?: string
+  expanded?: boolean
+  onExpand?: () => void
+}
+
+function ToggleButton({ className, expanded, onExpand }: ToggleButtonProps) {
+  const classes = useToggleButtonStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.IconButton
+        onClick={onExpand}
+        className={cx(classes.icon, { [classes.iconExpanded]: expanded })}
+      >
+        <M.Icon>{expanded ? 'unfold_less' : 'unfold_more'}</M.Icon>
+      </M.IconButton>
+    </div>
+  )
+}
+
 enum FileThemes {
   Overview = 'overview',
   Nested = 'nested',
@@ -122,18 +158,7 @@ const useSectionStyles = M.makeStyles((t) => ({
     marginLeft: 'auto',
   },
   toggle: {
-    alignItems: 'center',
-    display: 'flex',
-    height: t.spacing(4),
-    justifyContent: 'center',
-    width: t.spacing(3),
     marginRight: t.spacing(1),
-  },
-  toggleIcon: {
-    transition: 'ease transform .15s',
-  },
-  toggleIconExpanded: {
-    transform: `rotate(180deg)`,
   },
 }))
 
@@ -161,16 +186,11 @@ export function Section({
       {!!heading && (
         <div className={classes.heading}>
           {onExpand && (
-            <div className={classes.toggle}>
-              <M.IconButton
-                onClick={onExpand}
-                className={cx(classes.toggleIcon, {
-                  [classes.toggleIconExpanded]: expanded,
-                })}
-              >
-                <M.Icon>{expanded ? 'unfold_less' : 'unfold_more'}</M.Icon>
-              </M.IconButton>
-            </div>
+            <ToggleButton
+              className={classes.toggle}
+              expanded={expanded}
+              onExpand={onExpand}
+            />
           )}
           <div className={classes.headingText}>{heading}</div>
           {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
@@ -313,7 +333,10 @@ export function FilePreview({
   )
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const onExpand = React.useCallback(() => setExpanded(!expanded), [setExpanded, expanded])
+  const onExpand = React.useCallback(
+    () => setExpanded(!expanded),
+    [setExpanded, expanded],
+  )
   const renderContents = React.useCallback(
     (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
     [expanded, onExpand],
