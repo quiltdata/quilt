@@ -74,12 +74,12 @@ const syntaxHelpRows: SyntaxHelpNamespace[] = [
         title: 'Package hash',
       },
       {
-        example: (s) => <>{s}research*</>,
+        example: (s) => <>{s}phase*</>,
         syntax: 'key:',
         title: 'Object key',
       },
       {
-        example: (s) => <>{s}"research"</>,
+        example: (s) => <>{s}phase*</>,
         syntax: 'key_text:',
         title: 'Analyzed object key',
       },
