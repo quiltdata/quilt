@@ -8,6 +8,7 @@ import * as Cache from 'utils/ResourceCache'
 const CONFIG_KEY = 'catalog/settings.json'
 
 export interface CatalogSettings {
+  beta?: boolean
   customNavLink?: {
     url: string
     label: string
@@ -15,7 +16,9 @@ export interface CatalogSettings {
   logo?: {
     url: string
   }
-  beta?: boolean
+  search?: {
+    mode?: 'packages' | 'objects' | null
+  }
   theme?: {
     palette: {
       primary: {

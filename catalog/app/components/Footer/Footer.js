@@ -38,7 +38,7 @@ function Version() {
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
     copyToClipboard(process.env.REVISION_HASH)
-    push('Product revision hash has been copied to clipboard')
+    push('Web catalog container hash has been copied to clipboard')
   }, [push])
   return (
     <div>
