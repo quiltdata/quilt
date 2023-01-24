@@ -60,7 +60,7 @@ function CaseStudy({
       <M.Typography className={classes.content}>{children}</M.Typography>
       <p className={classes.readMore}>
         <a className={classes.link} href={link} target="_blank">
-          Read more
+          Download
         </a>
       </p>
     </div>
@@ -120,7 +120,7 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
           <CaseStudy
             className={classes.item}
             heading="Improving Data Management with Quilt and NextFlow"
-            link="https://quiltdata.com"
+            link="https://quilt-web-public.s3.amazonaws.com/docs/Tessera.pdf"
             logoClassName={classes.logoTessera}
           >
             Tessera Therapeutics is a pioneer in gene writing, using technology to insert
@@ -134,7 +134,7 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
           <CaseStudy
             className={classes.item}
             heading="Accelerating Data Access and Collaboration with DataSync"
-            link="https://quiltdata.com"
+            link="https://quilt-web-public.s3.amazonaws.com/docs/Resilience.pdf"
             logoClassName={classes.logoResilience}
           >
             National Resilience, Inc. (Resilience) is a manufacturing and technology
@@ -149,7 +149,7 @@ export default function CaseStudies({ className }: CaseStudiesProps) {
           <CaseStudy
             className={classes.item}
             heading="Managing and Accessing Data for Single Cell Genomics Research"
-            link="https://quiltdata.com"
+            link="https://quilt-web-public.s3.amazonaws.com/docs/Celsius.pdf"
             logoClassName={classes.logoCelsius}
           >
             Celsius Therapeutics is using Quilt Data to manage and access data for single
