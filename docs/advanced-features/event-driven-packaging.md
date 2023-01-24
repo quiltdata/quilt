@@ -41,7 +41,7 @@ for all S3 buckets to be monitored by EDP
 ## Deployment
 
 To use EDP in your Quilt instance, you will use a standalone
-CloudFormation template to configure when, and how, events get
+CloudFormation template to configure under which conditions events get
 generated.
 
 ### Parameters
@@ -82,20 +82,15 @@ recipient to make Quilt data packages from the event:
   - Timestamp of event
 4. EDP ignores changes to ignored prefixes (`BucketIgnorePrefixes` parameter)
 in the source S3 bucket (e.g. `raw/*`)
-5. EDP publishes events to an AWS EventBridge bus and can forward
-events to external EventBridge buses
-6. Users subscribe the Amazon SNS topic created to recieve notifications
+5. EDP publishes the events to an AWS EventBridge bus.
+6. Event is forwarded to external EventBridge buses and/or a user-defined
+Lambda function
+7. Users subscribe the Amazon SNS topic created to recieve notifications
 
-## Example EDP events
+## `package-objects-ready` Event Type
 
-Currently, EDP generates two different events:
+This event signals that a batch of files is **ready to be packaged**.
 
-- `package-objects-ready`
-- `package-ready`
-
-### `package-objects-ready`
-
-This event signals that a batch of files is ready to be packaged.
 For example with `p.set_dir(".",
 f"s3://{e['detail']['bucket']}/{e['detail']['prefix']}")`, followed
 by `p.push()`.
@@ -120,14 +115,15 @@ by `p.push()`.
 }
 ```
 
-### `package-ready`
+## `package-ready` Event Type
+
+> This is used internally and most users won't explicitly use this
+event type
 
 This event signals that a Quilt package is available in an Amazon
 S3 bucket and that a user-specified interval has elapsed to ensure
 that time-driven processes like File Gateway have synchronized their
 state to that of the S3 bucket.
-
-> This is used internally. Most users won't explicitly use this event.
 
 ```json
 {
@@ -153,25 +149,115 @@ state to that of the S3 bucket.
 1. Lab scientist drops files into _s3://RAW/raw/_
 2. Lambda function copies filess to _s3://RAW/other/prefix/_
 3. EDP listens to _s3://RAW/other/*_ and generates a `package-objects-ready`
-event
+event.
 4. Second lambda fuction responds to `package-objects-ready` event and
-pushes Quilt data package to _s3://PROCESSED_ bucket
+pushes Quilt data package to _s3://PROCESSED_ bucket.
 5. EDP listens for "package created" (from step above), then emits
 a `package_ready` event which is received in a foreign account bus
-6. SNS subscription generates email to scientists
-7. Lab and Computational scientists recieve email notification
+6. SNS subscription generates email to scientists.
+7. Lab and Computational scientists recieve email notification.
 8. Computational scientist opens files backed by _s3://PROCESSED_
-bucket
+bucket.
+
+## Handling EDP events via EventBridge rules and Lambda functions
+
+The following example CloudFormation template creates (1) an
+EventBridge rule that targets a `package-objects-ready` event,
+forwarding it to (2) a Lambda function that processes the event,
+printing out `event["detail"]["bucket"]` and `event["detail"]["prefix"]`.
+
+```yaml
+Parameters:
+  BucketName:
+    Type: String
+  EDPEventBusName:
+    Type: String
+Resources:
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ""
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  Lambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              print(event["detail"]["bucket"])
+              print(event["detail"]["prefix"])
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.9
+      Timeout: 10
+  EventBridgeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventBusName: !Ref EDPEventBusName
+      EventPattern:
+        detail:
+          bucket:
+            - Ref: BucketName
+        detail-type:
+          - package-objects-ready
+        source:
+          - com.quiltdata.edp
+      Targets:
+        - Arn: !GetAtt Lambda.Arn
+          Id: Lambda
+  EventBridgeRuleLambdaPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !GetAtt Lambda.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventBridgeRule.Arn
+```
 
 ## Features
 
-- EDP is tolerant of container restarts (e.g. events are not consumed
-or are requeued so that package revisions are not lost)
-- EDP is tolerant of delayed (or partitioned) S3 object events (e.g.
-Storage Gateway stops syncing due to network parition)
-- EDP supports setting (and retaining) package-level metadata via
-specially named files (e.g. "quilt_metadata.json")
 - EDP, upon completion and if configured to do so, may warm its
 contents to a File Gateway where it has read permissions to ensure
 that new EDP-created Quilt packages are available to Gateway clients
 like Windows Workspaces.
+
+## Debugging
+
+EDP create a CloudWatch dashboard which exposes some metrics useful
+for debugging:
+
+- **EDP event bus topic**: Displays the number of events emitted by
+EDP. If EDP is working correctly there should be one or more
+events received (depending on the time range selected).
+- **Per-bucket metrics**:
+  - **S3 EventBridge rule**: The number of events published to
+  EventBridge from the specified Amazon S3 bucket. If there is no
+  data, there are several possibilities:
+    - **Invocations**: If this value is zero, the S3 bucket isn't
+    correctly configured (`Send notifications to Amazon EventBridge
+    for all events in this bucket` is not turned `On`).
+    - **TriggeredRules**: If this value is zero, there was a problem
+    with the automated EventBridge rule creation process during
+    deployment. In general, you want the number of invocations to
+    approximately equal the number of triggered rules.
+    - **Failed Invocations**: This value should be zero. If greater
+    than zero, there is an EDP configuration issue.
+  - **Store in DB lambda**: If EDP is configured correctly, there
+  should be zero errors and a 100% success rate.
+  - **Emit event lambda**: If EDP is configured correctly, there
+  should be zero errors and a 100% success rate.
+
+Additionally, users can subscribe directly to the EDP SNS topic. This is
+useful for both debugging and viewing how events are structured.
+
+## Limitations
+
+- Currently, only one Amazon S3 bucket can be monitored at a time.
