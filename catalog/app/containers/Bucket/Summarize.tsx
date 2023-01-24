@@ -121,12 +121,28 @@ const useSectionStyles = M.makeStyles((t) => ({
   headingAction: {
     marginLeft: 'auto',
   },
+  toggle: {
+    alignItems: 'center',
+    display: 'flex',
+    height: t.spacing(4),
+    justifyContent: 'center',
+    width: t.spacing(3),
+    marginRight: t.spacing(1),
+  },
+  toggleIcon: {
+    transition: 'ease transform .15s',
+  },
+  toggleIconExpanded: {
+    transform: `rotate(180deg)`,
+  },
 }))
 
 interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
   handle?: S3Handle
   heading?: React.ReactNode
+  expanded?: boolean
+  onExpand?: () => void
 }
 
 export function Section({
@@ -134,6 +150,8 @@ export function Section({
   heading,
   description,
   children,
+  expanded,
+  onExpand,
   ...props
 }: SectionProps) {
   const ft = React.useContext(FileThemeContext)
@@ -142,6 +160,18 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       {!!heading && (
         <div className={classes.heading}>
+          {onExpand && (
+            <div className={classes.toggle}>
+              <M.IconButton
+                onClick={onExpand}
+                className={cx(classes.toggleIcon, {
+                  [classes.toggleIconExpanded]: expanded,
+                })}
+              >
+                <M.Icon>{expanded ? 'unfold_less' : 'unfold_more'}</M.Icon>
+              </M.IconButton>
+            </div>
+          )}
           <div className={classes.headingText}>{heading}</div>
           {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
         </div>
@@ -283,7 +313,7 @@ export function FilePreview({
   )
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const onExpand = React.useCallback(() => setExpanded(!expanded), [setExpanded, expanded])
   const renderContents = React.useCallback(
     (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
     [expanded, onExpand],
@@ -291,7 +321,13 @@ export function FilePreview({
 
   // TODO: check for glacier and hide items
   return (
-    <Section description={description} heading={heading} handle={handle}>
+    <Section
+      description={description}
+      heading={heading}
+      handle={handle}
+      expanded={expanded}
+      onExpand={onExpand}
+    >
       {Preview.load(
         previewHandle,
         Preview.display({
