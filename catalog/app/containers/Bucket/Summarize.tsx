@@ -253,8 +253,17 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
 
 function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
+  const ref = React.useRef<HTMLDivElement>(null)
+  const [checkedHeight, setCheckedHeight] = React.useState(false)
+  React.useEffect(() => {
+    if (!ref.current || expanded || checkedHeight) return
+    const child = ref.current.firstElementChild
+    if (!child) return
+    if (child.clientHeight <= ref.current.clientHeight) onToggle()
+    setCheckedHeight(true)
+  }, [expanded, checkedHeight, onToggle])
   return (
-    <div className={cx(classes.root, { [classes.expanded]: expanded })}>
+    <div className={cx(classes.root, { [classes.expanded]: expanded })} ref={ref}>
       {children}
       {!expanded && (
         <div className={classes.fade} onClick={onToggle} title="Click to expand">
