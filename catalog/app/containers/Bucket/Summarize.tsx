@@ -314,7 +314,7 @@ export function FilePreview({
   headingOverride,
   packageHandle,
 }: FilePreviewProps) {
-  const description = file ? <Markdown data={file.description} /> : null
+  const description = file?.description ? <Markdown data={file.description} /> : null
   const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
 
   const key = handle.logicalKey || handle.key
