@@ -53,7 +53,6 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     position: 'relative',
     alignItems: 'center',
-    width: '100%',
   },
   btn: {
     marginBottom: -12,

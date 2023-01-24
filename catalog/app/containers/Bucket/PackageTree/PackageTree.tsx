@@ -570,6 +570,9 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
       marginBottom: '3px',
     },
   },
+  preview: {
+    width: '100%',
+  },
 }))
 
 interface FileDisplayProps extends FileDisplayQueryProps {
@@ -693,12 +696,14 @@ function FileDisplay({
                 <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                {withPreview(
-                  { archived, deleted },
-                  handle,
-                  viewModes.mode,
-                  renderPreview(viewModes.handlePreviewResult),
-                )}
+                <div className={classes.preview}>
+                  {withPreview(
+                    { archived, deleted },
+                    handle,
+                    viewModes.mode,
+                    renderPreview(viewModes.handlePreviewResult),
+                  )}
+                </div>
               </Section>
             </>
           ),

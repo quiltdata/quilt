@@ -4,6 +4,7 @@ export type {
   BucketPreferences,
   MetaBlockPreferences,
   NavPreferences,
+  PackagePreferences,
   SourceBuckets,
 } from './BucketPreferences'
 export * from './Provider'

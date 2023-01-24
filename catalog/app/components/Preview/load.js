@@ -51,14 +51,14 @@ const loaderChain = [
 //   * `context` - where file was rendered
 //   * `mode` - user set fileType
 function findLoader(key, options) {
-  if (options.mode) {
+  if (options?.mode) {
     // Detect by user selected mode
     const found = loaderChain.find(
       ({ FILE_TYPE }) => FILE_TYPE && options?.mode === FILE_TYPE,
     )
     if (found) return found
   }
-  if (options.types) {
+  if (options?.types) {
     // Detect by quilt_summarize.json type
     const found = loaderChain.find(
       ({ FILE_TYPE }) => FILE_TYPE && summarize.detect(FILE_TYPE, options),
