@@ -92,7 +92,7 @@ const useSectionStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-  headingAction: {
+  menu: {
     marginLeft: t.spacing(1),
   },
   toggle: {
@@ -131,7 +131,7 @@ export function Section({
               onToggle={onToggle}
             />
           )}
-          {handle && <Preview.Menu className={classes.headingAction} handle={handle} />}
+          {handle && <Preview.Menu className={classes.menu} handle={handle} />}
         </div>
       )}
       {!!description && <div className={classes.description}>{description}</div>}
@@ -191,7 +191,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
 
 function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
-  // TODO: move expandable block to ExpandableBox and re-use for SearchResults
+  // TODO: Move expandable block to ExpandableBox and re-use for SearchResults
   // TODO: Listen firstElementNode ({children}) for resize
   //       if children height is smaller than box -> onToggle(force)
   return (
