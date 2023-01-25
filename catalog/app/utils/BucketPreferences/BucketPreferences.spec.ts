@@ -30,10 +30,13 @@ const expectedDefaults = {
       packages: true,
       queries: true,
     },
-    package_description: {
-      '.*': {
-        message: true,
+    packageDescription: {
+      packages: {
+        '.*': {
+          message: true,
+        },
       },
+      userMetaMultiline: false,
     },
     sourceBuckets: {
       list: [],
