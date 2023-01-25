@@ -62,7 +62,7 @@ occurred. Default value is `300` seconds.
 number of files have been created (since the prior trigger)
 - `DBUser`: Username for EDP RDS instance
 - `DBPassword`: Password for EDP RDS instance
-- `EventBusName`: Name of custom EventBridge event bus that recieves events
+- `EventBusName`: Name of custom EventBridge event bus that receives events
 
 ![](../imgs/edp-cloudformation-parameters.png)
 
@@ -84,7 +84,7 @@ in the source S3 bucket (e.g. `raw/*`)
 5. EDP publishes the events to an AWS EventBridge bus.
 6. Event is forwarded to external EventBridge buses and/or a user-defined
 Lambda function
-7. Users subscribe the Amazon SNS topic created to recieve notifications
+7. Users subscribe the Amazon SNS topic created to receive notifications
 
 ## `package-objects-ready` Event Type
 
@@ -154,7 +154,7 @@ pushes Quilt data package to _s3://PROCESSED_ bucket.
 5. EDP listens for "package created" (from step above), then emits
 a `package_ready` event which is received in a foreign account bus
 6. SNS subscription generates email to scientists.
-7. Lab and Computational scientists recieve email notification.
+7. Lab and Computational scientists receive email notification.
 8. Computational scientist opens files backed by _s3://PROCESSED_
 bucket.
 
