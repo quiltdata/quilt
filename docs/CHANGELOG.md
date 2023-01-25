@@ -14,6 +14,10 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# 5.1.1 - 2023-01-25
+## Python API
+* [Fixed] Reduce backtracking during `pip install quilt3[catalog]` ([#3292](https://github.com/quiltdata/quilt/pull/3292))
+
 ## Catalog, Lambdas
 * [Added] Add 'ECharts' and 'Text' file type switcher, significantly refactor this switcher ([#3240](https://github.com/quiltdata/quilt/pull/3240))
 * [Added] Add link to file from Athena results ([#3242](https://github.com/quiltdata/quilt/pull/3242))
@@ -27,6 +31,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Show collapsed values in JSON viewer ([#3249](https://github.com/quiltdata/quilt/pull/3249))
 * [Changed] Rename "Metadata" to "User metadata" ([#3255](https://github.com/quiltdata/quilt/pull/3255))
 * [Changed] Show selective metadata for packages as JSON ([#3259](https://github.com/quiltdata/quilt/pull/3259))
+* [Changed] Show selective metadata on one line and optionaly on multiple lines ([#3284](https://github.com/quiltdata/quilt/pull/3284))
 
 # 5.1.0 - 2022-12-09
 ## Python API
