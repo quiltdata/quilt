@@ -14,6 +14,9 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+## Python API
+* [Fixed] Reduce backtracking during `pip install quilt3[catalog]` ([#3292](https://github.com/quiltdata/quilt/pull/3292))
+
 ## Catalog, Lambdas
 * [Added] Add 'ECharts' and 'Text' file type switcher, significantly refactor this switcher ([#3240](https://github.com/quiltdata/quilt/pull/3240))
 * [Added] Add link to file from Athena results ([#3242](https://github.com/quiltdata/quilt/pull/3242))
