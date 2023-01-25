@@ -146,7 +146,7 @@ state to that of the S3 bucket.
 ## Example use case
 
 1. Lab scientist drops files into _s3://RAW/raw/_
-2. Lambda function copies filess to _s3://RAW/other/prefix/_
+2. Lambda function copies files to _s3://RAW/other/prefix/_
 3. EDP listens to _s3://RAW/other/*_ and generates a `package-objects-ready`
 event.
 4. Second lambda fuction responds to `package-objects-ready` event and
