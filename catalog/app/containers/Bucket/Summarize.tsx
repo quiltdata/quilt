@@ -198,9 +198,7 @@ function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
       {children}
       {!expanded && (
-        <div className={classes.fade} onClick={onToggle} title="Click to expand">
-          <M.Button variant="outlined">Expand</M.Button>
-        </div>
+        <div className={classes.fade} onClick={onToggle} title="Click to expand" />
       )}
     </div>
   )

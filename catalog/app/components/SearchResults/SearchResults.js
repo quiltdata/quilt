@@ -299,9 +299,7 @@ function PreviewBox({ children, title, expanded, onToggle }) {
         {children}
 
         {!expanded && (
-          <div className={classes.fade} onClick={onToggle}>
-            <M.Button variant="outlined">Expand</M.Button>
-          </div>
+          <div className={classes.fade} onClick={onToggle} title="Click to expand" />
         )}
       </div>
     </SmallerSection>
