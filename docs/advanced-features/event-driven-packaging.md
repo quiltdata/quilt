@@ -254,6 +254,8 @@ events received (depending on the time range selected).
   - **Emit event lambda**: If EDP is configured correctly, there
   should be zero errors and a 100% success rate.
 
+![](../imgs/edp-cloudwatch-dashboard.png)
+
 Additionally, users can subscribe directly to the EDP SNS topic. This is
 useful for both debugging and viewing how events are structured.
 
