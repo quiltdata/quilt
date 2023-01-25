@@ -89,6 +89,7 @@ setup(
         ],
         'catalog': [
             'quilt3_local>=1,<2',
+            'aiobotocore[boto3]>=2',
             'uvicorn>=0.15,<0.18',
         ],
     },
