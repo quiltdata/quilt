@@ -90,6 +90,8 @@ setup(
         'catalog': [
             'quilt3_local>=1,<2',
             'uvicorn>=0.15,<0.18',
+            # Workaround to reduce backtracking during `pip install quilt3[catalog]`.
+            'aiobotocore[boto3]>=2',
         ],
     },
     include_package_data=True,
