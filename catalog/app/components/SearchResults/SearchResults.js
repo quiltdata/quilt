@@ -94,21 +94,9 @@ function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onTo
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       <Preview.ToggleButton expanded={expanded} onToggle={onToggle} mr={1} />
-      {!!downloadable &&
-        AWS.Signer.withDownloadUrl(handle, (url) => (
-          <M.Box
-            alignItems="center"
-            display="flex"
-            height={32}
-            justifyContent="center"
-            width={24}
-            my={{ xs: -0.25, md: 0 }}
-          >
-            <M.IconButton href={url} title="Download" download>
-              <M.Icon>arrow_downward</M.Icon>
-            </M.IconButton>
-          </M.Box>
-        ))}
+      {!!downloadable && (
+        <Preview.Menu handle={handle} expanded={expanded} onToggle={onToggle} />
+      )}
     </Heading>
   )
 }
