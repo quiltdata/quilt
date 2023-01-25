@@ -59,46 +59,10 @@ function DownloadButton({ className, handle }: DownloadButtonProps) {
   return AWS.Signer.withDownloadUrl(handle, (url: string) => (
     <div className={cx(classes.root, className)}>
       <M.IconButton href={url} title="Download" download>
-        <M.Icon>arrow_downward</M.Icon>
+        <M.Icon>more_vert</M.Icon>
       </M.IconButton>
     </div>
   ))
-}
-
-const useToggleButtonStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    height: t.spacing(4),
-    justifyContent: 'center',
-    width: t.spacing(3),
-  },
-  icon: {
-    transition: 'ease transform .15s',
-  },
-  iconExpanded: {
-    transform: `rotate(180deg)`,
-  },
-}))
-
-interface ToggleButtonProps {
-  className?: string
-  expanded?: boolean
-  onExpand?: () => void
-}
-
-function ToggleButton({ className, expanded, onExpand }: ToggleButtonProps) {
-  const classes = useToggleButtonStyles()
-  return (
-    <div className={cx(classes.root, className)}>
-      <M.IconButton
-        onClick={onExpand}
-        className={cx(classes.icon, { [classes.iconExpanded]: expanded })}
-      >
-        <M.Icon>{expanded ? 'unfold_less' : 'unfold_more'}</M.Icon>
-      </M.IconButton>
-    </div>
-  )
 }
 
 enum FileThemes {
@@ -155,10 +119,13 @@ const useSectionStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   headingAction: {
-    marginLeft: 'auto',
+    // marginLeft: 'auto',
+    // marginRight: t.spacing(1),
+    marginLeft: t.spacing(1),
   },
   toggle: {
-    marginRight: t.spacing(1),
+    marginLeft: 'auto',
+    // marginRight: t.spacing(1),
   },
 }))
 
@@ -185,14 +152,14 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       {!!heading && (
         <div className={classes.heading}>
+          <div className={classes.headingText}>{heading}</div>
           {onToggle && (
-            <ToggleButton
+            <Preview.ToggleButton
               className={classes.toggle}
               expanded={expanded}
-              onExpand={onToggle}
+              onToggle={onToggle}
             />
           )}
-          <div className={classes.headingText}>{heading}</div>
           {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
         </div>
       )}
