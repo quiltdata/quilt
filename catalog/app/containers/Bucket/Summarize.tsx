@@ -39,32 +39,6 @@ interface SummarizeFile {
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
 
-const useDownloadButtonStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    height: t.spacing(4),
-    justifyContent: 'center',
-    width: t.spacing(3),
-  },
-}))
-
-interface DownloadButtonProps {
-  className?: string
-  handle: S3Handle
-}
-
-function DownloadButton({ className, handle }: DownloadButtonProps) {
-  const classes = useDownloadButtonStyles()
-  return AWS.Signer.withDownloadUrl(handle, (url: string) => (
-    <div className={cx(classes.root, className)}>
-      <M.IconButton href={url} title="Download" download>
-        <M.Icon>more_vert</M.Icon>
-      </M.IconButton>
-    </div>
-  ))
-}
-
 enum FileThemes {
   Overview = 'overview',
   Nested = 'nested',
@@ -119,13 +93,10 @@ const useSectionStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   headingAction: {
-    // marginLeft: 'auto',
-    // marginRight: t.spacing(1),
     marginLeft: t.spacing(1),
   },
   toggle: {
     marginLeft: 'auto',
-    // marginRight: t.spacing(1),
   },
 }))
 
@@ -160,7 +131,7 @@ export function Section({
               onToggle={onToggle}
             />
           )}
-          {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
+          {handle && <Preview.Menu className={classes.headingAction} handle={handle} />}
         </div>
       )}
       {!!description && <div className={classes.description}>{description}</div>}
