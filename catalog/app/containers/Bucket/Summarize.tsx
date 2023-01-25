@@ -272,7 +272,7 @@ export function FilePreview({
   )
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const onToggle = React.useCallback(() => setExpanded((isExpanded) => !isExpanded), [])
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   const renderContents = React.useCallback(
     (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
     [expanded, onToggle],
