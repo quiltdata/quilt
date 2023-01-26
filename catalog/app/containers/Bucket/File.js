@@ -300,7 +300,7 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
   },
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   crumbs: {
     ...t.typography.body1,
@@ -308,6 +308,7 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
   },
   fileProperties: {
+    marginRight: t.spacing(1),
     marginTop: '2px',
   },
   name: {
