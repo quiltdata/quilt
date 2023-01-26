@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # Restricting access to specific S3 bucket prefixes
 
 > Users will still have access to the full list of S3 objects,
