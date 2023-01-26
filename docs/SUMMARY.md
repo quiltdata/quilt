@@ -47,11 +47,11 @@
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
 * [Cross-account access](CrossAccount.md)
+* [Restricting access to specific S3 bucket prefixes](advanced-features/s3-prefix-permissions.md)
 * [Querying Metadata with Athena](advanced-features/athena.md)
 * [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
 * [GxP & Quilt](advanced-features/good-practice.md)
 * [Private Endpoint Access](advanced-features/private-endpoint-access.md)
-* [Restricting access to specific prefixes in a S3 bucket](advanced-features/s3-prefix-permissions.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
