@@ -4,65 +4,124 @@
 #
 #    pip-compile --extra=lambda --output-file=requirements.txt ../shared/setup.py pyproject.toml
 #
-aicsimageio==3.0.7
+aicsimageio==3.1.4
     # via t4-lambda-thumbnail (pyproject.toml)
-attrs==19.1.0
+aicspylibczi==3.0.5
+    # via aicsimageio
+attrs==22.2.0
     # via jsonschema
 awslambdaric==2.0.4
     # via t4-lambda-shared (../shared/setup.py)
 certifi==2022.12.7
     # via requests
-charset-normalizer==2.0.12
+charset-normalizer==3.0.1
     # via requests
-idna==2.8
+click==8.1.3
+    # via distributed
+cloudpickle==2.2.1
+    # via
+    #   dask
+    #   distributed
+dask==2022.2.0
+    # via
+    #   aicsimageio
+    #   distributed
+distributed==2022.2.0
+    # via aicsimageio
+fsspec==2023.1.0
+    # via dask
+heapdict==1.0.1
+    # via zict
+idna==3.4
     # via requests
-imageio==2.5.0
+imageio==2.25.0
     # via
     #   aicsimageio
     #   t4-lambda-thumbnail (pyproject.toml)
 importlib-metadata==2.1.3
-    # via awslambdaric
-jsonschema==3.0.1
+    # via
+    #   awslambdaric
+    #   click
+    #   jsonschema
+importlib-resources==5.10.2
+    # via jsonschema
+jinja2==3.1.2
+    # via distributed
+jsonschema==4.17.3
     # via t4-lambda-shared (../shared/setup.py)
+locket==1.0.0
+    # via partd
 lxml==4.9.2
-    # via python-pptx
-numpy==1.21.5
     # via
     #   aicsimageio
+    #   python-pptx
+markupsafe==2.1.2
+    # via jinja2
+msgpack==1.0.4
+    # via distributed
+numpy==1.21.6
+    # via
+    #   aicsimageio
+    #   aicspylibczi
     #   imageio
-    #   scipy
     #   t4-lambda-thumbnail (pyproject.toml)
     #   tifffile
-pdf2image==1.13.1
+packaging==23.0
+    # via
+    #   dask
+    #   distributed
+partd==1.3.0
+    # via dask
+pdf2image==1.16.2
     # via t4-lambda-thumbnail (pyproject.toml)
-pillow==9.0.1
+pillow==9.4.0
     # via
     #   imageio
     #   pdf2image
     #   python-pptx
     #   t4-lambda-thumbnail (pyproject.toml)
-pyrsistent==0.14.11
+pkgutil-resolve-name==1.3.10
+    # via jsonschema
+psutil==5.9.4
+    # via distributed
+pyrsistent==0.19.3
     # via jsonschema
 python-pptx==0.6.21
     # via t4-lambda-thumbnail (pyproject.toml)
-requests==2.26.0
+pyyaml==6.0
+    # via
+    #   dask
+    #   distributed
+requests==2.28.2
     # via t4-lambda-thumbnail (pyproject.toml)
-scipy==1.7.3
-    # via aicsimageio
 simplejson==3.17.2
     # via awslambdaric
-six==1.12.0
-    # via
-    #   jsonschema
-    #   pyrsistent
-tifffile==0.15.1
+sortedcontainers==2.4.0
+    # via distributed
+tblib==1.7.0
+    # via distributed
+tifffile==2021.11.2
     # via aicsimageio
-urllib3==1.26.5
+toolz==0.12.0
+    # via
+    #   aicsimageio
+    #   dask
+    #   distributed
+    #   partd
+tornado==6.2
+    # via distributed
+typing-extensions==4.4.0
+    # via jsonschema
+urllib3==1.26.14
     # via requests
 xlsxwriter==3.0.7
     # via python-pptx
+zict==2.2.0
+    # via distributed
 zipp==3.11.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
