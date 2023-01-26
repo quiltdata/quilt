@@ -36,3 +36,8 @@ Create "custom" role or policy with these permissions:
     ]
 }
 ```
+
+> Content of some objects may still be exposed through search results.
+Such behavior could be prevented by enabling a special feature flag, though
+enabling it may slow down search.
+Ask your Quilt manager to enable it for you.
