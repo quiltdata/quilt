@@ -93,7 +93,13 @@ function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onTo
     <Heading display="flex" alignItems="center" mb="0 !important">
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      <Preview.ToggleButton expanded={expanded} onToggle={onToggle} mr={1} />
+      <ButtonIconShrinking
+        label={expanded ? 'Collapse' : 'Expand'}
+        icon={expanded ? 'unfold_less' : 'unfold_more'}
+        rotate={expanded}
+        onClick={onToggle}
+        mr={1}
+      />
       {!!downloadable && (
         <Preview.Menu handle={handle} expanded={expanded} onToggle={onToggle} />
       )}
