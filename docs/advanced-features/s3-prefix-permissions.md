@@ -15,16 +15,19 @@
 
 1. Where does this custom creation take place? If in the catalog
 administrative interface, need to be explicit with screenshots
-2. Need for Quilt to enable secure catalog mode
+If in the console, clear steps.
+2. Need for Quilt to enable secure search in catalog 
+  2.1. How is this done?
+  2.2. Any other registry changes on our side?
 3. Any other specifics related to `assume role cross-account`?
-  3.1. The is currently nothing in the docs about `cross-account`
+  3.1. There is currently nothing in the docs about `cross-account` access
 4. Registry role needs to be trusted via trust policy
   4.1. Also need `AssumeRole` permission via identity policy
   4.2. Add another policy to register role and make registry maintain
   this policy based on unmanaged roles we have in admin
   4.3. [Aneesh Q] How does the registry know which unmanaged roles to include in the policy?
     4.3.1. [Sergey A] Include them all?
-5. All that needs to be set up for cross account policy to work
+5. Limitations of `ListObjects` / 403
 
 ## Original 
 
