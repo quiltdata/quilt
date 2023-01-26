@@ -218,12 +218,6 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   )
 }
 
-interface ButtonInnerProps {
-  children: string
-  className: string
-  onClick: React.MouseEventHandler<HTMLButtonElement>
-}
-
 interface ButtonProps {
   bucket: string
   className: string
