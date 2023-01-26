@@ -35,7 +35,7 @@ numpy==1.21.5
     #   tifffile
 pdf2image==1.13.1
     # via t4-lambda-thumbnail (pyproject.toml)
-pillow==9.0.1
+pillow==9.3.0
     # via
     #   imageio
     #   pdf2image
