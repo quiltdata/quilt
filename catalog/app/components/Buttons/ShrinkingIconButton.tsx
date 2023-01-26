@@ -3,11 +3,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles({
-  root: {
-    flexShrink: 0,
-    marginBottom: -3,
-    marginTop: -3,
-  },
   icon: {
     transition: 'ease transform .15s',
   },
@@ -39,17 +34,12 @@ export default function ShrinkingIconButton({
   )
 
   return sm ? (
-    <M.IconButton
-      className={cx(classes.root, className)}
-      edge="end"
-      size="small"
-      {...props}
-    >
+    <M.IconButton className={className} edge="end" size="small" {...props}>
       {iconElement}
     </M.IconButton>
   ) : (
     <M.Button
-      className={cx(classes.root, className)}
+      className={className}
       size="small"
       startIcon={iconElement}
       variant="outlined"

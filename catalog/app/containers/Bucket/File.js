@@ -291,7 +291,10 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
     marginLeft: 'auto',
+    marginTop: -3,
   },
   at: {
     color: t.palette.text.secondary,

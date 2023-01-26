@@ -131,8 +131,13 @@ const useTopBarStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
-  spacer: {
-    flexGrow: 1,
+  content: {
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
+    marginLeft: 'auto',
+    marginTop: -3,
   },
 }))
 
@@ -147,8 +152,7 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(crumbs)}
       </div>
-      <div className={classes.spacer} />
-      {children}
+      <div className={classes.content}>{children}</div>
     </div>
   )
 }
@@ -564,12 +568,10 @@ function FileDisplayQuery({
 
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   fileProperties: {
-    [t.breakpoints.up('sm')]: {
-      marginBottom: '3px',
-    },
+    marginRight: t.spacing(1),
   },
   preview: {
     width: '100%',
