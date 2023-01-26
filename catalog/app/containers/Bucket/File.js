@@ -8,6 +8,7 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import ShrinkingIconButton from 'components/Buttons/ShrinkingIconButton'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
@@ -487,7 +488,7 @@ export default function File({
               onEdit={editorState.onEdit}
             />
           )}
-          <FileView.AdaptiveButtonLayout
+          <ShrinkingIconButton
             className={classes.button}
             icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
             label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
