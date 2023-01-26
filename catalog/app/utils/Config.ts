@@ -42,13 +42,7 @@ export interface ConfigJson {
   ssoAuth: AuthMethodConfig
   ssoProviders: string
 
-  azureBaseUrl?: string
-  azureClientId?: string
   googleClientId?: string
-  oktaBaseUrl?: string
-  oktaClientId?: string
-  oneLoginBaseUrl?: string
-  oneLoginClientId?: string
 
   build_version?: string // not sure where this comes from
 }
