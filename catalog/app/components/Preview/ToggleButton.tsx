@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import ShrinkingIconButton from 'components/Buttons/ShrinkingIconButton'
+import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
 
 interface ToggleButtonProps extends M.BoxProps {
   className?: string
@@ -17,7 +17,7 @@ export default function ToggleButton({
 }: ToggleButtonProps) {
   return (
     <M.Box className={className} {...props}>
-      <ShrinkingIconButton
+      <ButtonIconShrinking
         label={expanded ? 'Collapse' : 'Expand'}
         icon={expanded ? 'unfold_less' : 'unfold_more'}
         rotate={expanded}

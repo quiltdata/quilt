@@ -11,19 +11,19 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface ShrinkingIconButtonProps extends M.IconButtonProps {
+interface ButtonIconShrinkingProps extends M.IconButtonProps {
   label: React.ReactNode
   icon: string
   rotate?: boolean
 }
 
-export default function ShrinkingIconButton({
+export default function ButtonIconShrinking({
   className,
   label,
   icon,
   rotate,
   ...props
-}: ShrinkingIconButtonProps) {
+}: ButtonIconShrinkingProps) {
   const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))

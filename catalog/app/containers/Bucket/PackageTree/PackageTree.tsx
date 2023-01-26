@@ -10,7 +10,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import ShrinkingIconButton from 'components/Buttons/ShrinkingIconButton'
+import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
@@ -671,7 +671,7 @@ function FileDisplay({
                   size={size}
                 />
                 {isEditable && (
-                  <ShrinkingIconButton
+                  <ButtonIconShrinking
                     className={classes.button}
                     icon="edit"
                     label="Edit"

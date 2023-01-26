@@ -3,7 +3,7 @@ import * as React from 'react'
 import cfg from 'constants/config'
 import mkStorage from 'utils/storage'
 
-import ShrinkingIconButton from 'components/Buttons/ShrinkingIconButton'
+import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
 
 import * as FileView from './FileView'
 
@@ -19,7 +19,7 @@ export function DownloadButton({ className, label, onClick, path }: DownloadButt
 
   if (cfg.desktop) {
     return (
-      <ShrinkingIconButton
+      <ButtonIconShrinking
         className={className}
         label={label}
         icon="archive"
