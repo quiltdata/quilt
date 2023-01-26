@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import ShrinkingIconButton from 'components/Buttons/ShrinkingIconButton'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
@@ -223,35 +224,6 @@ interface ButtonInnerProps {
   onClick: React.MouseEventHandler<HTMLButtonElement>
 }
 
-// TODO: Replace by FileView.AdaptiveButtonLayout
-function ButtonInner({ children, className, onClick }: ButtonInnerProps) {
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-
-  return sm ? (
-    <M.IconButton
-      aria-haspopup
-      className={className}
-      edge="end"
-      onClick={onClick}
-      size="small"
-      title={children}
-    >
-      <M.Icon>exit_to_app</M.Icon>
-    </M.IconButton>
-  ) : (
-    <M.Button
-      aria-haspopup
-      className={className}
-      onClick={onClick}
-      size="small"
-      variant="outlined"
-    >
-      {children}
-    </M.Button>
-  )
-}
-
 interface ButtonProps {
   bucket: string
   className: string
@@ -279,9 +251,13 @@ export function Button({ bucket, className, children, onChange }: ButtonProps) {
 
   return (
     <>
-      <ButtonInner className={className} onClick={onButtonClick}>
-        {children}
-      </ButtonInner>
+      <ShrinkingIconButton
+        aria-haspopup
+        className={className}
+        icon="exit_to_app"
+        label={children}
+        onClick={onButtonClick}
+      />
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}
