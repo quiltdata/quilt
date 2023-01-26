@@ -1,44 +1,17 @@
 # Restricting access to specific S3 bucket prefixes
 
-## Summary of customer problem
-
-- IAM role/policy are in different account then Quilt
-- Custom policy in Quilt using IAM policy above
-- Created Quilt managed role which used IAM policy above
-  - Login failed (session expiry)
-- Added Quilt managed policy to Quilt managed role
-  - Login failed (session expiry)
-- Removed custom policy to Quilt managed role
-- Successful login
-
-## Missing pieces - All that needs to be set up for cross account policy to work
-
-1. Where does this custom creation take place? If in the catalog
-administrative interface, need to be explicit with screenshots
-If in the console, clear steps.
-2. Need for Quilt to enable secure search in catalog 
-  2.1. How is this done?
-  2.2. Any other registry changes on our side?
-3. Any other specifics related to `assume role cross-account`?
-  3.1. There is currently nothing in the docs about `cross-account` access
-4. Registry role needs to be trusted via trust policy
-  4.1. Also need `AssumeRole` permission via identity policy
-  4.2. Add another policy to register role and make registry maintain
-  this policy based on unmanaged roles we have in admin
-  4.3. [Aneesh Q] How does the registry know which unmanaged roles to include in the policy?
-    4.3.1. [Sergey A] Include them all?
-5. Limitations of `ListObjects` / 403
-
-## Original 
-
 > Users will still have access to the full list of S3 objects,
 packages and logical keys inside of packages.
+
+> No trust relationship work is needed
 
 You can isolate user access to objects stored in specific S3 directories by
 defining an array of accessible prefixes in a custom IAM role or Amazon S3
 bucket policy.
 
-Create "custom" role or policy with these permissions:
+## Example permissions to limit access
+
+Create a "custom" role or policy with these permissions:
 
 ```json
 {
@@ -67,3 +40,34 @@ Create "custom" role or policy with these permissions:
     ]
 }
 ```
+
+## Using the `Condition` element
+
+Alternatively, you can define granular permissions using the
+`Condition` element and [IAM policy
+string operators](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html):
+
+```json
+            ...
+            "Resource": [
+                "arn:aws:s3:::<BUCKET>",
+            ],
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": ["", ".quilt/", "<PREFIX>"]
+                },
+                "StringEquals": {
+                    "s3:prefix": ["", ".quilt/*", "<PREFIX>/*"],
+                    "s3:delimiter": ["/"]
+                }
+            },
+            ...
+```
+
+## Further reading
+
+- [Learn more about how Quilt administers users, roles and
+policies](../catalog/Admin.md#users-and-roles)
+- [Writing IAM Policies: Grant Access to User-Specific Folders in
+an Amazon S3
+Bucket](https://aws.amazon.com/blogs/security/writing-iam-policies-grant-access-to-user-specific-folders-in-an-amazon-s3-bucket/)
