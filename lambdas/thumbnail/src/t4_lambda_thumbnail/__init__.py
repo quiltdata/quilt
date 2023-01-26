@@ -54,9 +54,9 @@ SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
 
 # If the image is one of these formats, retain the format after formatting
 SUPPORTED_BROWSER_FORMATS = {
-    imageio.plugins.pillow.JPEGFormat.Reader: "JPG",
-    imageio.plugins.pillow.PNGFormat.Reader: "PNG",
-    imageio.plugins.pillow.GIFFormat.Reader: "GIF"
+    imageio.plugins.pillow_legacy.JPEGFormat.Reader: "JPG",
+    imageio.plugins.pillow_legacy.PNGFormat.Reader: "PNG",
+    imageio.plugins.pillow_legacy.GIFFormat.Reader: "GIF"
 }
 
 SCHEMA = {
