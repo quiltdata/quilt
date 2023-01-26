@@ -373,7 +373,6 @@ def lambda_handler(request):
     url = request.args['url']
     size = SIZE_PARAMETER_MAP[request.args['size']]
     input_ = request.args.get('input', 'image')
-    output = request.args.get('output', 'json')
     page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 
