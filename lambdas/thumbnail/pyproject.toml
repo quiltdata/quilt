@@ -5,7 +5,7 @@ requires-python = ">=3.7"
 
 dependencies = [
   "aicsimageio>=3,<3.1",
-  "imageio>=2.5.0,<3",
+  "imageio>=2.10.0,<3",
   "numpy>=1.21.5,<2",
   "pdf2image>=1.13.1,<2",
   "Pillow>=9.0.1,<10",
