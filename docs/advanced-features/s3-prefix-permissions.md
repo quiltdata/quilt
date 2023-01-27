@@ -55,10 +55,10 @@ string operators](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_pol
             ],
             "Condition": {
                 "StringLike": {
-                    "s3:prefix": ["", ".quilt/", "<PREFIX>"]
+                    "s3:prefix": ["", ".quilt/*", "<PREFIX>/*"]
                 },
                 "StringEquals": {
-                    "s3:prefix": ["", ".quilt/*", "<PREFIX>/*"],
+                    "s3:prefix": ["", ".quilt/", "<PREFIX>/"],
                     "s3:delimiter": ["/"]
                 }
             },
