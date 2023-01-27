@@ -521,10 +521,10 @@ export default function File({
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
                   <FileEditor.Editor
+                    handle={handle}
                     disabled={editorState.saving}
                     editing={editorState.editing}
                     error={editorState.error}
-                    handle={handle}
                     onChange={editorState.onChange}
                     types={editorState.types}
                   />

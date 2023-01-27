@@ -6,6 +6,7 @@ import AsyncResult from 'utils/AsyncResult'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import Skeleton from './Skeleton'
+import { EditorState } from './State'
 import TextEditor from './TextEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
 import { loadMode } from './loader'
@@ -13,23 +14,21 @@ import { EditorInputType } from './types'
 
 export { detect, isSupportedFileType } from './loader'
 
-interface EditorProps {
-  disabled?: boolean
-  empty?: boolean
-  error: Error | null
-  handle: S3HandleBase
-  onChange: (value: string) => void
+interface EditorProps extends EditorState {
   editing: EditorInputType
+  empty?: boolean
+  handle: S3HandleBase
 }
 
 function EditorSuspended({
-  disabled,
+  saving,
   empty,
   error,
   handle,
   onChange,
   editing,
 }: EditorProps) {
+  const disabled = saving
   if (editing.brace !== '__quiltConfig') {
     loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
   }
