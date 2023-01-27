@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { EditorInputType } from './types'
+
 interface AddFileButtonProps {
   onClick: () => void
 }
@@ -19,7 +21,7 @@ interface ButtonControlProps {
   color?: 'primary'
   icon: string
   label: string
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
   variant?: 'outlined' | 'contained'
 }
 
@@ -65,9 +67,10 @@ interface ControlsProps {
   disabled?: boolean
   className?: string
   editing: boolean
-  onEdit: () => void
+  onEdit: (type: EditorInputType | null) => void
   onSave: () => void
   onCancel: () => void
+  types: EditorInputType[]
 }
 
 export function Controls({
@@ -77,16 +80,38 @@ export function Controls({
   onEdit,
   onSave,
   onCancel,
+  types,
 }: ControlsProps) {
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+  const handleEditClick = React.useCallback(
+    (event) => setAnchorEl(event.currentTarget),
+    [],
+  )
+  const handleTypeClick = React.useCallback(
+    (type) => {
+      onEdit(type)
+      setAnchorEl(null)
+    },
+    [onEdit],
+  )
   if (!editing)
     return (
-      <ButtonControl
-        className={className}
-        disabled={disabled}
-        icon="edit"
-        label="Edit"
-        onClick={onEdit}
-      />
+      <>
+        <ButtonControl
+          className={className}
+          disabled={disabled}
+          icon="edit"
+          label="Edit"
+          onClick={handleEditClick}
+        />
+        <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+          {types.map((type) => (
+            <M.MenuItem onClick={() => handleTypeClick(type)}>
+              Edit as {type.title || type.brace}
+            </M.MenuItem>
+          ))}
+        </M.Menu>
+      </>
     )
   return (
     <M.ButtonGroup disabled={disabled} className={className} size="small">

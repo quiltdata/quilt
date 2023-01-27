@@ -36,24 +36,26 @@ function useRedirect() {
 }
 
 interface EditorState {
-  editing: boolean
+  editing: EditorInputType | null
   error: Error | null
   onCancel: () => void
   onChange: (value: string) => void
-  onEdit: () => void
+  onEdit: (type: EditorInputType | null) => void
   onSave: () => Promise<Model.S3File | void>
-  type: EditorInputType
+  types: EditorInputType[]
   value?: string
 }
 
 // TODO: use Provider
 export function useState(handle: S3HandleBase): EditorState {
-  const type = React.useMemo(() => detect(handle.key), [handle.key])
+  const types = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
   const { edit } = parseSearch(location.search, true)
   const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState<string | undefined>()
-  const [editing, setEditing] = React.useState<boolean>(!!edit)
+  const [editing, setEditing] = React.useState<EditorInputType | null>(
+    edit ? types[0] : null,
+  )
   const [saving, setSaving] = React.useState<boolean>(false)
   const writeFile = useWriteData(handle)
   const redirect = useRedirect()
@@ -65,7 +67,7 @@ export function useState(handle: S3HandleBase): EditorState {
     try {
       setError(null)
       const h = await writeFile(value || '')
-      setEditing(false)
+      setEditing(null)
       setSaving(false)
       redirect(h)
       return h
@@ -76,23 +78,22 @@ export function useState(handle: S3HandleBase): EditorState {
     }
   }, [redirect, value, writeFile])
   const onCancel = React.useCallback(() => {
-    setEditing(false)
+    setEditing(null)
     setError(null)
   }, [])
-  const onEdit = React.useCallback(() => setEditing(true), [])
   return React.useMemo(
     () => ({
       editing,
       error,
       onCancel,
       onChange: setValue,
-      onEdit,
+      onEdit: setEditing,
       onSave,
       saving,
-      type,
+      types,
       value,
     }),
-    [editing, error, onCancel, onEdit, onSave, saving, type, value],
+    [editing, error, onCancel, onSave, saving, types, value],
   )
 }
 
@@ -102,7 +103,7 @@ interface EditorProps {
   error: Error | null
   handle: S3HandleBase
   onChange: (value: string) => void
-  type: EditorInputType
+  editing: EditorInputType
 }
 
 function EditorSuspended({
@@ -111,15 +112,15 @@ function EditorSuspended({
   error,
   handle,
   onChange,
-  type,
+  editing,
 }: EditorProps) {
-  if (type.brace !== '__quiltConfig') {
-    loadMode(type.brace || 'plain_text') // TODO: loaders#typeText.brace
+  if (editing.brace !== '__quiltConfig') {
+    loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
   }
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
-    return type.brace === '__quiltConfig' ? (
+    return editing.brace === '__quiltConfig' ? (
       <QuiltConfigEditor
         handle={handle}
         disabled={disabled}
@@ -128,7 +129,7 @@ function EditorSuspended({
         initialValue=""
       />
     ) : (
-      <TextEditor error={error} type={type} value="" onChange={onChange} />
+      <TextEditor error={error} type={editing} value="" onChange={onChange} />
     )
   return data.case({
     _: () => <Skeleton />,
@@ -142,7 +143,7 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
-      if (type.brace === '__quiltConfig') {
+      if (editing.brace === '__quiltConfig') {
         return (
           <QuiltConfigEditor
             handle={handle}
@@ -158,7 +159,7 @@ function EditorSuspended({
           disabled={disabled}
           error={error}
           onChange={onChange}
-          type={type}
+          type={editing}
           value={value}
         />
       )

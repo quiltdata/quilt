@@ -477,14 +477,15 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
-          {!!editorState.type.brace && (
+          {FileEditor.isSupportedFileType(handle.key) && (
             <FileEditor.Controls
+              className={classes.button}
               disabled={editorState.saving}
               editing={editorState.editing}
-              className={classes.button}
-              onSave={handleEditorSave}
               onCancel={editorState.onCancel}
               onEdit={editorState.onEdit}
+              onSave={handleEditorSave}
+              types={editorState.types}
             />
           )}
           <FileView.AdaptiveButtonLayout
@@ -525,10 +526,11 @@ export default function File({
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
                   <FileEditor.Editor
                     disabled={editorState.saving}
+                    editing={editorState.editing}
                     error={editorState.error}
                     handle={handle}
                     onChange={editorState.onChange}
-                    type={editorState.type}
+                    types={editorState.types}
                   />
                 </Section>
               ) : (
