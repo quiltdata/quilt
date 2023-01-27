@@ -520,14 +520,7 @@ export default function File({
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor
-                    handle={handle}
-                    disabled={editorState.saving}
-                    editing={editorState.editing}
-                    error={editorState.error}
-                    onChange={editorState.onChange}
-                    types={editorState.types}
-                  />
+                  <FileEditor.Editor {...editorState} handle={handle} />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
@@ -547,14 +540,7 @@ export default function File({
           _: () =>
             editorState.editing ? (
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                <FileEditor.Editor
-                  disabled={editorState.saving}
-                  error={editorState.error}
-                  type={editorState.type}
-                  empty
-                  handle={handle}
-                  onChange={editorState.onChange}
-                />
+                <FileEditor.Editor {...editorState} empty handle={handle} />
               </Section>
             ) : (
               <>
