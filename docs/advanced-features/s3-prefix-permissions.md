@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 # Restricting access to specific S3 bucket prefixes
 
 > Users will still have access to the full list of S3 objects,
@@ -14,6 +13,7 @@ bucket policy.
 
 Create a "custom" role or policy with these permissions:
 
+<!-- markdownlint-disable -->
 ```json
 {
     "Version": "2012-10-17",
@@ -41,6 +41,7 @@ Create a "custom" role or policy with these permissions:
     ]
 }
 ```
+<!-- markdownlint-restore -->
 
 ## Using the `Condition` element
 
@@ -48,6 +49,7 @@ Alternatively, you can define granular permissions using the
 `Condition` element and [IAM policy
 string operators](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html):
 
+<!-- markdownlint-disable -->
 ```json
             ...
             "Resource": [
@@ -64,6 +66,7 @@ string operators](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_pol
             },
             ...
 ```
+<!-- markdownlint-restore -->
 
 ## Further reading
 
