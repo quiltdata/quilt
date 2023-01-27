@@ -102,7 +102,7 @@ name, and *DataAccountTwo* bucket owner's account ID:
             "Principal": {
                 "Service": "s3.amazonaws.com"
             },
-            "Action": "SNS:Publish",
+            "Action": "sns:Publish",
             "Resource": "SNS_TOPIC_ARN",
             "Condition": {
                 "ArnLike": {
