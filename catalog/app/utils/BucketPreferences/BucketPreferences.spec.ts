@@ -16,17 +16,27 @@ const expectedDefaults = {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: {
+        userMeta: {
+          expanded: false,
+        },
+        workflows: {
+          expanded: false,
+        },
+      },
     },
     nav: {
       files: true,
       packages: true,
       queries: true,
     },
-    package_description: {
-      '.*': {
-        message: true,
+    packageDescription: {
+      packages: {
+        '.*': {
+          message: true,
+        },
       },
+      userMetaMultiline: false,
     },
     sourceBuckets: {
       list: [],

@@ -49,6 +49,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -89,6 +90,8 @@ setup(
         'catalog': [
             'quilt3_local>=1,<2',
             'uvicorn>=0.15,<0.18',
+            # Workaround to reduce backtracking during `pip install quilt3[catalog]`.
+            'aiobotocore[boto3]>=2',
         ],
     },
     include_package_data=True,

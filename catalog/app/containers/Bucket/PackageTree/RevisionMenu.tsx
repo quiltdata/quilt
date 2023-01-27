@@ -1,7 +1,7 @@
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 
 import Menu from '../Menu'
 
@@ -18,8 +18,7 @@ export default function RevisionMenu({
   onDelete,
   onDesktop,
 }: RevisionMenuProps) {
-  const preferences = BucketPreferences.use()
-  const { desktop }: { desktop: boolean } = Config.use()
+  const { preferences } = BucketPreferences.use()
 
   const items = React.useMemo(() => {
     const menu = []
@@ -35,14 +34,14 @@ export default function RevisionMenu({
         title: 'Delete revision',
       })
     }
-    if (preferences?.ui?.actions?.openInDesktop && !desktop) {
+    if (preferences?.ui?.actions?.openInDesktop && !cfg.desktop) {
       menu.push({
         onClick: onDesktop,
         title: 'Open in Teleport',
       })
     }
     return menu
-  }, [desktop, onCreateFile, onDelete, onDesktop, preferences])
+  }, [onCreateFile, onDelete, onDesktop, preferences])
 
   if (!items.length) return null
 

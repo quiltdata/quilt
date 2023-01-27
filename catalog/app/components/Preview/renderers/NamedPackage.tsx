@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import 'highlight.js/styles/default.css'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -9,9 +8,6 @@ import StyledLink from 'utils/StyledLink'
 import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
-  },
   text: {
     fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
     overflow: 'auto',
@@ -38,7 +34,7 @@ function NamedPackage({
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
   return (
-    <div className={cx(className, classes.root)} {...props}>
+    <div className={className} {...props}>
       <StyledLink to={urls.bucketFile(bucket, `.quilt/packages/${hash}`)}>
         {hash}
       </StyledLink>

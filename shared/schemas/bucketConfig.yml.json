@@ -90,8 +90,38 @@
             "meta": {
               "default": true,
               "description": "Show/hide metadata block",
-              "type": "boolean",
-              "examples": [true, false]
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "user_meta": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
+                        }
+                      }
+                    },
+                    "workflows": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": [
+                true,
+                false,
+                {
+                  "user_meta": { "expanded": true },
+                  "workflows": { "expanded": 1 }
+                }
+              ]
             }
           }
         },
@@ -132,6 +162,11 @@
               }
             }
           ]
+        },
+        "package_description_multiline": {
+          "type": "boolean",
+          "description": "Expands package metadata's root key/values",
+          "default": false
         },
         "sourceBuckets": {
           "type": "object",

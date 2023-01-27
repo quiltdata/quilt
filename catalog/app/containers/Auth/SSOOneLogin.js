@@ -1,13 +1,12 @@
 import { push } from 'connected-react-router/esm/immutable'
-import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as OneLogin from 'utils/OneLogin'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -20,15 +19,11 @@ const MUTEX_POPUP = 'sso:oneLogin:popup'
 const MUTEX_REQUEST = 'sso:oneLogin:request'
 
 export default function SSOOneLogin({ mutex, next, ...props }) {
-  const cfg = Config.useConfig()
-  invariant(
-    !!cfg.oneLoginClientId,
-    'Auth.SSO.OneLogin: config missing "oneLoginClientId"',
-  )
-  invariant(!!cfg.oneLoginBaseUrl, 'Auth.SSO.OneLogin: config missing "oneLoginBaseUrl"')
-  const authenticate = OneLogin.use({
-    clientId: cfg.oneLoginClientId,
-    baseUrl: cfg.oneLoginBaseUrl,
+  const provider = 'onelogin'
+
+  const authenticate = OIDC.use({
+    provider,
+    popupParams: 'width=300,height=400',
   })
 
   const sentry = Sentry.use()
@@ -42,7 +37,6 @@ export default function SSOOneLogin({ mutex, next, ...props }) {
 
     try {
       const token = await authenticate()
-      const provider = 'onelogin'
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
@@ -69,7 +63,7 @@ export default function SSOOneLogin({ mutex, next, ...props }) {
         mutex.release(MUTEX_REQUEST)
       }
     } catch (e) {
-      if (e instanceof OneLogin.OneLoginError) {
+      if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
           notify(`Unable to sign in with OneLogin. ${e.details}`)
           sentry('captureException', e)
@@ -81,17 +75,7 @@ export default function SSOOneLogin({ mutex, next, ...props }) {
       mutex.release(MUTEX_POPUP)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    authenticate,
-    cfg.ssoAuth,
-    dispatch,
-    mutex.claim,
-    mutex.release,
-    next,
-    notify,
-    sentry,
-    urls,
-  ])
+  }, [authenticate, dispatch, mutex.claim, mutex.release, next, notify, sentry, urls])
 
   return (
     <M.Button

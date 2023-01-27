@@ -4,15 +4,15 @@ The catalog is a web frontend for browsing meta-data held by the Quilt registry.
 # Developer
 ## Configuration
 The app configuration (API endpoints, bucket federations, etc.) is read from
-the `/config.json` path.
+the `/config.js` path.
 
 ## Running the catalog locally
 ```sh
 # local web server for catalog w/hot reload
 $ cd catalog
 # copy and edit config file
-$ cp config.json.example static-dev/config.json
-$ vi static-dev/config.json
+$ cp config.js.example static-dev/config.js
+$ vi static-dev/config.js
 $ npm start
 ```
 
@@ -35,3 +35,13 @@ but that's handled in a separate domain (`state.route`) via reducer composition;
 ### Fetch
 - An accurate check for a successful fetch() would include checking that the promise resolved, then checking that the Response.ok property has a value of true. The code would look something like this:
 [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+
+## Deployment (for Quilt internal usage)
+```sh
+cd catalog
+npm run build
+cp static-dev/config.js build/
+vi build/config.js # edit config file as required
+firebase use ENV
+firebase deploy --only hosting
+```

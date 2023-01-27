@@ -5,8 +5,8 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
+import cfg from 'constants/config'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
@@ -34,7 +34,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   backlight: {
-    bottom: ({ isProduct }) => (isProduct ? 0 : undefined),
+    bottom: cfg.mode === 'PRODUCT' ? 0 : undefined,
     opacity: 0.5,
   },
   controls: {
@@ -67,8 +67,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function Buckets({ query: filter } = { query: '' }) {
-  const cfg = Config.useConfig()
-  const classes = useStyles({ isProduct: cfg.mode === 'PRODUCT' })
+  const classes = useStyles()
   // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()

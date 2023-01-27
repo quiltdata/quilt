@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
+
 import Cell from './Cell'
 import { COLUMN_IDS, EMPTY_VALUE, JsonValue } from './constants'
 
@@ -74,11 +76,11 @@ const emptyValueProps = {
 }
 
 interface AddRowProps {
-  columnPath: string[]
-  contextMenuPath: string[]
-  onAdd: (path: string[], key: string, value: JsonValue) => void
-  onContextMenu: (path: string[]) => void
-  onExpand: (path: string[]) => void
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
+  onAdd: (path: JSONPointer.Path, key: string, value: JsonValue) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
 }
 
 export default function AddRow({

@@ -4,8 +4,8 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
+import cfg from 'constants/config'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
@@ -55,7 +55,6 @@ type AdminLayoutProps = React.PropsWithChildren<{
 }>
 
 function AdminLayout({ section = false, children }: AdminLayoutProps) {
-  const { desktop } = Config.use()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
   return (
@@ -66,7 +65,7 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
             <M.Tabs value={section} centered>
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
-              {desktop && <NavTab label="Sync" value="sync" to={urls.adminSync()} />}
+              {cfg.desktop && <NavTab label="Sync" value="sync" to={urls.adminSync()} />}
               <NavTab label="Status" value="status" to={urls.adminStatus()} />
               <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
@@ -79,7 +78,6 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
 }
 
 export default function Admin({ location }: RR.RouteComponentProps) {
-  const { desktop } = Config.use()
   const { paths } = NamedRoutes.use()
 
   const sections = {
@@ -106,7 +104,7 @@ export default function Admin({ location }: RR.RouteComponentProps) {
         <RR.Switch>
           <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
           <RR.Route path={paths.adminBuckets} component={Buckets} exact />
-          {desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
+          {cfg.desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
           <RR.Route path={paths.adminSettings} component={Settings} exact />
           <RR.Route path={paths.adminStatus} component={Status} exact />
           <RR.Route component={ThrowNotFound} />

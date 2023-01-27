@@ -9,10 +9,10 @@ import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useBucketExistence } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -88,26 +88,15 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, downloadable = false }) {
+function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
   return (
     <Heading display="flex" alignItems="center" mb="0 !important">
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {!!downloadable &&
-        AWS.Signer.withDownloadUrl(handle, (url) => (
-          <M.Box
-            alignItems="center"
-            display="flex"
-            height={32}
-            justifyContent="center"
-            width={24}
-            my={{ xs: -0.25, md: 0 }}
-          >
-            <M.IconButton href={url} title="Download" download>
-              <M.Icon>arrow_downward</M.Icon>
-            </M.IconButton>
-          </M.Box>
-        ))}
+      <Preview.ToggleButton expanded={expanded} onToggle={onToggle} mr={1} />
+      {!!downloadable && (
+        <Preview.Menu handle={handle} expanded={expanded} onToggle={onToggle} />
+      )}
     </Heading>
   )
 }
@@ -300,7 +289,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title, expanded, onExpand }) {
+function PreviewBox({ children, title, expanded, onToggle }) {
   const classes = usePreviewBoxStyles()
   return (
     <SmallerSection>
@@ -310,9 +299,7 @@ function PreviewBox({ children, title, expanded, onExpand }) {
         {children}
 
         {!expanded && (
-          <div className={classes.fade} onClick={onExpand}>
-            <M.Button variant="outlined">Expand</M.Button>
-          </div>
+          <div className={classes.fade} onClick={onToggle} title="Click to expand" />
         )}
       </div>
     </SmallerSection>
@@ -321,12 +308,16 @@ function PreviewBox({ children, title, expanded, onExpand }) {
 
 const previewOptions = { context: Preview.CONTEXT.LISTING }
 
-function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
-  const [expanded, setExpanded] = React.useState(false)
-  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+function PreviewDisplay({
+  handle,
+  bucketExistenceData,
+  versionExistenceData,
+  expanded,
+  onToggle,
+}) {
   const renderContents = React.useCallback(
-    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
-    [expanded, onExpand],
+    (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
+    [expanded, onToggle],
   )
   const withData = (callback) =>
     bucketExistenceData.case({
@@ -369,12 +360,12 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
 
 function Meta({ meta }) {
   const [expanded, setExpanded] = React.useState(false)
-  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata" expanded={expanded} onExpand={onExpand}>
-      <JsonDisplay defaultExpanded={1} value={meta} />
+    <PreviewBox expanded={expanded} onToggle={onToggle}>
+      <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
 }
@@ -433,11 +424,13 @@ function ObjectHit({ hit, ...props }) {
 }
 
 function FileHit({ showBucket, hit: { path, versions, bucket } }) {
-  const cfg = Config.use()
   const s3 = AWS.S3.use()
 
   const v = versions[0]
-  const handle = { bucket, key: path, version: v.id }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version: v.id }),
+    [bucket, path, v.id],
+  )
 
   const bucketExistenceData = useBucketExistence(bucket)
   const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
@@ -455,6 +448,8 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
           }),
         }),
     })
+  const [expanded, setExpanded] = React.useState(false)
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
 
   return (
     <Section
@@ -463,10 +458,12 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
       data-search-hit-bucket={bucket}
       data-search-hit-path={path}
     >
-      <ObjectHeader {...{ handle, showBucket, downloadable }} />
+      <ObjectHeader {...{ handle, showBucket, downloadable, expanded, onToggle }} />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
-      <PreviewDisplay {...{ handle, bucketExistenceData, versionExistenceData }} />
+      <PreviewDisplay
+        {...{ handle, bucketExistenceData, versionExistenceData, expanded, onToggle }}
+      />
     </Section>
   )
 }
@@ -479,7 +476,7 @@ function DirHit({
     bucket,
   },
 }) {
-  const handle = { bucket, key: path }
+  const handle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
   return (
     <Section
       data-testid="search-hit"

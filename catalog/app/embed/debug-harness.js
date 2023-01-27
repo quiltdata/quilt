@@ -10,11 +10,9 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as style from 'constants/style'
-import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as Okta from 'utils/Okta'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import mkSearch from 'utils/mkSearch'
 import * as RT from 'utils/reactTools'
@@ -40,8 +38,7 @@ function useField(init) {
 }
 
 function Embedder() {
-  const cfg = Config.useConfig()
-  const authenticate = Okta.use({ clientId: cfg.oktaClientId, baseUrl: cfg.oktaBaseUrl })
+  const authenticate = Okta.use()
 
   const iframeRef = React.useRef(null)
 
@@ -270,10 +267,8 @@ function App() {
     [M.MuiThemeProvider, { theme: style.appTheme }],
     WithGlobalStyles,
     Layout.Root,
-    Sentry.Provider,
     Store.Provider,
     Cache.Provider,
-    [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     Embedder,
   )

@@ -15,10 +15,9 @@ RUN apt-get update && \
         python3-dev \
         python3-pip
 
-COPY shared/requirements.txt /requirements/shared.txt
 COPY thumbnail/requirements.txt /requirements/thumbnail.txt
 RUN pip install -U pip setuptools
-RUN pip install --target /deps awslambdaric -r /requirements/shared.txt -r /requirements/thumbnail.txt
+RUN pip install --target /deps -r /requirements/thumbnail.txt
 RUN curl --output /deps/unoconv \
     https://raw.githubusercontent.com/unoconv/unoconv/be5301a757552f4ecac5d73187ce4d8e18341306/unoconv
 
@@ -38,6 +37,8 @@ RUN apt-get update && \
         fonts-crosextra-caladea \
         fonts-crosextra-carlito \
         fonts-liberation \
+        # WebP support
+        libfreeimage3 \
     && \
     apt-get clean
 
