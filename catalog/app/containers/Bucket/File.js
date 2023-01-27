@@ -479,13 +479,9 @@ export default function File({
           )}
           {FileEditor.isSupportedFileType(handle.key) && (
             <FileEditor.Controls
+              {...editorState}
               className={classes.button}
-              disabled={editorState.saving}
-              editing={editorState.editing}
-              onCancel={editorState.onCancel}
-              onEdit={editorState.onEdit}
               onSave={handleEditorSave}
-              types={editorState.types}
             />
           )}
           <FileView.AdaptiveButtonLayout

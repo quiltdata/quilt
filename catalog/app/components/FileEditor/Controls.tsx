@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { EditorInputType } from './types'
+import { EditorState } from './State'
 
 interface AddFileButtonProps {
   onClick: () => void
@@ -63,26 +63,21 @@ function ButtonControl({
   )
 }
 
-interface ControlsProps {
-  disabled?: boolean
+interface ControlsProps extends EditorState {
   className?: string
-  editing: boolean
-  onEdit: (type: EditorInputType | null) => void
-  onSave: () => void
-  onCancel: () => void
-  types: EditorInputType[]
 }
 
 export function Controls({
-  disabled,
   className,
   editing,
-  onEdit,
-  onSave,
   onCancel,
+  onEdit,
+  saving,
+  onSave,
   types,
 }: ControlsProps) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+  const disabled = saving
   const handleEditClick = React.useCallback(
     (event) => setAnchorEl(event.currentTarget),
     [],
@@ -106,7 +101,7 @@ export function Controls({
         />
         <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
           {types.map((type) => (
-            <M.MenuItem onClick={() => handleTypeClick(type)}>
+            <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
               Edit as {type.title || type.brace}
             </M.MenuItem>
           ))}

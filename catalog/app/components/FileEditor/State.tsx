@@ -27,13 +27,14 @@ function useRedirect() {
   )
 }
 
-interface EditorState {
+export interface EditorState {
   editing: EditorInputType | null
   error: Error | null
   onCancel: () => void
   onChange: (value: string) => void
   onEdit: (type: EditorInputType | null) => void
   onSave: () => Promise<Model.S3File | void>
+  saving: boolean
   types: EditorInputType[]
   value?: string
 }
