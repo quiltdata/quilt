@@ -483,14 +483,11 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
-          {!!editorState.type.brace && (
+          {FileEditor.isSupportedFileType(handle.key) && (
             <FileEditor.Controls
-              disabled={editorState.saving}
-              editing={editorState.editing}
+              {...editorState}
               className={classes.button}
               onSave={handleEditorSave}
-              onCancel={editorState.onCancel}
-              onEdit={editorState.onEdit}
             />
           )}
           <ButtonIconShrinking
@@ -529,13 +526,7 @@ export default function File({
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor
-                    disabled={editorState.saving}
-                    error={editorState.error}
-                    handle={handle}
-                    onChange={editorState.onChange}
-                    type={editorState.type}
-                  />
+                  <FileEditor.Editor {...editorState} handle={handle} />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
@@ -555,14 +546,7 @@ export default function File({
           _: () =>
             editorState.editing ? (
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                <FileEditor.Editor
-                  disabled={editorState.saving}
-                  error={editorState.error}
-                  type={editorState.type}
-                  empty
-                  handle={handle}
-                  onChange={editorState.onChange}
-                />
+                <FileEditor.Editor {...editorState} empty handle={handle} />
               </Section>
             ) : (
               <>
