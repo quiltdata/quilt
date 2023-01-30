@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'

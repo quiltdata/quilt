@@ -94,6 +94,7 @@ const useSectionStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   menu: {
+    display: 'flex',
     marginLeft: t.spacing(1),
   },
   toggle: {
