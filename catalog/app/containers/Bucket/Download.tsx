@@ -9,7 +9,7 @@ import * as FileView from './FileView'
 
 interface DownloadButtonProps {
   className: string
-  label?: string
+  label: string
   onClick: () => void
   path?: string
 }

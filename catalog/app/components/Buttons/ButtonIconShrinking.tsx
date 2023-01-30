@@ -12,7 +12,7 @@ const useStyles = M.makeStyles({
 })
 
 interface ButtonIconShrinkingProps extends M.IconButtonProps {
-  label: React.ReactNode
+  label: string
   icon: string
   rotate?: boolean
 }
@@ -34,7 +34,7 @@ export default function ButtonIconShrinking({
   )
 
   return sm ? (
-    <M.IconButton className={className} edge="end" size="small" {...props}>
+    <M.IconButton className={className} edge="end" size="small" title={label} {...props}>
       {iconElement}
     </M.IconButton>
   ) : (
