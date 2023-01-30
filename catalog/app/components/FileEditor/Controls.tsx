@@ -79,12 +79,13 @@ export function Controls({
 }: ControlsProps) {
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
   const disabled = saving
+  const hasMultipleChoices = types.length > 1
   const handleEditClick = React.useCallback(
     (event) => {
-      if (types.length === 1) {
-        onEdit(types[0])
-      } else {
+      if (hasMultipleChoices) {
         setAnchorEl(event.currentTarget)
+      } else {
+        onEdit(types[0])
       }
     },
     [onEdit, types],
@@ -106,13 +107,15 @@ export function Controls({
           label="Edit"
           onClick={handleEditClick}
         />
-        <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-          {types.map((type) => (
-            <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
-              Edit as {type.title || type.brace}
-            </M.MenuItem>
-          ))}
-        </M.Menu>
+        {hasMultipleChoices && (
+          <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+            {types.map((type) => (
+              <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
+                Edit as {type.title || type.brace}
+              </M.MenuItem>
+            ))}
+          </M.Menu>
+        )}
       </>
     )
   return (
