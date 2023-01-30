@@ -12,9 +12,10 @@ const useStyles = M.makeStyles({
 })
 
 interface ButtonIconShrinkingProps extends M.IconButtonProps {
-  label: string
   icon: string
+  label: string
   rotate?: boolean
+  variant?: 'text' | 'outlined' | 'contained'
 }
 
 export default function ButtonIconShrinking({
@@ -22,6 +23,7 @@ export default function ButtonIconShrinking({
   label,
   icon,
   rotate,
+  variant = 'outlined',
   ...props
 }: ButtonIconShrinkingProps) {
   const classes = useStyles()
@@ -42,7 +44,7 @@ export default function ButtonIconShrinking({
       className={className}
       size="small"
       startIcon={iconElement}
-      variant="outlined"
+      variant={variant}
       {...props}
     >
       {label}

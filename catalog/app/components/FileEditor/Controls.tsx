@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
+
 interface AddFileButtonProps {
   onClick: () => void
 }
@@ -9,54 +11,6 @@ export function AddFileButton({ onClick }: AddFileButtonProps) {
   return (
     <M.Button variant="contained" color="primary" size="large" onClick={onClick}>
       Create file
-    </M.Button>
-  )
-}
-
-interface ButtonControlProps {
-  disabled?: boolean
-  className?: string
-  color?: 'primary'
-  icon: string
-  label: string
-  onClick: () => void
-  variant?: 'outlined' | 'contained'
-}
-
-function ButtonControl({
-  disabled,
-  className,
-  color,
-  icon,
-  label,
-  onClick,
-  variant = 'outlined',
-}: ButtonControlProps) {
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  return sm ? (
-    <M.IconButton
-      className={className}
-      disabled={disabled}
-      edge="end"
-      size="small"
-      onClick={onClick}
-      title={label}
-      color={color}
-    >
-      <M.Icon>{icon}</M.Icon>
-    </M.IconButton>
-  ) : (
-    <M.Button
-      className={className}
-      color={color}
-      disabled={disabled}
-      onClick={onClick}
-      size="small"
-      startIcon={<M.Icon>{icon}</M.Icon>}
-      variant={variant}
-    >
-      {label}
     </M.Button>
   )
 }
@@ -80,7 +34,7 @@ export function Controls({
 }: ControlsProps) {
   if (!editing)
     return (
-      <ButtonControl
+      <ButtonIconShrinking
         className={className}
         disabled={disabled}
         icon="edit"
@@ -90,8 +44,8 @@ export function Controls({
     )
   return (
     <M.ButtonGroup disabled={disabled} className={className} size="small">
-      <ButtonControl icon="undo" onClick={onCancel} label="Cancel" />
-      <ButtonControl
+      <ButtonIconShrinking icon="undo" onClick={onCancel} label="Cancel" />
+      <ButtonIconShrinking
         color="primary"
         icon="save"
         label="Save"
