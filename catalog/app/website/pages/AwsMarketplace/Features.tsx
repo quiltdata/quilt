@@ -78,12 +78,11 @@ export default function Features({ className }: FeaturesProps) {
         simple to find relevant and actionable data. 
       </Feature>
       <Feature heading="Visualize" logo={visualizations}>
-        Take control of your data insights with Quilt's comprehensive and customizable platform for analysis 
-        and visualization. Utilize Quilt's powerful capabilities to view and analyze your data in a variety of 
+        Utilize Quilt's powerful capabilities to view and analyze your data in a variety of 
         formats, including charts, plots, and graphs. Explore and interpret your data with ease, and add custom 
-        interactives and visualizations to gain a deeper understanding. With Quilt's built-in native visualizations 
+        interactives and visualizations to gain a deeper understanding. With Quilt's built-in visualizers 
         for Genomes using Interactive Genome Viewer (IGV) and protein structures (PDB Files), scientists can 
-        see exactly which data they're exploring, directly within their browser.
+        see exactly which data they're exploring directly within their browser.
       </Feature>
     </div>
   )
