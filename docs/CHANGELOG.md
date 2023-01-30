@@ -14,6 +14,10 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+
+## Catalog, Lambdas
+* [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
+
 # 5.1.1 - 2023-01-25
 ## Python API
 * [Fixed] Reduce backtracking during `pip install quilt3[catalog]` ([#3292](https://github.com/quiltdata/quilt/pull/3292))
