@@ -1,22 +1,22 @@
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { BaseError } from 'utils/error'
 
 export class OktaError extends BaseError {
   constructor(code, details) {
-    super('Okta login failure', { code, details })
+    super('Login failure', { code, details })
   }
 }
 
-export function useOkta({ clientId, baseUrl }) {
+export function useOkta() {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
         const nonce = Math.random().toString(36).substr(2)
         const state = Math.random().toString(36).substr(2)
         const query = NamedRoutes.mkSearch({
-          client_id: clientId,
           redirect_uri: window.location.origin,
           response_mode: 'okta_post_message',
           response_type: 'id_token',
@@ -24,8 +24,8 @@ export function useOkta({ clientId, baseUrl }) {
           nonce,
           state,
         })
-        const url = `${baseUrl}/v1/authorize${query}`
-        const popup = window.open(url, 'quilt_okta_popup', 'width=300,height=400')
+        const url = `${cfg.registryUrl}/oidc-authorize/okta${query}`
+        const popup = window.open(url, 'quilt_okta_popup', 'width=400,height=600')
         const timer = setInterval(() => {
           if (popup.closed) {
             window.removeEventListener('message', handleMessage)
@@ -33,8 +33,8 @@ export function useOkta({ clientId, baseUrl }) {
             reject(new OktaError('popup_closed_by_user'))
           }
         }, 500)
-        const handleMessage = ({ source, origin, data }) => {
-          if (source !== popup || !url.startsWith(`${origin}/`)) return
+        const handleMessage = ({ source, data }) => {
+          if (source !== popup) return
           try {
             const {
               id_token: idToken,
@@ -70,7 +70,7 @@ export function useOkta({ clientId, baseUrl }) {
         window.addEventListener('message', handleMessage)
         popup.focus()
       }),
-    [baseUrl, clientId],
+    [],
   )
 }
 
