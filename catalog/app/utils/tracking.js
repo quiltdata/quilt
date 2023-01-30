@@ -78,6 +78,7 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
       origin: window.location.origin,
       location,
       user,
+      catalog_release: process.env.REVISION_HASH,
     }),
     [location, user],
   )
