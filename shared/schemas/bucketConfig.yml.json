@@ -163,6 +163,11 @@
             }
           ]
         },
+        "package_description_multiline": {
+          "type": "boolean",
+          "description": "Expands package metadata's root key/values",
+          "default": false
+        },
         "sourceBuckets": {
           "type": "object",
           "description": "Buckets usable as sources for adding objects from while editing a package via web UI.",
