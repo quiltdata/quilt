@@ -16,6 +16,7 @@ Entries inside each section should be ordered by type:
 !-->
 
 ## Catalog, Lambdas
+* [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
 * [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
 
 # 5.1.1 - 2023-01-25
@@ -37,7 +38,6 @@ Entries inside each section should be ordered by type:
 * [Changed] Rename "Metadata" to "User metadata" ([#3255](https://github.com/quiltdata/quilt/pull/3255))
 * [Changed] Show selective metadata for packages as JSON ([#3259](https://github.com/quiltdata/quilt/pull/3259))
 * [Changed] Show selective metadata on one line and optionaly on multiple lines ([#3284](https://github.com/quiltdata/quilt/pull/3284))
-* [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
 
 # 5.1.0 - 2022-12-09
 ## Python API
