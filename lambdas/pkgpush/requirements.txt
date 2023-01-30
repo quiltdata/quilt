@@ -1,2 +1,2 @@
 jsonschema==3.2.0
-quilt3==5.1.1
+https://github.com/quiltdata/quilt/archive/f3a42df3e2a5442064591d942f62d02d4dacd97c.tar.gz#egg=quilt3&subdirectory=api/python
