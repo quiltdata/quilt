@@ -25,6 +25,7 @@ interface ButtonControlProps {
   variant?: 'outlined' | 'contained'
 }
 
+// TODO: use components/Buttons/ShrinkedIconButton
 function ButtonControl({
   disabled,
   className,
@@ -79,8 +80,14 @@ export function Controls({
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
   const disabled = saving
   const handleEditClick = React.useCallback(
-    (event) => setAnchorEl(event.currentTarget),
-    [],
+    (event) => {
+      if (types.length === 1) {
+        onEdit(types[0])
+      } else {
+        setAnchorEl(event.currentTarget)
+      }
+    },
+    [onEdit, types],
   )
   const handleTypeClick = React.useCallback(
     (type) => {
