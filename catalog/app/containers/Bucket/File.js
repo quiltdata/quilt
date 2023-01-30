@@ -323,6 +323,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
+    flexWrap: 'wrap',
   },
   preview: {
     width: '100%',
