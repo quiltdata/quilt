@@ -65,28 +65,25 @@ export default function Features({ className }: FeaturesProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)}>
-      <Feature heading="Verify" logo={dataVersionControl}>
-        Create and share sealed, immutable datasets with cryptographic fingerprints that
-        guarantee data are pristine and unchanged. Maintain data integrity, reliability,
-        and lineage so that every dataset is trustworthy.
+      <Feature heading="Data Versioning" logo={dataVersionControl}>
+        Take control of your data with Quilt Packages. Manage every version of your datasets with ease, 
+        using our robust data version control system. Quilt empowers you to create and share packages that 
+        securely store your data, complete with cryptographic fingerprints for verifiable revision history. 
+        Ensure data integrity and reliability, and trace the lineage of your data with confidence.
       </Feature>
       <Feature heading="Collaborate" logo={dataCommons}>
-        Quilt Data provides data cataloguing by allowing users to create and share data
-        packages that include the full data context (metadata, charts, documentation,
-        lineage) and are findable via the Quilt web catalog. This helps users to easily
-        discover and access datasets, as well as understand the context and lineage of the
-        data. The Quilt web catalog also allows users to search for datasets using
-        keywords, making it easy to find the data they need.
+        Unleash the full potential of your data with Quilt Data's data catalog. Create and share data packages 
+        complete with metadata, charts, documentation, and lineage to give others the complete context they need. 
+        Effortlessly discover and access the datasets you need with our keyword-powered search feature, making it 
+        simple to find relevant and actionable data. 
       </Feature>
       <Feature heading="Visualize" logo={visualizations}>
-        Quilt Data provides visualization capabilities that allow users to view and
-        analyze their data in a variety of formats. These visualizations can be customized
-        and shared with others, helping users to understand and communicate the insights
-        and trends contained within the data. Quilt's visualization capabilities include a
-        range of charts, plots, and graphs that can be used to explore and interpret data.
-        Users can also add custom analytics and visualizations to their data packages,
-        enabling them to gain a deeper understanding of their data and share
-        their findings with others.
+        Take control of your data insights with Quilt's comprehensive and customizable platform for analysis 
+        and visualization. Utilize Quilt's powerful capabilities to view and analyze your data in a variety of 
+        formats, including charts, plots, and graphs. Explore and interpret your data with ease, and add custom 
+        interactives and visualizations to gain a deeper understanding. With Quilt's built-in native visualizations 
+        for Genomes using Interactive Genome Viewer (IGV) and protein structures (PDB Files), scientists can 
+        see exactly which data they're exploring, directly within their browser.
       </Feature>
     </div>
   )
