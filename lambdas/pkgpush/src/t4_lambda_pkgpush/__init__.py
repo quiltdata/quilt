@@ -427,9 +427,9 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
         else:
             pkg.set_meta(meta)
 
-        # We use _push() instead of instead of push() for print_info=False
-        # to prevent uneeded ListObjects calls during generation of
-        # shortened revion hash.
+        # We use _push() instead of push() for print_info=False
+        # to prevent unneeded ListObjects calls during generation of
+        # shortened revision hash.
         result = pkg._push(
             name=get_name(data),
             registry=get_dst(data),
