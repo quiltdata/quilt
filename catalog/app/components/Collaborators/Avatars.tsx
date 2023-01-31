@@ -60,6 +60,9 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     transition: 'margin 0.3s ease',
   },
+  moreCollapsed: {
+    marginLeft: '4px',
+  },
   userpic: {
     marginTop: '6px',
   },
@@ -82,10 +85,16 @@ const useStyles = M.makeStyles((t) => ({
 interface AvatarsProps {
   className?: string
   collaborators: Model.Collaborators
+  collapsed?: boolean
   onClick: () => void
 }
 
-export default function Avatars({ className, collaborators, onClick }: AvatarsProps) {
+export default function Avatars({
+  className,
+  collaborators,
+  onClick,
+  collapsed,
+}: AvatarsProps) {
   const knownCollaborators = collaborators.filter(
     ({ permissionLevel }) => !!permissionLevel,
   )
@@ -94,6 +103,7 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
   )
 
   const avatars = React.useMemo(() => {
+    if (collapsed) return []
     if (!potentialCollaborators.length) return knownCollaborators.slice(0, 5)
     return [potentialCollaborators[0], ...knownCollaborators.slice(0, 4)]
   }, [knownCollaborators, potentialCollaborators])
@@ -106,6 +116,13 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
 
   return (
     <div className={cx(classes.root, className)} onClick={onClick}>
+      {collapsed && (
+        <div className={classes.avatarWrapper}>
+          <M.Icon className={classes.userpic} title="Collaborators">
+            people_outline
+          </M.Icon>
+        </div>
+      )}
       {avatars.reduce(
         (memo, { collaborator: { email }, permissionLevel }, index) => (
           <div className={classes.avatarWrapper}>
@@ -122,7 +139,11 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
           {moreNum > 0 && (
             <div className={classes.avatarWrapper}>
               <M.Tooltip title="Click to see more collaborators">
-                <span className={classes.more}>{moreNum}+</span>
+                <span
+                  className={cx(classes.more, { [classes.moreCollapsed]: collapsed })}
+                >
+                  {moreNum}+
+                </span>
               </M.Tooltip>
             </div>
           )}
