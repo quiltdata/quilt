@@ -26,11 +26,15 @@ backend services, a secure server to manage user identities, and a Python API.
 
 ### Network
 ![](imgs/aws-diagram-network.png)
-* ECS services (e.g., Catalog, Identity Server) run in two availability zones
-with separate private subnets.
-* Amazon RDS (Postgres) stores stack configuration settings only. It is
+- Amazon Elastic Container Services (ECS) services (e.g., Catalog,
+Identity Server) run in two Availability Zones (AZ) with one of the
+following (depending on your AWS network configuration):
+  - Public subnets (one in each AZ)
+  - VPC endpoints
+  - NAT gateway (in a public subnet)
+- Amazon RDS (Postgres) stores stack configuration settings only. It is
 deployed in a multi-AZ configuration for high availability.
-* Security groups and NACLs restrict access to the greatest degree possible, by
+- Security groups and NACLs restrict access to the greatest degree possible, by
 only allowing necessary traffic.
 
 ### Sizing
