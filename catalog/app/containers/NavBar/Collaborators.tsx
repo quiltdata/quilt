@@ -67,7 +67,7 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
       <Avatars
         className={cx(classes.avatars, { [classes.hidden]: hidden })}
         collaborators={allCollaborators}
-        collapsed={sm}
+        iconized={sm}
         onClick={handleOpen}
       />
     </M.MuiThemeProvider>

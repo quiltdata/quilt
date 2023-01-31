@@ -60,7 +60,7 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     transition: 'margin 0.3s ease',
   },
-  moreCollapsed: {
+  moreIconized: {
     marginLeft: '4px',
   },
   userpic: {
@@ -85,15 +85,15 @@ const useStyles = M.makeStyles((t) => ({
 interface AvatarsProps {
   className?: string
   collaborators: Model.Collaborators
-  collapsed?: boolean
+  iconized?: boolean
   onClick: () => void
 }
 
 export default function Avatars({
   className,
   collaborators,
+  iconized,
   onClick,
-  collapsed,
 }: AvatarsProps) {
   const knownCollaborators = collaborators.filter(
     ({ permissionLevel }) => !!permissionLevel,
@@ -103,10 +103,10 @@ export default function Avatars({
   )
 
   const avatars = React.useMemo(() => {
-    if (collapsed) return []
+    if (iconized) return []
     if (!potentialCollaborators.length) return knownCollaborators.slice(0, 5)
     return [potentialCollaborators[0], ...knownCollaborators.slice(0, 4)]
-  }, [knownCollaborators, potentialCollaborators])
+  }, [iconized, knownCollaborators, potentialCollaborators])
 
   const classes = useStyles()
   const moreNum = React.useMemo(
@@ -116,7 +116,7 @@ export default function Avatars({
 
   return (
     <div className={cx(classes.root, className)} onClick={onClick}>
-      {collapsed && (
+      {iconized && (
         <div className={classes.avatarWrapper}>
           <M.Icon className={classes.userpic} title="Collaborators">
             people_outline
@@ -139,9 +139,7 @@ export default function Avatars({
           {moreNum > 0 && (
             <div className={classes.avatarWrapper}>
               <M.Tooltip title="Click to see more collaborators">
-                <span
-                  className={cx(classes.more, { [classes.moreCollapsed]: collapsed })}
-                >
+                <span className={cx(classes.more, { [classes.moreIconized]: iconized })}>
                   {moreNum}+
                 </span>
               </M.Tooltip>
