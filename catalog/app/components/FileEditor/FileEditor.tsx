@@ -5,10 +5,11 @@ import PreviewDisplay from 'components/Preview/Display'
 import AsyncResult from 'utils/AsyncResult'
 import type { S3HandleBase } from 'utils/s3paths'
 
-import Skeleton from './Skeleton'
-import { EditorState } from './State'
-import TextEditor from './TextEditor'
+import type { EditorState } from './State'
+import ExcelEditor from './ExcelEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
+import Skeleton from './Skeleton'
+import TextEditor from './TextEditor'
 import { loadMode } from './loader'
 import { EditorInputType } from './types'
 
@@ -58,6 +59,16 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
+      if (editing.brace === 'less') {
+        return (
+          <ExcelEditor
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue={response.Body}
+          />
+        )
+      }
       if (editing.brace === '__quiltConfig') {
         return (
           <QuiltConfigEditor

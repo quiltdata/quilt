@@ -29,7 +29,7 @@ const typeQuiltConfig: EditorInputType = {
   brace: '__quiltConfig',
 }
 
-const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab'])
+const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab', '.xlsx'])
 const typeCsv: EditorInputType = {
   brace: 'less',
 }
