@@ -6,6 +6,7 @@ import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
+const JsonDisplayBasic = () => import('./JsonDisplay/Basic')
 const JsonEditorBasic = () => import('./JsonEditor/Basic')
 const JsonEditorHasInitialValue = () => import('./JsonEditor/HasInitialValue')
 
@@ -25,6 +26,16 @@ const books = [
         Component: RT.mkLazy(JsonEditorHasInitialValue, SuspensePlaceholder),
         path: '/initial-value',
         title: 'Has initial value',
+      },
+    ],
+  }, {
+    path: '/jsondisplay',
+    title: 'JsonDisplay',
+    children: [
+      {
+        Component: RT.mkLazy(JsonDisplayBasic, SuspensePlaceholder),
+        path: '/basic',
+        title: 'Basic',
       },
     ],
   },
