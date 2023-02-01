@@ -26,10 +26,20 @@ const schema = {
   },
 }
 
+const useStyles = M.makeStyles((t) => ({
+  editor: {
+    height: 'auto',
+    '& + &': {
+      marginTop: t.spacing(10),
+    },
+  },
+}))
+
 const validate = jsonSchema.makeSchemaValidator(schema)
 const noop = () => {}
 
 export default function JsonEditorBook() {
+  const classes = useStyles()
   const [value, setValue] = React.useState<JsonValue>({
     c: {
       foobar: {
@@ -45,25 +55,23 @@ export default function JsonEditorBook() {
     setValue(json)
   }, [])
   return (
-    <M.Container maxWidth="lg">
-      <M.Box bgcolor="common.white" py={2}>
-        <JsonEditor
-          errors={[]}
-          multiColumned
-          onChange={noop}
-          schema={schema}
-          value={null}
-        />
-      </M.Box>
-      <M.Box bgcolor="common.white" py={2}>
-        <JsonEditor
-          errors={errors}
-          multiColumned
-          onChange={onChange}
-          schema={schema}
-          value={value}
-        />
-      </M.Box>
-    </M.Container>
+    <>
+      <JsonEditor
+        className={classes.editor}
+        errors={[]}
+        multiColumned
+        onChange={noop}
+        schema={schema}
+        value={null}
+      />
+      <JsonEditor
+        className={classes.editor}
+        errors={errors}
+        multiColumned
+        onChange={onChange}
+        schema={schema}
+        value={value}
+      />
+    </>
   )
 }
