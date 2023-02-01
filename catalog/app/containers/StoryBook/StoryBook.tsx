@@ -1,13 +1,35 @@
 import * as React from 'react'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 
-import JsonEditorBook from './JsonEditor/Basic'
+import JsonEditorBasic from './JsonEditor/Basic'
+import JsonEditorHasInitialValue from './JsonEditor/HasInitialValue'
+
+const books = [
+  {
+    path: '/jsoneditor',
+    title: 'JsonEditor',
+    children: [
+      {
+        Component: JsonEditorBasic,
+        path: '/jsoneditor/basic',
+        title: 'Basic',
+      },
+      {
+        Component: JsonEditorHasInitialValue,
+        path: '/jsoneditor/initial-value',
+        title: 'Has initial value',
+      },
+    ],
+  },
+]
 
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
+    flexGrow: 1,
   },
   sidebar: {
     whiteSpace: 'nowrap',
@@ -25,19 +47,33 @@ const useStyles = M.makeStyles((t) => ({
 
 function StoryBook() {
   const classes = useStyles()
+  const { path, url } = RRDom.useRouteMatch()
   return (
     <div className={classes.root}>
       <div className={classes.sidebar}>
         <M.List className={classes.menu}>
-          <M.ListItem>Json Editor</M.ListItem>
-          <M.List className={classes.subMenu} dense disablePadding>
-            <M.ListItem>Basic</M.ListItem>
-            <M.ListItem>Has initial value</M.ListItem>
-          </M.List>
+          {books.map((group) => (
+            <>
+              <M.ListItem>{group.title}</M.ListItem>
+              <M.List className={classes.subMenu} dense disablePadding>
+                {group.children.map((book) => (
+                  <M.ListItem>
+                    <RRDom.Link to={`${url}${book.path}`}>{book.title}</RRDom.Link>
+                  </M.ListItem>
+                ))}
+              </M.List>
+            </>
+          ))}
         </M.List>
       </div>
       <M.Container maxWidth="lg" className={classes.content}>
-        <JsonEditorBook />
+        <RRDom.Switch>
+          {books.map((group) =>
+            group.children.map((book) => (
+              <RRDom.Route path={`${path}${book.path}`} component={book.Component} />
+            )),
+          )}
+        </RRDom.Switch>
       </M.Container>
     </div>
   )

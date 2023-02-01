@@ -154,7 +154,7 @@ export default function App() {
         {!cfg.disableNavigator && <Route path={paths.bucketRoot} component={Bucket} />}
 
         {process.env.NODE_ENV !== 'production' && (
-          <Route path={paths.storyBook} component={StoryBook} exact />
+          <Route path={paths.storyBook} component={StoryBook} />
         )}
 
         <Route component={ProtectedThrowNotFound} />
