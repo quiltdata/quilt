@@ -77,6 +77,22 @@ function StoryBook() {
             >
               <M.Icon>menu</M.Icon>
             </M.IconButton>
+
+            <RRDom.Switch>
+              {books.map((group) =>
+                group.children.map((book) => (
+                  <RRDom.Route
+                    path={`${path}${group.path}${book.path}`}
+                    render={() => (
+                      <M.Breadcrumbs>
+                        <span>{group.title}</span>
+                        <span>{book.title}</span>
+                      </M.Breadcrumbs>
+                    )}
+                  />
+                )),
+              )}
+            </RRDom.Switch>
           </M.Toolbar>
         </M.Container>
       </M.AppBar>
@@ -96,7 +112,10 @@ function StoryBook() {
                 <M.List className={classes.subMenu} dense disablePadding>
                   {group.children.map((book) => (
                     <M.ListItem>
-                      <RRDom.Link to={`${url}${group.path}${book.path}`}>
+                      <RRDom.Link
+                        to={`${url}${group.path}${book.path}`}
+                        onClick={toggleMenuDrawer}
+                      >
                         {book.title}
                       </RRDom.Link>
                     </M.ListItem>
