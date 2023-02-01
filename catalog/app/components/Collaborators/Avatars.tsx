@@ -60,6 +60,9 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     transition: 'margin 0.3s ease',
   },
+  moreIconized: {
+    marginLeft: '4px',
+  },
   userpic: {
     marginTop: '6px',
   },
@@ -82,10 +85,16 @@ const useStyles = M.makeStyles((t) => ({
 interface AvatarsProps {
   className?: string
   collaborators: Model.Collaborators
+  iconized?: boolean
   onClick: () => void
 }
 
-export default function Avatars({ className, collaborators, onClick }: AvatarsProps) {
+export default function Avatars({
+  className,
+  collaborators,
+  iconized,
+  onClick,
+}: AvatarsProps) {
   const knownCollaborators = collaborators.filter(
     ({ permissionLevel }) => !!permissionLevel,
   )
@@ -94,9 +103,10 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
   )
 
   const avatars = React.useMemo(() => {
+    if (iconized) return []
     if (!potentialCollaborators.length) return knownCollaborators.slice(0, 5)
     return [potentialCollaborators[0], ...knownCollaborators.slice(0, 4)]
-  }, [knownCollaborators, potentialCollaborators])
+  }, [iconized, knownCollaborators, potentialCollaborators])
 
   const classes = useStyles()
   const moreNum = React.useMemo(
@@ -106,6 +116,13 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
 
   return (
     <div className={cx(classes.root, className)} onClick={onClick}>
+      {iconized && (
+        <div className={classes.avatarWrapper}>
+          <M.Icon className={classes.userpic} title="Collaborators">
+            people_outline
+          </M.Icon>
+        </div>
+      )}
       {avatars.reduce(
         (memo, { collaborator: { email }, permissionLevel }, index) => (
           <div className={classes.avatarWrapper}>
@@ -122,7 +139,9 @@ export default function Avatars({ className, collaborators, onClick }: AvatarsPr
           {moreNum > 0 && (
             <div className={classes.avatarWrapper}>
               <M.Tooltip title="Click to see more collaborators">
-                <span className={classes.more}>{moreNum}+</span>
+                <span className={cx(classes.more, { [classes.moreIconized]: iconized })}>
+                  {moreNum}+
+                </span>
               </M.Tooltip>
             </div>
           )}
