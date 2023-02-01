@@ -1,19 +1,24 @@
 import * as React from 'react'
 import * as xlsx from 'xlsx'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
+import Lock from 'components/Lock'
 import Perspective from 'components/Preview/renderers/Perspective'
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
-})
+  error: {
+    marginTop: t.spacing(1),
+  },
+}))
 
 interface ExcelEditorProps {
   disabled?: boolean
   onChange: (value: string) => void
-  initialValue?: Uint8Array
+  initialValue?: Uint8Array | string
   error: Error | null
 }
 
@@ -45,6 +50,7 @@ export default function ExcelEditor({
     [onChange],
   )
   return (
+    <>
     <Perspective
       className={classes.root}
       data={data}
@@ -52,5 +58,12 @@ export default function ExcelEditor({
       config={config}
       onRender={handleRender}
     />
+      {error && (
+        <Lab.Alert severity="error" className={classes.error} variant="outlined">
+          {error.message}
+        </Lab.Alert>
+      )}
+      {disabled && <Lock />}
+      </>
   )
 }

@@ -36,17 +36,29 @@ function EditorSuspended({
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
-    return editing.brace === '__quiltConfig' ? (
-      <QuiltConfigEditor
-        handle={handle}
-        disabled={disabled}
-        error={error}
-        onChange={onChange}
-        initialValue=""
-      />
-    ) : (
-      <TextEditor error={error} type={editing} value="" onChange={onChange} />
-    )
+    switch (editing.brace) {
+      case 'less':
+        return (
+          <ExcelEditor
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue=""
+          />
+        )
+      case '__quiltConfig':
+        return (
+          <QuiltConfigEditor
+            handle={handle}
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue=""
+          />
+        )
+      default:
+        return <TextEditor error={error} type={editing} value="" onChange={onChange} />
+    }
   return data.case({
     _: () => <Skeleton />,
     Err: (
@@ -59,36 +71,37 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
-      if (editing.brace === 'less') {
-        return (
-          <ExcelEditor
-            disabled={disabled}
-            error={error}
-            onChange={onChange}
-            initialValue={response.Body}
-          />
-        )
+      switch (editing.brace) {
+        case 'less':
+          return (
+            <ExcelEditor
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              initialValue={response.Body}
+            />
+          )
+        case '__quiltConfig':
+          return (
+            <QuiltConfigEditor
+              handle={handle}
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              initialValue={value}
+            />
+          )
+        default:
+          return (
+            <TextEditor
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              type={editing}
+              value={value}
+            />
+          )
       }
-      if (editing.brace === '__quiltConfig') {
-        return (
-          <QuiltConfigEditor
-            handle={handle}
-            disabled={disabled}
-            error={error}
-            onChange={onChange}
-            initialValue={value}
-          />
-        )
-      }
-      return (
-        <TextEditor
-          disabled={disabled}
-          error={error}
-          onChange={onChange}
-          type={editing}
-          value={value}
-        />
-      )
     },
   })
 }
