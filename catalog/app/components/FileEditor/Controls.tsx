@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Buttons from 'components/Buttons'
+import ButtonIconized from 'components/ButtonIconized'
 import { EditorState } from './State'
 
 interface AddFileButtonProps {
@@ -52,7 +52,7 @@ export function Controls({
   if (!editing)
     return (
       <>
-        <Buttons.Iconized
+        <ButtonIconized
           className={className}
           disabled={disabled}
           icon="edit"
@@ -72,8 +72,8 @@ export function Controls({
     )
   return (
     <M.ButtonGroup disabled={disabled} className={className} size="small">
-      <Buttons.Iconized icon="undo" onClick={onCancel} label="Cancel" />
-      <Buttons.Iconized
+      <ButtonIconized icon="undo" onClick={onCancel} label="Cancel" />
+      <ButtonIconized
         color="primary"
         icon="save"
         label="Save"

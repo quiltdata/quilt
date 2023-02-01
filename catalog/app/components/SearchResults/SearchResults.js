@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
+import ButtonIconized from 'components/ButtonIconized'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
@@ -94,7 +94,7 @@ function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onTo
     <Heading display="flex" alignItems="center" mb="0 !important">
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      <Buttons.Iconized
+      <ButtonIconized
         label={expanded ? 'Collapse' : 'Expand'}
         icon={expanded ? 'unfold_less' : 'unfold_more'}
         rotate={expanded}
