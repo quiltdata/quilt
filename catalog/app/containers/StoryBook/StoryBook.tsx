@@ -3,9 +3,15 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
+import Placeholder from 'components/Placeholder'
+import * as RT from 'utils/reactTools'
 
-import JsonEditorBasic from './JsonEditor/Basic'
-import JsonEditorHasInitialValue from './JsonEditor/HasInitialValue'
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
+const JsonEditorBasic = RT.mkLazy(() => import('./JsonEditor/Basic'), SuspensePlaceholder)
+const JsonEditorHasInitialValue = RT.mkLazy(
+  () => import('./JsonEditor/HasInitialValue'),
+  SuspensePlaceholder,
+)
 
 const books = [
   {
@@ -28,14 +34,13 @@ const books = [
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    display: 'flex',
     flexGrow: 1,
   },
-  sidebar: {
+  sidebarPaper: {
+    marginTop: t.spacing(14),
+    minWidth: t.spacing(30),
     whiteSpace: 'nowrap',
-    boxShadow: `inset 0px 2px 1px -1px rgba(0,0,0,0.2),
-                inset 0px 1px 1px 0px rgba(0,0,0,0.14),
-                inset 0px 1px 3px 0px rgba(0,0,0,0.12)`,
+    zIndex: t.zIndex.appBar - 1,
   },
   menu: {},
   subMenu: {
@@ -49,15 +54,41 @@ const useStyles = M.makeStyles((t) => ({
 
 function StoryBook() {
   const classes = useStyles()
+  const t = M.useTheme()
+  const lg = M.useMediaQuery(t.breakpoints.up('lg'))
   const { path, url } = RRDom.useRouteMatch()
   const [subMenu, setSubMenu] = React.useState('')
+  const [menuOpened, setMenuOpened] = React.useState(false)
+  const toggleMenuDrawer = React.useCallback(() => setMenuOpened((o) => !o), [])
+  const toggleSubMenu = React.useCallback(
+    (p) => setSubMenu((s) => (s !== p ? p : '')),
+    [],
+  )
   return (
     <div className={classes.root}>
-      <div className={classes.sidebar}>
+      <M.AppBar position="relative" color="transparent">
+        <M.Container maxWidth="lg">
+          <M.Toolbar variant="dense" disableGutters>
+            <M.IconButton
+              aria-label="menu"
+              color="inherit"
+              edge="start"
+              onClick={toggleMenuDrawer}
+            >
+              <M.Icon>menu</M.Icon>
+            </M.IconButton>
+          </M.Toolbar>
+        </M.Container>
+      </M.AppBar>
+      <M.Drawer
+        open={menuOpened || lg}
+        variant="persistent"
+        classes={{ paper: classes.sidebarPaper }}
+      >
         <M.List className={classes.menu}>
           {books.map((group) => (
             <>
-              <M.ListItem onClick={() => setSubMenu(group.path)}>
+              <M.ListItem onClick={() => toggleSubMenu(group.path)}>
                 <M.ListItemText>{group.title}</M.ListItemText>
                 <M.Icon>{subMenu === group.path ? 'expand_less' : 'expand_more'}</M.Icon>
               </M.ListItem>
@@ -75,7 +106,7 @@ function StoryBook() {
             </>
           ))}
         </M.List>
-      </div>
+      </M.Drawer>
       <M.Container maxWidth="lg" className={classes.content}>
         <RRDom.Switch>
           {books.map((group) =>
@@ -93,5 +124,5 @@ function StoryBook() {
 }
 
 export default function StoryBookPage() {
-  return <Layout pre={<StoryBook />} />
+  return <Layout fullHeight pre={<StoryBook />} />
 }

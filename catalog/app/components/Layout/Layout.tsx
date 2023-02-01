@@ -38,9 +38,10 @@ export interface LayoutProps {
   dark?: boolean
   children?: React.ReactNode
   pre?: React.ReactNode
+  fullHeight?: boolean
 }
 
-export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
+export function Layout({ bare = false, dark = false, fullHeight = false, children, pre }: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
   const bucketRoute = useRouteMatch(paths.bucketRoot)
@@ -50,7 +51,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
       {bare ? <NavBar.Container /> : <NavBar.NavBar />}
       {!!pre && pre}
       {!!children && <M.Box p={4}>{children}</M.Box>}
-      <M.Box flexGrow={1} />
+      {!fullHeight && <M.Box flexGrow={1} />}
       {!!isHomepage && isHomepage.isExact && <Footer />}
       <Bookmarks.Sidebar bucket={bucket} />
     </Root>
