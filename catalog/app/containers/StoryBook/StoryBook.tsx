@@ -14,12 +14,12 @@ const books = [
     children: [
       {
         Component: JsonEditorBasic,
-        path: '/jsoneditor/basic',
+        path: '/basic',
         title: 'Basic',
       },
       {
         Component: JsonEditorHasInitialValue,
-        path: '/jsoneditor/initial-value',
+        path: '/initial-value',
         title: 'Has initial value',
       },
     ],
@@ -33,7 +33,9 @@ const useStyles = M.makeStyles((t) => ({
   },
   sidebar: {
     whiteSpace: 'nowrap',
-    boxShadow: `inset 0px 2px 4px -1px rgba(0,0,0,0.2), inset 0px 4px 5px 0px rgba(0,0,0,0.14), inset 0px 1px 10px 0px rgba(0,0,0,0.12)`,
+    boxShadow: `inset 0px 2px 1px -1px rgba(0,0,0,0.2),
+                inset 0px 1px 1px 0px rgba(0,0,0,0.14),
+                inset 0px 1px 3px 0px rgba(0,0,0,0.12)`
   },
   menu: {},
   subMenu: {
@@ -58,7 +60,7 @@ function StoryBook() {
               <M.List className={classes.subMenu} dense disablePadding>
                 {group.children.map((book) => (
                   <M.ListItem>
-                    <RRDom.Link to={`${url}${book.path}`}>{book.title}</RRDom.Link>
+                    <RRDom.Link to={`${url}${group.path}${book.path}`}>{book.title}</RRDom.Link>
                   </M.ListItem>
                 ))}
               </M.List>
@@ -70,7 +72,7 @@ function StoryBook() {
         <RRDom.Switch>
           {books.map((group) =>
             group.children.map((book) => (
-              <RRDom.Route path={`${path}${book.path}`} component={book.Component} />
+              <RRDom.Route path={`${path}${group.path}${book.path}`} component={book.Component} />
             )),
           )}
         </RRDom.Switch>
