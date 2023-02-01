@@ -35,7 +35,7 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
     boxShadow: `inset 0px 2px 1px -1px rgba(0,0,0,0.2),
                 inset 0px 1px 1px 0px rgba(0,0,0,0.14),
-                inset 0px 1px 3px 0px rgba(0,0,0,0.12)`
+                inset 0px 1px 3px 0px rgba(0,0,0,0.12)`,
   },
   menu: {},
   subMenu: {
@@ -50,20 +50,28 @@ const useStyles = M.makeStyles((t) => ({
 function StoryBook() {
   const classes = useStyles()
   const { path, url } = RRDom.useRouteMatch()
+  const [subMenu, setSubMenu] = React.useState('')
   return (
     <div className={classes.root}>
       <div className={classes.sidebar}>
         <M.List className={classes.menu}>
           {books.map((group) => (
             <>
-              <M.ListItem>{group.title}</M.ListItem>
-              <M.List className={classes.subMenu} dense disablePadding>
-                {group.children.map((book) => (
-                  <M.ListItem>
-                    <RRDom.Link to={`${url}${group.path}${book.path}`}>{book.title}</RRDom.Link>
-                  </M.ListItem>
-                ))}
-              </M.List>
+              <M.ListItem onClick={() => setSubMenu(group.path)}>
+                <M.ListItemText>{group.title}</M.ListItemText>
+                <M.Icon>{subMenu === group.path ? 'expand_less' : 'expand_more'}</M.Icon>
+              </M.ListItem>
+              <M.Collapse in={subMenu === group.path}>
+                <M.List className={classes.subMenu} dense disablePadding>
+                  {group.children.map((book) => (
+                    <M.ListItem>
+                      <RRDom.Link to={`${url}${group.path}${book.path}`}>
+                        {book.title}
+                      </RRDom.Link>
+                    </M.ListItem>
+                  ))}
+                </M.List>
+              </M.Collapse>
             </>
           ))}
         </M.List>
@@ -72,7 +80,10 @@ function StoryBook() {
         <RRDom.Switch>
           {books.map((group) =>
             group.children.map((book) => (
-              <RRDom.Route path={`${path}${group.path}${book.path}`} component={book.Component} />
+              <RRDom.Route
+                path={`${path}${group.path}${book.path}`}
+                component={book.Component}
+              />
             )),
           )}
         </RRDom.Switch>
