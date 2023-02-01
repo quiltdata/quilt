@@ -1,4 +1,3 @@
-import { push } from 'connected-react-router/esm/immutable'
 import invariant from 'invariant'
 import * as React from 'react'
 import GoogleLogin from 'react-google-login'
@@ -7,7 +6,6 @@ import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -18,13 +16,12 @@ import googleLogo from './google-logo.svg'
 const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
 
-export default function SSOGoogle({ mutex, next, ...props }) {
+export default function SSOGoogle({ mutex, ...props }) {
   invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { push: notify } = Notifications.use()
-  const { urls } = NamedRoutes.use()
   const { claim, release } = mutex
 
   const handleClick =
@@ -37,20 +34,15 @@ export default function SSOGoogle({ mutex, next, ...props }) {
 
   const handleSuccess = React.useCallback(
     async (user) => {
-      const provider = 'google'
       const { id_token: token } = user.getAuthResponse()
       const result = defer()
+      const provider = 'google'
       claim(MUTEX_REQUEST)
       try {
         dispatch(actions.signIn({ provider, token }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
-          if (cfg.ssoAuth === true) {
-            dispatch(push(urls.ssoSignUp({ provider, token, next })))
-            // dont release mutex on redirect
-            return
-          }
           notify(
             'No Quilt user linked to this Google account. Notify your Quilt administrator.',
           )
@@ -65,7 +57,7 @@ export default function SSOGoogle({ mutex, next, ...props }) {
         release(MUTEX_REQUEST)
       }
     },
-    [dispatch, claim, release, sentry, notify, next, urls],
+    [dispatch, claim, release, sentry, notify],
   )
 
   const handleFailure = React.useCallback(
