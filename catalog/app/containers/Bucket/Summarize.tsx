@@ -6,7 +6,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
-import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
+import * as Buttons from 'components/Buttons'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
@@ -127,7 +127,7 @@ export function Section({
         <div className={classes.heading}>
           <div className={classes.headingText}>{heading}</div>
           {onToggle && (
-            <ButtonIconShrinking
+            <Buttons.Iconized
               className={classes.toggle}
               label={expanded ? 'Collapse' : 'Expand'}
               icon={expanded ? 'unfold_less' : 'unfold_more'}

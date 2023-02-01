@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import ButtonIconShrinking from 'components/Buttons/ButtonIconShrinking'
+import * as Buttons from 'components/Buttons'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
@@ -245,7 +245,7 @@ export function Button({ bucket, className, children, onChange }: ButtonProps) {
 
   return (
     <>
-      <ButtonIconShrinking
+      <Buttons.Iconized
         aria-haspopup
         className={className}
         icon="exit_to_app"

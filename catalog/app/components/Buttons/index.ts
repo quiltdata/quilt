@@ -1,1 +1,1 @@
-export { default as IconShrinking } from './ButtonIconShrinking'
+export { default as Iconized } from './ButtonIconized'
