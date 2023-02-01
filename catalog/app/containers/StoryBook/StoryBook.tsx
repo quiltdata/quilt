@@ -143,5 +143,5 @@ function StoryBook() {
 }
 
 export default function StoryBookPage() {
-  return <Layout fullHeight pre={<StoryBook />} />
+  return <Layout pre={<StoryBook />} />
 }
