@@ -8,10 +8,11 @@ import Perspective from 'components/Preview/renderers/Perspective'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    position: 'relative',
     width: '100%',
   },
   error: {
-    marginTop: t.spacing(1),
+    marginBottom: t.spacing(1),
   },
 }))
 
@@ -50,20 +51,19 @@ export default function ExcelEditor({
     [onChange],
   )
   return (
-    <>
-    <Perspective
-      className={classes.root}
-      data={data}
-      truncated={false}
-      config={config}
-      onRender={handleRender}
-    />
+    <div className={classes.root}>
       {error && (
         <Lab.Alert severity="error" className={classes.error} variant="outlined">
           {error.message}
         </Lab.Alert>
       )}
+      <Perspective
+        data={data}
+        truncated={false}
+        config={config}
+        onRender={handleRender}
+      />
       {disabled && <Lock />}
-      </>
+    </div>
   )
 }
