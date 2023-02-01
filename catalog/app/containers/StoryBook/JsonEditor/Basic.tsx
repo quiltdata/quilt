@@ -25,7 +25,7 @@ const schema = {
 
 const noop = () => {}
 
-export default function JsonEditorBook() {
+export default function JsonEditorBasic() {
   return (
     <JsonEditor errors={[]} multiColumned onChange={noop} schema={schema} value={null} />
   )

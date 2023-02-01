@@ -12,5 +12,6 @@ const value = {
   objectA: { propertyA: true, propertyB: false },
 }
 export default function JsonDisplayBasic() {
+  /* @ts-expect-error */
   return <JsonDisplay value={value} />
 }

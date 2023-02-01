@@ -27,7 +27,7 @@ const schema = {
 
 const validate = jsonSchema.makeSchemaValidator(schema)
 
-export default function JsonEditorBook() {
+export default function JsonEditorHasInitialValue() {
   const [value, setValue] = React.useState<JsonValue>({
     c: {
       foobar: {
