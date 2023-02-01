@@ -28,7 +28,8 @@ const books = [
         title: 'Has initial value',
       },
     ],
-  }, {
+  },
+  {
     path: '/jsondisplay',
     title: 'JsonDisplay',
     children: [
@@ -43,6 +44,8 @@ const books = [
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    display: 'flex',
+    flexDirection: 'column',
     flexGrow: 1,
   },
   sidebarPaper: {
@@ -51,11 +54,11 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
     zIndex: t.zIndex.appBar - 1,
   },
-  menu: {},
   subMenu: {
     paddingLeft: t.spacing(2),
   },
   content: {
+    flexGrow: 1,
     paddingTop: t.spacing(2),
     background: t.palette.common.white,
   },
@@ -110,7 +113,7 @@ function StoryBook() {
         variant="persistent"
         classes={{ paper: classes.sidebarPaper }}
       >
-        <M.List className={classes.menu}>
+        <M.List>
           {books.map((group) => (
             <>
               <M.ListItem onClick={() => toggleSubMenu(group.path)}>
