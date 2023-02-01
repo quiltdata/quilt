@@ -88,7 +88,7 @@ export function Controls({
         onEdit(types[0])
       }
     },
-    [onEdit, types],
+    [hasMultipleChoices, onEdit, types],
   )
   const handleTypeClick = React.useCallback(
     (type) => {
