@@ -36,6 +36,9 @@ const useStyles = M.makeStyles((t) => ({
   key: {
     fontWeight: t.typography.fontWeightBold,
   },
+  keyNested: {
+    fontWeight: t.typography.fontWeightMedium,
+  },
   separator: {
     opacity: 0.7,
   },
@@ -144,6 +147,12 @@ function CollapsedEntry({ availableSpace, value, showValuesWhenCollapsed }) {
       {data.parts.map((item, index) => {
         const key = `json_print${index}`
         switch (item.type) {
+          case JSONOneliner.Types.KeyNested:
+            return (
+              <span className={classes.keyNested} key={key}>
+                {item.value}
+              </span>
+            )
           case JSONOneliner.Types.Key:
             return (
               <span className={classes.key} key={key}>

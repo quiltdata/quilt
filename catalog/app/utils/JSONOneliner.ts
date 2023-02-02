@@ -6,6 +6,7 @@ export const enum Types {
   Brace = 'brace',
   Equal = 'equal',
   Key = 'key',
+  KeyNested = 'key-nested',
   Object = 'object',
   Primitive = 'primitive',
   Separator = 'separator',
@@ -351,7 +352,17 @@ export function print(
       )
       return {
         availableSpace: secondLevel.availableSpace,
-        parts: [...memo.parts, ...secondLevel.parts],
+        parts: [
+          ...memo.parts,
+          ...secondLevel.parts.map((part) =>
+            part.type !== Types.Key
+              ? part
+              : {
+                  ...part,
+                  type: Types.KeyNested,
+                },
+          ),
+        ],
       }
     },
     {
