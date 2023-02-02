@@ -23,8 +23,8 @@ const items = ['One', 'Two', 'Gazzilion of bazillions', 'Four']
 
 // FIXME:
 //   1. vertical align when wrapper is block and select has icon
-//   2. in movile view select is empty
-export default function DropdownBasic() {
+//   2. in mobile view select is empty
+export default function SelectDropdownBasic() {
   const classes = useStyles()
   const [value, setValue] = React.useState(items[0])
   return (
