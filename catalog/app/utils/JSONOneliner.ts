@@ -351,6 +351,7 @@ export function print(
         item.original,
         memo.availableSpace + item.size,
         showValues,
+        // TODO: level: level + 1
       )
       return {
         availableSpace: secondLevel.availableSpace,
