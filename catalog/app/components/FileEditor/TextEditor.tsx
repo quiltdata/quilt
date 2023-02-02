@@ -5,6 +5,7 @@ import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 
+import Skeleton from './Skeleton'
 import { EditorInputType, Mode } from './types'
 
 import 'brace/theme/eclipse'
@@ -43,7 +44,7 @@ interface TextEditorProps {
   error: Error | null
 }
 
-export default function TextEditor({
+export default function TextEditorSuspended({
   error,
   disabled,
   type,
@@ -88,5 +89,13 @@ export default function TextEditor({
       )}
       {disabled && <Lock />}
     </div>
+  )
+}
+
+export function TextEditor(props: TextEditorProps) {
+  return (
+    <React.Suspense fallback={<Skeleton />}>
+      <TextEditorSuspended {...props} />
+    </React.Suspense>
   )
 }
