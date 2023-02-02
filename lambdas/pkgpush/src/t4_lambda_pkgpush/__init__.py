@@ -606,7 +606,8 @@ def create_package(req_file):
                     )
                 )
             else:
-                pkg.set(logical_key, str(physical_key), meta)
+                pkg.set(logical_key, str(physical_key))
+                pkg[logical_key]._meta = meta or {}
 
                 size_to_hash += pkg[logical_key].size
                 if size_to_hash > PKG_FROM_FOLDER_MAX_PKG_SIZE:
