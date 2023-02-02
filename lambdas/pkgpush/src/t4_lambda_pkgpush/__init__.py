@@ -427,6 +427,9 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
         else:
             pkg.set_meta(meta)
 
+        # We use _push() instead of push() for print_info=False
+        # to prevent unneeded ListObjects calls during generation of
+        # shortened revision hash.
         result = pkg._push(
             name=get_name(data),
             registry=get_dst(data),
@@ -434,6 +437,10 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
             workflow=data.get('workflow', ...),
             selector_fn=None if copy_data else lambda *args: False,
             print_info=False,
+            dedupe=False,
+            # TODO: we use force=True to keep the existing behavior,
+            #       but it should be re-considered.
+            force=True,
         )
         return {'top_hash': result._origin.top_hash}
     except quilt3.util.QuiltException as qe:

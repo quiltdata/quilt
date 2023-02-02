@@ -30,6 +30,8 @@ interface CollaboratorsProps {
 
 export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const classes = useStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const [{ data }] = urql.useQuery({
     query: BUCKET_COLLABORATORS,
@@ -65,6 +67,7 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
       <Avatars
         className={cx(classes.avatars, { [classes.hidden]: hidden })}
         collaborators={allCollaborators}
+        iconized={sm}
         onClick={handleOpen}
       />
     </M.MuiThemeProvider>
