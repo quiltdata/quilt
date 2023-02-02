@@ -32,11 +32,11 @@ export default function SSOAzure({ mutex, next, ...props }) {
     mutex.claim(MUTEX_POPUP)
 
     try {
-      const token = await authenticate()
+      const code = await authenticate()
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
-        dispatch(actions.signIn({ provider, token }, result.resolver))
+        dispatch(actions.signIn({ provider, code }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
