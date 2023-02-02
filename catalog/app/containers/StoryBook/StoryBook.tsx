@@ -23,7 +23,7 @@ const books = [
       {
         Component: RT.mkLazy(ButtonsIconized, SuspensePlaceholder),
         path: '/iconized',
-        title: 'Buttons collapsed to icons',
+        title: 'Iconized',
       },
     ],
   },
@@ -99,11 +99,12 @@ function StoryBook() {
   const t = M.useTheme()
   const xl = M.useMediaQuery(t.breakpoints.up('xl'))
   const { path, url } = RRDom.useRouteMatch()
-  const [subMenu, setSubMenu] = React.useState('')
+  const [closedSubMenu, setClosedSubMenu] = React.useState<Record<string, boolean>>({})
   const [menuOpened, setMenuOpened] = React.useState(false)
   const toggleMenuDrawer = React.useCallback(() => setMenuOpened((o) => !o), [])
   const toggleSubMenu = React.useCallback(
-    (p) => setSubMenu((s) => (s !== p ? p : '')),
+    (p: string) =>
+      setClosedSubMenu((s: Record<string, boolean>) => ({ ...s, [p]: !s[p] })),
     [],
   )
   return (
@@ -148,9 +149,11 @@ function StoryBook() {
             <>
               <M.ListItem onClick={() => toggleSubMenu(group.path)}>
                 <M.ListItemText>{group.title}</M.ListItemText>
-                <M.Icon>{subMenu === group.path ? 'expand_less' : 'expand_more'}</M.Icon>
+                <M.Icon>
+                  {closedSubMenu[group.path] ? 'expand_more' : 'expand_less'}
+                </M.Icon>
               </M.ListItem>
-              <M.Collapse in={subMenu === group.path}>
+              <M.Collapse in={!closedSubMenu[group.path]}>
                 <M.List className={classes.subMenu} dense disablePadding>
                   {group.children.map((book) => (
                     <M.ListItem>
