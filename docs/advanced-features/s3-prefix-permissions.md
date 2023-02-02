@@ -1,4 +1,4 @@
-# Restricting Catalog users to S3 bucket prefixes
+# Restrict Catalog users to S3 bucket prefixes
 
 It is possible to use custom roles and policies in the Quilt Catalog in order
 to limit access to specific folders in an S3 bucket. Nevertheless,
@@ -13,7 +13,7 @@ folders are sensitive_.
 Stack (1-Feb-2023 or later) so that the Quilt registry has sufficient permissions
 to assume cross-account roles on behalf or users
 * Ask your Quilt Account Manager to **enable "secure search"** for your stack
-in order for search hide the objects from unauthorized users in the search results.
+in order for search to hide the objects from unauthorized users in the search results.
 
 ## Limitations and workarounds
 
