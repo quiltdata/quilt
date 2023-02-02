@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { EditorState } from './State'
+
 interface AddFileButtonProps {
   onClick: () => void
 }
@@ -19,10 +21,11 @@ interface ButtonControlProps {
   color?: 'primary'
   icon: string
   label: string
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
   variant?: 'outlined' | 'contained'
 }
 
+// TODO: use components/Buttons/ShrinkedIconButton
 function ButtonControl({
   disabled,
   className,
@@ -61,32 +64,59 @@ function ButtonControl({
   )
 }
 
-interface ControlsProps {
-  disabled?: boolean
+interface ControlsProps extends EditorState {
   className?: string
-  editing: boolean
-  onEdit: () => void
-  onSave: () => void
-  onCancel: () => void
 }
 
 export function Controls({
-  disabled,
   className,
   editing,
-  onEdit,
-  onSave,
   onCancel,
+  onEdit,
+  saving,
+  onSave,
+  types,
 }: ControlsProps) {
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
+  const disabled = saving
+  const hasMultipleChoices = types.length > 1
+  const handleEditClick = React.useCallback(
+    (event) => {
+      if (hasMultipleChoices) {
+        setAnchorEl(event.currentTarget)
+      } else {
+        onEdit(types[0])
+      }
+    },
+    [hasMultipleChoices, onEdit, types],
+  )
+  const handleTypeClick = React.useCallback(
+    (type) => {
+      onEdit(type)
+      setAnchorEl(null)
+    },
+    [onEdit],
+  )
   if (!editing)
     return (
-      <ButtonControl
-        className={className}
-        disabled={disabled}
-        icon="edit"
-        label="Edit"
-        onClick={onEdit}
-      />
+      <>
+        <ButtonControl
+          className={className}
+          disabled={disabled}
+          icon="edit"
+          label="Edit"
+          onClick={handleEditClick}
+        />
+        {hasMultipleChoices && (
+          <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+            {types.map((type) => (
+              <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
+                Edit as {type.title || type.brace}
+              </M.MenuItem>
+            ))}
+          </M.Menu>
+        )}
+      </>
     )
   return (
     <M.ButtonGroup disabled={disabled} className={className} size="small">
