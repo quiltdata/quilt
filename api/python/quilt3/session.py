@@ -117,7 +117,7 @@ def _create_auth(timeout=None):
                 auth = _update_auth(auth['refresh_token'], timeout)
             except QuiltException as ex:
                 raise QuiltException(
-                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt3 login` again." % ex
                 )
             contents[url] = auth
             _save_auth(contents)
