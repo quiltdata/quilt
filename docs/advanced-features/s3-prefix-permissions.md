@@ -1,17 +1,57 @@
-# Restricting access to specific S3 bucket prefixes
+# Restricting Catalog users to S3 bucket prefixes
 
-> Users will still have access to the full list of S3 objects,
-packages and logical keys inside of packages.
+It is possible to use custom roles and policies in the Quilt Catalog in order
+to limit access to specific folders in an S3 bucket. Nevertheless,
+this approach has limitations and is therefore not recommended for
+high-security data where not just the contents _but the names of files and
+folders are sensitive_.
 
-> No trust relationship work is needed
+## Pre-requisites
+* IAM policies and roles (see below for an example)
+* Quilt Catalog Admin status
+* For cross-account roles, you must have a recent version of the Quilt
+Stack (1-Feb-2023 or later) so that the Quilt registry has sufficient permissions
+to assume cross-account roles on behalf or users
+* Ask your Quilt Account Manager to **enable "secure search"** for your stack
+in order for search hide the objects from unauthorized users in the search results.
 
-You can isolate user access to objects stored in specific S3 directories by
-defining an array of accessible prefixes in a custom IAM role or Amazon S3
-bucket policy.
+## Limitations and workarounds
 
-## Example permissions to limit access
+* Roles for users of the Quilt Catalog's Bucket tab must have
+**full ListBucket permissions**, whether or not they are allowed to access all
+folders and objects. Catalog users who click on a prefix or object that they
+are not permitted to access will see _Access Denied_.
+  * Alternatively, you can [hide the Bucket tab completely](../catalog/Admin.md#show-and-hide-features-in-the-quilt-catalog)
+  and leave users to the Package tab.
 
-Create a "custom" role or policy with these permissions:
+  > IAM is not designed as a filter for browsing S3.
+ListBucket will return a 403 for the root of bucket
+if users do not have full permissions (currently incompatible with the Quilt Catalog)
+
+* Similar to prefixes (above), Quilt Packages that reference prefixes that users
+cannot access via IAM will reveal package-relative file names and object-level
+_Quilt_ metadata, but will not reveal S3 object metadata and will not reveal
+object contents.  Clicking on a package entry in the Catalog that has a physical
+key that the user is not allowed to access will display _Access Denied_.
+
+* Secure search performs a head request on every object result; this may slow
+search performance in the Catalog
+
+## Requirements and recommendations
+
+* After updating your Quilt stack **you must rename, remove, or add a Quilt managed role**
+in order to trigger a policy update in the Quilt Stack.
+
+* Manage all Quilt Catalog roles and policies for prefixes [with the Quilt Catalog Admin Panel](../catalog/Admin.md#users-and-roles)
+
+* Provided that you use roles created in the Quilt Catalog Admin Panel
+**you do not need to and should not** insert a trust relationship into your
+roles by hand.
+
+## Example
+
+You can attach a "custom" policy to a role with the Quilt Catalog Admin Panel
+similar to the following:
 
 <!-- markdownlint-disable -->
 ```json
@@ -43,35 +83,4 @@ Create a "custom" role or policy with these permissions:
 ```
 <!-- markdownlint-restore -->
 
-## Using the `Condition` element
-
-Alternatively, you can define granular permissions using the
-`Condition` element and [IAM policy
-string operators](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html):
-
-<!-- markdownlint-disable -->
-```json
-            ...
-            "Resource": [
-                "arn:aws:s3:::<BUCKET>",
-            ],
-            "Condition": {
-                "StringLike": {
-                    "s3:prefix": ["", ".quilt/*", "<PREFIX>/*"]
-                },
-                "StringEquals": {
-                    "s3:prefix": ["", ".quilt/", "<PREFIX>/"],
-                    "s3:delimiter": ["/"]
-                }
-            },
-            ...
-```
-<!-- markdownlint-restore -->
-
-## Further reading
-
-- [Learn more about how Quilt administers users, roles and
-policies](../catalog/Admin.md#users-and-roles)
-- [Writing IAM Policies: Grant Access to User-Specific Folders in
-an Amazon S3
-Bucket](https://aws.amazon.com/blogs/security/writing-iam-policies-grant-access-to-user-specific-folders-in-an-amazon-s3-bucket/)
+> The `.quilt` folder
