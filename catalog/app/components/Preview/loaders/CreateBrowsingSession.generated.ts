@@ -12,10 +12,7 @@ export type components_Preview_loaders_CreateBrowsingSessionMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly browsingSessionCreate:
-    | ({ readonly __typename: 'BrowsingSession' } & Pick<
-        Types.BrowsingSession,
-        'id' | 'root'
-      >)
+    | ({ readonly __typename: 'BrowsingSession' } & Pick<Types.BrowsingSession, 'id'>)
     | { readonly __typename: 'InvalidInput' }
     | { readonly __typename: 'OperationError' }
 }
@@ -72,10 +69,7 @@ export const components_Preview_loaders_CreateBrowsingSessionDocument = {
                   },
                   selectionSet: {
                     kind: 'SelectionSet',
-                    selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'root' } },
-                    ],
+                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
                   },
                 },
               ],

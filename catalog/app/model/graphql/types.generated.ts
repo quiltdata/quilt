@@ -40,7 +40,6 @@ export interface BrowsingSession {
   readonly __typename: 'BrowsingSession'
   readonly id: Scalars['ID']
   readonly expires: Scalars['Datetime']
-  readonly root: Scalars['String']
 }
 
 export type BrowsingSessionCreateResult = BrowsingSession | InvalidInput | OperationError
