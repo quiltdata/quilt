@@ -9,18 +9,7 @@ import * as AWS from 'utils/AWS'
 import type { S3HandleBase } from 'utils/s3paths'
 import type * as Model from 'model'
 
-import { Mode, EditorInputType } from './types'
-
-const cache: { [index in Mode]?: Promise<void> | 'fullfilled' } = {}
-export const loadMode = (mode: Mode) => {
-  if (cache[mode] === 'fullfilled') return cache[mode]
-  if (cache[mode]) throw cache[mode]
-
-  cache[mode] = import(`brace/mode/${mode}`).then(() => {
-    cache[mode] = 'fullfilled'
-  })
-  throw cache[mode]
-}
+import { EditorInputType } from './types'
 
 const isQuiltConfig = (path: string) =>
   quiltConfigs.all.some((quiltConfig) => quiltConfig.includes(path))

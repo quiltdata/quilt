@@ -1,13 +1,24 @@
-import * as brace from 'brace'
+import { edit } from 'brace'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 
-import { EditorInputType } from './types'
+import { EditorInputType, Mode } from './types'
 
 import 'brace/theme/eclipse'
+
+const cache: { [index in Mode]?: Promise<void> | 'fullfilled' } = {}
+export const loadMode = (mode: Mode) => {
+  if (cache[mode] === 'fullfilled') return cache[mode]
+  if (cache[mode]) throw cache[mode]
+
+  cache[mode] = import(`brace/mode/${mode}`).then(() => {
+    cache[mode] = 'fullfilled'
+  })
+  throw cache[mode]
+}
 
 const useEditorTextStyles = M.makeStyles((t) => ({
   root: {
@@ -39,6 +50,10 @@ export default function TextEditor({
   value = '',
   onChange,
 }: TextEditorProps) {
+  if (type.brace !== '__quiltConfig') {
+    loadMode(type.brace || 'plain_text') // TODO: loaders#typeText.brace
+  }
+
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
 
@@ -46,7 +61,7 @@ export default function TextEditor({
     const wrapper = ref.current
     if (!wrapper) return
 
-    const editor = brace.edit(wrapper)
+    const editor = edit(wrapper)
 
     const resizeObserver = new window.ResizeObserver(() => editor.resize())
     resizeObserver.observe(wrapper)

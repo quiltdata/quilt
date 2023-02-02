@@ -10,7 +10,6 @@ import ExcelEditor from './ExcelEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
 import Skeleton from './Skeleton'
 import TextEditor from './TextEditor'
-import { loadMode } from './loader'
 import { EditorInputType } from './types'
 
 export { detect, isSupportedFileType } from './loader'
@@ -30,10 +29,6 @@ function EditorSuspended({
   editing,
 }: EditorProps) {
   const disabled = saving
-  if (editing.brace !== '__quiltConfig') {
-    loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
-  }
-
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
     switch (editing.brace) {
