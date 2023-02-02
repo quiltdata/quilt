@@ -83,4 +83,5 @@ similar to the following:
 ```
 <!-- markdownlint-restore -->
 
-> The `.quilt` folder
+> The `.quilt` folder is where Quilt Package Manifests are stored for all packages
+in a bucket registry
