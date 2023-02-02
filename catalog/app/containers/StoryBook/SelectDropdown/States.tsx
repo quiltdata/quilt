@@ -10,12 +10,13 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   label: {
-    marginRight: t.spacing(1),
     fontWeight: t.typography.fontWeightBold,
+    marginRight: t.spacing(1),
   },
   flex: {
-    marginTop: t.spacing(2),
+    alignItems: 'center',
     display: 'flex',
+    marginTop: t.spacing(2),
   },
 }))
 
@@ -57,6 +58,7 @@ export default function SelectDropdownBasic() {
             build
           </M.Icon>
         </SelectDropdown>
+        <M.Box pl={2}>Loading</M.Box>
       </div>
       <div className={classes.flex}>
         <SelectDropdown
@@ -89,6 +91,7 @@ export default function SelectDropdownBasic() {
             build
           </M.Icon>
         </SelectDropdown>
+        <M.Box pl={2}>Loading and disabled</M.Box>
       </div>
       <div className={classes.flex}>
         <SelectDropdown
@@ -118,35 +121,7 @@ export default function SelectDropdownBasic() {
             build
           </M.Icon>
         </SelectDropdown>
-      </div>
-      <div className={classes.flex}>
-        <SelectDropdown
-          className={classes.select}
-          options={items}
-          value={value}
-          onChange={setValue}
-          disabled
-        />
-        <SelectDropdown
-          className={classes.select}
-          options={items}
-          value={value}
-          onChange={setValue}
-          disabled
-        >
-          <span className={classes.label}>This is a chosen </span>
-        </SelectDropdown>
-        <SelectDropdown
-          className={classes.select}
-          options={items}
-          value={value}
-          onChange={setValue}
-          disabled
-        >
-          <M.Icon className={classes.label} fontSize="small">
-            build
-          </M.Icon>
-        </SelectDropdown>
+        <M.Box pl={2}>Disabled</M.Box>
       </div>
       <div className={classes.flex}>
         <SelectDropdown
@@ -176,6 +151,7 @@ export default function SelectDropdownBasic() {
             build
           </M.Icon>
         </SelectDropdown>
+        <M.Box pl={2}>Has empty state</M.Box>
       </div>
     </>
   )
