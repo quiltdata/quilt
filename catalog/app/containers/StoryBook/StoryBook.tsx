@@ -7,10 +7,11 @@ import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
 const ButtonsIconized = () => import('./Buttons/Iconized')
-const SelectDropdownBasic = () => import('./SelectDropdown/Basic')
 const JsonDisplayBasic = () => import('./JsonDisplay/Basic')
 const JsonEditorBasic = () => import('./JsonEditor/Basic')
 const JsonEditorHasInitialValue = () => import('./JsonEditor/HasInitialValue')
+const SelectDropdownBasic = () => import('./SelectDropdown/Basic')
+const SelectDropdownStates = () => import('./SelectDropdown/States')
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
@@ -61,6 +62,11 @@ const books = [
         Component: RT.mkLazy(SelectDropdownBasic, SuspensePlaceholder),
         path: '/basic',
         title: 'Basic',
+      },
+      {
+        Component: RT.mkLazy(SelectDropdownStates, SuspensePlaceholder),
+        path: '/states',
+        title: 'States',
       },
     ],
   },
