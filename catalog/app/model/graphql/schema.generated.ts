@@ -110,28 +110,12 @@ export default {
             },
             args: [],
           },
-          {
-            name: 'root',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
         ],
         interfaces: [],
       },
       {
         kind: 'SCALAR',
         name: 'ID',
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
       },
       {
         kind: 'UNION',
@@ -182,6 +166,10 @@ export default {
             name: 'OperationError',
           },
         ],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
       },
       {
         kind: 'SCALAR',

@@ -267,7 +267,6 @@ type PackageList {
 type BrowsingSession {
   id: ID!
   expires: Datetime!
-  root: String!
 }
 
 type Query {
