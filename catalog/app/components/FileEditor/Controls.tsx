@@ -110,8 +110,8 @@ export function Controls({
         {hasMultipleChoices && (
           <M.Menu open={!!anchorEl} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
             {types.map((type) => (
-              <M.MenuItem onClick={() => handleTypeClick(type)} key={type.brace}>
-                Edit as {type.title || type.brace}
+              <M.MenuItem onClick={() => handleTypeClick(type)} key={type.type}>
+                Edit as {type.title || type.type}
               </M.MenuItem>
             ))}
           </M.Menu>

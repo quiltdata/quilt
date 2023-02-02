@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
 import { detect as isMarkdown } from 'components/Preview/loaders/Markdown'
+import FileType from 'components/Preview/loaders/fileType'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import * as AWS from 'utils/AWS'
 import type { S3HandleBase } from 'utils/s3paths'
@@ -15,37 +16,37 @@ const isQuiltConfig = (path: string) =>
   quiltConfigs.all.some((quiltConfig) => quiltConfig.includes(path))
 const typeQuiltConfig: EditorInputType = {
   title: 'Quilt config helper',
-  brace: '__quiltConfig',
+  type: '__quiltConfig',
 }
 
 const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab', '.xlsx', '.xls'])
 const typeCsv: EditorInputType = {
-  brace: 'less',
+  type: FileType.Tabular,
 }
 
 const isJson = PreviewUtils.extIn(['.json'])
 const typeJson: EditorInputType = {
-  brace: 'json',
+  type: FileType.Json,
 }
 
 const typeMarkdown: EditorInputType = {
-  brace: 'markdown',
+  type: FileType.Markdown,
 }
 
 const isText = PreviewUtils.extIn(['.txt', ''])
 const typeText: EditorInputType = {
   title: 'Plain text',
-  brace: 'plain_text',
+  type: FileType.Text,
 }
 
 const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
 const typeYaml: EditorInputType = {
   title: 'YAML',
-  brace: 'yaml',
+  type: FileType.Yaml,
 }
 
 const typeNone: EditorInputType = {
-  brace: null,
+  type: null,
 }
 
 export const detect: (path: string) => EditorInputType[] = R.pipe(
@@ -63,7 +64,7 @@ export const detect: (path: string) => EditorInputType[] = R.pipe(
 
 export const isSupportedFileType: (path: string) => boolean = R.pipe(
   detect,
-  R.path([0, 'brace']),
+  R.path([0, 'type']),
   Boolean,
 )
 

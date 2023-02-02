@@ -1,7 +1,8 @@
 import * as React from 'react'
 
-import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import * as PreviewUtils from 'components/Preview/loaders/utils'
+import FileType from 'components/Preview/loaders/fileType'
 import AsyncResult from 'utils/AsyncResult'
 import * as RT from 'utils/reactTools'
 import type { S3HandleBase } from 'utils/s3paths'
@@ -46,8 +47,8 @@ function EditorSuspended({
   const disabled = saving
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
-    switch (editing.brace) {
-      case 'less':
+    switch (editing.type) {
+      case FileType.Tabular:
         return (
           <ExcelEditor
             disabled={disabled}
@@ -81,8 +82,8 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
-      switch (editing.brace) {
-        case 'less':
+      switch (editing.type) {
+        case FileType.Tabular:
           return (
             <ExcelEditor
               disabled={disabled}
