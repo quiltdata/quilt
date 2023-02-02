@@ -6,7 +6,7 @@ export const enum Types {
   Brace = 'brace',
   Equal = 'equal',
   Key = 'key',
-  KeyNested = 'key-nested',
+  KeyNested = 'key-nested', // TODO: use `level` instead
   Object = 'object',
   Primitive = 'primitive',
   Separator = 'separator',
@@ -20,6 +20,7 @@ interface SyntaxItem {
   size: number
   type: Types
   value: string
+  // TODO: level: number
 }
 
 interface SyntaxItemObject extends SyntaxItem {
@@ -293,6 +294,7 @@ export function print(
   obj: JsonRecord | JsonArray,
   availableSpace: number,
   showValues: boolean,
+  // TODO: level = 0,
 ): SyntaxData {
   const items = calcObject(obj, showValues)
   const firstLevel = items.reduce(
