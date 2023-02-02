@@ -3,14 +3,29 @@ import * as React from 'react'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
 import AsyncResult from 'utils/AsyncResult'
+import * as RT from 'utils/reactTools'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import type { EditorState } from './State'
-import ExcelEditor from './ExcelEditor'
-import QuiltConfigEditor from './QuiltConfigEditor'
 import Skeleton from './Skeleton'
-import TextEditor from './TextEditor'
 import { EditorInputType } from './types'
+
+import type { ExcelEditorProps } from './ExcelEditor'
+import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
+import type { TextEditorProps } from './TextEditor'
+
+const ExcelEditor: React.FC<ExcelEditorProps> = RT.mkLazy(
+  () => import('./ExcelEditor'),
+  Skeleton,
+)
+const QuiltConfigEditor: React.FC<QuiltConfigEditorProps> = RT.mkLazy(
+  () => import('./QuiltConfigEditor'),
+  Skeleton,
+)
+const TextEditor: React.FC<TextEditorProps> = RT.mkLazy(
+  () => import('./TextEditor'),
+  Skeleton,
+)
 
 export { detect, isSupportedFileType } from './loader'
 

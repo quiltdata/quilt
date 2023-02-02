@@ -36,7 +36,7 @@ const useEditorTextStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface TextEditorProps {
+export interface TextEditorProps {
   disabled?: boolean
   onChange: (value: string) => void
   type: EditorInputType

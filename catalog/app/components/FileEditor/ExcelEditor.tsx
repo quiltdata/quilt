@@ -16,7 +16,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ExcelEditorProps {
+export interface ExcelEditorProps {
   disabled?: boolean
   onChange: (value: string) => void
   initialValue?: Uint8Array | string

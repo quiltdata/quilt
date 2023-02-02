@@ -6,7 +6,7 @@ import type { S3HandleBase } from 'utils/s3paths'
 import Skeleton from '../Skeleton'
 
 import Dummy from './Dummy'
-import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
+import type { QuiltConfigEditorProps as EditorProps } from './QuiltConfigEditor'
 
 const BucketPreferences = React.lazy(() => import('./BucketPreferences'))
 const Workflows = React.lazy(() => import('./Workflows'))
@@ -22,10 +22,9 @@ function getConfigDetailsFetcher(handle: S3HandleBase) {
   return Dummy
 }
 
-export default ({
-  handle,
-  ...props
-}: QuiltConfigEditorProps & { handle: S3HandleBase }) => {
+export type QuiltConfigEditorProps = EditorProps & { handle: S3HandleBase }
+
+export default ({ handle, ...props }: EditorProps & { handle: S3HandleBase }) => {
   const ConfigDetailsFetcher = getConfigDetailsFetcher(handle)
   return (
     <React.Suspense fallback={<Skeleton />}>
