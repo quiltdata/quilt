@@ -97,7 +97,7 @@ const useStyles = M.makeStyles((t) => ({
 function StoryBook() {
   const classes = useStyles()
   const t = M.useTheme()
-  const lg = M.useMediaQuery(t.breakpoints.up('lg'))
+  const xl = M.useMediaQuery(t.breakpoints.up('xl'))
   const { path, url } = RRDom.useRouteMatch()
   const [subMenu, setSubMenu] = React.useState('')
   const [menuOpened, setMenuOpened] = React.useState(false)
@@ -139,7 +139,7 @@ function StoryBook() {
         </M.Container>
       </M.AppBar>
       <M.Drawer
-        open={menuOpened || lg}
+        open={menuOpened || xl}
         variant="persistent"
         classes={{ paper: classes.sidebarPaper }}
       >
