@@ -6,6 +6,7 @@ import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
+const ButtonsIconized = () => import('./Buttons/Iconized')
 const JsonDisplayBasic = () => import('./JsonDisplay/Basic')
 const JsonEditorBasic = () => import('./JsonEditor/Basic')
 const JsonEditorHasInitialValue = () => import('./JsonEditor/HasInitialValue')
@@ -13,6 +14,28 @@ const JsonEditorHasInitialValue = () => import('./JsonEditor/HasInitialValue')
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
 const books = [
+  {
+    path: '/buttons',
+    title: 'Buttons',
+    children: [
+      {
+        Component: RT.mkLazy(ButtonsIconized, SuspensePlaceholder),
+        path: '/iconized',
+        title: 'Buttons collapsed to icons',
+      },
+    ],
+  },
+  {
+    path: '/jsondisplay',
+    title: 'JsonDisplay',
+    children: [
+      {
+        Component: RT.mkLazy(JsonDisplayBasic, SuspensePlaceholder),
+        path: '/basic',
+        title: 'Basic',
+      },
+    ],
+  },
   {
     path: '/jsoneditor',
     title: 'JsonEditor',
@@ -26,17 +49,6 @@ const books = [
         Component: RT.mkLazy(JsonEditorHasInitialValue, SuspensePlaceholder),
         path: '/initial-value',
         title: 'Has initial value',
-      },
-    ],
-  },
-  {
-    path: '/jsondisplay',
-    title: 'JsonDisplay',
-    children: [
-      {
-        Component: RT.mkLazy(JsonDisplayBasic, SuspensePlaceholder),
-        path: '/basic',
-        title: 'Basic',
       },
     ],
   },
