@@ -5,10 +5,11 @@ import PreviewDisplay from 'components/Preview/Display'
 import AsyncResult from 'utils/AsyncResult'
 import type { S3HandleBase } from 'utils/s3paths'
 
-import Skeleton from './Skeleton'
-import { EditorState } from './State'
-import TextEditor from './TextEditor'
+import type { EditorState } from './State'
+import ExcelEditor from './ExcelEditor'
 import QuiltConfigEditor from './QuiltConfigEditor'
+import Skeleton from './Skeleton'
+import TextEditor from './TextEditor'
 import { loadMode } from './loader'
 import { EditorInputType } from './types'
 
@@ -35,17 +36,29 @@ function EditorSuspended({
 
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
-    return editing.brace === '__quiltConfig' ? (
-      <QuiltConfigEditor
-        handle={handle}
-        disabled={disabled}
-        error={error}
-        onChange={onChange}
-        initialValue=""
-      />
-    ) : (
-      <TextEditor error={error} type={editing} value="" onChange={onChange} />
-    )
+    switch (editing.brace) {
+      case 'less':
+        return (
+          <ExcelEditor
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue=""
+          />
+        )
+      case '__quiltConfig':
+        return (
+          <QuiltConfigEditor
+            handle={handle}
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue=""
+          />
+        )
+      default:
+        return <TextEditor error={error} type={editing} value="" onChange={onChange} />
+    }
   return data.case({
     _: () => <Skeleton />,
     Err: (
@@ -58,26 +71,37 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
-      if (editing.brace === '__quiltConfig') {
-        return (
-          <QuiltConfigEditor
-            handle={handle}
-            disabled={disabled}
-            error={error}
-            onChange={onChange}
-            initialValue={value}
-          />
-        )
+      switch (editing.brace) {
+        case 'less':
+          return (
+            <ExcelEditor
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              initialValue={response.Body}
+            />
+          )
+        case '__quiltConfig':
+          return (
+            <QuiltConfigEditor
+              handle={handle}
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              initialValue={value}
+            />
+          )
+        default:
+          return (
+            <TextEditor
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              type={editing}
+              value={value}
+            />
+          )
       }
-      return (
-        <TextEditor
-          disabled={disabled}
-          error={error}
-          onChange={onChange}
-          type={editing}
-          value={value}
-        />
-      )
     },
   })
 }
