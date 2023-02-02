@@ -7,6 +7,7 @@ import Placeholder from 'components/Placeholder'
 import * as RT from 'utils/reactTools'
 
 const ButtonsIconized = () => import('./Buttons/Iconized')
+const DropdownBasic = () => import('./Dropdown/Basic')
 const JsonDisplayBasic = () => import('./JsonDisplay/Basic')
 const JsonEditorBasic = () => import('./JsonEditor/Basic')
 const JsonEditorHasInitialValue = () => import('./JsonEditor/HasInitialValue')
@@ -22,6 +23,17 @@ const books = [
         Component: RT.mkLazy(ButtonsIconized, SuspensePlaceholder),
         path: '/iconized',
         title: 'Buttons collapsed to icons',
+      },
+    ],
+  },
+  {
+    path: '/dropdowns',
+    title: 'Dropdowns',
+    children: [
+      {
+        Component: RT.mkLazy(DropdownBasic, SuspensePlaceholder),
+        path: '/basic',
+        title: 'Basic',
       },
     ],
   },
