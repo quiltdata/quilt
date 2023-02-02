@@ -3,11 +3,13 @@ import * as React from 'react'
 import cfg from 'constants/config'
 import mkStorage from 'utils/storage'
 
+import ButtonIconized from 'components/ButtonIconized'
+
 import * as FileView from './FileView'
 
 interface DownloadButtonProps {
   className: string
-  label?: string
+  label: string
   onClick: () => void
   path?: string
 }
@@ -17,7 +19,7 @@ export function DownloadButton({ className, label, onClick, path }: DownloadButt
 
   if (cfg.desktop) {
     return (
-      <FileView.AdaptiveButtonLayout
+      <ButtonIconized
         className={className}
         label={label}
         icon="archive"
