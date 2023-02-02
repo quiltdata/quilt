@@ -14,14 +14,12 @@ export function useOkta() {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
-        const nonce = Math.random().toString(36).substr(2)
-        const state = Math.random().toString(36).substr(2)
+        const state = Math.random().toString(36).substring(2)
         const query = NamedRoutes.mkSearch({
           redirect_uri: window.location.origin,
           response_mode: 'okta_post_message',
-          response_type: 'id_token',
-          scope: 'openid email',
-          nonce,
+          response_type: 'code',
+          scope: 'openid email offline_access',
           state,
         })
         const url = `${cfg.registryUrl}/oidc-authorize/okta${query}`
@@ -36,12 +34,7 @@ export function useOkta() {
         const handleMessage = ({ source, data }) => {
           if (source !== popup) return
           try {
-            const {
-              id_token: idToken,
-              error,
-              error_description: details,
-              state: respState,
-            } = data
+            const { code, error, error_description: details, state: respState } = data
             if (respState !== state) {
               throw new OktaError(
                 'state_mismatch',
@@ -51,14 +44,7 @@ export function useOkta() {
             if (error) {
               throw new OktaError(error, details)
             }
-            const { nonce: respNonce } = JSON.parse(atob(idToken.split('.')[1]))
-            if (respNonce !== nonce) {
-              throw new OktaError(
-                'nonce_mismatch',
-                "Response nonce doesn't match request nonce",
-              )
-            }
-            resolve(idToken)
+            resolve(code)
           } catch (e) {
             reject(e)
           } finally {

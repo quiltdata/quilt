@@ -16,14 +16,12 @@ export function useOIDC({ provider, popupParams }) {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
-        const nonce = Math.random().toString(36).substr(2)
-        const state = Math.random().toString(36).substr(2)
+        const state = Math.random().toString(36).substring(2)
         const query = NamedRoutes.mkSearch({
           redirect_uri: `${window.location.origin}/oauth-callback`,
           response_mode: 'fragment',
-          response_type: 'id_token',
+          response_type: 'code',
           scope: 'openid email',
-          nonce,
           state,
         })
         const url = `${cfg.registryUrl}/oidc-authorize/${provider}${query}`
@@ -42,7 +40,7 @@ export function useOIDC({ provider, popupParams }) {
             if (type !== 'callback') return
 
             const {
-              id_token: idToken,
+              code,
               error,
               error_description: details,
               state: respState,
@@ -56,14 +54,7 @@ export function useOIDC({ provider, popupParams }) {
             if (error) {
               throw new OIDCError(error, details)
             }
-            const { nonce: respNonce } = JSON.parse(atob(idToken.split('.')[1]))
-            if (respNonce !== nonce) {
-              throw new OIDCError(
-                'nonce_mismatch',
-                "Response nonce doesn't match request nonce",
-              )
-            }
-            resolve(idToken)
+            resolve(code)
           } catch (e) {
             reject(e)
           } finally {
