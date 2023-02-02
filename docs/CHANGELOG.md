@@ -15,6 +15,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 ## Catalog, Lambdas
+* [Fixed] Fixed metadata handling for entries without hash or size in pkgpush lambda ([#3314](https://github.com/quiltdata/quilt/pull/3314))
 * [Fixed] Fixed mobile layout for collaborators badges ([#3307](https://github.com/quiltdata/quilt/pull/3307))
 * [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
 
