@@ -1,11 +1,8 @@
-import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
@@ -29,26 +26,20 @@ export default function SSOAzure({ mutex, next, ...props }) {
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { push: notify } = Notifications.use()
-  const { urls } = NamedRoutes.use()
 
   const handleClick = React.useCallback(async () => {
     if (mutex.current) return
     mutex.claim(MUTEX_POPUP)
 
     try {
-      const token = await authenticate()
+      const code = await authenticate()
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
-        dispatch(actions.signIn({ provider, token }, result.resolver))
+        dispatch(actions.signIn({ provider, code }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
-          if (cfg.ssoAuth === true) {
-            dispatch(push(urls.ssoSignUp({ provider, token, next })))
-            // dont release mutex on redirect
-            return
-          }
           notify(
             'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
           )
@@ -75,7 +66,7 @@ export default function SSOAzure({ mutex, next, ...props }) {
       mutex.release(MUTEX_POPUP)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticate, dispatch, mutex.claim, mutex.release, next, notify, sentry, urls])
+  }, [authenticate, dispatch, mutex.claim, mutex.release, notify, sentry])
 
   return (
     <M.Button

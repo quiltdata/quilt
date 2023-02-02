@@ -53,7 +53,6 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
-const AuthSSOSignUp = RT.mkLazy(() => import('containers/Auth/SSOSignUp'), Placeholder)
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -137,9 +136,6 @@ export default function App() {
         )}
         {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
           <Route path={paths.signUp} component={AuthSignUp} exact />
-        )}
-        {!cfg.disableNavigator && cfg.ssoAuth === true && (
-          <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
           <Route path={paths.passReset} component={AuthPassReset} exact />
