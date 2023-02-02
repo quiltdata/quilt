@@ -31,8 +31,8 @@ are not permitted to access will see _Access Denied_.
   and leave users to the Package tab.
 
   > IAM is not designed as a filter for browsing S3.
-ListBucket will return a 403 for the root of bucket
-if users do not have full permissions (currently incompatible with the Quilt Catalog)
+  ListBucket will return a 403 for the root of bucket
+  if users do not have full permissions (currently incompatible with the Quilt Catalog)
 
 * Similar to prefixes (above), Quilt Packages that reference prefixes that users
 cannot access via IAM will reveal package-relative file names and object-level
