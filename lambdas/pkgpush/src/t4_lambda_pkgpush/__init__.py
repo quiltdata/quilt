@@ -593,6 +593,9 @@ def create_package(req_file):
 
             hash_ = entry.get('hash')
             obj_size = entry.get('size')
+            # `meta` is the full metadata dict for entry that includes
+            # optional `user_meta` property,
+            # see PackageEntry._meta vs PackageEntry.meta.
             meta = entry.get('meta')
 
             if hash_ and obj_size is not None:
