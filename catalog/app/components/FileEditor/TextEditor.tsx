@@ -11,25 +11,30 @@ import { EditorInputType, Mode } from './types'
 
 import 'brace/theme/eclipse'
 
-const EDITOR_MODE_BRACE_MAP = {
-  __quiltConfig: 'yaml',
-  [FileType.ECharts]: 'json',
-  [FileType.Html]: 'html',
-  [FileType.Igv]: 'json',
-  [FileType.Json]: 'json',
-  [FileType.Jupyter]: 'python',
-  [FileType.Markdown]: 'markdown',
-  [FileType.Ngl]: 'plain_text',
-  [FileType.Tabular]: 'less',
-  [FileType.Text]: 'plain_text',
-  [FileType.Vega]: 'json',
-  [FileType.Voila]: 'python',
-  [FileType.Yaml]: 'yaml',
-}
-
 function getBraceMode(mode: Mode) {
-  if (!mode || !EDITOR_MODE_BRACE_MAP[mode]) return 'plain_text'
-  return EDITOR_MODE_BRACE_MAP[mode]
+  switch (mode) {
+    case '__quiltConfig':
+    case FileType.Yaml:
+      return 'brace/mode/yaml'
+    case FileType.ECharts:
+    case FileType.Igv:
+    case FileType.Json:
+    case FileType.Vega:
+      return 'brace/mode/json'
+    case FileType.Html:
+      return 'brace/mode/html'
+    case FileType.Jupyter:
+    case FileType.Voila:
+      return 'brace/mode/python'
+    case FileType.Markdown:
+      return 'markdown'
+    case FileType.Tabular:
+      return 'brace/mode/less'
+    case FileType.Ngl:
+    case FileType.Text:
+    default:
+      return 'brace/mode/plain_text'
+  }
 }
 
 const cache: { [index in Mode]?: Promise<void> | 'fullfilled' } = {}
@@ -37,7 +42,7 @@ export const loadMode = (mode: Mode) => {
   if (cache[mode] === 'fullfilled') return cache[mode]
   if (cache[mode]) throw cache[mode]
 
-  cache[mode] = import(`brace/mode/${getBraceMode(mode)}`).then(() => {
+  cache[mode] = import(getBraceMode(mode)).then(() => {
     cache[mode] = 'fullfilled'
   })
   throw cache[mode]
