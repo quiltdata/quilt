@@ -104,9 +104,7 @@ export default function TextEditorSuspended({
   value = '',
   onChange,
 }: TextEditorProps) {
-  if (type.type !== '__quiltConfig') {
-    loadMode(type.type || FileType.Text)
-  }
+  loadMode(type.type || FileType.Text)
 
   const classes = useEditorTextStyles()
   const ref = React.useRef<HTMLDivElement | null>(null)
