@@ -11,6 +11,32 @@ import { EditorInputType, Mode } from './types'
 
 import 'brace/theme/eclipse'
 
+function getAceMode(mode: Mode | null) {
+  switch (mode) {
+    case '__quiltConfig':
+    case FileType.Yaml:
+      return 'ace/mode/yaml'
+    case FileType.ECharts:
+    case FileType.Igv:
+    case FileType.Json:
+    case FileType.Vega:
+      return 'ace/mode/json'
+    case FileType.Html:
+      return 'ace/mode/html'
+    case FileType.Jupyter:
+    case FileType.Voila:
+      return 'ace/mode/python'
+    case FileType.Markdown:
+      return 'ace/mode/markdown'
+    case FileType.Tabular:
+      return 'ace/mode/less'
+    case FileType.Ngl:
+    case FileType.Text:
+    default:
+      return 'ace/mode/plain_text'
+  }
+}
+
 function importBraceMode(mode: Mode) {
   switch (mode) {
     case '__quiltConfig':
@@ -94,7 +120,7 @@ export default function TextEditorSuspended({
     const resizeObserver = new window.ResizeObserver(() => editor.resize())
     resizeObserver.observe(wrapper)
 
-    editor.getSession().setMode(`ace/mode/${type.type}`)
+    editor.getSession().setMode(getAceMode(type.type))
     editor.setTheme('ace/theme/eclipse')
     editor.setValue(value, -1)
     onChange(editor.getValue()) // initially fill the value
