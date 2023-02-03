@@ -11,29 +11,29 @@ import { EditorInputType, Mode } from './types'
 
 import 'brace/theme/eclipse'
 
-function getBraceMode(mode: Mode) {
+function importBraceMode(mode: Mode) {
   switch (mode) {
     case '__quiltConfig':
     case FileType.Yaml:
-      return 'brace/mode/yaml'
+      return import('brace/mode/yaml')
     case FileType.ECharts:
     case FileType.Igv:
     case FileType.Json:
     case FileType.Vega:
-      return 'brace/mode/json'
+      return import('brace/mode/json')
     case FileType.Html:
-      return 'brace/mode/html'
+      return import('brace/mode/html')
     case FileType.Jupyter:
     case FileType.Voila:
-      return 'brace/mode/python'
+      return import('brace/mode/python')
     case FileType.Markdown:
-      return 'markdown'
+      return import('brace/mode/markdown')
     case FileType.Tabular:
-      return 'brace/mode/less'
+      return import('brace/mode/less')
     case FileType.Ngl:
     case FileType.Text:
     default:
-      return 'brace/mode/plain_text'
+      return import('brace/mode/plain_text')
   }
 }
 
@@ -42,7 +42,7 @@ export const loadMode = (mode: Mode) => {
   if (cache[mode] === 'fullfilled') return cache[mode]
   if (cache[mode]) throw cache[mode]
 
-  cache[mode] = import(getBraceMode(mode)).then(() => {
+  cache[mode] = importBraceMode(mode).then(() => {
     cache[mode] = 'fullfilled'
   })
   throw cache[mode]
@@ -79,7 +79,7 @@ export default function TextEditorSuspended({
   onChange,
 }: TextEditorProps) {
   if (type.type !== '__quiltConfig') {
-    loadMode(type.type || FileType.Text) // TODO: loaders#typeText.brace
+    loadMode(type.type || FileType.Text)
   }
 
   const classes = useEditorTextStyles()
