@@ -123,7 +123,7 @@ Entries inside each section should be ordered by type:
 * [Added] Declared compatibility with `jsonschema==4.*`.
 * [Added] `--host` and `--port` parameters for `quilt3 catalog`.
 * [Added] `--no-browser` parameter for `quilt3 catalog`.
-* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install quilt3[catalog]`).
+* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install 'quilt3[catalog]'`).
 * [Changed] Dependencies on `flask` and `dnspython` are dropped.
 * [Removed] Deprecated passing subpackage as part of package name for `Package.install()`, use `path` parameter instead.
 * [Removed] Deprecated calling of `Package.resolve_hash()` without specifying `name` parameter.
