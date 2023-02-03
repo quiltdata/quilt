@@ -262,3 +262,194 @@ useful for both debugging and viewing how events are structured.
 ## Limitations
 
 - Currently, only one Amazon S3 bucket can be monitored at a time.
+
+
+## Example
+
+### Overview
+
+1. User adds file(s) to an Amazon S3 bucket
+2. EDP sends EventBridge a `package-objects-ready` event
+2. A lambda function checks for a value in the metadata against a predefined Quilt workflow
+  - If the value exists do nothing
+  - If the value is missing, move to a seperate **quarantine** S3 bucket
+3. Send a SNS notification
+
+### Setup
+
+Here we will have EDP send a notification to an Amazon EventBridge
+Bus (`quilt-edp`) with the following **Rule** attached:
+
+```json
+{
+    "detail-type": ["package-objects-ready"],
+    "source": ["com.quiltdata.edp"],
+    "detail": {
+        "bucket": ["quilt-test-bucket"]
+    }
+}
+```
+
+For this to work, you will need a LambdaRole that can get objects
+from the original S3 bucket and put objects in the target bucket
+
+1. AWS managed `AWSLambdaVPCAccessExecutionRole`: Provides minimum
+permissions for a Lambda function to execute while accessing a
+resource within a VPC - create, describe, delete network interfaces
+and write permissions to CloudWatch Logs.
+2. Custom inline role (`root`):
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:ListBucket",
+                "s3:ListBucketVersions",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::quilt-experiment",
+                "arn:aws:s3:::quilt-experiment/*",
+                "arn:aws:s3:::quilt-experiment-quarantine",
+                "arn:aws:s3:::quilt-experiment-quarantine/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Action": "sns:Publish",
+            "Resource": "arn:aws:sns:<region>:<account>:quilt-experiment-BadMetadataTopic",
+            "Effect": "Allow"
+        }
+    ]
+}
+```
+
+### Lambda Function
+
+```python
+import datetime
+import functools
+import io
+import operator
+import os
+import pathlib
+import tempfile
+
+import boto3
+import botocore.exceptions
+import openpyxl as openpyxl
+import quilt3 as quilt3
+from aws_lambda_powertools import Logger
+
+logger = Logger()
+s3 = boto3.client("s3")
+sns = boto3.client("sns")
+
+META_OBJ_NAME = "metadata.xlsx"
+WORKFLOW_NAME = os.environ.get("WORKFLOW_NAME") or ...
+QUARANTINE_BUCKET_NAME = os.environ["QUARANTINE_BUCKET_NAME"]
+SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
+MAX_SNS_SUBJECT_LEN = 99
+QUILT_URL = os.environ["QUILT_URL"]
+
+# Quilt beautify file strings
+QUILT_SUMMARIZE_JSON_STR = '["' + META_OBJ_NAME + '"]'
+
+QUILT_README_STR = f"""# Mass spec data package\n\n
+Created on {datetime.date.today()} by an 
+automated Lambda agent for the {WORKFLOW_NAME} workflow."""
+
+QUILT_IGNORE_STR = """.DS_*
+Icon
+._*
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+"""
+
+# Define beautify files
+beautify_files = {
+    "quilt_summarize.json": QUILT_SUMMARIZE_JSON_STR,
+    "README.md": QUILT_README_STR,
+    ".quiltignore": QUILT_IGNORE_STR,
+}
+
+
+@logger.inject_lambda_context
+def lambda_handler(event, context):
+    bucket = event["detail"]["bucket"]
+    prefix = event["detail"]["prefix"]
+
+    try:
+        s3.head_object(Bucket=bucket, Key=prefix + META_OBJ_NAME)
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            logger.debug(f"There is no {META_OBJ_NAME} at {prefix}")
+            return
+        raise
+
+    pkg = quilt3.Package().set_dir(".", f"s3://{bucket}/{prefix}")
+    if META_OBJ_NAME not in pkg:
+        logger.debug(f"There is no {META_OBJ_NAME} in a package")
+        return
+
+    wb = openpyxl.load_workbook(io.BytesIO(pkg[META_OBJ_NAME].get_bytes()))
+    sheet = wb[wb.sheetnames[0]]
+    meta = dict(
+        map(operator.itemgetter(slice(0, 2)), sheet.iter_rows(values_only=True))
+    )
+    # Ensure meta is JSON serializable.
+    meta = {
+        k: v.isoformat() if isinstance(v, (datetime.date, datetime.time)) else v
+        for k, v in meta.items()
+    }
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = pathlib.Path(tmpdir)
+        for name, body in beautify_files.items():
+            if name in pkg:
+                logger.debug(f"File {name} already exists. Ignoring.")
+                continue
+            logger.debug(f"File {name} does not exist at {prefix}. Creating.")
+            file_path = tmpdir_path / name
+            file_path.write_text(body)
+            pkg.set(name, file_path)
+
+        pkg.set_meta(meta)
+        pkg_name = prefix.strip("/")
+        push = functools.partial(
+            pkg.push,
+            pkg_name,
+            registry=f"s3://{bucket}",
+            force=True,
+            message="Created by EDP",
+            workflow=WORKFLOW_NAME,
+        )
+        try:
+            push(dedupe=True)
+        except quilt3.workflows.WorkflowValidationError as e:
+            logger.warning("Workflow check failed")
+            file_path = tmpdir_path / "README.md"
+            file_path.write_text(str(e))
+            pkg.set("README.md", file_path)
+            push(registry=f"s3://{QUARANTINE_BUCKET_NAME}", workflow=...)
+            subject = f"failed validation for package {pkg_name}"
+            if len(subject) > MAX_SNS_SUBJECT_LEN:
+                subject = subject[: MAX_SNS_SUBJECT_LEN - 1] + "…"
+            message = (
+                f"Validation failed for workflow {WORKFLOW_NAME} while pushing "
+                f"package with name {pkg_name} to {bucket}. It was pushed to "
+                f"{QUARANTINE_BUCKET_NAME} instead.\n"
+                f"{QUILT_URL}/b/{QUARANTINE_BUCKET_NAME}/packages/{pkg_name}\n\n"
+                f"Error message is:\n{e}\n"
+            )
+            sns.publish(
+                TopicArn=SNS_TOPIC_ARN,
+                Message=message,
+                Subject=subject,
+            )
+
