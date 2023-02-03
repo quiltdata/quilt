@@ -66,23 +66,26 @@ export default function Features({ className }: FeaturesProps) {
   return (
     <div className={cx(classes.root, className)}>
       <Feature heading="Data Versioning" logo={dataVersionControl}>
-        Take control of your data with Quilt Packages. Manage every version of your datasets with ease, 
-        using our robust data version control system. Quilt empowers you to create and share packages that 
-        securely store your data, complete with cryptographic fingerprints for verifiable revision history. 
-        Ensure data integrity and reliability, and trace the lineage of your data with confidence.
+        Take control of your data with Quilt Packages. Manage every version of your
+        datasets with ease, using our robust data version control system. Quilt empowers
+        you to create and share packages that securely store your data, complete with
+        cryptographic fingerprints for verifiable revision history. Ensure data integrity
+        and reliability, and trace the lineage of your data with confidence.
       </Feature>
       <Feature heading="Collaborate" logo={dataCommons}>
-        Unleash the full potential of your data with Quilt Data's data catalog. Create and share data packages 
-        complete with metadata, charts, documentation, and lineage to give others the complete context they need. 
-        Effortlessly discover and access the datasets you need with our keyword-powered search feature, making it 
-        simple to find relevant and actionable data. 
+        Unleash the full potential of your data with Quilt Data's data catalog. Create and
+        share data packages complete with metadata, charts, documentation, and lineage to
+        give others the complete context they need. Effortlessly discover and access the
+        datasets you need with our keyword-powered search feature, making it simple to
+        find relevant and actionable data.
       </Feature>
       <Feature heading="Visualize" logo={visualizations}>
-        Utilize Quilt's powerful capabilities to view and analyze your data in a variety of 
-        formats, including charts, plots, and graphs. Explore and interpret your data with ease, and add custom 
-        interactives and visualizations to gain a deeper understanding. With Quilt's built-in visualizers 
-        for Genomes using Interactive Genome Viewer (IGV) and protein structures (PDB Files), scientists can 
-        see exactly which data they're exploring directly within their browser.
+        Utilize Quilt's powerful capabilities to view and analyze your data in a variety
+        of formats, including charts, plots, and graphs. Explore and interpret your data
+        with ease, and add custom interactives and visualizations to gain a deeper
+        understanding. With Quilt's built-in visualizers for Genomes using Interactive
+        Genome Viewer (IGV) and protein structures (PDB Files), scientists can see exactly
+        which data they're exploring directly within their browser.
       </Feature>
     </div>
   )
