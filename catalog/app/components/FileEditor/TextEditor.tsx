@@ -27,13 +27,17 @@ const EDITOR_MODE_BRACE_MAP = {
   [FileType.Yaml]: 'yaml',
 }
 
+function getBraceMode(mode: Mode) {
+  if (!mode || !EDITOR_MODE_BRACE_MAP[mode]) return 'plain_text'
+  return EDITOR_MODE_BRACE_MAP[mode]
+}
+
 const cache: { [index in Mode]?: Promise<void> | 'fullfilled' } = {}
 export const loadMode = (mode: Mode) => {
   if (cache[mode] === 'fullfilled') return cache[mode]
   if (cache[mode]) throw cache[mode]
 
-  const braceMode = mode ? EDITOR_MODE_BRACE_MAP[mode] || 'plain_text' : 'plain_text'
-  cache[mode] = import(`brace/mode/${mode}`).then(() => {
+  cache[mode] = import(`brace/mode/${getBraceMode(mode)}`).then(() => {
     cache[mode] = 'fullfilled'
   })
   throw cache[mode]
