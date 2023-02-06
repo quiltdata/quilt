@@ -269,9 +269,18 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
   },
   button: {
+    marginLeft: t.spacing(1),
+  },
+  topbar: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    marginBottom: t.spacing(2),
+  },
+  actions: {
+    display: 'flex',
     flexShrink: 0,
     marginBottom: '-3px',
-    marginLeft: t.spacing(1),
+    marginLeft: 'auto',
     marginTop: '-3px',
   },
 }))
@@ -379,29 +388,30 @@ export default function Dir({
         title: 'Create package from directory',
       })}
 
-      <M.Box display="flex" alignItems="flex-start" mb={2}>
+      <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
-        <M.Box flexGrow={1} />
-        {preferences?.ui?.actions?.createPackage && (
-          <Successors.Button
-            bucket={bucket}
-            className={classes.button}
-            onChange={openPackageCreationDialog}
-          >
-            Create package from directory
-          </Successors.Button>
-        )}
-        {!cfg.noDownload && !cfg.desktop && (
-          <FileView.ZipDownloadForm
-            className={classes.button}
-            suffix={`dir/${bucket}/${path}`}
-            label="Download directory"
-          />
-        )}
-        <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
-      </M.Box>
+        <div className={classes.actions}>
+          {preferences?.ui?.actions?.createPackage && (
+            <Successors.Button
+              bucket={bucket}
+              className={classes.button}
+              onChange={openPackageCreationDialog}
+            >
+              Create package from directory
+            </Successors.Button>
+          )}
+          {!cfg.noDownload && !cfg.desktop && (
+            <FileView.ZipDownloadForm
+              className={classes.button}
+              suffix={`dir/${bucket}/${path}`}
+              label="Download directory"
+            />
+          )}
+          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
+        </div>
+      </div>
 
       {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
 

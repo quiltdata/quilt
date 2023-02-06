@@ -33,13 +33,12 @@ export default function SSOGoogle({ mutex, ...props }) {
     }
 
   const handleSuccess = React.useCallback(
-    async (user) => {
-      const { id_token: token } = user.getAuthResponse()
+    async ({ code }) => {
       const result = defer()
       const provider = 'google'
       claim(MUTEX_REQUEST)
       try {
-        dispatch(actions.signIn({ provider, token }, result.resolver))
+        dispatch(actions.signIn({ provider, code }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
@@ -77,6 +76,7 @@ export default function SSOGoogle({ mutex, ...props }) {
       clientId={cfg.googleClientId}
       onSuccess={handleSuccess}
       onFailure={handleFailure}
+      responseType="code"
       cookiePolicy="single_host_origin"
       disabled={!!mutex.current}
       render={({ onClick, disabled }) => (
