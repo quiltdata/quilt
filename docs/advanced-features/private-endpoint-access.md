@@ -16,12 +16,23 @@ You can restrict Amazon S3 bucket access to a particular VPC and VPN traffic
 via a data perimeter pattern, which prevents leaked S3 credentials from
 bypassing your organization's VPN.
 
-> Quilt already has private IPs for all Quilt services (Lambda
-functions, API Gateway, Quilt catalog API).
-
 To implement a data perimeter, you will need to take the following steps.
 
-## 1. Configure an Amazon S3 Gateway endpoint
+## 1. Create an interface VPC endpoint for Amazon API Gateway
+
+Restrict access to the Quilt REST APIs to within your VPC by [creating
+an interface VPC endpoint for Amazon API
+Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-private-apis.html).
+
+Once deployed, all traffic to the private API uses secure connections
+and is isolated from the public internet.
+
+During deployment, your CloudFormation template requires the VPC
+endpoint ARN as the `ApiGatewayVPCEndpointId` template parameter:
+
+![](../imgs/api-gateway-endpoint.png)
+
+## 2. Configure an Amazon S3 Gateway endpoint
 
 To limit access to Amazon S3 from your VPC you use [gateway VPC
 endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html).
@@ -37,7 +48,7 @@ to provision _interface VPC endpoints_ (interface endpoints) in
 your VPC. These are assigned private IP addresses from subnets
 in your VPC.
 
-## 2. Configure NAT gateway
+## 3. Configure NAT gateway
 
 To allow Quilt services access AWS endpoints other than S3 the traffic
 from the subnets where Quilt is deployed to the internet should be routed
@@ -47,7 +58,7 @@ Follow the [official AWS
 instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating)
 to create a NAT gateway.
 
-## 3. Configure and deploy a Service Control Policy and Amazon S3 bucket policy
+## 4. Configure and deploy a Service Control Policy and Amazon S3 bucket policy
 
 Access should be restricted to trusted networks and principals:
 
