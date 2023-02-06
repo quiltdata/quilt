@@ -11,10 +11,14 @@ import type {
 
 import { themes } from 'utils/perspective-pollution'
 
+export type PerspectiveSchema = Record<string, string>
+
 export interface State {
   rotateThemes: () => void
   size: number | null
   toggleConfig: () => void
+  schema: PerspectiveSchema
+  setSchema: (s: PerspectiveSchema) => void
 }
 
 export type PerspectiveInput = TableData
@@ -35,8 +39,13 @@ export function renderViewer(
 export async function renderTable(
   data: PerspectiveInput,
   viewer: HTMLPerspectiveViewerElement,
+  schema: PerspectiveSchema | null,
 ) {
-  const table = await worker.table(data)
+  const table = await (schema ? worker.table(schema) : worker.table(data))
+  if (schema) {
+    table.update(data)
+  }
+
   await viewer.load(table)
   return table
 }
@@ -49,6 +58,7 @@ function usePerspective(
   onRender?: (tableEl: RegularTableElement) => void,
 ) {
   const [state, setState] = React.useState<State | null>(null)
+  const [schema, setSchema] = React.useState<Record<string, string> | null>(null)
 
   React.useEffect(() => {
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
@@ -59,7 +69,7 @@ function usePerspective(
       if (!container) return
 
       viewer = renderViewer(container, attrs)
-      table = await renderTable(data, viewer)
+      table = await renderTable(data, viewer, schema)
 
       const regularTable: RegularTableElement | null =
         viewer.querySelector('regular-table')
@@ -72,6 +82,10 @@ function usePerspective(
         await viewer.restore(config)
       }
 
+      const auxView = await table.view()
+      const renderedSchema = await auxView.schema()
+      await auxView.delete()
+
       const size = await table.size()
       setState({
         rotateThemes: async () => {
@@ -82,6 +96,8 @@ function usePerspective(
             themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
           viewer?.restore({ theme } as PerspectiveViewerConfig)
         },
+        schema: renderedSchema,
+        setSchema,
         size,
         toggleConfig: () => viewer?.toggleConfig(),
       })
@@ -98,7 +114,7 @@ function usePerspective(
     return () => {
       disposeTable()
     }
-  }, [attrs, config, container, data, onRender])
+  }, [attrs, config, container, data, onRender, schema])
 
   return state
 }

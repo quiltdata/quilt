@@ -11,6 +11,8 @@ import { JsonRecord } from 'utils/types'
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
+import SchemaEditor from './Schema'
+
 const useParquetMetaStyles = M.makeStyles((t) => ({
   table: {
     margin: t.spacing(1, 0, 1, 3),
@@ -138,8 +140,18 @@ interface ToolbarProps {
 
 function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
   const classes = useTruncatedWarningStyles()
+  const [openedSchema, setOpenedSchema] = React.useState(false)
   return (
     <div className={cx(classes.root, className)}>
+      {openedSchema && !!state?.schema && (
+        <SchemaEditor
+          open={openedSchema}
+          onClose={() => setOpenedSchema(false)}
+          initialValue={state?.schema}
+          onSubmit={state?.setSchema}
+        />
+      )}
+
       {truncated && (
         <span className={cx(classes.message, classes.item)}>
           <M.Icon fontSize="small" color="inherit" className={classes.icon}>
@@ -179,6 +191,17 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
           onClick={state?.rotateThemes}
         >
           Toggle theme
+        </M.Button>
+      )}
+      {state?.setSchema && (
+        <M.Button
+          className={classes.item}
+          startIcon={<M.Icon>code</M.Icon>}
+          size="small"
+          onClick={() => setOpenedSchema(true)}
+          title={state?.schema ? JSON.stringify(state?.schema) : undefined}
+        >
+          Set Schema
         </M.Button>
       )}
     </div>
