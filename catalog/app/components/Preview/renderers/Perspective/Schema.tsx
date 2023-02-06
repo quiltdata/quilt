@@ -9,8 +9,6 @@ import type { PerspectiveSchema } from 'utils/perspective'
 
 const ajv = new Ajv({ allErrors: true, verbose: true })
 
-const editorHtmlProps = { style: { height: '240px' } }
-
 const jsonSchemaOfPerspectiveSchema = {
   type: 'object',
   additionalProperties: {
@@ -19,9 +17,22 @@ const jsonSchemaOfPerspectiveSchema = {
   },
 }
 
+const useStyles = M.makeStyles((t) => ({
+  reset: {
+    marginRight: 'auto',
+  },
+  editor: {
+    height: t.spacing(30),
+  },
+  error: {
+    marginTop: t.spacing(0.5),
+  },
+}))
+
 interface SchemaEditorProps {
   initialValue: PerspectiveSchema
   onClose: () => void
+  onReset: () => void
   onSubmit: (s: PerspectiveSchema) => void
   open: boolean
 }
@@ -30,24 +41,32 @@ export default function SchemaEditor({
   initialValue,
   onClose,
   onSubmit,
+  onReset,
   open,
 }: SchemaEditorProps) {
+  const classes = useStyles()
   const [error, setError] = React.useState<Error | null>(null)
   const [value, setValue] = React.useState(initialValue)
   const [submitted, setSubmitted] = React.useState(false)
+  const handleReset = React.useCallback(() => {
+    onReset()
+    onClose()
+  }, [onClose, onReset])
   const handleChange = React.useCallback((v) => {
     setValue(v)
     setSubmitted(false)
   }, [])
   const handleSubmit = React.useCallback(() => {
     setSubmitted(true)
+    if (error) return
     try {
       onSubmit(value)
+      onClose()
     } catch (e) {
       if (e instanceof Error) setError(e)
     }
-    onClose()
-  }, [onClose, onSubmit, value])
+  }, [error, onClose, onSubmit, value])
+  const editorHtmlProps = React.useMemo(() => ({ className: classes.editor }), [classes])
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <M.DialogTitle>Change table Schema</M.DialogTitle>
@@ -69,14 +88,19 @@ export default function SchemaEditor({
           value={initialValue}
         />
         {!!error && submitted && (
-          <Lab.Alert key={error.message} severity="error">
+          <Lab.Alert className={classes.error} key={error.message} severity="error">
             {error.message}
           </Lab.Alert>
         )}
       </M.DialogContent>
       <M.DialogActions>
-        <M.Button>Cancel</M.Button>
-        <M.Button onClick={handleSubmit}>Submit</M.Button>
+        <M.Button onClick={handleReset} className={classes.reset}>
+          Reset
+        </M.Button>
+        <M.Button onClick={onClose}>Cancel</M.Button>
+        <M.Button variant="contained" color="primary" onClick={handleSubmit}>
+          Submit
+        </M.Button>
       </M.DialogActions>
     </M.Dialog>
   )

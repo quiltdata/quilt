@@ -148,6 +148,7 @@ function Toolbar({ className, onLoadMore, state, truncated }: ToolbarProps) {
           open={openedSchema}
           onClose={() => setOpenedSchema(false)}
           initialValue={state?.schema}
+          onReset={() => state?.setSchema(null)}
           onSubmit={state?.setSchema}
         />
       )}

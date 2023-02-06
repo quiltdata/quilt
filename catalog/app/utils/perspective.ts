@@ -17,8 +17,8 @@ export interface State {
   rotateThemes: () => void
   size: number | null
   toggleConfig: () => void
-  schema: PerspectiveSchema
-  setSchema: (s: PerspectiveSchema) => void
+  schema: PerspectiveSchema | null
+  setSchema: (s: PerspectiveSchema | null) => void
 }
 
 export type PerspectiveInput = TableData
