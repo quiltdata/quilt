@@ -19,7 +19,7 @@ const typeQuiltConfig: EditorInputType = {
   type: '__quiltConfig',
 }
 
-const isCsv = PreviewUtils.extIn(['.csv', '.tsv', '.tab', '.xlsx', '.xls'])
+const isCsv = PreviewUtils.extIn(['.csv', '.xlsx', '.xls'])
 const typeCsv: EditorInputType = {
   type: FileType.Tabular,
 }

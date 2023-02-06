@@ -53,8 +53,9 @@ function EditorSuspended({
           <ExcelEditor
             disabled={disabled}
             error={error}
-            onChange={onChange}
+            handle={handle}
             initialValue=""
+            onChange={onChange}
           />
         )
       case '__quiltConfig':
@@ -88,8 +89,9 @@ function EditorSuspended({
             <ExcelEditor
               disabled={disabled}
               error={error}
-              onChange={onChange}
+              handle={handle}
               initialValue={response.Body}
+              onChange={onChange}
             />
           )
         case '__quiltConfig':
