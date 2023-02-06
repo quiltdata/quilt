@@ -250,7 +250,7 @@ users to be able to sign up.
 
 You may wish to limit access to Quilt services to trusted principals
 from trusted networks to guarantee your organization's data security.
-Please [review the requirements](advanced/private-endpoint-access.md)
+Please [review the requirements](advanced-features/private-endpoint-access.md)
 and discuss with your Quilt manager.
 
 ### Status monitoring
@@ -258,7 +258,7 @@ and discuss with your Quilt manager.
 Quilt provides a series of operational quality metrics through a
 robust internal status monitoring system consisting of end-to-end
 quality tests (`canaries`), status reports, and Amazon SNS
-notifications. See [GxP and Quilt](advanced/good-practice.md) for more
+notifications. See [GxP and Quilt](advanced-features/good-practice.md) for more
 details and discuss with your Quilt manager.
 
 ## Single sign-on (SSO)
