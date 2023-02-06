@@ -20,6 +20,7 @@ const FILE_TYPE_TITLES_MAP = {
   [FileType.Text]: 'Plain Text',
   [FileType.Vega]: 'Vega',
   [FileType.Voila]: 'Voila',
+  [FileType.Yaml]: 'Yaml',
 }
 
 export function viewModeToSelectOption(m: FileType): SelectOption

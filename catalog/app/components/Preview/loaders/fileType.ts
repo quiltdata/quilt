@@ -17,5 +17,6 @@ enum FileType {
   Text = 'txt',
   Vega = 'vega',
   Voila = 'voila',
+  Yaml = 'yaml',
 }
 export default FileType

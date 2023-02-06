@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
@@ -130,8 +131,13 @@ const useTopBarStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
-  spacer: {
-    flexGrow: 1,
+  content: {
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
+    marginLeft: 'auto',
+    marginTop: -3,
   },
 }))
 
@@ -146,8 +152,7 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(crumbs)}
       </div>
-      <div className={classes.spacer} />
-      {children}
+      <div className={classes.content}>{children}</div>
     </div>
   )
 }
@@ -563,12 +568,10 @@ function FileDisplayQuery({
 
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   fileProperties: {
-    [t.breakpoints.up('sm')]: {
-      marginBottom: '3px',
-    },
+    marginRight: t.spacing(1),
   },
   preview: {
     width: '100%',
@@ -668,7 +671,7 @@ function FileDisplay({
                   size={size}
                 />
                 {isEditable && (
-                  <FileView.AdaptiveButtonLayout
+                  <ButtonIconized
                     className={classes.button}
                     icon="edit"
                     label="Edit"

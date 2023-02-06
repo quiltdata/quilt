@@ -1,17 +1,32 @@
 import * as React from 'react'
 
-import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import * as PreviewUtils from 'components/Preview/loaders/utils'
+import FileType from 'components/Preview/loaders/fileType'
 import AsyncResult from 'utils/AsyncResult'
+import * as RT from 'utils/reactTools'
 import type { S3HandleBase } from 'utils/s3paths'
 
 import type { EditorState } from './State'
-import ExcelEditor from './ExcelEditor'
-import QuiltConfigEditor from './QuiltConfigEditor'
 import Skeleton from './Skeleton'
-import TextEditor from './TextEditor'
-import { loadMode } from './loader'
 import { EditorInputType } from './types'
+
+import type { ExcelEditorProps } from './ExcelEditor'
+import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
+import type { TextEditorProps } from './TextEditor'
+
+const ExcelEditor: React.FC<ExcelEditorProps> = RT.mkLazy(
+  () => import('./ExcelEditor'),
+  Skeleton,
+)
+const QuiltConfigEditor: React.FC<QuiltConfigEditorProps> = RT.mkLazy(
+  () => import('./QuiltConfigEditor'),
+  Skeleton,
+)
+const TextEditor: React.FC<TextEditorProps> = RT.mkLazy(
+  () => import('./TextEditor'),
+  Skeleton,
+)
 
 export { detect, isSupportedFileType } from './loader'
 
@@ -30,20 +45,17 @@ function EditorSuspended({
   editing,
 }: EditorProps) {
   const disabled = saving
-  if (editing.brace !== '__quiltConfig') {
-    loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
-  }
-
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
-    switch (editing.brace) {
-      case 'less':
+    switch (editing.type) {
+      case FileType.Tabular:
         return (
           <ExcelEditor
             disabled={disabled}
             error={error}
-            onChange={onChange}
+            handle={handle}
             initialValue=""
+            onChange={onChange}
           />
         )
       case '__quiltConfig':
@@ -71,14 +83,15 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
-      switch (editing.brace) {
-        case 'less':
+      switch (editing.type) {
+        case FileType.Tabular:
           return (
             <ExcelEditor
               disabled={disabled}
               error={error}
-              onChange={onChange}
+              handle={handle}
               initialValue={response.Body}
+              onChange={onChange}
             />
           )
         case '__quiltConfig':

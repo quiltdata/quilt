@@ -1,3 +1,5 @@
+import { extname } from 'path'
+
 import * as React from 'react'
 import * as xlsx from 'xlsx'
 import * as M from '@material-ui/core'
@@ -5,6 +7,20 @@ import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 import Perspective from 'components/Preview/renderers/Perspective'
+import type { S3HandleBase } from 'utils/s3paths'
+
+function extToBookType(handle: S3HandleBase): xlsx.BookType | undefined {
+  const ext = extname(handle.key)
+  switch (ext) {
+    case '.xlsx':
+      return 'xlsx'
+    case '.xls':
+      return 'xls'
+    case '.csv':
+      return 'csv'
+    // no default
+  }
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -16,16 +32,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ExcelEditorProps {
+export interface ExcelEditorProps {
   disabled?: boolean
-  onChange: (value: string) => void
-  initialValue?: Uint8Array | string
   error: Error | null
+  handle: S3HandleBase
+  initialValue?: Uint8Array | string
+  onChange: (value: string) => void
 }
 
 export default function ExcelEditor({
   disabled,
   error,
+  handle,
   initialValue,
   onChange,
 }: ExcelEditorProps) {
@@ -36,6 +54,7 @@ export default function ExcelEditor({
     return xlsx.utils.sheet_to_csv(ws)
   })
   const config = React.useMemo(() => ({ plugin_config: { editable: true } }), [])
+  const bookType = React.useMemo(() => extToBookType(handle), [handle])
   const handleRender = React.useCallback(
     async (d) => {
       const t = await d.parentNode?.parentNode?.getTable()
@@ -46,9 +65,9 @@ export default function ExcelEditor({
       var workbook = xlsx.utils.book_new()
       xlsx.utils.book_append_sheet(workbook, ws)
       await view?.delete()
-      onChange(xlsx.write(workbook, { type: 'buffer' }))
+      onChange(xlsx.write(workbook, { type: 'buffer', bookType }))
     },
-    [onChange],
+    [bookType, onChange],
   )
   return (
     <div className={classes.root}>
