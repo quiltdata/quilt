@@ -2,9 +2,17 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import Placeholder from 'components/Placeholder'
 import type { PerspectiveSchema } from 'utils/perspective'
+import * as RT from 'utils/reactTools'
 
-import Editor from './Editor'
+import type { EditorProps } from './Editor'
+
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
+const Editor: React.FC<EditorProps> = RT.mkLazy(
+  () => import('./Editor'),
+  SuspensePlaceholder,
+)
 
 const jsonSchemaOfPerspectiveSchema = {
   type: 'object',

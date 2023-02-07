@@ -7,7 +7,7 @@ import type { JsonRecord } from 'utils/types'
 
 const ajv = new Ajv({ allErrors: true, verbose: true })
 
-interface EditorProps {
+export interface EditorProps {
   className: string
   onChange: (v: JsonRecord) => void
   onError: (e?: Error[]) => void
