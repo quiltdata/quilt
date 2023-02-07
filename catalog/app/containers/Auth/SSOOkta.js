@@ -3,7 +3,7 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
-import * as Okta from 'utils/Okta'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -15,10 +15,13 @@ import oktaLogo from './okta-logo.svg'
 const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
-export default function SSOOkta({ mutex, ...props }) {
+export default function SSOOkta({ mutex, next, ...props }) {
   const provider = 'okta'
 
-  const authenticate = Okta.use()
+  const authenticate = OIDC.use({
+    provider,
+    popupParams: 'width=400,height=600',
+  })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
@@ -51,7 +54,7 @@ export default function SSOOkta({ mutex, ...props }) {
         mutex.release(MUTEX_REQUEST)
       }
     } catch (e) {
-      if (e instanceof Okta.OktaError) {
+      if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
           notify(`Unable to sign in with Okta. ${e.details}`)
           sentry('captureException', e)

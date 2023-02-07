@@ -42,8 +42,6 @@ export interface ConfigJson {
   ssoAuth: AuthMethodConfig
   ssoProviders: string
 
-  googleClientId?: string
-
   build_version?: string // not sure where this comes from
 }
 
