@@ -10,6 +10,8 @@ import Perspective from 'components/Preview/renderers/Perspective'
 import log from 'utils/Logging'
 import type { S3HandleBase } from 'utils/s3paths'
 
+const config = { plugin_config: { editable: true } }
+
 function extToBookType(handle: S3HandleBase): xlsx.BookType | undefined {
   // Function looks redundant, but typescript now is sure what return type is
   const ext = extname(handle.key)
@@ -60,7 +62,6 @@ export default function ExcelEditor({
       return []
     }
   })
-  const config = React.useMemo(() => ({ plugin_config: { editable: true } }), [])
   const bookType = React.useMemo(() => extToBookType(handle), [handle])
   const handleRender = React.useCallback(
     async (d) => {
