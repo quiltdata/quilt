@@ -14,6 +14,8 @@ import { EditorInputType } from './types'
 
 const isQuiltConfig = (path: string) =>
   quiltConfigs.all.some((quiltConfig) => quiltConfig.includes(path))
+// TODO: move title to Controls.tsx and simplify this type.
+//       Ideally: use `FileType` directly
 const typeQuiltConfig: EditorInputType = {
   title: 'Quilt config helper',
   type: '__quiltConfig',
