@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
 import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
