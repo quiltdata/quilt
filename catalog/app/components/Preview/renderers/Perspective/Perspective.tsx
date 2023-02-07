@@ -11,7 +11,7 @@ import { JsonRecord } from 'utils/types'
 import { ParquetMetadata } from '../../loaders/Tabular'
 import type { PerspectiveOptions } from '../../loaders/summarize'
 
-import SchemaEditor from './Schema'
+import SchemaEditor from './SchemaEditor'
 
 const useParquetMetaStyles = M.makeStyles((t) => ({
   table: {
