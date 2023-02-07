@@ -7,6 +7,7 @@ import * as Lab from '@material-ui/lab'
 
 import Lock from 'components/Lock'
 import Perspective from 'components/Preview/renderers/Perspective'
+import log from 'utils/Logging'
 import type { S3HandleBase } from 'utils/s3paths'
 
 function extToBookType(handle: S3HandleBase): xlsx.BookType | undefined {
@@ -50,23 +51,32 @@ export default function ExcelEditor({
 }: ExcelEditorProps) {
   const classes = useStyles()
   const [data] = React.useState(() => {
-    const wb = xlsx.read(initialValue)
-    const ws = wb.Sheets[wb.SheetNames[0]]
-    return xlsx.utils.sheet_to_csv(ws)
+    try {
+      const wb = xlsx.read(initialValue)
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      return xlsx.utils.sheet_to_csv(ws)
+    } catch (err) {
+      log.error(err)
+      return []
+    }
   })
   const config = React.useMemo(() => ({ plugin_config: { editable: true } }), [])
   const bookType = React.useMemo(() => extToBookType(handle), [handle])
   const handleRender = React.useCallback(
     async (d) => {
-      const t = await d.parentNode?.parentNode?.getTable()
-      if (!t) return
-      const view = await t?.view()
-      const aoa = await view?.to_json()
-      const ws = xlsx.utils.json_to_sheet(aoa)
-      var workbook = xlsx.utils.book_new()
-      xlsx.utils.book_append_sheet(workbook, ws)
-      await view?.delete()
-      onChange(xlsx.write(workbook, { type: 'buffer', bookType }))
+      try {
+        const t = await d.parentNode?.parentNode?.getTable()
+        if (!t) return
+        const view = await t?.view()
+        const aoa = await view?.to_json()
+        const ws = xlsx.utils.json_to_sheet(aoa)
+        var workbook = xlsx.utils.book_new()
+        xlsx.utils.book_append_sheet(workbook, ws)
+        await view?.delete()
+        onChange(xlsx.write(workbook, { type: 'buffer', bookType }))
+      } catch (err) {
+        log.error(err)
+      }
     },
     [bookType, onChange],
   )
