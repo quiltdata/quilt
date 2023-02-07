@@ -1,11 +1,10 @@
-import invariant from 'invariant'
 import * as React from 'react'
-import GoogleLogin from 'react-google-login'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -17,26 +16,25 @@ const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
 
 export default function SSOGoogle({ mutex, ...props }) {
-  invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
+  const provider = 'google'
+
+  const authenticate = OIDC.use({
+    provider,
+    popupParams: 'width=600,height=600',
+  })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { push: notify } = Notifications.use()
-  const { claim, release } = mutex
 
-  const handleClick =
-    (onClick) =>
-    (...args) => {
-      if (mutex.current) return
-      claim(MUTEX_POPUP)
-      onClick(...args)
-    }
+  const handleClick = React.useCallback(async () => {
+    if (mutex.current) return
+    mutex.claim(MUTEX_POPUP)
 
-  const handleSuccess = React.useCallback(
-    async ({ code }) => {
+    try {
+      const code = await authenticate()
       const result = defer()
-      const provider = 'google'
-      claim(MUTEX_REQUEST)
+      mutex.claim(MUTEX_REQUEST)
       try {
         dispatch(actions.signIn({ provider, code }, result.resolver))
         await result.promise
@@ -53,48 +51,37 @@ export default function SSOGoogle({ mutex, ...props }) {
           notify('Unable to sign in with Google. Try again later or contact support.')
           sentry('captureException', e)
         }
-        release(MUTEX_REQUEST)
+        mutex.release(MUTEX_REQUEST)
       }
-    },
-    [dispatch, claim, release, sentry, notify],
-  )
-
-  const handleFailure = React.useCallback(
-    ({ error: code, details }) => {
-      if (code !== 'popup_closed_by_user') {
-        notify(`Unable to sign in with Google. ${details}`)
-        const e = new errors.SSOError({ provider: 'google', code, details })
+    } catch (e) {
+      if (e instanceof OIDC.OIDCError) {
+        if (e.code !== 'popup_closed_by_user') {
+          notify(`Unable to sign in with Google. ${e.details}`)
+          sentry('captureException', e)
+        }
+      } else {
+        notify('Unable to sign in with Google. Try again later or contact support.')
         sentry('captureException', e)
       }
-      release(MUTEX_POPUP)
-    },
-    [release, sentry, notify],
-  )
+      mutex.release(MUTEX_POPUP)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticate, dispatch, mutex.claim, mutex.release, notify, sentry])
 
   return (
-    <GoogleLogin
-      clientId={cfg.googleClientId}
-      onSuccess={handleSuccess}
-      onFailure={handleFailure}
-      responseType="code"
-      cookiePolicy="single_host_origin"
+    <M.Button
+      variant="outlined"
+      onClick={handleClick}
       disabled={!!mutex.current}
-      render={({ onClick, disabled }) => (
-        <M.Button
-          variant="outlined"
-          onClick={handleClick(onClick)}
-          disabled={disabled}
-          {...props}
-        >
-          {mutex.current === MUTEX_REQUEST ? (
-            <M.CircularProgress size={18} />
-          ) : (
-            <M.Box component="img" src={googleLogo} alt="" />
-          )}
-          <M.Box mr={1} />
-          Sign in with Google
-        </M.Button>
+      {...props}
+    >
+      {mutex.current === MUTEX_REQUEST ? (
+        <M.CircularProgress size={18} />
+      ) : (
+        <M.Box component="img" src={googleLogo} alt="" />
       )}
-    />
+      <M.Box mr={1} />
+      Sign in with Google
+    </M.Button>
   )
 }
