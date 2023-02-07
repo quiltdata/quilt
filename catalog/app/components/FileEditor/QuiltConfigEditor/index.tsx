@@ -24,7 +24,7 @@ function getConfigDetailsFetcher(handle: S3HandleBase) {
 
 export type QuiltConfigEditorProps = EditorProps & { handle: S3HandleBase }
 
-export default ({ handle, ...props }: EditorProps & { handle: S3HandleBase }) => {
+export default ({ handle, ...props }: QuiltConfigEditorProps) => {
   const ConfigDetailsFetcher = getConfigDetailsFetcher(handle)
   return (
     <React.Suspense fallback={<Skeleton />}>
