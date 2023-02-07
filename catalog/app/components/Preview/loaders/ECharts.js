@@ -11,10 +11,15 @@ import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 
-import * as summarize from './summarize'
+import FileType from './fileType'
 import * as utils from './utils'
 
-export const detect = (key, options) => summarize.detect('echarts')(options)
+export const FILE_TYPE = FileType.ECharts
+
+export const detect = R.F
+
+export const hasEChartsDatasource = (json) =>
+  !!json?.dataset || Array.isArray(json?.series)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
@@ -118,7 +123,10 @@ function EChartsLoader({ gated, handle, children }) {
             throw new Error('Multiple remote sources are not supported')
           }
         }
-        return PreviewData.ECharts({ option })
+        return PreviewData.ECharts({
+          option,
+          modes: [FileType.Json, FileType.ECharts, FileType.Text],
+        })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error(e)
@@ -147,7 +155,7 @@ function EChartsLoader({ gated, handle, children }) {
   )
 }
 
-export const Loader = function GatedEchartsLoader({ handle, children }) {
+export const Loader = function GatedEChartsLoader({ handle, children }) {
   const data = utils.useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({

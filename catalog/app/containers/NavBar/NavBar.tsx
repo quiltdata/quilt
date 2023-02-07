@@ -9,12 +9,12 @@ import * as M from '@material-ui/core'
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
 import * as Bookmarks from 'containers/Bookmarks'
+import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRoute } from 'utils/router'
@@ -45,7 +45,6 @@ function LogoLink() {
   const settings = CatalogSettings.use()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const cfg = Config.useConfig()
   const wide = cfg.mode === 'MARKETING' && xs
   const classes = useLogoLinkStyles({
     backgroundColor: settings?.theme?.palette?.primary?.main,
@@ -161,7 +160,6 @@ function Badge({ children, color, invisible, ...props }: BadgeProps) {
 }
 
 function UserDropdown() {
-  const cfg = Config.useConfig()
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const bookmarks = Bookmarks.use()
@@ -274,7 +272,6 @@ interface AuthHamburgerProps {
 }
 
 function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
-  const cfg = Config.useConfig()
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
@@ -514,7 +511,6 @@ interface LinkDescriptor {
 
 function useLinks(): LinkDescriptor[] {
   const { paths, urls } = NamedRoutes.use()
-  const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
   const customNavLink: LinkDescriptor | null = React.useMemo(() => {
     if (!settings?.customNavLink) return null
@@ -574,7 +570,6 @@ const useNavBarStyles = M.makeStyles((t) => ({
 }))
 
 export function NavBar() {
-  const cfg = Config.use()
   const settings = CatalogSettings.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()

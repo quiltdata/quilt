@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
 import parseSearch from 'utils/parseSearch'
@@ -21,10 +21,10 @@ import StickyFooter from './StickyFooter'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
+const showMarketingBlocks = cfg.mode !== 'LOCAL' && cfg.mode !== 'PRODUCT'
+
 export default function Landing({ location }) {
-  const cfg = Config.useConfig()
   const { q: query = '' } = parseSearch(location.search)
-  const showMarketingBlocks = cfg.mode !== 'LOCAL' && cfg.mode !== 'PRODUCT'
   return (
     <Layout>
       <MetaTitle />

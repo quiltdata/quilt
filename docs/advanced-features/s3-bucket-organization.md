@@ -15,7 +15,7 @@ if you organize experiments by `department/date` then it's tedious for users to
 look at everything that happened on a given date. And vice versa. Since
 there's no one folder structure that works for everyone in the business,
 files are copied so that they can be found through multiple folder paths.
-But copies reduce *uniquness*. As a result users don't know which copy of
+But copies reduce *uniqueness*. As a result users don't know which copy of
 the file to trust. These copies then diverge, further reducing trust in data.
 
 ### Folder names are not metadata

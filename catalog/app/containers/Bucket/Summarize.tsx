@@ -6,8 +6,10 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
+import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
 import { docs } from 'constants/urls'
 import * as APIConnector from 'utils/APIConnector'
@@ -21,14 +23,6 @@ import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
 import * as errors from './errors'
-
-type SummaryFileTypeShorthand = 'echarts' | 'voila'
-type SummaryFileTypeExtended = {
-  name: SummaryFileTypeShorthand
-  style?: { height: string }
-}
-type SummaryFileType = SummaryFileTypeShorthand | SummaryFileTypeExtended
-type SummaryFileTypes = SummaryFileType[]
 
 interface S3Handle extends LogicalKeyResolver.S3SummarizeHandle {
   error?: errors.BucketError
@@ -45,32 +39,6 @@ interface SummarizeFile {
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
-
-const useDownloadButtonStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
-    display: 'flex',
-    height: t.spacing(4),
-    justifyContent: 'center',
-    width: t.spacing(3),
-  },
-}))
-
-interface DownloadButtonProps {
-  className?: string
-  handle: S3Handle
-}
-
-function DownloadButton({ className, handle }: DownloadButtonProps) {
-  const classes = useDownloadButtonStyles()
-  return AWS.Signer.withDownloadUrl(handle, (url: string) => (
-    <div className={cx(classes.root, className)}>
-      <M.IconButton href={url} title="Download" download>
-        <M.Icon>arrow_downward</M.Icon>
-      </M.IconButton>
-    </div>
-  ))
-}
 
 enum FileThemes {
   Overview = 'overview',
@@ -125,7 +93,11 @@ const useSectionStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-  headingAction: {
+  menu: {
+    display: 'flex',
+    marginLeft: t.spacing(1),
+  },
+  toggle: {
     marginLeft: 'auto',
   },
 }))
@@ -134,6 +106,8 @@ interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
   handle?: S3Handle
   heading?: React.ReactNode
+  expanded?: boolean
+  onToggle?: () => void
 }
 
 export function Section({
@@ -141,6 +115,8 @@ export function Section({
   heading,
   description,
   children,
+  expanded,
+  onToggle,
   ...props
 }: SectionProps) {
   const ft = React.useContext(FileThemeContext)
@@ -150,7 +126,16 @@ export function Section({
       {!!heading && (
         <div className={classes.heading}>
           <div className={classes.headingText}>{heading}</div>
-          {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
+          {onToggle && (
+            <ButtonIconized
+              className={classes.toggle}
+              label={expanded ? 'Collapse' : 'Expand'}
+              icon={expanded ? 'unfold_less' : 'unfold_more'}
+              rotate={expanded}
+              onClick={onToggle}
+            />
+          )}
+          {handle && <Preview.Menu className={classes.menu} handle={handle} />}
         </div>
       )}
       {!!description && <div className={classes.description}>{description}</div>}
@@ -162,7 +147,7 @@ export function Section({
 interface PreviewBoxProps {
   children: React.ReactNode
   expanded?: boolean
-  onExpand: () => void
+  onToggle: () => void
 }
 
 const usePreviewBoxStyles = M.makeStyles((t) => ({
@@ -208,15 +193,16 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, expanded, onExpand }: PreviewBoxProps) {
+function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
   const classes = usePreviewBoxStyles()
+  // TODO: Move expandable block to ExpandableBox and re-use for SearchResults
+  // TODO: Listen firstElementNode ({children}) for resize
+  //       if children height is smaller than box -> onToggle(force)
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
       {children}
       {!expanded && (
-        <div className={classes.fade} onClick={onExpand} title="Click to expand">
-          <M.Button variant="outlined">Expand</M.Button>
-        </div>
+        <div className={classes.fade} onClick={onToggle} title="Click to expand" />
       )}
     </div>
   )
@@ -271,7 +257,7 @@ export function FilePreview({
   headingOverride,
   packageHandle,
 }: FilePreviewProps) {
-  const description = file ? <Markdown data={file.description} /> : null
+  const description = file?.description ? <Markdown data={file.description} /> : null
   const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
 
   const key = handle.logicalKey || handle.key
@@ -290,15 +276,21 @@ export function FilePreview({
   )
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   const renderContents = React.useCallback(
-    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
-    [expanded, onExpand],
+    (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
+    [expanded, onToggle],
   )
 
   // TODO: check for glacier and hide items
   return (
-    <Section description={description} heading={heading} handle={handle}>
+    <Section
+      description={description}
+      heading={heading}
+      handle={handle}
+      expanded={expanded}
+      onToggle={onToggle}
+    >
       {Preview.load(
         previewHandle,
         Preview.display({

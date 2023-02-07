@@ -3,9 +3,9 @@ import { extname } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import pipeThru from 'utils/pipeThru'
@@ -174,10 +174,15 @@ export function useObjectGetter(handle, opts) {
   return Data.use(getObject, { s3, handle }, opts)
 }
 
-const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }) => {
+const fetchPreview = async ({ handle, sign, type, compression, query }) => {
   const url = sign(handle)
   const r = await fetch(
-    `${endpoint}/preview${mkSearch({ url, input: type, compression, ...query })}`,
+    `${cfg.apiGatewayEndpoint}/preview${mkSearch({
+      url,
+      input: type,
+      compression,
+      ...query,
+    })}`,
   )
   const json = await r.json()
   if (json.error) {
@@ -198,14 +203,9 @@ const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }
 }
 
 export function usePreview({ type, handle, query }, options) {
-  const { apiGatewayEndpoint: endpoint } = Config.use()
   const sign = AWS.Signer.useS3Signer()
   const compression = getCompression(handle.key)
-  return Data.use(
-    fetchPreview,
-    { endpoint, handle, sign, type, compression, query },
-    options,
-  )
+  return Data.use(fetchPreview, { handle, sign, type, compression, query }, options)
 }
 
 export function useProcessing(asyncResult, process, deps = []) {

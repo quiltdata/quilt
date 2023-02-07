@@ -6,6 +6,8 @@ import * as s3paths from 'utils/s3paths'
 
 import { PreviewData } from '../../types'
 
+import FileType from '../fileType'
+
 interface IFrameLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: s3paths.S3HandleBase
@@ -17,5 +19,8 @@ export default function IFrameLoader({ handle, children }: IFrameLoaderProps) {
     () => sign(handle, { ResponseContentType: 'text/html' }),
     [handle, sign],
   )
-  return children(AsyncResult.Ok(PreviewData.IFrame({ src })))
+  // TODO: issue a head request to ensure existence and get storage class
+  return children(
+    AsyncResult.Ok(PreviewData.IFrame({ src, modes: [FileType.Html, FileType.Text] })),
+  )
 }

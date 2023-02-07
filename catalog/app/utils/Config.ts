@@ -11,32 +11,37 @@ type AuthMethodConfig = 'ENABLED' | 'DISABLED' | 'SIGN_IN_ONLY'
 
 // manually synced w/ config-schema.json
 export interface ConfigJson {
-  alwaysRequiresAuth: boolean
-  analyticsBucket?: string
-  apiGatewayEndpoint: string
-  binaryApiGatewayEndpoint: string
-  calendlyLink?: string
-  googleClientId?: string
-  oktaClientId?: string
-  oktaBaseUrl?: string
-  intercomAppId?: string
   mode: Mode
+  alwaysRequiresAuth: boolean
+  desktop?: boolean
+
+  analyticsBucket?: string
+  serviceBucket: string
+
+  apiGatewayEndpoint: string
+  registryUrl: string
+  s3Proxy: string
+
+  intercomAppId?: string
+  mixpanelToken: string
+  sentryDSN?: string
+
+  calendlyLink?: string
+
   legacyPackagesRedirect?: string
+
   linkedData?: {
     name?: string
     description?: string
   }
-  mixpanelToken: string
+
   noDownload?: boolean
   noOverviewImages?: boolean
+
   passwordAuth: AuthMethodConfig
-  registryUrl: string
-  s3Proxy: string
-  sentryDSN?: string
-  serviceBucket: string
   ssoAuth: AuthMethodConfig
   ssoProviders: string
-  desktop?: boolean
+
   build_version?: string // not sure where this comes from
 }
 
@@ -66,7 +71,7 @@ function validateConfig(input: unknown): asserts input is ConfigJson {
 const AUTH_MAP = {
   ENABLED: true,
   DISABLED: false,
-  SIGN_IN_ONLY: 'SIGN_IN_ONLY',
+  SIGN_IN_ONLY: 'SIGN_IN_ONLY' as const,
 }
 
 const startWithOrigin = (s: string) => (s.startsWith('/') ? window.origin + s : s)
@@ -80,7 +85,6 @@ const transformConfig = (cfg: ConfigJson) => ({
   disableNavigator: cfg.mode === 'MARKETING',
   s3Proxy: startWithOrigin(cfg.s3Proxy),
   apiGatewayEndpoint: startWithOrigin(cfg.apiGatewayEndpoint),
-  binaryApiGatewayEndpoint: startWithOrigin(cfg.binaryApiGatewayEndpoint),
   noDownload: !!cfg.noDownload,
   noOverviewImages: !!cfg.noOverviewImages,
   desktop: !!cfg.desktop,
@@ -108,7 +112,3 @@ export function getConfig() {
   }
   return cachedConfig
 }
-
-/** @deprecated Just import 'constants/config' */
-export const useConfig = getConfig
-export { useConfig as use }

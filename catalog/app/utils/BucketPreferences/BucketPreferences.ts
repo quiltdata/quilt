@@ -51,14 +51,18 @@ interface PackagePreferencesInput {
   message?: true
   user_meta?: ReadonlyArray<string>
 }
-interface PackagePreferences {
+export interface PackagePreferences {
   message?: true
   userMeta?: ReadonlyArray<string>
 }
 type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
-type PackagesListPreferences = Record<string, PackagePreferences>
+interface PackagesListPreferences {
+  packages: Record<string, PackagePreferences>
+  userMetaMultiline: boolean
+}
 
 type DefaultSourceBucketInput = string
+type PackageDescriptionMultiline = boolean
 type SourceBucketsInput = Record<string, null>
 
 export interface AthenaPreferencesInput {
@@ -77,6 +81,7 @@ interface UiPreferencesInput {
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
   package_description?: PackagesListPreferencesInput
+  package_description_multiline?: PackageDescriptionMultiline
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -94,7 +99,7 @@ interface UiPreferences {
   athena: AthenaPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
-  package_description: PackagesListPreferences
+  packageDescription: PackagesListPreferences
   sourceBuckets: SourceBuckets
 }
 
@@ -132,10 +137,13 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    package_description: {
-      '.*': {
-        message: true,
+    packageDescription: {
+      packages: {
+        '.*': {
+          message: true,
+        },
       },
+      userMetaMultiline: false,
     },
     sourceBuckets: {
       getDefault: () => '',
@@ -186,16 +194,25 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
   }
 }
 
-function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
+function parsePackages(
+  packages?: PackagesListPreferencesInput,
+  userMetaMultiline: boolean = false,
+): PackagesListPreferences {
   return Object.entries(packages || {}).reduce(
-    (memo, [name, { message, user_meta }]) => ({
-      ...memo,
-      [name]: {
-        message,
-        userMeta: user_meta,
-      },
-    }),
-    defaultPreferences.ui.package_description,
+    (memo, [name, { message, user_meta }]) =>
+      R.assocPath(
+        ['packages', name],
+        {
+          message,
+          userMeta: user_meta,
+        },
+        memo,
+      ),
+    {
+      packages: defaultPreferences.ui.packageDescription.packages,
+      userMetaMultiline:
+        userMetaMultiline || defaultPreferences.ui.packageDescription.userMetaMultiline,
+    },
   )
 }
 
@@ -232,7 +249,10 @@ export function extendDefaults(
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
-      package_description: parsePackages(data?.ui?.package_description),
+      packageDescription: parsePackages(
+        data?.ui?.package_description,
+        data?.ui?.package_description_multiline,
+      ),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,
