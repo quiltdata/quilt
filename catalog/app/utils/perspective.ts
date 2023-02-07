@@ -82,6 +82,7 @@ function usePerspective(
         await viewer.restore(config)
       }
 
+      // TODO: move to function getTableSchema
       const auxView = await table.view()
       const columns = await table.columns()
       const renderedSchema = await auxView.schema()
