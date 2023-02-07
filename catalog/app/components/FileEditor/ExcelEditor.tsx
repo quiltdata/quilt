@@ -10,6 +10,7 @@ import Perspective from 'components/Preview/renderers/Perspective'
 import type { S3HandleBase } from 'utils/s3paths'
 
 function extToBookType(handle: S3HandleBase): xlsx.BookType | undefined {
+  // Function looks redundant, but typescript now is sure what return type is
   const ext = extname(handle.key)
   switch (ext) {
     case '.xlsx':
