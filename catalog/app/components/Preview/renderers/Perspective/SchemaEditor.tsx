@@ -1,13 +1,10 @@
-import Ajv from 'ajv'
-import brace from 'brace'
-import { JsonEditor as ReactJsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import type { PerspectiveSchema } from 'utils/perspective'
 
-const ajv = new Ajv({ allErrors: true, verbose: true })
+import Editor from './Editor'
 
 const jsonSchemaOfPerspectiveSchema = {
   type: 'object',
@@ -45,7 +42,7 @@ export default function SchemaEditor({
   open,
 }: SchemaEditorProps) {
   const classes = useStyles()
-  const [error, setError] = React.useState<Error | null>(null)
+  const [errors, setError] = React.useState<Error[] | undefined>()
   const [value, setValue] = React.useState(initialValue)
   const [submitted, setSubmitted] = React.useState(false)
   const handleReset = React.useCallback(() => {
@@ -58,40 +55,33 @@ export default function SchemaEditor({
   }, [])
   const handleSubmit = React.useCallback(() => {
     setSubmitted(true)
-    if (error) return
+    if (errors && errors.length) return
     try {
       onSubmit(value)
       onClose()
     } catch (e) {
-      if (e instanceof Error) setError(e)
+      if (e instanceof Error) setError([e])
     }
-  }, [error, onClose, onSubmit, value])
-  const editorHtmlProps = React.useMemo(() => ({ className: classes.editor }), [classes])
+  }, [errors, onClose, onSubmit, value])
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <M.DialogTitle>Change table Schema</M.DialogTitle>
       <M.DialogContent>
-        <ReactJsonEditor
-          ace={brace}
-          ajv={ajv}
-          htmlElementProps={editorHtmlProps}
-          mainMenuBar={false}
-          mode="code"
-          navigationBar={false}
+        <Editor
+          className={classes.editor}
           onChange={handleChange}
           onError={setError}
-          onValidationError={(es) => setError(es[0])}
           schema={jsonSchemaOfPerspectiveSchema}
-          search={false}
-          statusBar={false}
-          theme="ace/theme/eclipse"
           value={initialValue}
         />
-        {!!error && submitted && (
-          <Lab.Alert className={classes.error} key={error.message} severity="error">
-            {error.message}
-          </Lab.Alert>
-        )}
+        {submitted &&
+          !!errors &&
+          !!errors.length &&
+          errors.map((error) => (
+            <Lab.Alert className={classes.error} key={error.message} severity="error">
+              {error.message}
+            </Lab.Alert>
+          ))}
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={handleReset} className={classes.reset}>
