@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import type { RegularTableElement } from 'regular-table'
 import perspective from '@finos/perspective'
-import type { Table, TableData } from '@finos/perspective'
+import type { Schema, Table, TableData } from '@finos/perspective'
 import type {
   HTMLPerspectiveViewerElement,
   PerspectiveViewerConfig,
@@ -11,7 +11,7 @@ import type {
 
 import { themes } from 'utils/perspective-pollution'
 
-export type PerspectiveSchema = Record<string, string>
+export type PerspectiveSchema = Schema
 
 export interface State {
   rotateThemes: () => void
@@ -58,7 +58,7 @@ function usePerspective(
   onRender?: (tableEl: RegularTableElement) => void,
 ) {
   const [state, setState] = React.useState<State | null>(null)
-  const [schema, setSchema] = React.useState<Record<string, string> | null>(null)
+  const [schema, setSchema] = React.useState<PerspectiveSchema | null>(null)
 
   React.useEffect(() => {
     // NOTE(@fiskus): if you want to refactor, don't try `useRef`, try something different
@@ -83,7 +83,12 @@ function usePerspective(
       }
 
       const auxView = await table.view()
+      const columns = await table.columns()
       const renderedSchema = await auxView.schema()
+      const sortedSchema = columns.reduce(
+        (memo, name) => ({ ...memo, [name]: renderedSchema[name] }),
+        {} as PerspectiveSchema,
+      )
       await auxView.delete()
 
       const size = await table.size()
@@ -96,7 +101,7 @@ function usePerspective(
             themeIndex === themes.length - 1 ? themes[0] : themes[themeIndex + 1]
           viewer?.restore({ theme } as PerspectiveViewerConfig)
         },
-        schema: renderedSchema,
+        schema: sortedSchema,
         setSchema,
         size,
         toggleConfig: () => viewer?.toggleConfig(),
