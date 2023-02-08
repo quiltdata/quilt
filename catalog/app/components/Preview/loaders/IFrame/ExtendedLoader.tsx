@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import * as urql from 'urql'
 
@@ -32,7 +33,8 @@ interface IFrameLoaderProps {
   handle: FileHandle
 }
 
-function useSession(handle: FileHandle): [Error | null, Session | null] {
+function useSession(handle: FileHandle) {
+  const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<Error | null>(null)
   const [session, setSession] = React.useState<Session | null>(null)
   const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
@@ -60,6 +62,9 @@ function useSession(handle: FileHandle): [Error | null, Session | null] {
       .catch((e) => {
         if (e instanceof Error) setError(e)
         log.error(e)
+      })
+      .finally(() => {
+        setLoading(false)
       })
 
     return () => {
@@ -94,18 +99,27 @@ function useSession(handle: FileHandle): [Error | null, Session | null] {
     }, delay)
   }, [refreshSession, session])
 
-  return [error, session]
+  if (error) return AsyncResult.Err(error)
+  if (loading) return AsyncResult.Pending()
+  return AsyncResult.Ok(session)
 }
 
 export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const [error, session] = useSession(handle)
-
-  if (error) return children(AsyncResult.Err(error))
-  if (!session?.id) return children(AsyncResult.Pending())
-
-  const src = `${cfg.s3Proxy}/browse/${session.id}/${handle.logicalKey}`
-
+  const sessionData = useSession(handle)
   return children(
-    AsyncResult.Ok(PreviewData.IFrame({ src, modes: [FileType.Html, FileType.Text] })),
+    AsyncResult.case(
+      {
+        Ok: (s: Session) => {
+          return AsyncResult.Ok(
+            PreviewData.IFrame({
+              src: `${cfg.s3Proxy}/browse/${s?.id}/${handle.logicalKey}`,
+              modes: [FileType.Html, FileType.Text],
+            }),
+          )
+        },
+        _: R.identity,
+      },
+      sessionData,
+    ),
   )
 }
