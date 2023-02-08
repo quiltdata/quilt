@@ -268,7 +268,7 @@ useful for both debugging and viewing how events are structured.
 
 ### Overview
 
-1. User adds file(s) to an Amazon S3 bucket
+1. User or instrument adds file(s) to an Amazon S3 bucket
 2. EDP sends EventBridge a `package-objects-ready` event
 2. A lambda function checks for a value in the metadata against a predefined Quilt workflow
   - If the value exists do nothing
@@ -277,58 +277,98 @@ useful for both debugging and viewing how events are structured.
 
 ### Setup
 
-Here we will have EDP send a notification to an Amazon EventBridge
+1. EDP sends a notification to an Amazon EventBridge
 Bus (`quilt-edp`) with the following **Rule** attached:
 
-```json
-{
-    "detail-type": ["package-objects-ready"],
-    "source": ["com.quiltdata.edp"],
-    "detail": {
-        "bucket": ["quilt-test-bucket"]
+    ```json
+    {
+        "detail-type": ["package-objects-ready"],
+        "source": ["com.quiltdata.edp"],
+        "detail": {
+            "bucket": ["quilt-test-bucket"]
+        }
     }
-}
-```
+    ```
 
-For this to work, you will need a LambdaRole that can get objects
-from the original S3 bucket and put objects in the target bucket
+    For this to work, you will need a LambdaRole that can get objects
+    from the original S3 bucket and put objects in the target bucket
 
-1. AWS managed `AWSLambdaVPCAccessExecutionRole`: Provides minimum
+2. AWS managed `AWSLambdaVPCAccessExecutionRole`: Provides minimum
 permissions for a Lambda function to execute while accessing a
 resource within a VPC - create, describe, delete network interfaces
 and write permissions to CloudWatch Logs.
-2. Custom inline role (`root`):
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "s3:GetObject",
-                "s3:GetObjectVersion",
-                "s3:ListBucket",
-                "s3:ListBucketVersions",
-                "s3:PutObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::quilt-experiment",
-                "arn:aws:s3:::quilt-experiment/*",
-                "arn:aws:s3:::quilt-experiment-quarantine",
-                "arn:aws:s3:::quilt-experiment-quarantine/*"
-            ],
-            "Effect": "Allow"
-        },
-        {
-            "Action": "sns:Publish",
-            "Resource": "arn:aws:sns:<region>:<account>:quilt-experiment-BadMetadataTopic",
-            "Effect": "Allow"
-        }
-    ]
-}
-```
+3. Custom inline role (`root`):
+
+    ```json
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": [
+                    "s3:GetObject",
+                    "s3:GetObjectVersion",
+                    "s3:ListBucket",
+                    "s3:ListBucketVersions",
+                    "s3:PutObject"
+                ],
+                "Resource": [
+                    "arn:aws:s3:::quilt-experiment",
+                    "arn:aws:s3:::quilt-experiment/*",
+                    "arn:aws:s3:::quilt-experiment-quarantine",
+                    "arn:aws:s3:::quilt-experiment-quarantine/*"
+                ],
+                "Effect": "Allow"
+            },
+            {
+                "Action": "sns:Publish",
+                "Resource": "arn:aws:sns:<region>:<account>:quilt-experiment-BadMetadataTopic",
+                "Effect": "Allow"
+            }
+        ]
+    }
+    ```
 
 ### Lambda Function
+
+Create a lambda function (`MetadataTest`) with the following configuration:
+
+1. General configuration:
+  * Description: -
+  * Memory: 512 MB
+  * Ephemeral storage: 512 MB
+  * Timeout: 15 min 0 sec
+  * SnapStart: None
+2. Triggers:
+  * Connect to the AWS EventBridge Bus (`quilt-edp`) Rule you created above
+  and ensure the Rule state is `ENABLED`
+3. Permissions:
+  * Automatically obtained from the attached `AWSLambdaVPCAccessExecutionRole`
+4. Destinations: N/A
+5. Function URL: N/A
+6. Environment variables:
+
+  | Key  | Value |
+  | ------------- | ------------- |
+  | `LOG_LEVEL` | `DEBUG` |
+  | `POWERTOOLS_LOGGER_LOG_EVENT` | `1` |
+  | `QUARANTINE_BUCKET_NAME` | `quilt-experiment-quarantine` |
+  | `QUILT_URL` | `<YOUR-QUILT-DNS>` |
+  | `SNS_TOPIC_ARN` | `<YOUR-SNS-TOPIC-ARN>` |
+  | `WORKFLOW_NAME` | `<YOUR-WORKFLOW-NAME>` |
+
+7. Tags: N/A for this example
+8. VPC: The `VPC`, `Subnets` and `Security groups` associated with your environment.
+9. Monitoring:
+  * Logs and metrics (default): `Enabled`
+10. Concurrency: N/A
+11. Asynchronous invocation: Defaults are good
+12. Code signing: N/A
+13. Database proxies: N/A
+14. File systems: N/A
+15. State machines: N/A
+
+
 
 ```python
 import datetime
