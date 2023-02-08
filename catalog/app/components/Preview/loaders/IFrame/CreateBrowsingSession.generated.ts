@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type components_Preview_loaders_CreateBrowsingSessionMutationVariables =
+export type components_Preview_loaders_IFrame_CreateBrowsingSessionMutationVariables =
   Types.Exact<{
     scope: Types.Scalars['String']
     ttl: Types.Maybe<Types.Scalars['Int']>
   }>
 
-export type components_Preview_loaders_CreateBrowsingSessionMutation = {
+export type components_Preview_loaders_IFrame_CreateBrowsingSessionMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly browsingSessionCreate:
@@ -17,13 +17,16 @@ export type components_Preview_loaders_CreateBrowsingSessionMutation = {
     | { readonly __typename: 'OperationError' }
 }
 
-export const components_Preview_loaders_CreateBrowsingSessionDocument = {
+export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'mutation',
-      name: { kind: 'Name', value: 'components_Preview_loaders_CreateBrowsingSession' },
+      name: {
+        kind: 'Name',
+        value: 'components_Preview_loaders_IFrame_CreateBrowsingSession',
+      },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -80,8 +83,8 @@ export const components_Preview_loaders_CreateBrowsingSessionDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  components_Preview_loaders_CreateBrowsingSessionMutation,
-  components_Preview_loaders_CreateBrowsingSessionMutationVariables
+  components_Preview_loaders_IFrame_CreateBrowsingSessionMutation,
+  components_Preview_loaders_IFrame_CreateBrowsingSessionMutationVariables
 >
 
-export { components_Preview_loaders_CreateBrowsingSessionDocument as default }
+export { components_Preview_loaders_IFrame_CreateBrowsingSessionDocument as default }

@@ -14,7 +14,7 @@ import { PreviewData } from '../../types'
 
 import FileType from '../fileType'
 
-import CREATE_BROWSING_SESSION from '../CreateBrowsingSession.generated'
+import CREATE_BROWSING_SESSION from './CreateBrowsingSession.generated'
 
 interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
   logicalKey: string
@@ -62,7 +62,7 @@ function useSessionId(handle: FileHandle) {
 function useKeepAlive(sessionId: string | null) {
   usePolling(() => {
     if (!sessionId) return
-    console.log('Refresh session', sessionId)
+    log.log('Refresh session', sessionId)
   }, 5)
 }
 
