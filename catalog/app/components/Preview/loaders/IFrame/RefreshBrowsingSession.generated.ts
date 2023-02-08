@@ -16,7 +16,14 @@ export type components_Preview_loaders_IFrame_RefreshBrowsingSessionMutation = {
         Types.BrowsingSession,
         'id' | 'expires'
       >)
-    | { readonly __typename: 'InvalidInput' }
+    | ({ readonly __typename: 'InvalidInput' } & {
+        readonly errors: ReadonlyArray<
+          { readonly __typename: 'InputError' } & Pick<
+            Types.InputError,
+            'path' | 'message'
+          >
+        >
+      })
     | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
 }
 
@@ -78,6 +85,29 @@ export const components_Preview_loaders_IFrame_RefreshBrowsingSessionDocument = 
                     selections: [
                       { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'expires' } },
+                    ],
+                  },
+                },
+                {
+                  kind: 'InlineFragment',
+                  typeCondition: {
+                    kind: 'NamedType',
+                    name: { kind: 'Name', value: 'InvalidInput' },
+                  },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'errors' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'path' } },
+                            { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                          ],
+                        },
+                      },
                     ],
                   },
                 },

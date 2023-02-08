@@ -5,6 +5,12 @@ mutation ($id: ID!, $ttl: Int) {
       id
       expires
     }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+      }
+    }
     ... on OperationError {
       message
     }
