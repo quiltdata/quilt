@@ -1,5 +1,5 @@
-mutation ($scope: String!, $ttl: Int) {
-  browsingSessionCreate(scope: $scope, ttl: $ttl) {
+mutation ($id: ID!, $ttl: Int) {
+  browsingSessionRefresh(id: $id, ttl: $ttl) {
     __typename
     ... on BrowsingSession {
       id

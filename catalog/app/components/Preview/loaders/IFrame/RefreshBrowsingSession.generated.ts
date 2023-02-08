@@ -2,16 +2,16 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../../model/graphql/types.generated'
 
-export type components_Preview_loaders_IFrame_CreateBrowsingSessionMutationVariables =
+export type components_Preview_loaders_IFrame_RefreshBrowsingSessionMutationVariables =
   Types.Exact<{
-    scope: Types.Scalars['String']
+    id: Types.Scalars['ID']
     ttl: Types.Maybe<Types.Scalars['Int']>
   }>
 
-export type components_Preview_loaders_IFrame_CreateBrowsingSessionMutation = {
+export type components_Preview_loaders_IFrame_RefreshBrowsingSessionMutation = {
   readonly __typename: 'Mutation'
 } & {
-  readonly browsingSessionCreate:
+  readonly browsingSessionRefresh:
     | ({ readonly __typename: 'BrowsingSession' } & Pick<
         Types.BrowsingSession,
         'id' | 'expires'
@@ -20,7 +20,7 @@ export type components_Preview_loaders_IFrame_CreateBrowsingSessionMutation = {
     | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
 }
 
-export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
+export const components_Preview_loaders_IFrame_RefreshBrowsingSessionDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -28,15 +28,15 @@ export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
       operation: 'mutation',
       name: {
         kind: 'Name',
-        value: 'components_Preview_loaders_IFrame_CreateBrowsingSession',
+        value: 'components_Preview_loaders_IFrame_RefreshBrowsingSession',
       },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'scope' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'id' } },
           type: {
             kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'ID' } },
           },
         },
         {
@@ -50,12 +50,12 @@ export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
         selections: [
           {
             kind: 'Field',
-            name: { kind: 'Name', value: 'browsingSessionCreate' },
+            name: { kind: 'Name', value: 'browsingSessionRefresh' },
             arguments: [
               {
                 kind: 'Argument',
-                name: { kind: 'Name', value: 'scope' },
-                value: { kind: 'Variable', name: { kind: 'Name', value: 'scope' } },
+                name: { kind: 'Name', value: 'id' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'id' } },
               },
               {
                 kind: 'Argument',
@@ -102,8 +102,8 @@ export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  components_Preview_loaders_IFrame_CreateBrowsingSessionMutation,
-  components_Preview_loaders_IFrame_CreateBrowsingSessionMutationVariables
+  components_Preview_loaders_IFrame_RefreshBrowsingSessionMutation,
+  components_Preview_loaders_IFrame_RefreshBrowsingSessionMutationVariables
 >
 
-export { components_Preview_loaders_IFrame_CreateBrowsingSessionDocument as default }
+export { components_Preview_loaders_IFrame_RefreshBrowsingSessionDocument as default }

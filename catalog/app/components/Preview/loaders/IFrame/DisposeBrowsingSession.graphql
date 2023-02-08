@@ -1,0 +1,7 @@
+mutation ($id: ID!) {
+  browsingSessionDispose(id: $id) {
+    ... on OperationError {
+      message
+    }
+  }
+}
