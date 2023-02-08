@@ -21,7 +21,7 @@ account manager must configure your CloudFormation stack to run its services
 Additionally you will need to create and configure the following AWS resources,
 or equivalents depending on your network architecture:
 
-1. Create an interface VPC endpoint for Amazon API Gateway
+1. Create an interface VPC endpoint for Amazon API Gateway.
 
     Restrict access to the Quilt REST APIs to within your VPC by [creating
     an interface VPC endpoint for Amazon API
