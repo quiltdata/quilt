@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { useBucketConfig, useCurrentBucket, useIsInStack } from 'utils/BucketConfig'
+import { useIsInStack } from 'utils/BucketConfig'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import * as Text from './Text'
 import * as IFrame from './IFrame'
@@ -9,17 +9,14 @@ import * as utils from './utils'
 
 export const detect = utils.extIn(['.htm', '.html'])
 
-function useIsJsEnabled(handle) {
-  const bucket = useCurrentBucket()
-  const currentBucket = useBucketConfig(bucket)
-  const handleBucket = useBucketConfig(handle.bucket)
-  return currentBucket.tags.includes('quilt-js') && handleBucket.tags.includes('quilt-js')
+function useIsJsEnabled() {
+  return true
 }
 
 export const FILE_TYPE = FileType.Html
 
 export const Loader = function HtmlLoader({ handle, children }) {
-  const isJsEnabled = useIsJsEnabled(handle)
+  const isJsEnabled = useIsJsEnabled()
   const isInStack = useIsInStack()
   const statusReportsBucket = useStatusReportsBucket()
 

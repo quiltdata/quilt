@@ -83,6 +83,91 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'BrowsingSession',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'expires',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'ID',
+      },
+      {
+        kind: 'UNION',
+        name: 'BrowsingSessionCreateResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BrowsingSession',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'BrowsingSessionDisposeResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'Ok',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'BrowsingSessionRefreshResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BrowsingSession',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'OperationError',
+          },
+        ],
+      },
+      {
         kind: 'SCALAR',
         name: 'String',
       },
@@ -923,10 +1008,6 @@ export default {
         name: 'JsonRecord',
       },
       {
-        kind: 'SCALAR',
-        name: 'ID',
-      },
-      {
         kind: 'OBJECT',
         name: 'ManagedRole',
         fields: [
@@ -1518,6 +1599,100 @@ export default {
               ofType: {
                 kind: 'UNION',
                 name: 'RoleSetDefaultResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'browsingSessionCreate',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BrowsingSessionCreateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'scope',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'ttl',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'browsingSessionRefresh',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BrowsingSessionRefreshResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'ttl',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Int',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'browsingSessionDispose',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'BrowsingSessionDisposeResult',
                 ofType: null,
               },
             },

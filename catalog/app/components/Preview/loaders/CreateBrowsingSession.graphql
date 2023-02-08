@@ -1,0 +1,8 @@
+mutation ($scope: String!, $ttl: Int) {
+  browsingSessionCreate(scope: $scope, ttl: $ttl) {
+    __typename
+    ... on BrowsingSession {
+      id
+    }
+  }
+}

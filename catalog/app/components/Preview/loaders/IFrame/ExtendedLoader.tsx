@@ -1,111 +1,64 @@
 import * as React from 'react'
+import * as urql from 'urql'
 
-import * as AWS from 'utils/AWS'
-import * as s3paths from 'utils/s3paths'
+import cfg from 'constants/config'
+import AsyncResult from 'utils/AsyncResult'
+import log from 'utils/Logging'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import * as PackageUri from 'utils/PackageUri'
+import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { PreviewData } from '../../types'
 
-import * as utils from '../utils'
+import FileType from '../fileType'
 
-import useMessageBus from './SDK/messageBus'
+import CREATE_BROWSING_SESSION from '../CreateBrowsingSession.generated'
 
-const MAX_BYTES = 10 * 1024
-
-interface Env {
-  PreviewHandle: s3paths.S3HandleBase
+interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
+  logicalKey: string
   packageHandle: PackageHandle
-}
-
-interface PreviewHandle extends s3paths.S3HandleBase {
-  packageHandle: PackageHandle
-}
-
-// TODO: return info and warnings as well
-//       and render them with lambda warnings
-function prepareSrcDoc(html: string, env: Env, scripts: string) {
-  return html.replace(
-    '<head>',
-    `<head>
-    ${scripts}
-    <script>
-      function onReady(callback) {
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', () => callback(window.quilt.env))
-        } else {
-          callback(window.quilt.env)
-        }
-      }
-      if (!window.quilt) {
-        window.quilt = {}
-      }
-      window.quilt.env = ${JSON.stringify(env)}
-      window.quilt.onReady = onReady
-    </script>`,
-  )
-}
-
-function useContextEnv(handle: PreviewHandle): Env {
-  return React.useMemo(() => {
-    const { packageHandle, ...PreviewHandle } = handle
-    return {
-      PreviewHandle,
-      packageHandle,
-    }
-  }, [handle])
-}
-
-function useInjectedScripts() {
-  return React.useCallback(async () => {
-    const response = await window.fetch('/__iframe-sdk')
-    const html = await response.text()
-    return html.replace('<html>', '').replace('</html>', '')
-  }, [])
-}
-
-interface TextDataOutput {
-  info: {
-    data: {
-      head: string[]
-      tail: string[]
-    }
-    note: string
-    warnings: string
-  }
 }
 
 interface IFrameLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: PreviewHandle
+  handle: FileHandle
 }
 
-export default function ExtendedIFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const env = useContextEnv(handle)
+export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderProps) {
+  const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
+  const [sessionId, setSessionId] = React.useState<string | null>(null)
+  const scope = PackageUri.stringify(handle.packageHandle)
+  React.useEffect(() => {
+    let ignore = false
+    // on mount: mutation: create browsing session
+    createSession({ scope, ttl: 60 * 60 })
+      .then(async (res) => {
+        if (ignore) return
+        if (res.error) throw res.error
+        if (!res.data) throw new Error('No data')
+        const r = res.data.browsingSessionCreate
+        switch (r.__typename) {
+          case 'BrowsingSession':
+            setSessionId(r.id)
+            return
+          default:
+            return assertNever(r as never)
+        }
+      })
+      .catch((e) => {
+        log.error(e)
+      })
 
-  const sign = AWS.Signer.useS3Signer()
-  const onMessage = useMessageBus(handle)
+    return () => {
+      // TODO: dispose
+      ignore = true
+    }
+  }, [scope, createSession])
+  const src = `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`
 
-  const injectScripts = useInjectedScripts()
-
-  const src = React.useMemo(
-    () => sign(handle, { ResponseContentType: 'text/html' }),
-    [handle, sign],
+  // TODO: issue a head request to ensure existence and get storage class
+  return children(
+    AsyncResult.Ok(PreviewData.IFrame({ src, modes: [FileType.Html, FileType.Text] })),
   )
-  const { result, fetch } = utils.usePreview({
-    type: 'txt',
-    handle,
-    query: { max_bytes: MAX_BYTES },
-  })
-  const processed = utils.useAsyncProcessing(
-    result,
-    async ({ info: { data, note, warnings } }: TextDataOutput) => {
-      const scripts = await injectScripts()
-      const head = data.head.join('\n')
-      const tail = data.tail.join('\n')
-      // TODO: get storage class
-      const srcDoc = prepareSrcDoc([head, tail].join('\n'), env, scripts)
-      return PreviewData.IFrame({ onMessage, srcDoc, src, note, warnings })
-    },
-  )
-  return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
 }

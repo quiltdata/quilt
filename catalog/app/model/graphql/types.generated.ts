@@ -36,6 +36,18 @@ export interface AccessCounts {
   readonly counts: ReadonlyArray<AccessCountForDate>
 }
 
+export interface BrowsingSession {
+  readonly __typename: 'BrowsingSession'
+  readonly id: Scalars['ID']
+  readonly expires: Scalars['Datetime']
+}
+
+export type BrowsingSessionCreateResult = BrowsingSession | InvalidInput | OperationError
+
+export type BrowsingSessionDisposeResult = Ok | OperationError
+
+export type BrowsingSessionRefreshResult = BrowsingSession | InvalidInput | OperationError
+
 export interface BucketAddInput {
   readonly name: Scalars['String']
   readonly title: Scalars['String']
@@ -261,6 +273,9 @@ export interface Mutation {
   readonly roleUpdateUnmanaged: RoleUpdateResult
   readonly roleDelete: RoleDeleteResult
   readonly roleSetDefault: RoleSetDefaultResult
+  readonly browsingSessionCreate: BrowsingSessionCreateResult
+  readonly browsingSessionRefresh: BrowsingSessionRefreshResult
+  readonly browsingSessionDispose: BrowsingSessionDisposeResult
 }
 
 export interface MutationpackageConstructArgs {
@@ -342,6 +357,20 @@ export interface MutationroleDeleteArgs {
 }
 
 export interface MutationroleSetDefaultArgs {
+  id: Scalars['ID']
+}
+
+export interface MutationbrowsingSessionCreateArgs {
+  scope: Scalars['String']
+  ttl?: Scalars['Int']
+}
+
+export interface MutationbrowsingSessionRefreshArgs {
+  id: Scalars['ID']
+  ttl?: Scalars['Int']
+}
+
+export interface MutationbrowsingSessionDisposeArgs {
   id: Scalars['ID']
 }
 
