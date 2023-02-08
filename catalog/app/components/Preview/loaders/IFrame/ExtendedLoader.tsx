@@ -8,6 +8,7 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
+import usePolling from 'utils/usePolling'
 
 import { PreviewData } from '../../types'
 
@@ -25,9 +26,9 @@ interface IFrameLoaderProps {
   handle: FileHandle
 }
 
-export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
+function useSessionId(handle: FileHandle) {
   const [sessionId, setSessionId] = React.useState<string | null>(null)
+  const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
   const scope = PackageUri.stringify(handle.packageHandle)
   React.useEffect(() => {
     let ignore = false
@@ -55,9 +56,23 @@ export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderPr
       ignore = true
     }
   }, [scope, createSession])
+  return sessionId
+}
+
+function useKeepAlive(sessionId: string | null) {
+  usePolling(() => {
+    if (!sessionId) return
+    console.log('Refresh session', sessionId)
+  }, 5)
+}
+
+export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderProps) {
+  const sessionId = useSessionId(handle)
+  useKeepAlive(sessionId)
+  if (!sessionId) return children(AsyncResult.Pending())
+
   const src = `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`
 
-  // TODO: issue a head request to ensure existence and get storage class
   return children(
     AsyncResult.Ok(PreviewData.IFrame({ src, modes: [FileType.Html, FileType.Text] })),
   )

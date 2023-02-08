@@ -6,6 +6,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import { handleToHttpsUri } from 'utils/s3paths'
+import usePolling from 'utils/usePolling'
 
 import * as Credentials from './Credentials'
 import * as S3 from './S3'
@@ -45,19 +46,6 @@ export function useS3Signer({ urlExpiration: exp, forceProxy = false } = {}) {
   )
 }
 
-function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
-  const callbackRef = React.useRef()
-  callbackRef.current = callback
-  React.useEffect(() => {
-    const int = setInterval(() => {
-      if (callbackRef.current) callbackRef.current(Date.now())
-    }, interval * 1000)
-    return () => {
-      clearInterval(int)
-    }
-  }, [interval])
-}
-
 export function useDownloadUrl(handle, { filename = '', contentType = '' } = {}) {
   const { urlExpiration } = React.useContext(Ctx)
   const sign = useS3Signer()
@@ -74,7 +62,7 @@ export function useDownloadUrl(handle, { filename = '', contentType = '' } = {})
     if ((now - state.ts) / 1000 > urlExpiration - LAG) {
       setState(doSign())
     }
-  })
+  }, POLL_INTERVAL)
   return state.url
 }
 
