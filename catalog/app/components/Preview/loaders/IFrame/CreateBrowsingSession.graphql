@@ -5,6 +5,12 @@ mutation ($scope: String!, $ttl: Int) {
       id
       expires
     }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+      }
+    }
     ... on OperationError {
       message
     }

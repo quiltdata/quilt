@@ -8,7 +8,6 @@ import AsyncResult from 'utils/AsyncResult'
 import log from 'utils/Logging'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
-import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { PreviewData } from '../../types'
@@ -23,6 +22,60 @@ const SESSION_TTL = 60
 
 type Session = Model.GQLTypes.BrowsingSession
 
+function useCreateSession() {
+  const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
+  return React.useCallback(
+    async (scope: string, ttl) => {
+      const res = await createSession({ scope, ttl })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data')
+      const r = res.data.browsingSessionCreate
+      switch (r.__typename) {
+        case 'BrowsingSession':
+          return r
+        case 'OperationError':
+          throw new Error(r.message)
+        case 'InvalidInput':
+          throw new Error(
+            r.errors
+              .map(({ message, path }) => `{message: ${message}, path: ${path} }`)
+              .join('\n'),
+          )
+        default:
+          throw r
+      }
+    },
+    [createSession],
+  )
+}
+
+function useRefreshSession() {
+  const [, refreshSession] = urql.useMutation(REFRESH_BROWSING_SESSION)
+  return React.useCallback(
+    async (id: string, ttl: number) => {
+      const res = await refreshSession({ id, ttl })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data')
+      const r = res.data.browsingSessionRefresh
+      switch (r.__typename) {
+        case 'BrowsingSession':
+          return r
+        case 'OperationError':
+          throw new Error(r.message)
+        case 'InvalidInput':
+          throw new Error(
+            r.errors
+              .map(({ message, path }) => `{message: ${message}, path: ${path} }`)
+              .join('\n'),
+          )
+        default:
+          throw r
+      }
+    },
+    [refreshSession],
+  )
+}
+
 interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
   logicalKey: string
   packageHandle: PackageHandle
@@ -34,38 +87,35 @@ interface IFrameLoaderProps {
 }
 
 function useSession(handle: FileHandle) {
-  const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<Error | null>(null)
+  const [loading, setLoading] = React.useState(true)
   const [session, setSession] = React.useState<Session | null>(null)
-  const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
+
+  const createSession = useCreateSession()
+  const refreshSession = useRefreshSession()
+
   const [, disposeSession] = urql.useMutation(DISPOSE_BROWSING_SESSION)
-  const [, refreshSession] = urql.useMutation(REFRESH_BROWSING_SESSION)
+
   const scope = PackageUri.stringify(handle.packageHandle)
+
   React.useEffect(() => {
     let ignore = false
     let sessionClosure: Session | null = null
-    createSession({ scope, ttl: SESSION_TTL })
-      .then((res) => {
+
+    async function requestSession() {
+      try {
+        const s = await createSession(scope, SESSION_TTL)
         if (ignore) return
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.browsingSessionCreate
-        switch (r.__typename) {
-          case 'BrowsingSession':
-            sessionClosure = r
-            setSession(r)
-            return
-          default:
-            return assertNever(r as never)
-        }
-      })
-      .catch((e) => {
+        sessionClosure = s
+        setSession(s)
+      } catch (e) {
         if (e instanceof Error) setError(e)
         log.error(e)
-      })
-      .finally(() => {
-        setLoading(false)
-      })
+      }
+      setLoading(false)
+    }
+
+    requestSession()
 
     return () => {
       if (sessionClosure?.id) {
@@ -77,21 +127,11 @@ function useSession(handle: FileHandle) {
 
   React.useEffect(() => {
     if (!session) return
-    const expiresAt = session.expires.getTime()
-    const delay = (expiresAt - Date.now()) / 3
+    const delay = (session.expires.getTime() - Date.now()) / 4
     setTimeout(async () => {
       try {
-        const res = await refreshSession({ id: session.id, ttl: 180 })
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.browsingSessionRefresh
-        switch (r.__typename) {
-          case 'BrowsingSession':
-            setSession(r)
-            return
-          default:
-            return assertNever(r as never)
-        }
+        const s = await refreshSession(session.id, SESSION_TTL)
+        setSession(s)
       } catch (e) {
         if (e instanceof Error) setError(e)
         log.error(e)
@@ -109,14 +149,15 @@ export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderPr
   return children(
     AsyncResult.case(
       {
-        Ok: (s: Session) => {
-          return AsyncResult.Ok(
+        Ok: (s: Session) =>
+          AsyncResult.Ok(
             PreviewData.IFrame({
               src: `${cfg.s3Proxy}/browse/${s?.id}/${handle.logicalKey}`,
               modes: [FileType.Html, FileType.Text],
             }),
-          )
-        },
+          ),
+        Err: AsyncResult.Err,
+        Pending: AsyncResult.Pending,
         _: R.identity,
       },
       sessionData,

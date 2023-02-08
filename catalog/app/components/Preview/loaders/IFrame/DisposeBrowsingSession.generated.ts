@@ -51,6 +51,7 @@ export const components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument = 
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
+                { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
                 {
                   kind: 'InlineFragment',
                   typeCondition: {
