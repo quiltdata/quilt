@@ -1,7 +1,14 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   extends: ['airbnb-typescript', 'prettier'],
-  plugins: ['@typescript-eslint', 'redux-saga', 'react', 'react-hooks', 'jsx-a11y', 'import'],
+  plugins: [
+    '@typescript-eslint',
+    'redux-saga',
+    'react',
+    'react-hooks',
+    'jsx-a11y',
+    'import',
+  ],
   env: {
     jest: true,
     browser: true,
@@ -23,7 +30,10 @@ module.exports = {
     'import/no-named-as-default': 0,
     'import/no-unresolved': 2,
     'import/no-webpack-loader-syntax': 0,
-    'import/order': [2, { groups: ["builtin", "external", "internal", "parent", "sibling"] }],
+    'import/order': [
+      2,
+      { groups: ['builtin', 'external', 'internal', 'parent', 'sibling'] },
+    ],
     'import/prefer-default-export': 0,
     'jsx-a11y/aria-props': 2,
     'jsx-a11y/label-has-associated-control': [
