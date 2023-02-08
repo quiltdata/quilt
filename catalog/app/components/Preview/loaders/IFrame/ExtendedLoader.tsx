@@ -15,8 +15,8 @@ import { PreviewData } from '../../types'
 import FileType from '../fileType'
 
 import CREATE_BROWSING_SESSION from './CreateBrowsingSession.generated'
-import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
 import DISPOSE_BROWSING_SESSION from './DisposeBrowsingSession.generated'
+import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
 
 const SESSION_TTL = 60
 
