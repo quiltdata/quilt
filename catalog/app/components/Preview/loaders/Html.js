@@ -17,26 +17,30 @@ export const detect = utils.extIn(['.htm', '.html'])
 
 export const FILE_TYPE = FileType.Html
 
-export const Loader = function HtmlLoader({ handle, children }) {
+function useUnsafeToRenderIframe(handle) {
   const isInStack = useIsInStack()
   const statusReportsBucket = useStatusReportsBucket()
+  return (
+    cfg.mode !== 'LOCAL' &&
+    !isInStack(handle.bucket) &&
+    handle.bucket !== statusReportsBucket
+  )
+}
+
+export const Loader = function HtmlLoader({ handle, children }) {
+  const unsafeToRenderIframe = useUnsafeToRenderIframe(handle)
   const bucketData = useQuery({
     query: BUCKET_CONFIG_QUERY,
     variables: { bucket: handle.bucket },
+    pause: unsafeToRenderIframe,
   })
+  if (unsafeToRenderIframe) return <Text.Loader {...{ handle, children }} />
   return bucketData.case({
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
     data: ({ bucketConfig: { browsable } }) => {
       if (browsable) return <IFrame.ExtendedLoader {...{ handle, children }} />
-      if (
-        cfg.mode === 'LOCAL' ||
-        isInStack(handle.bucket) ||
-        handle.bucket === statusReportsBucket
-      ) {
-        return <IFrame.Loader {...{ handle, children }} />
-      }
-      return <Text.Loader {...{ handle, children }} />
+      return <IFrame.Loader {...{ handle, children }} />
     },
   })
 }
