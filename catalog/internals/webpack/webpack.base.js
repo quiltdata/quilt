@@ -20,7 +20,6 @@ module.exports = (options) => ({
     app: path.join(process.cwd(), 'app/app'), // Start with app/app.js
     embed: path.join(process.cwd(), 'app/embed'),
     'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
-    iframe: path.join(process.cwd(), 'app/components/Preview/loaders/IFrame/index.ts'),
   },
   output: {
     // Compile into js/build.js
@@ -133,12 +132,6 @@ module.exports = (options) => ({
       chunks: ['embed-debug-harness'],
       template: 'app/embed/debug-harness.html',
       filename: 'embed-debug-harness.html',
-      inject: true,
-    }),
-    new HtmlWebpackPlugin({
-      chunks: ['iframe'],
-      templateContent: '<head></head>',
-      filename: 'iframe.html',
       inject: true,
     }),
 
