@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import { useIsInStack } from 'utils/BucketConfig'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import * as Text from './Text'
 import * as IFrame from './IFrame'
@@ -10,7 +11,8 @@ import * as utils from './utils'
 export const detect = utils.extIn(['.htm', '.html'])
 
 function useIsJsEnabled() {
-  return true
+  const { preferences } = BucketPreferences.use()
+  return preferences?.beta
 }
 
 export const FILE_TYPE = FileType.Html
