@@ -18,7 +18,7 @@ import CREATE_BROWSING_SESSION from './CreateBrowsingSession.generated'
 import DISPOSE_BROWSING_SESSION from './DisposeBrowsingSession.generated'
 import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
 
-const SESSION_TTL = 60
+const SESSION_TTL = 60 * 60
 
 type Session = Model.GQLTypes.BrowsingSession
 
