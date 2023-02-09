@@ -329,12 +329,33 @@ and write permissions to CloudWatch Logs.
     }
     ```
 
+### Amazon SNS Topic
+
+**Topic Creation**
+1. Create a new `Standard` SNS topic (or `FIFO` if strict message
+ordering is required)
+2. Give the topic an easily identifiable name
+3. Encrypt the topic if desired
+4. Access policy:
+  * Publishers: Only the topic owner
+  * Subscribers: On the topic owner
+5. Delivery retry policy: Use the default delivery retry policy
+unless you have specific requirements
+6. Optionally add Tags to search and filter and track costs
+7. Click `Create topic`
+
+**(Optional) Topic Subscription**
+If your Lambda function requires notification on failure (or success), 
+create a new subscription using the desired protocol (Email,
+Lambda, etc).
+
 ### Lambda Function
 
-Create a lambda function (`MetadataTest`) with the following configuration:
+Create a new Python 3.9 Lambda function (`MetadataTest`).
 
+**Configuration**
 1. General configuration:
-  * Description: -
+  * Description: Optionally add a meaningful description.
   * Memory: 512 MB
   * Ephemeral storage: 512 MB
   * Timeout: 15 min 0 sec
@@ -353,9 +374,9 @@ Create a lambda function (`MetadataTest`) with the following configuration:
   | `LOG_LEVEL` | `DEBUG` |
   | `POWERTOOLS_LOGGER_LOG_EVENT` | `1` |
   | `QUARANTINE_BUCKET_NAME` | `quilt-experiment-quarantine` |
-  | `QUILT_URL` | `<YOUR-QUILT-DNS>` |
-  | `SNS_TOPIC_ARN` | `<YOUR-SNS-TOPIC-ARN>` |
-  | `WORKFLOW_NAME` | `<YOUR-WORKFLOW-NAME>` |
+  | `QUILT_URL` | `<QUILT-DNS>` |
+  | `SNS_TOPIC_ARN` | `<OPTIONAL-SNS-TOPIC-ARN>` |
+  | `WORKFLOW_NAME` | `<OPTIONAL-WORKFLOW-NAME>` |
 
 7. Tags: N/A for this example
 8. VPC: The `VPC`, `Subnets` and `Security groups` associated with your environment.
@@ -368,8 +389,16 @@ Create a lambda function (`MetadataTest`) with the following configuration:
 14. File systems: N/A
 15. State machines: N/A
 
+**Python Script**
 
+> Add [AWS Lambda Powertools for
+Python](https://awslabs.github.io/aws-lambda-powertools-python) to your `Layers` 
+for best practice adoption.
 
+The script below assumes a deployment package or Lambda layer that
+includes the libraries used.
+
+<!--pytest.mark.skip-->
 ```python
 import datetime
 import functools
@@ -389,7 +418,6 @@ logger = Logger()
 s3 = boto3.client("s3")
 sns = boto3.client("sns")
 
-META_OBJ_NAME = "metadata.xlsx"
 WORKFLOW_NAME = os.environ.get("WORKFLOW_NAME") or ...
 QUARANTINE_BUCKET_NAME = os.environ["QUARANTINE_BUCKET_NAME"]
 SNS_TOPIC_ARN = os.environ["SNS_TOPIC_ARN"]
