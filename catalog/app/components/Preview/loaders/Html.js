@@ -39,7 +39,7 @@ export const Loader = function HtmlLoader({ handle, children }) {
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
     data: ({ bucketConfig: { browsable } }) => {
-      if (browsable) return <IFrame.ExtendedLoader {...{ handle, children }} />
+      if (browsable) return <IFrame.BrowsableLoader {...{ handle, children }} />
       return <IFrame.Loader {...{ handle, children }} />
     },
   })

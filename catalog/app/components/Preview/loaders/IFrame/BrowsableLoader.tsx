@@ -88,11 +88,10 @@ function useDisposeSession() {
 }
 
 interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
-  logicalKey: string
   packageHandle: PackageHandle
 }
 
-interface IFrameLoaderProps {
+interface BrowsableLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   handle: FileHandle
 }
@@ -171,7 +170,7 @@ function useSession(handle: FileHandle) {
   return AsyncResult.Ok(session)
 }
 
-export default function ExtendedFrameLoader({ handle, children }: IFrameLoaderProps) {
+export default function BrowsableLoader({ handle, children }: BrowsableLoaderProps) {
   const sessionData = useSession(handle)
   return children(
     AsyncResult.case(
