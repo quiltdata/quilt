@@ -17,40 +17,26 @@ export const detect = utils.extIn(['.htm', '.html'])
 
 export const FILE_TYPE = FileType.Html
 
-function useSwitchLoader(handle) {
-  const variables = React.useMemo(() => ({ bucket: handle.bucket }), [handle])
+export const Loader = function HtmlLoader({ handle, children }) {
   const isInStack = useIsInStack()
   const statusReportsBucket = useStatusReportsBucket()
   const bucketData = useQuery({
     query: BUCKET_CONFIG_QUERY,
-    variables,
+    variables: { bucket: handle.bucket },
   })
   return bucketData.case({
-    fetching: AsyncResult.Pending,
-    error: AsyncResult.Err,
+    fetching: () => children(AsyncResult.Pending()),
+    error: (e) => children(AsyncResult.Err(e)),
     data: ({ bucketConfig: { browsable } }) => {
-      if (browsable) return AsyncResult.Ok(IFrame.ExtendedLoader)
+      if (browsable) return <IFrame.ExtendedLoader {...{ handle, children }} />
       if (
         cfg.mode === 'LOCAL' ||
         isInStack(handle.bucket) ||
         handle.bucket === statusReportsBucket
       ) {
-        return AsyncResult.Ok(IFrame.Loader)
+        return <IFrame.Loader {...{ handle, children }} />
       }
-      return AsyncResult.Ok(Text.Loader)
+      return <Text.Loader {...{ handle, children }} />
     },
   })
-}
-
-export const Loader = function HtmlLoader({ handle, children }) {
-  const loaderData = useSwitchLoader(handle)
-  return AsyncResult.case(
-    {
-      Pending: () => children(AsyncResult.Pending()),
-      Err: (e) => children(AsyncResult.Err(e)),
-      Ok: (SelectedLoader) => <SelectedLoader {...{ handle, children }} />,
-      _: () => null,
-    },
-    loaderData,
-  )
 }
