@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import { useIsInStack } from 'utils/BucketConfig'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
@@ -25,8 +26,9 @@ export const Loader = function HtmlLoader({ handle, children }) {
   if (isJsEnabled) {
     return <IFrame.ExtendedLoader {...{ handle, children }} />
   }
+
   if (
-    mode === 'LOCAL' ||
+    cfg.mode === 'LOCAL' ||
     isInStack(handle.bucket) ||
     handle.bucket === statusReportsBucket
   ) {
