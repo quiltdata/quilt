@@ -72,12 +72,12 @@ import gzip
 import importlib
 import io
 import json
+import tempfile
 import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from .util import QuiltException
 
@@ -1062,7 +1062,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
             from anndata.experimental import write_elem
         except ImportError:  # pragma: no cover
             warnings.warn("anndata.experimenta.write_elem got moved", FutureWarning)
-            with TemporaryDirectory() as td:
+            with tempfile.TemporaryDirectory() as td:
                 path = Path(td) / 'data.h5ad'
                 obj.write(path, **opts_with_defaults)
                 data = path.read_bytes()
