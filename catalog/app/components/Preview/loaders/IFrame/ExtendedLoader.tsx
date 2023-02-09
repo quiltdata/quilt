@@ -102,6 +102,7 @@ function useSession(handle: FileHandle) {
   const [loading, setLoading] = React.useState(true)
   const [session, setSession] = React.useState<Session | null>(null)
   const [key, setKey] = React.useState(0)
+  // TODO: move `retry` to upper level
   const retry = React.useCallback(() => {
     setError(null)
     setLoading(true)
@@ -125,7 +126,13 @@ function useSession(handle: FileHandle) {
         sessionClosure = s
         setSession(s)
       } catch (e) {
-        setError(PreviewError.Unexpected({ retry }))
+        if (
+          /Bucket [^ ]* is not browsable/.test((e as Record<'message', string>)?.message)
+        ) {
+          setError(PreviewError.Forbidden())
+        } else {
+          setError(PreviewError.Unexpected({ retry }))
+        }
         log.error(e)
       }
       setLoading(false)
