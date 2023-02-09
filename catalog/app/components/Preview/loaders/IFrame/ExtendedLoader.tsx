@@ -76,6 +76,17 @@ function useRefreshSession() {
   )
 }
 
+function useDisposeSession() {
+  const [, disposeSession] = urql.useMutation(DISPOSE_BROWSING_SESSION)
+  return React.useCallback(
+    (id?: string) => {
+      if (!id) return
+      return disposeSession({ id })
+    },
+    [disposeSession],
+  )
+}
+
 interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
   logicalKey: string
   packageHandle: PackageHandle
@@ -92,9 +103,8 @@ function useSession(handle: FileHandle) {
   const [session, setSession] = React.useState<Session | null>(null)
 
   const createSession = useCreateSession()
+  const disposeSession = useDisposeSession()
   const refreshSession = useRefreshSession()
-
-  const [, disposeSession] = urql.useMutation(DISPOSE_BROWSING_SESSION)
 
   const scope = PackageUri.stringify(handle.packageHandle)
 
@@ -118,9 +128,7 @@ function useSession(handle: FileHandle) {
     requestSession()
 
     return () => {
-      if (sessionClosure?.id) {
-        disposeSession({ id: sessionClosure?.id })
-      }
+      disposeSession(sessionClosure?.id)
       ignore = true
     }
   }, [createSession, disposeSession, scope])
@@ -128,7 +136,7 @@ function useSession(handle: FileHandle) {
   React.useEffect(() => {
     if (!session) return
     const delay = (session.expires.getTime() - Date.now()) / 4
-    setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const s = await refreshSession(session.id, SESSION_TTL)
         setSession(s)
@@ -137,6 +145,7 @@ function useSession(handle: FileHandle) {
         log.error(e)
       }
     }, delay)
+    return () => clearTimeout(timer)
   }, [refreshSession, session])
 
   if (error) return AsyncResult.Err(error)
