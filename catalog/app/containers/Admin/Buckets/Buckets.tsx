@@ -987,6 +987,7 @@ function Edit({ bucket, close }: EditProps) {
         ? DO_NOT_SUBSCRIBE_SYM
         : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
+    browsable: bucket.browsable ?? false,
   }
 
   return (
