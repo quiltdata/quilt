@@ -61,9 +61,6 @@ function useRefreshSession() {
         case 'BrowsingSession':
           return r
         case 'OperationError':
-          if (/Session [^ ]* not found/.test(r.message)) {
-            throw PreviewError.Expired()
-          }
           throw new Error(r.message)
         case 'InvalidInput':
           throw new Error(
@@ -104,6 +101,12 @@ function useSession(handle: FileHandle) {
   const [error, setError] = React.useState<Error | unknown | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [session, setSession] = React.useState<Session | null>(null)
+  const [key, setKey] = React.useState(0)
+  const retry = React.useCallback(() => {
+    setError(null)
+    setLoading(true)
+    setKey(R.inc)
+  }, [])
 
   const createSession = useCreateSession()
   const disposeSession = useDisposeSession()
@@ -122,7 +125,7 @@ function useSession(handle: FileHandle) {
         sessionClosure = s
         setSession(s)
       } catch (e) {
-        setError(e)
+        setError(PreviewError.Unexpected({ retry }))
         log.error(e)
       }
       setLoading(false)
@@ -134,22 +137,27 @@ function useSession(handle: FileHandle) {
       disposeSession(sessionClosure?.id)
       ignore = true
     }
-  }, [createSession, disposeSession, scope])
+  }, [createSession, disposeSession, key, retry, scope])
 
   React.useEffect(() => {
     if (!session) return
-    const delay = (session.expires.getTime() - Date.now()) * 1.2
+    // Refresh when it 20% of time to session end
+    const delay = (session.expires.getTime() - Date.now()) * 0.8
     const timer = setTimeout(async () => {
       try {
         const s = await refreshSession(session.id, SESSION_TTL)
         setSession(s)
       } catch (e) {
-        setError(e)
+        if (/Session [^ ]* not found/.test((e as Record<'message', string>)?.message)) {
+          setError(PreviewError.Expired({ retry }))
+        } else {
+          setError(PreviewError.Unexpected({ retry }))
+        }
         log.error(e)
       }
     }, delay)
     return () => clearTimeout(timer)
-  }, [refreshSession, session])
+  }, [refreshSession, retry, session])
 
   if (error) return AsyncResult.Err(error)
   if (loading) return AsyncResult.Pending()
