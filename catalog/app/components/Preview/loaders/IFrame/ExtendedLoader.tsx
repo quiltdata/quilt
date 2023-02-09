@@ -10,7 +10,7 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
 import type { PackageHandle } from 'utils/packageHandle'
 
-import { PreviewData } from '../../types'
+import { PreviewError, PreviewData } from '../../types'
 
 import FileType from '../fileType'
 
@@ -61,6 +61,9 @@ function useRefreshSession() {
         case 'BrowsingSession':
           return r
         case 'OperationError':
+          if (/Session [^ ]* not found/.test(r.message)) {
+            throw PreviewError.Expired()
+          }
           throw new Error(r.message)
         case 'InvalidInput':
           throw new Error(
@@ -98,7 +101,7 @@ interface IFrameLoaderProps {
 }
 
 function useSession(handle: FileHandle) {
-  const [error, setError] = React.useState<Error | null>(null)
+  const [error, setError] = React.useState<Error | unknown | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [session, setSession] = React.useState<Session | null>(null)
 
@@ -119,7 +122,7 @@ function useSession(handle: FileHandle) {
         sessionClosure = s
         setSession(s)
       } catch (e) {
-        if (e instanceof Error) setError(e)
+        setError(e)
         log.error(e)
       }
       setLoading(false)
@@ -135,13 +138,13 @@ function useSession(handle: FileHandle) {
 
   React.useEffect(() => {
     if (!session) return
-    const delay = (session.expires.getTime() - Date.now()) / 4
+    const delay = (session.expires.getTime() - Date.now()) * 1.2
     const timer = setTimeout(async () => {
       try {
         const s = await refreshSession(session.id, SESSION_TTL)
         setSession(s)
       } catch (e) {
-        if (e instanceof Error) setError(e)
+        setError(e)
         log.error(e)
       }
     }, delay)
