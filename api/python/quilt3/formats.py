@@ -1078,7 +1078,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
         try:
             import anndata as ad
         except ImportError:  # pragma: no cover
-            raise QuiltException("Please install anndata")
+            raise QuiltException("Please install quilt3[anndata]")
 
         import h5py
 
