@@ -125,6 +125,7 @@ type BucketConfig {
   tags: [String!]
   relevanceScore: Int!
   lastIndexed: Datetime
+  browsable: Boolean!
   snsNotificationArn: String @admin
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
@@ -298,6 +299,7 @@ input BucketAddInput {
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
   delayScan: Boolean
+  browsable: Boolean
 }
 
 input BucketUpdateInput {
@@ -313,6 +315,7 @@ input BucketUpdateInput {
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
+  browsable: Boolean
 }
 
 type BucketAddSuccess {

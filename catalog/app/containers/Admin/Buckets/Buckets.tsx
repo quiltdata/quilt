@@ -160,6 +160,10 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('skipMetaDataIndexing'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
+  browsable: R.pipe(
+    R.prop('browsable'),
+    Types.decode(Types.fromNullable(IO.boolean, false)),
+  ),
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
@@ -629,6 +633,14 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
               />
             </M.Box>
           )}
+          <M.Box mt={2}>
+            <RF.Field
+              component={Form.Checkbox}
+              type="checkbox"
+              name="browsable"
+              label="Enable extended iframe browsing"
+            />
+          </M.Box>
         </M.Box>
       </M.Accordion>
     </M.Box>

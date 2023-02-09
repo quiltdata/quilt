@@ -63,6 +63,7 @@ export interface BucketAddInput {
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly delayScan: Maybe<Scalars['Boolean']>
+  readonly browsable: Maybe<Scalars['Boolean']>
 }
 
 export type BucketAddResult =
@@ -97,6 +98,7 @@ export interface BucketConfig {
   readonly tags: Maybe<ReadonlyArray<Scalars['String']>>
   readonly relevanceScore: Scalars['Int']
   readonly lastIndexed: Maybe<Scalars['Datetime']>
+  readonly browsable: Scalars['Boolean']
   readonly snsNotificationArn: Maybe<Scalars['String']>
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
@@ -157,6 +159,7 @@ export interface BucketUpdateInput {
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
   readonly indexContentBytes: Maybe<Scalars['Int']>
+  readonly browsable: Maybe<Scalars['Boolean']>
 }
 
 export type BucketUpdateResult =
