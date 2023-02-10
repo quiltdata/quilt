@@ -151,7 +151,7 @@ function useSession(handle: FileHandle) {
 
   React.useEffect(() => {
     if (!session) return
-    // Refresh when it 20% of time to session end
+    // Refresh when there is 20% left of time to session's end
     const delay = (session.expires.getTime() - Date.now()) * 0.8
     const timer = setTimeout(async () => {
       try {

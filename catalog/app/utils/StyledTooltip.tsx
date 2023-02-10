@@ -16,13 +16,13 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function StyledTooltip({
-  classes: externalClasses,
+  classes: externalCls,
   ...props
 }: M.TooltipProps) {
-  const internalClasses = useStyles()
+  const internalCls = useStyles()
   const classes = React.useMemo(
-    () => R.mergeWith((left, right) => cx(left, right), internalClasses, externalClasses),
-    [internalClasses, externalClasses],
+    () => R.mergeWith(cx, internalCls, externalCls),
+    [internalCls, externalCls],
   )
   return <M.Tooltip classes={classes} {...props} />
 }
