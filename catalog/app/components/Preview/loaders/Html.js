@@ -6,8 +6,8 @@ import { useIsInStack } from 'utils/BucketConfig'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useQuery from 'utils/useQuery'
 
-import * as Text from './Text'
 import * as IFrame from './IFrame'
+import * as Text from './Text'
 import FileType from './fileType'
 import * as utils from './utils'
 
@@ -17,7 +17,8 @@ export const detect = utils.extIn(['.htm', '.html'])
 
 export const FILE_TYPE = FileType.Html
 
-function useUnsafeToRenderIframe(handle) {
+// It's unsafe to render HTML in these conditions
+function useHtmlAsText(handle) {
   const isInStack = useIsInStack()
   const statusReportsBucket = useStatusReportsBucket()
   return (
@@ -28,13 +29,13 @@ function useUnsafeToRenderIframe(handle) {
 }
 
 export const Loader = function HtmlLoader({ handle, children }) {
-  const unsafeToRenderIframe = useUnsafeToRenderIframe(handle)
+  const renderHtmlAsText = useHtmlAsText(handle)
   const bucketData = useQuery({
     query: BUCKET_CONFIG_QUERY,
     variables: { bucket: handle.bucket },
-    pause: unsafeToRenderIframe,
+    pause: renderHtmlAsText,
   })
-  if (unsafeToRenderIframe) return <Text.Loader {...{ handle, children }} />
+  if (renderHtmlAsText) return <Text.Loader {...{ handle, children }} />
   return bucketData.case({
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
