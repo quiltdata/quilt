@@ -650,7 +650,19 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
             component={Form.Checkbox}
             type="checkbox"
             name="browsable"
-            label="Enable extended iframe browsing"
+            label={
+              <>
+                Enable permissive HTML rendering
+                <Hint>
+                  This allows execution of any JavaScript code and fetching network
+                  resources relative to package. But beware, the iframe with rendered HTML
+                  (and package resources) can be shared publicly during session lifespan.
+                  Session is active while the page with rendered HTML is opened.
+                  <br />
+                  Enable only on trusted buckets.
+                </Hint>
+              </>
+            }
           />
         </M.Box>
       </M.Accordion>
