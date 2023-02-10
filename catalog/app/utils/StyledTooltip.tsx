@@ -13,6 +13,9 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: t.spacing(30),
     padding: t.spacing(1),
   },
+  arrow: {
+    color: t.palette.common.white,
+  },
 }))
 
 export default function StyledTooltip({
