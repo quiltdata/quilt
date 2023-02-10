@@ -290,15 +290,17 @@ function PackageCreationForm({
       return !e || e.hash !== file.hash.value
     })
 
-    const entries = FP.function.pipe(
-      R.mergeLeft(files.added, files.existing),
-      R.omit(Object.keys(files.deleted)),
-      Object.entries,
-      R.map(([path, file]) => ({
-        logical_key: path,
-        size: file.size,
-      })),
-    )
+    const entries: { logical_key: string; size: number; meta?: Types.JsonRecord }[] =
+      FP.function.pipe(
+        R.mergeLeft(files.added, files.existing),
+        R.omit(Object.keys(files.deleted)),
+        Object.entries,
+        R.map(([path, file]) => ({
+          logical_key: path,
+          meta: file.meta,
+          size: file.size,
+        })),
+      )
 
     if (!entries.length) {
       const reason = await dialogs.open((props: DialogsOpenProps) => (

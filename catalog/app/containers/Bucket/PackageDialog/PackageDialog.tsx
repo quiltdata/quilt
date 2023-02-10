@@ -20,6 +20,7 @@ import {
 } from 'utils/json-schema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
+import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -557,7 +558,7 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
 
   return React.useCallback(
-    async (entries: $TSFixMe) => {
+    async (entries: { logical_key: string; size: number; meta?: JsonRecord }[]) => {
       const schemaUrl = workflow?.entriesSchema
       if (!schemaUrl) return undefined
       const entriesSchema = await requests.objectSchema({ s3, schemaUrl })
