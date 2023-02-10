@@ -125,7 +125,7 @@ export default function PreviewDisplay({
             heading: 'Malformed JSON',
             body: message,
           }),
-        Expired: () =>
+        Expired: ({ retry }) =>
           renderMessage({
             heading: 'Session is expired',
             body: 'Try to reload the page',
