@@ -19,7 +19,6 @@ export function useOIDC({ provider, popupParams }) {
         const state = Math.random().toString(36).substring(2)
         const query = NamedRoutes.mkSearch({
           redirect_uri: `${window.location.origin}/oauth-callback`,
-          response_mode: 'fragment',
           response_type: 'code',
           scope: 'openid email',
           state,
@@ -36,7 +35,7 @@ export function useOIDC({ provider, popupParams }) {
         const handleMessage = ({ source, origin, data }) => {
           if (source !== popup || origin !== window.location.origin) return
           try {
-            const { type, fragment } = data
+            const { type } = data
             if (type !== 'callback') return
 
             const {
@@ -44,7 +43,7 @@ export function useOIDC({ provider, popupParams }) {
               error,
               error_description: details,
               state: respState,
-            } = parse(fragment.substr(1))
+            } = parse(source.window.location.search.substring(1))
             if (respState !== state) {
               throw new OIDCError(
                 'state_mismatch',
