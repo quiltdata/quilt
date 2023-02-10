@@ -44,3 +44,5 @@ testdocs/test_workflow
 testdocs/references
 testdocs/notebooks
 testdocs/scripts
+
+.env
