@@ -633,14 +633,25 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
               />
             </M.Box>
           )}
-          <M.Box mt={2}>
-            <RF.Field
-              component={Form.Checkbox}
-              type="checkbox"
-              name="browsable"
-              label="Enable extended iframe browsing"
-            />
-          </M.Box>
+        </M.Box>
+      </M.Accordion>
+      <M.Accordion elevation={0} className={classes.panel}>
+        <M.AccordionSummary
+          expandIcon={<M.Icon>expand_more</M.Icon>}
+          classes={{
+            root: classes.panelSummary,
+            content: classes.panelSummaryContent,
+          }}
+        >
+          <M.Typography variant="h6">File preview options</M.Typography>
+        </M.AccordionSummary>
+        <M.Box className={classes.group} pt={1}>
+          <RF.Field
+            component={Form.Checkbox}
+            type="checkbox"
+            name="browsable"
+            label="Enable extended iframe browsing"
+          />
         </M.Box>
       </M.Accordion>
     </M.Box>
