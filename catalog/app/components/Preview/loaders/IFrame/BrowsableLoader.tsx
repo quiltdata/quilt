@@ -112,6 +112,7 @@ function useSession(handle: FileHandle) {
   const retry = React.useCallback(() => {
     setError(null)
     setLoading(true)
+    setSession(null)
     setKey(R.inc)
   }, [])
 
