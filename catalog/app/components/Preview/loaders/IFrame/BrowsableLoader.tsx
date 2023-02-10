@@ -22,6 +22,16 @@ const SESSION_TTL = 60 * 60
 
 type Session = Model.GQLTypes.BrowsingSession
 
+interface ErrorLike {
+  message: string
+}
+
+const isSessionNotFoundError = (e?: ErrorLike) =>
+  e?.message ? /Session [^ ]* not found/.test(e.message) : false
+
+const isBucketNotBrowsableError = (e?: ErrorLike) =>
+  e?.message ? /Bucket [^ ]* is not browsable/.test(e.message) : false
+
 function useCreateSession() {
   const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
   return React.useCallback(
@@ -79,10 +89,7 @@ function useRefreshSession() {
 function useDisposeSession() {
   const [, disposeSession] = urql.useMutation(DISPOSE_BROWSING_SESSION)
   return React.useCallback(
-    (id?: string) => {
-      if (!id) return
-      return disposeSession({ id })
-    },
+    (id?: string) => (id ? disposeSession({ id }) : null),
     [disposeSession],
   )
 }
@@ -125,13 +132,10 @@ function useSession(handle: FileHandle) {
         sessionClosure = s
         setSession(s)
       } catch (e) {
-        if (
-          /Bucket [^ ]* is not browsable/.test((e as Record<'message', string>)?.message)
-        ) {
-          setError(PreviewError.Forbidden())
-        } else {
-          setError(PreviewError.Unexpected({ retry }))
-        }
+        const err = isBucketNotBrowsableError(e as ErrorLike)
+          ? PreviewError.Forbidden()
+          : PreviewError.Unexpected({ retry })
+        setError(err)
         log.error(e)
       }
       setLoading(false)
@@ -154,11 +158,10 @@ function useSession(handle: FileHandle) {
         const s = await refreshSession(session.id, SESSION_TTL)
         setSession(s)
       } catch (e) {
-        if (/Session [^ ]* not found/.test((e as Record<'message', string>)?.message)) {
-          setError(PreviewError.Expired({ retry }))
-        } else {
-          setError(PreviewError.Unexpected({ retry }))
-        }
+        const err = isSessionNotFoundError(e as ErrorLike)
+          ? PreviewError.Expired({ retry })
+          : PreviewError.Unexpected({ retry })
+        setError(err)
         log.error(e)
       }
     }, delay)
