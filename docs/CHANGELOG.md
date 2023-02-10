@@ -16,6 +16,7 @@ Entries inside each section should be ordered by type:
 !-->
 
 ## Catalog, Lambdas
+* [Added] Frontend for permissive HTML rendering ([#3198](https://github.com/quiltdata/quilt/pull/3198))
 * [Fixed] Fixed mobile layout for collaborators badges ([#3307](https://github.com/quiltdata/quilt/pull/3307))
 * [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
 * [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
