@@ -6,7 +6,7 @@ import cfg from 'constants/config'
 import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import log from 'utils/Logging'
-import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -108,7 +108,6 @@ function useSession(handle: FileHandle) {
   const [loading, setLoading] = React.useState(true)
   const [session, setSession] = React.useState<Session | null>(null)
   const [key, setKey] = React.useState(0)
-  // TODO: move `retry` to upper level
   const retry = React.useCallback(() => {
     setError(null)
     setLoading(true)
