@@ -39,9 +39,11 @@ export const Loader = function HtmlLoader({ handle, children }) {
   return bucketData.case({
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
-    data: ({ bucketConfig: { browsable } }) => {
-      if (browsable) return <IFrame.BrowsableLoader {...{ handle, children }} />
-      return <IFrame.Loader {...{ handle, children }} />
-    },
+    data: ({ bucketConfig: { browsable } }) =>
+      browsable ? (
+        <IFrame.BrowsableLoader {...{ handle, children }} />
+      ) : (
+        <IFrame.Loader {...{ handle, children }} />
+      ),
   })
 }
