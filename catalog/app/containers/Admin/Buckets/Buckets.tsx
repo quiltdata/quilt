@@ -22,6 +22,7 @@ import type FormSpec from 'utils/FormSpec'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
+import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -264,12 +265,13 @@ interface HintProps {
 
 function Hint({ children }: HintProps) {
   const classes = useHintStyles()
+  const tooltipClasses = React.useMemo(() => ({ tooltip: classes.tooltip }), [classes])
   return (
-    <M.Tooltip arrow title={children} classes={{ tooltip: classes.tooltip }}>
+    <StyledTooltip arrow title={children} classes={tooltipClasses}>
       <M.Icon fontSize="small" className={classes.icon}>
         help
       </M.Icon>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 

@@ -1,3 +1,5 @@
+import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -13,7 +15,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function StyledTooltip(props: M.TooltipProps) {
-  const classes = useStyles()
+export default function StyledTooltip({
+  classes: externalClasses,
+  ...props
+}: M.TooltipProps) {
+  const internalClasses = useStyles()
+  const classes = React.useMemo(
+    () => R.mergeWith((left, right) => cx(left, right), internalClasses, externalClasses),
+    [internalClasses, externalClasses],
+  )
   return <M.Tooltip classes={classes} {...props} />
 }
