@@ -21,6 +21,10 @@ export default function SSOOkta({ mutex, next, ...props }) {
   const authenticate = OIDC.use({
     provider,
     popupParams: 'width=400,height=600',
+    overrides: {
+      // Make sure we get a refresh_token.
+      scope: 'openid email offline_access',
+    },
   })
 
   const sentry = Sentry.use()

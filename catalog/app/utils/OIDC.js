@@ -12,7 +12,7 @@ export class OIDCError extends BaseError {
   }
 }
 
-export function useOIDC({ provider, popupParams }) {
+export function useOIDC({ provider, popupParams, overrides = {} }) {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
@@ -22,6 +22,7 @@ export function useOIDC({ provider, popupParams }) {
           response_type: 'code',
           scope: 'openid email',
           state,
+          ...overrides,
         })
         const url = `${cfg.registryUrl}/oidc-authorize/${provider}${query}`
         const popup = window.open(url, `quilt_${provider}_popup`, popupParams)
@@ -65,7 +66,7 @@ export function useOIDC({ provider, popupParams }) {
         window.addEventListener('message', handleMessage)
         popup.focus()
       }),
-    [provider, popupParams],
+    [provider, popupParams, overrides],
   )
 }
 

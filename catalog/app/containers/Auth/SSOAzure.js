@@ -21,6 +21,10 @@ export default function SSOAzure({ mutex, next, ...props }) {
   const authenticate = OIDC.use({
     provider,
     popupParams: 'width=500,height=700',
+    overrides: {
+      // Make sure we get a refresh_token.
+      scope: 'openid email offline_access',
+    },
   })
 
   const sentry = Sentry.use()

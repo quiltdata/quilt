@@ -41,6 +41,10 @@ function Embedder() {
   const authenticate = OIDC.use({
     provider: 'okta',
     popupParams: 'width=400,height=600',
+    overrides: {
+      // Make sure we get a refresh_token.
+      scope: 'openid email offline_access',
+    },
   })
 
   const iframeRef = React.useRef(null)

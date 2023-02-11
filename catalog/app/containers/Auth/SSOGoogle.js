@@ -20,6 +20,12 @@ export default function SSOGoogle({ mutex, ...props }) {
   const authenticate = OIDC.use({
     provider,
     popupParams: 'width=600,height=600',
+    overrides: {
+      // Make sure we get a refresh_token.
+      access_type: 'offline',
+      // Make sure we get it every time, not just during the first login.
+      prompt: 'consent',
+    },
   })
 
   const sentry = Sentry.use()
