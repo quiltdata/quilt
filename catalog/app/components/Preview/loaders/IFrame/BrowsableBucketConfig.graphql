@@ -4,4 +4,3 @@ query ($bucket: String!) {
     browsable
   }
 }
-
