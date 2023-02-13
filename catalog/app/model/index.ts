@@ -46,18 +46,24 @@ export type Collaborators = ReadonlyArray<
 >
 
 export interface PackageEntry {
+  // TODO: replace with { address: {physicalKey: string} }
+  //       so, you can merge PackageEntry and S3File
   physicalKey: string
   hash: string
   meta: Types.JsonRecord | null
   size: number
+  error?: Error
 }
 
 export type PackageContentsFlatMap = Record<string, PackageEntry>
 
 export interface S3File {
+  // TODO: replace with { address: { handle: S3HandleBase } }
+  //       so, you can merge PackageEntry and S3File
   bucket: string
   key: string
   meta?: Types.JsonRecord // TODO: make it the same as in PackageEntry
   size: number
   version?: string
+  error?: Error
 }

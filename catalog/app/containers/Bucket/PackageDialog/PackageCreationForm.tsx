@@ -219,6 +219,7 @@ function PackageCreationForm({
       existing: existingEntries,
       added: addToPackage?.entries || {},
       deleted: {},
+      invalid: {},
     }),
     [existingEntries, addToPackage],
   )

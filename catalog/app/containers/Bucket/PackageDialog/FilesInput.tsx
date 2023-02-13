@@ -28,6 +28,7 @@ const COLORS = {
   added: M.colors.green[900],
   modified: M.darken(M.colors.yellow[900], 0.2),
   deleted: M.colors.red[900],
+  invalid: M.colors.red[400],
 }
 
 interface FileWithHash extends File {
@@ -90,6 +91,7 @@ export interface FilesState {
   added: Record<string, LocalFile | Model.S3File>
   deleted: Record<string, true>
   existing: Record<string, Model.PackageEntry>
+  invalid: Record<string, true>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
@@ -111,7 +113,7 @@ const addMetaToFile = (
     })
     return fileCopy
   }
-  return R.assoc('meta', meta, file)
+  return R.assoc('meta', meta, R.assoc('error', new Error('invalid'), file))
 }
 
 const handleFilesAction = FilesAction.match<
@@ -194,7 +196,13 @@ interface DispatchFilesAction {
   (action: FilesAction): void
 }
 
-type FilesEntryState = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
+type FilesEntryState =
+  | 'deleted'
+  | 'modified'
+  | 'unchanged'
+  | 'hashing'
+  | 'added'
+  | 'invalid'
 
 type FilesEntryType = 's3' | 'local'
 
@@ -267,11 +275,14 @@ interface IntermediateEntry {
   meta?: Types.JsonRecord | null
 }
 
-const computeEntries = ({ added, deleted, existing }: FilesState) => {
+const computeEntries = ({ added, deleted, existing, invalid }: FilesState) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
     ([path, { size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
+      }
+      if (path in invalid) {
+        return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
         const a = added[path]
@@ -363,16 +374,23 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     left: 0,
     position: 'absolute',
     width: 12,
+    '$invalid &': {
+      borderColor: COLORS.invalid,
+    },
   },
   state: {
     fontFamily: t.typography.fontFamily,
     fontWeight: t.typography.fontWeightBold,
     fontSize: 9,
     color: t.palette.background.paper,
+    '$invalid &': {
+      color: COLORS.invalid,
+    },
   },
   hashProgress: {
     color: t.palette.background.paper,
   },
+  invalid: {},
 }))
 
 type EntryIconProps = React.PropsWithChildren<{
@@ -384,13 +402,14 @@ function EntryIcon({ state, overlay, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
   const stateContents = {
     added: '+',
+    invalid: '!',
     deleted: <>&ndash;</>,
     modified: '~',
     hashing: 'hashing',
     unchanged: undefined,
   }[state]
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, { [classes.invalid]: state === 'invalid' })}>
       <M.Icon className={classes.icon}>{children}</M.Icon>
       {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
@@ -413,6 +432,12 @@ const useFileStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   interactive: {},
+  invalid: {},
+  actions: {
+    '$invalid &': {
+      color: t.palette.primary.contrastText,
+    },
+  },
   root: {
     alignItems: 'center',
     color: COLORS.default,
@@ -437,6 +462,10 @@ const useFileStyles = M.makeStyles((t) => ({
     },
     '&$interactive': {
       cursor: 'pointer',
+    },
+    '&$invalid': {
+      background: COLORS.invalid,
+      color: t.palette.primary.contrastText,
     },
   },
   inner: {
@@ -517,14 +546,16 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta
-        disabled={metaDisabled}
-        key={metaKey}
-        name={name}
-        onChange={onMeta}
-        value={meta}
-      />
-      {action}
+      <div className={classes.actions}>
+        <EditFileMeta
+          disabled={metaDisabled}
+          key={metaKey}
+          name={name}
+          onChange={onMeta}
+          value={meta}
+        />
+        {action}
+      </div>
     </div>
   )
 }
@@ -536,6 +567,7 @@ const useDirStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   active: {},
+  invalid: {},
   root: {
     cursor: 'pointer',
     outline: 'none',
@@ -561,6 +593,10 @@ const useDirStyles = M.makeStyles((t) => ({
     },
     '$deleted > &': {
       color: COLORS.deleted,
+    },
+    '$invalid > &': {
+      background: COLORS.invalid,
+      color: t.palette.primary.contrastText,
     },
   },
   headInner: {
@@ -1079,6 +1115,12 @@ function FileUpload({
           icon: 'clear',
           handler: handle(FilesAction.Delete(path)),
         }
+      case 'invalid':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.Delete(path)),
+        }
       default:
         assertNever(state)
     }
@@ -1109,7 +1151,12 @@ function FileUpload({
       metaDisabled={state === 'deleted'}
       onMeta={onMeta}
       action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+        <M.IconButton
+          color="inherit"
+          onClick={action.handler}
+          size="small"
+          title={action.hint}
+        >
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
         </M.IconButton>
       }
@@ -1197,6 +1244,12 @@ function DirUpload({
           handler: handle(FilesAction.RevertDir(path)),
         }
       case 'unchanged':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.DeleteDir(path)),
+        }
+      case 'invalid':
         return {
           hint: 'Delete',
           icon: 'clear',
