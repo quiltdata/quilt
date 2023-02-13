@@ -67,7 +67,7 @@ for Amazon API Gateway.
 The following SCP establishes a data perimeter around all in-organization
 Amazon S3 buckets prefixed with the string "quilt"
 such that only principals with _one or more_ of the following characteristics
-can ass data in Amazon S3.
+can access data in Amazon S3.
 
 1. The source VPC is either `vpc-LOCAL` or `vpc-VPN`.
 2. The principal on the request has the `NetworkRestrictedExempt` tag.
