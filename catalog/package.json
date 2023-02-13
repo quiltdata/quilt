@@ -29,7 +29,7 @@
     "lint:eslint": "eslint --ignore-path .gitignore",
     "lint:eslint:fix": "npm run lint:eslint -- --fix",
     "lint:prettier": "prettier --check",
-    "lint:app": "npm run lint:prettier -- \"./app/**/*.([jt]s?(x)|graphql)\" && npm run lint:eslint -- \"./app/**/*.[jt]s?(x)\"",
+    "lint:app": "npm run lint:prettier -- \"./app\" && npm run lint:eslint -- \"./app/**/*.[jt]s?(x)\"",
     "pretest": "npm run test:clean",
     "test": "npm run test:only -- --coverage",
     "test:clean": "rimraf ./coverage",
