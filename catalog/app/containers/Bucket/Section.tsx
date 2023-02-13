@@ -2,8 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import ButtonIcon from 'components/ButtonIcon'
-
 const useStyles = M.makeStyles((t) => ({
   summaryExpanded: {},
   summaryRoot: {
@@ -24,6 +22,9 @@ const useStyles = M.makeStyles((t) => ({
   },
   gutterTop: {
     marginTop: t.spacing(2),
+  },
+  icon: {
+    marginRight: t.spacing(1),
   },
 }))
 
@@ -89,7 +90,7 @@ export default function Section({
         }}
       >
         <M.Typography variant="button" className={classes.heading}>
-          {!!icon && <ButtonIcon>{icon}</ButtonIcon>}
+          {!!icon && <M.Icon className={classes.icon}>{icon}</M.Icon>}
           {renderNodeOrFn(heading)}
         </M.Typography>
         {renderNodeOrFn(extraSummary)}
