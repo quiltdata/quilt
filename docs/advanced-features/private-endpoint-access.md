@@ -27,7 +27,7 @@ or equivalents depending on your network architecture:
     facilitate access to S3 from the VPC that you run Quilt in.
 
     > AWS permits one [S3 gateway endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html) per VPC per region
-    > If you have wish to connect buckets from multiple stacks to Quilt, a transit
+    > If you wish to connect buckets from multiple stacks to Quilt, a transit
     VPC or similar design is required.
 
 1. Provide a NAT gateway (or similar).
