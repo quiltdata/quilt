@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as urql from 'urql'
+import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import * as Model from 'model'
@@ -22,7 +23,6 @@ import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
 const SESSION_TTL = 60 * 3
 const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
 
-type Session = Model.GQLTypes.BrowsingSession
 type SessionId = Model.GQLTypes.BrowsingSession['id']
 
 interface ErrorLike {
@@ -150,11 +150,13 @@ function useSession(handle: FileHandle) {
             clearInterval(timer)
             setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
             log.error(e)
+            Sentry.captureException(e)
           }
         }, REFRESH_INTERVAL)
       } catch (e) {
         clearInterval(timer)
         setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
+        Sentry.captureException(e)
         log.error(e)
       }
     }
