@@ -181,18 +181,13 @@ function useSession(handle: FileHandle) {
 export default function BrowsableLoader({ handle, children }: BrowsableLoaderProps) {
   const sessionData = useSession(handle)
   return children(
-    AsyncResult.case(
+    AsyncResult.mapCase(
       {
         Ok: (s: Session) =>
-          AsyncResult.Ok(
-            PreviewData.IFrame({
-              src: `${cfg.s3Proxy}/browse/${s?.id}/${handle.logicalKey}`,
-              modes: [FileType.Html, FileType.Text],
-            }),
-          ),
-        Err: AsyncResult.Err,
-        Pending: AsyncResult.Pending,
-        _: R.identity,
+          PreviewData.IFrame({
+            src: `${cfg.s3Proxy}/browse/${s?.id}/${handle.logicalKey}`,
+            modes: [FileType.Html, FileType.Text],
+          }),
       },
       sessionData,
     ),
