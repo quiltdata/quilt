@@ -148,16 +148,20 @@ function useSession(handle: FileHandle) {
             await refreshSession(sessionId, SESSION_TTL)
           } catch (e) {
             clearInterval(timer)
-            setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
             log.error(e)
             Sentry.captureException(e)
+            if (!ignore) {
+              setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
+            }
           }
         }, REFRESH_INTERVAL)
       } catch (e) {
         clearInterval(timer)
-        setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
         Sentry.captureException(e)
         log.error(e)
+        if (!ignore) {
+          setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
+        }
       }
     }
 
