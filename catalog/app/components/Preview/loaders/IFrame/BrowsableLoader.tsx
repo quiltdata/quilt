@@ -23,6 +23,7 @@ const SESSION_TTL = 60 * 3
 const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
 
 type Session = Model.GQLTypes.BrowsingSession
+type SessionId = Model.GQLTypes.BrowsingSession['id']
 
 interface ErrorLike {
   name: string
@@ -131,7 +132,7 @@ function useSession(handle: FileHandle) {
 
   React.useEffect(() => {
     let ignore = false
-    let sessionId: string = ''
+    let sessionId: SessionId = ''
     let timer: NodeJS.Timer
 
     async function initSession() {
@@ -164,6 +165,7 @@ function useSession(handle: FileHandle) {
       ignore = true
       clearInterval(timer)
       disposeSession(sessionId)
+      setResult(AsyncResult.Init())
     }
   }, [key, createSession, disposeSession, refreshSession, retry, scope])
 
