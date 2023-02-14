@@ -3,7 +3,6 @@ mutation ($scope: String!, $ttl: Int) {
     __typename
     ... on BrowsingSession {
       id
-      expires
     }
     ... on InvalidInput {
       errors {

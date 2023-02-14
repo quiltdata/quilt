@@ -12,10 +12,7 @@ export type components_Preview_loaders_IFrame_RefreshBrowsingSessionMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly browsingSessionRefresh:
-    | ({ readonly __typename: 'BrowsingSession' } & Pick<
-        Types.BrowsingSession,
-        'id' | 'expires'
-      >)
+    | ({ readonly __typename: 'BrowsingSession' } & Pick<Types.BrowsingSession, 'id'>)
     | ({ readonly __typename: 'InvalidInput' } & {
         readonly errors: ReadonlyArray<
           { readonly __typename: 'InputError' } & Pick<
@@ -85,10 +82,7 @@ export const components_Preview_loaders_IFrame_RefreshBrowsingSessionDocument = 
                   },
                   selectionSet: {
                     kind: 'SelectionSet',
-                    selections: [
-                      { kind: 'Field', name: { kind: 'Name', value: 'id' } },
-                      { kind: 'Field', name: { kind: 'Name', value: 'expires' } },
-                    ],
+                    selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
                   },
                 },
                 {

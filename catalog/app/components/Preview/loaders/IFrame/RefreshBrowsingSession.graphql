@@ -3,7 +3,6 @@ mutation ($id: ID!, $ttl: Int) {
     __typename
     ... on BrowsingSession {
       id
-      expires
     }
     ... on InvalidInput {
       errors {
