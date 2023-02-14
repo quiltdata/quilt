@@ -120,7 +120,6 @@ function useSession(handle: FileHandle) {
   const [result, setResult] = React.useState(AsyncResult.Pending())
   const [key, setKey] = React.useState(0)
   const retry = React.useCallback(() => {
-    setResult(AsyncResult.Pending())
     setKey(R.inc)
   }, [])
 
@@ -137,6 +136,7 @@ function useSession(handle: FileHandle) {
 
     async function initSession() {
       try {
+        setResult(AsyncResult.Pending())
         const session = await createSession(scope, SESSION_TTL)
         if (ignore) return
         sessionId = session.id
@@ -167,7 +167,6 @@ function useSession(handle: FileHandle) {
       ignore = true
       clearInterval(timer)
       disposeSession(sessionId)
-      setResult(AsyncResult.Init())
     }
   }, [key, createSession, disposeSession, refreshSession, retry, scope])
 
