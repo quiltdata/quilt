@@ -41,9 +41,9 @@ export const Loader = function HtmlLoader({ handle, children }) {
     error: (e) => children(AsyncResult.Err(e)),
     data: ({ bucketConfig: { browsable } }) =>
       browsable ? (
-        <IFrame.BrowsableLoader {...{ handle, children }} />
+        <IFrame.LoaderBrowsable {...{ handle, children }} />
       ) : (
-        <IFrame.Loader {...{ handle, children }} />
+        <IFrame.LoaderSigned {...{ handle, children }} />
       ),
   })
 }

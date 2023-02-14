@@ -1,2 +1,2 @@
-export { default as Loader } from './Loader'
-export { default as BrowsableLoader } from './BrowsableLoader'
+export { default as LoaderBrowsable } from './LoaderBrowsable'
+export { default as LoaderSigned } from './LoaderSigned'
