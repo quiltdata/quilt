@@ -137,10 +137,10 @@ function useSession(handle: FileHandle) {
 
     async function initSession() {
       try {
-        const s = await createSession(scope, SESSION_TTL)
+        const session = await createSession(scope, SESSION_TTL)
         if (ignore) return
-        sessionId = s.id
-        setResult(AsyncResult.Ok(s))
+        sessionId = session.id
+        setResult(AsyncResult.Ok(sessionId))
 
         timer = setInterval(async () => {
           try {
@@ -177,9 +177,9 @@ export default function BrowsableLoader({ handle, children }: BrowsableLoaderPro
   return children(
     AsyncResult.mapCase(
       {
-        Ok: (s: Session) =>
+        Ok: (sessionId: SessionId) =>
           PreviewData.IFrame({
-            src: `${cfg.s3Proxy}/browse/${s?.id}/${handle.logicalKey}`,
+            src: `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`,
             modes: [FileType.Html, FileType.Text],
           }),
       },
