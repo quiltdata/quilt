@@ -20,7 +20,7 @@ import DISPOSE_BROWSING_SESSION from './DisposeBrowsingSession.generated'
 import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
 
 const SESSION_TTL = 60 * 3
-const REFRESH_INTERVAL = SESSION_TTL * 0.2
+const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
 
 type Session = Model.GQLTypes.BrowsingSession
 
@@ -116,14 +116,10 @@ interface BrowsableLoaderProps {
 }
 
 function useSession(handle: FileHandle) {
-  const [error, setError] = React.useState<Error | unknown | null>(null)
-  const [loading, setLoading] = React.useState(true)
-  const [session, setSession] = React.useState<Session | null>(null)
+  const [result, setResult] = React.useState(AsyncResult.Pending())
   const [key, setKey] = React.useState(0)
   const retry = React.useCallback(() => {
-    setError(null)
-    setLoading(true)
-    setSession(null)
+    setResult(AsyncResult.Pending())
     setKey(R.inc)
   }, [])
 
@@ -143,14 +139,21 @@ function useSession(handle: FileHandle) {
         const s = await createSession(scope, SESSION_TTL)
         if (ignore) return
         sessionId = s.id
-        setSession(s)
+        setResult(AsyncResult.Ok(s))
 
         timer = setInterval(async () => {
-          if (!sessionId) return
-          await refreshSession(sessionId, SESSION_TTL)
+          try {
+            if (!sessionId) return
+            await refreshSession(sessionId, SESSION_TTL)
+          } catch (e) {
+            clearInterval(timer)
+            setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
+            log.error(e)
+          }
         }, REFRESH_INTERVAL)
       } catch (e) {
-        setError(mapPreviewError(retry, e as ErrorLike))
+        clearInterval(timer)
+        setResult(AsyncResult.Err(mapPreviewError(retry, e as ErrorLike)))
         log.error(e)
       }
     }
@@ -164,9 +167,7 @@ function useSession(handle: FileHandle) {
     }
   }, [key, createSession, disposeSession, refreshSession, retry, scope])
 
-  if (error) return AsyncResult.Err(error)
-  if (loading) return AsyncResult.Pending()
-  return AsyncResult.Ok(session)
+  return result
 }
 
 export default function BrowsableLoader({ handle, children }: BrowsableLoaderProps) {
