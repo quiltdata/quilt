@@ -26,7 +26,7 @@ backend services, a secure server to manage user identities, and a Python API.
 
 ### Network
 ![](imgs/aws-diagram-network.png)
-- Amazon Elastic Container Services (ECS) services (e.g., Catalog,
+- By default, Amazon Elastic Container Services (ECS) services (e.g., Catalog,
 Identity Server) run in two Availability Zones (AZ) with one of the
 following (depending on your AWS network configuration):
   - Public subnets (one in each AZ)
