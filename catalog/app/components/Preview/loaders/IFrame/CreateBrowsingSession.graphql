@@ -7,11 +7,13 @@ mutation ($scope: String!, $ttl: Int) {
     }
     ... on InvalidInput {
       errors {
+        name
         path
         message
       }
     }
     ... on OperationError {
+      name
       message
     }
   }

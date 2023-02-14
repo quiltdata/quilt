@@ -20,11 +20,14 @@ export type components_Preview_loaders_IFrame_CreateBrowsingSessionMutation = {
         readonly errors: ReadonlyArray<
           { readonly __typename: 'InputError' } & Pick<
             Types.InputError,
-            'path' | 'message'
+            'name' | 'path' | 'message'
           >
         >
       })
-    | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
+    | ({ readonly __typename: 'OperationError' } & Pick<
+        Types.OperationError,
+        'name' | 'message'
+      >)
 }
 
 export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
@@ -103,6 +106,7 @@ export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
+                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'path' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                           ],
@@ -120,6 +124,7 @@ export const components_Preview_loaders_IFrame_CreateBrowsingSessionDocument = {
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                     ],
                   },

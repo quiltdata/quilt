@@ -12,7 +12,10 @@ export type components_Preview_loaders_IFrame_DisposeBrowsingSessionMutation = {
 } & {
   readonly browsingSessionDispose:
     | { readonly __typename: 'Ok' }
-    | ({ readonly __typename: 'OperationError' } & Pick<Types.OperationError, 'message'>)
+    | ({ readonly __typename: 'OperationError' } & Pick<
+        Types.OperationError,
+        'name' | 'message'
+      >)
 }
 
 export const components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument = {
@@ -61,6 +64,7 @@ export const components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument = 
                   selectionSet: {
                     kind: 'SelectionSet',
                     selections: [
+                      { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                       { kind: 'Field', name: { kind: 'Name', value: 'message' } },
                     ],
                   },

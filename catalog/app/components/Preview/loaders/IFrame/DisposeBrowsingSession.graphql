@@ -2,6 +2,7 @@ mutation ($id: ID!) {
   browsingSessionDispose(id: $id) {
     __typename
     ... on OperationError {
+      name
       message
     }
   }
