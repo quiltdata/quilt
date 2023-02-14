@@ -8,6 +8,7 @@ import AsyncResult from 'utils/AsyncResult'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
+import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { PreviewError, PreviewData } from '../../types'
@@ -23,14 +24,24 @@ const SESSION_TTL = 60 * 3
 type Session = Model.GQLTypes.BrowsingSession
 
 interface ErrorLike {
+  name: string
   message: string
 }
 
-const isSessionNotFoundError = (e?: ErrorLike) =>
-  e?.message ? /Session [^ ]* not found/.test(e.message) : false
-
-const isBucketNotBrowsableError = (e?: ErrorLike) =>
-  e?.message ? /Bucket [^ ]* is not browsable/.test(e.message) : false
+function mapPreviewError(retry: () => void, e?: ErrorLike) {
+  switch (e?.name) {
+    case 'BucketNotBrowsable':
+      return PreviewError.Forbidden()
+    case 'BucketNotFound':
+      return PreviewError.DoesNotExist()
+    case 'SessionNotFound':
+      return PreviewError.Expired({ retry })
+    case 'OwnerMismatch':
+      return PreviewError.Forbidden()
+    default:
+      return PreviewError.Unexpected({ retry })
+  }
+}
 
 function useCreateSession() {
   const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
@@ -44,7 +55,7 @@ function useCreateSession() {
         case 'BrowsingSession':
           return r
         case 'OperationError':
-          throw new Error(r.message)
+          throw r
         case 'InvalidInput':
           throw new Error(
             r.errors
@@ -52,7 +63,7 @@ function useCreateSession() {
               .join('\n'),
           )
         default:
-          throw r
+          assertNever(r)
       }
     },
     [createSession],
@@ -71,7 +82,7 @@ function useRefreshSession() {
         case 'BrowsingSession':
           return r
         case 'OperationError':
-          throw new Error(r.message)
+          throw r
         case 'InvalidInput':
           throw new Error(
             r.errors
@@ -79,7 +90,7 @@ function useRefreshSession() {
               .join('\n'),
           )
         default:
-          throw r
+          assertNever(r)
       }
     },
     [refreshSession],
@@ -132,10 +143,7 @@ function useSession(handle: FileHandle) {
         sessionClosure = s
         setSession(s)
       } catch (e) {
-        const err = isBucketNotBrowsableError(e as ErrorLike)
-          ? PreviewError.Forbidden()
-          : PreviewError.Unexpected({ retry })
-        setError(err)
+        setError(mapPreviewError(retry, e as ErrorLike))
         log.error(e)
       }
       setLoading(false)
@@ -158,10 +166,7 @@ function useSession(handle: FileHandle) {
         const s = await refreshSession(session.id, SESSION_TTL)
         setSession(s)
       } catch (e) {
-        const err = isSessionNotFoundError(e as ErrorLike)
-          ? PreviewError.Expired({ retry })
-          : PreviewError.Unexpected({ retry })
-        setError(err)
+        setError(mapPreviewError(retry, e as ErrorLike))
         log.error(e)
       }
     }, delay)
