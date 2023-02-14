@@ -20,6 +20,7 @@ import DISPOSE_BROWSING_SESSION from './DisposeBrowsingSession.generated'
 import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
 
 const SESSION_TTL = 60 * 3
+const REFRESH_INTERVAL = SESSION_TTL * 0.2
 
 type Session = Model.GQLTypes.BrowsingSession
 
@@ -134,44 +135,34 @@ function useSession(handle: FileHandle) {
 
   React.useEffect(() => {
     let ignore = false
-    let sessionClosure: Session | null = null
+    let sessionId: string = ''
+    let timer: NodeJS.Timer
 
-    async function requestSession() {
+    async function initSession() {
       try {
         const s = await createSession(scope, SESSION_TTL)
         if (ignore) return
-        sessionClosure = s
+        sessionId = s.id
         setSession(s)
+
+        timer = setInterval(async () => {
+          if (!sessionId) return
+          await refreshSession(sessionId, SESSION_TTL)
+        }, REFRESH_INTERVAL)
       } catch (e) {
         setError(mapPreviewError(retry, e as ErrorLike))
         log.error(e)
       }
-      setLoading(false)
     }
 
-    requestSession()
+    initSession()
 
     return () => {
-      disposeSession(sessionClosure?.id)
       ignore = true
+      clearInterval(timer)
+      disposeSession(sessionId)
     }
-  }, [createSession, disposeSession, key, retry, scope])
-
-  React.useEffect(() => {
-    if (!session) return
-    // Refresh when there is 20% left of time to session's end
-    const delay = (session.expires.getTime() - Date.now()) * 0.8
-    const timer = setTimeout(async () => {
-      try {
-        const s = await refreshSession(session.id, SESSION_TTL)
-        setSession(s)
-      } catch (e) {
-        setError(mapPreviewError(retry, e as ErrorLike))
-        log.error(e)
-      }
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [refreshSession, retry, session])
+  }, [key, createSession, disposeSession, refreshSession, retry, scope])
 
   if (error) return AsyncResult.Err(error)
   if (loading) return AsyncResult.Pending()
