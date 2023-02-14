@@ -61,7 +61,7 @@ function useCreateSession() {
         case 'InvalidInput':
           throw new Error(
             r.errors
-              .map(({ message, path }) => `{message: ${message}, path: ${path} }`)
+              .map(({ message, path }) => `{ message: ${message}, path: ${path} }`)
               .join('\n'),
           )
         default:
@@ -88,7 +88,7 @@ function useRefreshSession() {
         case 'InvalidInput':
           throw new Error(
             r.errors
-              .map(({ message, path }) => `{message: ${message}, path: ${path} }`)
+              .map(({ message, path }) => `{ message: ${message}, path: ${path} }`)
               .join('\n'),
           )
         default:
