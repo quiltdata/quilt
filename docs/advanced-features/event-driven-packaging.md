@@ -32,8 +32,6 @@ endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html#conc
 Events](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications-eventbridge.html)
 for all S3 buckets to be monitored by EDP
 
-![](../imgs/edp-event-bridge-s3-properties.png)
-
 ## Deployment
 
 EDP is deployed by a standalone CloudFormation template that
