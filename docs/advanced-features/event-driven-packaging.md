@@ -123,6 +123,7 @@ Additional processing includes (but is not limited to):
     - Package metadata creation and validation: Send an SNS
     notification on metadata validation failure.
 
+
 <!--pytest.mark.skip-->
 ```python
     import datetime
@@ -162,7 +163,7 @@ Additional processing includes (but is not limited to):
     .VolumeIcon.icns
     """
 
-    # Define standard package Quilt files
+    # Define helpful additional data package files
     beautify_files = {
         "quilt_summarize.json": QUILT_SUMMARIZE_JSON_STR,
         "README.md": QUILT_README_STR,
