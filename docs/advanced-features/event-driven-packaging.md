@@ -177,10 +177,10 @@ Additional processing includes (but is not limited to):
         bucket = event["detail"]["bucket"]
         prefix = event["detail"]["prefix"]
     
-        # Add every file to the package
+        # Add every file in the prefix folder to the new data package
         pkg = quilt3.Package().set_dir(".", f"s3://{bucket}/{prefix}")
     
-        # Decorate with metadata
+        # Decorate the data package with example required metadata (as defined by WORKFLOW_NAME)
         meta = {
             "Author": "EDP",
             "ComputerName": "Genome Lab - 1234",
