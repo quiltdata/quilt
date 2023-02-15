@@ -109,17 +109,22 @@ receive notifications from EventBridge for review.
 
 ## Example workflow
 
-1. A Lab scientist copies a folder containing experiment files into
-_s3://raw-bucket/instrument-name/experiment-id/_.
+1. An instrument automatically uploads a folder containing files
+from a single experiment into
+_s3://instrument-bucket/instrument-name/experiment-id/_.
 1. EDP listens for events in
-_s3://raw-bucket/instrument-name/experiment-id/*_.  After the
+_s3://instrument-bucket/instrument-name/experiment-id/*_.  After the
 specified duration or event count, a `package-objects-ready` event
 is generated and sent to EventBridge.
 1. A custom lambda fuction triggered by the `package-objects-ready`
 event processes the experiment files and generates a data package.
 Additional processing includes (but is not limited to):
-    - Decorating the data package with additional files (`README.md`,
-    `quilt_summarize.json`, `.quiltignore`)
+    - Decorating the data package with helpful additional files
+	- `README.md`: Noting that the package was created by EDP
+	and a lambda fuction, and validated using a workflow
+	-
+	[`quilt_summarize.json`](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
+	- [`.quiltignore`](../advanced-features/.quiltignore.md)
     - [Metadata creation and validation](./workflows.md).
         - Send SNS notification on metadata validation failure
 
@@ -171,6 +176,8 @@ Additional processing includes (but is not limited to):
 
     @logger.inject_lambda_context
     def lambda_handler(event, context):
+
+        # EDP event data
         bucket = event["detail"]["bucket"]
         prefix = event["detail"]["prefix"]
     
