@@ -55,7 +55,7 @@ following template parameters are required:
 
 ## How EDP works
 
-1. EDP monitors S3 object events for _s3://source-bucket_
+1. EDP monitors S3 object events for _s3://bucket-name_
 
 2. After a fixed number of object events (`BucketThresholdEventCount`) or
 a maximum duration within a common prefix (`BucketThresholdDuration`),
