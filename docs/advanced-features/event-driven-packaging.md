@@ -263,8 +263,8 @@ analysis and modeling.
 
 ## Debugging
 
-EDP create a CloudWatch dashboard which exposes some metrics useful
-for debugging:
+EDP creates a [CloudWatch](https://aws.amazon.com/cloudwatch/)
+dashboard which exposes some metrics useful for debugging:
 
 - **EDP event bus topic**: Displays the number of events emitted by
 EDP. If EDP is working correctly there should be one or more
