@@ -119,9 +119,7 @@ interface BrowsableLoaderProps {
 function useSession(handle: FileHandle) {
   const [result, setResult] = React.useState(AsyncResult.Pending())
   const [key, setKey] = React.useState(0)
-  const retry = React.useCallback(() => {
-    setKey(R.inc)
-  }, [])
+  const retry = React.useCallback(() => setKey(R.inc), [])
 
   const createSession = useCreateSession()
   const disposeSession = useDisposeSession()
