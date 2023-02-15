@@ -56,8 +56,6 @@ template during deployment:
 | `DBPassword` | Password for EDP RDS instance. |
 | `EventBusName` | Name of custom EventBridge event bus that receives events. |
 
-![](../imgs/edp-cloudformation-parameters.png)
-
 ## How EDP works
 
 1. EDP monitors S3 object events for _s3://source-bucket_
