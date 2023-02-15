@@ -37,8 +37,7 @@ for all S3 buckets to be monitored by EDP
 EDP is deployed by a standalone CloudFormation template that
 configures the conditions under which events get generated.
 
-The following template parameters need to be defined in the CloudFormation
-template during deployment:
+The following template parameters need to be defined during deployment:
 
 | Parameter  | Description |
 | ------------- | ------------- |
