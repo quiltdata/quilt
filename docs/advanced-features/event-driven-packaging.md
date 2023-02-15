@@ -99,8 +99,8 @@ contents to a File Gateway where it has read permissions to ensure
 that new EDP-created Quilt packages are available to Gateway clients
 like Windows Workspaces.
 
-> Users can optionally create and subscribe to an Amazon SNS topic created to
-receive notifications from EventBridge for review.
+> Users can optionally subscribe to the Amazon SNS topic created to
+receive notifications from EDP to review the event payload.
 
 ## Example workflow
 
