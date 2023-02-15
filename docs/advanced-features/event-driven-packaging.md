@@ -102,7 +102,7 @@ like Windows Workspaces.
 > Users can optionally subscribe directly to the EDP SNS topic.
 This is useful for both debugging and viewing how events are structured.
 
-## Example workflow
+## Example: Lambda function to automatically create data packages
 
 1. An instrument automatically uploads a folder containing files
 from a single experiment into
@@ -111,6 +111,8 @@ _s3://instrument-bucket/instrument-name/experiment-id/_.
 _s3://instrument-bucket/instrument-name/experiment-id/*_.  After the
 specified duration or event count, a `package-objects-ready` event
 is generated and sent to EventBridge.
+1. A custom SNS topic is created for monitoring data package creation
+that Lab and Computational scientists subscribe to (`SNS_TOPIC_ARN`).
 1. A custom lambda fuction triggered by the `package-objects-ready`
 event processes the experiment files and generates a data package.
 Additional processing includes (but is not limited to):
