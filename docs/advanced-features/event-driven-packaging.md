@@ -114,9 +114,9 @@ is generated and sent to EventBridge.
 1. A custom lambda fuction triggered by the `package-objects-ready`
 event processes the experiment files and generates a data package.
 Additional processing includes (but is not limited to):
-    - Decorating the data package with helpful additional files
-        - `README.md`: Noting that the package was created by EDP
-	and a lambda fuction, and validated with a [Quilt
+    - Decorating the data package with helpful additional files:
+        - `README.md`: Noting that the package was created by EDP,
+	a custom lambda function, and validated with a [Quilt
 	workflow](../advanced-features/workflows.md).
         - [`quilt_summarize.json`](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
         - [`.quiltignore`](../advanced-features/.quiltignore.md)
