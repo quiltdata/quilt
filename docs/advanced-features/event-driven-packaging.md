@@ -99,8 +99,8 @@ contents to a File Gateway where it has read permissions to ensure
 that new EDP-created Quilt packages are available to Gateway clients
 like Windows Workspaces.
 
-> Users can optionally subscribe to the Amazon SNS topic created to
-receive notifications from EDP to review the event payload.
+> Users can optionally subscribe directly to the EDP SNS topic.
+This is useful for both debugging and viewing how events are structured.
 
 ## Example workflow
 
@@ -288,9 +288,6 @@ events received (depending on the time range selected).
   should be zero errors and a 100% success rate.
 
 ![](../imgs/edp-cloudwatch-dashboard.png)
-
-> Additionally, users can subscribe directly to an EDP SNS topic. This is
-useful for both debugging and viewing how events are structured.
 
 ## Limitations
 
