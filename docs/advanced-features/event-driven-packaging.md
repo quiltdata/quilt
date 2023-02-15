@@ -79,12 +79,12 @@ files:
         "time":"2022-12-08T20:01:34Z",
         "region":"us-east-1",
         "resources":[
-            "arn:aws:s3:::source-bucket"
+            "arn:aws:s3:::bucket-name"
         ],
         "detail":{
             "version":"0.1",
-            "bucket":"source-bucket",
-            "prefix":"instrument-name/experiment-id/"
+            "bucket":"bucket-name",
+            "prefix":"prefix-path-1/prefix-path-2/"
         }
     }
     ```
