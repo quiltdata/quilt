@@ -92,7 +92,8 @@ files:
 3. EDP publishes the event to an AWS EventBridge bus. From there
 the event can be forwarded to any [services that can be targeted
 from AWS
-EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html).
+EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html)
+for additional manual or automatic processing.
 
 EDP, upon completion and if configured to do so, may warm its
 contents to a File Gateway where it has read permissions to ensure
