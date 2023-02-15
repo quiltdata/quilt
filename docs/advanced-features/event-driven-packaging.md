@@ -121,7 +121,8 @@ Additional processing includes (but is not limited to):
         - [`quilt_summarize.json`](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
         - [`.quiltignore`](../advanced-features/.quiltignore.md)
     - Package metadata creation and validation: Send an SNS
-    notification on metadata validation failure.
+    notification on [metadata
+    validation](../advanced-features/workflows.md) failure.
 
 
 <!--pytest.mark.skip-->
