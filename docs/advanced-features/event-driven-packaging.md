@@ -12,8 +12,9 @@ complex and requires extensive custom logic.
 
 Quilt's *Event-Driven Packaging* (EDP) service intelligently groups one
 or more Amazon S3 object events into a single batch-level event.
-You can **automatically** trigger logical events like data package creation that
-depend on batches rather than on individual files.
+You can easily (and if desired, **automatically**) trigger logical
+events like data package creation that depend on batches rather
+than on individual files.
 
 > Any AWS service or action that generates S3 object events may trigger the EDP service.
 
@@ -61,37 +62,32 @@ a maximum duration within a common prefix (`BucketThresholdDuration`),
 EDP creates a `package-objects-ready` event that signals there is
 sufficient information to make Quilt data packages from a batch of
 files:
+    - S3 bucket name
+    - Common prefix
+    - Number of files
+    - Timestamp of event
 
-  - S3 bucket name
-  - Common prefix
-  - Number of files
-  - Timestamp of event
+    The event payload is a JSON file:
 
-  > EDP ignores changes to one or more comma-separated prefixes
-  (defined in the `BucketIgnorePrefixes` parameter) in the source
-  S3 bucket (e.g. `raw/*`).
-
-  The event payload is a JSON file:
-
-  ```json
-  {
-      "version":"0",
-      "id":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-      "detail-type":"package-objects-ready",
-      "source":"com.quiltdata.edp",
-      "account":"XXXXXXXXXXXX",
-      "time":"2022-12-08T20:01:34Z",
-      "region":"us-east-1",
-      "resources":[
-          "arn:aws:s3:::source-bucket"
-      ],
-      "detail":{
-          "version":"0.1",
-          "bucket":"source-bucket",
-          "prefix":"instrument-name/experiment-id/"
-      }
-  }
-  ```
+    ```json
+    {
+        "version":"0",
+        "id":"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "detail-type":"package-objects-ready",
+        "source":"com.quiltdata.edp",
+        "account":"XXXXXXXXXXXX",
+        "time":"2022-12-08T20:01:34Z",
+        "region":"us-east-1",
+        "resources":[
+            "arn:aws:s3:::source-bucket"
+        ],
+        "detail":{
+            "version":"0.1",
+            "bucket":"source-bucket",
+            "prefix":"instrument-name/experiment-id/"
+        }
+    }
+    ```
 
 3. EDP publishes the event to an AWS EventBridge bus. From there
 the event can be forwarded to any [services that can be targeted
