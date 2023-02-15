@@ -37,6 +37,8 @@ deployed in a multi-AZ configuration for high availability.
 - Security groups and NACLs restrict access to the greatest degree possible, by
 only allowing necessary traffic.
 
+> For cost-sensitive configurations, Quilt can be deployed in a single AZ.
+
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
 
