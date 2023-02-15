@@ -10,9 +10,9 @@ Data tend to be created in logical batches by machines, people, and
 pipelines. Detecting these logical events from Amazon S3 events alone is
 complex and requires extensive custom logic.
 
-Quilt's *Event-Driven Packaging* (EDP) service smartly groups one
+Quilt's *Event-Driven Packaging* (EDP) service intelligently groups one
 or more Amazon S3 object events into a single batch-level event.
-You can easily trigger logical events like data package creation that
+You can **automatically** trigger logical events like data package creation that
 depend on batches rather than on individual files.
 
 > Any AWS service or action that generates S3 object events may trigger the EDP service.
@@ -26,26 +26,25 @@ endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html#conc
   - Amazon S3
   ([gateway](https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html)
   or
-  [interface](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html))
-  - EventBridge ([interface endpoint](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-related-service-vpc.html))
+  [interface](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)).
+  - EventBridge ([interface endpoint](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-related-service-vpc.html)).
 2. [Enable EventBridge S3
 Events](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications-eventbridge.html)
-for all S3 buckets to be monitored by EDP
+for all S3 buckets to be monitored by EDP.
 
 ## Deployment
 
 EDP is deployed by a standalone CloudFormation template that
-configures the conditions under which events get generated.
-
-The following template parameters are required:
+configures the conditions under which events get generated. The
+following template parameters are required:
 
 | Parameter  | Description |
 | ------------- | ------------- |
-| `VPC` | Same as the existing Quilt stack. |
-| `SecurityGroup` | Same as the existing Quilt stack. |
-| `Subnets` | Same two subnets as the existing Quilt stack. |
+| `VPC` | Same as existing Quilt stack. |
+| `SecurityGroup` | Same as existing Quilt stack. |
+| `Subnets` | Same two subnets as existing Quilt stack. |
 | `BucketName` | Name of the Amazon S3 bucket to monitor. |
-| `BucketIgnorePrefixes` | List of bucket path segments to ignore. |
+| `BucketIgnorePrefixes` | Text string of comma separated bucket path segments to ignore, for example `raw/*, scratch/*`. Default value is an empty string (i.e. nothing ignored). |
 | `BucketPrefixDepth` | The number of `/`-separated *common* path segments at the beginning of an S3 object key. Default value is `2`. |
 | `BucketThresholdDuration` | Trigger a notification when this number of seconds has elapsed since the last object event in the S3 bucket occurred. Default value is `300` seconds. |
 | `BucketThresholdEventCount` | Trigger a notification when this number of files have been created (since the prior trigger). Default value is `20`. |
