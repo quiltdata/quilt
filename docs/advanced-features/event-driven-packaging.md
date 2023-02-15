@@ -124,9 +124,8 @@ Additional processing includes (but is not limited to):
     notification on [metadata
     validation](../advanced-features/workflows.md) failure.
 
-
-<!--pytest.mark.skip-->
-```python
+    <!--pytest.mark.skip-->
+    ```python
     import datetime
     import functools
     import os
@@ -255,8 +254,7 @@ Additional processing includes (but is not limited to):
                     Message=message,
                     Subject=subject,
                 )
-```
-
+    ```
 1. If a metadata validation error occurs, the Lab and Computational
 scientists receive an email notification and can check the package
 created in the quarantine bucket for errors.
