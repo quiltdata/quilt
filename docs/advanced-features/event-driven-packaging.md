@@ -115,11 +115,13 @@ is generated and sent to EventBridge.
 event processes the experiment files and generates a data package.
 Additional processing includes (but is not limited to):
     - Decorating the data package with helpful additional files
-        - `README.md`: Noting that the package was created by EDP
-        and a lambda fuction, and validated using a workflow
-	- [`quilt_summarize.json`](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
-        - [`.quiltignore`](../advanced-features/.quiltignore.md)
-    - Package metadata creation and validation: Send an SNS notification on [metadata validation failure](../advanced-features/workflows.md)
+	- `README.md`: Noting that the package was created by EDP
+	and a lambda fuction, and validated with a [Quilt
+	workflow](../advanced-features/workflows.md)
+        - [`quilt_summarize.json`](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
+	- [`.quiltignore`](../advanced-features/.quiltignore.md)
+    - Package metadata creation and validation: Send an SNS
+    notification on metadata validation failure.
 
 <!--pytest.mark.skip-->
 ```python
