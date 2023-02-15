@@ -255,11 +255,12 @@ Additional processing includes (but is not limited to):
                     Subject=subject,
                 )
     ```
-1. If a metadata validation error occurs, the Lab and Computational
-scientists receive an email notification and can check the package
-created in the quarantine bucket for errors.
+1. If a metadata validation error occurs (and they are subscribed
+to the `SNS_TOPIC_ARN`) the Lab and Computational scientists receive
+an email notification of the error and can check the package created in the
+quarantine bucket for problems.
 1. Computational scientist opens the new data package for additional
-analysis and modeling.
+analysis, modeling, and versioning.
 
 ## Debugging
 
