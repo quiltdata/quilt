@@ -1,88 +1,80 @@
 <!-- markdownlint-disable -->
-# Private Endpoint Access
+# Private endpoints 
 
 > This page describes a feature that is not enabled by default.
-Ask your Quilt manager to enable it for you.
+You can ask your Quilt account manager to enable it.
 
-## The Data Perimeter concept
+## Data perimeters 
 
-Establishing a **data perimeter** pattern that only allows access to trusted
-principals from trusted networks is a best practice to guarantee your
-organization's data security. A data perimeter helps protect your data
-from unintended access and potential configuration errors via
-built-in barriers.
+A **data perimeter** ensures that only **trusted principals** on **expected networks**
+can access **trusted resources**.
 
-You can restrict Amazon S3 bucket access to a particular VPC and VPN traffic
-via a data perimeter pattern, which prevents leaked S3 credentials from
-bypassing your organization's VPN.
+For example, you may wish to ensure that only private IPs can access data in
+Amazon S3, Quilt's primary data store. Such a data perimeter strengthens
+your security by ensuring that S3 credentials alone are not sufficient to access
+data in Amazon S3.
 
-> Quilt already has private IPs for all Quilt services (Lambda
-functions, API Gateway, Quilt catalog API).
+In order for Quilt to function properly with expected private networks, your Quilt
+account manager must configure your CloudFormation stack to run its services
+(e.g. Lambda, API Gateway) on private IPs.
 
-To implement a data perimeter, you will need to take the following steps.
+Additionally you will need to create and configure the following AWS resources,
+or equivalents depending on your network architecture:
 
-## 1. Configure an Amazon S3 Gateway endpoint
+1. Create an [interface VPC endpoint](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-private-apis.html)
+for Amazon API Gateway.
 
-To limit access to Amazon S3 from your VPC you use [gateway VPC
-endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html).
-Note that there is no additional charge for using gateway endpoints.
+    This interface endpoint is used by Quilt's backend services to keep network traffic private to your VPC.
+    Enter the VPC endpoint ID in your CloudFormation template as the `ApiGatewayVPCEndpointId`
+    template parameter.
 
-Follow the [official AWS
-instructions](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html#create-gateway-endpoint-s3)
-to create a gateway endpoint.
+    > Note that, even if you do not use private endpoints for Quilt services,
+    > traffic between your VPC and AWS services
+    > [does not leave the AWS network backbone](https://docs.aws.amazon.com/whitepapers/latest/building-scalable-secure-multi-vpc-network-infrastructure/centralized-access-to-vpc-private-endpoints.html).
 
-Alternatively you can use [AWS PrivateLink for Amazon
-S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/privatelink-interface-endpoints.html)
-to provision _interface VPC endpoints_ (interface endpoints) in
-your VPC. These are assigned private IP addresses from subnets
-in your VPC.
+1. Create an Amazon S3 Gateway endpoint.
 
-## 2. Configure NAT gateway
+    [S3 gateway endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)
+    facilitate access to S3 from the VPC that you run Quilt in.
 
-To allow Quilt services access AWS endpoints other than S3 the traffic
-from the subnets where Quilt is deployed to the internet should be routed
-through NAT gateway.
+    > AWS permits one [S3 gateway endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html) per VPC per region
+    > If you wish to connect buckets from multiple stacks to Quilt, a transit
+    VPC or similar design is required.
 
-Follow the [official AWS
-instructions](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating)
-to create a NAT gateway.
+1. Provide a NAT gateway (or similar).
 
-## 3. Configure and deploy a Service Control Policy and Amazon S3 bucket policy
+    Quilt's private endpoints require access to public Internet services like Amazon ECR and Amazon SNS.
 
-Access should be restricted to trusted networks and principals:
+    > See [Amazon's guide on NAT gateways](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html#nat-gateway-creating).
 
-* Allowed VPCs
-* Allowed IP ranges
-* Specific AWS services used by Quilt:
-  * AWS Glue
-  * Amazon Athena
-  * Amazon CloudWatch
-* Principals exempt from network restriction
+1. Test and apply policies to enforce your data perimeter.
 
-The easiest way to do this is via a [Service Control
-Policy (SCP)](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html)
+    We recommend that you test an individual bucket policy on a clean bucket to prevent
+    inadvertent loss of access to your data.
+    Once Quilt and other services are able to access this experimental bucket as
+    expected, you can graduate to a more comprehensive
+    [Service Control Policy (SCP)](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scps.html)
+    to implement your data perimeter at the organization level.
+    SCPs define **guardrails** on any action that the account's
+    administrator delegates to the IAM users and roles in the account.
 
-An SCP defines a **guardrail** on any action that the account's
-administrator delegates to the IAM users and roles in the account.
+    > See
+    ["Enabling and disabling policy types"](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_enable-disable.html)
+    for more on SCPs.
 
-> For instructions on enabling SCPs, see the [AWS documentation on
-"Enabling and disabling policy
-types"](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_enable-disable.html)
+## Example Service Control Policy
 
-### Example Service Control Policy
+The following SCP establishes a data perimeter around all in-organization
+Amazon S3 buckets prefixed with the string "quilt"
+such that only principals with _one or more_ of the following characteristics
+can access data in Amazon S3.
 
-The example policy below denies access (`"Effect": "Deny"`) to all
-Amazon S3 buckets prefixed with the string `quilt`
-unless **any** of the following conditions is met:
-
-1. A `Source VPC` matches either `vpc-LOCAL` or `vpc-VPN`.
-2. The principal making the request has `NetworkRestrictedExempt` tag attached.
-3. The request comes from IP range `192.0.2.0 - 192.0.2.255` or `203.0.113.0 - 203.0.113.255`.
-4. The call to the S3 bucket is beng made by an AWS [service
-principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html#principal-services)
-(the idenitifer for a service, `"aws:PrincipalIsAWSService"`), such
-as CloudWatch, or by an AWS service to another service
-(`"aws:ViaAWSService"`).
+1. The source VPC is either `vpc-LOCAL` or `vpc-VPN`.
+2. The principal on the request has the `NetworkRestrictedExempt` tag.
+    > Use this tag as a failsafe entry point when testing and debugging your SCP
+3. The request comes from a specific IP range (e.g. `192.0.2.0 - 192.0.2.255`).
+4. The principal is an [AWS service
+principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html#principal-services).
 
 ```json
 {
@@ -122,25 +114,21 @@ as CloudWatch, or by an AWS service to another service
 }
 ```
 
-SCPs should be used in parallel with identity-based or resource-based
-policies to IAM users or roles, or [explicit S3 bucket
-policies](../CrossAccount.md#bucket-policies)
+## Verifying your setup
 
-## Making sure everything is correctly set up
+If you have [Quilt canaries](./good-practice.md) enabled, check the catalog admin
+panel to ensure that they are functioning.
 
-After doing steps above please check your [canaries](./good-practice.md)
-status to make sure everything works as expected.
+## Considerations
 
-## Important considerations
-
-1. There can only be one gateway endpoint per VPC.
+1. There can only be one S3 gateway endpoint per VPC.
 2. Your S3 buckets must be in the same region as the gateway endpoint.
-2. Keeping traffic on private networks will incur Transit Gateway,
+2. Routing traffic on private networks may incur Transit Gateway,
 inter-VPC, and Interface Endpoint charges.
 3. The DNS of any VPN clients must assign AWS global and regional S3
 service names to the Interface Endpoint IP addresses.
 
-## Further reading
+## References
 
 * [Choosing your VPC Endpoint Strategy for Amazon S3](https://aws.amazon.com/blogs/architecture/choosing-your-vpc-endpoint-strategy-for-amazon-s3/)
 * [Secure hybrid access to Amazon S3 using AWS PrivateLink](https://aws.amazon.com/blogs/networking-and-content-delivery/secure-hybrid-access-to-amazon-s3-using-aws-privatelink/)
