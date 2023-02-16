@@ -3,7 +3,6 @@ import * as React from 'react'
 import { parse } from 'querystring'
 
 import cfg from 'constants/config'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import { BaseError } from 'utils/error'
 
 export class OIDCError extends BaseError {
@@ -17,13 +16,7 @@ export function useOIDC({ provider, popupParams }) {
     () =>
       new Promise((resolve, reject) => {
         const state = Math.random().toString(36).substring(2)
-        const query = NamedRoutes.mkSearch({
-          redirect_uri: `${window.location.origin}/oauth-callback`,
-          response_type: 'code',
-          scope: 'openid email',
-          state,
-        })
-        const url = `${cfg.registryUrl}/oidc-authorize/${provider}${query}`
+        const url = `${cfg.registryUrl}/oidc-authorize/${provider}?state=${state}`
         const popup = window.open(url, `quilt_${provider}_popup`, popupParams)
         const timer = setInterval(() => {
           if (popup.closed) {
