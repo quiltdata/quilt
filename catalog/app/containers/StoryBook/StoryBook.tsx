@@ -10,6 +10,7 @@ const ButtonsIconized = () => import('./Buttons/Iconized')
 const JsonDisplayBasic = () => import('./JsonDisplay/Basic')
 const JsonEditorBasic = () => import('./JsonEditor/Basic')
 const JsonEditorHasInitialValue = () => import('./JsonEditor/HasInitialValue')
+const CommitMessage = () => import('./Forms/CommitMessage')
 const SelectDropdownBasic = () => import('./SelectDropdown/Basic')
 const SelectDropdownStates = () => import('./SelectDropdown/States')
 
@@ -24,6 +25,17 @@ const books = [
         Component: RT.mkLazy(ButtonsIconized, SuspensePlaceholder),
         path: '/iconized',
         title: 'Iconized',
+      },
+    ],
+  },
+  {
+    path: '/package-dialog',
+    title: 'Package Dialog',
+    children: [
+      {
+        Component: RT.mkLazy(CommitMessage, SuspensePlaceholder),
+        path: '/commit-message',
+        title: 'Commit message',
       },
     ],
   },
@@ -125,6 +137,7 @@ function StoryBook() {
               {books.map((group) =>
                 group.children.map((book) => (
                   <RRDom.Route
+                    key={`${path}${group.path}${book.path}`}
                     path={`${path}${group.path}${book.path}`}
                     render={() => (
                       <M.Breadcrumbs>
@@ -146,7 +159,7 @@ function StoryBook() {
       >
         <M.List>
           {books.map((group) => (
-            <>
+            <React.Fragment key={group.path}>
               <M.ListItem onClick={() => toggleSubMenu(group.path)}>
                 <M.ListItemText>{group.title}</M.ListItemText>
                 <M.Icon>
@@ -156,7 +169,7 @@ function StoryBook() {
               <M.Collapse in={!closedSubMenu[group.path]}>
                 <M.List className={classes.subMenu} dense disablePadding>
                   {group.children.map((book) => (
-                    <M.ListItem>
+                    <M.ListItem key={`${url}${group.path}${book.path}`}>
                       <RRDom.Link
                         to={`${url}${group.path}${book.path}`}
                         onClick={toggleMenuDrawer}
@@ -167,7 +180,7 @@ function StoryBook() {
                   ))}
                 </M.List>
               </M.Collapse>
-            </>
+            </React.Fragment>
           ))}
         </M.List>
       </M.Drawer>
@@ -176,6 +189,7 @@ function StoryBook() {
           {books.map((group) =>
             group.children.map((book) => (
               <RRDom.Route
+                key={`${path}${group.path}${book.path}`}
                 path={`${path}${group.path}${book.path}`}
                 component={book.Component}
               />
