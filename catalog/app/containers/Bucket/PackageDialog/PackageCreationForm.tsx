@@ -18,7 +18,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
-import * as JSONPointer from 'utils/JSONPointer'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -236,7 +235,6 @@ function PackageCreationForm({
       existing: existingEntries,
       added: addToPackage?.entries || {},
       deleted: {},
-      invalid: {},
     }),
     [existingEntries, addToPackage],
   )
@@ -323,7 +321,7 @@ function PackageCreationForm({
     }
 
     const error = await validateEntries(entries)
-    if (error && error.length) {
+    if (error?.length) {
       setEntriesError(error)
       return {
         files: 'schema',
@@ -459,12 +457,12 @@ function PackageCreationForm({
       if (dirtyFields?.files) {
         const entries = filesStateToEntries(values.files)
         const error = await validateEntries(entries)
-        if (error && error.length) {
+        if (error?.length) {
           setEntriesError(error)
         }
       }
     },
-    [handleNameChange],
+    [handleNameChange, validateEntries],
   )
 
   React.useEffect(() => {

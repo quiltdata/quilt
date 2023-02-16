@@ -10,7 +10,6 @@ import { fade } from '@material-ui/core/styles'
 
 import * as urls from 'constants/urls'
 import * as Model from 'model'
-import * as JSONPointer from 'utils/JSONPointer'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
@@ -93,7 +92,6 @@ export interface FilesState {
   added: Record<string, LocalFile | Model.S3File>
   deleted: Record<string, true>
   existing: Record<string, Model.PackageEntry>
-  invalid: Record<string, true>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
@@ -278,7 +276,7 @@ interface IntermediateEntry {
 }
 
 const computeEntries = ({
-  value: { added, deleted, existing, invalid },
+  value: { added, deleted, existing },
   errors,
 }: {
   value: FilesState

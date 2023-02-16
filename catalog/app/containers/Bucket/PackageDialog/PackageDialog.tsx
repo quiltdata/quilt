@@ -561,38 +561,52 @@ function isAjvError(e: Error | ErrorObject): e is ErrorObject {
   return !!(e as ErrorObject).instancePath
 }
 
-export function useEntriesValidator(workflow?: workflows.Workflow) {
+function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
+  return React.useCallback(async () => {
+    const schemaUrl = workflow?.entriesSchema
+    if (!schemaUrl) return null
+    // TODO: Show error if there is network error
+    return requests.objectSchema({ s3, schemaUrl })
+  }, [s3, workflow])
+}
+
+interface Entry {
+  logical_key: string
+  size: number
+  meta?: JsonRecord
+}
+
+function injectEntryIntoErrors(errors: (Error | ErrorObject)[], entries: Entry[]) {
+  if (!errors?.length) return errors
+  return errors.map((error) => {
+    if (!isAjvError(error)) return error
+    try {
+      const pointer = JSONPointer.parse(error.instancePath)
+
+      // `entries` value is an array,
+      // so the first item of the pointer is an index
+      const index: number = Number(pointer[0] as string)
+      error.data = entries[index]
+      return error
+    } catch (e) {
+      log.debug(e)
+      return error
+    }
+  })
+}
+
+export function useEntriesValidator(workflow?: workflows.Workflow) {
+  const fetchEntriesSchema = useFetchEntriesSchema(workflow)
 
   return React.useCallback(
-    async (entries: { logical_key: string; size: number; meta?: JsonRecord }[]) => {
-      const schemaUrl = workflow?.entriesSchema
-      if (!schemaUrl) return undefined
-      const entriesSchema = await requests.objectSchema({ s3, schemaUrl })
-      // TODO: Show error if there is network error
+    async (entries: Entry[]) => {
+      const entriesSchema = await fetchEntriesSchema()
       if (!entriesSchema) return undefined
 
       const errors = makeSchemaValidator(entriesSchema)(entries)
-      if (errors && errors.length) {
-        const errorsWithContext = errors.map((e) => {
-          if (!isAjvError(e)) return e
-          try {
-            const pointer = JSONPointer.parse(e.instancePath)
-
-            // `entries` value is an array,
-            // so the first item of the pointer is an index
-            const index: number = Number(pointer[0] as string)
-            e.data = entries[index]
-            return e
-          } catch (error) {
-            log.debug(error)
-            return e
-          }
-        })
-        return errorsWithContext
-      }
-      return errors
+      return injectEntryIntoErrors(errors, entries)
     },
-    [workflow, s3],
+    [fetchEntriesSchema],
   )
 }
