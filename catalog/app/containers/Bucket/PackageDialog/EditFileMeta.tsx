@@ -88,16 +88,26 @@ interface EditMetaProps {
   name: string
   onChange?: (value: JsonValue) => void
   value: JsonValue
+  state?: string
 }
 
-export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
+export default function EditFileMeta({
+  disabled,
+  name,
+  state,
+  value,
+  onChange,
+}: EditMetaProps) {
   // TODO: show "modified" state
   //       possible solution: store value and its state in one object `metaValue = { value, state }`
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
   // TODO: simplify R.isEmpty when meta will be normalized to null
-  const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
+  const color = React.useMemo(
+    () => (state === 'invalid' || R.isEmpty(value) ? 'inherit' : 'primary'),
+    [state, value],
+  )
 
   if (!onChange) return null
 

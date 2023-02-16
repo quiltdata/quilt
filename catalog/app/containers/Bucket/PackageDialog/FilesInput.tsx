@@ -537,7 +537,7 @@ function File({
   ...props
 }: FileProps) {
   const classes = useFileStyles()
-  const stateDisplay = disableStateDisplay ? 'unchanged' : state
+  const stateDisplay = disableStateDisplay && state !== 'invalid' ? 'unchanged' : state
 
   // XXX: reset EditFileMeta state when file is reverted
   const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
@@ -567,6 +567,7 @@ function File({
           key={metaKey}
           name={name}
           onChange={onMeta}
+          state={stateDisplay}
           value={meta}
         />
         {action}
