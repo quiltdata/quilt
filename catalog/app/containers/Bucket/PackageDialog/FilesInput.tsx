@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
@@ -9,6 +10,7 @@ import { fade } from '@material-ui/core/styles'
 
 import * as urls from 'constants/urls'
 import * as Model from 'model'
+import * as JSONPointer from 'utils/JSONPointer'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
@@ -275,13 +277,19 @@ interface IntermediateEntry {
   meta?: Types.JsonRecord | null
 }
 
-const computeEntries = ({ added, deleted, existing, invalid }: FilesState) => {
+const computeEntries = ({
+  value: { added, deleted, existing, invalid },
+  errors,
+}: {
+  value: FilesState
+  errors: $TSFixMe
+}) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
     ([path, { size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
-      if (path in invalid) {
+      if (errors?.find((e: ErrorObject) => (e.data as $TSFixMe)?.logical_key === path)) {
         return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
@@ -307,6 +315,15 @@ const computeEntries = ({ added, deleted, existing, invalid }: FilesState) => {
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
+    if (errors?.find((e: ErrorObject) => (e.data as $TSFixMe)?.logical_key === path)) {
+      return acc.concat({
+        state: 'invalid' as const,
+        type: 'local' as const,
+        path,
+        size: f.size,
+        meta: f.meta,
+      })
+    }
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
     return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
@@ -1362,6 +1379,7 @@ interface FilesInputProps {
   ui?: {
     reset?: React.ReactNode
   }
+  validationErrors: (Error | ErrorObject)[]
 }
 
 export function FilesInput({
@@ -1380,6 +1398,7 @@ export function FilesInput({
   disableStateDisplay = false,
   ui = {},
   initialS3Path,
+  validationErrors,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1447,7 +1466,11 @@ export function FilesInput({
     onDrop,
   })
 
-  const computedEntries = useMemoEq(value, computeEntries)
+  const valueWithErrors = React.useMemo(
+    () => ({ errors: validationErrors, value }),
+    [validationErrors, value],
+  )
+  const computedEntries = useMemoEq(valueWithErrors, computeEntries)
 
   const stats = useMemoEq(value, ({ added, existing }) => ({
     upload: Object.entries(added).reduce(

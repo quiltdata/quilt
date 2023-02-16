@@ -18,6 +18,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
+import * as JSONPointer from 'utils/JSONPointer'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -64,6 +65,22 @@ export interface S3Entry {
 export interface PackageCreationSuccess {
   name: string
   hash?: string
+}
+
+// Convert FilesState to entries consumed by backend and Schema validation
+function filesStateToEntries(
+  files: FI.FilesState,
+): { logical_key: string; size: number; meta?: Types.JsonRecord }[] {
+  return FP.function.pipe(
+    R.mergeLeft(files.added, files.existing),
+    R.omit(Object.keys(files.deleted)),
+    Object.entries,
+    R.map(([path, file]) => ({
+      logical_key: path,
+      meta: file.meta,
+      size: file.size,
+    })),
+  )
 }
 
 function createReadmeFile(name: string) {
@@ -291,17 +308,7 @@ function PackageCreationForm({
       return !e || e.hash !== file.hash.value
     })
 
-    const entries: { logical_key: string; size: number; meta?: Types.JsonRecord }[] =
-      FP.function.pipe(
-        R.mergeLeft(files.added, files.existing),
-        R.omit(Object.keys(files.deleted)),
-        Object.entries,
-        R.map(([path, file]) => ({
-          logical_key: path,
-          meta: file.meta,
-          size: file.size,
-        })),
-      )
+    const entries = filesStateToEntries(files)
 
     if (!entries.length) {
       const reason = await dialogs.open((props: DialogsOpenProps) => (
@@ -448,7 +455,14 @@ function PackageCreationForm({
   const onFormChange = React.useCallback(
     async ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
-      if (dirtyFields?.files) setEntriesError(null)
+
+      if (dirtyFields?.files) {
+        const entries = filesStateToEntries(values.files)
+        const error = await validateEntries(entries)
+        if (error && error.length) {
+          setEntriesError(error)
+        }
+      }
     },
     [handleNameChange],
   )
@@ -630,6 +644,7 @@ function PackageCreationForm({
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
+                      validationErrors={entriesError}
                     />
                   )}
 

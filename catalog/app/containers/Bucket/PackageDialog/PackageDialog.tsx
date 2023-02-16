@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
@@ -11,6 +12,8 @@ import * as authSelectors from 'containers/Auth/selectors'
 import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import * as JSONPointer from 'utils/JSONPointer'
+import log from 'utils/Logging'
 import * as Sentry from 'utils/Sentry'
 import { mkFormError } from 'utils/formTools'
 import {
@@ -554,6 +557,10 @@ export function DialogWrapper({
   return <M.Dialog {...props} />
 }
 
+function isAjvError(e: Error | ErrorObject): e is ErrorObject {
+  return !!(e as ErrorObject).instancePath
+}
+
 export function useEntriesValidator(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
 
@@ -565,7 +572,26 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
       // TODO: Show error if there is network error
       if (!entriesSchema) return undefined
 
-      return makeSchemaValidator(entriesSchema)(entries)
+      const errors = makeSchemaValidator(entriesSchema)(entries)
+      if (errors && errors.length) {
+        const errorsWithContext = errors.map((e) => {
+          if (!isAjvError(e)) return e
+          try {
+            const pointer = JSONPointer.parse(e.instancePath)
+
+            // `entries` value is an array,
+            // so the first item of the pointer is an index
+            const index: number = Number(pointer[0] as string)
+            e.data = entries[index]
+            return e
+          } catch (error) {
+            log.debug(error)
+            return e
+          }
+        })
+        return errorsWithContext
+      }
+      return errors
     },
     [workflow, s3],
   )
