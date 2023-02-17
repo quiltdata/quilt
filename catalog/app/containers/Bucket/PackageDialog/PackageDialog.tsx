@@ -577,21 +577,29 @@ interface Entry {
   meta?: JsonRecord
 }
 
-function injectEntryIntoErrors(errors: (Error | ErrorObject)[], entries: Entry[]) {
-  if (!errors?.length) return errors
+interface EntryValidationError extends ErrorObject {
+  data: Entry
+}
+
+type EntriesValidationErrors = (Error | EntryValidationError)[]
+
+function injectEntryIntoErrors(
+  errors: (Error | ErrorObject)[],
+  entries: Entry[],
+): EntriesValidationErrors {
+  if (!errors?.length) return errors as Error[]
   return errors.map((error) => {
     if (!isAjvError(error)) return error
     try {
       const pointer = JSONPointer.parse(error.instancePath)
-
       // `entries` value is an array,
       // so the first item of the pointer is an index
       const index: number = Number(pointer[0] as string)
       error.data = entries[index]
-      return error
+      return error as EntryValidationError
     } catch (e) {
       log.debug(e)
-      return error
+      return error instanceof Error ? error : new Error('Unknown error')
     }
   })
 }
