@@ -451,17 +451,6 @@ function PackageCreationForm({
     [setMetaHeight],
   )
   const [filesDisabled, setFilesDisabled] = React.useState(false)
-  const validateFilesState = React.useCallback(
-    async (files: FI.FilesState) => {
-      setFilesDisabled(true)
-      const entries = filesStateToEntries(files)
-      const errors = await validateEntries(entries)
-      setEntriesError(errors || null)
-      setFilesDisabled(false)
-      return errors
-    },
-    [validateEntries],
-  )
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
@@ -476,24 +465,21 @@ function PackageCreationForm({
     }
   }, [editorElement, resizeObserver])
 
-  const validateFiles = React.useMemo(
-    () =>
-      delayHashing
-        ? async (files: FI.FilesState) => {
-            const errors = await validateFilesState(files)
-            if (errors?.length) {
-              return 'schema'
-            }
-          }
-        : async (files: FI.FilesState) => {
-            const hashihgError = FI.validateHashingComplete(files)
-            if (hashihgError) return hashihgError
-            const errors = await validateFilesState(files)
-            if (errors?.length) {
-              return 'schema'
-            }
-          },
-    [delayHashing, validateFilesState],
+  const validateFiles = React.useCallback(
+    async (files: FI.FilesState) => {
+      const hashihgError = delayHashing && FI.validateHashingComplete(files)
+      if (hashihgError) return hashihgError
+
+      setFilesDisabled(true)
+      const entries = filesStateToEntries(files)
+      const errors = await validateEntries(entries)
+      setEntriesError(errors || null)
+      setFilesDisabled(false)
+      if (errors?.length) {
+        return 'schema'
+      }
+    },
+    [delayHashing, validateEntries],
   )
 
   // HACK: FIXME: it triggers name validation with correct workflow
