@@ -1,4 +1,4 @@
-# Restrict Catalog users to S3 bucket prefixes
+# Restrict access by S3 bucket prefix
 
 It is possible to use custom roles and policies in the Quilt Catalog in order
 to limit access to specific folders in an S3 bucket. Nevertheless,
@@ -46,15 +46,17 @@ search performance in the Catalog
 
 ## Requirements and recommendations
 
-* After updating your Quilt stack **you must rename, remove, or add a Quilt managed role**
-in order to trigger a policy update in the Quilt Stack.
-
-* Manage all Quilt Catalog roles and policies for prefixes [with the Quilt Catalog Admin Panel](../catalog/Admin.md#users-and-roles)
+* Manage all Quilt roles and policies for prefixes
+[with the Quilt Catalog Admin Panel](../catalog/Admin.md#users-and-roles)
 
 * Provided that you use roles created in the Quilt Catalog Admin Panel
 **you do not need to and should not** insert a trust relationship into your
 roles by hand.
 
+> In certain rare circumstances (e.g. upgrading from older stacks for
+cross-account role assumption) if Quilt is not working as expected
+__you can rename, remove, or add a Quilt managed role__
+in order to force the Quilt Stack to update its permissions state.
 
 ## Example
 
