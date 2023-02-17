@@ -205,3 +205,9 @@ Currently, a full size, multi-Availability Zone deployment (without
 requires at least 256 IPs. This means a minimum CIDR block of `/24`.
 
 Optional additional features (such as automated data packaging) require additional IPs.
+
+## In the catalog file list there is a column for "Last modified", but no datetime value is displayed for folders
+
+In Amazon S3 there is technically no such thing as folders, just
+**object prefixes**. So there is not any `Last modified` information
+anywhere except on the file objects themselves.
