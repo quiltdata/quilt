@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
@@ -280,14 +279,14 @@ const computeEntries = ({
   errors,
 }: {
   value: FilesState
-  errors: $TSFixMe
+  errors: PD.EntriesValidationErrors
 }) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
     ([path, { size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
-      if (errors?.find((e: ErrorObject) => (e.data as $TSFixMe)?.logical_key === path)) {
+      if (errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)) {
         return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
@@ -313,7 +312,7 @@ const computeEntries = ({
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
-    if (errors?.find((e: ErrorObject) => (e.data as $TSFixMe)?.logical_key === path)) {
+    if (errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)) {
       return acc.concat({
         state: 'invalid' as const,
         type: 'local' as const,
@@ -1378,7 +1377,7 @@ interface FilesInputProps {
   ui?: {
     reset?: React.ReactNode
   }
-  validationErrors: (Error | ErrorObject)[]
+  validationErrors: PD.EntriesValidationErrors
 }
 
 export function FilesInput({

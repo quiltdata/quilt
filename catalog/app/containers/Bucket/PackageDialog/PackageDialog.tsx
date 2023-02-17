@@ -561,6 +561,10 @@ function isAjvError(e: Error | ErrorObject): e is ErrorObject {
   return !!(e as ErrorObject).instancePath
 }
 
+export function isEntryError(e: Error | ErrorObject): e is EntryValidationError {
+  return !!(e as EntryValidationError)?.data?.logical_key
+}
+
 function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
   return React.useCallback(async () => {
@@ -581,7 +585,7 @@ interface EntryValidationError extends ErrorObject {
   data: ValidationEntry
 }
 
-type EntriesValidationErrors = (Error | EntryValidationError)[]
+export type EntriesValidationErrors = (Error | EntryValidationError)[]
 
 function injectEntryIntoErrors(
   errors: (Error | ErrorObject)[],
