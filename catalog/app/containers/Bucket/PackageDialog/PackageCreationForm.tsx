@@ -450,16 +450,17 @@ function PackageCreationForm({
       }),
     [setMetaHeight],
   )
+  const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
     async ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
 
       if (dirtyFields?.files) {
         const entries = filesStateToEntries(values.files)
+        setFilesDisabled(true)
         const error = await validateEntries(entries)
-        if (error?.length) {
-          setEntriesError(error)
-        }
+        setEntriesError(error || null)
+        setFilesDisabled(false)
       }
     },
     [handleNameChange, validateEntries],
@@ -643,6 +644,7 @@ function PackageCreationForm({
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
                       validationErrors={entriesError}
+                      disabled={filesDisabled}
                     />
                   )}
 
