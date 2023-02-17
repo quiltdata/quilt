@@ -17,7 +17,7 @@ folders are sensitive_.
 Stack (1-Feb-2023 or later) so that the Quilt registry has sufficient permissions
 to assume cross-account roles on behalf or users
 
-* Ask your Quilt Account Manager to **enable "secure search"** for your stack
+* Ask your Quilt Account Manager to **enable "prefix-aware search"** for your stack
 in order for search to hide the objects from unauthorized users in the search results.
 
 
@@ -40,7 +40,7 @@ _Quilt_ metadata, but will not reveal S3 object metadata and will not reveal
 object contents.  Clicking on a package entry in the Catalog that has a physical
 key that the user is not allowed to access will display _Access Denied_.
 
-* Secure search performs a head request on every object result; this may slow
+* Prefix-aware search performs a head request on every object result; this may slow
 search performance in the Catalog
 
 
