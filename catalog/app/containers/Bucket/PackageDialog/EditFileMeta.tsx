@@ -113,7 +113,7 @@ export default function EditFileMeta({
 
   if (disabled) {
     return (
-      <M.IconButton size="small" disabled color="inherit">
+      <M.IconButton size="small" disabled>
         <MetadataIcon color="disabled" />
       </M.IconButton>
     )
@@ -121,7 +121,7 @@ export default function EditFileMeta({
 
   return (
     <>
-      <M.IconButton onClick={openEditor} title="Edit meta" size="small" color="inherit">
+      <M.IconButton color="inherit" onClick={openEditor} title="Edit meta" size="small">
         <MetadataIcon color={color} />
       </M.IconButton>
 
