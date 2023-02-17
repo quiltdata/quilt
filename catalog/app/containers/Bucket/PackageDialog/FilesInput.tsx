@@ -1641,7 +1641,7 @@ export function FilesInput({
 
           <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
         </Contents>
-        {submitting && <Lock progress={totalProgress} />}
+        {(submitting || disabled) && <Lock progress={totalProgress} />}
       </ContentsContainer>
       <div className={classes.actions}>
         <M.Button
@@ -1841,7 +1841,7 @@ export function FilesSelector({
               </M.Typography>
             </M.Box>
           )}
-          {submitting && <Lock progress={PROGRESS_EMPTY} />}
+          {(submitting || disabled) && <Lock progress={PROGRESS_EMPTY} />}
         </Contents>
       </ContentsContainer>
 
