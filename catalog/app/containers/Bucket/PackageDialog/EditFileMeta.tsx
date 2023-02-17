@@ -99,7 +99,6 @@ export default function EditFileMeta({
   onChange,
 }: EditMetaProps) {
   // TODO: show "modified" state
-  //       possible solution: store value and its state in one object `metaValue = { value, state }`
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
