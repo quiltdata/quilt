@@ -67,9 +67,7 @@ export interface PackageCreationSuccess {
 }
 
 // Convert FilesState to entries consumed by backend and Schema validation
-function filesStateToEntries(
-  files: FI.FilesState,
-): { logical_key: string; size: number; meta?: Types.JsonRecord }[] {
+function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
   return FP.function.pipe(
     R.mergeLeft(files.added, files.existing),
     R.omit(Object.keys(files.deleted)),

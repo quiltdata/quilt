@@ -571,21 +571,21 @@ function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   }, [s3, workflow])
 }
 
-interface Entry {
+export interface ValidationEntry {
   logical_key: string
   size: number
   meta?: JsonRecord
 }
 
 interface EntryValidationError extends ErrorObject {
-  data: Entry
+  data: ValidationEntry
 }
 
 type EntriesValidationErrors = (Error | EntryValidationError)[]
 
 function injectEntryIntoErrors(
   errors: (Error | ErrorObject)[],
-  entries: Entry[],
+  entries: ValidationEntry[],
 ): EntriesValidationErrors {
   if (!errors?.length) return errors as Error[]
   return errors.map((error) => {
@@ -608,7 +608,7 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
   const fetchEntriesSchema = useFetchEntriesSchema(workflow)
 
   return React.useCallback(
-    async (entries: Entry[]) => {
+    async (entries: ValidationEntry[]) => {
       const entriesSchema = await fetchEntriesSchema()
       if (!entriesSchema) return undefined
 
