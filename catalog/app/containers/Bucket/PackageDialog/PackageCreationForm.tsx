@@ -451,19 +451,22 @@ function PackageCreationForm({
     [setMetaHeight],
   )
   const [filesDisabled, setFilesDisabled] = React.useState(false)
-  const onFormChange = React.useCallback(
-    async ({ dirtyFields, values }) => {
-      if (dirtyFields?.name) handleNameChange(values.name)
-
-      if (dirtyFields?.files) {
-        const entries = filesStateToEntries(values.files)
-        setFilesDisabled(true)
-        const error = await validateEntries(entries)
-        setEntriesError(error || null)
-        setFilesDisabled(false)
-      }
+  const validateFilesState = React.useCallback(
+    async (files: FI.FilesState) => {
+      setFilesDisabled(true)
+      const entries = filesStateToEntries(files)
+      const errors = await validateEntries(entries)
+      setEntriesError(errors || null)
+      setFilesDisabled(false)
+      return errors
     },
-    [handleNameChange, validateEntries],
+    [validateEntries],
+  )
+  const onFormChange = React.useCallback(
+    ({ dirtyFields, values }) => {
+      if (dirtyFields?.name) handleNameChange(values.name)
+    },
+    [handleNameChange],
   )
 
   React.useEffect(() => {
@@ -474,8 +477,23 @@ function PackageCreationForm({
   }, [editorElement, resizeObserver])
 
   const validateFiles = React.useMemo(
-    () => (delayHashing ? () => {} : FI.validateHashingComplete),
-    [delayHashing],
+    () =>
+      delayHashing
+        ? async (files: FI.FilesState) => {
+            const errors = await validateFilesState(files)
+            if (errors?.length) {
+              return 'schema'
+            }
+          }
+        : async (files: FI.FilesState) => {
+            const hashihgError = FI.validateHashingComplete(files)
+            if (hashihgError) return hashihgError
+            const errors = await validateFilesState(files)
+            if (errors?.length) {
+              return 'schema'
+            }
+          },
+    [delayHashing, validateFilesState],
   )
 
   // HACK: FIXME: it triggers name validation with correct workflow
@@ -643,14 +661,14 @@ function PackageCreationForm({
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
-                      validationErrors={entriesError}
+                      validationErrors={submitFailed ? entriesError : []}
                       disabled={filesDisabled}
                     />
                   )}
 
                   <JsonValidationErrors
                     className={classes.filesError}
-                    error={entriesError}
+                    error={submitFailed ? entriesError : []}
                   />
                 </Layout.RightColumn>
               </Layout.Container>
