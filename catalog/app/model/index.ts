@@ -52,7 +52,6 @@ export interface PackageEntry {
   hash: string
   meta: Types.JsonRecord | null
   size: number
-  error?: Error
 }
 
 export type PackageContentsFlatMap = Record<string, PackageEntry>
@@ -65,5 +64,4 @@ export interface S3File {
   meta?: Types.JsonRecord // TODO: make it the same as in PackageEntry
   size: number
   version?: string
-  error?: Error
 }

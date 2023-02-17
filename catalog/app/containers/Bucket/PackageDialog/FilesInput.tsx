@@ -113,7 +113,7 @@ const addMetaToFile = (
     })
     return fileCopy
   }
-  return R.assoc('meta', meta, R.assoc('error', new Error('invalid'), file))
+  return R.assoc('meta', meta, file)
 }
 
 const handleFilesAction = FilesAction.match<
