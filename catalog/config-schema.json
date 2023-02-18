@@ -17,34 +17,6 @@
       "type": "string",
       "description": "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
     },
-    "googleClientId": {
-      "type": "string",
-      "description": "Client ID for Google Sign-In"
-    },
-    "oktaClientId": {
-      "type": "string",
-      "description": "Client ID for Okta Sign-In"
-    },
-    "oktaBaseUrl": {
-      "type": "string",
-      "description": "Base URL for Okta Sign-In (e.g., https://$company.okta.com/oauth2 or https://$company.oktapreview.com/oauth2/default)"
-    },
-    "oneLoginClientId": {
-      "type": "string",
-      "description": "Client ID for OneLogin Sign-In"
-    },
-    "oneLoginBaseUrl": {
-      "type": "string",
-      "description": "Base URL for OneLogin Sign-In"
-    },
-    "azureClientId": {
-      "type": "string",
-      "description": "Client ID for Azure Sign-In"
-    },
-    "azureBaseUrl": {
-      "type": "string",
-      "description": "Base URL for Azure Sign-In"
-    },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."

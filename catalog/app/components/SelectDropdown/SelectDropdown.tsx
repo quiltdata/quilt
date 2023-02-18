@@ -47,6 +47,7 @@ interface SelectDropdownProps<Value extends ValueBase> {
   onOpen?: () => void
   options: Value[]
   value: ValueBase
+  className?: string
 }
 
 export default function SelectDropdown<Value extends ValueBase>({
@@ -61,8 +62,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   onOpen,
   options,
   value,
-  ...props
-}: M.PaperProps & SelectDropdownProps<Value>) {
+}: SelectDropdownProps<Value>) {
   const classes = useStyles()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
@@ -94,11 +94,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   const { className: buttonClassName, ...buttonProps } = ButtonProps || {}
 
   return (
-    <M.Paper
-      className={cx(className, classes.root, { [classes.disabled]: disabled })}
-      elevation={0}
-      {...props}
-    >
+    <div className={cx(className, classes.root, { [classes.disabled]: disabled })}>
       <M.Button
         className={cx(classes.button, buttonClassName)}
         onClick={handleOpen}
@@ -141,6 +137,6 @@ export default function SelectDropdown<Value extends ValueBase>({
             ))
           : emptySlot}
       </M.Menu>
-    </M.Paper>
+    </div>
   )
 }

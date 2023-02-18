@@ -53,7 +53,6 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
-const AuthSSOSignUp = RT.mkLazy(() => import('containers/Auth/SSOSignUp'), Placeholder)
 const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
 const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
 const UriResolver = protect(
@@ -71,6 +70,10 @@ const MAbout = RT.mkLazy(() => import('website/pages/About'), Placeholder)
 const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
 const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
+const AwsMarketplace = RT.mkLazy(
+  () => import('website/pages/AwsMarketplace'),
+  Placeholder,
+)
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
 const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
@@ -114,6 +117,9 @@ export default function App() {
           <Route path="/nextflow" component={NextFlow} exact />
         )}
         {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && (
+          <Route path="/aws-marketplace" component={AwsMarketplace} exact />
+        )}
 
         {!cfg.disableNavigator && (
           <Route path={paths.activate} component={Activate} exact />
@@ -130,9 +136,6 @@ export default function App() {
         )}
         {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
           <Route path={paths.signUp} component={AuthSignUp} exact />
-        )}
-        {!cfg.disableNavigator && cfg.ssoAuth === true && (
-          <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
           <Route path={paths.passReset} component={AuthPassReset} exact />

@@ -224,20 +224,30 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
+  const { preferences } = BucketPreferences.use()
   return (
     <div className={classes.root}>
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
       {!!revision.userMeta && (
         <div className={classes.section}>
-          {Object.entries(revision.userMeta).map(([name, value]) => (
-            /* @ts-expect-error */
+          {preferences?.ui.packageDescription.userMetaMultiline ? (
+            Object.entries(revision.userMeta).map(([name, value]) => (
+              // @ts-expect-error
+              <JsonDisplay
+                className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
+                key={`user-meta-section-${name}`}
+                name={name}
+                value={value}
+              />
+            ))
+          ) : (
+            // @ts-expect-error
             <JsonDisplay
-              className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
-              key={`user-meta-section-${name}`}
-              name={name}
-              value={value}
+              className={classes.sectionWithToggle}
+              name="User metadata"
+              value={revision.userMeta}
             />
-          ))}
+          )}
         </div>
       )}
     </div>
@@ -259,9 +269,9 @@ function usePackageDescription(
 ): BucketPreferences.PackagePreferences | null {
   const { preferences } = BucketPreferences.use()
   return React.useMemo(() => {
-    if (!preferences?.ui.package_description) return null
+    if (!preferences?.ui.packageDescription.packages) return null
     return (
-      Object.entries(preferences?.ui.package_description)
+      Object.entries(preferences?.ui.packageDescription.packages)
         .reverse() // The last found config wins
         .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
     )
