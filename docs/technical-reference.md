@@ -26,12 +26,19 @@ backend services, a secure server to manage user identities, and a Python API.
 
 ### Network
 ![](imgs/aws-diagram-network.png)
-* ECS services (e.g., Catalog, Identity Server) run in two availability zones
-with separate private subnets.
-* Amazon RDS (Postgres) stores stack configuration settings only. It is
-deployed in a multi-AZ configuration for high availability.
-* Security groups and NACLs restrict access to the greatest degree possible, by
-only allowing necessary traffic.
+
+- Amazon ECS services run in two subnets in two Availability Zones (AZ).
+If your Quilt stack is configured to use private subnets you must also provide a
+public NAT gateway.
+- An Amazon RDS instance (Postgres) stores stack configuration,
+user login information, and bucket metadata.
+- AWS Lambda Services can optionally be configured to use private IPs in your VPC.
+- Security groups and NACLs throughout restrict access to the greatest degree possible.
+
+See [Private endpoints](advanced-features/private-endpoint-access.md) for more details
+on private IPs and Quilt services.
+
+> For cost-sensitive deployments, Quilt ECS services can be configured to use a single AZ.
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
