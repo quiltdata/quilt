@@ -211,7 +211,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
-    meta?: Types.JsonRecord | null
+    meta?: Model.EntryMeta
   }) => v,
 })
 
@@ -264,7 +264,7 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
-  meta?: Types.JsonRecord | null
+  meta?: Model.EntryMeta
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
@@ -1090,7 +1090,7 @@ function FileUpload({
   }, [])
 
   const onMeta = React.useCallback(
-    (m?: Types.JsonRecord | null) => dispatch(FilesAction.Meta({ path, meta: m })),
+    (m?: Model.EntryMeta) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
 
