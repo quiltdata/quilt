@@ -46,7 +46,7 @@ export type Collaborators = ReadonlyArray<
 >
 
 // Note that the actual user-defined meta is in the `user_meta` field
-export type EntryMeta = Types.JsonRecord | null
+export type EntryMeta = (Types.JsonRecord & { user_meta?: Types.JsonRecord }) | null
 
 export interface PackageEntry {
   physicalKey: string
