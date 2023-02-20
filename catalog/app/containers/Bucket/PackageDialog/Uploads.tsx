@@ -73,7 +73,7 @@ export function useUploads() {
       files: { path: string; file: LocalFile }[]
       bucket: string
       prefix: string
-      getMeta?: (path: string) => object | undefined
+      getMeta?: (path: string) => Model.EntryMeta | undefined
     }) => {
       const limit = pLimit(2)
       let rejected = false

@@ -2,8 +2,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { JsonValue } from 'components/JsonEditor/constants'
 import MetadataEditor from 'components/MetadataEditor'
+import * as Model from 'model'
 
 const useDialogStyles = M.makeStyles({
   paper: {
@@ -19,22 +19,26 @@ const useStyles = M.makeStyles({
 
 interface DialogProps {
   name: string
-  onChange: (value: JsonValue) => void
+  onChange: (value?: Model.EntryMeta) => void
   onClose: () => void
   open: boolean
-  value: JsonValue
+  value?: Model.EntryMeta
 }
 
 function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
   // TODO: add button to reset innerValue
-  const [innerValue, setInnerValue] = React.useState(value)
+  const [innerValue, setInnerValue] = React.useState(() => value?.user_meta)
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
   const [isRaw, setRaw] = React.useState(false)
   const handleSubmit = React.useCallback(() => {
-    onChange(innerValue)
+    if (innerValue === undefined) {
+      onChange(value)
+    } else {
+      onChange({ ...value, user_meta: innerValue })
+    }
     onClose()
-  }, [innerValue, onChange, onClose])
+  }, [innerValue, onChange, onClose, value])
   const handleCancel = React.useCallback(() => {
     setInnerValue(value)
     onClose()
@@ -86,8 +90,8 @@ function MetadataIcon({ color }: MetadataIconProps) {
 interface EditMetaProps {
   disabled?: boolean
   name: string
-  onChange?: (value: JsonValue) => void
-  value: JsonValue
+  onChange?: (value?: Model.EntryMeta) => void
+  value?: Model.EntryMeta
 }
 
 export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
