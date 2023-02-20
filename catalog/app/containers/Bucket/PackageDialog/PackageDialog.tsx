@@ -570,7 +570,6 @@ function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   return React.useCallback(async () => {
     const schemaUrl = workflow?.entriesSchema
     if (!schemaUrl) return null
-    // TODO: Show error if there is network error
     return requests.objectSchema({ s3, schemaUrl })
   }, [s3, workflow])
 }
@@ -614,6 +613,7 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
   return React.useCallback(
     async (entries: ValidationEntry[]) => {
       const entriesSchema = await fetchEntriesSchema()
+      // TODO: Show error if there is network error
       if (!entriesSchema) return undefined
 
       const errors = makeSchemaValidator(entriesSchema)(entries)
