@@ -274,19 +274,23 @@ interface IntermediateEntry {
   meta?: Types.JsonRecord | null
 }
 
+function matchErrorToEntry(path: string, errors: PD.EntriesValidationErrors | null) {
+  return errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)
+}
+
 const computeEntries = ({
   value: { added, deleted, existing },
   errors,
 }: {
   value: FilesState
-  errors: PD.EntriesValidationErrors
+  errors: PD.EntriesValidationErrors | null
 }) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
     ([path, { size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
-      if (errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)) {
+      if (matchErrorToEntry(path, errors)) {
         return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
@@ -312,7 +316,7 @@ const computeEntries = ({
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
-    if (errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)) {
+    if (matchErrorToEntry(path, errors)) {
       return acc.concat({
         state: 'invalid' as const,
         type: 'local' as const,
@@ -1377,7 +1381,7 @@ interface FilesInputProps {
   ui?: {
     reset?: React.ReactNode
   }
-  validationErrors: PD.EntriesValidationErrors
+  validationErrors: PD.EntriesValidationErrors | null
 }
 
 export function FilesInput({
