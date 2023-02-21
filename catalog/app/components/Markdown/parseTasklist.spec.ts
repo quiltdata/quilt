@@ -1,17 +1,21 @@
 import type { Remarkable } from 'remarkable'
 import parseTasklist from './parseTasklist'
 
+function createState(src: string) {
+  return {
+    src,
+    pos: 0,
+    level: 0,
+    tokens: [] as Remarkable.ContentToken[],
+    push(x: Remarkable.ContentToken) {
+      this.tokens.push(x)
+    },
+  } as Remarkable.StateInline
+}
+
 describe('components/Markdown/parseTasklist', () => {
   it('Detect empty checkbox', () => {
-    const state = {
-      src: '[]',
-      pos: 0,
-      level: 0,
-      tokens: [] as Remarkable.ContentToken[],
-      push(x: Remarkable.ContentToken) {
-        this.tokens.push(x)
-      },
-    }
+    const state = createState('[]')
     parseTasklist(state as Remarkable.StateInline)
     expect(state.tokens).toMatchObject([
       {

@@ -193,7 +193,7 @@ const linkHandler =
     }
   }
 
-const checkboxHandler = () => (md: Remarkable.Remarkable) => {
+const checkboxHandler = (md: Remarkable.Remarkable) => {
   md.inline.ruler.push('tasklist', parseTasklist, {})
   md.renderer.rules.tasklist = (tokens, idx) =>
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
@@ -217,8 +217,7 @@ export const getRenderer = memoize(({ images, processImg, processLink }) => {
   }).use(linkify)
   md.use(linkHandler({ process: processLink }))
   md.use(imageHandler({ disable: !images, process: processImg }))
-  md.use(checkboxHandler())
-
+  md.use(checkboxHandler)
   const purify = createDOMPurify(window)
   return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
 })
