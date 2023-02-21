@@ -66,7 +66,7 @@ files:
     - Number of files
     - Timestamp of event
 
-    The event payload is a JSON file:
+    The event payload is JSON:
 
     ```json
     {
