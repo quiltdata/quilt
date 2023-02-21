@@ -24,7 +24,7 @@ Gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html)
 or the following [VPC
 endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html#concepts-vpc-endpoints):
   - Amazon S3
-  ([gateway](https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html)
+  ([gateway endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html)
   or
   [interface](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)).
   - EventBridge ([interface endpoint](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-related-service-vpc.html)).
