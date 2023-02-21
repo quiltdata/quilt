@@ -4,13 +4,13 @@ export interface CheckboxContentToken extends Remarkable.ContentToken {
   checked: boolean
 }
 
-const isOpenBracket = (str: string, charPosition: number) =>
-  str.charCodeAt(charPosition) === 91
-const isCloseBracket = (str: string, charPosition: number) =>
-  str.charCodeAt(charPosition) === 93
+const isChar = (charIndex: number, str: string, charPosition: number) =>
+  str.charCodeAt(charPosition) === charIndex
+const isOpenBracket = isChar.bind(null, 91)
+const isCloseBracket = isChar.bind(null, 93)
 const isCross = (str: string, charPosition: number) =>
-  str.charCodeAt(charPosition) === 120 || str.charCodeAt(charPosition) === 88
-const isSpace = (str: string, charPosition: number) => str.charCodeAt(charPosition) === 32
+  isChar(120, str, charPosition) || isChar(88, str, charPosition)
+const isSpace = isChar.bind(null, 32)
 
 // TODO: Wait for https://github.com/jonschlinkert/remarkable/pull/401 and then remove
 export default function parseTasklist(state: Remarkable.StateInline) {
