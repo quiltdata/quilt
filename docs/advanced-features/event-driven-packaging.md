@@ -7,7 +7,7 @@
 
 Data tend to be created in logical batches by machines, people, and
 pipelines. Detecting these logical events from Amazon S3 events alone is
-complex and requires extensive custom logic.
+complex and requires extensive logic.
 
 Quilt's *Event-Driven Packaging* (EDP) service intelligently groups one
 or more Amazon S3 object events into a single batch-level event.
