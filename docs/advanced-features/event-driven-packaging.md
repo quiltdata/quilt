@@ -26,7 +26,7 @@ endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html#conc
   - Amazon S3
   ([gateway endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html)
   or
-  [interface](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)).
+  [interface endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)).
   - EventBridge ([interface endpoint](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-related-service-vpc.html)).
 2. [Enable EventBridge S3
 Events](https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-event-notifications-eventbridge.html)
