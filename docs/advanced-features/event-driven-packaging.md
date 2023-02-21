@@ -266,7 +266,7 @@ analysis, modeling, and versioning.
 
 ## Debugging
 
-EDP creates a [CloudWatch](https://aws.amazon.com/cloudwatch/)
+EDP includes a [CloudWatch](https://aws.amazon.com/cloudwatch/)
 dashboard which exposes some metrics useful for debugging:
 
 - **EDP event bus topic**: Displays the number of events emitted by
