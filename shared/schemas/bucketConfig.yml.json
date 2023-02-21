@@ -4,78 +4,124 @@
   "type": "object",
   "properties": {
     "version": {
-      "const": "1"
+      "const": "1",
+      "examples": ["1"]
     },
     "ui": {
       "type": "object",
+      "description": "Namespace for UI related features",
       "properties": {
         "nav": {
+          "description": "Hide and show bucket tabs",
           "type": "object",
           "properties": {
             "files": {
               "default": true,
               "description": "Hides Files tab",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "packages": {
               "default": true,
               "description": "Hides Packages tab",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "queries": {
               "default": true,
               "description": "Hides Queries tab",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             }
           }
         },
         "actions": {
           "type": "object",
+          "description": "Hide and show action buttons",
           "properties": {
             "createPackage": {
               "default": true,
               "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "deleteRevision": {
               "default": true,
               "description": "Hides buttons triggering Delete Package Revision dialog",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "revisePackage": {
               "default": true,
               "description": "Hides button triggering Revise Package dialog",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "copyPackage": {
               "default": true,
               "description": "Hides button triggering Push to Bucket dialog",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             }
           }
         },
         "blocks": {
+          "description": "Hide and show UI blocks in package detail page",
           "type": "object",
           "properties": {
             "analytics": {
               "default": true,
               "description": "Show/hide analytics block",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "browser": {
               "default": true,
               "description": "Show/hide file browser block",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "code": {
               "default": true,
               "description": "Show/hide code block",
-              "type": "boolean"
+              "type": "boolean",
+              "examples": [true, false]
             },
             "meta": {
               "default": true,
               "description": "Show/hide metadata block",
-              "type": "boolean"
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "user_meta": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
+                        }
+                      }
+                    },
+                    "workflows": {
+                      "type": "object",
+                      "properties": {
+                        "expanded": {
+                          "type": ["boolean", "number"]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": [
+                true,
+                false,
+                {
+                  "user_meta": { "expanded": true },
+                  "workflows": { "expanded": 1 }
+                }
+              ]
             }
           }
         },
@@ -92,17 +138,35 @@
             "properties": {
               "message": {
                 "type": "boolean",
-                "description": "Whether to show message or not"
+                "description": "Whether to show message or not",
+                "examples": [true, false]
               },
               "user_meta": {
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "description": "JSONPath to string or array of strings inside user_meta"
+                  "description": "JSONPath to string or array of strings inside user_meta",
+                  "examples": ["$.key", "$.metaKeyParent.metaKeyChild"]
                 }
               }
             }
-          }
+          },
+          "examples": [
+            {
+              "*": {
+                "message": true
+              },
+              "foo/bar": {
+                "message": false,
+                "user_meta": "$.metaKeyParent.metaKeyChild"
+              }
+            }
+          ]
+        },
+        "package_description_multiline": {
+          "type": "boolean",
+          "description": "Expands package metadata's root key/values",
+          "default": false
         },
         "sourceBuckets": {
           "type": "object",

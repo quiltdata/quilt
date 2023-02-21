@@ -7,9 +7,9 @@ import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
@@ -65,8 +65,7 @@ export default function Dir({
   },
   location: l,
 }) {
-  const cfg = EmbedConfig.use()
-  const { noDownload } = Config.use()
+  const ecfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
@@ -142,10 +141,10 @@ export default function Dir({
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls, scope: cfg.scope }))}
+          {renderCrumbs(getCrumbs({ bucket, path, urls, scope: ecfg.scope }))}
         </div>
         <M.Box flexGrow={1} />
-        {!noDownload && (
+        {!cfg.noDownload && (
           <FileView.ZipDownloadForm
             suffix={`dir/${bucket}/${path}`}
             label="Download directory"
@@ -154,7 +153,7 @@ export default function Dir({
         )}
       </M.Box>
 
-      {!cfg.hideCode && <Code gutterBottom>{code}</Code>}
+      {!ecfg.hideCode && <Code gutterBottom>{code}</Code>}
 
       {data.case({
         Err: displayError(),
@@ -164,7 +163,7 @@ export default function Dir({
 
           if (!res) return <M.CircularProgress />
 
-          const items = formatListing({ urls, scope: cfg.scope }, res)
+          const items = formatListing({ urls, scope: ecfg.scope }, res)
 
           const locked = !AsyncResult.Ok.is(x)
 

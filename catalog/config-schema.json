@@ -13,25 +13,9 @@
       "type": "string",
       "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
     },
-    "binaryApiGatewayEndpoint": {
-      "type": "string",
-      "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
-    },
     "calendlyLink": {
       "type": "string",
       "description": "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
-    },
-    "googleClientId": {
-      "type": "string",
-      "description": "Client ID for Google Sign-In"
-    },
-    "oktaClientId": {
-      "type": "string",
-      "description": "Client ID for Okta Sign-In"
-    },
-    "oktaBaseUrl": {
-      "type": "string",
-      "description": "Base URL for Okta Sign-In (e.g., https://$company.okta.com/oauth2 or https://$company.oktapreview.com/oauth2/default)"
     },
     "intercomAppId": {
       "type": "string",
@@ -98,6 +82,9 @@
       "type": "string",
       "description": "Space-separated list of SSO providers."
     },
+    "desktop": {
+      "type": "boolean"
+    },
     "build_version": {
       "type": "string",
       "description": "Optional"
@@ -106,7 +93,6 @@
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
-    "binaryApiGatewayEndpoint",
     "mixpanelToken",
     "mode",
     "passwordAuth",

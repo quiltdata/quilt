@@ -13,11 +13,11 @@ import * as Pagination from 'components/Pagination'
 import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
 import Thumbnail from 'components/Thumbnail'
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -519,7 +519,6 @@ const useDownloadsStyles = M.makeStyles((t) => ({
 }))
 
 function Downloads({ bucket, colorPool, ...props }) {
-  const { analyticsBucket } = Config.useConfig()
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
   const classes = useDownloadsStyles()
@@ -544,7 +543,7 @@ function Downloads({ bucket, colorPool, ...props }) {
     _: () => null,
   })
 
-  if (!analyticsBucket) {
+  if (!cfg.analyticsBucket) {
     return (
       <ChartSkel height={CHART_H} width={width}>
         <div className={classes.unavail}>Requires CloudTrail</div>
@@ -553,10 +552,7 @@ function Downloads({ bucket, colorPool, ...props }) {
   }
 
   return (
-    <Data
-      fetch={requests.bucketAccessCounts}
-      params={{ s3, analyticsBucket, bucket, today, window }}
-    >
+    <Data fetch={requests.bucketAccessCounts} params={{ s3, bucket, today, window }}>
       {(data) => (
         <M.Box className={classes.root} {...props} ref={ref}>
           <div className={classes.period}>
@@ -988,15 +984,14 @@ export default function Overview({
   },
 }) {
   const s3 = AWS.S3.use()
-  const { noOverviewImages } = Config.use()
   const [{ data }] = urql.useQuery({
     query: BUCKET_CONFIG_QUERY,
     variables: { bucket },
   })
-  const cfg = data?.bucketConfig
-  const inStack = !!cfg
-  const overviewUrl = cfg?.overviewUrl
-  const description = cfg?.description
+  const bcfg = data?.bucketConfig
+  const inStack = !!bcfg
+  const overviewUrl = bcfg?.overviewUrl
+  const description = bcfg?.description
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {inStack && (
@@ -1004,7 +999,7 @@ export default function Overview({
           <LinkedData.BucketData bucket={bucket} />
         </React.Suspense>
       )}
-      {cfg ? (
+      {bcfg ? (
         <Head {...{ s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box
@@ -1017,7 +1012,7 @@ export default function Overview({
         </M.Box>
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
-      {!noOverviewImages && <Imgs {...{ s3, bucket, inStack, overviewUrl }} />}
+      {!cfg.noOverviewImages && <Imgs {...{ s3, bucket, inStack, overviewUrl }} />}
       <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )

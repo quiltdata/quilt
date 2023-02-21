@@ -13,7 +13,37 @@ export type ActionPreferences = Record<
   boolean
 >
 
-type BlocksPreferences = Record<'analytics' | 'browser' | 'code' | 'meta', boolean>
+export interface MetaBlockPreferencesInput {
+  user_meta?: {
+    expanded: boolean | number
+  }
+  workflows?: {
+    expanded: boolean | number
+  }
+}
+
+export interface MetaBlockPreferences {
+  userMeta: {
+    expanded: boolean | number
+  }
+  workflows: {
+    expanded: boolean | number
+  }
+}
+
+interface BlocksPreferencesInput {
+  analytics?: boolean
+  browser?: boolean
+  code?: boolean
+  meta?: boolean | MetaBlockPreferencesInput
+}
+
+interface BlocksPreferences {
+  analytics: boolean
+  browser: boolean
+  code: boolean
+  meta: false | MetaBlockPreferences
+}
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
@@ -21,14 +51,18 @@ interface PackagePreferencesInput {
   message?: true
   user_meta?: ReadonlyArray<string>
 }
-interface PackagePreferences {
+export interface PackagePreferences {
   message?: true
   userMeta?: ReadonlyArray<string>
 }
 type PackagesListPreferencesInput = Record<string, PackagePreferencesInput>
-type PackagesListPreferences = Record<string, PackagePreferences>
+interface PackagesListPreferences {
+  packages: Record<string, PackagePreferences>
+  userMetaMultiline: boolean
+}
 
 type DefaultSourceBucketInput = string
+type PackageDescriptionMultiline = boolean
 type SourceBucketsInput = Record<string, null>
 
 export interface AthenaPreferencesInput {
@@ -43,10 +77,11 @@ export interface AthenaPreferences {
 interface UiPreferencesInput {
   actions?: Partial<ActionPreferences>
   athena?: AthenaPreferences
-  blocks?: Partial<BlocksPreferences>
+  blocks?: Partial<BlocksPreferencesInput>
   defaultSourceBucket?: DefaultSourceBucketInput
   nav?: Partial<NavPreferences>
   package_description?: PackagesListPreferencesInput
+  package_description_multiline?: PackageDescriptionMultiline
   sourceBuckets?: SourceBucketsInput
 }
 
@@ -64,12 +99,21 @@ interface UiPreferences {
   athena: AthenaPreferences
   blocks: BlocksPreferences
   nav: NavPreferences
-  package_description: PackagesListPreferences
+  packageDescription: PackagesListPreferences
   sourceBuckets: SourceBuckets
 }
 
 export interface BucketPreferences {
   ui: UiPreferences
+}
+
+const defaultBlockMeta: MetaBlockPreferences = {
+  userMeta: {
+    expanded: false,
+  },
+  workflows: {
+    expanded: false,
+  },
 }
 
 const defaultPreferences: BucketPreferences = {
@@ -86,17 +130,20 @@ const defaultPreferences: BucketPreferences = {
       analytics: true,
       browser: true,
       code: true,
-      meta: true,
+      meta: defaultBlockMeta,
     },
     nav: {
       files: true,
       packages: true,
       queries: true,
     },
-    package_description: {
-      '.*': {
-        message: true,
+    packageDescription: {
+      packages: {
+        '.*': {
+          message: true,
+        },
       },
+      userMetaMultiline: false,
     },
     sourceBuckets: {
       getDefault: () => '',
@@ -128,16 +175,44 @@ function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
   }
 }
 
-function parsePackages(packages?: PackagesListPreferencesInput): PackagesListPreferences {
+function parseMetaBlock(
+  meta?: boolean | MetaBlockPreferencesInput,
+): false | MetaBlockPreferences {
+  if (meta === false) return false
+  if (meta === true || meta === undefined) return defaultBlockMeta
+  return {
+    userMeta: meta.user_meta || defaultBlockMeta.userMeta,
+    workflows: meta.workflows || defaultBlockMeta.workflows,
+  }
+}
+
+function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
+  return {
+    ...defaultPreferences.ui.blocks,
+    ...blocks,
+    meta: parseMetaBlock(blocks?.meta),
+  }
+}
+
+function parsePackages(
+  packages?: PackagesListPreferencesInput,
+  userMetaMultiline: boolean = false,
+): PackagesListPreferences {
   return Object.entries(packages || {}).reduce(
-    (memo, [name, { message, user_meta }]) => ({
-      ...memo,
-      [name]: {
-        message,
-        userMeta: user_meta,
-      },
-    }),
-    defaultPreferences.ui.package_description,
+    (memo, [name, { message, user_meta }]) =>
+      R.assocPath(
+        ['packages', name],
+        {
+          message,
+          userMeta: user_meta,
+        },
+        memo,
+      ),
+    {
+      packages: defaultPreferences.ui.packageDescription.packages,
+      userMetaMultiline:
+        userMetaMultiline || defaultPreferences.ui.packageDescription.userMetaMultiline,
+    },
   )
 }
 
@@ -173,7 +248,11 @@ export function extendDefaults(
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
       athena: parseAthena(data?.ui?.athena),
-      package_description: parsePackages(data?.ui?.package_description),
+      blocks: parseBlocks(data?.ui?.blocks),
+      packageDescription: parsePackages(
+        data?.ui?.package_description,
+        data?.ui?.package_description_multiline,
+      ),
       sourceBuckets: parseSourceBuckets(
         sentry,
         data?.ui?.sourceBuckets,

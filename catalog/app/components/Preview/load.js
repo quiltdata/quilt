@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as Audio from './loaders/Audio'
-import * as Echarts from './loaders/Echarts'
+import * as ECharts from './loaders/ECharts'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
 import * as Igv from './loaders/Igv'
@@ -17,33 +17,55 @@ import * as Pdf from './loaders/Pdf'
 import * as Tabular from './loaders/Tabular'
 import * as Text from './loaders/Text'
 import * as Vcf from './loaders/Vcf'
+import * as Vega from './loaders/Vega'
 import * as Video from './loaders/Video'
 import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
+import * as summarize from './loaders/summarize'
 
 const loaderChain = [
+  Audio,
+  ECharts,
   Fcs,
-  Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
-  Igv, // should be before Json, or TODO: add "type is not 'igv'" to Json.detect
+  Html,
+  Igv,
+  Image,
   Json,
   Manifest,
   Markdown,
-  Ngl,
-  Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
   NamedPackage,
+  Ngl,
   Notebook,
   Pdf,
-  Vcf,
-  Html,
-  Image,
-  Video,
-  Audio,
   Tabular,
+  Vcf,
+  Vega,
+  Video,
+  Voila,
   Text,
   fallback,
 ]
 
+// `options` contains:
+//   * quilt_summarize.json types
+//   * `context` - where file was rendered
+//   * `mode` - user set fileType
 function findLoader(key, options) {
+  if (options?.mode) {
+    // Detect by user selected mode
+    const found = loaderChain.find(
+      ({ FILE_TYPE }) => FILE_TYPE && options?.mode === FILE_TYPE,
+    )
+    if (found) return found
+  }
+  if (options?.types) {
+    // Detect by quilt_summarize.json type
+    const found = loaderChain.find(
+      ({ FILE_TYPE }) => FILE_TYPE && summarize.detect(FILE_TYPE, options),
+    )
+    if (found) return found
+  }
+  // Detect by extension
   return loaderChain.find(({ detect }) => detect(key, options))
 }
 

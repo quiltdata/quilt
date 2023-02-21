@@ -9,6 +9,7 @@ import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as quiltConfigs from 'constants/quiltConfigs'
+import cfg from 'constants/config'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
@@ -25,14 +26,9 @@ const promiseProps = (obj) =>
 
 const MAX_BANDS = 10
 
-export const bucketAccessCounts = async ({
-  s3,
-  analyticsBucket,
-  bucket,
-  today,
-  window,
-}) => {
-  if (!analyticsBucket) throw new Error('bucketAccessCounts: "analyticsBucket" required')
+export const bucketAccessCounts = async ({ s3, bucket, today, window }) => {
+  if (!cfg.analyticsBucket)
+    throw new Error('bucketAccessCounts: "analyticsBucket" required')
 
   const dates = R.unfold(
     (daysLeft) => daysLeft >= 0 && [dateFns.subDays(today, daysLeft), daysLeft - 1],
@@ -42,7 +38,7 @@ export const bucketAccessCounts = async ({
   try {
     const result = await s3Select({
       s3,
-      Bucket: analyticsBucket,
+      Bucket: cfg.analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
       Expression: `
         SELECT ext, counts FROM s3object
@@ -783,18 +779,11 @@ const sqlEscape = (arg) => arg.replace(/'/g, "''")
 
 const ACCESS_COUNTS_PREFIX = 'AccessCounts'
 
-const queryAccessCounts = async ({
-  s3,
-  analyticsBucket,
-  type,
-  query,
-  today,
-  window = 365,
-}) => {
+const queryAccessCounts = async ({ s3, type, query, today, window = 365 }) => {
   try {
     const records = await s3Select({
       s3,
-      Bucket: analyticsBucket,
+      Bucket: cfg.analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
       Expression: query,
       InputSerialization: {
@@ -827,10 +816,9 @@ const queryAccessCounts = async ({
   }
 }
 
-export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today }) =>
+export const objectAccessCounts = ({ s3, bucket, path, today }) =>
   queryAccessCounts({
     s3,
-    analyticsBucket,
     type: 'Objects',
     query: `
       SELECT counts FROM s3object

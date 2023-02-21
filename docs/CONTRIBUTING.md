@@ -19,7 +19,8 @@ To work on `quilt` you will first need to clone the repository.
 $ git clone https://github.com/quiltdata/quilt
 ```
 
-You can then set up your own branch version of the code, and work on your changes for a pull request from there.
+You can then set up your own branch version of the code, and work
+on your changes for a pull request from there.
 
 ```bash
 $ cd quilt
@@ -34,16 +35,21 @@ Use `pip` to install `quilt` locally (including development dependencies):
 
 ```bash
 $ cd api/python
-$ pip install -e .[extra]
+$ pip install -e '.[extra]'
 ```
 
-This will create an [editable install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs) of `quilt`, allowing you to modify the code and test your changes right away.
+This will create an [editable
+install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs)
+of `quilt`, allowing you to modify the code and test your changes
+right away.
 
 ### Testing
 
-All new code contributions are expected to have complete unit test coverage, and to pass all preexisting tests.
+All new code contributions are expected to have complete unit test
+coverage, and to pass all preexisting tests.
 
-Use `pytest` to test your changes during normal development. To run `pytest` on the entire codebase:
+Use `pytest` to test your changes during normal development. To run
+`pytest` on the entire codebase:
 
 ```bash
 $ cd api/python/tests
@@ -52,7 +58,10 @@ $ pytest
 
 ## Local catalog development
 
-Note that, at the current time, it is only possible to run a local catalog if you already have a catalog deployed to AWS, because the catalog relies on certain services (namely, AWS Lambda and the AWS Elasticsearch Service) which cannot be run locally.
+Note that, at the current time, it is only possible to run a local
+catalog if you already have a catalog deployed to AWS, because the
+catalog relies on certain services (namely, AWS Lambda and the AWS
+Elasticsearch Service) which cannot be run locally.
 
 ### Environment
 
@@ -63,16 +72,24 @@ $ cd catalog
 $ npm install
 ```
 
-There is one known issue with installation. At time of writing, the `quilt-navigator` package depends on `iltorb@1.3.10`, which may lack prebuilt binaries for your platform and may fall back on building from source using `node-gyp`. `node-gyp` depends on Python 2; if you only have Python 3 in your install environment it will fail.
+There is one known issue with installation. At time of writing, the
+`quilt-navigator` package depends on `iltorb@1.3.10`, which may
+lack prebuilt binaries for your platform and may fall back on
+building from source using `node-gyp`. `node-gyp` depends on Python
+2; if you only have Python 3 in your install environment it will
+fail.
 
-To fix this, point `npm` to a Python 2 path on your machine. For example on macOS:
+To fix this, point `npm` to a Python 2 path on your machine. For
+example on macOS:
 
 ```bash
 $ npm config set python /usr/bin/python
 $ npm install
 ```
 
-Next, you need to create a `config.json` and `federation.json` file in the `catalog/static` subdirectory. For `federation.json` use the following template:
+Next, you need to create a `config.json` and `federation.json` file
+in the `catalog/static` subdirectory. For `federation.json` use the
+following template:
 
 ```json
 {
@@ -129,9 +146,12 @@ To run the catalog in developer mode:
 $ npm start
 ```
 
-This uses `webpack` under the hood to compile code changes on the fly and provide live reloading, useful when developing.
+This uses `webpack` under the hood to compile code changes on the
+fly and provide live reloading, useful when developing.
 
-Make sure that any images you check into the repository are [optimized](https://kinsta.com/blog/optimize-images-for-web/) at check-in time.
+Make sure that any images you check into the repository are
+[optimized](https://kinsta.com/blog/optimize-images-for-web/) at
+check-in time.
 
 ### Testing
 
@@ -145,19 +165,26 @@ npm run test
 
 1. Once you are ready to cut a new release, you update the version in
 [`VERSION`](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/VERSION)
-file and create a new git tag with `git tag $VERSION`, e.g. `git tag 3.1.8`.
-2. Once you push the tag to GitHub with `git push --tags` a new CircleCI build is triggered.
-3. Merge the new PR into master so the `setup.py` reflects the latest package.
+file and in [`CHANGELOG`](https://github.com/quiltdata/quilt/blob/master/docs/CHANGELOG.md).
+1. Create PR with these changes.
+1. Once PR is merged, create a tag from commit with merge: `git tag $VERSION $COMMIT_HASH`.
+1. Once you push the tag to GitHub with `git push origin $VERSION` a new CI build that makes
+PyPI release is triggered.
 
 ## Updating documentation
 
-Documentation is served via GitBook, and is based on the `docs/` folder in the `master` branch of the `quilt` repository.
+Documentation is served via GitBook, and is based on the `docs/`
+folder in the `master` branch of the `quilt` repository.
 
-Documentation changes go live at pull request merge time. There is currently no way to preview documentation updates except locally.
+Documentation changes go live at pull request merge time. There is
+currently no way to preview documentation updates except locally.
 
 ### Updating the API Reference
 
-The API Reference section of the documentation is served by processing the docstrings in the codebase using a script. We use [our own fork](https://github.com/quiltdata/pydoc-markdown/tree/quilt) of the `pydoc-markdown` package to do the necessary work.
+The API Reference section of the documentation is served by processing
+the docstrings in the codebase using a script. We use [our own
+fork](https://github.com/quiltdata/pydoc-markdown/tree/quilt) of
+the `pydoc-markdown` package to do the necessary work.
 
 To modify the API Reference, modify the docstring associated with a method of interest.
 
@@ -173,8 +200,11 @@ The resulting files will land in `docs/` and will be ready to be checked in.
 
 ### Updating everything else
 
-All other pages in the documentation are served from corresponding Markdown pages in the `docs` directory. To edit the page, edit the Markdown file. Then check that file in.
+All other pages in the documentation are served from corresponding
+Markdown pages in the `docs` directory. To edit the page, edit the
+Markdown file. Then check that file in.
 
 ## License
 
-Quilt is open source under the [Apache License, Version 2.0](https://github.com/quiltdata/quilt/blob/master/LICENSE).
+Quilt is open source under the [Apache License, Version
+2.0](https://github.com/quiltdata/quilt/blob/master/LICENSE).

@@ -582,6 +582,32 @@ export const jsonDict = {
     sortIndex: 23,
     type: 'array',
   },
+  '/a/b/c/d/e/f/g/h/i/j/k/testMaxItems/__*': {
+    address: [
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+      'g',
+      'h',
+      'i',
+      'j',
+      'k',
+      'testMaxItems',
+      '__*',
+    ],
+    required: false,
+    sortIndex: 24,
+    type: undefined,
+    valueSchema: [
+      {
+        maxItems: 3,
+        type: 'number',
+      },
+    ],
+  },
 }
 
 export const fieldPathNested = ['a', 'b', 'c']

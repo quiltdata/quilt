@@ -1,3 +1,4 @@
+import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -24,6 +25,7 @@ export const loadMode = (mode: Mode) => {
 const isQuiltConfig = (path: string) =>
   quiltConfigs.all.some((quiltConfig) => quiltConfig.includes(path))
 const typeQuiltConfig: EditorInputType = {
+  title: 'Quilt config helper',
   brace: '__quiltConfig',
 }
 
@@ -43,11 +45,13 @@ const typeMarkdown: EditorInputType = {
 
 const isText = PreviewUtils.extIn(['.txt', ''])
 const typeText: EditorInputType = {
+  title: 'Plain text',
   brace: 'plain_text',
 }
 
 const isYaml = PreviewUtils.extIn(['.yaml', '.yml'])
 const typeYaml: EditorInputType = {
+  title: 'YAML',
   brace: 'yaml',
 }
 
@@ -55,24 +59,36 @@ const typeNone: EditorInputType = {
   brace: null,
 }
 
-export const detect: (path: string) => EditorInputType = R.pipe(
+export const detect: (path: string) => EditorInputType[] = R.pipe(
   PreviewUtils.stripCompression,
   R.cond([
-    [isQuiltConfig, R.always(typeQuiltConfig)],
-    [isCsv, R.always(typeCsv)],
-    [isJson, R.always(typeJson)],
-    [isMarkdown, R.always(typeMarkdown)],
-    [isText, R.always(typeText)],
-    [isYaml, R.always(typeYaml)],
-    [R.T, R.always(typeNone)],
+    [isQuiltConfig, R.always([typeQuiltConfig, typeYaml])],
+    [isCsv, R.always([typeCsv])],
+    [isJson, R.always([typeJson])],
+    [isMarkdown, R.always([typeMarkdown])],
+    [isText, R.always([typeText])],
+    [isYaml, R.always([typeYaml])],
+    [R.T, R.always([typeNone])],
   ]),
 )
 
 export const isSupportedFileType: (path: string) => boolean = R.pipe(
   detect,
-  R.prop('brace'),
+  R.path([0, 'brace']),
   Boolean,
 )
+
+type AWSError = Error & { code: string }
+
+async function validToWriteFile(s3: S3, bucket: string, key: string, version?: string) {
+  try {
+    const { VersionId } = await s3.headObject({ Bucket: bucket, Key: key }).promise()
+    return VersionId === version
+  } catch (error) {
+    if (error instanceof Error && (error as AWSError).code === 'NotFound') return true
+    throw error
+  }
+}
 
 export function useWriteData({
   bucket,
@@ -82,11 +98,8 @@ export function useWriteData({
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {
-      const { VersionId: latestVersion } = await s3
-        .headObject({ Bucket: bucket, Key: key })
-        .promise()
-      if (latestVersion !== version) throw new Error('Revision is outdated')
-
+      const valid = await validToWriteFile(s3, bucket, key, version)
+      if (!valid) throw new Error('Revision is outdated')
       const { VersionId } = await s3
         .putObject({ Bucket: bucket, Key: key, Body: value })
         .promise()

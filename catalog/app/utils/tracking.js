@@ -4,7 +4,7 @@ import * as redux from 'react-redux'
 import { matchPath } from 'react-router-dom'
 
 import { useExperiments } from 'components/Experiments'
-import * as Config from 'utils/Config'
+import cfg from 'constants/config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
 
@@ -12,16 +12,18 @@ const NAV_TIMEOUT = 500
 
 const Ctx = React.createContext()
 
-const loadMixpanel = (token) =>
-  import('mixpanel-browser').then(({ default: mp }) => {
-    mp.init(token)
-    return mp
-  })
-
 const consoleTracker = Promise.resolve({
   // eslint-disable-next-line no-console
   track: (evt, opts) => console.log(`track: ${evt}`, opts),
 })
+
+const loadMixpanel = () =>
+  cfg.mixpanelToken
+    ? import('mixpanel-browser').then(({ default: mp }) => {
+        mp.init(cfg.mixpanelToken)
+        return mp
+      })
+    : consoleTracker
 
 function useMkLocation() {
   const {
@@ -62,17 +64,9 @@ const withTimeout = (p, timeout) =>
   })
 
 export function TrackingProvider({ locationSelector, userSelector, children }) {
+  const tracker = React.useMemo(loadMixpanel, [])
   const { getSelectedVariants } = useExperiments()
-  const cfg = Config.useConfig()
   const mkLocation = useMkLocation()
-  // workaround to avoid changing client configs
-  const token = cfg.mixpanelToken || cfg.mixPanelToken
-
-  const tracker = React.useMemo(
-    () => (token ? loadMixpanel(token) : consoleTracker),
-    [token],
-  )
-
   const location = mkLocation(redux.useSelector(locationSelector))
   const user = redux.useSelector(userSelector)
 
@@ -84,6 +78,7 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
       origin: window.location.origin,
       location,
       user,
+      catalog_release: process.env.REVISION_HASH,
     }),
     [location, user],
   )

@@ -10,15 +10,16 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import cfg from 'constants/config'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
@@ -46,7 +47,7 @@ import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
-import { ViewMode, useViewModes, viewModeToSelectOption } from '../viewModes'
+import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -57,30 +58,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-/*
-function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
-  const sign = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
-  const data = useData(requests.getRevisionData, {
-    sign,
-    endpoint,
-    bucket,
-    hash,
-    maxKeys: 0,
-  })
-  return data.case({
-    _: () => null,
-    Ok: ({ header }) => (
-      <React.Suspense fallback={null}>
-        <LinkedData.PackageData
-          {...{ bucket: bucketCfg, name, hash, modified, header }}
-        />
-      </React.Suspense>
-    ),
-  })
-}
-*/
 
 interface PkgCodeProps {
   bucket: string
@@ -154,8 +131,13 @@ const useTopBarStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
-  spacer: {
-    flexGrow: 1,
+  content: {
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
+    marginLeft: 'auto',
+    marginTop: -3,
   },
 }))
 
@@ -170,8 +152,7 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(crumbs)}
       </div>
-      <div className={classes.spacer} />
-      {children}
+      <div className={classes.content}>{children}</div>
     </div>
   )
 }
@@ -238,7 +219,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
     history.push(urls.bucketPackageList(bucket))
@@ -298,7 +279,7 @@ function DirDisplay({
 
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
-  const prompt = FileEditor.useCreateFileInPackage(packageHandle)
+  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
 
   return (
     <>
@@ -457,7 +438,7 @@ function DirDisplay({
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
               )}
-              {preferences?.ui?.blocks?.meta && (
+              {!!preferences?.ui?.blocks?.meta && (
                 <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
               )}
               <M.Box mt={2}>
@@ -480,7 +461,7 @@ function DirDisplay({
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
   handle: LogicalKeyResolver.S3SummarizeHandle,
-  mode: ViewMode | null,
+  mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
 ) => {
   if (deleted) {
@@ -587,12 +568,13 @@ function FileDisplayQuery({
 
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   fileProperties: {
-    [t.breakpoints.up('sm')]: {
-      marginBottom: '3px',
-    },
+    marginRight: t.spacing(1),
+  },
+  preview: {
+    width: '100%',
   },
 }))
 
@@ -611,18 +593,17 @@ function FileDisplay({
   file,
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
-  const { noDownload } = Config.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const packageHandle = React.useMemo(
     () => ({ bucket, name, hash }),
     [bucket, name, hash],
   )
 
-  const viewModes = useViewModes(path, mode, packageHandle)
+  const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
     (m) => {
@@ -631,7 +612,10 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
-  const isEditable = FileEditor.isSupportedFileType(path) && hashOrTag === 'latest'
+  const isEditable =
+    FileEditor.isSupportedFileType(path) &&
+    hashOrTag === 'latest' &&
+    !!preferences?.ui?.actions?.revisePackage
   const handleEdit = React.useCallback(() => {
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
     const physicalHandle = s3paths.parseS3Url(file.physicalKey)
@@ -687,7 +671,7 @@ function FileDisplay({
                   size={size}
                 />
                 {isEditable && (
-                  <FileView.AdaptiveButtonLayout
+                  <ButtonIconized
                     className={classes.button}
                     icon="edit"
                     label="Edit"
@@ -704,7 +688,7 @@ function FileDisplay({
                     onChange={onViewModeChange}
                   />
                 )}
-                {!noDownload && !deleted && !archived && (
+                {!cfg.noDownload && !deleted && !archived && (
                   <FileView.DownloadButton className={classes.button} handle={handle} />
                 )}
               </TopBar>
@@ -715,12 +699,14 @@ function FileDisplay({
                 <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                {withPreview(
-                  { archived, deleted },
-                  handle,
-                  viewModes.mode,
-                  renderPreview(viewModes.handlePreviewResult),
-                )}
+                <div className={classes.preview}>
+                  {withPreview(
+                    { archived, deleted },
+                    handle,
+                    viewModes.mode,
+                    renderPreview(viewModes.handlePreviewResult),
+                  )}
+                </div>
               </Section>
             </>
           ),

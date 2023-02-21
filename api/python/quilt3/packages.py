@@ -1292,7 +1292,10 @@ class Package:
 
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=..., force=False):
+    def push(
+        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
+        workflow=..., force: bool = False, dedupe: bool = False
+    ):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1333,13 +1336,20 @@ class Package:
                 push the local file to s3 (instead of pushing all data to the destination bucket).
             %(workflow)s
             force: skip the top hash check and overwrite any existing package
+            dedupe: don't push if the top hash matches the existing package top hash; return the current package
 
         Returns:
             A new package that points to the copied objects.
         """
-        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True, force=force)
+        return self._push(
+            name, registry, dest, message, selector_fn, workflow=workflow,
+            print_info=True, force=force, dedupe=dedupe
+        )
 
-    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info, force):
+    def _push(
+        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
+        workflow, print_info, force: bool, dedupe: bool
+    ):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
@@ -1398,17 +1408,18 @@ class Package:
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
-        def check_latest_hash():
-            if force:
-                return
-
+        def get_latest_hash():
             try:
-                latest_hash = get_bytes(registry.pointer_latest_pk(name)).decode()
+                return get_bytes(registry.pointer_latest_pk(name)).decode()
             except botocore.exceptions.ClientError as ex:
                 if ex.response['Error']['Code'] == 'NoSuchKey':
                     # Expected
-                    return
+                    return None
                 raise
+
+        def check_hash_conficts(latest_hash):
+            if latest_hash is None:
+                return
 
             if self._origin is None or latest_hash != self._origin.top_hash:
                 raise QuiltConflictException(
@@ -1417,8 +1428,16 @@ class Package:
                     "Use force=True (Python) or --force (CLI) to overwrite."
                 )
 
+        # Get the latest hash if we're either checking for conflicts or deduping.
+        # Otherwise, avoid making unnecessary network calls.
+        if not force or dedupe:
+            latest_hash = get_latest_hash()
+        else:
+            latest_hash = None
+
         # Check the top hash and fail early if it's unexpected.
-        check_latest_hash()
+        if not force:
+            check_hash_conficts(latest_hash)
 
         self._fix_sha256()
 
@@ -1427,6 +1446,14 @@ class Package:
         pkg._set_commit_message(message)
         top_hash = self._calculate_top_hash(pkg._meta, self.walk())
         pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+
+        if dedupe and top_hash == latest_hash:
+            if print_info:
+                print(
+                    f"Skipping since package with hash {latest_hash} already exists "
+                    "at the destination and dedupe parameter is true."
+                )
+            return self
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
@@ -1477,7 +1504,9 @@ class Package:
                 self._set(lk, pkg[lk])
 
         # Check top hash again just before pushing, to minimize the race condition.
-        check_latest_hash()
+        if not force:
+            latest_hash = get_latest_hash()
+            check_hash_conficts(latest_hash)
 
         pkg._push_manifest(name, registry, top_hash)
 

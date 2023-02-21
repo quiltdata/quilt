@@ -4,13 +4,17 @@ import { Switch, Route, Redirect } from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
+import cfg from 'constants/config'
 import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { CatchNotFound, ThrowNotFound } from 'containers/NotFoundPage'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 import { useLocation } from 'utils/router'
+
+const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
+
+const ProtectedThrowNotFound = protect(ThrowNotFound)
 
 const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 const StoryBook = RT.mkLazy(() => import('containers/StoryBook'), SuspensePlaceholder)
@@ -20,25 +24,23 @@ const redirectTo =
   ({ location: { search } }) =>
     <Redirect to={`${path}${search}`} />
 
-const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
-
 const Activate = ({
   match: {
     params: { token },
   },
 }) => {
-  const { registryUrl } = Config.useConfig()
   const { urls } = NamedRoutes.use()
-  return <AbsRedirect url={urls.activate({ registryUrl, token })} />
+  return <AbsRedirect url={urls.activate({ registryUrl: cfg.registryUrl, token })} />
 }
 
 const LegacyPackages = ({ location: l }) => {
-  const { legacyPackagesRedirect } = Config.useConfig()
   const { urls } = NamedRoutes.use()
-  return <AbsRedirect url={urls.legacyPackages(legacyPackagesRedirect, l)} />
+  return <AbsRedirect url={urls.legacyPackages(cfg.legacyPackagesRedirect, l)} />
 }
 
-const Admin = RT.mkLazy(() => import('containers/Admin'), Placeholder)
+const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
+const Admin = requireAdmin(RT.mkLazy(() => import('containers/Admin'), Placeholder))
+
 const AuthActivationError = RT.mkLazy(
   () => import('containers/Auth/ActivationError'),
   Placeholder,
@@ -51,10 +53,11 @@ const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Place
 const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
 const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
 const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
-const AuthSSOSignUp = RT.mkLazy(() => import('containers/Auth/SSOSignUp'), Placeholder)
-const Bucket = RT.mkLazy(() => import('containers/Bucket'), Placeholder)
-const Search = RT.mkLazy(() => import('containers/Search'), Placeholder)
-const UriResolver = RT.mkLazy(() => import('containers/UriResolver'), Placeholder)
+const Bucket = protect(RT.mkLazy(() => import('containers/Bucket'), Placeholder))
+const Search = protect(RT.mkLazy(() => import('containers/Search'), Placeholder))
+const UriResolver = protect(
+  RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
+)
 
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
@@ -67,22 +70,19 @@ const MAbout = RT.mkLazy(() => import('website/pages/About'), Placeholder)
 const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
 const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
+const AwsMarketplace = RT.mkLazy(
+  () => import('website/pages/AwsMarketplace'),
+  Placeholder,
+)
 const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
 const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
+const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
+
+const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
-  const cfg = Config.useConfig()
-  const protect = React.useMemo(
-    () => (cfg.alwaysRequiresAuth ? requireAuth() : R.identity),
-    [cfg.alwaysRequiresAuth],
-  )
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
-
-  const Home = React.useMemo(
-    () => protect(cfg.mode === 'OPEN' ? OpenLanding : Landing),
-    [protect, cfg.mode],
-  )
 
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
@@ -101,9 +101,7 @@ export default function App() {
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
 
-        {!cfg.disableNavigator && (
-          <Route path={paths.search} component={protect(Search)} exact />
-        )}
+        {!cfg.disableNavigator && <Route path={paths.search} component={Search} exact />}
 
         {cfg.mode === 'MARKETING' && (
           <Route path={paths.about} component={MAbout} exact />
@@ -115,7 +113,13 @@ export default function App() {
           <Route path={paths.product} component={MProduct} exact />
         )}
         {cfg.mode === 'MARKETING' && <Route path="/bioit" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && (
+          <Route path="/nextflow" component={NextFlow} exact />
+        )}
         {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && (
+          <Route path="/aws-marketplace" component={AwsMarketplace} exact />
+        )}
 
         {!cfg.disableNavigator && (
           <Route path={paths.activate} component={Activate} exact />
@@ -133,9 +137,6 @@ export default function App() {
         {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
           <Route path={paths.signUp} component={AuthSignUp} exact />
         )}
-        {!cfg.disableNavigator && cfg.ssoAuth === true && (
-          <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
-        )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
           <Route path={paths.passReset} component={AuthPassReset} exact />
         )}
@@ -151,23 +152,19 @@ export default function App() {
           <Route path={paths.profile} component={OpenProfile} exact />
         )}
 
-        {!cfg.disableNavigator && (
-          <Route path={paths.admin} component={requireAdmin(Admin)} />
-        )}
+        {!cfg.disableNavigator && <Route path={paths.admin} component={Admin} />}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.uriResolver} component={protect(UriResolver)} />
+          <Route path={paths.uriResolver} component={UriResolver} />
         )}
 
-        {!cfg.disableNavigator && (
-          <Route path={paths.bucketRoot} component={protect(Bucket)} />
-        )}
+        {!cfg.disableNavigator && <Route path={paths.bucketRoot} component={Bucket} />}
 
         {process.env.NODE_ENV !== 'production' && (
           <Route path={paths.storyBook} component={StoryBook} exact />
         )}
 
-        <Route component={protect(ThrowNotFound)} />
+        <Route component={ProtectedThrowNotFound} />
       </Switch>
     </CatchNotFound>
   )

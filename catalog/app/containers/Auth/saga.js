@@ -120,6 +120,10 @@ function* signOut() {
  * @throws {AuthError}
  */
 function* signIn(credentials) {
+  if (typeof credentials.token === 'string' && typeof credentials.exp === 'number') {
+    return { token: credentials.token, exp: credentials.exp }
+  }
+
   try {
     const { token, exp } = yield call(apiRequest, {
       auth: false,
@@ -162,7 +166,7 @@ function* fetchUser(tokens) {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: '/me',
+      endpoint: `/me?_cachebust=${Math.random()}`,
     })
     return auth
   } catch (e) {
