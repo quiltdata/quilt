@@ -294,4 +294,4 @@ events received (depending on the time range selected).
 
 ## Limitations
 
-- Currently, only one Amazon S3 bucket can be monitored at a time.
+- Each EDP stack monitors one S3 bucket.
