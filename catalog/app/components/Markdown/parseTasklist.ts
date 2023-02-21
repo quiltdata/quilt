@@ -4,43 +4,44 @@ export interface CheckboxContentToken extends Remarkable.ContentToken {
   checked: boolean
 }
 
-// Wait for https://github.com/jonschlinkert/remarkable/pull/401 and then remove
+const isOpenBracket = (str: string, charPosition: number) =>
+  str.charCodeAt(charPosition) === 91
+const isCloseBracket = (str: string, charPosition: number) =>
+  str.charCodeAt(charPosition) === 93
+const isCross = (str: string, charPosition: number) =>
+  str.charCodeAt(charPosition) === 120 || str.charCodeAt(charPosition) === 88
+const isSpace = (str: string, charPosition: number) => str.charCodeAt(charPosition) === 32
+
+// TODO: Wait for https://github.com/jonschlinkert/remarkable/pull/401 and then remove
 export default function parseTasklist(state: Remarkable.StateInline) {
-  var pos = state.pos
-  var maxpos = state.posMax
-  if (pos === maxpos) {
-    return false
-  }
-  if (state.src.charCodeAt(pos) !== 91) {
-    return false
-  }
-  ++pos
-  if (state.src.charCodeAt(pos) === 93) {
+  const charPosition = state.pos
+
+  if (charPosition === state.posMax) return false
+  if (!isOpenBracket(state.src, charPosition)) return false
+
+  const nextCharPosition = charPosition + 1
+  if (isCloseBracket(state.src, nextCharPosition)) {
     state.push({
       type: 'tasklist',
       checked: false,
       level: state.level,
     } as CheckboxContentToken)
-    state.pos = pos + 1
+    state.pos = nextCharPosition + 1
     return true
   }
-  if (
-    state.src.charCodeAt(pos) === 120 ||
-    state.src.charCodeAt(pos) === 88 ||
-    state.src.charCodeAt(pos) === 32
-  ) {
-    var checked = state.src.charCodeAt(pos) !== 32
-    ++pos
-    if (state.src.charCodeAt(pos) !== 93) {
-      return false
-    }
+
+  if (isCross(state.src, nextCharPosition) || isSpace(state.src, nextCharPosition)) {
+    const lastCharPosition = nextCharPosition + 1
+    if (!isCloseBracket(state.src, lastCharPosition)) return false
+
     state.push({
       type: 'tasklist',
-      checked: checked,
+      checked: isCross(state.src, nextCharPosition),
       level: state.level,
     } as CheckboxContentToken)
-    state.pos = pos + 1
+    state.pos = lastCharPosition + 1
     return true
   }
+
   return false
 }
