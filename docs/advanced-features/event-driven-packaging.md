@@ -1,8 +1,7 @@
 <!-- markdownlint-disable -->
 # Event-Driven Packaging (EDP)
 
-> EDP is in private preview. You can ask your Quilt account manager
-about enabling it.
+> EDP is in private preview. Ask your Quilt account manager for details.
 
 ## Overview
 
