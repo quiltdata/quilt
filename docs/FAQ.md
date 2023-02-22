@@ -6,8 +6,11 @@ p = quilt3.Package()
 p.set_dir(".", ".")
 p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
-> Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
+
+{% hint style='tip' %}
+Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
 for more control over which files `set_dir()` includes.
+{% endhint %}
 
 ## How does Quilt versioning relate to S3 object versioning?
 Quilt packages are one level of abstraction above S3 object versions.

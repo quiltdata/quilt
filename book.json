@@ -1,6 +1,9 @@
 {
     "root" : "./docs",
-    "plugins": [ "theme-api" ],
+    "plugins": [
+        "theme-api",
+        "hints"
+    ],
     "pluginsConfig": {
         "theme-api": {
             "languages": [
