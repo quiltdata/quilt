@@ -1,6 +1,6 @@
 # Restrict access by S3 bucket prefix
 
-It is possible to use custom roles and policies in the Quilt Catalog in order
+It is possible to use custom roles and policies in the Quilt Catalog
 to limit access to specific folders in an S3 bucket. Nevertheless,
 this approach has limitations and is therefore not recommended for
 high-security data where not just the contents _but the names of files and
@@ -15,9 +15,9 @@ folders are sensitive_.
 
 * For cross-account roles, you must have a recent version of the Quilt
 Stack (1-Feb-2023 or later) so that the Quilt registry has sufficient permissions
-to assume cross-account roles on behalf or users
+to assume cross-account roles on behalf of users
 
-* Ask your Quilt Account Manager to **enable "prefix-aware search"** for your stack
+* Ask your Quilt Account Manager **enable "prefix-aware search"** in your Cloud Formation template
 in order for search to hide the objects from unauthorized users in the search results.
 
 
@@ -26,19 +26,19 @@ in order for search to hide the objects from unauthorized users in the search re
 * Roles for users of the Quilt Catalog's Bucket tab must have
 **full ListBucket permissions**, whether or not they are allowed to access all
 folders and objects. Catalog users who click on a prefix or object that they
-are not permitted to access will see _Access Denied_.
+are not permitted to access will see an _Access Denied_ message.
   * Alternatively, you can [hide the Bucket tab completely](../catalog/Admin.md#show-and-hide-features-in-the-quilt-catalog)
-  and leave users to the Package tab.
+  and leave users access to the Package tab.
 
   > IAM is not designed as a filter for browsing S3.
-  ListBucket will return a 403 for the root of bucket
+  ListBucket will return a 403 error for the root of bucket
   if users do not have full permissions (currently incompatible with the Quilt Catalog)
 
 * Similar to prefixes (above), Quilt Packages that reference prefixes that users
 cannot access via IAM will reveal package-relative file names and object-level
 _Quilt_ metadata, but will not reveal S3 object metadata and will not reveal
 object contents.  Clicking on a package entry in the Catalog that has a physical
-key that the user is not allowed to access will display _Access Denied_.
+key that the user is not allowed to access will display an _Access Denied_ message.
 
 * Prefix-aware search performs a head request on every object result; this may slow
 search performance in the Catalog
@@ -50,13 +50,13 @@ search performance in the Catalog
 [with the Quilt Catalog Admin Panel](../catalog/Admin.md#users-and-roles)
 
 * Provided that you use roles created in the Quilt Catalog Admin Panel
-**you do not need to and should not** insert a trust relationship into your
+**you do not need to, and should not,** insert a trust relationship into your
 roles by hand.
 
-> In certain rare circumstances (e.g. upgrading from older stacks for
+> In certain rare circumstances (e.g. upgrading from an older Quilt stack for
 cross-account role assumption) if Quilt is not working as expected
 __you can rename, remove, or add a Quilt managed role__
-in order to force the Quilt Stack to update its permissions state.
+in order to force the Quilt stack to update its permissions state.
 
 ## Example
 
