@@ -80,8 +80,8 @@ after clicking the `RELOAD` button in the Quilt Catalog.
     1. Delete session storage
     1. Delete local storage
     1. Delete cookies
-1. Your Quilt Role has been corrupted. You will need a Quilt Admin
-user to reset your Quilt User Role to a default (**valid**) Role.
+1. Your Quilt user Role has been corrupted. You will need a Quilt Admin
+user to reset your Quilt user Role to a default (**and valid**) Role.
 
 If you accidentally broke the Role for your _only_ Quilt Admin user,
 then you (or your AWS Cloud Administrator) need to:
