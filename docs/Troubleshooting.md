@@ -80,11 +80,10 @@ after clicking the `RELOAD` button in the Quilt Catalog.
     1. Delete session storage
     1. Delete local storage
     1. Delete cookies
-1. Your Quilt Role has somehow been corrupted, in which case you
-will need a Quilt Admin user to reset your Quilt User Role to a
-default (and valid) Role.
+1. Your Quilt Role has been corrupted. You will need a Quilt Admin
+user to reset your Quilt User Role to a default (**valid**) Role.
 
-If you accidentally broke the Role for your only Quilt Admin user,
+If you accidentally broke the Role for your _only_ Quilt Admin user,
 then you (or your AWS Cloud Administrator) need to:
 
 1. Log in to your AWS account Console.
@@ -93,12 +92,13 @@ then you (or your AWS Cloud Administrator) need to:
 1. In "Prerequisite - Prepare template" select "Use current template". Click "Next".
 1. In the "Specify stack details > Parameters > Administrator web credentials" section:
     1. Change the `AdminUsername` field to a new value **that has never been used before**.
-    1. Change the `AdminEmail` field to a new email address **that has never been used before**.
-        - It may be helpful to use the `+` sign in the new email address,
-        followed by any text - it will successfully deliver to your
-        inbox. For example, `sarah+admin@...` will still be sent to `sarah@...`.
+    1. Change the `AdminEmail` field to a new email address **that
+    has never been used before**. It may be helpful to use the `+`
+    sign in the new email address, followed by any text - it will
+    successfully deliver to your inbox. For example, `sarah+admin@...`
+    will still be sent to `sarah@...`.
     1. Click "Next".
-1. (Optional & preferred) In the "Configure stack options > Stack
+1. **(Optional & preferred)** In the "Configure stack options > Stack
 failure options" section, specify `Roll back all stack resources`.
 Click "Next".
 1. In the "Review <stack-name> > Change set preview" section, verify
