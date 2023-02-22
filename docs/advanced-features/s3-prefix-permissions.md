@@ -36,7 +36,7 @@ are not permitted to access will see an _Access Denied_ message.
 
 * Similar to prefixes (above), Quilt Packages that reference prefixes that users
 cannot access via IAM will reveal package-relative file names and object-level
-_Quilt_ metadata, but will not reveal S3 object metadata and will not reveal
+_Quilt_ metadata, but will neither reveal S3 object metadata nor S3
 object contents.  Clicking on a package entry in the Catalog that has a physical
 key that the user is not allowed to access will display an _Access Denied_ message.
 
