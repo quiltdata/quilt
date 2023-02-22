@@ -1,16 +1,32 @@
 import * as React from 'react'
 
-import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import * as PreviewUtils from 'components/Preview/loaders/utils'
+import FileType from 'components/Preview/loaders/fileType'
 import AsyncResult from 'utils/AsyncResult'
+import * as RT from 'utils/reactTools'
 import type { S3HandleBase } from 'utils/s3paths'
 
+import type { EditorState } from './State'
 import Skeleton from './Skeleton'
-import { EditorState } from './State'
-import TextEditor from './TextEditor'
-import QuiltConfigEditor from './QuiltConfigEditor'
-import { loadMode } from './loader'
 import { EditorInputType } from './types'
+
+import type { ExcelEditorProps } from './ExcelEditor'
+import type { QuiltConfigEditorProps } from './QuiltConfigEditor'
+import type { TextEditorProps } from './TextEditor'
+
+const ExcelEditor: React.FC<ExcelEditorProps> = RT.mkLazy(
+  () => import('./ExcelEditor'),
+  Skeleton,
+)
+const QuiltConfigEditor: React.FC<QuiltConfigEditorProps> = RT.mkLazy(
+  () => import('./QuiltConfigEditor'),
+  Skeleton,
+)
+const TextEditor: React.FC<TextEditorProps> = RT.mkLazy(
+  () => import('./TextEditor'),
+  Skeleton,
+)
 
 export { detect, isSupportedFileType } from './loader'
 
@@ -29,23 +45,32 @@ function EditorSuspended({
   editing,
 }: EditorProps) {
   const disabled = saving
-  if (editing.brace !== '__quiltConfig') {
-    loadMode(editing.brace || 'plain_text') // TODO: loaders#typeText.brace
-  }
-
   const data = PreviewUtils.useObjectGetter(handle, { noAutoFetch: empty })
   if (empty)
-    return editing.brace === '__quiltConfig' ? (
-      <QuiltConfigEditor
-        handle={handle}
-        disabled={disabled}
-        error={error}
-        onChange={onChange}
-        initialValue=""
-      />
-    ) : (
-      <TextEditor error={error} type={editing} value="" onChange={onChange} />
-    )
+    switch (editing.type) {
+      case FileType.Tabular:
+        return (
+          <ExcelEditor
+            disabled={disabled}
+            error={error}
+            handle={handle}
+            initialValue=""
+            onChange={onChange}
+          />
+        )
+      case '__quiltConfig':
+        return (
+          <QuiltConfigEditor
+            handle={handle}
+            disabled={disabled}
+            error={error}
+            onChange={onChange}
+            initialValue=""
+          />
+        )
+      default:
+        return <TextEditor error={error} type={editing} value="" onChange={onChange} />
+    }
   return data.case({
     _: () => <Skeleton />,
     Err: (
@@ -58,26 +83,38 @@ function EditorSuspended({
     ),
     Ok: (response: { Body: Buffer }) => {
       const value = response.Body.toString('utf-8')
-      if (editing.brace === '__quiltConfig') {
-        return (
-          <QuiltConfigEditor
-            handle={handle}
-            disabled={disabled}
-            error={error}
-            onChange={onChange}
-            initialValue={value}
-          />
-        )
+      switch (editing.type) {
+        case FileType.Tabular:
+          return (
+            <ExcelEditor
+              disabled={disabled}
+              error={error}
+              handle={handle}
+              initialValue={response.Body}
+              onChange={onChange}
+            />
+          )
+        case '__quiltConfig':
+          return (
+            <QuiltConfigEditor
+              handle={handle}
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              initialValue={value}
+            />
+          )
+        default:
+          return (
+            <TextEditor
+              disabled={disabled}
+              error={error}
+              onChange={onChange}
+              type={editing}
+              value={value}
+            />
+          )
       }
-      return (
-        <TextEditor
-          disabled={disabled}
-          error={error}
-          onChange={onChange}
-          type={editing}
-          value={value}
-        />
-      )
     },
   })
 }
