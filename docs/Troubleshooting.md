@@ -102,19 +102,17 @@ then you (or your AWS Cloud Administrator) need to:
 failure options" section, specify `Roll back all stack resources`.
 Click "Next".
 1. In the "Review <stack-name> > Change set preview" section, verify
-that any changes are not disruptive:
-    1. For each resource the "Action" field value will be `Modify`
-    and the "Logical ID" field value will be `Migration` for approximately
-    four resources.
-    1. Click the "Submit" button.
+that any changes are not disruptive. For each resource the "Action"
+field value will be `Modify` and the "Logical ID" field value will
+be `Migration` for approximately four resources. Click the "Submit"
+button.
 
 After the deployment update is successfully completed, login to the
 Catalog with the new administrator credentials. Create other Admin
 users as needed.
 
 ### Additional support
-To have your stack changeset reviewed by a Quilt support agent, or
-if you have further questions, please email
-[support@quiltdata.io](mailto:support@quiltdata.io?subject=Quilt
-Admin user Role issue) with the subject line "Quilt Admin user Role
-issue" and the body containing screenshots of the changeset.
+To have your Quilt stack changeset reviewed by a Quilt support agent, or
+if you have further questions, please email support@quiltdata.io
+with the subject line "Quilt Admin user Role issue" and the body
+containing screenshots of the proposed changeset.
