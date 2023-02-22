@@ -70,3 +70,49 @@ p.push(
 ```
 
 - [Reference](https://docs.quiltdata.com/api-reference/package#package.set_dir).
+
+## "Session expired" notice in the Catalog
+
+There are two reasons for encountering the "Session expired" notice
+after clicking the `RELOAD` button in the Quilt Catalog.
+
+1. Your browser cache is out of date, in which case you need to:
+    1. Delete session storage
+    1. Delete local storage
+    1. Delete cookies
+1. Your Quilt user Role has been corrupted. You will need a Quilt Admin
+user to reset your Quilt user Role to a default (**and valid**) Role.
+
+If you accidentally broke the Role for your _only_ Quilt Admin user,
+then you (or your AWS Cloud Administrator) need to:
+
+1. Log in to your AWS account Console.
+1. Go to the CloudFormation service and select your Quilt stack.
+1. Click the `Update` button (top-right) to access the "Update stack" page
+1. In "Prerequisite - Prepare template" select "Use current template". Click "Next".
+1. In the "Specify stack details > Parameters > Administrator web credentials" section:
+    1. Change the `AdminUsername` field to a new value **that has never been used before**.
+    1. Change the `AdminEmail` field to a new email address **that
+    has never been used before**. It may be helpful to use the `+`
+    sign in the new email address, followed by any text - it will
+    successfully deliver to your inbox. For example, `sarah+admin@...`
+    will still be sent to `sarah@...`.
+    1. Click "Next".
+1. **(Optional & preferred)** In the "Configure stack options > Stack
+failure options" section, specify `Roll back all stack resources`.
+Click "Next".
+1. In the "Review <stack-name> > Change set preview" section, verify
+that any changes are not disruptive. For each resource the "Action"
+field value will be `Modify` and the "Logical ID" field value will
+be `Migration` for approximately four resources. Click the "Submit"
+button.
+
+After the deployment update is successfully completed, login to the
+Catalog with the new administrator credentials. Create other Admin
+users as needed.
+
+### Additional support
+To have your Quilt stack changeset reviewed by a Quilt support agent, or
+if you have further questions, please email support@quiltdata.io
+with the subject line "Quilt Admin user Role issue" and the body
+containing screenshots of the proposed changeset.
