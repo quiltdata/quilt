@@ -53,7 +53,7 @@ roles by hand.
 
 > In certain rare circumstances (e.g. upgrading from an older Quilt stack for
 cross-account role assumption) if Quilt is not working as expected
-__you can rename, remove, or add a Quilt managed role__
+**you can rename, remove, or add a Quilt managed role**
 in order to force the Quilt stack to update its permissions state.
 
 ## Example
@@ -92,4 +92,3 @@ similar to the following:
 > The `.quilt` folder is where Quilt Package Manifests are stored for all
 packages in a bucket registry. Users must have access to this directory
 to view Packages.
-
