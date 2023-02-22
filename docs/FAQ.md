@@ -8,7 +8,7 @@ p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
 ```
 
 {% hint style='tip' %}
-Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
+Use a [.quiltignore file](advanced-usage/.quiltignore)
 for more control over which files `set_dir()` includes.
 {% endhint %}
 
