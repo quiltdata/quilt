@@ -16,9 +16,6 @@ const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 const ProtectedThrowNotFound = protect(ThrowNotFound)
 
-const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
-const StoryBook = RT.mkLazy(() => import('containers/StoryBook'), SuspensePlaceholder)
-
 const redirectTo =
   (path) =>
   ({ location: { search } }) =>
@@ -159,10 +156,6 @@ export default function App() {
         )}
 
         {!cfg.disableNavigator && <Route path={paths.bucketRoot} component={Bucket} />}
-
-        {process.env.NODE_ENV !== 'production' && (
-          <Route path={paths.storyBook} component={StoryBook} exact />
-        )}
 
         <Route component={ProtectedThrowNotFound} />
       </Switch>
