@@ -16,8 +16,6 @@ const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 const ProtectedThrowNotFound = protect(ThrowNotFound)
 
-const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
-
 const redirectTo =
   (path) =>
   ({ location: { search } }) =>
