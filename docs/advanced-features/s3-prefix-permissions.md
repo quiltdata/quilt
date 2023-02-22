@@ -6,7 +6,6 @@ this approach has limitations and is therefore not recommended for
 high-security data where not just the contents _but the names of files and
 folders are sensitive_.
 
-
 ## Pre-requisites
 
 * IAM policies and roles (see below for an example)
@@ -17,9 +16,9 @@ folders are sensitive_.
 Stack (1-Feb-2023 or later) so that the Quilt registry has sufficient permissions
 to assume cross-account roles on behalf or users
 
-* Ask your Quilt Account Manager to **enable "prefix-aware search"** for your stack
-in order for search to hide the objects from unauthorized users in the search results.
-
+* Ask your Quilt Account Manager to **enable "prefix-aware search"** for your
+stack in order for search to hide the objects from unauthorized users in the
+search results.
 
 ## Limitations and workarounds
 
@@ -43,7 +42,6 @@ key that the user is not allowed to access will display _Access Denied_.
 * Prefix-aware search performs a head request on every object result; this may slow
 search performance in the Catalog
 
-
 ## Requirements and recommendations
 
 * Manage all Quilt roles and policies for prefixes
@@ -55,7 +53,6 @@ roles by hand.
 
 > In certain rare circumstances (e.g. upgrading from older stacks for
 cross-account role assumption) if Quilt is not working as expected
-__you can rename, remove, or add a Quilt managed role__
 in order to force the Quilt Stack to update its permissions state.
 
 ## Example
