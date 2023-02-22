@@ -116,7 +116,7 @@ def _launch_local_catalog(*, host: str, port: int):
             'uvicorn',
             'quilt3_local',
         ):
-            raise QuiltException('To run `quilt3 catalog` install `quilt3[catalog]`') from e
+            raise QuiltException("To run `quilt3 catalog` please `pip install 'quilt3[catalog]'`") from e
         raise
     _thread.start_new_thread(functools.partial(uvicorn.run, host=host, port=port, log_level="info"), (app,))
 
