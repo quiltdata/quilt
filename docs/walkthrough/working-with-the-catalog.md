@@ -5,23 +5,23 @@ the web.
 
 **[For a hands-on demo, check out the public demo catalog](https://open.quiltdata.com/b/quilt-example).**
 
-Note that you can use the Quilt Python API without using the catalog product,
+Note that you can use the Quilt Python API without using the Quilt Catalog,
 but they are designed to work together.
 
 ## Brief tour
 
-The Quilt catalog provides a homepage for your catalog, based on a `README.md`
+The Quilt Catalog provides a homepage for your data catalog, based on a `README.md`
 file that you can optionally create at the top of your bucket.
 
 ### Browse
 
 ![Homepage](../imgs/catalog_homepage.png)
 
-The catalog lets you navigate packages in the registry on the packages tab.
+The Catalog lets you navigate packages in the registry using the "Packages" tab.
 
 ![Packages tab](../imgs/catalog_packages_tab.png)
 
-You can also browse the underlying S3 files using the files tab.
+You can also browse the underlying S3 files using the "Bucket" tab.
 
 ![Files tab](../imgs/catalog_files_tab.png)
 
