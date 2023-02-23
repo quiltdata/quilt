@@ -190,9 +190,3 @@ export const adminStatus = {
   path: '/admin/status',
   url: () => '/admin/status',
 }
-
-// storybook
-export const storyBook = {
-  path: '/storybook',
-  url: () => '/storybook',
-}
