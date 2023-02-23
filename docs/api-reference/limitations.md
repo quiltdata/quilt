@@ -32,4 +32,4 @@ compute instance in the same region as your Quilt S3 buckets, is recommended.
 
 ### Metadata
 
-See [Metadata](../Catalog/Metadata.md).
+See [Metadata for teams](../Catalog/Metadata.md).
