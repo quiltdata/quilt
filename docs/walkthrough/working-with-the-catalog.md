@@ -23,7 +23,7 @@ The Catalog lets you navigate packages in the registry using the "Packages" tab.
 
 You can also browse the underlying S3 files using the "Bucket" tab.
 
-![Files tab](../imgs/catalog_files_tab.png)
+![Files tab](../imgs/catalog_bucket_tab.png)
 
 ### Search
 
