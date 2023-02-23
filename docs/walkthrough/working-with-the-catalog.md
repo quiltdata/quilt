@@ -73,22 +73,10 @@ feature consult [workflows](../advanced-features/workflows.md) page.
 Adding a `quilt_summarize.json` file to a data package (or S3 directory path)
 will enable content preview right on the landing page.
 
+See [Visualization & dashboards docs](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
+for details.
+
 ![Package landing page](../imgs/catalog_package_landing_page.png)
-
-Colocating data with context in this way is a simple way of making your data
-projects approachable and accessible to collaborators.
-
-`quilt_summarize.json` can be a list of paths to files in S3 that you want to
-include in your summary. For example:
-`["description.md", "../notebooks/exploration.ipynb"]`. Additionally, note that
-if a `README.md` file is present, it will always be rendered as well.
-
-> There are currently some small limitations with preview:
->
-> * Objects linked to in `quilt_summarize.json` are always previewed as of the
->   latest version, even if you are browsing an old version of a package.
-> * Object titles and image thumbnails link to the file view, even if you are in
->   the package view.
 
 ## Admin UI
 
