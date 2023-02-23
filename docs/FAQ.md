@@ -206,8 +206,9 @@ requires at least 256 IPs. This means a minimum CIDR block of `/24`.
 
 Optional additional features (such as automated data packaging) require additional IPs.
 
-## In the catalog file list there is a column for "Last modified", but no datetime value is displayed for folders
+## The "Last Modified" column in the Quilt catalog is empty
 
-In Amazon S3 there is technically no such thing as folders, just
-**object prefixes**. So there is not any `Last modified` information
-anywhere except on the file objects themselves.
+Amazon S3 is a key-value store with prefixes but no true "folders".
+In the Quilt Catalog Bucket view, as in AWS Console, only objects have
+a "Last modified" value, whereas package entries and prefixes do not.
+
