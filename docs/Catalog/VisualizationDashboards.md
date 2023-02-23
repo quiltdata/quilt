@@ -122,7 +122,20 @@ file with a library-compatible schema in a JSON file as follows in your
 ```
 
 For both Vega and Vega Lite you may specify relative paths to package files
-as data sources and the Quilt catalog will resolve the same.
+as data sources and the Quilt catalog correctly resolves them. Vega treats any
+data source as JSON by default. If you wish to use a different format than JSON, please 
+[specify the file type](https://vega.github.io/vega-lite/docs/data.html#format).
+For example: 
+
+```json
+{
+  "data": {
+    "url": "./datasource.csv",
+    "format": {
+      "type": "csv"
+    }
+}
+```
 
 ### Altair
 The easiest way to create Vega-lite visualizations for Quilt packages is with
