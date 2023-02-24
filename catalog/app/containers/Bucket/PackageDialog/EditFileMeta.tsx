@@ -2,8 +2,9 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { JsonValue } from 'components/JsonEditor/constants'
 import MetadataEditor from 'components/MetadataEditor'
+import type * as Model from 'model'
+import type { JsonRecord } from 'utils/types'
 
 const useDialogStyles = M.makeStyles({
   paper: {
@@ -17,26 +18,39 @@ const useStyles = M.makeStyles({
   },
 })
 
+function formatObjectMeta(
+  objectMeta?: Model.EntryMeta,
+  userMeta?: JsonRecord,
+): Model.EntryMeta | undefined {
+  if (objectMeta === undefined && userMeta === undefined) return undefined
+  if (userMeta === undefined) return objectMeta
+  return { ...objectMeta, user_meta: userMeta }
+}
+
+function getUserMeta(objectMeta?: Model.EntryMeta) {
+  return objectMeta?.user_meta
+}
+
 interface DialogProps {
   name: string
-  onChange: (value: JsonValue) => void
+  onChange: (value?: Model.EntryMeta) => void
   onClose: () => void
   open: boolean
-  value: JsonValue
+  value?: Model.EntryMeta
 }
 
 function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
   // TODO: add button to reset innerValue
-  const [innerValue, setInnerValue] = React.useState(value)
+  const [userMeta, setUserMeta] = React.useState(getUserMeta(value))
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
   const [isRaw, setRaw] = React.useState(false)
   const handleSubmit = React.useCallback(() => {
-    onChange(innerValue)
+    onChange(formatObjectMeta(value, userMeta))
     onClose()
-  }, [innerValue, onChange, onClose])
+  }, [userMeta, onChange, onClose, value])
   const handleCancel = React.useCallback(() => {
-    setInnerValue(value)
+    setUserMeta(getUserMeta(value))
     onClose()
   }, [onClose, value])
   return (
@@ -52,8 +66,8 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
         <MetadataEditor
           multiColumned
           isRaw={isRaw}
-          value={innerValue}
-          onChange={setInnerValue}
+          value={userMeta}
+          onChange={setUserMeta}
         />
       </M.DialogContent>
       <M.DialogActions>
@@ -86,8 +100,8 @@ function MetadataIcon({ color }: MetadataIconProps) {
 interface EditMetaProps {
   disabled?: boolean
   name: string
-  onChange?: (value: JsonValue) => void
-  value: JsonValue
+  onChange?: (value?: Model.EntryMeta) => void
+  value?: Model.EntryMeta
 }
 
 export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
