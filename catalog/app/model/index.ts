@@ -49,7 +49,7 @@ export type Collaborators = ReadonlyArray<
 export type EntryMeta = (Types.JsonRecord & { user_meta?: Types.JsonRecord }) | null
 
 export interface PackageEntry {
-  // TODO: replace with { address: {physicalKey: string} }
+  // TODO: replace with { address: { physicalKey: string }}
   //       so, you can merge PackageEntry and S3File
   physicalKey: string
   hash: string
@@ -60,7 +60,7 @@ export interface PackageEntry {
 export type PackageContentsFlatMap = Record<string, PackageEntry>
 
 export interface S3File {
-  // TODO: replace with { address: { handle: S3HandleBase } }
+  // TODO: replace with { address: { handle: S3HandleBase }}
   //       so, you can merge PackageEntry and S3File
   bucket: string
   key: string
