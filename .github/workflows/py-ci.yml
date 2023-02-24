@@ -95,7 +95,7 @@ jobs:
       - name: Run Pytest
         run: |
           pytest --cov=api/python api/python
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         env:
           OS: ${{ matrix.os }}
           PYTHON_VERSION: ${{ matrix.python-version }}
@@ -188,7 +188,7 @@ jobs:
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         env:
           LAMBDA: ${{ matrix.path }}
         with:
