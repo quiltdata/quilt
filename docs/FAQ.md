@@ -205,3 +205,10 @@ Currently, a full size, multi-Availability Zone deployment (without
 requires at least 256 IPs. This means a minimum CIDR block of `/24`.
 
 Optional additional features (such as automated data packaging) require additional IPs.
+
+## The "Last Modified" column in the Quilt catalog is empty
+
+Amazon S3 is a key-value store with prefixes but no true "folders".
+In the Quilt Catalog Bucket view, as in AWS Console, only objects have
+a "Last modified" value, whereas package entries and prefixes do not.
+
