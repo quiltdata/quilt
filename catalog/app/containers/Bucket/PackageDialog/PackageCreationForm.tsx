@@ -66,7 +66,7 @@ export interface PackageCreationSuccess {
   hash?: string
 }
 
-// Convert FilesState to entries consumed by backend and Schema validation
+// Convert FilesState to entries consumed by Schema validation
 function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
   return FP.function.pipe(
     R.mergeLeft(files.added, files.existing),
@@ -74,7 +74,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     Object.entries,
     R.map(([path, file]) => ({
       logical_key: path,
-      meta: file.meta,
+      meta: file.meta?.user_meta,
       size: file.size,
     })),
   )
