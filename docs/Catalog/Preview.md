@@ -40,19 +40,20 @@ The following file formats are supported:
 
 ## Advanced
 
-You can use visualizations inside iframes using any libraries you want.
+The Quilt catalog supports secure, custom Javascript-enabled visualizations and dashboards embedded inside iframes.
 It's up to you what JS library you'll import and use.
 
-To enable this permissive visualizations, you can tick the "Enable permissive
-HTML rendering" checkbox in [Bucket settings](/catalog/admin#buckets). Keep in
-mind, that the process of rendering HTML file creates a short living session,
-that allows sharing files of the packages publicly.
+To enable "permissive" visualizations, check the `Enable permissive
+HTML rendering` checkbox in [Bucket settings](/catalog/admin#buckets). Please note
+that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package creates a short-lived 
+**publicly available** session for the lifetime of the session, although all session traffic _remains encrypted_.
 
-So, when you open `report.html`, a new session is created, and we render
-`/short-living-session-id/report.html` in iframe. This let us fetch all relative
-media and scripts in that page: `./img.jpg` becomes
-`/short-living-session-id/img.jpg`, `script.js` becomes
-`/short-living-session-id/script.js`, etc. But, also makes other files in the
-same package available by those paths
-`/short-living-session-id/was-not-shared-explicitly.txt`, even if not referenced
-in `report.html`.
+### Example:
+1. `report.html` is a file that includes a publicly available JS library and custom embedded script.
+2. Opening `report.html` generates  a new session `temporary-session-id`.
+3. The file is served from the iframe relative-path `/temporary-session-id/report.html`.
+4. All relative media and scripts are rendered in the same iframe relative-path format:
+    - `./img.jpg` is served as `/temporary-session-id/img.jpg`
+    - `script.js` is served as `/temporary-session-id/script.js`
+
+> **All files in the same package** are made temporarily publicly-available (for lifetime of the session) under `/temporary-session-id`, even if not explicitly referenced in `report.html`.
