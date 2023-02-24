@@ -40,20 +40,28 @@ The following file formats are supported:
 
 ## Advanced
 
-The Quilt catalog supports secure, custom Javascript-enabled visualizations and dashboards embedded inside iframes.
+The Quilt catalog supports secure, custom Javascript-enabled visualizations and
+dashboards embedded inside iframes.
 It's up to you what JS library you'll import and use.
 
-To enable "permissive" visualizations, check the `Enable permissive
-HTML rendering` checkbox in [Bucket settings](/catalog/admin#buckets). Please note
-that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package creates a short-lived 
-**publicly available** session for the lifetime of the session, although all session traffic _remains encrypted_.
+To enable "permissive" visualizations, check the `Enable permissive HTML
+rendering` checkbox in [Bucket settings](/catalog/admin#buckets). Please note
+that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package
+creates a short-lived **publicly available** session for the lifetime of the
+session, although all session traffic _remains encrypted_.
 
-### Example:
-1. `report.html` is a file that includes a publicly available JS library and custom embedded script.
+### Example
+
+1. `report.html` is a file that includes a publicly available JS library and
+   custom embedded script.
 2. Opening `report.html` generates  a new session `temporary-session-id`.
-3. The file is served from the iframe relative-path `/temporary-session-id/report.html`.
-4. All relative media and scripts are rendered in the same iframe relative-path format:
-    - `./img.jpg` is served as `/temporary-session-id/img.jpg`
-    - `script.js` is served as `/temporary-session-id/script.js`
+3. The file is served from the iframe relative-path
+   `/temporary-session-id/report.html`.
+4. All relative media and scripts are rendered in the same iframe relative-path
+   format:
+    * `./img.jpg` is served as `/temporary-session-id/img.jpg`
+    * `script.js` is served as `/temporary-session-id/script.js`
 
-> **All files in the same package** are made temporarily publicly-available (for lifetime of the session) under `/temporary-session-id`, even if not explicitly referenced in `report.html`.
+> **All files in the same package** are made temporarily publicly-available (for
+> lifetime of the session) under `/temporary-session-id`, even if not explicitly
+referenced in `report.html`.
