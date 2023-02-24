@@ -45,10 +45,13 @@ export type Collaborators = ReadonlyArray<
   GQLTypes.CollaboratorBucketConnection | PotentialCollaborator
 >
 
+// Note that the actual user-defined meta is in the `user_meta` field
+export type EntryMeta = (Types.JsonRecord & { user_meta?: Types.JsonRecord }) | null
+
 export interface PackageEntry {
   physicalKey: string
   hash: string
-  meta: Types.JsonRecord | null
+  meta?: EntryMeta
   size: number
 }
 
@@ -57,7 +60,7 @@ export type PackageContentsFlatMap = Record<string, PackageEntry>
 export interface S3File {
   bucket: string
   key: string
-  meta?: Types.JsonRecord // TODO: make it the same as in PackageEntry
+  meta?: EntryMeta
   size: number
   version?: string
 }

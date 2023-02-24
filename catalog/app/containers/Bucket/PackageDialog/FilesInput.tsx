@@ -74,7 +74,7 @@ export const FilesAction = tagged.create(
     AddFromS3: (v: { files: Model.S3File[]; basePrefix: string; prefix?: string }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
-    Meta: (v: { path: string; meta: Types.JsonRecord }) => v,
+    Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -97,7 +97,7 @@ export interface FilesState {
 
 const addMetaToFile = (
   file: Model.PackageEntry | LocalFile | Model.S3File,
-  meta: Types.JsonRecord,
+  meta?: Model.EntryMeta,
 ) => {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
@@ -211,7 +211,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
-    meta?: Types.JsonRecord | null
+    meta?: Model.EntryMeta
   }) => v,
 })
 
@@ -264,7 +264,7 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
-  meta?: Types.JsonRecord | null
+  meta?: Model.EntryMeta
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
@@ -469,9 +469,9 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
-  meta?: Types.JsonRecord | null
+  meta?: Model.EntryMeta
   metaDisabled?: boolean
-  onMeta?: (value: Types.JsonRecord) => void
+  onMeta?: (value?: Model.EntryMeta) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -1090,7 +1090,7 @@ function FileUpload({
   }, [])
 
   const onMeta = React.useCallback(
-    (m: Types.JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
+    (m?: Model.EntryMeta) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
 
