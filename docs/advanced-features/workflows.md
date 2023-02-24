@@ -535,8 +535,7 @@ workflows:
 You can validate the names, sizes and metadata of files in the package with
 `WORKFLOW.entries_schema`. The provided schema runs against an array of
 objects known as *package entries*. Each package entry defines a logical key
-(its relative path and name in the parent package), size (in bytes)
-and metadata (object containing `user_meta` field).
+(its relative path and name in the parent package), size (in bytes) and metadata.
 
 #### Example
 
@@ -632,8 +631,7 @@ Requires a README
 
 ##### `s3://bucket/must-have-foo-bar-meta.json`
 
-Requires `{ foo: 'bar' }` object. Note that the actual metadata
-written by user is located in `user_meta` field.
+Requires `{ foo: 'bar' }` object as user specified metadata
 
 ```json
 {
@@ -644,18 +642,12 @@ written by user is located in `user_meta` field.
       "meta": {
         "type": "object",
         "properties": {
-          "user_meta": {
-            "type": "object",
-            "properties": {
-              "foo": {
-                "type": "string",
-                "pattern": "^bar$"
-              }
-            }
-            "required": ["foo"]
+          "foo": {
+            "type": "string",
+            "pattern": "^bar$"
           }
         },
-        "required": ["user_meta"]
+        "required": ["foo"]
       }
     }
   }
