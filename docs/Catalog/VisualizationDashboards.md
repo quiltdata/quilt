@@ -115,7 +115,20 @@ file with a library-compatible schema in a JSON file as follows in your
 ```
 
 For both Vega and Vega Lite you may specify relative paths to package files
-as data sources and the Quilt catalog will resolve the same.
+as data sources and the Quilt catalog correctly resolves them. Vega treats any
+data source as JSON by default. If you wish to use a different format than JSON, please 
+[specify the file type](https://vega.github.io/vega-lite/docs/data.html#format).
+For example: 
+
+```json
+{
+  "data": {
+    "url": "./datasource.csv",
+    "format": {
+      "type": "csv"
+    }
+}
+```
 
 ### Altair
 The easiest way to create Vega-lite visualizations for Quilt packages is with
@@ -416,6 +429,15 @@ In the above example, `igv-options-file.json` is an
 
 You may specify relative paths to package files or absolute S3 URLs as data sources, and the Quilt catalog will resolve them.
 HTTP URLs will remain unchanged.
+
+**Note: Please be mindful of rendering large sequences**
+You can limit the downloaded file size of the sequence by using the [`visibilityWindow` parameter](https://github.com/igvteam/igv.js/wiki/Tracks-2.0#options-for-all-track-types)
+(`-1` is for downloading the whole file, which could potentially
+be several gigabytes in size - this may impact 
+rendering speed and interactive performance).
+
+Note that tracks are
+[grouped by type and file format](https://github.com/igvteam/igv.js/wiki/Tracks-2.0).
 
 ```json
 // igv-options-file.json

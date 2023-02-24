@@ -11,20 +11,27 @@ const useFieldInputStyles = M.makeStyles({
 
 interface FieldProps {
   error?: string
+  errors: Record<string, React.ReactNode>
   helperText?: React.ReactNode
   input: RF.FieldInputProps<string>
+  meta: RF.FieldMetaState<string>
   validating?: boolean
 }
 
+export type TextFieldProps = FieldProps & M.TextFieldProps
+
 export default function Field({
   InputLabelProps,
-  error,
   helperText,
   input,
   validating,
+  errors,
+  meta,
   ...rest
-}: FieldProps & M.TextFieldProps) {
+}: TextFieldProps) {
   const inputClasses = useFieldInputStyles()
+  const errorCode = meta.submitFailed && meta.error
+  const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
     InputLabelProps: { shrink: true, ...InputLabelProps },
     InputProps: {

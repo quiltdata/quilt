@@ -60,10 +60,6 @@ export const passChange = {
   path: '/reset_password/:link',
   url: (link) => `/reset_password/${link}`,
 }
-export const ssoSignUp = {
-  path: '/signup-sso',
-  url: ({ provider, token, next }) => `/signup-sso${mkSearch({ provider, token, next })}`,
-}
 export const code = {
   path: '/code',
   url: () => '/code',
@@ -193,10 +189,4 @@ export const adminSync = {
 export const adminStatus = {
   path: '/admin/status',
   url: () => '/admin/status',
-}
-
-// storybook
-export const storyBook = {
-  path: '/storybook',
-  url: () => '/storybook',
 }

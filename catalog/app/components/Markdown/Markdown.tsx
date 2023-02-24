@@ -11,6 +11,8 @@ import * as M from '@material-ui/core'
 
 import { linkStyle } from 'utils/StyledLink'
 
+import parseTasklist, { CheckboxContentToken } from './parseTasklist'
+
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
  * dir, fieldset, form, frame, frameset, head, html, iframe, link, main, menu,
@@ -23,6 +25,7 @@ import { linkStyle } from 'utils/StyledLink'
  */
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
+    'input',
     'a',
     'abbr',
     'address',
@@ -190,6 +193,12 @@ const linkHandler =
     }
   }
 
+const checkboxHandler = (md: Remarkable.Remarkable) => {
+  md.inline.ruler.push('tasklist', parseTasklist, {})
+  md.renderer.rules.tasklist = (tokens, idx) =>
+    (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
+}
+
 /**
  * Get Remarkable instance based on the given options (memoized).
  *
@@ -208,6 +217,7 @@ export const getRenderer = memoize(({ images, processImg, processLink }) => {
   }).use(linkify)
   md.use(linkHandler({ process: processLink }))
   md.use(imageHandler({ disable: !images, process: processImg }))
+  md.use(checkboxHandler)
   const purify = createDOMPurify(window)
   return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
 })

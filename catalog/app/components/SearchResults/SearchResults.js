@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
@@ -88,26 +89,21 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, downloadable = false }) {
+function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
   return (
     <Heading display="flex" alignItems="center" mb="0 !important">
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {!!downloadable &&
-        AWS.Signer.withDownloadUrl(handle, (url) => (
-          <M.Box
-            alignItems="center"
-            display="flex"
-            height={32}
-            justifyContent="center"
-            width={24}
-            my={{ xs: -0.25, md: 0 }}
-          >
-            <M.IconButton href={url} title="Download" download>
-              <M.Icon>arrow_downward</M.Icon>
-            </M.IconButton>
-          </M.Box>
-        ))}
+      <ButtonIconized
+        label={expanded ? 'Collapse' : 'Expand'}
+        icon={expanded ? 'unfold_less' : 'unfold_more'}
+        rotate={expanded}
+        onClick={onToggle}
+        mr={1}
+      />
+      {!!downloadable && (
+        <Preview.Menu handle={handle} expanded={expanded} onToggle={onToggle} />
+      )}
     </Heading>
   )
 }
@@ -300,7 +296,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title, expanded, onExpand }) {
+function PreviewBox({ children, title, expanded, onToggle }) {
   const classes = usePreviewBoxStyles()
   return (
     <SmallerSection>
@@ -310,9 +306,7 @@ function PreviewBox({ children, title, expanded, onExpand }) {
         {children}
 
         {!expanded && (
-          <div className={classes.fade} onClick={onExpand}>
-            <M.Button variant="outlined">Expand</M.Button>
-          </div>
+          <div className={classes.fade} onClick={onToggle} title="Click to expand" />
         )}
       </div>
     </SmallerSection>
@@ -321,12 +315,16 @@ function PreviewBox({ children, title, expanded, onExpand }) {
 
 const previewOptions = { context: Preview.CONTEXT.LISTING }
 
-function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
-  const [expanded, setExpanded] = React.useState(false)
-  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+function PreviewDisplay({
+  handle,
+  bucketExistenceData,
+  versionExistenceData,
+  expanded,
+  onToggle,
+}) {
   const renderContents = React.useCallback(
-    (children) => <PreviewBox {...{ children, expanded, onExpand }} />,
-    [expanded, onExpand],
+    (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
+    [expanded, onToggle],
   )
   const withData = (callback) =>
     bucketExistenceData.case({
@@ -369,11 +367,11 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
 
 function Meta({ meta }) {
   const [expanded, setExpanded] = React.useState(false)
-  const onExpand = React.useCallback(() => setExpanded(true), [setExpanded])
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox expanded={expanded} onExpand={onExpand}>
+    <PreviewBox expanded={expanded} onToggle={onToggle}>
       <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
@@ -457,6 +455,8 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
           }),
         }),
     })
+  const [expanded, setExpanded] = React.useState(false)
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
 
   return (
     <Section
@@ -465,10 +465,12 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
       data-search-hit-bucket={bucket}
       data-search-hit-path={path}
     >
-      <ObjectHeader {...{ handle, showBucket, downloadable }} />
+      <ObjectHeader {...{ handle, showBucket, downloadable, expanded, onToggle }} />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
-      <PreviewDisplay {...{ handle, bucketExistenceData, versionExistenceData }} />
+      <PreviewDisplay
+        {...{ handle, bucketExistenceData, versionExistenceData, expanded, onToggle }}
+      />
     </Section>
   )
 }

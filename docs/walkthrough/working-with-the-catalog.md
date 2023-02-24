@@ -39,7 +39,7 @@ Files are the content of your package.
 
 The associated workflow contains the rules for validating your package.
 
-The metadata can be added with JSON editor, represented as a key/value table with infinite nesting. If workflow contains JSON schema, you will have predefined key/value pairs according to the schema.
+The metadata can be added with JSON editor for both packages and individual file entries within a package, represented as a key/value table with infinite nesting. If workflow contains JSON schema, you will have predefined key/value pairs according to the schema.
 
 #### JSON editor
 

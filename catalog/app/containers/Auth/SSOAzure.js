@@ -1,13 +1,9 @@
-import { push } from 'connected-react-router/esm/immutable'
-import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Azure from 'utils/Azure'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -20,37 +16,30 @@ const MUTEX_POPUP = 'sso:azure:popup'
 const MUTEX_REQUEST = 'sso:azure:request'
 
 export default function SSOAzure({ mutex, next, ...props }) {
-  invariant(!!cfg.azureClientId, 'Auth.SSO.Azure: config missing "azureClientId"')
-  invariant(!!cfg.azureBaseUrl, 'Auth.SSO.Azure: config missing "azureBaseUrl"')
-  const authenticate = Azure.use({
-    clientId: cfg.azureClientId,
-    baseUrl: cfg.azureBaseUrl,
+  const provider = 'azure'
+
+  const authenticate = OIDC.use({
+    provider,
+    popupParams: 'width=500,height=700',
   })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { push: notify } = Notifications.use()
-  const { urls } = NamedRoutes.use()
 
   const handleClick = React.useCallback(async () => {
     if (mutex.current) return
     mutex.claim(MUTEX_POPUP)
 
     try {
-      const token = await authenticate()
-      const provider = 'azure'
+      const code = await authenticate()
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
-        dispatch(actions.signIn({ provider, token }, result.resolver))
+        dispatch(actions.signIn({ provider, code }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
-          if (cfg.ssoAuth === true) {
-            dispatch(push(urls.ssoSignUp({ provider, token, next })))
-            // dont release mutex on redirect
-            return
-          }
           notify(
             'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
           )
@@ -65,7 +54,7 @@ export default function SSOAzure({ mutex, next, ...props }) {
         mutex.release(MUTEX_REQUEST)
       }
     } catch (e) {
-      if (e instanceof Azure.AzureError) {
+      if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
           notify(`Unable to sign in with Microsoft. ${e.details}`)
           sentry('captureException', e)
@@ -77,7 +66,7 @@ export default function SSOAzure({ mutex, next, ...props }) {
       mutex.release(MUTEX_POPUP)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticate, dispatch, mutex.claim, mutex.release, next, notify, sentry, urls])
+  }, [authenticate, dispatch, mutex.claim, mutex.release, notify, sentry])
 
   return (
     <M.Button

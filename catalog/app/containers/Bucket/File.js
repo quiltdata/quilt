@@ -8,6 +8,7 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
@@ -290,13 +291,16 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
     marginLeft: 'auto',
+    marginTop: -3,
   },
   at: {
     color: t.palette.text.secondary,
   },
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   crumbs: {
     ...t.typography.body1,
@@ -304,6 +308,7 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
   },
   fileProperties: {
+    marginRight: t.spacing(1),
     marginTop: '2px',
   },
   name: {
@@ -318,6 +323,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
+    flexWrap: 'wrap',
   },
   preview: {
     width: '100%',
@@ -477,17 +483,14 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
-          {!!editorState.type.brace && (
+          {FileEditor.isSupportedFileType(handle.key) && (
             <FileEditor.Controls
-              disabled={editorState.saving}
-              editing={editorState.editing}
+              {...editorState}
               className={classes.button}
               onSave={handleEditorSave}
-              onCancel={editorState.onCancel}
-              onEdit={editorState.onEdit}
             />
           )}
-          <FileView.AdaptiveButtonLayout
+          <ButtonIconized
             className={classes.button}
             icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
             label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
@@ -523,13 +526,7 @@ export default function File({
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor
-                    disabled={editorState.saving}
-                    error={editorState.error}
-                    handle={handle}
-                    onChange={editorState.onChange}
-                    type={editorState.type}
-                  />
+                  <FileEditor.Editor {...editorState} handle={handle} />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
@@ -549,14 +546,7 @@ export default function File({
           _: () =>
             editorState.editing ? (
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                <FileEditor.Editor
-                  disabled={editorState.saving}
-                  error={editorState.error}
-                  type={editorState.type}
-                  empty
-                  handle={handle}
-                  onChange={editorState.onChange}
-                />
+                <FileEditor.Editor {...editorState} empty handle={handle} />
               </Section>
             ) : (
               <>
