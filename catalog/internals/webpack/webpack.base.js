@@ -113,7 +113,9 @@ module.exports = (options) => ({
     ],
   },
   plugins: options.plugins.concat([
-    new CopyWebpackPlugin({ patterns: [{ from: 'static' }] }),
+    new CopyWebpackPlugin({
+      patterns: [{ from: 'static', globOptions: { ignore: ['**/.prettierrc.json'] } }],
+    }),
 
     new HtmlWebpackPlugin({
       chunks: ['app'],

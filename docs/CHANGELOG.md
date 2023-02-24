@@ -14,10 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+
 ## Catalog, Lambdas
-* [Fixed] Fixed metadata handling for entries without hash or size in pkgpush lambda ([#3314](https://github.com/quiltdata/quilt/pull/3314))
+* [Added] Add basic support for tasklist in Markdown ([#3339](https://github.com/quiltdata/quilt/pull/3339))
 * [Fixed] Fixed mobile layout for collaborators badges ([#3307](https://github.com/quiltdata/quilt/pull/3307))
+* [Fixed] Fixed metadata handling for entries without hash or size in pkgpush lambda ([#3314](https://github.com/quiltdata/quilt/pull/3314))
 * [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
+* [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
+* [Changed] Restrict editing `user_meta` field only for object-level metadata ([#3337](https://github.com/quiltdata/quilt/pull/3337))
 
 # 5.1.1 - 2023-01-25
 ## Python API
@@ -122,7 +126,7 @@ Entries inside each section should be ordered by type:
 * [Added] Declared compatibility with `jsonschema==4.*`.
 * [Added] `--host` and `--port` parameters for `quilt3 catalog`.
 * [Added] `--no-browser` parameter for `quilt3 catalog`.
-* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install quilt3[catalog]`).
+* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install 'quilt3[catalog]'`).
 * [Changed] Dependencies on `flask` and `dnspython` are dropped.
 * [Removed] Deprecated passing subpackage as part of package name for `Package.install()`, use `path` parameter instead.
 * [Removed] Deprecated calling of `Package.resolve_hash()` without specifying `name` parameter.

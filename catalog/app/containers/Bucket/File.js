@@ -8,6 +8,7 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
@@ -290,13 +291,16 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
     marginLeft: 'auto',
+    marginTop: -3,
   },
   at: {
     color: t.palette.text.secondary,
   },
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   crumbs: {
     ...t.typography.body1,
@@ -304,6 +308,7 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
   },
   fileProperties: {
+    marginRight: t.spacing(1),
     marginTop: '2px',
   },
   name: {
@@ -318,6 +323,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
+    flexWrap: 'wrap',
   },
   preview: {
     width: '100%',
@@ -484,7 +490,7 @@ export default function File({
               onSave={handleEditorSave}
             />
           )}
-          <FileView.AdaptiveButtonLayout
+          <ButtonIconized
             className={classes.button}
             icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
             label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
