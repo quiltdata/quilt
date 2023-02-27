@@ -55,7 +55,7 @@ The manifest fields are as follows:
 
 ## Saving and loading manifests
 
-In almost all cases you should be using registries, `build`, and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
+In almost all cases you should be using registries and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
 
 
 
