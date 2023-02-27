@@ -97,6 +97,19 @@ use the following extended syntax:
 
 At present `height` is the only supported `style` element.
 
+## Images
+
+We have an image block before `quilt_summarize.json`-files.
+
+For Overview page we parse entire bucket and show all the images in grid.
+To hide this block you can specify `noOverviewImages` flag in your `./config.js`.
+See the Quilt Catalog
+[README.md](https://github.com/quiltdata/quilt/tree/master/catalog#configuration) for details.
+
+On Bucket tab we show images from the current directory in the current nesting level.
+
+On Packages tab we show images similarly to Bucket tab but inside package.
+
 ## Vega and Vega-lite
 The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
 [vega](https://vega.github.io/vega/) and [vega-lite](https://vega.github.io/vega-lite/) visualizations.
