@@ -115,7 +115,7 @@ that Lab and Computational scientists subscribe to (`SNS_TOPIC_ARN`).
 1. A custom lambda fuction triggered by the `package-objects-ready`
 event processes the experiment files and generates a data package.
 Additional processing includes (but is not limited to):
-    - Decorating the data package with helpful additional files:
+    - Enhance the package with documentation, charts, and metadata, such as the following:
         - `README.md`: Noting that the package was created by EDP,
 	a custom lambda function, and validated with a [Quilt
 	workflow](../advanced-features/workflows.md).
