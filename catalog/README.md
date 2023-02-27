@@ -8,7 +8,7 @@ The catalog is a web frontend for browsing meta-data held by the Quilt registry.
 
 The app configuration (API endpoints, bucket federations, etc.) is read from
 the `/config.js` path.
-See `./config-schema.json` for all available options.
+See [`./config-schema.json`](./config-schema.json) for all available options.
 
 ## Running the catalog locally
 
