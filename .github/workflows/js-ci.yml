@@ -26,7 +26,7 @@ jobs:
       - env:
           BUNDLEWATCH_GITHUB_TOKEN: ${{ secrets.BUNDLEWATCH_GITHUB_TOKEN }}
         run: npm run bundlewatch
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           flags: catalog
           name: ${{ github.job }}

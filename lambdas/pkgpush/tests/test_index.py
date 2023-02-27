@@ -609,6 +609,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
         'physical_key': str(physical_key),
         'size': file_data_size,
         'hash': file_data_hash,
+        "meta": {"some": "meta"},
     }
     package_entries = [package_entry]
 
@@ -943,6 +944,26 @@ class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
                         entry,
                     ])
                 assert "result" in pkg_response
+
+    def test_create_package_no_browser_hash_no_meta(self):
+        entry = self.gen_pkg_entry(hash=..., size=..., meta=...)
+        self.s3_stubber.add_response(
+            'head_object',
+            service_response={
+                'ContentLength': self.file_data_size,
+            },
+            expected_params={
+                'Bucket': self.physical_key.bucket,
+                'Key': self.physical_key.path,
+                'VersionId': self.physical_key.version_id,
+            },
+        )
+        with self._mock_package_build([{**self.package_entry, "meta": {}}]):
+            pkg_response = self.make_request([
+                self.params,
+                entry,
+            ])
+        assert "result" in pkg_response
 
 
 class HashCalculationTest(unittest.TestCase):
