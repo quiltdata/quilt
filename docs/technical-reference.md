@@ -346,12 +346,12 @@ Note: You will need Okta administrator privileges to add a new Application.
 
 ### OneLogin
 
-1. Go to Administration : Applications > Custom Connectors
+1. Go to Administration > Applications > Custom Connectors
 1. Click `New Connector`
     1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
     1. Set `Login URL` to `[QUILT_CATALOG_URL]/oauth-callback`
-    1. Save
+    1. Click "Save"
 1. Go back to Applications > Custom Connectors
 1. Click `Add App to Connector`
 1. Save the app (be sure to save it for the Organization)
@@ -362,11 +362,11 @@ Note: You will need Okta administrator privileges to add a new Application.
 
     ![](./imgs/one_login_console.png)
 
-1. Add *Your new app* to the users who need to access Quilt
+1. Add *Your new app* to the users who need to access Quilt:
 
     ![](./imgs/onelogin_users.png)
 
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
 
 ### Enabling SSO in CloudFormation
 
@@ -375,14 +375,14 @@ Now you can connect Quilt to your SSO provider. In the Quilt template
 template > Next > Specify stack details), under `Auth Settings` set
 the `PasswordAuth` to `Enabled`.
 
-Next, select your `SingleSignOnProvider` from the dropdown list (Google, Okta, OneLogin, Azure).
+Next, select your `SingleSignOnProvider` from the dropdown list (one of Google, Okta, OneLogin, Azure).
 
 ![](./imgs/auth_settings.png)
 
 Use the following settings (depending on your SSO provider):
 
-| CF Parameter | Google SSO | Okta SSO | OneLogin SSO | Azure SSO |
-| ------------ | ---------- | -------- | ------------ | --------- |
+| CFT Parameter | Google SSO | Okta SSO | OneLogin SSO | Azure SSO |
+| ------------- | ---------- | -------- | ------------ | --------- |
 | `SingleSignOnClientId` | `Client ID` | `Client ID` | `Client ID` | `Application (client) ID` |
 | `SingleSignOnClientSecret` | `Client secret` | `Secret` | `ClientSecret` | `Client secret Value` |
 | `SingleSignOnBaseUrl` | N/A | `Base URL` | `Issuer URL` | `AzureBaseUrl` |
