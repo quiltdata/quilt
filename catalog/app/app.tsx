@@ -91,6 +91,7 @@ const render = () => {
       [RouterProvider, { history }],
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
+      Errors.ErrorBoundary,
       GraphQLProvider,
       AddToPackage.Provider,
       Bookmarks.Provider,

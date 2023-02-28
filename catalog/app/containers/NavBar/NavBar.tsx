@@ -15,6 +15,7 @@ import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as CatalogSettings from 'utils/CatalogSettings'
+import { createBoundary } from 'utils/ErrorBoundary'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRoute } from 'utils/router'
@@ -626,4 +627,22 @@ export function NavBar() {
   )
 }
 
-export default NavBar
+const ErrorBoundary = createBoundary(
+  (props: $TSFixMe /* , { reset }: $TSFixMe */) =>
+    (/* error: $TSFixMe, info: $TSFixMe */) =>
+      (
+        // console.log('ChartErrorBoundary', { error, info }),
+        <M.Typography variant="h6" {...props}>
+          Unexpected Error
+        </M.Typography>
+      ),
+  'NavbarErrorBoundary',
+)
+
+const NavBarWrapper = () => (
+  <ErrorBoundary>
+    <NavBar />
+  </ErrorBoundary>
+)
+
+export default NavBarWrapper

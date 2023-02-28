@@ -34,20 +34,19 @@ export function Root({ dark = false, ...props }: RootProps) {
 }
 
 export interface LayoutProps {
-  bare?: boolean
   dark?: boolean
   children?: React.ReactNode
   pre?: React.ReactNode
 }
 
-export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
+export function Layout({ dark = false, children, pre }: LayoutProps) {
   const { paths } = NamedRoutes.use()
   const isHomepage = useRouteMatch(paths.home)
   const bucketRoute = useRouteMatch(paths.bucketRoot)
   const { bucket } = (bucketRoute?.params as { bucket?: string }) || {}
   return (
     <Root dark={dark}>
-      {bare ? <NavBar.Container /> : <NavBar.NavBar />}
+      <NavBar.NavBar />
       {!!pre && pre}
       {!!children && <M.Box p={4}>{children}</M.Box>}
       <M.Box flexGrow={1} />
