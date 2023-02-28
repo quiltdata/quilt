@@ -364,7 +364,7 @@ Note: You will need Okta administrator privileges to add a new Application.
 
 1. Add *Your new app* to the users who need to access Quilt:
 
-    ![](./imgs/onelogin_users.png)
+    ![](./imgs/one_login_users.png)
 
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
 
