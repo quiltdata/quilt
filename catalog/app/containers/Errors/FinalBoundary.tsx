@@ -15,11 +15,13 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
     maxHeight: '600px',
   },
   actions: {
-    color: t.palette.text.primary,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     marginTop: t.spacing(4),
   },
-  divider: {
-    margin: t.spacing(0, 2),
+  button: {
+    marginBottom: t.spacing(2),
   },
   header: {
     color: t.palette.text.primary,
@@ -67,18 +69,19 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
       </M.Typography>
       <div className={classes.actions}>
         <M.Button
+          className={classes.button}
+          disabled={disabled}
           startIcon={<M.Icon>refresh</M.Icon>}
           variant="contained"
-          disabled={disabled}
         >
           Reload
         </M.Button>
-        <span className={classes.divider}>or</span>
         <M.Button
+          className={classes.button}
+          disabled={disabled}
+          onClick={onLogout}
           startIcon={<M.Icon>power_settings_new</M.Icon>}
           variant="outlined"
-          onClick={onLogout}
-          disabled={disabled}
         >
           Restart session
         </M.Button>
