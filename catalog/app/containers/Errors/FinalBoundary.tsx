@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
-import mkStorage from 'utils/storage'
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -34,8 +33,6 @@ interface FinalBoundaryLayoutProps {
   error: Error
 }
 
-const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
-
 function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   const [disabled, setDisabled] = React.useState(false)
   const classes = useFinalBoundaryStyles()
@@ -46,8 +43,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   const onLogout = React.useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      storage.remove('user')
-      storage.remove('tokens')
+      window.localStorage.clear()
       reload()
     },
     [reload],
