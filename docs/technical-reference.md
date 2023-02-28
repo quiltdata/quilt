@@ -260,35 +260,45 @@ users to be able to sign up.
 
 You can enable users on your Google domain to sign in to Quilt.
 Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
-and create authorization credentials to identify your Quilt stack to Google's OAuth 2.0 server.
+and create authorization credentials to identify your Quilt stack
+to Google's OAuth 2.0 server.
 
 ![](./imgs/google_console.png)
 
-In the template menu (CloudFormation or Service Catalog), select Google under *User authentication to Quilt*. Enter the domain or domains of your Google apps account under *SingleSignOnDomains*. Enter the *Client ID* of the OAuth 2.0 credentials you created into the field labeled *GoogleClientId*
-
-![](./imgs/google_auth.png)
+Copy the `Client ID` and `Client secret` values to a safe place.
+Once you know your Quilt catalog url, add `[QUILT_CATALOG_URL]/oauth-callback`
+to the **Authorized redirect URIs** section.
 
 ### Active Directory
 
-1. Go to Azure Portal > Active Directory > App Registrations
-1. Click New Registration
-1. Name the app, select the Supported account types
-1. Set a Redirect URI from a "Single-page application" to
-`https://<QuiltWebHost>/oauth-callback`
-1. Once the application has been created you will need both its Application
-(client) ID and Directory (tenant) ID
+1. Go to Azure Portal > Active Directory > App Registrations.
+1. Click "New Registration".
+1. Name the app, select the Supported account types.
+1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
+`[QUILT_CATALOG_URL]/oauth-callback`. Click "Save" at the bottom.
+1. Once the application has been created you will need both its `Application
+(client) ID` and `Directory (tenant) ID`.
+
+    ![](./imgs/azure_console_1.png)
+
+1. Go to "Client credentials" and create a new client secret. Note you will use
+the `Value` (and not the `Secret ID`).
+
+    ![](./imgs/azure_console_2.png)
+
 1. Your `AzureBaseUrl` will be of the form
 `https://ENDPOINT/TENANT_ID`. In most cases `ENDPOINT` is simply
 `login.microsoftonline.com`. Reference
 [Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
 and
 [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
-for further details. 
-1. Go to App registrations > Your Quilt app > Authentication > Implicit grants
-and hybrid flows, and check the box to issue ID tokens 
+for further details. **If `AzureBaseUrl` doesn't end in `/v2.0`
+then append `/v2.0` to it.**
+1. Click "Save".
+1. Copy the `Application (client) ID`, `AzureClientSecret`, and
+`AzureBaseUrl` to a safe place.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
-![](./imgs/active-directory.png)
 
 ### Okta
 
@@ -309,7 +319,8 @@ Note: You will need Okta administrator privileges to add a new Application.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `<YourQuiltWebHost>` URL. Do not allow wildcard * in login URI redirect. This will be something like the following:
+    1. To the `Sign-in redirect URIs` add `[QUILT_CATALOG_URL]/oauth-callback` URL. 
+    Do not allow wildcard `*` in the login URI redirect. This will be something like the following:
 
         ```
         https://quilt.<MY_COMPANY>.com/
@@ -319,7 +330,7 @@ Note: You will need Okta administrator privileges to add a new Application.
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 1. Once you click the `Save` button you will have a new application integration to review.
     1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
-    1. Copy the `Client ID` to a safe place
+    1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
     to `api://default`, and an `Issuer URI` that looks like the
@@ -338,31 +349,41 @@ Note: You will need Okta administrator privileges to add a new Application.
 1. Click `New Connector`
     1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
-    1. Set `Login URL` to `https://<QuiltWebHost>/oauth-callback`
+    1. Set `Login URL` to `[QUILT_CATALOG_URL]/oauth-callback`
     1. Save
 1. Go back to Applications > Custom Connectors
 1. Click `Add App to Connector`
 1. Save the app (be sure to save it for the Organization)
 1. Go to Applications > Applications > *Your new app* > SSO
-    1. Click SSO. Copy the *Client ID* and *Issuer URL V2* to a safe place.
-1. Add *Your new app* to the users who need to access
-Quilt
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+    1. Click SSO. Copy the `Client ID`, `ClientSecret` and `Issuer URL` to a safe place.
+    1. "Application Type" should be set to `Web`.
+    1. "Token Endpoint" should be set to `POST`.
 
-![](./imgs/onelogin-connector.png)
-![](./imgs/onelogin-sso.png)
-![](./imgs/onelogin-users.png)
+    ![](./imgs/one_login_console.png)
+
+1. Add *Your new app* to the users who need to access Quilt
+
+    ![](./imgs/onelogin_users.png)
+
+1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ### Enabling SSO in CloudFormation
 
-Now you can connect Quilt to your SSO provider.
-In the Quilt template
-(AWS Console > CloudFormation > *Quilt stack* > Update >
-Use current template > Next > Specify stack details), set the following parameters:
+Now you can connect Quilt to your SSO provider. In the Quilt template
+(`AWS Console > CloudFormation > *Quilt stack* > Update > Use current template > Next > Specify stack details`), 
+under `Auth Settings` set the `PasswordAuth` to `Enabled`.
 
-* *AuthType*: Enabled
-* *AuthClientId*: *Client ID*
-* *AuthBaseUrl*: *Issuer URL V2*
+Next, select your `SingleSignOnProvider` from the dropdown list (Google, Okta, OneLogin, Azure).
+
+![](./imgs/auth_settings.png)
+
+Use the following settings (depending on your SSO provider):
+
+| CF Parameter | Google SSO | Okta SSO | OneLogin SSO | Azure SSO |
+| ------------ | ---------- | -------- | ------------ | --------- |
+| `SingleSignOnClientId` | `Client ID` | `Client ID` | `Client ID` | `Application (client) ID` |
+| `SingleSignOnClientSecret` | `Client secret` | `Secret` | `ClientSecret` | `Client secret Value` |
+| `SingleSignOnBaseUrl` | N/A | `Base URL` | `Issuer URL` | `AzureBaseUrl` |
 
 > Be sure to set the [default role](#setting-the-default-role) as indicated above.
 
