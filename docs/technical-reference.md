@@ -292,12 +292,13 @@ the `Value` (and not the `Secret ID`).
 [Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
 and
 [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
-for further details. **If `AzureBaseUrl` doesn't end in `/v2.0`
-then append `/v2.0` to it.**
+for further details. 
+    > **If `AzureBaseUrl` doesn't end in `/v2.0`
+    then append `/v2.0` to it.**
 1. Click "Save".
 1. Copy the `Application (client) ID`, `AzureClientSecret`, and
 `AzureBaseUrl` to a safe place.
-1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
 
 
 ### Okta
@@ -370,8 +371,9 @@ Note: You will need Okta administrator privileges to add a new Application.
 ### Enabling SSO in CloudFormation
 
 Now you can connect Quilt to your SSO provider. In the Quilt template
-(`AWS Console > CloudFormation > *Quilt stack* > Update > Use current template > Next > Specify stack details`), 
-under `Auth Settings` set the `PasswordAuth` to `Enabled`.
+(AWS Console > CloudFormation > *Quilt stack* > Update > Use current
+template > Next > Specify stack details), under `Auth Settings` set
+the `PasswordAuth` to `Enabled`.
 
 Next, select your `SingleSignOnProvider` from the dropdown list (Google, Okta, OneLogin, Azure).
 
