@@ -296,7 +296,7 @@ for further details.
     > **If `AzureBaseUrl` doesn't end in `/v2.0`
     then append `/v2.0` to it.**
 1. Click "Save".
-1. Copy the `Application (client) ID`, `AzureClientSecret`, and
+1. Copy the `Application (client) ID`, `Client secret Value`, and
 `AzureBaseUrl` to a safe place.
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation).
 
