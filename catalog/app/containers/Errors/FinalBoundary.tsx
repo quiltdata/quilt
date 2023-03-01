@@ -55,18 +55,23 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   return (
     // the whole container is clickable because easier reload outdated page is better
     <div className={classes.root} onClick={reload}>
-      <M.Typography variant="h4" className={classes.header}>
-        {isCredentialsError ? (
-          <>
+      {isCredentialsError ? (
+        <>
+          <M.Typography variant="h4" className={classes.header}>
             <M.Icon fontSize="large" className={classes.headerIcon}>
               no_encryption
             </M.Icon>{' '}
+            S3 credentials error
+          </M.Typography>
+          <M.Typography variant="body1" className={classes.header}>
             {error.headline}
-          </>
-        ) : (
+          </M.Typography>
+        </>
+      ) : (
+        <M.Typography variant="h4" className={classes.header}>
           'Something went wrong'
-        )}
-      </M.Typography>
+        </M.Typography>
+      )}
       <div className={classes.actions}>
         <M.Button
           className={classes.button}

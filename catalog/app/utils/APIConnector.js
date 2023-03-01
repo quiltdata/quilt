@@ -314,7 +314,8 @@ export const use = useApi
 
 // fetch: window.fetch, middleware: ((any) => any)[]
 export function Provider({ fetch, middleware, children }) {
-  const base = `${cfg.registryUrl}/api`
+  // const base = `${cfg.registryUrl}/api`
+  const base = `http://localhost:3000`
   SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
 
   const dispatch = redux.useDispatch()
