@@ -74,7 +74,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
           startIcon={<M.Icon>refresh</M.Icon>}
           variant="contained"
         >
-          Reload
+          Reload page
         </M.Button>
         <M.Button
           className={classes.button}
