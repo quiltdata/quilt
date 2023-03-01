@@ -256,7 +256,7 @@ users to be able to sign up.
 
 ## Single sign-on (SSO)
 
-> You will need SSO administrator privileges to add the Quilt application
+> You will need SSO administrator privileges to add the Quilt application.
 
 ### Google
 
