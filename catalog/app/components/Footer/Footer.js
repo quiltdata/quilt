@@ -10,7 +10,6 @@ import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import { createBoundary } from 'utils/ErrorBoundary'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
@@ -127,7 +126,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Footer() {
+export default function Footer() {
   const settings = CatalogSettings.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -226,23 +225,3 @@ function Footer() {
     </M.MuiThemeProvider>
   )
 }
-
-const ErrorBoundary = createBoundary(
-  (props /* , { reset }: $TSFixMe */) =>
-    (/* error: $TSFixMe, info: $TSFixMe */) =>
-      (
-        // console.log('ChartErrorBoundary', { error, info }),
-        <M.Typography variant="h6" {...props}>
-          Unexpected Error in Footer
-        </M.Typography>
-      ),
-  'FooterErrorBoundary',
-)
-
-const FooterWrapper = (props) => (
-  <ErrorBoundary>
-    <Footer {...props} />
-  </ErrorBoundary>
-)
-
-export default FooterWrapper
