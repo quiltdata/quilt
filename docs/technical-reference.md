@@ -256,6 +256,8 @@ users to be able to sign up.
 
 ## Single sign-on (SSO)
 
+> You will need SSO administrator privileges to add the Quilt application
+
 ### Google
 
 You can enable users on your Google domain to sign in to Quilt.
@@ -302,8 +304,6 @@ for further details.
 
 
 ### Okta
-
-Note: You will need Okta administrator privileges to add a new Application.
 
 1. Go to Okta > Admin > Applications > Applications
 
