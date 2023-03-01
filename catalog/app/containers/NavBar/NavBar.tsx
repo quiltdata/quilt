@@ -15,7 +15,6 @@ import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import { createBoundary } from 'utils/ErrorBoundary'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRoute } from 'utils/router'
@@ -449,7 +448,7 @@ interface ContainerProps {
   children?: React.ReactNode
 }
 
-function Container({ children }: ContainerProps) {
+export function Container({ children }: ContainerProps) {
   const trigger = M.useScrollTrigger()
   const settings = CatalogSettings.use()
   const classes = useContainerStyles({
@@ -570,7 +569,7 @@ const useNavBarStyles = M.makeStyles((t) => ({
   },
 }))
 
-function NavBar() {
+export function NavBar() {
   const settings = CatalogSettings.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
@@ -627,22 +626,4 @@ function NavBar() {
   )
 }
 
-const ErrorBoundary = createBoundary(
-  (props: $TSFixMe /* , { reset }: $TSFixMe */) =>
-    (/* error: $TSFixMe, info: $TSFixMe */) =>
-      (
-        // console.log('ChartErrorBoundary', { error, info }),
-        <M.Typography variant="h6" {...props}>
-          Unexpected Error in Navbar
-        </M.Typography>
-      ),
-  'NavbarErrorBoundary',
-)
-
-const NavBarWrapper = () => (
-  <ErrorBoundary>
-    <NavBar />
-  </ErrorBoundary>
-)
-
-export default NavBarWrapper
+export default NavBar
