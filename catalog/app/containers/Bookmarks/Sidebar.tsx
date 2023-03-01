@@ -14,6 +14,7 @@ import {
 } from 'containers/Bucket/requests/bucketListing'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
@@ -233,7 +234,7 @@ interface SidebarProps {
   bucket?: string
 }
 
-export default function Sidebar({ bucket = '' }: SidebarProps) {
+function Sidebar({ bucket = '' }: SidebarProps) {
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.main.entries
@@ -303,3 +304,23 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
     </M.MuiThemeProvider>
   )
 }
+
+const ErrorBoundary = createBoundary(
+  (props: $TSFixMe /* , { reset }: $TSFixMe */) =>
+    (error: $TSFixMe/* , info: $TSFixMe */) =>
+      (
+        // console.log('ChartErrorBoundary', { error, info }),
+        <M.Typography variant="h6" {...props}>
+          Unexpected Error in Sidebar {error.message} {error.headline}
+        </M.Typography>
+      ),
+  'BookmarksSidebarErrorBoundary',
+)
+
+const SidebarWrapper = (props: SidebarProps) => (
+  <ErrorBoundary>
+    <Sidebar {...props} />
+  </ErrorBoundary>
+)
+
+export default SidebarWrapper

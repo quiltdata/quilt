@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
 import * as Bookmarks from 'containers/Bookmarks'
-import * as NavBar from 'containers/NavBar'
+import NavBar from 'containers/NavBar'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 const useRootStyles = M.makeStyles({
@@ -46,10 +46,12 @@ export function Layout({ dark = false, children, pre }: LayoutProps) {
   const { bucket } = (bucketRoute?.params as { bucket?: string }) || {}
   return (
     <Root dark={dark}>
-      <NavBar.NavBar />
+      <NavBar />
       {!!pre && pre}
+      {/*
       {!!children && <M.Box p={4}>{children}</M.Box>}
       <M.Box flexGrow={1} />
+      */}
       {!!isHomepage && isHomepage.isExact && <Footer />}
       <Bookmarks.Sidebar bucket={bucket} />
     </Root>

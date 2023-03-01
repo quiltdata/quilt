@@ -449,7 +449,7 @@ interface ContainerProps {
   children?: React.ReactNode
 }
 
-export function Container({ children }: ContainerProps) {
+function Container({ children }: ContainerProps) {
   const trigger = M.useScrollTrigger()
   const settings = CatalogSettings.use()
   const classes = useContainerStyles({
@@ -570,7 +570,7 @@ const useNavBarStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function NavBar() {
+function NavBar() {
   const settings = CatalogSettings.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
@@ -633,7 +633,7 @@ const ErrorBoundary = createBoundary(
       (
         // console.log('ChartErrorBoundary', { error, info }),
         <M.Typography variant="h6" {...props}>
-          Unexpected Error
+          Unexpected Error in Navbar
         </M.Typography>
       ),
   'NavbarErrorBoundary',
