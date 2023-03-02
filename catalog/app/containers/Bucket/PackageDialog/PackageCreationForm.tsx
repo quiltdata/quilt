@@ -74,7 +74,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     Object.entries,
     R.map(([path, file]) => ({
       logical_key: path,
-      meta: file.meta?.user_meta,
+      meta: file.meta?.user_meta || {},
       size: file.size,
     })),
   )
