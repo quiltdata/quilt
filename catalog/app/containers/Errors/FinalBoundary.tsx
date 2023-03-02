@@ -88,7 +88,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
                 in, you will be redirected to the same page.
               </M.Typography>
               <M.Typography>
-                Re-logging highly likely will resolve the credentials issue.
+                Signing in anew solves the credentials issue in most cases.
               </M.Typography>
             </>
           }
