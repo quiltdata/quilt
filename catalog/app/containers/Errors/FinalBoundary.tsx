@@ -53,7 +53,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
-    <div className={classes.root} onClick={reload}>
+    <M.Container maxWidth="md" className={classes.root} onClick={reload}>
       {isCredentialsError ? (
         <>
           <M.Typography variant="h4" className={classes.header}>
@@ -104,7 +104,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
           </M.Button>
         </StyledTooltip>
       </div>
-    </div>
+    </M.Container>
   )
 }
 
