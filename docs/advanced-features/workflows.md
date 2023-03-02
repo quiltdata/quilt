@@ -631,7 +631,7 @@ Requires a README
 
 ##### `s3://bucket/must-have-foo-bar-meta.json`
 
-Requires `{ foo: 'bar' }` object as user specified metadata
+Requires `{ "foo": "bar" }` object as user specified metadata in README.md
 
 ```json
 {
@@ -639,6 +639,10 @@ Requires `{ foo: 'bar' }` object as user specified metadata
   "contains": {
     "type": "object",
     "properties": {
+      "logical_key": {
+        "type": "string",
+        "pattern": "^README\\.md$"
+      },
       "meta": {
         "type": "object",
         "properties": {
