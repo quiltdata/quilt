@@ -84,7 +84,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
           title={
             <>
               <M.Typography>
-                By clicking on "Restart session" you will be logged out. Then, after log
+                By clicking "Restart session" you are signing out.
                 in, you will be redirected to the same page.
               </M.Typography>
               <M.Typography>
