@@ -163,7 +163,7 @@ jobs:
           - status_reports
           - tabular_preview
           - transcode
-        python-version: ['3.7']
+        python-version: ['3.7', '3.8']
         include:
           - path: thumbnail
             python-version: '3.9'
