@@ -5,6 +5,7 @@ import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
 import StyledTooltip from 'utils/StyledTooltip'
+import logout from 'utils/logout'
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -43,14 +44,11 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
     setDisabled(true)
     window.location.reload()
   }, [])
-  const onLogout = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      window.localStorage.clear()
-      reload()
-    },
-    [reload],
-  )
+  const onLogout = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDisabled(true)
+    logout(true)
+  }, [])
   const isCredentialsError = error instanceof CredentialsError
   // TODO: use components/Error
   return (

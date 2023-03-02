@@ -7,6 +7,7 @@ import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import { BaseError } from 'utils/error'
+import logout from 'utils/logout'
 
 export class CredentialsError extends BaseError {
   constructor(headline, detail, object) {
@@ -14,9 +15,9 @@ export class CredentialsError extends BaseError {
   }
 }
 
-export class OutdatedTokenError extends CredentialsError {}
+class OutdatedTokenError extends CredentialsError {}
 
-export class InvalidTokenError extends CredentialsError {}
+class InvalidTokenError extends CredentialsError {}
 
 class RegistryCredentials extends AWS.Credentials {
   constructor({ req, reqOpts }) {
@@ -91,6 +92,12 @@ export function AWSCredentialsProvider({ children }) {
 export function useCredentials() {
   const credentials = React.useContext(Ctx)
   if (!credentials) throw new CredentialsError('Failed to get credentials')
+  if (
+    credentials.error instanceof OutdatedTokenError ||
+    credentials.error instanceof InvalidTokenError
+  ) {
+    logout()
+  }
   return React.useContext(Ctx)
 }
 
