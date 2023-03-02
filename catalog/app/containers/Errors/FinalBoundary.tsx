@@ -15,7 +15,13 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
     maxHeight: '600px',
   },
   actions: {
-    marginTop: t.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginTop: t.spacing(4),
+  },
+  button: {
+    marginBottom: t.spacing(2),
   },
   header: {
     color: t.palette.text.primary,
@@ -30,13 +36,25 @@ interface FinalBoundaryLayoutProps {
 }
 
 function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
+  const [disabled, setDisabled] = React.useState(false)
   const classes = useFinalBoundaryStyles()
-  const onClick = () => window.location.reload()
+  const reload = React.useCallback(() => {
+    setDisabled(true)
+    window.location.reload()
+  }, [])
+  const onLogout = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      window.localStorage.clear()
+      reload()
+    },
+    [reload],
+  )
   const isCredentialsError = error instanceof CredentialsError
   // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
-    <div className={classes.root} onClick={onClick}>
+    <div className={classes.root} onClick={reload}>
       <M.Typography variant="h4" className={classes.header}>
         {isCredentialsError ? (
           <>
@@ -50,8 +68,22 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
         )}
       </M.Typography>
       <div className={classes.actions}>
-        <M.Button startIcon={<M.Icon>refresh</M.Icon>} variant="outlined">
-          Reload
+        <M.Button
+          className={classes.button}
+          disabled={disabled}
+          startIcon={<M.Icon>refresh</M.Icon>}
+          variant="contained"
+        >
+          Reload page
+        </M.Button>
+        <M.Button
+          className={classes.button}
+          disabled={disabled}
+          onClick={onLogout}
+          startIcon={<M.Icon>power_settings_new</M.Icon>}
+          variant="outlined"
+        >
+          Restart session
         </M.Button>
       </div>
     </div>
