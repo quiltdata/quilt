@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
+import StyledTooltip from 'utils/StyledTooltip'
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -81,15 +82,29 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
         >
           Reload page
         </M.Button>
-        <M.Button
-          className={classes.button}
-          disabled={disabled}
-          onClick={onLogout}
-          startIcon={<M.Icon>power_settings_new</M.Icon>}
-          variant="outlined"
+        <StyledTooltip
+          title={
+            <>
+              <M.Typography>
+                This will log you out. Then you can log in again, and you will be
+                redirected to the same page.
+              </M.Typography>
+              <M.Typography>
+                Re-logging highly likely will resolve the credentials issue.
+              </M.Typography>
+            </>
+          }
         >
-          Restart session
-        </M.Button>
+          <M.Button
+            className={classes.button}
+            disabled={disabled}
+            onClick={onLogout}
+            startIcon={<M.Icon>power_settings_new</M.Icon>}
+            variant="outlined"
+          >
+            Restart session
+          </M.Button>
+        </StyledTooltip>
       </div>
     </div>
   )
