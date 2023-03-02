@@ -14,6 +14,8 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+## Python API
+* [Added] Validation of package entries metadata ([#3286](https://github.com/quiltdata/quilt/pull/3286))
 
 ## Catalog, Lambdas
 * [Added] Add basic support for tasklist in Markdown ([#3339](https://github.com/quiltdata/quilt/pull/3339))
