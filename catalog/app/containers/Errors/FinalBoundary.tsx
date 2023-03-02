@@ -84,8 +84,8 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
           title={
             <>
               <M.Typography>
-                This will log you out. Then you can log in again, and you will be
-                redirected to the same page.
+                By clicking on "Restart session" you will be logged out. Then, after log
+                in, you will be redirected to the same page.
               </M.Typography>
               <M.Typography>
                 Re-logging highly likely will resolve the credentials issue.
