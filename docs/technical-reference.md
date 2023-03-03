@@ -256,8 +256,6 @@ users to be able to sign up.
 
 ## Single sign-on (SSO)
 
-> You will need SSO administrator privileges to add the Quilt application.
-
 ### Google
 
 You can enable users on your Google domain to sign in to Quilt.
@@ -276,7 +274,7 @@ Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
 1. Click "New Registration".
 1. Name the app, select the Supported account types.
 1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
-`[QUILT_CATALOG_URL]/oauth-callback`. Click "Save" at the bottom.
+`YOUR_QUILT_CATALOG_URL/oauth-callback`. Click "Save" at the bottom.
 1. Once the application has been created you will need both its `Application
 (client) ID` and `Directory (tenant) ID`.
 
@@ -319,7 +317,7 @@ for further details.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `[QUILT_CATALOG_URL]/oauth-callback` URL. 
+    1. To the `Sign-in redirect URIs` add `YOUR_QUILT_CATALOG_URL/oauth-callback` URL. 
     Do not allow wildcard `*` in the login URI redirect. This will be something like the following:
 
         ```
@@ -349,7 +347,7 @@ for further details.
 1. Click `New Connector`
     1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
-    1. Set `Login URL` to `[QUILT_CATALOG_URL]/oauth-callback`
+    1. Set `Login URL` to `YOUR_QUILT_CATALOG_URL/oauth-callback`
     1. Click "Save"
 1. Go back to Applications > Custom Connectors
 1. Click `Add App to Connector`
