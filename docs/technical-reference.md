@@ -268,8 +268,7 @@ to Google's OAuth 2.0 server.
 ![](./imgs/google_console.png)
 
 Copy the `Client ID` and `Client secret` to a safe place.
-Once you know your Quilt catalog url, add `[QUILT_CATALOG_URL]/oauth-callback`
-to the **Authorized redirect URIs** section.
+Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
 
 ### Active Directory
 
