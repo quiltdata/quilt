@@ -1,12 +1,9 @@
-import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Okta from 'utils/Okta'
+import * as OIDC from 'utils/OIDC'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -21,31 +18,28 @@ const MUTEX_REQUEST = 'sso:okta:request'
 export default function SSOOkta({ mutex, next, ...props }) {
   const provider = 'okta'
 
-  const authenticate = Okta.use()
+  const authenticate = OIDC.use({
+    provider,
+    popupParams: 'width=400,height=600',
+  })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
   const { push: notify } = Notifications.use()
-  const { urls } = NamedRoutes.use()
 
   const handleClick = React.useCallback(async () => {
     if (mutex.current) return
     mutex.claim(MUTEX_POPUP)
 
     try {
-      const token = await authenticate()
+      const code = await authenticate()
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
       try {
-        dispatch(actions.signIn({ provider, token }, result.resolver))
+        dispatch(actions.signIn({ provider, code }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
-          if (cfg.ssoAuth === true) {
-            dispatch(push(urls.ssoSignUp({ provider, token, next })))
-            // dont release mutex on redirect
-            return
-          }
           notify(
             'No Quilt user linked to this Okta account. Notify your Quilt administrator.',
           )
@@ -60,7 +54,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
         mutex.release(MUTEX_REQUEST)
       }
     } catch (e) {
-      if (e instanceof Okta.OktaError) {
+      if (e instanceof OIDC.OIDCError) {
         if (e.code !== 'popup_closed_by_user') {
           notify(`Unable to sign in with Okta. ${e.details}`)
           sentry('captureException', e)
@@ -71,7 +65,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
       }
       mutex.release(MUTEX_POPUP)
     }
-  }, [authenticate, dispatch, mutex, sentry, notify, next, urls])
+  }, [authenticate, dispatch, mutex, sentry, notify])
 
   return (
     <M.Button

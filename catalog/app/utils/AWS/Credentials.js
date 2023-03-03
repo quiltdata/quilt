@@ -7,6 +7,17 @@ import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import { BaseError } from 'utils/error'
+import logout from 'utils/logout'
+
+export class CredentialsError extends BaseError {
+  constructor(headline, detail, object) {
+    super(headline, { headline, detail, object })
+  }
+}
+
+class OutdatedTokenError extends CredentialsError {}
+
+class InvalidTokenError extends CredentialsError {}
 
 class RegistryCredentials extends AWS.Credentials {
   constructor({ req, reqOpts }) {
@@ -28,7 +39,15 @@ class RegistryCredentials extends AWS.Credentials {
         })
         .catch((e) => {
           delete this.refreshing
-          this.error = new Error(`Unable to fetch AWS credentials: ${e}`)
+          if (/Outdated access token: please log in again/.test(e.message)) {
+            this.error = new OutdatedTokenError(e.message)
+          } else if (/Token could not be deserialized/.test(e.message)) {
+            this.error = new InvalidTokenError(e.message)
+          } else {
+            this.error = new CredentialsError(
+              `Unable to fetch AWS credentials: ${e.message}`,
+            )
+          }
           if (callback) callback(this.error)
           throw this.error
         })
@@ -70,16 +89,15 @@ export function AWSCredentialsProvider({ children }) {
   return <Ctx.Provider value={useCredentialsMemo()}>{children}</Ctx.Provider>
 }
 
-export class CredentialsError extends BaseError {
-  constructor(headline, detail, object) {
-    super(headline, { headline, detail, object })
-  }
-}
-
 export function useCredentials() {
   const credentials = React.useContext(Ctx)
-  // TODO: find out real reason
-  if (!credentials) throw new CredentialsError('Session expired')
+  if (!credentials) throw new CredentialsError('Failed to get credentials')
+  if (
+    credentials.error instanceof OutdatedTokenError ||
+    credentials.error instanceof InvalidTokenError
+  ) {
+    logout()
+  }
   return React.useContext(Ctx)
 }
 

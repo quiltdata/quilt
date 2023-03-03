@@ -1,9 +1,9 @@
 <!--pytest-codeblocks:skipfile-->
 <!-- markdownlint-disable -->
-*New in Quilt 3.3*
 
+> This feature requires the `quilt3` API version 3.3 or higher.
 
-# Workflows
+## Overview
 A Quilt *workflow* is a quality gate that you set to ensure the quality of your
 data and metadata *before* it becomes a Quilt package. You can create as many
 workflows as you like to accommodate all of your data creation patterns.
@@ -16,12 +16,12 @@ package metadata have the right *shape*. Metadata shape determines which keys ar
 defined, their values, and the types of the values.
 
 Ensuring the quality of your data has long-lasting implications:
-1. Consistency - if labels and other metadata don't use a consistent, controlled
+1. *Consistency* — if labels and other metadata don't use a consistent, controlled
 vocabulary, reuse becomes difficult and trust in data declines
-1. Completeness - if your workflows do not require users to include files,
+1. *Completeness* — if your workflows do not require users to include files,
 documentation, labels, etc. then your data is on its way towards becoming mystery
 data and ultimately junk data that no one can use
-1. Context - data can only be reused if users know where it came from, what it means,
+1. *Context* — data can only be reused if users know where it came from, what it means,
 who touched it, and what the related datasets are
 
 From the standpoint of querying engines like Amazon Athena, data that lacks
@@ -532,10 +532,10 @@ workflows:
 ```
 
 ### Package file validation
-You can validate the names and sizes of files in the package with
+You can validate the names, sizes and metadata of files in the package with
 `WORKFLOW.entries_schema`. The provided schema runs against an array of
 objects known as *package entries*. Each package entry defines a logical key
-(its relative path and name in the parent package) and size (in bytes).
+(its relative path and name in the parent package), size (in bytes) and metadata.
 
 #### Example
 
@@ -548,11 +548,17 @@ workflows:
     name: 'My workflow #2'
     entries_schema: must-contain-readme-summarize-at-least-1byte
     description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
+  myworkflow-3:
+    name: 'My workflow #3'
+    entries_schema: must-have-foo-bar-meta
+    description: Must contain at least one file with { foo: bar } metadata object
 schemas:
   must-contain-readme:
     url: s3://bucket/must-contain-readme.json
   must-contain-readme-summarize-at-least-1byte:
     url: s3://bucket/must-contain-readme-summarize-at-least-1byte.json
+  must-have-foo-bar-meta:
+    url: s3://bucket/must-have-foo-bar-meta.json
 ```
 
 ##### `s3://bucket/must-contain-readme.json`
@@ -620,6 +626,35 @@ Requires a README
       }
     }
   ]
+}
+```
+
+##### `s3://bucket/must-have-foo-bar-meta.json`
+
+Requires `{ "foo": "bar" }` object as user specified metadata in README.md
+
+```json
+{
+  "type": "array",
+  "contains": {
+    "type": "object",
+    "properties": {
+      "logical_key": {
+        "type": "string",
+        "pattern": "^README\\.md$"
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string",
+            "pattern": "^bar$"
+          }
+        },
+        "required": ["foo"]
+      }
+    }
+  }
 }
 ```
 

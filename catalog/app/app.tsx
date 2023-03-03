@@ -94,7 +94,6 @@ const render = () => {
       GraphQLProvider,
       AddToPackage.Provider,
       Bookmarks.Provider,
-      Errors.ErrorBoundary,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],

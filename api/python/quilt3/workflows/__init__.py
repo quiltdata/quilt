@@ -266,7 +266,8 @@ class WorkflowValidator(typing.NamedTuple):
         return [
             {
                 'logical_key': lk,
-                'size': e.size
+                'size': e.size,
+                "meta": e.meta,
             }
             for lk, e in pkg.walk()
         ]
