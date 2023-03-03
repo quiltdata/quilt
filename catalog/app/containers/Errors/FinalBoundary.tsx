@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
+import StyledTooltip from 'utils/StyledTooltip'
+import logout from 'utils/logout'
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -15,7 +17,13 @@ const useFinalBoundaryStyles = M.makeStyles((t) => ({
     maxHeight: '600px',
   },
   actions: {
-    marginTop: t.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginTop: t.spacing(4),
+  },
+  button: {
+    marginBottom: t.spacing(2),
   },
   header: {
     color: t.palette.text.primary,
@@ -30,31 +38,73 @@ interface FinalBoundaryLayoutProps {
 }
 
 function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
+  const [disabled, setDisabled] = React.useState(false)
   const classes = useFinalBoundaryStyles()
-  const onClick = () => window.location.reload()
+  const reload = React.useCallback(() => {
+    setDisabled(true)
+    window.location.reload()
+  }, [])
+  const onLogout = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDisabled(true)
+    logout(true)
+  }, [])
   const isCredentialsError = error instanceof CredentialsError
   // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
-    <div className={classes.root} onClick={onClick}>
-      <M.Typography variant="h4" className={classes.header}>
-        {isCredentialsError ? (
-          <>
+    <M.Container maxWidth="md" className={classes.root} onClick={reload}>
+      {isCredentialsError ? (
+        <>
+          <M.Typography variant="h4" className={classes.header}>
             <M.Icon fontSize="large" className={classes.headerIcon}>
               no_encryption
             </M.Icon>{' '}
+            S3 credentials error
+          </M.Typography>
+          <M.Typography variant="body1" className={classes.header}>
             {error.headline}
-          </>
-        ) : (
+          </M.Typography>
+        </>
+      ) : (
+        <M.Typography variant="h4" className={classes.header}>
           'Something went wrong'
-        )}
-      </M.Typography>
+        </M.Typography>
+      )}
       <div className={classes.actions}>
-        <M.Button startIcon={<M.Icon>refresh</M.Icon>} variant="outlined">
-          Reload
+        <M.Button
+          className={classes.button}
+          disabled={disabled}
+          startIcon={<M.Icon>refresh</M.Icon>}
+          variant="contained"
+        >
+          Reload page
         </M.Button>
+        <StyledTooltip
+          title={
+            <>
+              <M.Typography>
+                By clicking "Restart session" you are signing out. You will be redirected
+                back to the current page after signing back in.
+              </M.Typography>
+              <M.Typography>
+                Signing in anew solves the credentials issue in most cases.
+              </M.Typography>
+            </>
+          }
+        >
+          <M.Button
+            className={classes.button}
+            disabled={disabled}
+            onClick={onLogout}
+            startIcon={<M.Icon>power_settings_new</M.Icon>}
+            variant="outlined"
+          >
+            Restart session
+          </M.Button>
+        </StyledTooltip>
       </div>
-    </div>
+    </M.Container>
   )
 }
 

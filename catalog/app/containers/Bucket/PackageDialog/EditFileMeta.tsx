@@ -102,16 +102,25 @@ interface EditMetaProps {
   name: string
   onChange?: (value?: Model.EntryMeta) => void
   value?: Model.EntryMeta
+  state?: string
 }
 
-export default function EditFileMeta({ disabled, name, value, onChange }: EditMetaProps) {
+export default function EditFileMeta({
+  disabled,
+  name,
+  state,
+  value,
+  onChange,
+}: EditMetaProps) {
   // TODO: show "modified" state
-  //       possible solution: store value and its state in one object `metaValue = { value, state }`
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
   // TODO: simplify R.isEmpty when meta will be normalized to null
-  const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
+  const color = React.useMemo(
+    () => (state === 'invalid' || R.isEmpty(value) ? 'inherit' : 'primary'),
+    [state, value],
+  )
 
   if (!onChange) return null
 
@@ -125,7 +134,7 @@ export default function EditFileMeta({ disabled, name, value, onChange }: EditMe
 
   return (
     <>
-      <M.IconButton onClick={openEditor} title="Edit meta" size="small">
+      <M.IconButton color="inherit" onClick={openEditor} title="Edit meta" size="small">
         <MetadataIcon color={color} />
       </M.IconButton>
 
