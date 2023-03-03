@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
+import StyledTooltip from 'utils/StyledTooltip'
+import logout from 'utils/logout'
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -42,31 +44,33 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
     setDisabled(true)
     window.location.reload()
   }, [])
-  const onLogout = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      window.localStorage.clear()
-      reload()
-    },
-    [reload],
-  )
+  const onLogout = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setDisabled(true)
+    logout(true)
+  }, [])
   const isCredentialsError = error instanceof CredentialsError
   // TODO: use components/Error
   return (
     // the whole container is clickable because easier reload outdated page is better
-    <div className={classes.root} onClick={reload}>
-      <M.Typography variant="h4" className={classes.header}>
-        {isCredentialsError ? (
-          <>
+    <M.Container maxWidth="md" className={classes.root} onClick={reload}>
+      {isCredentialsError ? (
+        <>
+          <M.Typography variant="h4" className={classes.header}>
             <M.Icon fontSize="large" className={classes.headerIcon}>
               no_encryption
             </M.Icon>{' '}
+            S3 credentials error
+          </M.Typography>
+          <M.Typography variant="body1" className={classes.header}>
             {error.headline}
-          </>
-        ) : (
+          </M.Typography>
+        </>
+      ) : (
+        <M.Typography variant="h4" className={classes.header}>
           'Something went wrong'
-        )}
-      </M.Typography>
+        </M.Typography>
+      )}
       <div className={classes.actions}>
         <M.Button
           className={classes.button}
@@ -76,17 +80,31 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
         >
           Reload page
         </M.Button>
-        <M.Button
-          className={classes.button}
-          disabled={disabled}
-          onClick={onLogout}
-          startIcon={<M.Icon>power_settings_new</M.Icon>}
-          variant="outlined"
+        <StyledTooltip
+          title={
+            <>
+              <M.Typography>
+                By clicking "Restart session" you are signing out. You will be redirected
+                back to the current page after signing back in.
+              </M.Typography>
+              <M.Typography>
+                Signing in anew solves the credentials issue in most cases.
+              </M.Typography>
+            </>
+          }
         >
-          Restart session
-        </M.Button>
+          <M.Button
+            className={classes.button}
+            disabled={disabled}
+            onClick={onLogout}
+            startIcon={<M.Icon>power_settings_new</M.Icon>}
+            variant="outlined"
+          >
+            Restart session
+          </M.Button>
+        </StyledTooltip>
       </div>
-    </div>
+    </M.Container>
   )
 }
 
