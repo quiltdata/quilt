@@ -99,19 +99,27 @@ At present `height` is the only supported `style` element.
 
 ## Images
 
-We have an image block before `quilt_summarize.json`-files.
+If your Amazon S3 bucket contains images, by default the Quilt 
+Catalog displays a preview of those images _before_ any 
+`quilt_summarize.json`-referenced files.
 
-For the Overview, page we parse the entire bucket and show all the images in
-grid. To hide this block, you can specify `noOverviewImages` flag in your
-`./config.js`. See the Quilt Catalog
-[README.md](https://github.com/quiltdata/quilt/tree/master/catalog#configuration)
+In the **Overview** tab, the Catalog parses the entire Amazon S3 
+bucket contents and displays thumbnail image previews in a 
+paginated grid (25 per page by default) of 
+all [supported image types](../Catalog/Preview.md#binary-and-special-file-format-previews).
+
+> To hide this block, specify the `noOverviewImages` flag in 
+your `./config.js` file. Please refer to the Quilt 
+Catalog [README.md](https://github.com/quiltdata/quilt/tree/master/catalog#configuration)
 for details.
 
-On the Bucket tab, we show images from the current directory in the current
-nesting level.
+In the **Bucket** tab, the Catalog displays thumbnail image 
+previews in a similarly paginated grid but _only from the current 
+directory viewed_.
 
-On the Packages tab we show images similarly to the Bucket tab but inside the
-package.
+In the **Packages** tab, when a specific package has been 
+opened the Catalog displays thumbnail image previews in a 
+similarly paginated grid but _only those image files in the selected package_.
 
 ## Vega and Vega-lite
 The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
