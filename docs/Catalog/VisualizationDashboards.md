@@ -97,6 +97,30 @@ use the following extended syntax:
 
 At present `height` is the only supported `style` element.
 
+## Images
+
+If your Amazon S3 bucket contains images, by default the Quilt 
+Catalog displays a preview of those images _before_ any 
+`quilt_summarize.json`-referenced files.
+
+In the **Overview** tab, the Catalog parses the entire Amazon S3 
+bucket contents and displays thumbnail image previews in a 
+paginated grid (25 per page by default) of 
+all [supported image types](../Catalog/Preview.md#binary-and-special-file-format-previews).
+
+> To hide this block, specify the `noOverviewImages` flag in 
+your `./config.js` file. Please refer to the Quilt 
+Catalog [README.md](https://github.com/quiltdata/quilt/tree/master/catalog#configuration)
+for details.
+
+In the **Bucket** tab, the Catalog displays thumbnail image 
+previews in a similarly paginated grid but _only from the current 
+directory viewed_.
+
+In the **Packages** tab, when a specific package has been 
+opened the Catalog displays thumbnail image previews in a 
+similarly paginated grid but _only those image files in the selected package_.
+
 ## Vega and Vega-lite
 The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
 [vega](https://vega.github.io/vega/) and [vega-lite](https://vega.github.io/vega-lite/) visualizations.
