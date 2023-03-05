@@ -193,7 +193,7 @@ def cmd_list_packages(registry):
 
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
-    pkg = Package._browse(name, registry, top_hash)
+    pkg = Package.browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
         print("Verification succeeded")
         return 0
@@ -202,17 +202,72 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe):
-    try:
-        pkg = Package.browse(name, None)
-    except FileNotFoundError:
-        pkg = Package()
+def cmd_install(name, registry, top_hash, dest, dest_registry, path, sync, group):
+    if name is None:
+        if registry:
+            raise QuiltException("--registry not allowed without a package name")
+        if top_hash:
+            raise QuiltException("--top_hash not allowed without a package name")
+        if dest:
+            raise QuiltException("--dest not allowed without a package name")
+        if dest_registry:
+            raise QuiltException("--dest_registry not allowed without a package name")
+        if path:
+            raise QuiltException("--path not allowed without a package name")
+        if sync:
+            raise QuiltException("--sync not allowed without a package name")
 
-    pkg.set_dir('.', dir, meta=meta)
-    pkg.push(
-        name, registry=registry, dest=dest, message=message,
-        workflow=workflow, force=force, dedupe=dedupe
-    )
+        Package.install_data_yaml(group=group)
+    else:
+        Package.install(name, registry, top_hash, dest, dest_registry, path=path, sync=sync, group=group)
+
+
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, sync, group):
+    if name is None:
+        if dir:
+            raise QuiltException("--dir not allowed without a package name")
+        if registry:
+            raise QuiltException("--registry not allowed without a package name")
+        if dest:
+            raise QuiltException("--dest not allowed without a package name")
+        if message:
+            raise QuiltException("--message not allowed without a package name")
+        if meta:
+            raise QuiltException("--meta not allowed without a package name")
+        if sync:
+            raise QuiltException("--sync not allowed without a package name")
+
+        Package.push_data_yaml(force=force, dedupe=dedupe, group=group)
+    else:
+        try:
+            pkg = Package.browse(name, None)
+        except FileNotFoundError:
+            pkg = Package()
+
+        if sync:
+            if dir:
+                raise QuiltException("--dir not allowed with --sync")
+            pkg.set_dir('.', sync, meta=meta)
+        else:
+            pkg.set_dir('.', dir, meta=meta)
+
+        pkg.push(
+            name, registry=registry, dest=dest, message=message,
+            workflow=workflow, force=force, dedupe=dedupe, sync=sync, group=group,
+        )
+
+
+def cmd_browse(name, registry, top_hash, sync, group):
+    if name is None:
+        if registry:
+            raise QuiltException("--registry not allowed without a package name")
+        if top_hash != ':latest':
+            raise QuiltException("--top-hash must be :latest")
+        if sync:
+            raise QuiltException("--sync not allowed without a package name")
+        Package.browse_data_yaml(group=group)
+    else:
+        Package.browse(name, registry, top_hash, sync=sync, group=group)
 
 
 def create_parser():
@@ -321,6 +376,7 @@ def create_parser():
             "Name of package, in the USER/PKG format"
         ),
         type=str,
+        nargs='?',
     )
     install_p.add_argument(
         "--registry",
@@ -352,7 +408,15 @@ def create_parser():
         type=str,
         required=False,
     )
-    install_p.set_defaults(func=Package.install)
+    install_p.add_argument(
+        "--sync",
+        type=str,
+    )
+    install_p.add_argument(
+        "--group",
+        type=str,
+    )
+    install_p.set_defaults(func=cmd_install)
 
     # list-packages
     shorthelp = "List all packages in a registry"
@@ -400,42 +464,40 @@ def create_parser():
     # push
     shorthelp = "Pushes the new package to the remote registry"
     push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False, add_help=False)
-    required_args = push_p.add_argument_group('required arguments')
-    optional_args = push_p.add_argument_group('optional arguments')
     push_p.add_argument(
         "name",
         help="Name of package, in the USER/PKG format",
         type=str,
+        nargs='?',
     )
-    required_args.add_argument(
+    push_p.add_argument(
         "--dir",
         help="Directory to add to the new package",
         type=str,
-        required=True,
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         '-h',
         '--help',
         action='help',
         default=argparse.SUPPRESS,
         help='show this help message and exit'
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--registry",
         help="Registry where to create the new package. Defaults to the default remote registry.",
         type=str,
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--dest",
         help="Where to copy the objects in the package",
         type=str,
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--message",
         help="The commit message for the new package",
         type=str,
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--meta",
         help="""
             Sets package-level metadata.
@@ -443,7 +505,7 @@ def create_parser():
             """,
         type=parse_arg_json,
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--workflow",
         help="""
             Workflow ID or empty string to skip workflow validation.
@@ -452,7 +514,7 @@ def create_parser():
         default=...,
         type=lambda v: None if v == '' else v
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--force",
         action="store_true",
         help="""
@@ -460,12 +522,49 @@ def create_parser():
             even if your local state is behind the remote registry.
             """,
     )
-    optional_args.add_argument(
+    push_p.add_argument(
         "--dedupe",
         action="store_true",
         help="Skip the push if the local package hash matches the remote hash.",
     )
+    push_p.add_argument(
+        "--sync",
+        type=str,
+    )
+    push_p.add_argument(
+        "--group",
+        type=str,
+    )
     push_p.set_defaults(func=cmd_push)
+
+    # browse
+    shorthelp = "TODO"
+    browse_p = subparsers.add_parser("browse", description=shorthelp, help=shorthelp, allow_abbrev=False, add_help=False)
+    browse_p.add_argument(
+        "name",
+        help="Name of package, in the USER/PKG format",
+        type=str,
+        nargs='?',
+    )
+    browse_p.add_argument(
+        "--registry",
+        help="Registry where package is located, usually s3://MY-BUCKET",
+        type=str,
+    )
+    browse_p.add_argument(
+        "--top-hash",
+        help="Hash of package to browse",
+        type=str,
+    )
+    browse_p.add_argument(
+        "--sync",
+        type=str,
+    )
+    browse_p.add_argument(
+        "--group",
+        type=str,
+    )
+    browse_p.set_defaults(func=cmd_browse)
 
     return parser
 

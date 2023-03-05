@@ -16,13 +16,16 @@ import uuid
 import warnings
 from collections import deque
 from multiprocessing import Pool
+from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
 
 import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
+import yaml
 
 from . import util, workflows
 from .backends import get_package_registry
+from .backends.base import PackageRegistry
 from .data_transfer import (
     calculate_sha256,
     copy_file,
@@ -90,6 +93,56 @@ def _filesystem_safe_encode(key):
     """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts,
     avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+DATA_YAML_FILENAME = 'data.yaml'
+DATA_YAML_DEFAULT_GROUP = 'default'
+
+def _read_data_yaml(allow_missing=False):
+    try:
+        with open(DATA_YAML_FILENAME) as fd:
+            data = yaml.safe_load(fd)
+            return data['data']['com.quiltdata']
+    except FileNotFoundError:
+        if allow_missing:
+            return {}
+        else:
+            raise QuiltException(f"Requires an existing {DATA_YAML_FILENAME} file")
+
+def _write_data_yaml(groups):
+    data = {
+        'data': {
+            'version': '0.5.0',
+            'com.quiltdata': groups,
+        },
+    }
+    with open('data.yaml', 'w') as fd:
+        yaml.dump(data, fd)
+
+
+def _encode_quilt_s3_url(registry: PackageRegistry, package_name, package_hash, path):
+    fragment_values = {
+        'package': f'{package_name}@{package_hash}',
+    }
+    if path is not None:
+        fragment_values['path'] = path
+    fragment = urlencode(fragment_values, safe='/@')
+    return urlunparse(('quilt+s3', registry.base.bucket, registry.base.path, None, None, fragment))
+
+
+def _decode_quilt_s3_url(url):
+    scheme, location, path, params, query, fragment = urlparse(url)
+    assert scheme == 'quilt+s3', scheme
+    assert not params, params
+    assert not query, query
+
+    fragment_values = parse_qs(fragment, strict_parsing=True, max_num_fields=1)
+    package_name, package_hash = fragment_values['package'][0].split('@', 1)
+    package_path = fragment_values.get('path', [None])[0]
+
+    registry = get_package_registry(PhysicalKey(location, path, None))
+
+    return registry, package_name, package_hash, package_path
 
 
 class ObjectPathCache:
@@ -454,8 +507,30 @@ class Package:
         return self._meta.get('user_meta', {})
 
     @classmethod
+    @ApiTelemetry("package.install_data_yaml")
+    def install_data_yaml(cls, group=None):
+        if group is None:
+            group = DATA_YAML_DEFAULT_GROUP
+
+        existing_config = _read_data_yaml()
+
+        existing_group = existing_config.get(group)
+        if existing_group is None:
+            raise QuiltException(f"Group {group} does not exist in {DATA_YAML_FILENAME}")
+
+        local_registry = get_package_registry(None)
+
+        for dir_name, value in existing_group.items():
+            uri = value['uri']
+            registry, package_name, package_hash, package_path = _decode_quilt_s3_url(uri)
+
+            cls._install(
+                package_name, registry, package_hash, PhysicalKey.from_path(dir_name), local_registry, path=package_path,
+            )
+
+    @classmethod
     @ApiTelemetry("package.install")
-    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None):
+    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None, sync=None, group=None):
         """
         Installs a named package to the local registry and downloads its files.
 
@@ -477,25 +552,54 @@ class Package:
                 )
         else:
             registry = fix_url(registry)
-        dest_registry = get_package_registry(dest_registry)
-        if not dest_registry.is_local:
-            raise QuiltException(
-                f"Can only 'install' to a local registry, but 'dest_registry' "
-                f"{dest_registry!r} is a remote path. To store a package in a remote "
-                f"registry, use 'push' or 'build' instead."
-            )
 
-        if dest is None:
-            dest_parsed = PhysicalKey.from_url(get_install_location()).join(name)
+        registry = get_package_registry(registry)
+
+        if sync:
+            if dest:
+                raise QuiltException("dest not supported with sync")
+            if dest_registry:
+                raise QuiltException("dest_registry not supported with sync")
+
+            dest_registry = get_package_registry(None)
+            dest_parsed = PhysicalKey.from_path(sync)
+
+            pkg = cls._install(name, registry, top_hash, dest_parsed, dest_registry, path=path)
+
+            if group is None:
+                group = DATA_YAML_DEFAULT_GROUP
+
+            existing_config = _read_data_yaml(allow_missing=True)
+            existing_group = existing_config.setdefault(group, {})
+            existing_group[sync] = dict(
+                uri=_encode_quilt_s3_url(registry, name, pkg._origin.top_hash, path),
+            )
+            _write_data_yaml(existing_config)
+
         else:
-            dest_parsed = PhysicalKey.from_url(fix_url(dest))
-            if not dest_parsed.is_local():
+            dest_registry = get_package_registry(dest_registry)
+            if not dest_registry.is_local:
                 raise QuiltException(
-                    f"Invalid package destination path {dest!r}. 'dest', if set, must point at "
-                    f"the local filesystem. To copy a package to a remote registry use 'push' or "
-                    f"'build' instead."
+                    f"Can only 'install' to a local registry, but 'dest_registry' "
+                    f"{dest_registry!r} is a remote path. To store a package in a remote "
+                    f"registry, use 'push' or 'build' instead."
                 )
 
+            if dest is None:
+                dest_parsed = PhysicalKey.from_url(get_install_location()).join(name)
+            else:
+                dest_parsed = PhysicalKey.from_url(fix_url(dest))
+                if not dest_parsed.is_local():
+                    raise QuiltException(
+                        f"Invalid package destination path {dest!r}. 'dest', if set, must point at "
+                        f"the local filesystem. To copy a package to a remote registry use 'push' or "
+                        f"'build' instead."
+                    )
+
+            cls._install(name, registry, top_hash, dest_parsed, dest_registry, path=path)
+
+    @classmethod
+    def _install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None):
         if path:
             validate_key(path)
             subpkg_key = path
@@ -524,7 +628,7 @@ class Package:
                 if cached_file is not None:
                     physical_key = PhysicalKey.from_path(cached_file)
 
-            new_physical_key = dest_parsed.join(logical_key)
+            new_physical_key = dest.join(logical_key)
             if physical_key != new_physical_key:
                 file_list.append((physical_key, new_physical_key, entry.size))
 
@@ -542,7 +646,9 @@ class Package:
         if top_hash is None:
             top_hash = pkg.top_hash
         short_top_hash = dest_registry.shorten_top_hash(name, top_hash)
-        print(f"Successfully installed package '{name}', tophash={short_top_hash} from {registry}")
+        print(f"Successfully installed package '{name}', tophash={short_top_hash} from {registry.base}")
+
+        return pkg
 
     @classmethod
     def resolve_hash(cls, name, registry, hash_prefix):
@@ -558,8 +664,33 @@ class Package:
         return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
 
     @classmethod
+    @ApiTelemetry("package.browse_data_yaml")
+    def browse_data_yaml(cls, *, group=None):
+        """
+        TODO
+        """
+        if group is None:
+            group = DATA_YAML_DEFAULT_GROUP
+
+        existing_config = _read_data_yaml()
+        existing_group = existing_config.get(group)
+        if existing_group is None:
+            raise QuiltException(f"Group {group} does not exist in {DATA_YAML_FILENAME}")
+
+        for value in existing_group.values():
+            uri = value['uri']
+            registry, package_name, _, package_path = _decode_quilt_s3_url(uri)
+
+            # TODO: Don't download the manifests - just get the hash?
+            pkg = cls._browse(name=package_name, registry=registry, top_hash=None)
+
+            value['uri'] = _encode_quilt_s3_url(registry, package_name, pkg._origin.top_hash, package_path)
+
+        _write_data_yaml(existing_config)
+
+    @classmethod
     @ApiTelemetry("package.browse")
-    def browse(cls, name, registry=None, top_hash=None):
+    def browse(cls, name, registry=None, top_hash=None, *, sync=None, group=None):
         """
         Load a package into memory from a registry without making a local copy of
         the manifest.
@@ -569,12 +700,28 @@ class Package:
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
-        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+        registry = get_package_registry(registry)
+
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
+
+        if sync:
+            if group is None:
+                group = DATA_YAML_DEFAULT_GROUP
+
+            # TODO: what if it's a local registry?
+            # TODO: package path?
+            existing_config = _read_data_yaml(allow_missing=True)
+            existing_group = existing_config.setdefault(group, {})
+            existing_group[sync] = dict(
+                uri=_encode_quilt_s3_url(registry, name, pkg._origin.top_hash, None),
+            )
+            _write_data_yaml(existing_config)
+
+        return pkg
 
     @classmethod
-    def _browse(cls, name, registry=None, top_hash=None):
+    def _browse(cls, name, registry, top_hash=None):
         validate_package_name(name)
-        registry = get_package_registry(registry)
 
         top_hash = (
             get_bytes(registry.pointer_latest_pk(name)).decode()
@@ -1290,11 +1437,50 @@ class Package:
                 'size': entry.size,
             }
 
+    @classmethod
+    @ApiTelemetry("package.push_data_yaml")
+    @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
+    def push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):
+        """
+        TODO
+        """
+        if group is None:
+            group = DATA_YAML_DEFAULT_GROUP
+
+        existing_config = _read_data_yaml()
+
+        existing_group = existing_config.get(group)
+        if existing_group is None:
+            raise QuiltException(f"Group {group} does not exist in {DATA_YAML_FILENAME}")
+
+        local_registry = get_package_registry(None)
+
+        for dir_name, value in existing_group.items():
+            uri = value['uri']
+            registry, package_name, _, package_path = _decode_quilt_s3_url(uri)
+
+            # TODO: How do we handle conflicts?
+            # Not sure what happens here if the local package doesn't exist, etc.
+            try:
+                pkg = cls._browse(package_name, local_registry)
+            except FileNotFoundError:
+                pkg = Package()
+
+            pkg.set_dir('.', dir_name)
+            pkg = pkg._push(
+                package_name, registry.base, dest=None, message=None, selector_fn=None, workflow=workflow,
+                print_info=True, force=force, dedupe=dedupe
+            )
+
+            value['uri'] = _encode_quilt_s3_url(registry, package_name, pkg._origin.top_hash, package_path)
+
+        _write_data_yaml(existing_config)
+
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force: bool = False, dedupe: bool = False
+        workflow=..., force: bool = False, dedupe: bool = False, sync=None, group=None,
     ):
         """
         Copies objects to path, then creates a new package that points to those objects.
@@ -1341,21 +1527,6 @@ class Package:
         Returns:
             A new package that points to the copied objects.
         """
-        return self._push(
-            name, registry, dest, message, selector_fn, workflow=workflow,
-            print_info=True, force=force, dedupe=dedupe
-        )
-
-    def _push(
-        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow, print_info, force: bool, dedupe: bool
-    ):
-        if selector_fn is None:
-            def selector_fn(*args):
-                return True
-
-        validate_package_name(name)
-
         if registry is None:
             registry = get_from_config('default_remote_registry')
             if registry is None:
@@ -1381,6 +1552,34 @@ class Package:
                     f"'build' instead."
                 )
 
+        pkg = self._push(
+            name, registry_parsed, dest, message, selector_fn, workflow=workflow,
+            print_info=True, force=force, dedupe=dedupe
+        )
+
+        if sync:
+            if group is None:
+                group = DATA_YAML_DEFAULT_GROUP
+
+            existing_config = _read_data_yaml(allow_missing=True)
+            existing_group = existing_config.setdefault(group, {})
+            existing_group[sync] = dict(
+                uri=_encode_quilt_s3_url(get_package_registry(registry_parsed), name, pkg._origin.top_hash, None),
+            )
+            _write_data_yaml(existing_config)
+
+        return pkg
+
+    def _push(
+        self, name, registry, dest=None, message=None, selector_fn=None, *,
+        workflow, print_info, force: bool, dedupe: bool
+    ):
+        if selector_fn is None:
+            def selector_fn(*args):
+                return True
+
+        validate_package_name(name)
+
         if callable(dest):
             def dest_fn(*args, **kwargs):
                 url = dest(*args, **kwargs)
@@ -1396,10 +1595,10 @@ class Package:
             def dest_fn(lk, *args, **kwargs):
                 return dest_parsed.join(lk)
             if dest is None:
-                dest_parsed = registry_parsed.join(name)
+                dest_parsed = registry.join(name)
             else:
                 dest_parsed = PhysicalKey.from_url(fix_url(dest))
-                if dest_parsed.bucket != registry_parsed.bucket:
+                if dest_parsed.bucket != registry.bucket:
                     raise QuiltException(
                         f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
                         f"in the {registry!r} package registry specified by 'registry'."
