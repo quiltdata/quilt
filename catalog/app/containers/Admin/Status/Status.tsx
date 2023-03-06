@@ -47,17 +47,18 @@ export default function Status() {
           />
         </>
       ) : (
-        <M.Box py={2}>
-          <M.Typography variant="h4" align="center" gutterBottom>
-            No Data
-          </M.Typography>
-          <M.Typography align="center">
-            Status monitoring is an add-on feature that automates quality testing for GxP
-            and other compliance regimes.{' '}
-            <StyledLink href="mailto:sales@quiltdata.io">Learn more</StyledLink>
-            Status monitoring is not enabled for this stack
-          </M.Typography>
-        </M.Box>
+        <M.Container maxWidth="sm">
+          <M.Box py={2}>
+            <M.Typography variant="h4" align="center" gutterBottom>
+              No Data
+            </M.Typography>
+            <M.Typography align="center">
+              Status monitoring is an add-on feature that automates quality testing for
+              GxP and other compliance regimes.{' '}
+              <StyledLink href="mailto:sales@quiltdata.io">Learn more</StyledLink>.
+            </M.Typography>
+          </M.Box>
+        </M.Container>
       )}
     </M.Box>
   )
