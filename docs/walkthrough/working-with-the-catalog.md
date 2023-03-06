@@ -21,7 +21,7 @@ The Catalog lets you navigate packages in the registry using the "Packages" tab.
 
 ![Packages tab](../imgs/catalog_packages_tab.png)
 
-You can also browse the underlying S3 files using the "Bucket" tab.
+You can also browse the underlying S3 objects using the "Bucket" tab.
 
 ![Files tab](../imgs/catalog_bucket_tab.png)
 
@@ -48,25 +48,26 @@ Files are the content of your package.
 
 The associated workflow contains the rules for validating your package.
 
-The metadata can be added with JSON editor for both packages and individual file
+The metadata can be added with the JSON editor for both packages and individual file
 entries within a package, represented as a key/value table with infinite
 nesting. If workflow contains JSON schema, you will have predefined key/value
-pairs according to the schema.
+pairs based on the schema.
 
 #### JSON editor
 
-To add a new key/value field double click on an empty cell and type key name,
-then press "Enter" or "Tab", or click outside of the cell. To change value
+To add a new key/value field double click on an empty cell and type the key name,
+then press "Enter" or "Tab", or click outside of the cell. To change the value
 double click on that value.
 
 Values can be strings, numbers, arrays, or objects. Every value that you type
 will be parsed as JSON.
 
-We don't support references and compound types yet.
+> Limitations
+> * References and compound types are not currently supported.
 
 ### Push to bucket
 
-You can push the existing package from one bucket to another. To use this
+You can push an existing data package from one S3 bucket to another. To use this
 feature consult [workflows](../advanced-features/workflows.md) page.
 
 ### Summarize
@@ -81,8 +82,8 @@ for details.
 
 ## Admin UI
 
-The Quilt catalog includes an admin panel that allows you to manage users and
-buckets in your stack and to customize your Quilt catalog.
+The Quilt Catalog includes an Admin panel where you can manage users and
+buckets in your stack and customize the display of your Quilt Catalog.
 See [Admin UI docs](../Catalog/Admin.md) for details.
 
 **[To learn more, check out the public demo catalog](https://open.quiltdata.com/b/quilt-example)**.
