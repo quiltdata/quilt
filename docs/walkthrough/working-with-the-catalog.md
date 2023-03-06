@@ -63,6 +63,7 @@ Values can be strings, numbers, arrays, or objects. Every value that you type
 will be parsed as JSON.
 
 > Limitations
+>
 > * References and compound types are not currently supported.
 
 ### Push to bucket
