@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as Model from 'model'
 import MetaTitle from 'utils/MetaTitle'
+import StyledLink from 'utils/StyledLink'
 import useQuery from 'utils/useQuery'
 
 import Canaries from './Canaries'
@@ -51,6 +52,9 @@ export default function Status() {
             No Data
           </M.Typography>
           <M.Typography align="center">
+            Status monitoring is an add-on feature that automates quality testing for GxP
+            and other compliance regimes.{' '}
+            <StyledLink href="mailto:sales@quiltdata.io">Learn more</StyledLink>
             Status monitoring is not enabled for this stack
           </M.Typography>
         </M.Box>
