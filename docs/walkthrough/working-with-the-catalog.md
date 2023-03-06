@@ -50,7 +50,7 @@ The associated workflow contains the rules for validating your package.
 
 The metadata can be added with the JSON editor for both packages and individual file
 entries within a package, represented as a key/value table with infinite
-nesting. If workflow contains JSON schema, you will have predefined key/value
+nesting. If your workflow contains a JSON schema, you will have predefined key/value
 pairs based on the schema.
 
 #### JSON editor
