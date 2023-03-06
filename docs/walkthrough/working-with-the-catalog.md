@@ -69,14 +69,14 @@ will be parsed as JSON.
 ### Push to bucket
 
 You can push an existing data package from one S3 bucket to another. To use this
-feature consult [workflows](../advanced-features/workflows.md) page.
+feature consult the [Workflows](../advanced-features/workflows.md) page.
 
 ### Summarize
 
 Adding a `quilt_summarize.json` file to a data package (or S3 directory path)
 will enable content preview right on the landing page.
 
-See [Visualization & dashboards docs](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
+See [Visualization & dashboards documentation](../Catalog/VisualizationDashboards.md#quilt_summarize.json)
 for details.
 
 ![Package landing page](../imgs/catalog_package_landing_page.png)
