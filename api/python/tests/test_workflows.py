@@ -212,26 +212,29 @@ class WorkflowValidatorTest(unittest.TestCase, WorkflowValidatorTestMixin):
 class GetPkgEntriesForValidationTest(QuiltTestCase, WorkflowValidatorTestMixin):
     def test(self):
         entries_data = {
-            'b/a': bytes(1),
-            'a/b': bytes(2),
-            'c': bytes(3),
+            'b/a': (bytes(1), None),
+            'a/b': (bytes(2), {}),
+            'c': (bytes(3), {"test": "test"}),
         }
         pkg = Package()
-        for lk, data in entries_data.items():
-            pkg.set(lk, data)
+        for lk, (data, meta) in entries_data.items():
+            pkg.set(lk, data, meta=meta)
 
         workflow_validator = self.get_workflow_validator()
         assert workflow_validator.get_pkg_entries_for_validation(pkg) == [
             {
                 'logical_key': 'a/b',
                 'size': 2,
+                "meta": {},
             },
             {
                 'logical_key': 'b/a',
                 'size': 1,
+                "meta": {},
             },
             {
                 'logical_key': 'c',
                 'size': 3,
+                "meta": {"test": "test"},
             },
         ]
