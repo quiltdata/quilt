@@ -97,6 +97,12 @@ use the following extended syntax:
 
 At present `height` is the only supported `style` element.
 
+> Limitations:
+> * Objects linked via `quilt_summarize.json` are always the
+>   **latest** version, even when browsing an older package version.
+> * Object titles and image thumbnails link to the file view, even in
+>   the package view.
+
 ## Images
 
 If your Amazon S3 bucket contains images, by default the Quilt 
