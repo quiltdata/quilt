@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { docs } from 'constants/urls'
 import * as Model from 'model'
 import MetaTitle from 'utils/MetaTitle'
 import StyledLink from 'utils/StyledLink'
@@ -57,9 +58,10 @@ export default function Status() {
               GxP and other compliance regimes.
             </M.Typography>
             <M.Typography align="center">
-              <StyledLink href="mailto:sales@quiltdata.io">
-                Ask us how to set it up
-              </StyledLink>
+              <StyledLink href={`${docs}/advanced/good-practice`} target="_blank">
+                Learn more
+              </StyledLink>{' '}
+              or <StyledLink href="mailto:sales@quiltdata.io">contact sales</StyledLink>.
             </M.Typography>
           </M.Box>
         </M.Container>
