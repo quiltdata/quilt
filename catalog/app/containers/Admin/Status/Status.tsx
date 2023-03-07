@@ -52,10 +52,14 @@ export default function Status() {
             <M.Typography variant="h4" align="center" gutterBottom>
               No Data
             </M.Typography>
-            <M.Typography align="center">
+            <M.Typography align="center" gutterBottom>
               Status monitoring is an add-on feature that automates quality testing for
-              GxP and other compliance regimes.{' '}
-              <StyledLink href="mailto:sales@quiltdata.io">Learn more</StyledLink>.
+              GxP and other compliance regimes.
+            </M.Typography>
+            <M.Typography align="center">
+              <StyledLink href="mailto:sales@quiltdata.io">
+                Ask us how to set it up
+              </StyledLink>
             </M.Typography>
           </M.Box>
         </M.Container>
