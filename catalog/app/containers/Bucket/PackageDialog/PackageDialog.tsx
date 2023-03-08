@@ -24,7 +24,6 @@ import {
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { JsonRecord } from 'utils/types'
-import useMemoEq from 'utils/useMemoEq'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -568,11 +567,11 @@ export function isEntryError(e: Error | ErrorObject): e is EntryValidationError 
 
 function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
-  return useMemoEq(workflow, async (w?: workflows.Workflow) => {
+  return React.useMemo(async () => {
     const schemaUrl = workflow?.entriesSchema
     if (!schemaUrl) return null
     return requests.objectSchema({ s3, schemaUrl })
-  })
+  }, [s3, workflow])
 }
 
 export interface ValidationEntry {
