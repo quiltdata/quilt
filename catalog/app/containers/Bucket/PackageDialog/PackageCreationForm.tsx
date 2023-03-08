@@ -313,7 +313,7 @@ function PackageCreationForm({
       if (reason === 'cancel') return mkFormError(CANCEL)
       if (reason === 'readme') {
         const file = createReadmeFile(name)
-        entries.push({ logical_key: README_PATH, size: file.size })
+        entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
         toUpload.push({ path: README_PATH, file })
       }
     }

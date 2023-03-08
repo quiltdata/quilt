@@ -3,6 +3,7 @@ import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
@@ -1353,15 +1354,7 @@ interface FilesInputProps {
   className?: string
   disabled?: boolean
   errors?: Record<string, React.ReactNode>
-  meta: {
-    submitting: boolean
-    submitSucceeded: boolean
-    submitFailed: boolean
-    dirty: boolean
-    error?: string
-    submitError?: string
-    initial: FilesState
-  }
+  meta: RF.FieldMetaState<FilesState> & { initial: FilesState }
   onFilesAction?: (
     action: FilesAction,
     oldValue: FilesState,
@@ -1419,7 +1412,8 @@ export function FilesInput({
   }
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const refProps = {
     value,
