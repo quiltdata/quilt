@@ -204,10 +204,13 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
 
 def cmd_install(name, registry, top_hash, dest, dest_registry, path, sync, group):
     if name is None:
+        latest = False
         if registry:
             raise QuiltException("--registry not allowed without a package name")
         if top_hash:
-            raise QuiltException("--top_hash not allowed without a package name")
+            if top_hash != ':latest':
+                raise QuiltException("only --top_hash=:latest allowed without a package name")
+            latest = True
         if dest:
             raise QuiltException("--dest not allowed without a package name")
         if dest_registry:
@@ -217,7 +220,7 @@ def cmd_install(name, registry, top_hash, dest, dest_registry, path, sync, group
         if sync:
             raise QuiltException("--sync not allowed without a package name")
 
-        Package.install_data_yaml(group=group)
+        Package.install_data_yaml(latest=latest, group=group)
     else:
         Package.install(name, registry, top_hash, dest, dest_registry, path=path, sync=sync, group=group)
 

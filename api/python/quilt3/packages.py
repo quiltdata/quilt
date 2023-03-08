@@ -508,7 +508,7 @@ class Package:
 
     @classmethod
     @ApiTelemetry("package.install_data_yaml")
-    def install_data_yaml(cls, group=None):
+    def install_data_yaml(cls, latest=False, group=None):
         if group is None:
             group = DATA_YAML_DEFAULT_GROUP
 
@@ -524,9 +524,17 @@ class Package:
             uri = value['uri']
             registry, package_name, package_hash, package_path = _decode_quilt_s3_url(uri)
 
-            cls._install(
+            if latest:
+                package_hash = None
+
+            pkg = cls._install(
                 package_name, registry, package_hash, PhysicalKey.from_path(dir_name), local_registry, path=package_path,
             )
+
+            value['uri'] = _encode_quilt_s3_url(registry, package_name, pkg._origin.top_hash, package_path)
+
+        if latest:
+            _write_data_yaml(existing_config)
 
     @classmethod
     @ApiTelemetry("package.install")
