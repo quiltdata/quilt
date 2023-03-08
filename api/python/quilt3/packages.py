@@ -119,6 +119,20 @@ def _write_data_yaml(groups):
     with open('data.yaml', 'w') as fd:
         yaml.dump(data, fd)
 
+def _update_git_ignore(lines):
+    path = pathlib.Path('.gitignore')
+    try:
+        existing_lines = path.read_text().splitlines()
+    except FileNotFoundError:
+        existing_lines = []
+
+    existing_set = set(existing_lines)
+
+    for line in lines:
+        if line not in existing_set:
+            existing_lines.append(line)
+
+    path.write_text('\n'.join(existing_lines) + '\n')
 
 def _encode_quilt_s3_url(registry: PackageRegistry, package_name, package_hash, path):
     fragment_values = {
@@ -536,6 +550,8 @@ class Package:
         if latest:
             _write_data_yaml(existing_config)
 
+        _update_git_ignore(existing_group)
+
     @classmethod
     @ApiTelemetry("package.install")
     def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None, sync=None, group=None):
@@ -583,6 +599,8 @@ class Package:
                 uri=_encode_quilt_s3_url(registry, name, pkg._origin.top_hash, path),
             )
             _write_data_yaml(existing_config)
+
+            _update_git_ignore([sync])
 
         else:
             dest_registry = get_package_registry(dest_registry)
@@ -1484,6 +1502,8 @@ class Package:
 
         _write_data_yaml(existing_config)
 
+        _update_git_ignore(existing_group)
+
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
@@ -1575,6 +1595,8 @@ class Package:
                 uri=_encode_quilt_s3_url(get_package_registry(registry_parsed), name, pkg._origin.top_hash, None),
             )
             _write_data_yaml(existing_config)
+
+            _update_git_ignore([sync])
 
         return pkg
 
