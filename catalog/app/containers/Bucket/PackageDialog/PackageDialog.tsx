@@ -567,7 +567,7 @@ export function isEntryError(e: Error | ErrorObject): e is EntryValidationError 
 
 function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
-  return React.useCallback(async () => {
+  return React.useMemo(async () => {
     const schemaUrl = workflow?.entriesSchema
     if (!schemaUrl) return null
     return requests.objectSchema({ s3, schemaUrl })
@@ -608,17 +608,17 @@ function injectEntryIntoErrors(
 }
 
 export function useEntriesValidator(workflow?: workflows.Workflow) {
-  const fetchEntriesSchema = useFetchEntriesSchema(workflow)
+  const entriesSchemaAsync = useFetchEntriesSchema(workflow)
 
   return React.useCallback(
     async (entries: ValidationEntry[]) => {
-      const entriesSchema = await fetchEntriesSchema()
+      const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
       if (!entriesSchema) return undefined
 
       const errors = makeSchemaValidator(entriesSchema)(entries)
       return injectEntryIntoErrors(errors, entries)
     },
-    [fetchEntriesSchema],
+    [entriesSchemaAsync],
   )
 }
