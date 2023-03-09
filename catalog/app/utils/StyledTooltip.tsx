@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   tooltip: {
     ...t.typography.body1,
-    backgroundColor: t.palette.common.white,
+    backgroundColor: t.palette.background.paper,
     border: `1px solid ${t.palette.divider}`,
     boxShadow: t.shadows[8],
     color: t.palette.text.primary,

@@ -50,6 +50,7 @@
 * [Restrict access to bucket prefixes](advanced-features/s3-prefix-permissions.md)
 * [Querying Metadata with Athena](advanced-features/athena.md)
 * [S3 Bucket Organization](advanced-features/s3-bucket-organization.md)
+* [Event-driven packaging](advanced-features/event-driven-packaging.md)
 * [GxP & Quilt](advanced-features/good-practice.md)
 * [Private endpoints](advanced-features/private-endpoint-access.md)
 
