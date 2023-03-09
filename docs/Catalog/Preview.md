@@ -42,7 +42,8 @@ The following file formats are supported:
 
 The Quilt catalog supports secure, custom Javascript-enabled visualizations and
 dashboards embedded inside iframes.
-It's up to you what JS library you'll import and use.
+It is at your discretion which JS library (or libraries) you wish to import in
+your HTML file.
 
 To enable "permissive" visualizations, check the `Enable permissive HTML
 rendering` checkbox in [Bucket settings](/catalog/admin#buckets). Please note
