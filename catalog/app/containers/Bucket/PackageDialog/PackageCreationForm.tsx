@@ -313,7 +313,7 @@ function PackageCreationForm({
       if (reason === 'cancel') return mkFormError(CANCEL)
       if (reason === 'readme') {
         const file = createReadmeFile(name)
-        entries.push({ logical_key: README_PATH, size: file.size })
+        entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
         toUpload.push({ path: README_PATH, file })
       }
     }
@@ -346,7 +346,7 @@ function PackageCreationForm({
       addedS3Entries,
       R.map(
         ({ path, file }) =>
-          [path, { physicalKey: s3paths.handleToS3Url(file) }] as R.KeyValuePair<
+          [path, { physicalKey: s3paths.handleToS3Url(file), meta: file.meta }] as R.KeyValuePair<
             string,
             PartialPackageEntry
           >,
