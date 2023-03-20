@@ -14,6 +14,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# 5.2.0 - 2023-03-20
 ## Python API
 * [Added] Validation of package entries metadata ([#3286](https://github.com/quiltdata/quilt/pull/3286))
 
