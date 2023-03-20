@@ -29,14 +29,25 @@ The following file formats are supported:
 * .ent
 * .pdb
 
+## Image previews
+
+The Quilt catalog uses the [AICSImageIO
+library](https://github.com/AllenCellModeling/aicsimageio) to
+automatically generate thumbnail previews of multiple
+microscopy image file formats. 
+
+> Automated previews of 8-bit depth and higher image files are not
+currently supported.
+
 ## Binary and special file format previews
 
-* Excel (.xls, .xlsx)
 * FCS Flow Cytometry files (.fcs)
-* Images (.gif, .jpg, .png, .tif, .tiff, etc.)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
+* PDF (.pdf)
+* Powerpoint (.pptx)
+* Excel (.xls, .xlsx)
 
 ## Advanced
 
