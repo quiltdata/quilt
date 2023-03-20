@@ -1,5 +1,4 @@
-<!-- markdownlint-disable -->
-
+<!-- markdownlint-disable-next-line first-line-h1 -->
 The Quilt catalog renders previews of the following file types.
 Whenever possible, Quilt streams the smallest possible subset of the data
 needed to generate the preview.
@@ -7,27 +6,63 @@ needed to generate the preview.
 Previews are supported for uncompressed files as well as for gzip archives (.gz).
 
 ## Plain text previews
-Quilt can display any plaintext file format, including the following. 
+
+Quilt can display any plaintext file format, including the following.
 
 * Most programming languages, with syntax highlighting
-(.cpp, .json, .js, .py, .sh,  .sql, etc.)
-* Biological file formats (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
+  (.cpp, .json, .js, .py, .sh,  .sql, etc.)
+* Biological file formats
+  (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
 ## Chemical structures
-The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl) to render structures.
-By default, v3000 Molfiles are converted to v2000 by the JavaScript client for rendering.
+
+The Quilt catalog uses the [NGL Viewer library](https://github.com/nglviewer/ngl)
+to render structures.
+By default, v3000 Molfiles are converted to v2000 by the JavaScript client
+for rendering.
 
 The following file formats are supported:
+
 * Mol files (.mol, .mol2, .sdf)
 * .cif
 * .ent
 * .pdb
 
 ## Binary and special file format previews
+
 * Excel (.xls, .xlsx)
 * FCS Flow Cytometry files (.fcs)
 * Images (.gif, .jpg, .png, .tif, .tiff, etc.)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
+
+## Advanced
+
+The Quilt catalog supports secure, custom Javascript-enabled visualizations and
+dashboards embedded inside iframes.
+It is at your discretion which JS library (or libraries) you wish to import in
+your HTML file.
+
+To enable "permissive" visualizations, check the `Enable permissive HTML
+rendering` checkbox in [Bucket settings](/catalog/admin#buckets). Please note
+that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package
+creates a short-lived **publicly available** session for the lifetime of the
+session, although all session traffic _remains encrypted_.
+
+### Example
+
+1. `report.html` is a file that includes a publicly available JS library and
+   custom embedded script.
+2. Opening `report.html` generates  a new session `temporary-session-id`.
+3. The file is served from the iframe relative-path
+   `/temporary-session-id/report.html`.
+4. All relative media and scripts are rendered in the same iframe relative-path
+   format:
+    * `./img.jpg` is served as `/temporary-session-id/img.jpg`
+    * `script.js` is served as `/temporary-session-id/script.js`
+
+> **All files in the same package** are made temporarily publicly-available (for
+> lifetime of the session) under `/temporary-session-id`, even if not explicitly
+referenced in `report.html`.

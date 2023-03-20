@@ -125,6 +125,7 @@ type BucketConfig {
   tags: [String!]
   relevanceScore: Int!
   lastIndexed: Datetime
+  browsable: Boolean!
   snsNotificationArn: String @admin
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
@@ -263,6 +264,11 @@ type PackageList {
   ): [Package!]!
 }
 
+type BrowsingSession {
+  id: ID!
+  expires: Datetime!
+}
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -293,6 +299,7 @@ input BucketAddInput {
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
   delayScan: Boolean
+  browsable: Boolean
 }
 
 input BucketUpdateInput {
@@ -308,6 +315,7 @@ input BucketUpdateInput {
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
   indexContentBytes: Int
+  browsable: Boolean
 }
 
 type BucketAddSuccess {
@@ -557,6 +565,18 @@ union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
   | OperationError
 
+union BrowsingSessionCreateResult =
+    BrowsingSession
+  | InvalidInput
+  | OperationError
+
+union BrowsingSessionRefreshResult =
+    BrowsingSession
+  | InvalidInput
+  | OperationError
+
+union BrowsingSessionDisposeResult = Ok | OperationError
+
 type Mutation {
   packageConstruct(
     params: PackagePushParams!
@@ -594,4 +614,8 @@ type Mutation {
     @admin
   roleDelete(id: ID!): RoleDeleteResult! @admin
   roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
+
+  browsingSessionCreate(scope: String!, ttl: Int! = 180): BrowsingSessionCreateResult!
+  browsingSessionRefresh(id: ID!, ttl: Int! = 180): BrowsingSessionRefreshResult!
+  browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
 }

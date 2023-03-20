@@ -50,6 +50,7 @@ export const PreviewError = tagged([
   'DoesNotExist', // { handle }
   'SrcDoesNotExist', // { handle }
   'MalformedJson', // { handle, message }
+  'Expired', // { retry }
   'Unexpected', // { handle, retry, originalError: any }
 ])
 
