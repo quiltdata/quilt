@@ -26,7 +26,7 @@ search results.
 **full ListBucket permissions**, whether or not they are allowed to access all
 folders and objects. Catalog users who click on a prefix or object that they
 are not permitted to access will see an _Access Denied_ message.
-  * Alternatively, you can [hide the Bucket tab completely](../catalog/Admin.md#show-and-hide-features-in-the-quilt-catalog)
+  * Alternatively, you can [hide the Bucket tab completely](../Catalog/Admin.md#show-and-hide-features-in-the-quilt-catalog)
   and leave users access to the Package tab.
 
   > IAM is not designed as a filter for browsing S3.
@@ -45,7 +45,7 @@ search performance in the Catalog
 ## Requirements and recommendations
 
 * Manage all Quilt roles and policies for prefixes
-[with the Quilt Catalog Admin Panel](../catalog/Admin.md#users-and-roles)
+[with the Quilt Catalog Admin Panel](../Catalog/Admin.md#users-and-roles)
 
 * Provided that you use roles created in the Quilt Catalog Admin Panel
 **you do not need to, and should not,** insert a trust relationship into your
