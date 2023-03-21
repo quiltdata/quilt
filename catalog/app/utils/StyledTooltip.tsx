@@ -19,7 +19,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function StyledTooltip({
-  classes: externalCls,
+  classes: externalCls = {},
   ...props
 }: M.TooltipProps) {
   const internalCls = useStyles()
