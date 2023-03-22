@@ -184,6 +184,7 @@ export default function BrowsableLoader({ handle, children }: BrowsableLoaderPro
           PreviewData.IFrame({
             src: `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`,
             modes: [FileType.Html, FileType.Text],
+            sandbox: 'allow-scripts allow-same-origin',
           }),
       },
       sessionData,
