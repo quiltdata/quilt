@@ -189,7 +189,7 @@ const linkHandler =
       const rel = nofollow ? ' rel="nofollow"' : ''
       return `<a href="${(Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(
         t.href,
-      )}"${rel}${title}>`
+      )}"${rel}${title} data-link-processed>`
     }
   }
 
@@ -198,6 +198,19 @@ const checkboxHandler = (md: Remarkable.Remarkable) => {
   md.renderer.rules.tasklist = (tokens, idx) =>
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
 }
+
+const htmlLinkHandler =
+  (process: (input: { href: string }) => { href: string } = R.identity) =>
+  (currentNode: Element): Element => {
+    if (currentNode.tagName?.toUpperCase() !== 'A') return currentNode
+    const link = currentNode as HTMLLinkElement
+    if (typeof link.dataset.linkProcessed !== 'undefined') return link
+    const href = link.getAttribute('href')
+    if (!href) return link
+    const a = process({ href })
+    link.setAttribute('href', a.href)
+    return link
+  }
 
 /**
  * Get Remarkable instance based on the given options (memoized).
@@ -219,6 +232,7 @@ export const getRenderer = memoize(({ images, processImg, processLink }) => {
   md.use(imageHandler({ disable: !images, process: processImg }))
   md.use(checkboxHandler)
   const purify = createDOMPurify(window)
+  purify.addHook('uponSanitizeElement', htmlLinkHandler(processLink))
   return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
 })
 
