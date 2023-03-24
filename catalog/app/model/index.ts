@@ -16,7 +16,7 @@ export const BucketPermissionLevel = Types.enum(
 
 export const BucketPermissionLevelStrings = ['Read', 'ReadWrite'] as const
 
-export type BucketPermissionLevelString = typeof BucketPermissionLevelStrings[number]
+export type BucketPermissionLevelString = (typeof BucketPermissionLevelStrings)[number]
 
 export const BucketPermissionLevelFromString = new IO.Type<
   GQLTypes.BucketPermissionLevel,
