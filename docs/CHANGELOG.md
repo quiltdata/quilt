@@ -24,6 +24,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Fixed mobile layout for collaborators badges ([#3307](https://github.com/quiltdata/quilt/pull/3307))
 * [Fixed] Fixed metadata handling for entries without hash or size in pkgpush lambda ([#3314](https://github.com/quiltdata/quilt/pull/3314))
 * [Fixed] Fixed adding metadata for S3 entries ([#3367]https://github.com/quiltdata/quilt/pull/3367)
+* [Fixed] Fixed crash of the iframe in Bucket tab ([3387](https://github.com/quiltdata/quilt/pull/3387))
 * [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
 * [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
 * [Changed] Restrict editing `user_meta` field only for object-level metadata ([#3337](https://github.com/quiltdata/quilt/pull/3337))
