@@ -218,9 +218,9 @@ function htmlHandler(
     if (currentNode.tagName?.toUpperCase() !== tagName) return currentNode
     const element = currentNode as HTMLElement
     if (typeof element.dataset.processed !== 'undefined') return element
-    const attrbuteValue = element.getAttribute(attributeName)
-    if (!attrbuteValue) return element
-    const result = process({ [attributeName]: attrbuteValue })
+    const attributeValue = element.getAttribute(attributeName)
+    if (!attributeValue) return element
+    const result = process({ [attributeName]: attributeValue })
     element.setAttribute(attributeName, result[attributeName] as string)
     return element
   }
