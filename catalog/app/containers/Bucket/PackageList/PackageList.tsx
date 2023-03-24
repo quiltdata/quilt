@@ -51,7 +51,7 @@ const SORT_OPTIONS = [
   },
 ] as const
 
-type SortMode = typeof SORT_OPTIONS[number]['key']
+type SortMode = (typeof SORT_OPTIONS)[number]['key']
 
 const DEFAULT_SORT = SORT_OPTIONS[0]
 
