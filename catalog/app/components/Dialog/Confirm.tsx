@@ -73,7 +73,7 @@ export function useConfirm({ cancelTitle, title, onSubmit, submitTitle }: Prompt
         }}
       />
     ),
-    [key, handleSubmit, opened, title],
+    [cancelTitle, key, handleSubmit, opened, title, submitTitle],
   )
   return React.useMemo(
     () => ({

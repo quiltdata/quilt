@@ -82,7 +82,14 @@ const integerInRange = (min: number, max: number) => (v: string | null | undefin
   return undefined
 }
 
+const usePFSCheckboxStyles = M.makeStyles({
+  root: {
+    marginBottom: -9,
+    marginTop: -9,
+  },
+})
 function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
+  const classes = usePFSCheckboxStyles()
   const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
   const dialog = Dialog.useConfirm({
     submitTitle: 'I agree',
@@ -111,6 +118,7 @@ function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
       <M.FormControlLabel
         control={
           <M.Checkbox
+            classes={classes}
             disabled={meta.submitting || meta.submitSucceeded}
             checked={!!input?.checked}
             onChange={handleCheckbox}
