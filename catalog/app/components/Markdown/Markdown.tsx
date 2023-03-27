@@ -124,7 +124,7 @@ const checkboxHandler = (md: Remarkable.Remarkable) => {
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
 }
 
-type AttributeProcessor = (attr: string ) => string
+type AttributeProcessor = (attr: string) => string
 
 function handleImage(process: AttributeProcessor, element: Element): Element {
   const attributeValue = element.getAttribute('src')
@@ -160,7 +160,10 @@ function handleLink(process: AttributeProcessor, element: HTMLElement): Element 
   return element
 }
 
-function htmlHandler(processLink?: AttributeProcessor, processImage?: AttributeProcessor) {
+function htmlHandler(
+  processLink?: AttributeProcessor,
+  processImage?: AttributeProcessor,
+) {
   return (currentNode: Element): Element => {
     const element = currentNode as HTMLElement
     const tagName = currentNode.tagName?.toUpperCase()
