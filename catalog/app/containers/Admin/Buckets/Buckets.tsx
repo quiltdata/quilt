@@ -128,10 +128,10 @@ function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
           <>
             Enable permissive HTML rendering
             <Hint>
-              This allows execution of any linked JavaScript code and fetching network resources
-              relative to the package. Be aware that the iframe with rendered HTML (and package
-              resources) can be shared publicly during the session lifespan. The session is active
-              while the page with rendered HTML is open.
+              This allows execution of any linked JavaScript code and fetching network
+              resources relative to the package. Be aware that the iframe with rendered
+              HTML (and package resources) can be shared publicly during the session
+              lifespan. The session is active while the page with rendered HTML is open.
               <br />
               Enable only on trusted AWS S3 buckets.
             </Hint>
