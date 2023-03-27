@@ -119,10 +119,11 @@ interface RemarkableWithUtils extends Remarkable.Remarkable {
   }
 }
 
-const escape = R.pipe(
-  (Remarkable as unknown as RemarkableWithUtils).utils.replaceEntities,
-  (Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml,
-)
+const { escapeHtml, replaceEntities, unescapeMd } = (
+  Remarkable as unknown as RemarkableWithUtils
+).utils
+
+const escape = R.pipe(replaceEntities, escapeHtml)
 
 /**
  * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.
@@ -158,10 +159,8 @@ const imageHandler =
         return `<span>![${alt}](${src}${title})</span>`
       }
 
-      const src = (Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(t.src)
-      const alt = t.alt
-        ? escape((Remarkable as unknown as RemarkableWithUtils).utils.unescapeMd(t.alt))
-        : ''
+      const src = escapeHtml(t.src)
+      const alt = t.alt ? escape(unescapeMd(t.alt)) : ''
       const title = t.title ? ` title="${escape(t.title)}"` : ''
       return `<img src="${src}" alt="${alt}"${title} data-processed />`
     }
@@ -187,9 +186,7 @@ const linkHandler =
       const t = process(tokens[idx])
       const title = t.title ? ` title="${escape(t.title)}"` : ''
       const rel = nofollow ? ' rel="nofollow"' : ''
-      return `<a href="${(Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(
-        t.href,
-      )}"${rel}${title} data-processed>`
+      return `<a href="${escapeHtml(t.href)}"${rel}${title} data-processed>`
     }
   }
 
