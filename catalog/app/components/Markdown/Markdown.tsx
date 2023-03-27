@@ -136,26 +136,18 @@ function handleImage(process: AttributeProcessor, element: Element): Element {
   if (alt) {
     element.setAttribute('alt', unescapeMd(alt))
   }
-  const title = element.getAttribute('title')
-  if (title) {
-    element.setAttribute('title', title)
-  }
 
   return element
 }
 
 function handleLink(process: AttributeProcessor, element: HTMLElement): Element {
   const attributeValue = element.getAttribute('href')
-  if (!attributeValue) return element
+  if (typeof attributeValue !== 'string') return element
   const result = process(attributeValue)
   element.setAttribute('href', result)
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
-  const title = element.getAttribute('title')
-  if (title) {
-    element.setAttribute('title', title)
-  }
 
   return element
 }
