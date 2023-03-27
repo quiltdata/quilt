@@ -36,11 +36,11 @@ const useCheckboxStyles = M.makeStyles({
   },
 })
 
-interface CheckboxProps {
+export interface CheckboxProps {
   errors?: Record<string, React.ReactNode>
   input?: RF.FieldInputProps<boolean>
   meta: RF.FieldMetaState<string | Symbol>
-  label?: string
+  label?: React.ReactNode
   FormControlLabelProps?: M.FormControlLabelProps
 }
 
