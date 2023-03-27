@@ -346,10 +346,10 @@ function PackageCreationForm({
       addedS3Entries,
       R.map(
         ({ path, file }) =>
-          [path, { physicalKey: s3paths.handleToS3Url(file), meta: file.meta }] as R.KeyValuePair<
-            string,
-            PartialPackageEntry
-          >,
+          [
+            path,
+            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+          ] as R.KeyValuePair<string, PartialPackageEntry>,
       ),
       R.fromPairs,
     )
