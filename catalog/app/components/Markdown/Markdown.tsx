@@ -113,82 +113,11 @@ const highlight = (str: string, lang: string) => {
 interface RemarkableWithUtils extends Remarkable.Remarkable {
   // NOTE: Remarkable.Remarkable doesn't export utils
   utils: {
-    escapeHtml: (str: string) => string
-    replaceEntities: (str: string) => string
     unescapeMd: (str: string) => string
   }
 }
 
-const { escapeHtml, replaceEntities, unescapeMd } = (
-  Remarkable as unknown as RemarkableWithUtils
-).utils
-
-const escape = R.pipe(replaceEntities, escapeHtml)
-
-/**
- * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.
- *
- * @typedef {function} MarkdownPlugin
- *
- * @param {Object} md Remarkable instance.
- */
-
-/**
- * Create a plugin for remarkable that does custom processing of image tags.
- *
- * @param {Object} options
- * @param {bool} options.disable
- *   Don't show images, render them as they are in markdown contents (escaped).
- * @param {function} options.process
- *   Function that takes an image object ({ alt, src, title }) and returns a
- *   (possibly modified) image object.
- *
- * @returns {MarkdownPlugin}
- */
-const imageHandler =
-  ({ disable = false, process = R.identity }) =>
-  (md: Remarkable.Remarkable) => {
-    // eslint-disable-next-line no-param-reassign
-    md.renderer.rules.image = (tokens, idx) => {
-      const t = process(tokens[idx])
-
-      if (disable) {
-        const alt = t.alt ? escape(t.alt) : ''
-        const src = escape(t.src)
-        const title = t.title ? ` "${escape(t.title)}"` : ''
-        return `<span>![${alt}](${src}${title})</span>`
-      }
-
-      const src = escapeHtml(t.src)
-      const alt = t.alt ? escape(unescapeMd(t.alt)) : ''
-      const title = t.title ? ` title="${escape(t.title)}"` : ''
-      return `<img src="${src}" alt="${alt}"${title} data-processed />`
-    }
-  }
-
-/**
- * Create a plugin for remarkable that does custom processing of links.
- *
- * @param {Object} options
- * @param {bool} options.nofollow
- *   Add rel="nofollow" attribute if true (default).
- * @param {function} options.process
- *   Function that takes a link object ({ href, title }) and returns a
- *   (possibly modified) link object.
- *
- * @returns {MarkdownPlugin}
- */
-const linkHandler =
-  ({ nofollow = true, process = R.identity }) =>
-  (md: Remarkable.Remarkable) => {
-    // eslint-disable-next-line no-param-reassign
-    md.renderer.rules.link_open = (tokens, idx) => {
-      const t = process(tokens[idx])
-      const title = t.title ? ` title="${escape(t.title)}"` : ''
-      const rel = nofollow ? ' rel="nofollow"' : ''
-      return `<a href="${escapeHtml(t.href)}"${rel}${title} data-processed>`
-    }
-  }
+const { unescapeMd } = (Remarkable as unknown as RemarkableWithUtils).utils
 
 const checkboxHandler = (md: Remarkable.Remarkable) => {
   md.inline.ruler.push('tasklist', parseTasklist, {})
@@ -196,29 +125,44 @@ const checkboxHandler = (md: Remarkable.Remarkable) => {
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
 }
 
-function htmlHandler(
-  tagName: 'A',
-  attributeName: 'href',
-  process: (input: { href: string }) => { href: string },
-): (currentNode: Element) => Element
-function htmlHandler(
-  tagName: 'IMG',
-  attributeName: 'src',
-  process: (input: { src: string }) => { src: string },
-): (currentNode: Element) => Element
-function htmlHandler(
-  tagName: 'A' | 'IMG',
-  attributeName: 'href' | 'src',
-  process: (input: any) => any = R.identity,
-) {
+function imageHandler(process: (input: { src: string }) => { src: string }) {
   return (currentNode: Element): Element => {
-    if (currentNode.tagName?.toUpperCase() !== tagName) return currentNode
+    if (currentNode.tagName?.toUpperCase() !== 'IMG') return currentNode
     const element = currentNode as HTMLElement
-    if (typeof element.dataset.processed !== 'undefined') return element
-    const attributeValue = element.getAttribute(attributeName)
+    const attributeValue = element.getAttribute('src')
     if (!attributeValue) return element
-    const result = process({ [attributeName]: attributeValue })
-    element.setAttribute(attributeName, result[attributeName] as string)
+    const result = process({ src: attributeValue })
+    element.setAttribute('src', result.src)
+
+    const alt = element.getAttribute('alt')
+    if (alt) {
+      element.setAttribute('alt', unescapeMd(alt))
+    }
+    const title = element.getAttribute('title')
+    if (title) {
+      element.setAttribute('title', title)
+    }
+
+    return element
+  }
+}
+
+function linkHandler(process: (input: { href: string }) => { href: string }) {
+  return (currentNode: Element): Element => {
+    if (currentNode.tagName?.toUpperCase() !== 'A') return currentNode
+    const element = currentNode as HTMLElement
+    const attributeValue = element.getAttribute('href')
+    if (!attributeValue) return element
+    const result = process({ href: attributeValue })
+    element.setAttribute('href', result.href)
+
+    const rel = element.getAttribute('rel')
+    element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
+    const title = element.getAttribute('title')
+    if (title) {
+      element.setAttribute('title', title)
+    }
+
     return element
   }
 }
@@ -233,18 +177,16 @@ function htmlHandler(
  *
  * @returns {Object} Remarakable instance
  */
-export const getRenderer = memoize(({ images, processImg, processLink }) => {
+export const getRenderer = memoize(({ processImg, processLink }) => {
   const md = new Remarkable.Remarkable('full', {
     highlight,
     html: true,
     typographer: true,
   }).use(linkify)
-  md.use(linkHandler({ process: processLink }))
-  md.use(imageHandler({ disable: !images, process: processImg }))
   md.use(checkboxHandler)
   const purify = createDOMPurify(window)
-  purify.addHook('uponSanitizeElement', htmlHandler('A', 'href', processLink))
-  purify.addHook('uponSanitizeElement', htmlHandler('IMG', 'src', processImg))
+  purify.addHook('uponSanitizeElement', linkHandler(processLink))
+  purify.addHook('uponSanitizeElement', imageHandler(processImg))
   return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
 })
 
