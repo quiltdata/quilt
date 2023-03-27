@@ -79,7 +79,7 @@ function MarkdownLoader({ gated, handle, children }) {
     data.result,
     (r) => {
       const contents = r.Body.toString('utf-8')
-      const rendered = getRenderer({ images: true, processImg, processLink })(contents)
+      const rendered = getRenderer({ processImg, processLink })(contents)
       return PreviewData.Markdown({ rendered, modes: [FileType.Markdown, FileType.Text] })
     },
     [processImg, processLink],

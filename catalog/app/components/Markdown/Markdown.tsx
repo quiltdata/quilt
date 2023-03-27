@@ -3,7 +3,6 @@ import createDOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as Remarkable from 'remarkable'
 import { linkify } from 'remarkable/linkify'
@@ -125,70 +124,72 @@ const checkboxHandler = (md: Remarkable.Remarkable) => {
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
 }
 
-function imageHandler(process: (input: { src: string }) => { src: string }) {
+type ImageProcessor = (input: { src: string }) => { src: string }
+type LinkProcessor = (input: { href: string }) => { href: string }
+
+function handleImage(process: ImageProcessor, element: Element): Element {
+  const attributeValue = element.getAttribute('src')
+  if (!attributeValue) return element
+  const result = process({ src: attributeValue })
+  element.setAttribute('src', result.src)
+
+  const alt = element.getAttribute('alt')
+  if (alt) {
+    element.setAttribute('alt', unescapeMd(alt))
+  }
+  const title = element.getAttribute('title')
+  if (title) {
+    element.setAttribute('title', title)
+  }
+
+  return element
+}
+
+function handleLink(process: LinkProcessor, element: HTMLElement): Element {
+  const attributeValue = element.getAttribute('href')
+  if (!attributeValue) return element
+  const result = process({ href: attributeValue })
+  element.setAttribute('href', result.href)
+
+  const rel = element.getAttribute('rel')
+  element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
+  const title = element.getAttribute('title')
+  if (title) {
+    element.setAttribute('title', title)
+  }
+
+  return element
+}
+
+function htmlHandler(processLink?: LinkProcessor, processImage?: ImageProcessor) {
   return (currentNode: Element): Element => {
-    if (currentNode.tagName?.toUpperCase() !== 'IMG') return currentNode
     const element = currentNode as HTMLElement
-    const attributeValue = element.getAttribute('src')
-    if (!attributeValue) return element
-    const result = process({ src: attributeValue })
-    element.setAttribute('src', result.src)
-
-    const alt = element.getAttribute('alt')
-    if (alt) {
-      element.setAttribute('alt', unescapeMd(alt))
-    }
-    const title = element.getAttribute('title')
-    if (title) {
-      element.setAttribute('title', title)
-    }
-
-    return element
+    const tagName = currentNode.tagName?.toUpperCase()
+    if (processLink && tagName === 'A') return handleLink(processLink, element)
+    if (processImage && tagName === 'IMG') return handleImage(processImage, element)
+    return currentNode
   }
 }
 
-function linkHandler(process: (input: { href: string }) => { href: string }) {
-  return (currentNode: Element): Element => {
-    if (currentNode.tagName?.toUpperCase() !== 'A') return currentNode
-    const element = currentNode as HTMLElement
-    const attributeValue = element.getAttribute('href')
-    if (!attributeValue) return element
-    const result = process({ href: attributeValue })
-    element.setAttribute('href', result.href)
-
-    const rel = element.getAttribute('rel')
-    element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
-    const title = element.getAttribute('title')
-    if (title) {
-      element.setAttribute('title', title)
-    }
-
-    return element
-  }
-}
-
-/**
- * Get Remarkable instance based on the given options (memoized).
- *
- * @param {Object} options
- *
- * @param {boolean} images
- *   Whether to render images notated as `![alt](src title)` or skip them.
- *
- * @returns {Object} Remarakable instance
- */
-export const getRenderer = memoize(({ processImg, processLink }) => {
-  const md = new Remarkable.Remarkable('full', {
-    highlight,
-    html: true,
-    typographer: true,
-  }).use(linkify)
-  md.use(checkboxHandler)
-  const purify = createDOMPurify(window)
-  purify.addHook('uponSanitizeElement', linkHandler(processLink))
-  purify.addHook('uponSanitizeElement', imageHandler(processImg))
-  return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
-})
+export const getRenderer = memoize(
+  ({
+    processImg,
+    processLink,
+  }: {
+    processImg?: ImageProcessor
+    processLink?: LinkProcessor
+  }) => {
+    const md = new Remarkable.Remarkable('full', {
+      highlight,
+      html: true,
+      typographer: true,
+    }).use(linkify)
+    md.use(checkboxHandler)
+    const purify = createDOMPurify(window)
+    purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
+    return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+  },
+)
 
 interface ContainerProps {
   children: string
@@ -240,21 +241,19 @@ export function Container({ className, children }: ContainerProps) {
 
 interface MarkdownProps extends Omit<ContainerProps, 'children'> {
   data?: string
-  images?: boolean
-  processImg?: () => $TSFixMe
-  processLink?: () => $TSFixMe
+  processImg?: ImageProcessor
+  processLink?: LinkProcessor
 }
 
 export default function Markdown({
   data,
-  images = true,
   processImg,
   processLink,
   ...props
 }: MarkdownProps) {
   return (
     <Container {...props}>
-      {getRenderer({ images, processImg, processLink })(data || '')}
+      {getRenderer({ processImg, processLink })(data || '')}
     </Container>
   )
 }
