@@ -85,12 +85,13 @@ const integerInRange = (min: number, max: number) => (v: string | null | undefin
 function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
   const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
   const dialog = Dialog.useConfirm({
+    submitTitle: 'I agree',
     title:
       'You are about to enable JavaScript execution and data access in iframe previews of HTML files',
     onSubmit: confirm,
   })
   const handleCheckbox = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    (event, checked: boolean) => {
       if (checked) {
         dialog.open()
       } else {
