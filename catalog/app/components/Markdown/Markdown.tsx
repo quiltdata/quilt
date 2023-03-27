@@ -124,14 +124,13 @@ const checkboxHandler = (md: Remarkable.Remarkable) => {
     (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
 }
 
-type ImageProcessor = (input: { src: string }) => { src: string }
-type LinkProcessor = (input: { href: string }) => { href: string }
+type AttributeProcessor = (attr: string ) => string
 
-function handleImage(process: ImageProcessor, element: Element): Element {
+function handleImage(process: AttributeProcessor, element: Element): Element {
   const attributeValue = element.getAttribute('src')
   if (!attributeValue) return element
-  const result = process({ src: attributeValue })
-  element.setAttribute('src', result.src)
+  const result = process(attributeValue)
+  element.setAttribute('src', result)
 
   const alt = element.getAttribute('alt')
   if (alt) {
@@ -145,11 +144,11 @@ function handleImage(process: ImageProcessor, element: Element): Element {
   return element
 }
 
-function handleLink(process: LinkProcessor, element: HTMLElement): Element {
+function handleLink(process: AttributeProcessor, element: HTMLElement): Element {
   const attributeValue = element.getAttribute('href')
   if (!attributeValue) return element
-  const result = process({ href: attributeValue })
-  element.setAttribute('href', result.href)
+  const result = process(attributeValue)
+  element.setAttribute('href', result)
 
   const rel = element.getAttribute('rel')
   element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
@@ -161,7 +160,7 @@ function handleLink(process: LinkProcessor, element: HTMLElement): Element {
   return element
 }
 
-function htmlHandler(processLink?: LinkProcessor, processImage?: ImageProcessor) {
+function htmlHandler(processLink?: AttributeProcessor, processImage?: AttributeProcessor) {
   return (currentNode: Element): Element => {
     const element = currentNode as HTMLElement
     const tagName = currentNode.tagName?.toUpperCase()
@@ -176,8 +175,8 @@ export const getRenderer = memoize(
     processImg,
     processLink,
   }: {
-    processImg?: ImageProcessor
-    processLink?: LinkProcessor
+    processImg?: AttributeProcessor
+    processLink?: AttributeProcessor
   }) => {
     const md = new Remarkable.Remarkable('full', {
       highlight,
@@ -241,8 +240,8 @@ export function Container({ className, children }: ContainerProps) {
 
 interface MarkdownProps extends Omit<ContainerProps, 'children'> {
   data?: string
-  processImg?: ImageProcessor
-  processLink?: LinkProcessor
+  processImg?: AttributeProcessor
+  processLink?: AttributeProcessor
 }
 
 export default function Markdown({

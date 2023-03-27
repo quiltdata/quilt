@@ -25,20 +25,18 @@ export const FILE_TYPE = FileType.Markdown
 function useImgProcessor(handle) {
   const sign = AWS.Signer.useS3Signer()
   return useMemoEq([sign, handle], () =>
-    R.evolve({
-      src: R.pipe(
-        Resource.parse,
-        Resource.Pointer.case({
-          Web: (url) => url,
-          S3: ({ bucket, key, version }) =>
-            sign({ bucket: bucket || handle.bucket, key, version }),
-          S3Rel: (path) =>
-            sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
-          Path: (path) =>
-            sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
-        }),
-      ),
-    }),
+    R.pipe(
+      Resource.parse,
+      Resource.Pointer.case({
+        Web: (url) => url,
+        S3: ({ bucket, key, version }) =>
+          sign({ bucket: bucket || handle.bucket, key, version }),
+        S3Rel: (path) =>
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+        Path: (path) =>
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+      }),
+    ),
   )
 }
 
@@ -46,26 +44,24 @@ function useLinkProcessor(handle) {
   const { urls } = NamedRoutes.use()
   const sign = AWS.Signer.useS3Signer()
   return useMemoEq([sign, urls, handle], () =>
-    R.evolve({
-      href: R.pipe(
-        Resource.parse,
-        Resource.Pointer.case({
-          Web: (url) => url,
-          S3: ({ bucket, key, version }) =>
-            sign({ bucket: bucket || handle.bucket, key, version }),
-          S3Rel: (path) =>
-            sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
-          Path: (p) => {
-            const hasSlash = p.endsWith('/')
-            const resolved = resolve(dirname(handle.key), p).slice(1)
-            const normalized = hasSlash ? `${resolved}/` : resolved
-            return hasSlash
-              ? urls.bucketDir(handle.bucket, normalized)
-              : urls.bucketFile(handle.bucket, normalized)
-          },
-        }),
-      ),
-    }),
+    R.pipe(
+      Resource.parse,
+      Resource.Pointer.case({
+        Web: (url) => url,
+        S3: ({ bucket, key, version }) =>
+          sign({ bucket: bucket || handle.bucket, key, version }),
+        S3Rel: (path) =>
+          sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+        Path: (p) => {
+          const hasSlash = p.endsWith('/')
+          const resolved = resolve(dirname(handle.key), p).slice(1)
+          const normalized = hasSlash ? `${resolved}/` : resolved
+          return hasSlash
+            ? urls.bucketDir(handle.bucket, normalized)
+            : urls.bucketFile(handle.bucket, normalized)
+        },
+      }),
+    ),
   )
 }
 
