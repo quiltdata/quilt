@@ -34,7 +34,7 @@ export const detect = R.pipe(
   R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
 )
 
-type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
+type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
 
 const detectTabularType: (type: string) => TabularType = R.pipe(
   utils.stripCompression,
@@ -44,7 +44,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
     [isJsonl, R.always('jsonl')],
     [isParquet, R.always('parquet')],
     [isTsv, R.always('tsv')],
-    [R.T, R.always('txt')],
+    [R.T, R.always('csv')],
   ]),
 )
 
