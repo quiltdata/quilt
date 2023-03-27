@@ -22,6 +22,7 @@ import type FormSpec from 'utils/FormSpec'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
+import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -160,6 +161,10 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     R.prop('skipMetaDataIndexing'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
+  browsable: R.pipe(
+    R.prop('browsable'),
+    Types.decode(Types.fromNullable(IO.boolean, false)),
+  ),
 }
 
 const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
@@ -260,12 +265,13 @@ interface HintProps {
 
 function Hint({ children }: HintProps) {
   const classes = useHintStyles()
+  const tooltipClasses = React.useMemo(() => ({ tooltip: classes.tooltip }), [classes])
   return (
-    <M.Tooltip arrow title={children} classes={{ tooltip: classes.tooltip }}>
+    <StyledTooltip arrow title={children} classes={tooltipClasses}>
       <M.Icon fontSize="small" className={classes.icon}>
         help
       </M.Icon>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 
@@ -631,6 +637,37 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
           )}
         </M.Box>
       </M.Accordion>
+      <M.Accordion elevation={0} className={classes.panel}>
+        <M.AccordionSummary
+          expandIcon={<M.Icon>expand_more</M.Icon>}
+          classes={{
+            root: classes.panelSummary,
+            content: classes.panelSummaryContent,
+          }}
+        >
+          <M.Typography variant="h6">File preview options</M.Typography>
+        </M.AccordionSummary>
+        <M.Box className={classes.group} pt={1}>
+          <RF.Field
+            component={Form.Checkbox}
+            type="checkbox"
+            name="browsable"
+            label={
+              <>
+                Enable permissive HTML rendering
+                <Hint>
+                  This allows execution of any JavaScript code and fetching network
+                  resources relative to package. But beware, the iframe with rendered HTML
+                  (and package resources) can be shared publicly during session lifespan.
+                  Session is active while the page with rendered HTML is opened.
+                  <br />
+                  Enable only on trusted buckets.
+                </Hint>
+              </>
+            }
+          />
+        </M.Box>
+      </M.Accordion>
     </M.Box>
   )
 }
@@ -975,6 +1012,7 @@ function Edit({ bucket, close }: EditProps) {
         ? DO_NOT_SUBSCRIBE_SYM
         : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
+    browsable: bucket.browsable ?? false,
   }
 
   return (
