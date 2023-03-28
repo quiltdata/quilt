@@ -1,12 +1,12 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
-import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 
 interface MenuProps {
   className?: string
-  handle: LogicalKeyResolver.S3SummarizeHandle
+  handle: Model.S3.S3ObjectLocation
 }
 
 export default function Menu({ className, handle }: MenuProps) {
