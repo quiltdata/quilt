@@ -9,7 +9,7 @@ import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
-import type { S3HandleBase } from 'utils/s3paths'
+import type * as Model from 'model'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -26,7 +26,7 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
-  handle?: S3HandleBase
+  handle?: Model.S3.S3ObjectLocation
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
