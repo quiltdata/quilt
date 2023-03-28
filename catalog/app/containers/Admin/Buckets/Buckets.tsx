@@ -11,6 +11,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
+import * as Dialog from 'components/Dialog'
 import * as Pagination from 'components/Pagination'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
@@ -79,6 +80,66 @@ const integerInRange = (min: number, max: number) => (v: string | null | undefin
   const n = Number(v)
   if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
   return undefined
+}
+
+const usePFSCheckboxStyles = M.makeStyles({
+  root: {
+    marginBottom: -9,
+    marginTop: -9,
+  },
+})
+function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
+  const classes = usePFSCheckboxStyles()
+  const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
+  const dialog = Dialog.useConfirm({
+    submitTitle: 'I agree',
+    title:
+      'You are about to enable JavaScript execution and data access in iframe previews of HTML files',
+    onSubmit: confirm,
+  })
+  const handleCheckbox = React.useCallback(
+    (event, checked: boolean) => {
+      if (checked) {
+        dialog.open()
+      } else {
+        input?.onChange(checked)
+      }
+    },
+    [dialog, input],
+  )
+  return (
+    <>
+      {dialog.render(
+        <M.Typography>
+          Warning: you must only enable this feature for buckets with trusted contents.
+          Failure to heed this warning may result in breach of sensitive data.
+        </M.Typography>,
+      )}
+      <M.FormControlLabel
+        control={
+          <M.Checkbox
+            classes={classes}
+            disabled={meta.submitting || meta.submitSucceeded}
+            checked={!!input?.checked}
+            onChange={handleCheckbox}
+          />
+        }
+        label={
+          <>
+            Enable permissive HTML rendering
+            <Hint>
+              This allows execution of any linked JavaScript code and fetching network
+              resources relative to the package. Be aware that the iframe with rendered
+              HTML (and package resources) can be shared publicly during the session
+              lifespan. The session is active while the page with rendered HTML is open.
+              <br />
+              Enable only on trusted AWS S3 buckets.
+            </Hint>
+          </>
+        }
+      />
+    </>
+  )
 }
 
 const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
@@ -648,24 +709,7 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
           <M.Typography variant="h6">File preview options</M.Typography>
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
-          <RF.Field
-            component={Form.Checkbox}
-            type="checkbox"
-            name="browsable"
-            label={
-              <>
-                Enable permissive HTML rendering
-                <Hint>
-                  This allows execution of any JavaScript code and fetching network
-                  resources relative to package. But beware, the iframe with rendered HTML
-                  (and package resources) can be shared publicly during session lifespan.
-                  Session is active while the page with rendered HTML is opened.
-                  <br />
-                  Enable only on trusted buckets.
-                </Hint>
-              </>
-            }
-          />
+          <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
         </M.Box>
       </M.Accordion>
     </M.Box>
