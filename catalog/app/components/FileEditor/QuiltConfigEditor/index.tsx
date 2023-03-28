@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 import * as quiltConfigs from 'constants/quiltConfigs'
-import * as Model from 'model'
+import type * as Model from 'model'
 
 import Skeleton from '../Skeleton'
 

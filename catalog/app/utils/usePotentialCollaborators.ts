@@ -1,4 +1,4 @@
-import * as Model from 'model'
+import type * as Model from 'model'
 
 import useQuery from './useQuery'
 import POTENTIAL_COLLABORATORS from './PotentialCollaborators.generated'

@@ -4,7 +4,7 @@ import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
