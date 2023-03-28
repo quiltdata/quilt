@@ -165,25 +165,22 @@ function htmlHandler(
   }
 }
 
-export const getRenderer = memoize(
-  ({
-    processImg,
-    processLink,
-  }: {
-    processImg?: AttributeProcessor
-    processLink?: AttributeProcessor
-  }) => {
-    const md = new Remarkable.Remarkable('full', {
-      highlight,
-      html: true,
-      typographer: true,
-    }).use(linkify)
-    md.use(checkboxHandler)
-    const purify = createDOMPurify(window)
-    purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
-    return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
-  },
-)
+interface RendererArgs {
+  processImg?: AttributeProcessor
+  processLink?: AttributeProcessor
+}
+
+export const getRenderer = memoize(({ processImg, processLink }: RendererArgs) => {
+  const md = new Remarkable.Remarkable('full', {
+    highlight,
+    html: true,
+    typographer: true,
+  }).use(linkify)
+  md.use(checkboxHandler)
+  const purify = createDOMPurify(window)
+  purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
+  return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+})
 
 interface ContainerProps {
   children: string
@@ -233,10 +230,8 @@ export function Container({ className, children }: ContainerProps) {
   )
 }
 
-interface MarkdownProps extends Omit<ContainerProps, 'children'> {
+interface MarkdownProps extends RendererArgs, Omit<ContainerProps, 'children'> {
   data?: string
-  processImg?: AttributeProcessor
-  processLink?: AttributeProcessor
 }
 
 export default function Markdown({
