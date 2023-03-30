@@ -12,6 +12,7 @@ import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
 import { docs } from 'constants/urls'
+import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -38,7 +39,7 @@ interface SummarizeFile {
   expand?: boolean
 }
 
-type MakeURL = (h: S3Handle) => LocationDescriptor
+type MakeURL = (h: Model.S3.S3ObjectLocation) => LocationDescriptor
 
 enum FileThemes {
   Overview = 'overview',
@@ -104,7 +105,7 @@ const useSectionStyles = M.makeStyles((t) => ({
 
 interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
-  handle?: S3Handle
+  handle?: Model.S3.S3ObjectLocation
   heading?: React.ReactNode
   expanded?: boolean
   onToggle?: () => void
@@ -211,7 +212,7 @@ function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
 interface CrumbsProps {
-  handle: S3Handle
+  handle: Model.S3.S3ObjectLocation
 }
 
 function Crumbs({ handle }: CrumbsProps) {
@@ -245,7 +246,7 @@ function Crumbs({ handle }: CrumbsProps) {
 interface FilePreviewProps {
   expanded?: boolean
   file?: SummarizeFile
-  handle: S3Handle
+  handle: LogicalKeyResolver.S3SummarizeHandle
   headingOverride: React.ReactNode
   packageHandle?: PackageHandle
 }
@@ -337,12 +338,15 @@ export const FilePreviewSkel = () => (
   </Section>
 )
 
-function getDisplayName(handle: S3Handle): string {
+function getDisplayName(handle: Model.S3.S3ObjectLocation): string {
   // TODO: show crumbs for packages too
   return s3paths.getBasename(handle.key)
 }
 
-function useFileUrl(handle: S3Handle, mkUrl?: MakeURL): LocationDescriptor {
+function useFileUrl(
+  handle: Model.S3.S3ObjectLocation,
+  mkUrl?: MakeURL,
+): LocationDescriptor {
   const { urls } = NamedRoutes.use()
   return React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
@@ -351,7 +355,7 @@ function useFileUrl(handle: S3Handle, mkUrl?: MakeURL): LocationDescriptor {
 }
 
 interface TitleCustomProps {
-  handle: S3Handle
+  handle: Model.S3.S3ObjectLocation
   mkUrl?: MakeURL
   title: React.ReactNode
 }
@@ -368,7 +372,7 @@ function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
 }
 
 interface TitleFilenameProps {
-  handle: S3Handle
+  handle: Model.S3.S3ObjectLocation
   mkUrl: MakeURL
 }
 
@@ -388,7 +392,7 @@ function getHeadingOverride(file: SummarizeFile, mkUrl?: MakeURL) {
 
 interface EnsureAvailabilityProps {
   s3: S3
-  handle: S3Handle
+  handle: Model.S3.S3ObjectLocation
   children: () => React.ReactNode
 }
 

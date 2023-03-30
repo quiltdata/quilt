@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import { Avatars, Popup } from 'components/Collaborators'
 import * as style from 'constants/style'
-import * as Model from 'model'
+import type * as Model from 'model'
 import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 import BUCKET_COLLABORATORS from './BucketCollaborators.generated'

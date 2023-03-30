@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-// TODO: rename all variables 'file' to 'handle'
-import { S3HandleBase, handleToS3Url } from 'utils/s3paths'
+import type * as Model from 'model'
+import { handleToS3Url } from 'utils/s3paths'
 import mkStorage from 'utils/storage'
 
 const STORAGE_KEYS = {
@@ -15,22 +15,25 @@ const storage = mkStorage({
 type GroupName = 'main'
 
 interface BookmarksGroup {
-  entries: Record<string, S3HandleBase>
+  entries: Record<string, Model.S3.S3ObjectLocation>
 }
 
 type BookmarksGroups = Record<GroupName, BookmarksGroup>
 
 const Ctx = React.createContext<{
-  append: (groupName: GroupName, file: S3HandleBase | S3HandleBase[]) => void
+  append: (
+    groupName: GroupName,
+    handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+  ) => void
   clear: (groupName: GroupName) => void
   groups: BookmarksGroups
   hasUpdates: boolean
   hide: () => void
-  isBookmarked: (groupName: GroupName, file: S3HandleBase) => boolean
+  isBookmarked: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => boolean
   isOpened: boolean
-  remove: (groupName: GroupName, file: S3HandleBase) => void
+  remove: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => void
   show: () => void
-  toggle: (groupName: GroupName, file: S3HandleBase) => void
+  toggle: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => void
 } | null>(null)
 
 interface ProviderProps {
@@ -39,16 +42,16 @@ interface ProviderProps {
 
 const initialBookmarks = { main: { entries: {} } }
 
-const keyResolver = (file: S3HandleBase) => handleToS3Url(file)
+const keyResolver = (handle: Model.S3.S3ObjectLocation) => handleToS3Url(handle)
 
 type StateUpdaterFunction = (input: BookmarksGroups) => BookmarksGroups
 
 function createAppendUpdater(
   groupName: GroupName,
-  s3File: S3HandleBase | S3HandleBase[],
+  handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
 ): StateUpdaterFunction {
-  if (Array.isArray(s3File)) {
-    const entries = s3File.reduce(
+  if (Array.isArray(handle)) {
+    const entries = handle.reduce(
       (memo, entry) => ({
         ...memo,
         [keyResolver(entry)]: entry,
@@ -57,14 +60,14 @@ function createAppendUpdater(
     )
     return R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries))
   }
-  return R.set(R.lensPath([groupName, 'entries', keyResolver(s3File)]), s3File)
+  return R.set(R.lensPath([groupName, 'entries', keyResolver(handle)]), handle)
 }
 
 function createRemoveUpdater(
   groupName: GroupName,
-  s3File: S3HandleBase,
+  handle: Model.S3.S3ObjectLocation,
 ): StateUpdaterFunction {
-  return R.over(R.lensPath([groupName, 'entries']), R.dissoc(keyResolver(s3File)))
+  return R.over(R.lensPath([groupName, 'entries']), R.dissoc(keyResolver(handle)))
 }
 
 function createClearUpdater(groupName: GroupName): StateUpdaterFunction {
@@ -92,17 +95,20 @@ export function Provider({ children }: ProviderProps) {
     [groups],
   )
   const append = React.useCallback(
-    (groupName: GroupName, s3File: S3HandleBase | S3HandleBase[]) => {
-      updateGroups(createAppendUpdater(groupName, s3File))
+    (
+      groupName: GroupName,
+      handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+    ) => {
+      updateGroups(createAppendUpdater(groupName, handle))
       if (!isOpened) setUpdates(true)
     },
     [isOpened, updateGroups],
   )
   const remove = React.useCallback(
-    (groupName: GroupName, s3File: S3HandleBase) => {
+    (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => {
       const isLastBookmark =
         R.pipe(R.path([groupName, 'entries']), R.keys, R.length)(groups) === 1
-      updateGroups(createRemoveUpdater(groupName, s3File))
+      updateGroups(createRemoveUpdater(groupName, handle))
       if (isLastBookmark) {
         setUpdates(false)
       } else if (!isOpened) {
@@ -119,15 +125,15 @@ export function Provider({ children }: ProviderProps) {
     [updateGroups],
   )
   const isBookmarked = React.useCallback(
-    (groupName: GroupName, s3File: S3HandleBase) =>
-      R.hasPath([groupName, 'entries', keyResolver(s3File)], groups),
+    (groupName: GroupName, handle: Model.S3.S3ObjectLocation) =>
+      R.hasPath([groupName, 'entries', keyResolver(handle)], groups),
     [groups],
   )
   const toggle = React.useCallback(
-    (groupName: GroupName, s3File: S3HandleBase) =>
-      isBookmarked(groupName, s3File)
-        ? remove(groupName, s3File)
-        : append(groupName, s3File),
+    (groupName: GroupName, handle: Model.S3.S3ObjectLocation) =>
+      isBookmarked(groupName, handle)
+        ? remove(groupName, handle)
+        : append(groupName, handle),
     [isBookmarked, remove, append],
   )
   const hide = React.useCallback(() => {
