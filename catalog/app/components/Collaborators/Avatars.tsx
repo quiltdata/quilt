@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import * as Model from 'model'
+import type * as Model from 'model'
 
 interface AvatarProps {
   className: string

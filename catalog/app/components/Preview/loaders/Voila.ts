@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
@@ -91,10 +92,7 @@ async function loadVoila({ src }: { src: string }) {
   })
 }
 
-interface FileHandle {
-  bucket: string
-  key: string
-  version: string
+interface FileHandle extends Model.S3.S3ObjectLocation {
   packageHandle: PackageHandle
 }
 
