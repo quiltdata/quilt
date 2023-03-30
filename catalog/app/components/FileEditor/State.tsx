@@ -5,7 +5,6 @@ import type * as Model from 'model'
 import * as AddToPackage from 'containers/AddToPackage'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { detect, useWriteData } from './loader'
 import { EditorInputType } from './types'
@@ -40,7 +39,7 @@ export interface EditorState {
 }
 
 // TODO: use Provider
-export function useState(handle: S3HandleBase): EditorState {
+export function useState(handle: Model.S3.S3ObjectLocation): EditorState {
   const types = React.useMemo(() => detect(handle.key), [handle.key])
   const location = RRDom.useLocation()
   const { edit } = parseSearch(location.search, true)

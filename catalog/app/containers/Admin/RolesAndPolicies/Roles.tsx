@@ -7,7 +7,7 @@ import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import assertNever from 'utils/assertNever'

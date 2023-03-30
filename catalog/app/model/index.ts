@@ -60,7 +60,7 @@ export interface PackageEntry {
 export type PackageContentsFlatMap = Record<string, PackageEntry>
 
 export interface S3File {
-  // TODO: replace with { address: { handle: S3HandleBase }}
+  // TODO: replace with { address: { handle: S3.S3ObjectLocation }}
   //       so, you can merge PackageEntry and S3File
   bucket: string
   key: string

@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import type * as Model from 'model'
 import { PackageHandle } from 'utils/packageHandle'
-import type { S3HandleBase } from 'utils/s3paths'
 import { useVoila } from 'utils/voila'
 
 import { PreviewData } from '../types'
@@ -23,7 +23,7 @@ interface PreviewResult {
   }
 }
 
-interface FileHandle extends S3HandleBase {
+interface FileHandle extends Model.S3.S3ObjectLocation {
   packageHandle: PackageHandle
 }
 
