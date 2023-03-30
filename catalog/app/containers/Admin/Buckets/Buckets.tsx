@@ -9,6 +9,7 @@ import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+import * as Sentry from '@sentry/react'
 
 import BucketIcon from 'components/BucketIcon'
 import * as Dialog from 'components/Dialog'
@@ -20,9 +21,9 @@ import * as APIConnector from 'utils/APIConnector'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
+import { useMutation } from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Sentry from 'utils/Sentry'
 import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
@@ -373,13 +374,13 @@ interface BucketFieldsProps {
 function BucketFields({ bucket, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
 
+  // TODO: use our useQuery
   const [{ error, data }] = urql.useQuery({ query: CONTENT_INDEXING_SETTINGS_QUERY })
   if (!data && error) throw error
 
-  const sentry = Sentry.use()
   React.useEffect(() => {
-    if (data && error) sentry('captureException', error)
-  }, [error, data, sentry])
+    if (data && error) Sentry.captureException(error)
+  }, [error, data])
 
   const settings = data!.config.contentIndexingSettings
 
@@ -736,15 +737,12 @@ interface AddProps {
 function Add({ close }: AddProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const [, add] = urql.useMutation(ADD_MUTATION)
+  const add = useMutation(ADD_MUTATION)
   const onSubmit = React.useCallback(
     async (values) => {
       try {
         const input = R.applySpec(addFormSpec)(values)
-        const res = await add({ input })
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.bucketAdd
+        const { bucketAdd: r } = await add({ input })
         switch (r.__typename) {
           case 'BucketAddSuccess':
             push(`Bucket "${r.bucketConfig.name}" added`)
@@ -988,7 +986,7 @@ interface EditProps {
 }
 
 function Edit({ bucket, close }: EditProps) {
-  const [, update] = urql.useMutation(UPDATE_MUTATION)
+  const update = useMutation(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
@@ -998,10 +996,7 @@ function Edit({ bucket, close }: EditProps) {
     async (values) => {
       try {
         const input = R.applySpec(editFormSpec)(values)
-        const res = await update({ name: bucket.name, input })
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.bucketUpdate
+        const { bucketUpdate: r } = await update({ name: bucket.name, input })
         switch (r.__typename) {
           case 'BucketUpdateSuccess':
             close()
@@ -1138,14 +1133,11 @@ interface DeleteProps {
 function Delete({ bucket, close }: DeleteProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const [, rm] = urql.useMutation(REMOVE_MUTATION)
+  const rm = useMutation(REMOVE_MUTATION)
   const doDelete = React.useCallback(async () => {
     close()
     try {
-      const res = await rm({ name: bucket.name })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.bucketRemove
+      const { bucketRemove: r } = await rm({ name: bucket.name })
       switch (r.__typename) {
         case 'BucketRemoveSuccess':
           t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
@@ -1291,10 +1283,9 @@ function CRUD({ bucketName }: CRUDProps) {
   const [{ error, data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
   if (!data && error) throw error
 
-  const sentry = Sentry.use()
   React.useEffect(() => {
-    if (data && error) sentry('captureException', error)
-  }, [error, data, sentry])
+    if (data && error) Sentry.captureException(error)
+  }, [error, data])
 
   const rows = data!.bucketConfigs
   const ordering = Table.useOrdering({ rows, column: columns[0] })

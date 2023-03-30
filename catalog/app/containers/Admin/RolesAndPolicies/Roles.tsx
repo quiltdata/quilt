@@ -10,6 +10,7 @@ import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
+import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
@@ -153,8 +154,8 @@ interface CreateProps {
 function Create({ close }: CreateProps) {
   const classes = useStyles()
 
-  const [, createManaged] = urql.useMutation(ROLE_CREATE_MANAGED_MUTATION)
-  const [, createUnmanaged] = urql.useMutation(ROLE_CREATE_UNMANAGED_MUTATION)
+  const createManaged = useMutation(ROLE_CREATE_MANAGED_MUTATION)
+  const createUnmanaged = useMutation(ROLE_CREATE_UNMANAGED_MUTATION)
 
   const { push } = Notifications.use()
 
@@ -163,17 +164,15 @@ function Create({ close }: CreateProps) {
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        let res
+        let data
         if (managed) {
           const input = R.applySpec(managedRoleFormSpec)(values)
-          res = await createManaged({ input })
+          data = await createManaged({ input })
         } else {
           const input = R.applySpec(unmanagedRoleFormSpec)(values)
-          res = await createUnmanaged({ input })
+          data = await createUnmanaged({ input })
         }
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.roleCreate
+        const r = data.roleCreate
         switch (r.__typename) {
           case 'RoleCreateSuccess':
             push(`Role "${r.role.name}" created`)
@@ -323,15 +322,12 @@ interface DeleteProps {
 
 function Delete({ role, close }: DeleteProps) {
   const { push } = Notifications.use()
-  const [, deleteRole] = urql.useMutation(ROLE_DELETE_MUTATION)
+  const deleteRole = useMutation(ROLE_DELETE_MUTATION)
 
   const doDelete = React.useCallback(async () => {
     close()
     try {
-      const res = await deleteRole({ id: role.id })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.roleDelete
+      const { roleDelete: r } = await deleteRole({ id: role.id })
       switch (r.__typename) {
         case 'RoleDeleteSuccess':
         case 'RoleDoesNotExist': // ignore if role was not found
@@ -382,15 +378,12 @@ interface SetDefaultProps {
 
 function SetDefault({ role, close }: SetDefaultProps) {
   const { push } = Notifications.use()
-  const [, setDefault] = urql.useMutation(ROLE_SET_DEFAULT_MUTATION)
+  const setDefault = useMutation(ROLE_SET_DEFAULT_MUTATION)
 
   const doSetDefault = React.useCallback(async () => {
     close()
     try {
-      const res = await setDefault({ id: role.id })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.roleSetDefault
+      const { roleSetDefault: r } = await setDefault({ id: role.id })
       switch (r.__typename) {
         case 'RoleDoesNotExist':
           throw new Error(r.__typename)
@@ -465,25 +458,23 @@ interface EditProps {
 }
 
 function Edit({ role, close }: EditProps) {
-  const [, updateManaged] = urql.useMutation(ROLE_UPDATE_MANAGED_MUTATION)
-  const [, updateUnmanaged] = urql.useMutation(ROLE_UPDATE_UNMANAGED_MUTATION)
+  const updateManaged = useMutation(ROLE_UPDATE_MANAGED_MUTATION)
+  const updateUnmanaged = useMutation(ROLE_UPDATE_UNMANAGED_MUTATION)
 
   const managed = role.__typename === 'ManagedRole'
 
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        let res
+        let data
         if (managed) {
           const input = R.applySpec(managedRoleFormSpec)(values)
-          res = await updateManaged({ input, id: role.id })
+          data = await updateManaged({ input, id: role.id })
         } else {
           const input = R.applySpec(unmanagedRoleFormSpec)(values)
-          res = await updateUnmanaged({ input, id: role.id })
+          data = await updateUnmanaged({ input, id: role.id })
         }
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.roleUpdate
+        const r = data.roleUpdate
         switch (r.__typename) {
           case 'RoleUpdateSuccess':
             close()
@@ -700,6 +691,7 @@ interface DialogsOpenProps {
 }
 
 export default function Roles() {
+  // TODO: use utils/GraphQL.useQuery
   const [{ data }] = urql.useQuery({ query: ROLES_QUERY })
   const rows = data!.roles
   const defaultRoleId = data!.defaultRole?.id

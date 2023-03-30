@@ -21,6 +21,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
+import { useMutation } from 'utils/GraphQL'
 // import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
@@ -245,15 +246,12 @@ function DirDisplay({
     )
   }, [])
 
-  const [, deleteRevision] = urql.useMutation(DELETE_REVISION)
+  const deleteRevision = useMutation(DELETE_REVISION)
 
   const handlePackageDeletion = React.useCallback(async () => {
     setDeletionState(R.assoc('loading', true))
     try {
-      const res = await deleteRevision({ bucket, name, hash })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data returned by the API')
-      const r = res.data.packageRevisionDelete
+      const { packageRevisionDelete: r } = await deleteRevision({ bucket, name, hash })
       switch (r.__typename) {
         case 'PackageRevisionDeleteSuccess':
           setDeletionState(R.mergeLeft({ opened: false, loading: false }))
