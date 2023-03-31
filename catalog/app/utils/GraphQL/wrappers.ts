@@ -23,10 +23,6 @@ export class MutationError<Data, Variables> extends OperationError {
   }
 }
 
-const defaultErrorHandler = <Data>(error: urql.CombinedError | QueryError<Data>) => {
-  throw error
-}
-
 interface FoldOptions<Data, OnData, OnFecthing, OnError = never> {
   data: (data: Data, result: urql.UseQueryState<Data, any>) => OnData
   fetching: (result: urql.UseQueryState<Data, any>) => OnFecthing
@@ -35,21 +31,38 @@ interface FoldOptions<Data, OnData, OnFecthing, OnError = never> {
     result: urql.UseQueryState<Data, any>,
   ) => OnError
   partial?: boolean
+  silent?: boolean
 }
 
 export const foldC =
   <Data, OnData, OnFetching, OnError = never>({
     data,
-    error = defaultErrorHandler,
+    error,
     fetching,
     partial = false,
+    silent = false,
   }: FoldOptions<Data, OnData, OnFetching, OnError>) =>
   (result: urql.UseQueryState<Data, any>) => {
     const isPartial = result.operation?.context?.meta?.cacheOutcome === 'partial'
     if (!partial && isPartial) return fetching(result)
-    if (result.data) return data(result.data, result)
+
+    if (result.data) {
+      if (!silent && result.error) {
+        log.warn('Non-critical error while executing the query:', result.error)
+        Sentry.captureException(result.error, { extra: { result } })
+      }
+      return data(result.data, result)
+    }
+
     if (result.fetching) return fetching(result)
-    return error(result.error || new QueryError(result), result)
+
+    const err = result.error || new QueryError(result)
+    if (error) return error(err, result)
+    if (!silent) {
+      log.error('Critical error while executing the query:', err)
+      Sentry.captureException(err, { extra: { result } })
+    }
+    throw error
   }
 
 export const fold = <Data, OnData, OnFetching, OnError = never>(
@@ -104,17 +117,23 @@ export function useMutation<Data, Variables>(query: QueryInput<Data, Variables>)
   const [, execMutation] = urql.useMutation<Data, Variables>(query)
 
   return React.useCallback(
-    async (variables?: Variables, context?: Partial<urql.OperationContext>) => {
-      const result = await execMutation(variables, context)
+    async (
+      variables?: Variables,
+      context?: Partial<urql.OperationContext> & { silent?: boolean },
+    ) => {
+      const { silent = false, ...ctx } = context || {}
+      const result = await execMutation(variables, ctx)
 
       if (!result.data) {
         const err = result.error || new MutationError(result)
-        log.error('Critical error while executing the mutation:', err)
-        Sentry.captureException(err, { extra: { result } })
+        if (!silent) {
+          log.error('Critical error while executing the mutation:', err)
+          Sentry.captureException(err, { extra: { result } })
+        }
         throw err
       }
 
-      if (result.error) {
+      if (!silent && result.error) {
         log.warn('Non-critical error while executing the mutation:', result.error)
         Sentry.captureException(result.error, { extra: { result } })
       }
