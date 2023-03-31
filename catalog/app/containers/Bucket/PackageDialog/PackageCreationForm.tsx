@@ -182,6 +182,7 @@ interface PackageCreationFormProps {
   workflowsConfig: workflows.WorkflowsConfig
   delayHashing: boolean
   disableStateDisplay: boolean
+  dropZoneOnly: boolean
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -207,6 +208,7 @@ function PackageCreationForm({
   workflowsConfig,
   delayHashing,
   disableStateDisplay,
+  dropZoneOnly,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
@@ -540,7 +542,7 @@ function PackageCreationForm({
               />
 
               <Layout.Container>
-                <Layout.LeftColumn>
+                <Layout.LeftColumn hide={dropZoneOnly}>
                   <RF.Field
                     component={PD.WorkflowInput}
                     bucket={bucket}
@@ -602,7 +604,7 @@ function PackageCreationForm({
                   )}
                 </Layout.LeftColumn>
 
-                <Layout.RightColumn>
+                <Layout.RightColumn fullWidth={dropZoneOnly}>
                   {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
@@ -735,6 +737,7 @@ interface UsePackageCreationDialogProps {
   initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  dropZoneOnly?: boolean
 }
 
 // TODO: package can be created from some `src`:
@@ -748,6 +751,7 @@ export function usePackageCreationDialog({
   initialOpen,
   delayHashing = false,
   disableStateDisplay = false,
+  dropZoneOnly = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
@@ -902,6 +906,7 @@ export function usePackageCreationDialog({
                     initial: { name: src?.name, path: s3Path, ...manifest },
                     delayHashing,
                     disableStateDisplay,
+                    dropZoneOnly,
                     onSuccessor: setSuccessor,
                     ui: {
                       title: ui.title,
