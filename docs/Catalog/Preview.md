@@ -38,12 +38,12 @@ The following file formats are supported:
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
 
-## Advanced
+## Advanced: Quilt Package File Server
 
-The Quilt catalog supports secure, custom Javascript-enabled visualizations and
-dashboards embedded inside iframes.
-It is at your discretion which JS library (or libraries) you wish to import in
-your HTML file.
+The Quilt Catalog supports secure, custom Javascript-enabled
+visualizations and dashboards embedded inside iframes (Package
+File Server). It is at your discretion which JS library (or libraries)
+you wish to import in your HTML file.
 
 To enable "permissive" visualizations, check the `Enable permissive HTML
 rendering` checkbox in [Bucket settings](Admin.md#buckets). Please note
@@ -66,3 +66,8 @@ session, although all session traffic _remains encrypted_.
 > **All files in the same package** are made temporarily publicly-available (for
 > lifetime of the session) under `/temporary-session-id`, even if not explicitly
 referenced in `report.html`.
+
+### Live packages
+
+- [Dynamic visualizations; interactive IGV dashboard; Perspective datagrids with
+images](https://open.quiltdata.com/b/quilt-example/packages/examples/package-file-server)
