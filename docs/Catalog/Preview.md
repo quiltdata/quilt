@@ -69,5 +69,5 @@ referenced in `report.html`.
 
 ### Live packages
 
-- [Dynamic visualizations; interactive IGV dashboard; Perspective datagrids with
+* [Dynamic visualizations; interactive IGV dashboard; Perspective datagrids with
 images](https://open.quiltdata.com/b/quilt-example/packages/examples/package-file-server)
