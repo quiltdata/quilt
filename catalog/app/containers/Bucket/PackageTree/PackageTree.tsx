@@ -5,7 +5,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
-import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -21,7 +20,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
-import { useMutation } from 'utils/GraphQL'
+import * as GQL from 'utils/GraphQL'
 // import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
@@ -31,7 +30,6 @@ import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
-import { UseQueryResult, useQuery } from 'utils/useQuery'
 import * as workflows from 'utils/workflows'
 
 import Code from '../Code'
@@ -191,9 +189,11 @@ function DirDisplay({
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
 
-  const dirQuery = useQuery({
-    query: DIR_QUERY,
-    variables: { bucket, name, hash, path: s3paths.ensureNoSlash(path) },
+  const dirQuery = GQL.useQuery(DIR_QUERY, {
+    bucket,
+    name,
+    hash,
+    path: s3paths.ensureNoSlash(path),
   })
 
   const mkUrl = React.useCallback(
@@ -246,7 +246,7 @@ function DirDisplay({
     )
   }, [])
 
-  const deleteRevision = useMutation(DELETE_REVISION)
+  const deleteRevision = GQL.useMutation(DELETE_REVISION)
 
   const handlePackageDeletion = React.useCallback(async () => {
     setDeletionState(R.assoc('loading', true))
@@ -317,7 +317,7 @@ function DirDisplay({
         title: 'Push package revision',
       })}
 
-      {dirQuery.case({
+      {GQL.fold(dirQuery, {
         // TODO: skeleton placeholder
         fetching: () => (
           <>
@@ -538,11 +538,8 @@ function FileDisplayQuery({
   crumbs,
   ...props
 }: FileDisplayQueryProps) {
-  const fileQuery = useQuery({
-    query: FILE_QUERY,
-    variables: { bucket, name, hash, path },
-  })
-  return fileQuery.case({
+  const fileQuery = GQL.useQuery(FILE_QUERY, { bucket, name, hash, path })
+  return GQL.fold(fileQuery, {
     fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
     data: (d) => {
       const file = d.package?.revision?.file
@@ -771,7 +768,7 @@ interface PackageTreeProps {
   path: string
   mode?: string
   resolvedFrom?: string
-  revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
+  revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
   size?: number
 }
 
@@ -790,7 +787,7 @@ function PackageTree({
   const { urls } = NamedRoutes.use()
 
   // TODO: use urql to get bucket config
-  // const [{ data }] = urql.useQuery({
+  // const data = useQuery({
   //   ..
   // })
   //
@@ -918,17 +915,10 @@ function PackageTreeQueries({
   resolvedFrom,
   mode,
 }: PackageTreeQueriesProps) {
-  const revisionQuery = useQuery({
-    query: REVISION_QUERY,
-    variables: { bucket, name, hashOrTag },
-  })
+  const revisionQuery = GQL.useQuery(REVISION_QUERY, { bucket, name, hashOrTag })
+  const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, { bucket, name })
 
-  const revisionListQuery = useQuery({
-    query: REVISION_LIST_QUERY,
-    variables: { bucket, name },
-  })
-
-  return revisionQuery.case({
+  return GQL.fold(revisionQuery, {
     fetching: () => <Placeholder color="text.secondary" />,
     error: (e) => errors.displayError()(e),
     data: (d) => {

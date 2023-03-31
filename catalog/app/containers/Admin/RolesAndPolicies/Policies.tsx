@@ -3,14 +3,13 @@ import * as IO from 'io-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
-import { useMutation } from 'utils/GraphQL'
+import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as Types from 'utils/types'
@@ -146,8 +145,8 @@ interface CreateProps {
 function Create({ close }: CreateProps) {
   const classes = useStyles()
 
-  const createManaged = useMutation(POLICY_CREATE_MANAGED_MUTATION)
-  const createUnmanaged = useMutation(POLICY_CREATE_UNMANAGED_MUTATION)
+  const createManaged = GQL.useMutation(POLICY_CREATE_MANAGED_MUTATION)
+  const createUnmanaged = GQL.useMutation(POLICY_CREATE_UNMANAGED_MUTATION)
 
   const { push } = Notifications.use()
 
@@ -314,7 +313,7 @@ interface DeleteProps {
 
 function Delete({ policy, close }: DeleteProps) {
   const { push } = Notifications.use()
-  const deletePolicy = useMutation(POLICY_DELETE_MUTATION)
+  const deletePolicy = GQL.useMutation(POLICY_DELETE_MUTATION)
 
   const doDelete = React.useCallback(async () => {
     close()
@@ -420,8 +419,8 @@ interface EditProps {
 }
 
 function Edit({ policy, close }: EditProps) {
-  const updateManaged = useMutation(POLICY_UPDATE_MANAGED_MUTATION)
-  const updateUnmanaged = useMutation(POLICY_UPDATE_UNMANAGED_MUTATION)
+  const updateManaged = GQL.useMutation(POLICY_UPDATE_MANAGED_MUTATION)
+  const updateUnmanaged = GQL.useMutation(POLICY_UPDATE_UNMANAGED_MUTATION)
 
   const onSubmit = React.useCallback(
     async (values) => {
@@ -648,9 +647,7 @@ interface DialogsOpenProps {
 }
 
 export default function Policies() {
-  // TODO: use useQuery from utils/GraphQL
-  const [{ data }] = urql.useQuery({ query: POLICIES_QUERY })
-  const rows = data!.policies
+  const { policies: rows } = GQL.useQueryS(POLICIES_QUERY)
 
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const dialogs = Dialogs.use()

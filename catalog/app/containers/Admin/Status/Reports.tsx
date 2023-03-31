@@ -11,8 +11,8 @@ import * as DG from 'components/DataGrid'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
+import { useQuery } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import useQuery from 'utils/useQuery'
 
 import { useDataGridStyles } from './DataGrid'
 import REPORTS_QUERY from './gql/Reports.generated'
@@ -258,13 +258,9 @@ export default function Reports({
 
   const pause = R.equals(defaults, variables)
 
-  const queryResult = useQuery({
-    query: REPORTS_QUERY,
-    pause,
-    variables,
-  })
+  const queryResult = useQuery(REPORTS_QUERY, variables, { pause })
 
-  invariant(queryResult.data?.status?.__typename !== 'Unavailable', 'Status unavalable')
+  invariant(queryResult.data?.status?.__typename !== 'Unavailable', 'Status unavailable')
 
   const rows = (
     pause ? firstPage : queryResult.data?.status?.reports.page ?? fallbacks.rows

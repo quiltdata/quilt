@@ -3,14 +3,13 @@ import * as IO from 'io-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
-import { useMutation } from 'utils/GraphQL'
+import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
@@ -154,8 +153,8 @@ interface CreateProps {
 function Create({ close }: CreateProps) {
   const classes = useStyles()
 
-  const createManaged = useMutation(ROLE_CREATE_MANAGED_MUTATION)
-  const createUnmanaged = useMutation(ROLE_CREATE_UNMANAGED_MUTATION)
+  const createManaged = GQL.useMutation(ROLE_CREATE_MANAGED_MUTATION)
+  const createUnmanaged = GQL.useMutation(ROLE_CREATE_UNMANAGED_MUTATION)
 
   const { push } = Notifications.use()
 
@@ -322,7 +321,7 @@ interface DeleteProps {
 
 function Delete({ role, close }: DeleteProps) {
   const { push } = Notifications.use()
-  const deleteRole = useMutation(ROLE_DELETE_MUTATION)
+  const deleteRole = GQL.useMutation(ROLE_DELETE_MUTATION)
 
   const doDelete = React.useCallback(async () => {
     close()
@@ -378,7 +377,7 @@ interface SetDefaultProps {
 
 function SetDefault({ role, close }: SetDefaultProps) {
   const { push } = Notifications.use()
-  const setDefault = useMutation(ROLE_SET_DEFAULT_MUTATION)
+  const setDefault = GQL.useMutation(ROLE_SET_DEFAULT_MUTATION)
 
   const doSetDefault = React.useCallback(async () => {
     close()
@@ -458,8 +457,8 @@ interface EditProps {
 }
 
 function Edit({ role, close }: EditProps) {
-  const updateManaged = useMutation(ROLE_UPDATE_MANAGED_MUTATION)
-  const updateUnmanaged = useMutation(ROLE_UPDATE_UNMANAGED_MUTATION)
+  const updateManaged = GQL.useMutation(ROLE_UPDATE_MANAGED_MUTATION)
+  const updateUnmanaged = GQL.useMutation(ROLE_UPDATE_UNMANAGED_MUTATION)
 
   const managed = role.__typename === 'ManagedRole'
 
@@ -691,10 +690,9 @@ interface DialogsOpenProps {
 }
 
 export default function Roles() {
-  // TODO: use utils/GraphQL.useQuery
-  const [{ data }] = urql.useQuery({ query: ROLES_QUERY })
-  const rows = data!.roles
-  const defaultRoleId = data!.defaultRole?.id
+  const data = GQL.useQueryS(ROLES_QUERY)
+  const rows = data.roles
+  const defaultRoleId = data.defaultRole?.id
 
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const dialogs = Dialogs.use()

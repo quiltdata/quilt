@@ -6,10 +6,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
-import * as Sentry from '@sentry/react'
 
 import BucketIcon from 'components/BucketIcon'
 import * as Dialog from 'components/Dialog'
@@ -21,7 +19,7 @@ import * as APIConnector from 'utils/APIConnector'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
-import { useMutation } from 'utils/GraphQL'
+import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledTooltip from 'utils/StyledTooltip'
@@ -374,15 +372,8 @@ interface BucketFieldsProps {
 function BucketFields({ bucket, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
 
-  // TODO: use our useQuery
-  const [{ error, data }] = urql.useQuery({ query: CONTENT_INDEXING_SETTINGS_QUERY })
-  if (!data && error) throw error
-
-  React.useEffect(() => {
-    if (data && error) Sentry.captureException(error)
-  }, [error, data])
-
-  const settings = data!.config.contentIndexingSettings
+  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
+  const settings = data.config.contentIndexingSettings
 
   return (
     <M.Box>
@@ -737,7 +728,7 @@ interface AddProps {
 function Add({ close }: AddProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const add = useMutation(ADD_MUTATION)
+  const add = GQL.useMutation(ADD_MUTATION)
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -986,7 +977,7 @@ interface EditProps {
 }
 
 function Edit({ bucket, close }: EditProps) {
-  const update = useMutation(UPDATE_MUTATION)
+  const update = GQL.useMutation(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
@@ -1133,7 +1124,7 @@ interface DeleteProps {
 function Delete({ bucket, close }: DeleteProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const rm = useMutation(REMOVE_MUTATION)
+  const rm = GQL.useMutation(REMOVE_MUTATION)
   const doDelete = React.useCallback(async () => {
     close()
     try {
@@ -1280,14 +1271,7 @@ interface CRUDProps {
 }
 
 function CRUD({ bucketName }: CRUDProps) {
-  const [{ error, data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
-  if (!data && error) throw error
-
-  React.useEffect(() => {
-    if (data && error) Sentry.captureException(error)
-  }, [error, data])
-
-  const rows = data!.bucketConfigs
+  const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
     // @ts-expect-error

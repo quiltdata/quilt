@@ -4,8 +4,8 @@ import * as M from '@material-ui/core'
 
 import defaultBucketIcon from 'components/BucketIcon/bucket.svg'
 import * as Model from 'model'
+import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
-import useQuery from 'utils/useQuery'
 
 import BUCKETS_QUERY from './gql/Buckets.generated'
 import { BucketPermissionSelectionFragment as BucketPermission } from './gql/BucketPermissionSelection.generated'
@@ -103,7 +103,7 @@ export default function BucketsPermissions({
   const error =
     meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
-  const bucketsData = useQuery({ query: BUCKETS_QUERY })
+  const bucketsData = GQL.useQuery(BUCKETS_QUERY)
 
   const [permissionMenuState, setPermissionMenuState] = React.useState<{
     anchorEl: HTMLElement
@@ -156,7 +156,7 @@ export default function BucketsPermissions({
 
   const availableBuckets = React.useMemo(
     () =>
-      bucketsData.case({
+      GQL.fold(bucketsData, {
         fetching: () => null,
         error: () => null,
         data: ({ buckets }) => {
@@ -188,7 +188,7 @@ export default function BucketsPermissions({
             info_outlined
           </M.Icon>
         </M.Tooltip>
-        {bucketsData.case({
+        {GQL.fold(bucketsData, {
           data: () => null,
           fetching: () => (
             <M.Tooltip arrow title="Fetching buckets">
