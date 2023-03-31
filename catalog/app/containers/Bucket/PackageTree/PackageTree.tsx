@@ -199,6 +199,11 @@ function DirDisplay({
     (handle) => urls.bucketPackageTree(bucket, name, hashOrTag, handle.logicalKey),
     [urls, bucket, name, hashOrTag],
   )
+  const location = RRDom.useLocation()
+  const searchParams = React.useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  )
 
   const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
 
@@ -206,6 +211,7 @@ function DirDisplay({
     initialOpen,
     bucket,
     src: { name, hash },
+    dropZoneOnly: searchParams.get('upload') === 'auto',
   })
 
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)

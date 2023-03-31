@@ -606,6 +606,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
+    dropZoneOnly: true,
   })
   const openPackageCreationDialog = React.useCallback(
     () => createDialog.open(),
