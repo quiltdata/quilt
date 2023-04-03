@@ -2,8 +2,8 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
-import type { S3HandleBase } from 'utils/s3paths'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
@@ -36,7 +36,7 @@ function guessAvailableModes(json: JsonRecord, jsonStr: string) {
 
 interface JsonLoaderProps {
   gated: boolean
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
   children: (result: $TSFixMe) => React.ReactNode
 }
 
@@ -111,7 +111,7 @@ function findLoader(firstBytes: string, options: LoaderOptions) {
 
 interface LoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
   options: LoaderOptions
 }
 

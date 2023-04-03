@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import * as Model from 'model'
+import type * as Model from 'model'
 import AR from 'utils/AsyncResult'
 import * as Types from 'utils/types'
 import useQuery from 'utils/useQuery'

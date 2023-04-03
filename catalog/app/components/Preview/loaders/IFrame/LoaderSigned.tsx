@@ -1,8 +1,8 @@
 import * as React from 'react'
 
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as s3paths from 'utils/s3paths'
 
 import { PreviewData } from '../../types'
 
@@ -10,7 +10,7 @@ import FileType from '../fileType'
 
 interface IFrameLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: s3paths.S3HandleBase
+  handle: Model.S3.S3ObjectLocation
 }
 
 export default function IFrameLoader({ handle, children }: IFrameLoaderProps) {
