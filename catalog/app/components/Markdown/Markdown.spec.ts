@@ -7,7 +7,7 @@ const processLink = () => 'LINK'
 const processImg = () => 'IMAGE'
 
 describe('components/Markdown', () => {
-  describe('getRender', () => {
+  describe('getRenderer', () => {
     // @ts-expect-error
     const render = getRenderer({ processImg, processLink, win })
     it('Process only images and links', () => {
