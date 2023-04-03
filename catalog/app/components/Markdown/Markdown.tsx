@@ -168,7 +168,7 @@ function htmlHandler(
 interface RendererArgs {
   processImg?: AttributeProcessor
   processLink?: AttributeProcessor
-  win?: $TSFixMe
+  win?: Window
 }
 
 export const getRenderer = memoize(

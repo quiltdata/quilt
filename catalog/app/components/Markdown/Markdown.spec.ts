@@ -8,6 +8,7 @@ const processImg = () => 'IMAGE'
 
 describe('components/Markdown', () => {
   describe('getRender', () => {
+    // @ts-expect-error
     const render = getRenderer({ processImg, processLink, win })
     it('Process only images and links', () => {
       const input = `Something
@@ -50,6 +51,7 @@ describe('components/Markdown', () => {
       const hack = getRenderer({
         processImg,
         processLink: () => 'javascript:alert(0)',
+        // @ts-expect-error
         win,
       })
       expect(hack('<a href="anything">l</a>')).toBe('<p><a rel="nofollow">l</a></p>\n')
