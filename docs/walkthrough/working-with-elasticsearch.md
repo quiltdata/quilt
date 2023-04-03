@@ -37,7 +37,7 @@ buckets due to how registries are laid out in Amazon S3.
 ### Example
 
 Below is an example using Python to search the Quilt data package 
-documents index (`*_packages`) across all S3 buckets (`*`), 
+documents index (`*_packages`) across all fields (`*`), 
 returning the top `1000` results.
 
 <!--pytest.mark.skip-->
@@ -70,13 +70,12 @@ query = rbody = {
     }
 }
 
-to_search = "*_packages"
-_source = ['*']
+to_search = "*_packages" # search all package indexes in this stack
 
 elastic.search(
     index=to_search,
     body=rbody,
-    _source=_source,
+    _source=['*'],
     size=1000,
 )
 ```
