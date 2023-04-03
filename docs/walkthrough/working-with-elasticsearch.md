@@ -10,8 +10,8 @@ your Quilt Elasticsearch cluster.
 
 Each Amazon S3 bucket connected to Quilt has two Elasticsearch indexes
 with the following aliases:
-1. `S3_BUCKET_NAME`: Contains one document per object in the bucket.
-2. `S3_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
+1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
+2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
 
 ## Querying Elasticsearch with Python
 
