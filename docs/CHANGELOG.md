@@ -14,6 +14,10 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+* [Added] `--no-copy` parameter to `Package.push()` ([#3398](https://github.com/quiltdata/quilt/pull/3398))
+
 # 5.2.1 - 2023-04-05
 ## Python API
 * [Fixed] Fixed CSV serialization with pandas 2 ([#3395](https://github.com/quiltdata/quilt/pull/3395))
