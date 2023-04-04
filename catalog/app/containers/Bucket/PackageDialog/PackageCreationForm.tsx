@@ -291,7 +291,6 @@ function PackageCreationForm({
   )
 
   const onSubmitWeb = async ({ name, msg, files, meta, workflow }: SubmitWebArgs) => {
-    console.log('submit web', { name, msg, files, meta, workflow })
     const addedS3Entries: S3Entry[] = []
     const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
@@ -308,7 +307,6 @@ function PackageCreationForm({
     })
 
     const entries = filesStateToEntries(files)
-    console.log({ entries })
 
     if (!entries.length) {
       const reason = await dialogs.open((props: DialogsOpenProps) => (
@@ -323,7 +321,6 @@ function PackageCreationForm({
     }
 
     const error = await validateEntries(entries)
-    console.log('VALIDATE ENTRIES', error)
     if (error?.length) {
       setEntriesError(error)
       return {
@@ -374,27 +371,8 @@ function PackageCreationForm({
       })),
       R.sortBy(R.prop('logicalKey')),
     )
-    console.log({ allEntries })
 
     try {
-      console.log('CONSTRUCT PACKAGE', {
-        params: {
-          bucket: successor.slug,
-          name,
-          message: msg,
-          userMeta: requests.getMetaValue(meta, schema) ?? null,
-          workflow:
-            // eslint-disable-next-line no-nested-ternary
-            workflow.slug === workflows.notAvailable
-              ? null
-              : workflow.slug === workflows.notSelected
-              ? ''
-              : workflow.slug,
-        },
-        src: {
-          entries: allEntries,
-        },
-      })
       const res = await constructPackage({
         params: {
           bucket: successor.slug,
@@ -476,12 +454,11 @@ function PackageCreationForm({
   const [dropping, setDropping] = React.useState(false)
   const onFilesChange = React.useCallback(
     (submit) => {
-      console.log('FILES CHANGE INIT', submit)
-      return async ({ dirtyFields, values }: FF.FormState<{ files: FI.FilesState }>) => {
-        console.log({ dropping })
+      return async ({ dirtyFields, values }: FF.FormState<SubmitWebArgs>) => {
         if (!dirtyFields.files || dropping) return
-        console.log({ dirtyFields, values })
         setDropping(true)
+        setSubmitting(true)
+        await validateFiles(values.files)
         await submit()
         setDropping(false)
       }
@@ -625,6 +602,7 @@ function PackageCreationForm({
                     name="msg"
                     validate={validators.required as FF.FieldValidator<string>}
                     validateFields={['msg']}
+                    initialValue={dropZoneOnly ? `WIP: Test` : undefined}
                     errors={{
                       required: 'Enter a commit message',
                     }}
@@ -803,7 +781,7 @@ export function usePackageCreationDialog({
   // TODO: put it to src as S3Handle
   const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
-  const [submitting, setSubmitting] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(true)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState({
