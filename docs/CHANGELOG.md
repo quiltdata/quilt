@@ -14,6 +14,10 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+* [Fixed] Fixed CSV serialization with pandas 2
+
 # 5.2.0 - 2023-03-27
 ## Python API
 * [Added] Validation of package entries metadata ([#3286](https://github.com/quiltdata/quilt/pull/3286))
