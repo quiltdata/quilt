@@ -477,7 +477,7 @@ function PackageCreationForm({
   const onFilesChange = React.useCallback(
     (submit) => {
       console.log('FILES CHANGE INIT', submit)
-      return async ({ dirtyFields, values }) => {
+      return async ({ dirtyFields, values }: FF.FormState<{ files: FI.FilesState }>) => {
         console.log({ dropping })
         if (!dirtyFields.files || dropping) return
         console.log({ dirtyFields, values })
