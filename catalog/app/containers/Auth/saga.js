@@ -150,6 +150,23 @@ function* signIn(credentials) {
   }
 }
 
+function* setBrowseCookie(tokens) {
+  try {
+    yield call(apiRequest, {
+      auth: { tokens, handleInvalidToken: false },
+      // endpoint: `/set_browse_cookie`,
+      url: 'http://localhost:8080/browse/set_browse_cookie',
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch (e) {
+    throw new errors.AuthError({
+      message: 'unable to set browse cookie',
+      originalError: e,
+    })
+  }
+}
+
 /**
  * Fetch user data.
  *
@@ -328,6 +345,7 @@ function* handleSignIn(
     const tokensRaw = yield call(signIn, credentials)
     const tokens = adjustTokensForLatency(tokensRaw, latency)
     const user = yield call(fetchUser, tokens)
+    yield call(setBrowseCookie, tokens)
     yield fork(storeTokens, tokens)
     yield fork(storeUser, user)
     yield put(actions.signIn.resolve({ tokens, user }))
@@ -468,6 +486,7 @@ function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: er
 function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
   try {
     yield call(signUp, credentials)
+    // TODO: yield call(setBrowseCookie, tokens)
     yield call(resolve)
   } catch (e) {
     yield call(reject, e)
