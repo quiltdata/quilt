@@ -1062,24 +1062,14 @@ class AnnDataFormatHandler(BaseFormatHandler):
         return super().handles_type(typ)
 
     def serialize(self, obj, meta=None, ext=None, **format_opts):
-        import h5py
-
         opts = self.get_opts(meta, format_opts)
         opts_with_defaults = copy.deepcopy(self.defaults)
         opts_with_defaults.update(opts)
-        try:
-            from anndata.experimental import write_elem
-        except ImportError:  # pragma: no cover
-            warnings.warn("anndata.experimenta.write_elem got moved", FutureWarning)
-            with tempfile.TemporaryDirectory() as td:
-                path = Path(td) / 'data.h5ad'
-                obj.write(path, **opts_with_defaults)
-                data = path.read_bytes()
-        else:
-            buf = io.BytesIO()
-            with h5py.File(buf, "w") as f:
-                write_elem(f, "/", obj)
-            data = buf.getvalue()
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'data.h5ad'
+            obj.write(path, **opts_with_defaults)
+            data = path.read_bytes()
 
         return data, self._update_meta(meta, additions=opts_with_defaults)
 
@@ -1089,17 +1079,8 @@ class AnnDataFormatHandler(BaseFormatHandler):
         except ImportError:  # pragma: no cover
             raise QuiltException("Please install quilt3[anndata]")
 
-        import h5py
-
         buf = io.BytesIO(bytes_obj)
-        try:
-            from anndata.experimental import read_elem
-        except ImportError:  # pragma: no cover
-            warnings.warn("anndata.experimenta.read_elem got moved", FutureWarning)
-            return ad.read_h5ad(buf)
-
-        with h5py.File(buf, "r") as f:
-            return read_elem(f["/"])
+        return ad.read_h5ad(buf)
 
 
 AnnDataFormatHandler().register()
