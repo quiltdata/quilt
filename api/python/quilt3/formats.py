@@ -72,8 +72,8 @@ import gzip
 import importlib
 import io
 import json
-import tempfile
 import sys
+import tempfile
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
