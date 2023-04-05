@@ -735,7 +735,7 @@ function useInitialState() {
     (name?: string, path?: string, manifest?: Manifest) =>
       R.mergeRight(manifest || {}, {
         msg,
-        name: name || nameOverride,
+        name: nameOverride || name,
         path,
         workflowId,
       }),
@@ -931,39 +931,42 @@ export function usePackageCreationDialog({
               onCancel={close}
             />
           ),
-          Form: ({ manifest, workflowsConfig, sourceBuckets }) => (
-            <PD.SchemaFetcher
-              initialWorkflowId={manifest?.workflowId}
-              workflowsConfig={workflowsConfig}
-              workflow={workflow}
-            >
-              {(schemaProps) => (
-                <PackageCreationForm
-                  {...schemaProps}
-                  {...{
-                    bucket,
-                    successor,
-                    close,
-                    setSubmitting,
-                    setSuccess,
-                    setWorkflow,
-                    workflowsConfig,
-                    sourceBuckets,
-                    initial: getInitial(src?.name, s3Path, manifest),
-                    delayHashing,
-                    disableStateDisplay,
-                    dropZoneOnly,
-                    onSuccessor: setSuccessor,
-                    ui: {
-                      title: ui.title,
-                      submit: ui.submit,
-                      resetFiles: ui.resetFiles,
-                    },
-                  }}
-                />
-              )}
-            </PD.SchemaFetcher>
-          ),
+          Form: ({ manifest, workflowsConfig, sourceBuckets }) => {
+            const initial = getInitial(src?.name, s3Path, manifest)
+            return (
+              <PD.SchemaFetcher
+                initialWorkflowId={initial?.workflowId || manifest?.workflowId}
+                workflowsConfig={workflowsConfig}
+                workflow={workflow}
+              >
+                {(schemaProps) => (
+                  <PackageCreationForm
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      successor,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+                      sourceBuckets,
+                      initial,
+                      delayHashing,
+                      disableStateDisplay,
+                      dropZoneOnly,
+                      onSuccessor: setSuccessor,
+                      ui: {
+                        title: ui.title,
+                        submit: ui.submit,
+                        resetFiles: ui.resetFiles,
+                      },
+                    }}
+                  />
+                )}
+              </PD.SchemaFetcher>
+            )
+          },
           Success: (props) => (
             <DialogSuccess
               {...props}
