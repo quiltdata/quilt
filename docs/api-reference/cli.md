@@ -137,7 +137,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force]
+                   [--force] [--dedupe]
                    name
 
 Pushes the new package to the remote registry
@@ -162,6 +162,8 @@ optional arguments:
   --force              Skip the parent top hash check and create a new
                        revision even if your local state is behind the remote
                        registry.
+  --dedupe             Skip the push if the local package hash matches the
+                       remote hash.
 ```
 ## `verify`
 ```
@@ -217,14 +219,17 @@ $ export QUILT_TRANSFER_MAX_CONCURRENCY=20
 ```
 
 ### `XDG_*`
-Quilt uses appdirs for Python to determine where to write data. You can therefore
-override the following path constants with environment variables using the XDG
-standard (see [appdirs docs](https://pypi.org/project/appdirs/)).
+`quilt3` uses platformdirs so you can set one or more of the
+[XDG environment variables](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+to customize where `quilt3` writes to disk.
 
-For instance, AWS Lambda requires the user to use `tmp/*` as the scratch
-directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` will succeed
-in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
+For example, AWS Lambda requires the user to use `/tmp/*` as the scratch
+directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` 
+will succeed, by setting the `XDG_CACHE_HOME` environment variable in code or in
+your [AWS Lambda environment variables](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html).
 
+> You must **set XDG environment variables before** `import quilt3` in
+order for them to take effect.
 
 ## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
 

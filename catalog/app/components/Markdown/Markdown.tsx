@@ -3,13 +3,14 @@ import createDOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as Remarkable from 'remarkable'
 import { linkify } from 'remarkable/linkify'
 import * as M from '@material-ui/core'
 
 import { linkStyle } from 'utils/StyledLink'
+
+import parseTasklist, { CheckboxContentToken } from './parseTasklist'
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
@@ -23,6 +24,7 @@ import { linkStyle } from 'utils/StyledLink'
  */
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
+    'input',
     'a',
     'abbr',
     'address',
@@ -110,105 +112,73 @@ const highlight = (str: string, lang: string) => {
 interface RemarkableWithUtils extends Remarkable.Remarkable {
   // NOTE: Remarkable.Remarkable doesn't export utils
   utils: {
-    escapeHtml: (str: string) => string
-    replaceEntities: (str: string) => string
     unescapeMd: (str: string) => string
   }
 }
 
-const escape = R.pipe(
-  (Remarkable as unknown as RemarkableWithUtils).utils.replaceEntities,
-  (Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml,
-)
+const { unescapeMd } = (Remarkable as unknown as RemarkableWithUtils).utils
 
-/**
- * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.
- *
- * @typedef {function} MarkdownPlugin
- *
- * @param {Object} md Remarkable instance.
- */
+const checkboxHandler = (md: Remarkable.Remarkable) => {
+  md.inline.ruler.push('tasklist', parseTasklist, {})
+  md.renderer.rules.tasklist = (tokens, idx) =>
+    (tokens[idx] as CheckboxContentToken).checked ? '☑' : '☐'
+}
 
-/**
- * Create a plugin for remarkable that does custom processing of image tags.
- *
- * @param {Object} options
- * @param {bool} options.disable
- *   Don't show images, render them as they are in markdown contents (escaped).
- * @param {function} options.process
- *   Function that takes an image object ({ alt, src, title }) and returns a
- *   (possibly modified) image object.
- *
- * @returns {MarkdownPlugin}
- */
-const imageHandler =
-  ({ disable = false, process = R.identity }) =>
-  (md: Remarkable.Remarkable) => {
-    // eslint-disable-next-line no-param-reassign
-    md.renderer.rules.image = (tokens, idx) => {
-      const t = process(tokens[idx])
+type AttributeProcessor = (attr: string) => string
 
-      if (disable) {
-        const alt = t.alt ? escape(t.alt) : ''
-        const src = escape(t.src)
-        const title = t.title ? ` "${escape(t.title)}"` : ''
-        return `<span>![${alt}](${src}${title})</span>`
-      }
+function handleImage(process: AttributeProcessor, element: Element): Element {
+  const attributeValue = element.getAttribute('src')
+  if (!attributeValue) return element
+  const result = process(attributeValue)
+  element.setAttribute('src', result)
 
-      const src = (Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(t.src)
-      const alt = t.alt
-        ? escape((Remarkable as unknown as RemarkableWithUtils).utils.unescapeMd(t.alt))
-        : ''
-      const title = t.title ? ` title="${escape(t.title)}"` : ''
-      return `<img src="${src}" alt="${alt}"${title} />`
-    }
+  const alt = element.getAttribute('alt')
+  if (alt) {
+    element.setAttribute('alt', unescapeMd(alt))
   }
 
-/**
- * Create a plugin for remarkable that does custom processing of links.
- *
- * @param {Object} options
- * @param {bool} options.nofollow
- *   Add rel="nofollow" attribute if true (default).
- * @param {function} options.process
- *   Function that takes a link object ({ href, title }) and returns a
- *   (possibly modified) link object.
- *
- * @returns {MarkdownPlugin}
- */
-const linkHandler =
-  ({ nofollow = true, process = R.identity }) =>
-  (md: Remarkable.Remarkable) => {
-    // eslint-disable-next-line no-param-reassign
-    md.renderer.rules.link_open = (tokens, idx) => {
-      const t = process(tokens[idx])
-      const title = t.title ? ` title="${escape(t.title)}"` : ''
-      const rel = nofollow ? ' rel="nofollow"' : ''
-      return `<a href="${(Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(
-        t.href,
-      )}"${rel}${title}>`
-    }
-  }
+  return element
+}
 
-/**
- * Get Remarkable instance based on the given options (memoized).
- *
- * @param {Object} options
- *
- * @param {boolean} images
- *   Whether to render images notated as `![alt](src title)` or skip them.
- *
- * @returns {Object} Remarakable instance
- */
-export const getRenderer = memoize(({ images, processImg, processLink }) => {
+function handleLink(process: AttributeProcessor, element: HTMLElement): Element {
+  const attributeValue = element.getAttribute('href')
+  if (typeof attributeValue !== 'string') return element
+  const result = process(attributeValue)
+  element.setAttribute('href', result)
+
+  const rel = element.getAttribute('rel')
+  element.setAttribute('rel', rel ? `${rel} nofollow` : 'nofollow')
+
+  return element
+}
+
+function htmlHandler(
+  processLink?: AttributeProcessor,
+  processImage?: AttributeProcessor,
+) {
+  return (currentNode: Element): Element => {
+    const element = currentNode as HTMLElement
+    const tagName = currentNode.tagName?.toUpperCase()
+    if (processLink && tagName === 'A') return handleLink(processLink, element)
+    if (processImage && tagName === 'IMG') return handleImage(processImage, element)
+    return currentNode
+  }
+}
+
+interface RendererArgs {
+  processImg?: AttributeProcessor
+  processLink?: AttributeProcessor
+}
+
+export const getRenderer = memoize(({ processImg, processLink }: RendererArgs) => {
   const md = new Remarkable.Remarkable('full', {
     highlight,
     html: true,
     typographer: true,
   }).use(linkify)
-  md.use(linkHandler({ process: processLink }))
-  md.use(imageHandler({ disable: !images, process: processImg }))
+  md.use(checkboxHandler)
   const purify = createDOMPurify(window)
+  purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
   return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
 })
 
@@ -260,23 +230,19 @@ export function Container({ className, children }: ContainerProps) {
   )
 }
 
-interface MarkdownProps extends Omit<ContainerProps, 'children'> {
+interface MarkdownProps extends RendererArgs, Omit<ContainerProps, 'children'> {
   data?: string
-  images?: boolean
-  processImg?: () => $TSFixMe
-  processLink?: () => $TSFixMe
 }
 
 export default function Markdown({
   data,
-  images = true,
   processImg,
   processLink,
   ...props
 }: MarkdownProps) {
   return (
     <Container {...props}>
-      {getRenderer({ images, processImg, processLink })(data || '')}
+      {getRenderer({ processImg, processLink })(data || '')}
     </Container>
   )
 }

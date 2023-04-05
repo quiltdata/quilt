@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import type { ErrorObject } from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 import type * as RF from 'react-final-form'
@@ -11,6 +12,8 @@ import * as authSelectors from 'containers/Auth/selectors'
 import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import * as JSONPointer from 'utils/JSONPointer'
+import log from 'utils/Logging'
 import * as Sentry from 'utils/Sentry'
 import { mkFormError } from 'utils/formTools'
 import {
@@ -20,6 +23,7 @@ import {
 } from 'utils/json-schema'
 import * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
+import { JsonRecord } from 'utils/types'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -197,6 +201,7 @@ const useFieldInputStyles = M.makeStyles({
   },
 })
 
+// TODO: re-use components/Form/TextField
 export function Field({
   error,
   helperText,
@@ -552,19 +557,68 @@ export function DialogWrapper({
   return <M.Dialog {...props} />
 }
 
-export function useEntriesValidator(workflow?: workflows.Workflow) {
+function isAjvError(e: Error | ErrorObject): e is ErrorObject {
+  return !!(e as ErrorObject).instancePath
+}
+
+export function isEntryError(e: Error | ErrorObject): e is EntryValidationError {
+  return !!(e as EntryValidationError)?.data?.logical_key
+}
+
+function useFetchEntriesSchema(workflow?: workflows.Workflow) {
   const s3 = AWS.S3.use()
+  return React.useMemo(async () => {
+    const schemaUrl = workflow?.entriesSchema
+    if (!schemaUrl) return null
+    return requests.objectSchema({ s3, schemaUrl })
+  }, [s3, workflow])
+}
+
+export interface ValidationEntry {
+  logical_key: string
+  size: number
+  meta?: JsonRecord
+}
+
+interface EntryValidationError extends ErrorObject {
+  data: ValidationEntry
+}
+
+export type EntriesValidationErrors = (Error | EntryValidationError)[]
+
+function injectEntryIntoErrors(
+  errors: (Error | ErrorObject)[],
+  entries: ValidationEntry[],
+): EntriesValidationErrors {
+  if (!errors?.length) return errors as Error[]
+  return errors.map((error) => {
+    if (!isAjvError(error)) return error
+    try {
+      const pointer = JSONPointer.parse(error.instancePath)
+      // `entries` value is an array,
+      // so the first item of the pointer is an index
+      const index: number = Number(pointer[0] as string)
+      error.data = entries[index]
+      return error as EntryValidationError
+    } catch (e) {
+      log.debug(e)
+      return error instanceof Error ? error : new Error('Unknown error')
+    }
+  })
+}
+
+export function useEntriesValidator(workflow?: workflows.Workflow) {
+  const entriesSchemaAsync = useFetchEntriesSchema(workflow)
 
   return React.useCallback(
-    async (entries: $TSFixMe) => {
-      const schemaUrl = workflow?.entriesSchema
-      if (!schemaUrl) return undefined
-      const entriesSchema = await requests.objectSchema({ s3, schemaUrl })
+    async (entries: ValidationEntry[]) => {
+      const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
       if (!entriesSchema) return undefined
 
-      return makeSchemaValidator(entriesSchema)(entries)
+      const errors = makeSchemaValidator(entriesSchema)(entries)
+      return injectEntryIntoErrors(errors, entries)
     },
-    [workflow, s3],
+    [entriesSchemaAsync],
   )
 }

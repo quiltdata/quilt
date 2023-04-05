@@ -5,11 +5,11 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import Logo from 'components/Logo'
+import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as Notifications from 'containers/Notifications'
 import * as CatalogSettings from 'utils/CatalogSettings'
-import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import copyToClipboard from 'utils/clipboard'
@@ -38,7 +38,7 @@ function Version() {
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
     copyToClipboard(process.env.REVISION_HASH)
-    push('Product revision hash has been copied to clipboard')
+    push('Web catalog container hash has been copied to clipboard')
   }, [push])
   return (
     <div>
@@ -127,7 +127,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function Footer() {
-  const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

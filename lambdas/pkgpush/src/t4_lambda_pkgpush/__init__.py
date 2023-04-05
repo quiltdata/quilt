@@ -427,6 +427,9 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
         else:
             pkg.set_meta(meta)
 
+        # We use _push() instead of push() for print_info=False
+        # to prevent unneeded ListObjects calls during generation of
+        # shortened revision hash.
         result = pkg._push(
             name=get_name(data),
             registry=get_dst(data),
@@ -434,6 +437,10 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
             workflow=data.get('workflow', ...),
             selector_fn=None if copy_data else lambda *args: False,
             print_info=False,
+            dedupe=False,
+            # TODO: we use force=True to keep the existing behavior,
+            #       but it should be re-considered.
+            force=True,
         )
         return {'top_hash': result._origin.top_hash}
     except quilt3.util.QuiltException as qe:
@@ -586,6 +593,9 @@ def create_package(req_file):
 
             hash_ = entry.get('hash')
             obj_size = entry.get('size')
+            # `meta` is the full metadata dict for entry that includes
+            # optional `user_meta` property,
+            # see PackageEntry._meta vs PackageEntry.meta.
             meta = entry.get('meta')
 
             if hash_ and obj_size is not None:
@@ -599,7 +609,8 @@ def create_package(req_file):
                     )
                 )
             else:
-                pkg.set(logical_key, str(physical_key), meta)
+                pkg.set(logical_key, str(physical_key))
+                pkg[logical_key]._meta = meta or {}
 
                 size_to_hash += pkg[logical_key].size
                 if size_to_hash > PKG_FROM_FOLDER_MAX_PKG_SIZE:

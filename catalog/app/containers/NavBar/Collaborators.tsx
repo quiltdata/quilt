@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import { Avatars, Popup } from 'components/Collaborators'
 import * as style from 'constants/style'
-import * as Model from 'model'
+import type * as Model from 'model'
 import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 import BUCKET_COLLABORATORS from './BucketCollaborators.generated'
@@ -30,6 +30,8 @@ interface CollaboratorsProps {
 
 export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const classes = useStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const [{ data }] = urql.useQuery({
     query: BUCKET_COLLABORATORS,
@@ -65,6 +67,7 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
       <Avatars
         className={cx(classes.avatars, { [classes.hidden]: hidden })}
         collaborators={allCollaborators}
+        iconized={sm}
         onClick={handleOpen}
       />
     </M.MuiThemeProvider>

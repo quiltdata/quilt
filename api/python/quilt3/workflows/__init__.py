@@ -259,14 +259,22 @@ class WorkflowValidator(typing.NamedTuple):
         try:
             self.entries_validator.validate(self.get_pkg_entries_for_validation(pkg))
         except jsonschema.ValidationError as e:
-            raise WorkflowValidationError.from_schema_validation_error('"Package entries failed validation', e) from e
+            raise WorkflowValidationError.from_schema_validation_error("Package entries failed validation", e) from e
 
     def get_pkg_entries_for_validation(self, pkg):
         # TODO: this should be validated without fully populating array.
+        empty_dict = {}
+
+        def reuse_empty_dict(meta):
+            # Reuse the same empty dict for entries without meta
+            # to reduce memory usage.
+            return empty_dict if meta == {} else meta
+
         return [
             {
                 'logical_key': lk,
-                'size': e.size
+                'size': e.size,
+                "meta": reuse_empty_dict(e.meta),
             }
             for lk, e in pkg.walk()
         ]

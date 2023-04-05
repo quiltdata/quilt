@@ -1,16 +1,25 @@
-/* app.tsx - application entry point */
-/* eslint-disable import/first */
+// Application entry point
 
 // Import all the third party stuff
+import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { createBrowserHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
+
+// initialize config from window.QUILT_CATALOG_CONFIG
+import cfg from 'constants/config'
+
+// init Sentry before importing other modules
+// to allow importing it directly in other modules and capturing errors
+import * as Sentry from 'utils/Sentry'
+
+const history = createHistory()
+Sentry.init(cfg, history)
 
 // side-effect: inject global css
 import 'sanitize.css'
 
-// Import root app
+// Import the rest of our modules
 import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
@@ -26,10 +35,9 @@ import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
 import { GraphQLProvider } from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
+import GlobalAPI from 'utils/GlobalAPI'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
 import { nest } from 'utils/reactTools'
@@ -43,13 +51,16 @@ import '!file-loader?name=[name].[ext]!./quilt-og.png'
 // Import CSS reset and Global Styles
 import WithGlobalStyles from './global-styles'
 
+const globalApi = new GlobalAPI()
+globalApi.attach(window)
+const GlobalAPIProvider = globalApi.getProvider()
+
 // listen for Roboto fonts
 fontLoader('Roboto', 'Roboto Mono').then(() => {
   // reload doc when we have all custom fonts
   document.body.classList.add('fontLoaded')
 })
 
-const history = createHistory()
 const MOUNT_NODE = document.getElementById('app')
 
 // TODO: make storage injectable
@@ -66,11 +77,6 @@ const intercomUserSelector = (state: $TSFixMe) => {
   )
 }
 
-const sentryUserSelector = (state: $TSFixMe) => {
-  const { user: u } = Auth.selectors.domain(state)
-  return u ? { username: u.current_user, email: u.email } : {}
-}
-
 const render = () => {
   ReactDOM.render(
     nest(
@@ -78,18 +84,16 @@ const render = () => {
       WithGlobalStyles,
       Errors.FinalBoundary,
       // @ts-expect-error
-      Sentry.Provider,
       [Store.Provider, { history }],
+      Sentry.UserTracker,
+      GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
       Cache.Provider,
-      [Config.Provider, { path: '/config.json' }],
       [React.Suspense, { fallback: <Placeholder /> }],
-      [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,
       AddToPackage.Provider,
       Bookmarks.Provider,
-      Errors.ErrorBoundary,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],

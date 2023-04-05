@@ -3,15 +3,90 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
+import * as JSONPointer from 'utils/JSONPointer'
 import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
 
+import illustrationEnterValues from './enter-values.webm'
+import illustrationObjectExpand from './object-expand.webm'
 import Column from './Column'
-import State from './State'
+import State, { StateRenderProps } from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
+
+interface EmptyStateCaseProps {
+  children: React.ReactNode
+  className: string
+  title: string
+  video: string
+}
+
+function EmptyStateCase({ children, className, title, video }: EmptyStateCaseProps) {
+  const videoRef = React.useRef<HTMLVideoElement | null>(null)
+  const togglePlayback = React.useCallback(() => {
+    const el = videoRef?.current
+    if (el?.paused) {
+      el?.play()
+    } else {
+      el?.pause()
+    }
+  }, [videoRef])
+  return (
+    <M.Card className={className}>
+      <M.CardContent>
+        <M.Typography variant="h5">{title}</M.Typography>
+        <M.Typography variant="body1">{children}</M.Typography>
+        <video
+          ref={videoRef}
+          src={video}
+          width="100%"
+          autoPlay
+          loop
+          onClick={togglePlayback}
+        />
+      </M.CardContent>
+    </M.Card>
+  )
+}
+
+interface EmptyStateProps {
+  className: string
+  noValue: boolean
+  notExpanded: boolean
+}
+
+function EmptyState({ className, noValue, notExpanded }: EmptyStateProps) {
+  if (noValue && notExpanded) {
+    return (
+      <EmptyStateCase
+        className={className}
+        title="JSON editor is empty"
+        video={illustrationEnterValues}
+      >
+        Start filling empty rows as in Excel. You can enter values by hand. Type{' '}
+        <Code>{`{}`}</Code> to create an object, or <Code>{`[]`}</Code> to create an
+        array, and then traverse it to enter properties.
+      </EmptyStateCase>
+    )
+  }
+
+  if (notExpanded) {
+    return (
+      <EmptyStateCase
+        className={className}
+        title="There is more data here"
+        video={illustrationObjectExpand}
+      >
+        Try to expand object values
+      </EmptyStateCase>
+    )
+  }
+
+  return null
+}
 
 interface ColumnData {
   items: RowData[]
-  parent: JsonValue
+  parent?: JsonValue
 }
 
 function shouldSqueezeColumn(columnIndex: number, columns: ColumnData[]) {
@@ -32,7 +107,7 @@ const useSqueezeStyles = M.makeStyles((t) => ({
 }))
 
 interface SqueezeProps {
-  columnPath: string[]
+  columnPath: JSONPointer.Path
   onClick: () => void
 }
 
@@ -52,6 +127,7 @@ function Squeeze({ columnPath, onClick }: SqueezeProps) {
 const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   root: {
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+    position: 'relative',
   },
   disabled: {
     position: 'relative',
@@ -69,30 +145,28 @@ const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   },
   inner: {
     display: 'flex',
-    overflow: 'auto',
     height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+    overflow: 'auto',
+    position: 'relative',
   },
   column: {
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
     maxWidth: t.spacing(76),
     overflowY: 'auto',
-    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
+  },
+  help: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: t.spacing(60),
   },
 }))
 
-interface JsonEditorProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
-  changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => JsonValue
+interface JsonEditorProps extends StateRenderProps {
   className?: string
-  columns: ColumnData[]
   disabled?: boolean
-  fieldPath: string[]
-  jsonDict: Record<string, JsonValue>
-  menuFieldPath: string[]
   multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
-  removeField: (path: string[]) => JsonValue
-  setFieldPath: (path: string[]) => void
-  setMenuFieldPath: (path: string[]) => void
 }
 
 const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function JsonEditor(
@@ -110,13 +184,16 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     removeField,
     setFieldPath,
     setMenuFieldPath,
+    transformer,
   },
   ref,
 ) {
   const classes = useStyles({ multiColumned })
+  const t = M.useTheme()
+  const md = M.useMediaQuery(t.breakpoints.down('md'))
 
   const handleRowAdd = React.useCallback(
-    (path: string[], key: string | number, value: JsonValue) => {
+    (path: JSONPointer.Path, key: string | number, value: JsonValue) => {
       const newData = addRow(path, key, value)
       if (newData) onChange(newData)
     },
@@ -124,7 +201,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleRowRemove = React.useCallback(
-    (path: string[]) => {
+    (path: JSONPointer.Path) => {
       const newData = removeField(path)
       if (newData) onChange(newData)
     },
@@ -132,11 +209,18 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   const handleValueChange = React.useCallback(
-    (path: string[], key: 'key' | 'value', value: JsonValue | string) => {
+    (path: JSONPointer.Path, key: 'key' | 'value', value: JsonValue | string) => {
       const newData = changeValue(path, key, value)
       if (newData) onChange(newData)
     },
     [changeValue, onChange],
+  )
+
+  const handleToolbar = React.useCallback(
+    (transform) => {
+      onChange(transformer(transform))
+    },
+    [onChange, transformer],
   )
 
   if (!columns.length) throw new Error('No column data')
@@ -172,32 +256,21 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               onContextMenu={setMenuFieldPath}
               onExpand={setFieldPath}
               onRemove={handleRowRemove}
+              onToolbar={handleToolbar}
             />
           )
         })}
       </div>
+      {multiColumned && !md && (
+        <EmptyState
+          className={classes.help}
+          noValue={!columns[0].parent || R.isEmpty(columns[0].parent)}
+          notExpanded={columnsView.length < 2}
+        />
+      )}
     </div>
   )
 })
-
-interface StateRenderProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
-  changeValue: (
-    path: string[],
-    key: 'key' | 'value',
-    value: JsonValue | string,
-  ) => JsonValue
-  columns: {
-    items: RowData[]
-    parent: JsonValue
-  }[]
-  fieldPath: string[]
-  jsonDict: Record<string, JsonValue>
-  removeField: (path: string[]) => JsonValue
-  setFieldPath: (path: string[]) => void
-  menuFieldPath: string[]
-  setMenuFieldPath: (path: string[]) => void
-}
 
 interface JsonEditorWrapperProps {
   className?: string

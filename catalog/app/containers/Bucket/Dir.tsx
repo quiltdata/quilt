@@ -1,4 +1,4 @@
-import { basename, join, extname } from 'path'
+import { basename, join } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -8,12 +8,12 @@ import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
-import * as Dialog from 'components/Dialog'
-import { detect } from 'components/FileEditor/loader'
+import * as FileEditor from 'components/FileEditor'
+import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -39,31 +39,7 @@ interface DirectoryMenuProps {
 }
 
 function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const { urls } = NamedRoutes.use<RouteMap>()
-  const history = RRDom.useHistory()
-
-  const createFile = React.useCallback(
-    (name: string) => {
-      if (!name) return
-      history.push(urls.bucketFile(bucket, join(path, name), { edit: true }))
-    },
-    [bucket, history, path, urls],
-  )
-  const validateFileName = React.useCallback((value: string) => {
-    if (!value) {
-      return new Error('File name is required')
-    }
-    if (!detect(value).brace || extname(value) === '.' || !extname(value)) {
-      // TODO: get list of supported extensions from FileEditor
-      return new Error('Supported file formats are JSON, Markdown, YAML and text')
-    }
-  }, [])
-  const prompt = Dialog.usePrompt({
-    onSubmit: createFile,
-    initialValue: 'README.md',
-    title: 'Enter file name',
-    validate: validateFileName,
-  })
+  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
   const menuItems = React.useMemo(
     () => [
       {
@@ -114,8 +90,8 @@ function AddToBookmarks({
 }: AddToBookmarksProps) {
   const classes = useAddToBookmarksStyles()
   const bookmarks = Bookmarks.use()
-  const bookmarkItems: s3paths.S3HandleBase[] = React.useMemo(() => {
-    const handles: s3paths.S3HandleBase[] = []
+  const bookmarkItems: Model.S3.S3ObjectLocation[] = React.useMemo(() => {
+    const handles: Model.S3.S3ObjectLocation[] = []
     if (selection?.includes('..')) {
       handles.push({
         bucket,
@@ -294,9 +270,18 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
   },
   button: {
+    marginLeft: t.spacing(1),
+  },
+  topbar: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    marginBottom: t.spacing(2),
+  },
+  actions: {
+    display: 'flex',
     flexShrink: 0,
     marginBottom: '-3px',
-    marginLeft: t.spacing(1),
+    marginLeft: 'auto',
     marginTop: '-3px',
   },
 }))
@@ -314,9 +299,8 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
-  const { desktop, noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -405,29 +389,30 @@ export default function Dir({
         title: 'Create package from directory',
       })}
 
-      <M.Box display="flex" alignItems="flex-start" mb={2}>
+      <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
-        <M.Box flexGrow={1} />
-        {preferences?.ui?.actions?.createPackage && (
-          <Successors.Button
-            bucket={bucket}
-            className={classes.button}
-            onChange={openPackageCreationDialog}
-          >
-            Create package from directory
-          </Successors.Button>
-        )}
-        {!noDownload && !desktop && (
-          <FileView.ZipDownloadForm
-            className={classes.button}
-            suffix={`dir/${bucket}/${path}`}
-            label="Download directory"
-          />
-        )}
-        <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
-      </M.Box>
+        <div className={classes.actions}>
+          {preferences?.ui?.actions?.createPackage && (
+            <Successors.Button
+              bucket={bucket}
+              className={classes.button}
+              onChange={openPackageCreationDialog}
+            >
+              Create package from directory
+            </Successors.Button>
+          )}
+          {!cfg.noDownload && !cfg.desktop && (
+            <FileView.ZipDownloadForm
+              className={classes.button}
+              suffix={`dir/${bucket}/${path}`}
+              label="Download directory"
+            />
+          )}
+          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
+        </div>
+      </div>
 
       {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
 

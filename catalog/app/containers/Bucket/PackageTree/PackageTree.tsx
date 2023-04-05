@@ -1,4 +1,4 @@
-import { basename, join } from 'path'
+import { basename } from 'path'
 
 import dedent from 'dedent'
 import * as R from 'ramda'
@@ -10,15 +10,16 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import { detect } from 'components/FileEditor/loader'
+import ButtonIconized from 'components/ButtonIconized'
+import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import cfg from 'constants/config'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
@@ -26,7 +27,6 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
-import { PackageHandle } from 'utils/packageHandle'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
@@ -47,7 +47,7 @@ import WithPackagesSupport from '../WithPackagesSupport'
 import * as errors from '../errors'
 import renderPreview from '../renderPreview'
 import * as requests from '../requests'
-import { ViewMode, useViewModes, viewModeToSelectOption } from '../viewModes'
+import { FileType, useViewModes, viewModeToSelectOption } from '../viewModes'
 import PackageLink from './PackageLink'
 import RevisionDeleteDialog from './RevisionDeleteDialog'
 import RevisionInfo from './RevisionInfo'
@@ -58,30 +58,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-/*
-function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
-  const sign = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
-  const data = useData(requests.getRevisionData, {
-    sign,
-    endpoint,
-    bucket,
-    hash,
-    maxKeys: 0,
-  })
-  return data.case({
-    _: () => null,
-    Ok: ({ header }) => (
-      <React.Suspense fallback={null}>
-        <LinkedData.PackageData
-          {...{ bucket: bucketCfg, name, hash, modified, header }}
-        />
-      </React.Suspense>
-    ),
-  })
-}
-*/
 
 interface PkgCodeProps {
   bucket: string
@@ -155,8 +131,13 @@ const useTopBarStyles = M.makeStyles((t) => ({
       maxWidth: 'calc(100% - 40px)',
     },
   },
-  spacer: {
-    flexGrow: 1,
+  content: {
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
+    marginLeft: 'auto',
+    marginTop: -3,
   },
 }))
 
@@ -171,8 +152,7 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(crumbs)}
       </div>
-      <div className={classes.spacer} />
-      {children}
+      <div className={classes.content}>{children}</div>
     </div>
   )
 }
@@ -239,7 +219,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
     history.push(urls.bucketPackageList(bucket))
@@ -298,6 +278,8 @@ function DirDisplay({
   )
 
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
+
+  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
 
   return (
     <>
@@ -417,6 +399,7 @@ function DirDisplay({
 
           return (
             <>
+              {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {hasReviseButton && (
                   <M.Button
@@ -449,12 +432,13 @@ function DirDisplay({
                   className={classes.button}
                   onDelete={confirmDelete}
                   onDesktop={openInDesktopState.confirm}
+                  onCreateFile={prompt.open}
                 />
               </TopBar>
               {preferences?.ui?.blocks?.code && (
                 <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
               )}
-              {preferences?.ui?.blocks?.meta && (
+              {!!preferences?.ui?.blocks?.meta && (
                 <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
               )}
               <M.Box mt={2}>
@@ -476,9 +460,8 @@ function DirDisplay({
 
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
-  handle: PackageEntryHandle,
-  mode: ViewMode | null,
-  packageHandle: PackageHandle,
+  handle: LogicalKeyResolver.S3SummarizeHandle,
+  mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
 ) => {
   if (deleted) {
@@ -487,9 +470,8 @@ const withPreview = (
   if (archived) {
     return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
   }
-  const previewHandle = { ...handle, packageHandle }
   const previewOptions = { mode, context: Preview.CONTEXT.FILE }
-  return Preview.load(previewHandle, callback, previewOptions)
+  return Preview.load(handle, callback, previewOptions)
 }
 
 interface ObjectAttrs {
@@ -499,78 +481,14 @@ interface ObjectAttrs {
   size?: number
 }
 
-interface PackageEntryHandle extends s3paths.S3HandleBase {
-  logicalKey: string
+type CrumbProp = $TSFixMe
+
+interface FileDisplaySkeletonProps {
+  crumbs: CrumbProp[]
 }
 
-const useFileDisplayStyles = M.makeStyles((t) => ({
-  button: {
-    marginLeft: t.spacing(2),
-  },
-  fileProperties: {
-    [t.breakpoints.up('sm')]: {
-      marginBottom: '3px',
-    },
-  },
-}))
-
-interface FileDisplayProps {
-  bucket: string
-  name: string
-  hash: string
-  hashOrTag: string
-  path: string
-  crumbs: $TSFixMe[] // Crumb
-  mode?: string
-}
-
-function FileDisplay({
-  bucket,
-  mode,
-  name,
-  hash,
-  hashOrTag,
-  path,
-  crumbs,
-}: FileDisplayProps) {
-  const s3 = AWS.S3.use()
-  const { noDownload } = Config.use()
-  const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
-  const classes = useFileDisplayStyles()
-  const preferences = BucketPreferences.use()
-
-  const fileQuery = useQuery({
-    query: FILE_QUERY,
-    variables: { bucket, name, hash, path },
-  })
-
-  const packageHandle = React.useMemo(
-    () => ({ bucket, name, hash }),
-    [bucket, name, hash],
-  )
-
-  const viewModes = useViewModes(path, mode, packageHandle)
-
-  const onViewModeChange = React.useCallback(
-    (m) => {
-      history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
-    },
-    [bucket, history, name, path, hashOrTag, urls],
-  )
-
-  const isEditable = detect(path) && hashOrTag === 'latest'
-  const handleEdit = React.useCallback(() => {
-    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-    const editUrl = urls.bucketFile(bucket, join(name, path), {
-      add: true,
-      edit: true,
-      next,
-    })
-    history.push(editUrl)
-  }, [bucket, history, name, path, urls])
-
-  const renderProgress = () => (
+function FileDisplaySkeleton({ crumbs }: FileDisplaySkeletonProps) {
+  return (
     // TODO: skeleton placeholder
     <>
       <TopBar crumbs={crumbs} />
@@ -579,8 +497,16 @@ function FileDisplay({
       </M.Box>
     </>
   )
+}
 
-  const renderError = (headline: React.ReactNode, detail?: React.ReactNode) => (
+interface FileDisplayErrorProps {
+  crumbs: CrumbProp[]
+  detail?: React.ReactNode
+  headline: React.ReactNode
+}
+
+function FileDisplayError({ crumbs, detail, headline }: FileDisplayErrorProps) {
+  return (
     <>
       <TopBar crumbs={crumbs} />
       <M.Box mt={4}>
@@ -595,100 +521,200 @@ function FileDisplay({
       </M.Box>
     </>
   )
+}
+interface FileDisplayQueryProps {
+  bucket: string
+  name: string
+  hash: string
+  hashOrTag: string
+  path: string
+  crumbs: $TSFixMe[] // Crumb
+  mode?: string
+}
 
+function FileDisplayQuery({
+  bucket,
+  name,
+  hash,
+  path,
+  crumbs,
+  ...props
+}: FileDisplayQueryProps) {
+  const fileQuery = useQuery({
+    query: FILE_QUERY,
+    variables: { bucket, name, hash, path },
+  })
   return fileQuery.case({
-    fetching: renderProgress,
+    fetching: () => <FileDisplaySkeleton crumbs={crumbs} />,
     data: (d) => {
       const file = d.package?.revision?.file
 
       if (!file) {
         // eslint-disable-next-line no-console
         if (fileQuery.error) console.error(fileQuery.error)
-        return renderError(
-          'Error loading file',
-          "Seems like there's no such file in this package",
+        return (
+          <FileDisplayError
+            headline="Error loading file"
+            detail="Seems like there's no such file in this package"
+            crumbs={crumbs}
+          />
         )
       }
 
-      const handle: PackageEntryHandle = {
-        ...s3paths.parseS3Url(file.physicalKey),
-        logicalKey: file.path,
-      }
-
-      return (
-        // @ts-expect-error
-        <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
-          {AsyncResult.case({
-            _: renderProgress,
-            Err: (e: $TSFixMe) => {
-              if (e.code === 'Forbidden') {
-                return renderError(
-                  'Access Denied',
-                  "You don't have access to this object",
-                )
-              }
-              // eslint-disable-next-line no-console
-              console.error(e)
-              return renderError('Error loading file', 'Something went wrong')
-            },
-            Ok: requests.ObjectExistence.case({
-              Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
-                <>
-                  <TopBar crumbs={crumbs}>
-                    <FileProperties
-                      className={classes.fileProperties}
-                      lastModified={lastModified}
-                      size={size}
-                    />
-                    {isEditable && (
-                      <FileView.AdaptiveButtonLayout
-                        className={classes.button}
-                        icon="edit"
-                        label="Edit"
-                        onClick={handleEdit}
-                      />
-                    )}
-                    {!!viewModes.modes.length && (
-                      <FileView.ViewModeSelector
-                        className={classes.button}
-                        // @ts-expect-error
-                        options={viewModes.modes.map(viewModeToSelectOption)}
-                        // @ts-expect-error
-                        value={viewModeToSelectOption(viewModes.mode)}
-                        onChange={onViewModeChange}
-                      />
-                    )}
-                    {!noDownload && !deleted && !archived && (
-                      <FileView.DownloadButton
-                        className={classes.button}
-                        handle={handle}
-                      />
-                    )}
-                  </TopBar>
-                  {preferences?.ui?.blocks?.code && (
-                    <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
-                  )}
-                  {preferences?.ui?.blocks?.meta && (
-                    <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
-                  )}
-                  <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                    {withPreview(
-                      { archived, deleted },
-                      handle,
-                      viewModes.mode,
-                      packageHandle,
-                      renderPreview(viewModes.handlePreviewResult),
-                    )}
-                  </Section>
-                </>
-              ),
-              _: () => renderError('No Such Object'),
-            }),
-          })}
-        </Data>
-      )
+      return <FileDisplay {...{ bucket, name, hash, path, crumbs, file }} {...props} />
     },
   })
+}
+
+const useFileDisplayStyles = M.makeStyles((t) => ({
+  button: {
+    marginLeft: t.spacing(1),
+  },
+  fileProperties: {
+    marginRight: t.spacing(1),
+  },
+  preview: {
+    width: '100%',
+  },
+}))
+
+interface FileDisplayProps extends FileDisplayQueryProps {
+  file: $TSFixMe
+}
+
+function FileDisplay({
+  bucket,
+  mode,
+  name,
+  hash,
+  hashOrTag,
+  path,
+  crumbs,
+  file,
+}: FileDisplayProps) {
+  const s3 = AWS.S3.use()
+  const history = RRDom.useHistory()
+  const { urls } = NamedRoutes.use()
+  const classes = useFileDisplayStyles()
+  const { preferences } = BucketPreferences.use()
+
+  const packageHandle = React.useMemo(
+    () => ({ bucket, name, hash }),
+    [bucket, name, hash],
+  )
+
+  const viewModes = useViewModes(mode)
+
+  const onViewModeChange = React.useCallback(
+    (m) => {
+      history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
+    },
+    [bucket, history, name, path, hashOrTag, urls],
+  )
+
+  const isEditable =
+    FileEditor.isSupportedFileType(path) &&
+    hashOrTag === 'latest' &&
+    !!preferences?.ui?.actions?.revisePackage
+  const handleEdit = React.useCallback(() => {
+    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+    const physicalHandle = s3paths.parseS3Url(file.physicalKey)
+    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
+      add: path,
+      edit: true,
+      next,
+    })
+    history.push(editUrl)
+  }, [file, bucket, history, name, path, urls])
+
+  const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
+    () => ({
+      ...s3paths.parseS3Url(file.physicalKey),
+      logicalKey: file.path,
+      packageHandle,
+    }),
+    [file, packageHandle],
+  )
+
+  return (
+    // @ts-expect-error
+    <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
+      {AsyncResult.case({
+        _: () => <FileDisplaySkeleton crumbs={crumbs} />,
+        Err: (e: $TSFixMe) => {
+          if (e.code === 'Forbidden') {
+            return (
+              <FileDisplayError
+                headline="Access Denied"
+                detail="You don't have access to this object"
+                crumbs={crumbs}
+              />
+            )
+          }
+          // eslint-disable-next-line no-console
+          console.error(e)
+          return (
+            <FileDisplayError
+              headline="Error loading file"
+              detail="Something went wrong"
+              crumbs={crumbs}
+            />
+          )
+        },
+        Ok: requests.ObjectExistence.case({
+          Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
+            <>
+              <TopBar crumbs={crumbs}>
+                <FileProperties
+                  className={classes.fileProperties}
+                  lastModified={lastModified}
+                  size={size}
+                />
+                {isEditable && (
+                  <ButtonIconized
+                    className={classes.button}
+                    icon="edit"
+                    label="Edit"
+                    onClick={handleEdit}
+                  />
+                )}
+                {!!viewModes.modes.length && (
+                  <FileView.ViewModeSelector
+                    className={classes.button}
+                    // @ts-expect-error
+                    options={viewModes.modes.map(viewModeToSelectOption)}
+                    // @ts-expect-error
+                    value={viewModeToSelectOption(viewModes.mode)}
+                    onChange={onViewModeChange}
+                  />
+                )}
+                {!cfg.noDownload && !deleted && !archived && (
+                  <FileView.DownloadButton className={classes.button} handle={handle} />
+                )}
+              </TopBar>
+              {preferences?.ui?.blocks?.code && (
+                <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+              )}
+              {preferences?.ui?.blocks?.meta && (
+                <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
+              )}
+              <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+                <div className={classes.preview}>
+                  {withPreview(
+                    { archived, deleted },
+                    handle,
+                    viewModes.mode,
+                    renderPreview(viewModes.handlePreviewResult),
+                  )}
+                </div>
+              </Section>
+            </>
+          ),
+          _: () => <FileDisplayError headline="No Such Object" crumbs={crumbs} />,
+        }),
+      })}
+    </Data>
+  )
 }
 
 interface ResolverProviderProps {
@@ -850,7 +876,9 @@ function PackageTree({
               }}
             />
           ) : (
-            <FileDisplay {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }} />
+            <FileDisplayQuery
+              {...{ bucket, mode, name, hash, hashOrTag, path, crumbs }}
+            />
           )}
         </ResolverProvider>
       ) : (

@@ -11,10 +11,11 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
+import * as Dialog from 'components/Dialog'
 import * as Pagination from 'components/Pagination'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
@@ -22,6 +23,7 @@ import type FormSpec from 'utils/FormSpec'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
+import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -78,6 +80,66 @@ const integerInRange = (min: number, max: number) => (v: string | null | undefin
   const n = Number(v)
   if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
   return undefined
+}
+
+const usePFSCheckboxStyles = M.makeStyles({
+  root: {
+    marginBottom: -9,
+    marginTop: -9,
+  },
+})
+function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
+  const classes = usePFSCheckboxStyles()
+  const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
+  const dialog = Dialog.useConfirm({
+    submitTitle: 'I agree',
+    title:
+      'You are about to enable JavaScript execution and data access in iframe previews of HTML files',
+    onSubmit: confirm,
+  })
+  const handleCheckbox = React.useCallback(
+    (event, checked: boolean) => {
+      if (checked) {
+        dialog.open()
+      } else {
+        input?.onChange(checked)
+      }
+    },
+    [dialog, input],
+  )
+  return (
+    <>
+      {dialog.render(
+        <M.Typography>
+          Warning: you must only enable this feature for buckets with trusted contents.
+          Failure to heed this warning may result in breach of sensitive data.
+        </M.Typography>,
+      )}
+      <M.FormControlLabel
+        control={
+          <M.Checkbox
+            classes={classes}
+            disabled={meta.submitting || meta.submitSucceeded}
+            checked={!!input?.checked}
+            onChange={handleCheckbox}
+          />
+        }
+        label={
+          <>
+            Enable permissive HTML rendering
+            <Hint>
+              This allows execution of any linked JavaScript code and fetching network
+              resources relative to the package. Be aware that the iframe with rendered
+              HTML (and package resources) can be shared publicly during the session
+              lifespan. The session is active while the page with rendered HTML is open.
+              <br />
+              Enable only on trusted AWS S3 buckets.
+            </Hint>
+          </>
+        }
+      />
+    </>
+  )
 }
 
 const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
@@ -158,6 +220,10 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   ),
   skipMetaDataIndexing: R.pipe(
     R.prop('skipMetaDataIndexing'),
+    Types.decode(Types.fromNullable(IO.boolean, false)),
+  ),
+  browsable: R.pipe(
+    R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
 }
@@ -260,12 +326,13 @@ interface HintProps {
 
 function Hint({ children }: HintProps) {
   const classes = useHintStyles()
+  const tooltipClasses = React.useMemo(() => ({ tooltip: classes.tooltip }), [classes])
   return (
-    <M.Tooltip arrow title={children} classes={{ tooltip: classes.tooltip }}>
+    <StyledTooltip arrow title={children} classes={tooltipClasses}>
       <M.Icon fontSize="small" className={classes.icon}>
         help
       </M.Icon>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 
@@ -631,6 +698,20 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
           )}
         </M.Box>
       </M.Accordion>
+      <M.Accordion elevation={0} className={classes.panel}>
+        <M.AccordionSummary
+          expandIcon={<M.Icon>expand_more</M.Icon>}
+          classes={{
+            root: classes.panelSummary,
+            content: classes.panelSummaryContent,
+          }}
+        >
+          <M.Typography variant="h6">File preview options</M.Typography>
+        </M.AccordionSummary>
+        <M.Box className={classes.group} pt={1}>
+          <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+        </M.Box>
+      </M.Accordion>
     </M.Box>
   )
 }
@@ -975,6 +1056,7 @@ function Edit({ bucket, close }: EditProps) {
         ? DO_NOT_SUBSCRIBE_SYM
         : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
+    browsable: bucket.browsable ?? false,
   }
 
   return (

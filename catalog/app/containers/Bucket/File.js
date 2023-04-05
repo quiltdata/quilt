@@ -8,16 +8,17 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
+import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -64,7 +65,6 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
 function VersionInfo({ bucket, path, version }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
-  const cfg = Config.use()
   const { push } = Notifications.use()
 
   const containerRef = React.useRef()
@@ -216,7 +216,7 @@ function Meta({ bucket, path, version }) {
   return <FileView.ObjectMeta data={data.result} />
 }
 
-function Analytics({ analyticsBucket, bucket, path }) {
+function Analytics({ bucket, path }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -225,13 +225,7 @@ function Analytics({ analyticsBucket, bucket, path }) {
       date,
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
-  const data = useData(requests.objectAccessCounts, {
-    s3,
-    analyticsBucket,
-    bucket,
-    path,
-    today,
-  })
+  const data = useData(requests.objectAccessCounts, { s3, bucket, path, today })
 
   const defaultExpanded = data.case({
     Ok: ({ total }) => !!total,
@@ -297,13 +291,16 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     alignItems: 'center',
     display: 'flex',
+    flexShrink: 0,
+    marginBottom: -3,
     marginLeft: 'auto',
+    marginTop: -3,
   },
   at: {
     color: t.palette.text.secondary,
   },
   button: {
-    marginLeft: t.spacing(2),
+    marginLeft: t.spacing(1),
   },
   crumbs: {
     ...t.typography.body1,
@@ -311,6 +308,7 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
   },
   fileProperties: {
+    marginRight: t.spacing(1),
     marginTop: '2px',
   },
   name: {
@@ -325,6 +323,10 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
+    flexWrap: 'wrap',
+  },
+  preview: {
+    width: '100%',
   },
 }))
 
@@ -338,9 +340,8 @@ export default function File({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
-  const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -366,12 +367,19 @@ export default function File({
     [bucket, path],
   )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
+  const [resetKey, setResetKey] = React.useState(0)
+  const objExistsData = useData(requests.getObjectExistence, {
+    s3,
+    bucket,
+    key: path,
+    resetKey,
+  })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
     bucket,
     key: path,
     version,
+    resetKey,
   })
 
   const objExists = objExistsData.case({
@@ -382,17 +390,22 @@ export default function File({
     }),
   })
 
-  const downloadable =
-    !noDownload &&
-    versionExistsData.case({
-      _: () => false,
-      Ok: requests.ObjectExistence.case({
-        _: () => false,
-        Exists: ({ deleted, archived }) => !deleted && !archived,
+  const { downloadable, fileVersionId } = versionExistsData.case({
+    _: () => ({
+      downloadable: false,
+    }),
+    Ok: requests.ObjectExistence.case({
+      _: () => ({
+        downloadable: false,
       }),
-    })
+      Exists: ({ deleted, archived, version: versionId }) => ({
+        downloadable: !cfg.noDownload && !deleted && !archived,
+        fileVersionId: versionId,
+      }),
+    }),
+  })
 
-  const viewModes = useViewModes(path, mode)
+  const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
     (m) => {
@@ -402,11 +415,16 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
-    [bucket, path, version],
+    () => ({ bucket, key: path, version: fileVersionId }),
+    [bucket, path, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
+  const onSave = editorState.onSave
+  const handleEditorSave = React.useCallback(async () => {
+    await onSave()
+    setResetKey(R.inc)
+  }, [onSave])
 
   const previewOptions = React.useMemo(
     () => ({ context: Preview.CONTEXT.FILE, mode: viewModes.mode }),
@@ -465,17 +483,14 @@ export default function File({
               onChange={onViewModeChange}
             />
           )}
-          {!!editorState.type.brace && (
+          {FileEditor.isSupportedFileType(handle.key) && (
             <FileEditor.Controls
-              disabled={editorState.saving}
-              editing={editorState.editing}
+              {...editorState}
               className={classes.button}
-              onSave={editorState.onSave}
-              onCancel={editorState.onCancel}
-              onEdit={editorState.onEdit}
+              onSave={handleEditorSave}
             />
           )}
-          <FileView.AdaptiveButtonLayout
+          <ButtonIconized
             className={classes.button}
             icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
             label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
@@ -503,31 +518,27 @@ export default function File({
           Exists: () => (
             <>
               {preferences?.ui?.blocks?.code && <Code>{code}</Code>}
-              {!!analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
-                <Analytics {...{ analyticsBucket, bucket, path }} />
+              {!!cfg.analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
+                <Analytics {...{ bucket, path }} />
               )}
               {preferences?.ui?.blocks?.meta && (
                 <Meta bucket={bucket} path={path} version={version} />
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                  <FileEditor.Editor
-                    disabled={editorState.saving}
-                    error={editorState.error}
-                    handle={handle}
-                    onChange={editorState.onChange}
-                    type={editorState.type}
-                  />
+                  <FileEditor.Editor {...editorState} handle={handle} />
                 </Section>
               ) : (
                 <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
-                  {versionExistsData.case({
-                    _: () => <CenteredProgress />,
-                    Err: (e) => {
-                      throw e
-                    },
-                    Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
-                  })}
+                  <div className={classes.preview}>
+                    {versionExistsData.case({
+                      _: () => <CenteredProgress />,
+                      Err: (e) => {
+                        throw e
+                      },
+                      Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
+                    })}
+                  </div>
                 </Section>
               )}
             </>
@@ -535,14 +546,7 @@ export default function File({
           _: () =>
             editorState.editing ? (
               <Section icon="text_fields" heading="Edit content" defaultExpanded>
-                <FileEditor.Editor
-                  disabled={editorState.saving}
-                  error={editorState.error}
-                  type={editorState.type}
-                  empty
-                  handle={handle}
-                  onChange={editorState.onChange}
-                />
+                <FileEditor.Editor {...editorState} empty handle={handle} />
               </Section>
             ) : (
               <>

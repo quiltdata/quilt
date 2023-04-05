@@ -1,32 +1,50 @@
 import * as React from 'react'
-import * as AWS from 'utils/AWS'
+
+import cfg from 'constants/config'
 import AsyncResult from 'utils/AsyncResult'
 import { useIsInStack } from 'utils/BucketConfig'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
-import useMemoEq from 'utils/useMemoEq'
+import useQuery from 'utils/useQuery'
 
-import { PreviewData } from '../types'
-
+import * as IFrame from './IFrame'
 import * as Text from './Text'
+import FileType from './fileType'
 import * as utils from './utils'
+
+import BUCKET_CONFIG_QUERY from './IFrame/BrowsableBucketConfig.generated'
 
 export const detect = utils.extIn(['.htm', '.html'])
 
-function IFrameLoader({ handle, children }) {
-  const sign = AWS.Signer.useS3Signer()
-  const src = useMemoEq([handle, sign], () =>
-    sign(handle, { ResponseContentType: 'text/html' }),
+export const FILE_TYPE = FileType.Html
+
+// It's unsafe to render HTML in these conditions
+function useHtmlAsText(handle) {
+  const isInStack = useIsInStack()
+  const statusReportsBucket = useStatusReportsBucket()
+  return (
+    cfg.mode !== 'LOCAL' &&
+    !isInStack(handle.bucket) &&
+    handle.bucket !== statusReportsBucket
   )
-  // TODO: issue a head request to ensure existence and get storage class
-  return children(AsyncResult.Ok(PreviewData.IFrame({ src })))
 }
 
 export const Loader = function HtmlLoader({ handle, children }) {
-  const isInStack = useIsInStack()
-  const statusReportsBucket = useStatusReportsBucket()
-  return isInStack(handle.bucket) || handle.bucket === statusReportsBucket ? (
-    <IFrameLoader {...{ handle, children }} />
-  ) : (
-    <Text.Loader {...{ handle, children }} />
-  )
+  const renderHtmlAsText = useHtmlAsText(handle)
+  const bucketData = useQuery({
+    query: BUCKET_CONFIG_QUERY,
+    variables: { bucket: handle.bucket },
+    pause: renderHtmlAsText,
+  })
+  if (renderHtmlAsText) return <Text.Loader {...{ handle, children }} />
+  const inPackage = !!handle.packageHandle
+  return bucketData.case({
+    fetching: () => children(AsyncResult.Pending()),
+    error: (e) => children(AsyncResult.Err(e)),
+    data: ({ bucketConfig }) =>
+      bucketConfig?.browsable && inPackage ? (
+        <IFrame.LoaderBrowsable {...{ handle, children }} />
+      ) : (
+        <IFrame.LoaderSigned {...{ handle, children }} />
+      ),
+  })
 }

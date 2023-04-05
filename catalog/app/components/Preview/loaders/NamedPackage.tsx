@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 
-import type { S3HandleBase } from 'utils/s3paths'
+import type * as Model from 'model'
 
 import { PreviewData } from '../types'
 import * as utils from './utils'
@@ -21,7 +21,7 @@ interface PreviewResult {
 }
 
 interface LoaderProps {
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
   children: (result: $TSFixMe) => React.ReactNode
 }
 

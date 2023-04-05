@@ -3,8 +3,8 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as urql from 'urql'
 
+import cfg from 'constants/config'
 import * as AuthSelectors from 'containers/Auth/selectors'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRoute } from 'utils/router'
 
@@ -12,7 +12,6 @@ import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
 
 // always suspended
 function useBucketConfigs() {
-  const cfg = Config.use()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   // XXX: consider moving this logic to gql resolver
   const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)

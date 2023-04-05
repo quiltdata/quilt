@@ -4,16 +4,29 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 // import Message from 'components/Message'
+import ButtonIconized from 'components/ButtonIconized'
 import SelectDropdown from 'components/SelectDropdown'
+import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 
 export * from './Meta'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-const useAdaptiveButtonStyles = M.makeStyles((t) => ({
+export function DownloadButton({ className, handle }) {
+  return AWS.Signer.withDownloadUrl(handle, (url) => (
+    <ButtonIconized
+      className={className}
+      href={url}
+      download
+      label="Download file"
+      icon="arrow_downward"
+    />
+  ))
+}
+
+const useViewModeSelectorStyles = M.makeStyles((t) => ({
   root: {
     flexShrink: 0,
     marginBottom: -3,
@@ -24,47 +37,8 @@ const useAdaptiveButtonStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function AdaptiveButtonLayout({ className, label, icon, ...props }) {
-  const classes = useAdaptiveButtonStyles()
-  const t = M.useTheme()
-  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-
-  return sm ? (
-    <M.IconButton
-      className={cx(classes.root, className)}
-      edge="end"
-      size="small"
-      {...props}
-    >
-      <M.Icon>{icon}</M.Icon>
-    </M.IconButton>
-  ) : (
-    <M.Button
-      className={cx(classes.root, className)}
-      variant="outlined"
-      size="small"
-      startIcon={<M.Icon>{icon}</M.Icon>}
-      {...props}
-    >
-      {label}
-    </M.Button>
-  )
-}
-
-export function DownloadButton({ className, handle }) {
-  return AWS.Signer.withDownloadUrl(handle, (url) => (
-    <AdaptiveButtonLayout
-      className={className}
-      href={url}
-      download
-      label="Download file"
-      icon="arrow_downward"
-    />
-  ))
-}
-
 export function ViewModeSelector({ className, ...props }) {
-  const classes = useAdaptiveButtonStyles()
+  const classes = useViewModeSelectorStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
@@ -75,10 +49,9 @@ export function ViewModeSelector({ className, ...props }) {
 }
 
 export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
-  const { s3Proxy, noDownload } = Config.use()
   const { token } = redux.useSelector(tokensSelector) || {}
-  if (!token || noDownload) return null
-  const action = `${s3Proxy}/zip/${suffix}`
+  if (!token || cfg.noDownload) return null
+  const action = `${cfg.s3Proxy}/zip/${suffix}`
   return (
     <form
       action={action}
@@ -87,12 +60,7 @@ export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <AdaptiveButtonLayout
-        className={className}
-        label={label}
-        icon="archive"
-        type="submit"
-      />
+      <ButtonIconized className={className} label={label} icon="archive" type="submit" />
     </form>
   )
 }
@@ -119,7 +87,7 @@ const renderDownload = (handle) => !!handle && <DownloadButton {...{ handle }} /
 
 function FileView({
   header,
-  subheader, 
+  subheader,
 }) {
   return (
     <Root>

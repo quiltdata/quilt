@@ -1,13 +1,26 @@
-// side-effect: inject global css
-import 'sanitize.css'
+// Embed entry point
 
+// Import all the third party stuff
+import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Route, Switch, useLocation } from 'react-router-dom'
-import { createMemoryHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
+// initialize config from window.QUILT_CATALOG_CONFIG
+import cfg from 'constants/config'
+
+// init Sentry before importing other modules
+// to allow importing it directly in other modules and capturing errors
+import * as Sentry from 'utils/Sentry'
+
+Sentry.init(cfg)
+
+// side-effect: inject global css
+import 'sanitize.css'
+
+// Import the rest of our modules
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
@@ -18,12 +31,10 @@ import * as style from 'constants/style'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as BucketCache from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import { GraphQLProvider } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
-import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
@@ -332,7 +343,6 @@ function App({ init }) {
     [Store.Provider, { history }],
     [RouterProvider, { history }],
     Cache.Provider,
-    [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQLProvider,
     Notifications.Provider,
@@ -355,7 +365,6 @@ export default function Embed() {
     WithGlobalStyles,
     Layout.Root,
     ErrorBoundary,
-    Sentry.Provider,
     [NamedRoutes.Provider, { routes }],
     [Init],
   )

@@ -97,6 +97,36 @@ use the following extended syntax:
 
 At present `height` is the only supported `style` element.
 
+> Limitations:
+> * Objects linked via `quilt_summarize.json` are always the
+>   **latest** version, even when browsing an older package version.
+> * Object titles and image thumbnails link to the file view, even in
+>   the package view.
+
+## Images
+
+If your Amazon S3 bucket contains images, by default the Quilt 
+Catalog displays a preview of those images _before_ any 
+`quilt_summarize.json`-referenced files.
+
+In the **Overview** tab, the Catalog parses the entire Amazon S3 
+bucket contents and displays thumbnail image previews in a 
+paginated grid (25 per page by default) of 
+all [supported image types](../Catalog/Preview.md#binary-and-special-file-format-previews).
+
+> To hide this block, specify the `noOverviewImages` flag in 
+your `./config.js` file. Please refer to the Quilt 
+Catalog [README.md](https://github.com/quiltdata/quilt/tree/master/catalog#configuration)
+for details.
+
+In the **Bucket** tab, the Catalog displays thumbnail image 
+previews in a similarly paginated grid but _only from the current 
+directory viewed_.
+
+In the **Packages** tab, when a specific package has been 
+opened the Catalog displays thumbnail image previews in a 
+similarly paginated grid but _only those image files in the selected package_.
+
 ## Vega and Vega-lite
 The Quilt catalog uses [vega-embed](https://github.com/vega/vega-embed) to render
 [vega](https://vega.github.io/vega/) and [vega-lite](https://vega.github.io/vega-lite/) visualizations.
@@ -115,7 +145,20 @@ file with a library-compatible schema in a JSON file as follows in your
 ```
 
 For both Vega and Vega Lite you may specify relative paths to package files
-as data sources and the Quilt catalog will resolve the same.
+as data sources and the Quilt catalog correctly resolves them. Vega treats any
+data source as JSON by default. If you wish to use a different format than JSON, please 
+[specify the file type](https://vega.github.io/vega-lite/docs/data.html#format).
+For example: 
+
+```json
+{
+  "data": {
+    "url": "./datasource.csv",
+    "format": {
+      "type": "csv"
+    }
+}
+```
 
 ### Altair
 The easiest way to create Vega-lite visualizations for Quilt packages is with
@@ -143,6 +186,17 @@ alt.Chart(df).mark_area(
     tooltip=['count(score):Q']
 ).save("vega.json")
 ```
+
+> To create plots that directly embed a dataset with more than 5000
+rows (a large dataset), you will encounter a `MaxRowsError`. You
+can get around this error in [several different
+ways](https://altair-viz.github.io/user_guide/faq.html#maxrowserror-how-can-i-plot-large-datasets)
+
+### Live packages
+- [Interactive map of California with slider
+scale](https://open.quiltdata.com/b/quilt-example/packages/akarve/reef-check)
+- [Interactive map of 2015 United States by-county smoking & poverty
+data](https://open.quiltdata.com/b/quilt-example/packages/robnewman/us_county_smoking_vs_poverty)
 
 ## ECharts
 To render an [EChart](https://echarts.apache.org/), you provide a JSON file (a dictionary that
@@ -228,6 +282,9 @@ At present, ECharts in Quilt does not support custom JavaScript. You are therefo
 limited to JSON types (numbers, strings, objects, arrays, etc.). Functions like [`symbolSize`](https://echarts.apache.org/en/option.html#series-scatter.symbolSize)
 are not available.
 
+### Live packages
+- [Various EChart types](https://open.quiltdata.com/b/quilt-example/packages/examples/echarts)
+
 ## Voila
 *This feature is a Developer preview, details are subject to change.*
 
@@ -245,7 +302,7 @@ in Linux containers that have network access but do not have access to persisten
 storage. The catalog users's AWS credentials are passed to Jupyter kernel as
 [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list).
 
-## Environment variables
+### Environment variables
 When you have a Voila dashboard inside of a Quilt package, you may wish to reference files
 *in the current package revision*. The Quilt catalog sets the following environment variables
 and passes them to the Voila kernel:
@@ -362,6 +419,25 @@ All filters and columns will be restored:
 ]
 ```
 
+### Known issues
+
+Several customers have reported that Perspective Datagrids fail to
+automatically render in the Quilt web catalog. We have isolated
+this problem to clashes with third party browser extensions in both
+Mozilla Firefox and Google Chrome. At least one extension, [Zotero
+Connector](https://chrome.google.com/webstore/detail/zotero-connector/ekhagklcjbdpajgpjgmbionohlpdbjgc?hl=en),
+has been reported and the error reproduced.
+
+If you encounter a rendering error, please first try a different browser (Firefox,
+Safari, Edge) on the same machine. If the error persists, next disable all third-party
+extensions, turning each one back on, one-by-one, until the problem
+extension is identified. Please then notify
+[support@quiltdata.io](mailto:support@quiltdata.io) with the extension
+name and version.
+
+### Live packages
+- [CSV file automatically rendered in Perspective Datagrid](https://open.quiltdata.com/b/quilt-example/packages/examples/smart-report)
+
 ## Integrative Genomics Viewer (IGV)
 
 To render genome tracks, you can select "View as IGV" in the catalog,
@@ -384,6 +460,15 @@ In the above example, `igv-options-file.json` is an
 You may specify relative paths to package files or absolute S3 URLs as data sources, and the Quilt catalog will resolve them.
 HTTP URLs will remain unchanged.
 
+**Note: Please be mindful of rendering large sequences**
+You can limit the downloaded file size of the sequence by using the [`visibilityWindow` parameter](https://github.com/igvteam/igv.js/wiki/Tracks-2.0#options-for-all-track-types)
+(`-1` is for downloading the whole file, which could potentially
+be several gigabytes in size - this may impact 
+rendering speed and interactive performance).
+
+Note that tracks are
+[grouped by type and file format](https://github.com/igvteam/igv.js/wiki/Tracks-2.0).
+
 ```json
 // igv-options-file.json
 {
@@ -399,3 +484,6 @@ HTTP URLs will remain unchanged.
   }]
 }
 ```
+
+### Live packages
+- [Single and multiple track genome sequences](https://open.quiltdata.com/b/quilt-example/tree/examples/simple-igv/) 

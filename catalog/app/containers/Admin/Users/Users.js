@@ -125,6 +125,7 @@ function Invite({ close, roles, defaultRoleId }) {
       {({
         handleSubmit,
         submitting,
+        submitError,
         submitFailed,
         error,
         hasSubmitErrors,
@@ -187,9 +188,9 @@ function Invite({ close, roles, defaultRoleId }) {
                   </M.MenuItem>
                 ))}
               </RF.Field>
-              {submitFailed && (
+              {(!!error || !!submitError) && (
                 <Form.FormError
-                  error={error}
+                  error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
                     smtp: 'SMTP error: contact your administrator',

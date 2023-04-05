@@ -8,7 +8,7 @@ import workflowsCatalogConfigSchema from 'schemas/workflows-config_catalog-1.0.0
 import { makeSchemaValidator } from 'utils/json-schema'
 import type * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
-import yaml from 'utils/yaml'
+import * as YAML from 'utils/yaml'
 import * as bucketErrors from 'containers/Bucket/errors'
 
 interface WorkflowsVersion {
@@ -28,7 +28,7 @@ interface WorkflowsYaml {
   workflows: Record<string, WorkflowYaml>
 }
 
-interface WorkflowYaml {
+export interface WorkflowYaml {
   description?: string
   entries_schema?: string
   handle_pattern?: string
@@ -217,7 +217,7 @@ function prepareData(data: unknown): WorkflowsYaml {
 }
 
 export function parse(workflowsYaml: string): WorkflowsConfig {
-  const rawData = yaml(workflowsYaml)
+  const rawData = YAML.parse(workflowsYaml)
   if (!rawData) return emptyConfig
 
   const data = prepareData(rawData)

@@ -652,7 +652,7 @@ class PackageTest(QuiltTestCase):
         return patch('time.time', return_value=timestamp)
 
     def test_list_local_packages(self):
-        """Verify that list returns packages in the appdirs directory."""
+        """Verify that list returns packages in the platformdirs directory."""
 
         assert not list(quilt3.list_packages())
         assert not list(quilt3.list_package_versions('test/not-exists'))
@@ -1131,6 +1131,50 @@ class PackageTest(QuiltTestCase):
 
             with self.assertRaisesRegex(QuiltConflictException, 'already exists'):
                 pkg2.push('Quilt/test', 's3://test-bucket')
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_dedupe(self):
+        registry = 's3://test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
+
+        pkg = Package()
+
+        self.patch_s3_registry('shorten_top_hash', return_value='123456')
+
+        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
+             patch('quilt3.Package._push_manifest') as push_manifest:
+            # Remote package does not yet exist: normal push.
+
+            self.setup_s3_stubber_resolve_pointer_not_found(
+                pkg_registry, pkg_name, pointer='latest'
+            )
+
+            pkg2 = pkg.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
+            push_manifest.assert_called_once()
+
+            # Remote package exists, but has a different hash: normal push.
+
+            pkg2.set('foo', b'123')
+            pkg2.build('Quilt/test')
+
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry, pkg_name, pointer='latest', top_hash=pkg.top_hash
+            )
+
+            push_manifest.reset_mock()
+            pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
+            push_manifest.assert_called_once()
+
+            # Remote package exists and has the same hash.
+
+            self.setup_s3_stubber_resolve_pointer(
+                pkg_registry, pkg_name, pointer='latest', top_hash=pkg2.top_hash
+            )
+
+            push_manifest.reset_mock()
+            pkg2.push('Quilt/test', 's3://test-bucket', force=True, dedupe=True)
+            push_manifest.assert_not_called()
 
     @patch('quilt3.workflows.validate', return_value=None)
     def test_commit_message_on_push(self, mocked_workflow_validate):
@@ -1772,6 +1816,73 @@ class PackageTest(QuiltTestCase):
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
+    def test_push_selector_fn_false(self):
+        pkg_name = 'foo/bar'
+        lk = 'foo'
+        src_bucket = 'src-bucket'
+        src_key = 'foo.txt'
+        src_version = '1'
+        dst_bucket = 'dst-bucket'
+        pkg = Package()
+        with patch('quilt3.packages.get_size_and_version', return_value=(0, src_version)):
+            pkg.set(lk, f's3://{src_bucket}/{src_key}')
+
+        selector_fn = mock.MagicMock(return_value=False)
+        push_manifest_mock = self.patch_s3_registry('push_manifest')
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        with patch('quilt3.packages.calculate_sha256', return_value=["a" * 64]):
+            pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
+
+        selector_fn.assert_called_once_with(lk, pkg[lk])
+        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
+        assert Package.load(
+            BytesIO(push_manifest_mock.call_args[0][2])
+        )[lk].physical_key == PhysicalKey(src_bucket, src_key, src_version)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
+    def test_push_selector_fn_true(self):
+        pkg_name = 'foo/bar'
+        lk = 'foo'
+        src_bucket = 'src-bucket'
+        src_key = 'foo.txt'
+        src_version = '1'
+        dst_bucket = 'dst-bucket'
+        dst_key = f'{pkg_name}/{lk}'
+        dst_version = '2'
+        pkg = Package()
+        with patch('quilt3.packages.get_size_and_version', return_value=(0, src_version)):
+            pkg.set(lk, f's3://{src_bucket}/{src_key}')
+
+        selector_fn = mock.MagicMock(return_value=True)
+        self.s3_stubber.add_response(
+            method='copy_object',
+            service_response={
+                'VersionId': dst_version,
+            },
+            expected_params={
+                'Bucket': dst_bucket,
+                'Key': dst_key,
+                'CopySource': {
+                    'Bucket': src_bucket,
+                    'Key': src_key,
+                    'VersionId': src_version,
+                },
+            }
+        )
+        push_manifest_mock = self.patch_s3_registry('push_manifest')
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        with patch('quilt3.packages.calculate_sha256', return_value=["a" * 64]):
+            pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
+
+        selector_fn.assert_called_once_with(lk, pkg[lk])
+        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
+        assert Package.load(
+            BytesIO(push_manifest_mock.call_args[0][2])
+        )[lk].physical_key == PhysicalKey(dst_bucket, dst_key, dst_version)
 
     def test_package_dump_file_mode(self):
         """

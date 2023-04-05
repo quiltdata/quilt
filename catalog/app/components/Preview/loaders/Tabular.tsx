@@ -1,17 +1,19 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import cfg from 'constants/config'
+import type * as Model from 'model'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
-import * as summarize from './summarize'
 
+import FileType from './fileType'
 import * as utils from './utils'
+
+export const FILE_TYPE = FileType.Tabular
 
 const isCsv = utils.extIs('.csv')
 
@@ -27,18 +29,12 @@ const isParquet = R.anyPass([
 
 const isTsv = utils.extIn(['.tsv', '.tab'])
 
-const detectBySummarizeType = summarize.detect('perspective')
-
-const detectByExtension: (key: string) => boolean = R.pipe(
+export const detect = R.pipe(
   utils.stripCompression,
   R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
 )
 
-export function detect(key: string, options: summarize.File): boolean | summarize.Type {
-  return detectBySummarizeType(options) || detectByExtension(key)
-}
-
-type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
+type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
 
 const detectTabularType: (type: string) => TabularType = R.pipe(
   utils.stripCompression,
@@ -48,7 +44,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
     [isJsonl, R.always('jsonl')],
     [isParquet, R.always('parquet')],
     [isTsv, R.always('tsv')],
-    [R.T, R.always('txt')],
+    [R.T, R.always('csv')],
   ]),
 )
 
@@ -114,9 +110,8 @@ export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata 
 
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
-  endpoint: string
-  handle: S3HandleBase
-  sign: (h: S3HandleBase) => string
+  handle: Model.S3.S3ObjectLocation
+  sign: (h: Model.S3.S3ObjectLocation) => string
   type: TabularType
   size: 'small' | 'medium' | 'large'
 }
@@ -130,7 +125,6 @@ interface TabularDataOutput {
 
 const loadTabularData = async ({
   compression,
-  endpoint,
   size,
   handle,
   sign,
@@ -138,7 +132,7 @@ const loadTabularData = async ({
 }: LoadTabularDataArgs): Promise<TabularDataOutput> => {
   const url = sign(handle)
   const r = await fetch(
-    `${endpoint}/tabular-preview${mkSearch({
+    `${cfg.apiGatewayEndpoint}/tabular-preview${mkSearch({
       compression,
       input: type,
       size,
@@ -182,7 +176,7 @@ function getNeededSize(context: string, gated: boolean) {
 
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
   options: { context: string } // TODO: restrict type
 }
 
@@ -192,7 +186,6 @@ export const Loader = function TabularLoader({
   options,
 }: TabularLoaderProps) {
   const [gated, setGated] = React.useState(true)
-  const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const type = React.useMemo(() => detectTabularType(handle.key), [handle.key])
   const onLoadMore = React.useCallback(() => setGated(false), [setGated])
@@ -204,7 +197,6 @@ export const Loader = function TabularLoader({
   const compression = utils.getCompression(handle.key)
   const data = Data.use(loadTabularData, {
     compression,
-    endpoint,
     size,
     handle,
     sign,
@@ -217,6 +209,7 @@ export const Loader = function TabularLoader({
       PreviewData.Perspective({
         data: csv,
         handle,
+        modes: [FileType.Tabular, FileType.Text],
         parquetMeta,
         onLoadMore: truncated && size !== 'large' ? onLoadMore : null,
         truncated,

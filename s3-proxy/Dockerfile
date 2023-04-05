@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM debian:bullseye-20230320-slim@sha256:7acda01e55b086181a6fa596941503648e423091ca563258e2c1657d140355b1
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Based on:
@@ -22,7 +22,7 @@ RUN set -x \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
     && mkdir mod_zip \
-    && curl -L https://api.github.com/repos/quiltdata/mod_zip/tarball/1b6813a030d71ee1279e3cb87e87516875e7c08e | tar zx --strip-components 1 --directory mod_zip \
+    && curl -L https://api.github.com/repos/quiltdata/mod_zip/tarball/979314cca0507a59071310f09401861cced73ccb | tar zx --strip-components 1 --directory mod_zip \
     && ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \

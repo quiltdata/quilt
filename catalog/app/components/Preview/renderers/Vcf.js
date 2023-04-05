@@ -5,9 +5,6 @@ import * as M from '@material-ui/core'
 import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    width: '100%',
-  },
   tableWrapper: {
     overflow: 'auto',
   },
@@ -61,7 +58,7 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
       )
 
   return (
-    <div className={classes.root}>
+    <>
       {renderWarnings(warnings)}
       <div className={classes.tableWrapper}>
         <M.Table className={classes.table}>
@@ -107,7 +104,7 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
           <div className={classes.variants}>{variants.join(' ')}</div>
         </M.Box>
       )}
-    </div>
+    </>
   )
 }
 

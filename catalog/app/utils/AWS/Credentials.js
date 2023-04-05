@@ -3,11 +3,21 @@ import 'aws-sdk/lib/credentials'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
-import * as Config from 'utils/Config'
 import { BaseError } from 'utils/error'
-import useMemoEq from 'utils/useMemoEq'
+import logout from 'utils/logout'
+
+export class CredentialsError extends BaseError {
+  constructor(headline, detail, object) {
+    super(headline, { headline, detail, object })
+  }
+}
+
+class OutdatedTokenError extends CredentialsError {}
+
+class InvalidTokenError extends CredentialsError {}
 
 class RegistryCredentials extends AWS.Credentials {
   constructor({ req, reqOpts }) {
@@ -29,7 +39,15 @@ class RegistryCredentials extends AWS.Credentials {
         })
         .catch((e) => {
           delete this.refreshing
-          this.error = new Error(`Unable to fetch AWS credentials: ${e}`)
+          if (/Outdated access token: please log in again/.test(e.message)) {
+            this.error = new OutdatedTokenError(e.message)
+          } else if (/Token could not be deserialized/.test(e.message)) {
+            this.error = new InvalidTokenError(e.message)
+          } else {
+            this.error = new CredentialsError(
+              `Unable to fetch AWS credentials: ${e.message}`,
+            )
+          }
           if (callback) callback(this.error)
           throw this.error
         })
@@ -50,45 +68,36 @@ class EmptyCredentials extends AWS.Credentials {
   }
 }
 
-function useCredentialsMemo({ local }) {
+function useCredentialsMemo() {
+  const authenticated = redux.useSelector(authSelectors.authenticated)
   const empty = React.useMemo(() => new EmptyCredentials(), [])
-  const reg = useMemoEq(APIConnector.use(), (req) => new RegistryCredentials({ req }))
-  const anon = useMemoEq(
-    APIConnector.use(),
-    (req) => new RegistryCredentials({ req, reqOpts: { auth: false } }),
+  const req = APIConnector.use()
+  const reg = React.useMemo(() => new RegistryCredentials({ req }), [req])
+  const anon = React.useMemo(
+    () => new RegistryCredentials({ req, reqOpts: { auth: false } }),
+    [req],
   )
 
-  return useMemoEq(
-    {
-      local,
-      auth: redux.useSelector(authSelectors.authenticated),
-      reg,
-      anon,
-      empty,
-    },
-    // eslint-disable-next-line no-nested-ternary
-    (i) => (i.auth ? i.reg : i.local ? i.anon : i.empty),
-  )
+  if (authenticated) return reg
+  if (cfg.mode === 'LOCAL') return anon
+  return empty
 }
 
 const Ctx = React.createContext()
 
 export function AWSCredentialsProvider({ children }) {
-  const cfg = Config.use()
-  const local = cfg.mode === 'LOCAL'
-  return <Ctx.Provider value={useCredentialsMemo({ local })}>{children}</Ctx.Provider>
-}
-
-export class CredentialsError extends BaseError {
-  constructor(headline, detail, object) {
-    super(headline, { headline, detail, object })
-  }
+  return <Ctx.Provider value={useCredentialsMemo()}>{children}</Ctx.Provider>
 }
 
 export function useCredentials() {
   const credentials = React.useContext(Ctx)
-  // TODO: find out real reason
-  if (!credentials) throw new CredentialsError('Session expired')
+  if (!credentials) throw new CredentialsError('Failed to get credentials')
+  if (
+    credentials.error instanceof OutdatedTokenError ||
+    credentials.error instanceof InvalidTokenError
+  ) {
+    logout()
+  }
   return React.useContext(Ctx)
 }
 

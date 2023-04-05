@@ -324,6 +324,9 @@ const useRevisionStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  metadata: {
+    padding: t.spacing(1.75, 2, 1.75, 1.5),
+  },
 }))
 
 interface RevisionProps extends RevisionFields {
@@ -367,7 +370,11 @@ function Revision({
         !!userMeta &&
         !R.isEmpty(userMeta) && (
           // @ts-expect-error
-          <JsonDisplay name="Metadata" value={userMeta} pl={1.5} py={1.75} pr={2} />
+          <JsonDisplay
+            name="User metadata"
+            value={userMeta}
+            className={classes.metadata}
+          />
         )
       }
       hash={
@@ -413,7 +420,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const preferences = BucketPreferences.use()
+  const { preferences } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1

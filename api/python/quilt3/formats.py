@@ -79,6 +79,11 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 
+try:
+    from importlib import metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
+
 from .util import QuiltException
 
 # Constants
@@ -754,7 +759,11 @@ class CSVPandasFormatHandler(BaseFormatHandler):
 
         name_map = {
             'fieldsep': 'sep',
-            'linesep': 'line_terminator',
+            'linesep': (
+                'lineterminator'
+                if int(importlib_metadata.version('pandas').split('.')[0]) >= 2 else
+                'line_terminator'
+            ),
             'use_index': 'index',
             'index_names': 'index_label',
         }
