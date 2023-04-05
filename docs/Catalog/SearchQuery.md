@@ -23,8 +23,8 @@ There are two types of indexing in Quilt:
 * *shallow* indexing includes object metadata (such as the file name and size)
 * *deep* indexing includes object contents. Quilt supports deep
 indexing for the following file extensions:
+  * .csv, .html, .json, .md, .rmd, .rst, .tab, .txt, .tsv (plain-text formats)
   * .fcs (FlowJo)
-  * .html, .txt, .tsv, .csv, .md (plus many other plain-text formats)
   * .ipynb (Jupyter notebooks and Voila dashboards)
   * .parquet
   * .pdf
