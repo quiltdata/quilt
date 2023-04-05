@@ -732,7 +732,7 @@ function useInitialState() {
   const msg = searchParams.get('msg') || undefined
   const nameOverride = searchParams.get('name') || undefined
   const workflowId = searchParams.get('workflow') || undefined
-  const dropZoneOnly = !!searchParams.get('dropZoneOnly')
+  const dropZoneOnly = searchParams.has('dropZoneOnly')
   const getInitial = React.useCallback(
     (name?: string, path?: string, manifest?: Manifest) =>
       R.mergeRight(manifest || {}, {
