@@ -802,7 +802,7 @@ export function usePackageCreationDialog({
   // TODO: put it to src as S3Handle
   const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
-  const [submitting, setSubmitting] = React.useState(true)
+  const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState({

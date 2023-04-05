@@ -5,6 +5,7 @@ import * as RRDom from 'react-router-dom'
 import type { ActionPreferences } from 'utils/BucketPreferences'
 
 const Actions: Partial<ActionPreferences> = {
+  createPackage: true,
   revisePackage: true,
 }
 
@@ -21,7 +22,6 @@ function isActions(actions: string[]): actions is Action[] {
   return actions.every((a) => !!Actions[a as Action])
 }
 
-// FIXME: use
 export default function useInitialActions(): Action[] {
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()

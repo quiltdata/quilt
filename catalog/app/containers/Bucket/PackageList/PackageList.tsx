@@ -523,6 +523,7 @@ interface PackageListProps {
 }
 
 function PackageList({ bucket, sort, filter, page }: PackageListProps) {
+  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
@@ -601,8 +602,10 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   })
 
   const { preferences } = BucketPreferences.use()
+  const [initialOpen] = React.useState(initialActions.includes('createPackage'))
 
   const createDialog = PD.usePackageCreationDialog({
+    initialOpen,
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
