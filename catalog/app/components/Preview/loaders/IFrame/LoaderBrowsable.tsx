@@ -4,7 +4,7 @@ import * as urql from 'urql'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
-import * as Model from 'model'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
@@ -184,6 +184,7 @@ export default function BrowsableLoader({ handle, children }: BrowsableLoaderPro
           PreviewData.IFrame({
             src: `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`,
             modes: [FileType.Html, FileType.Text],
+            sandbox: 'allow-scripts allow-same-origin',
           }),
       },
       sessionData,

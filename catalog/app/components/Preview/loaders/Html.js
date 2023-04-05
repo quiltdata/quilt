@@ -36,11 +36,12 @@ export const Loader = function HtmlLoader({ handle, children }) {
     pause: renderHtmlAsText,
   })
   if (renderHtmlAsText) return <Text.Loader {...{ handle, children }} />
+  const inPackage = !!handle.packageHandle
   return bucketData.case({
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
-    data: ({ bucketConfig: { browsable } }) =>
-      browsable ? (
+    data: ({ bucketConfig }) =>
+      bucketConfig?.browsable && inPackage ? (
         <IFrame.LoaderBrowsable {...{ handle, children }} />
       ) : (
         <IFrame.LoaderSigned {...{ handle, children }} />

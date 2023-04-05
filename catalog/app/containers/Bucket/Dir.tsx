@@ -11,6 +11,7 @@ import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -89,8 +90,8 @@ function AddToBookmarks({
 }: AddToBookmarksProps) {
   const classes = useAddToBookmarksStyles()
   const bookmarks = Bookmarks.use()
-  const bookmarkItems: s3paths.S3HandleBase[] = React.useMemo(() => {
-    const handles: s3paths.S3HandleBase[] = []
+  const bookmarkItems: Model.S3.S3ObjectLocation[] = React.useMemo(() => {
+    const handles: Model.S3.S3ObjectLocation[] = []
     if (selection?.includes('..')) {
       handles.push({
         bucket,

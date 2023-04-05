@@ -14,6 +14,11 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# 5.2.1 - 2023-04-05
+## Python API
+* [Fixed] Fixed CSV serialization with pandas 2 ([#3395](https://github.com/quiltdata/quilt/pull/3395))
+
+# 5.2.0 - 2023-03-27
 ## Python API
 * [Added] Validation of package entries metadata ([#3286](https://github.com/quiltdata/quilt/pull/3286))
 
@@ -21,12 +26,15 @@ Entries inside each section should be ordered by type:
 * [Added] Add basic support for tasklist in Markdown ([#3339](https://github.com/quiltdata/quilt/pull/3339))
 * [Added] Object-level validation, frontend ([#3336](https://github.com/quiltdata/quilt/pull/3336))
 * [Added] Frontend for permissive HTML rendering ([#3198](https://github.com/quiltdata/quilt/pull/3198))
+* [Added] Confirmation to enable Package Files Server ([#3388](https://github.com/quiltdata/quilt/pull/3388))
 * [Fixed] Fixed mobile layout for collaborators badges ([#3307](https://github.com/quiltdata/quilt/pull/3307))
 * [Fixed] Fixed metadata handling for entries without hash or size in pkgpush lambda ([#3314](https://github.com/quiltdata/quilt/pull/3314))
 * [Fixed] Fixed adding metadata for S3 entries ([#3367]https://github.com/quiltdata/quilt/pull/3367)
+* [Fixed] Fixed crash of the iframe in Bucket tab ([3387](https://github.com/quiltdata/quilt/pull/3387))
 * [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
 * [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
 * [Changed] Restrict editing `user_meta` field only for object-level metadata ([#3337](https://github.com/quiltdata/quilt/pull/3337))
+* [Changed] Tabular format defaults to .csv ([#3382](https://github.com/quiltdata/quilt/pull/3382))
 
 # 5.1.1 - 2023-01-25
 ## Python API

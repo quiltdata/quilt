@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 import { Popup, Badge } from 'components/Collaborators'
-import * as Model from 'model'
+import type * as Model from 'model'
 
 import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 

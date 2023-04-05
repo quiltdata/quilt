@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
-import type { S3HandleBase } from 'utils/s3paths'
+import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import type { JsonRecord } from 'utils/types'
 
 import { PreviewData, PreviewError } from '../types'
@@ -40,7 +40,7 @@ export const traverseUrls: $TSFixMe = (fn: (u: unknown) => unknown, spec: JsonRe
 interface VegaLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
   gated: boolean
-  handle: S3HandleBase
+  handle: LogicalKeyResolver.S3SummarizeHandle
 }
 
 export const Loader = function VegaLoader({ handle, gated, children }: VegaLoaderProps) {

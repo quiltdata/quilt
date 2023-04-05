@@ -12,7 +12,7 @@ import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import cfg from 'constants/config'
 import * as AddToPackage from 'containers/AddToPackage'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -346,10 +346,10 @@ function PackageCreationForm({
       addedS3Entries,
       R.map(
         ({ path, file }) =>
-          [path, { physicalKey: s3paths.handleToS3Url(file), meta: file.meta }] as R.KeyValuePair<
-            string,
-            PartialPackageEntry
-          >,
+          [
+            path,
+            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+          ] as R.KeyValuePair<string, PartialPackageEntry>,
       ),
       R.fromPairs,
     )

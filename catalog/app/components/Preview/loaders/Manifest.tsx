@@ -2,8 +2,8 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 
@@ -29,7 +29,7 @@ interface PreviewResult {
 interface LoaderProps {
   gated: boolean
   children: (result: $TSFixMe) => React.ReactNode
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
 }
 
 export const Loader = function ManifestLoader({ gated, handle, children }: LoaderProps) {

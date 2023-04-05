@@ -49,15 +49,15 @@ currently supported.
 * Powerpoint (.pptx)
 * Excel (.xls, .xlsx)
 
-## Advanced
+## Advanced: Quilt Package File Server
 
-The Quilt catalog supports secure, custom Javascript-enabled visualizations and
-dashboards embedded inside iframes.
-It is at your discretion which JS library (or libraries) you wish to import in
-your HTML file.
+The Quilt Catalog supports secure, custom Javascript-enabled
+visualizations and dashboards embedded inside iframes (Package
+File Server). It is at your discretion which JS library (or libraries)
+you wish to import in your HTML file.
 
 To enable "permissive" visualizations, check the `Enable permissive HTML
-rendering` checkbox in [Bucket settings](/catalog/admin#buckets). Please note
+rendering` checkbox in [Bucket settings](Admin.md#buckets). Please note
 that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package
 creates a short-lived **publicly available** session for the lifetime of the
 session, although all session traffic _remains encrypted_.
@@ -77,3 +77,8 @@ session, although all session traffic _remains encrypted_.
 > **All files in the same package** are made temporarily publicly-available (for
 > lifetime of the session) under `/temporary-session-id`, even if not explicitly
 referenced in `report.html`.
+
+### Live packages
+
+* [Dynamic visualizations; interactive IGV dashboard; Perspective datagrids with
+images](https://open.quiltdata.com/b/quilt-example/packages/examples/package-file-server)
