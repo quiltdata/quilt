@@ -4,7 +4,10 @@ import * as RRDom from 'react-router-dom'
 
 import type { ActionPreferences } from 'utils/BucketPreferences'
 
+// TODO: Use ?query=stirngs as a source of truth for opening package dialogs
+
 const Actions: Partial<ActionPreferences> = {
+  copyPackage: true,
   createPackage: true,
   revisePackage: true,
 }

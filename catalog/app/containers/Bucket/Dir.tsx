@@ -297,6 +297,7 @@ export default function Dir({
   },
   location: l,
 }: RRDom.RouteComponentProps<DirParams>) {
+  const initialActions = PD.useInitialActions()
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const s3 = AWS.S3.use()
@@ -361,7 +362,9 @@ export default function Dir({
     )
   }, [data.result])
 
+  const [initialOpen] = React.useState(initialActions.includes('createPackage'))
   const packageDirectoryDialog = PD.usePackageCreationDialog({
+    initialOpen,
     bucket,
     delayHashing: true,
     disableStateDisplay: true,

@@ -420,6 +420,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
+  const initialActions = PD.useInitialActions()
   const { preferences } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
@@ -449,7 +450,8 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
   })
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
+  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
+  const updateDialog = PD.usePackageCreationDialog({ initialOpen, bucket, src: { name } })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
