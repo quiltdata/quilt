@@ -5,6 +5,7 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
@@ -169,6 +170,7 @@ interface PackageCreationFormProps {
   initial?: {
     name?: string
     meta?: Types.JsonRecord
+    msg?: string
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
     path?: string
@@ -451,20 +453,6 @@ function PackageCreationForm({
     [setMetaHeight],
   )
   const [filesDisabled, setFilesDisabled] = React.useState(false)
-  const [dropping, setDropping] = React.useState(false)
-  const onFilesChange = React.useCallback(
-    (submit) => {
-      return async ({ dirtyFields, values }: FF.FormState<SubmitWebArgs>) => {
-        if (!dirtyFields.files || dropping) return
-        setDropping(true)
-        setSubmitting(true)
-        await validateFiles(values.files)
-        await submit()
-        setDropping(false)
-      }
-    },
-    [dropping],
-  )
 
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
@@ -495,6 +483,18 @@ function PackageCreationForm({
       }
     },
     [delayHashing, validateEntries],
+  )
+
+  const [dropping, setDropping] = React.useState(false)
+  const onFilesChange = React.useCallback(
+    (submit) =>
+      async ({ dirtyFields }: FF.FormState<SubmitWebArgs>) => {
+        if (!dirtyFields.files || dropping) return
+        setDropping(true)
+        await submit()
+        setDropping(false)
+      },
+    [dropping],
   )
 
   // HACK: FIXME: it triggers name validation with correct workflow
@@ -602,7 +602,7 @@ function PackageCreationForm({
                     name="msg"
                     validate={validators.required as FF.FieldValidator<string>}
                     validateFields={['msg']}
-                    initialValue={dropZoneOnly ? `WIP: Test` : undefined}
+                    initialValue={initial?.msg}
                     errors={{
                       required: 'Enter a commit message',
                     }}
@@ -720,6 +720,27 @@ function prependSourceBucket(
     getDefault: () => bucket,
     list: R.prepend(bucket, buckets.list),
   }
+}
+
+function useInitialState() {
+  const location = RRDom.useLocation()
+  const searchParams = React.useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  )
+  const msg = searchParams.get('msg') || undefined
+  const nameOverride = searchParams.get('name') || undefined
+  const workflowId = searchParams.get('workflow') || undefined
+  return React.useCallback(
+    (name?: string, path?: string, manifest?: Manifest) =>
+      R.mergeRight(manifest || {}, {
+        msg,
+        name: name || nameOverride,
+        path,
+        workflowId,
+      }),
+    [msg, nameOverride, workflowId],
+  )
 }
 
 const DialogState = tagged.create(
@@ -877,6 +898,8 @@ export function usePackageCreationDialog({
     )
   }, [exited, success, data])
 
+  const getInitial = useInitialState()
+
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <PD.DialogWrapper
       exited={exited}
@@ -926,7 +949,7 @@ export function usePackageCreationDialog({
                     setWorkflow,
                     workflowsConfig,
                     sourceBuckets,
-                    initial: { name: src?.name, path: s3Path, ...manifest },
+                    initial: getInitial(src?.name, s3Path, manifest),
                     delayHashing,
                     disableStateDisplay,
                     dropZoneOnly,
