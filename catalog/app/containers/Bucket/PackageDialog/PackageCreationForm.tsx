@@ -723,6 +723,7 @@ function prependSourceBucket(
 }
 
 function useInitialState() {
+  const history = RRDom.useHistory()
   const location = RRDom.useLocation()
   const searchParams = React.useMemo(
     () => new URLSearchParams(location.search),
@@ -732,7 +733,7 @@ function useInitialState() {
   const nameOverride = searchParams.get('name') || undefined
   const workflowId = searchParams.get('workflow') || undefined
   const dropZoneOnly = !!searchParams.get('dropZoneOnly')
-  return React.useCallback(
+  const getInitial = React.useCallback(
     (name?: string, path?: string, manifest?: Manifest) =>
       R.mergeRight(manifest || {}, {
         msg,
@@ -742,6 +743,19 @@ function useInitialState() {
         dropZoneOnly,
       }),
     [dropZoneOnly, msg, nameOverride, workflowId],
+  )
+  const disposeInitial = React.useCallback(() => {
+    searchParams.delete('msg')
+    searchParams.delete('name')
+    searchParams.delete('workflow')
+    searchParams.delete('dropZoneOnly')
+    history.replace({
+      search: searchParams.toString(),
+    })
+  }, [history, searchParams])
+  return React.useMemo(
+    () => ({ getInitial, disposeInitial }),
+    [getInitial, disposeInitial],
   )
 }
 
@@ -871,6 +885,8 @@ export function usePackageCreationDialog({
     [setOpen, setExited],
   )
 
+  const { getInitial, disposeInitial } = useInitialState()
+
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
@@ -881,7 +897,8 @@ export function usePackageCreationDialog({
   const handleExited = React.useCallback(() => {
     setExited(true)
     setSuccess(false)
-  }, [setExited, setSuccess])
+    disposeInitial()
+  }, [disposeInitial, setExited, setSuccess])
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
@@ -897,8 +914,6 @@ export function usePackageCreationDialog({
       data,
     )
   }, [exited, success, data])
-
-  const getInitial = useInitialState()
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <PD.DialogWrapper
