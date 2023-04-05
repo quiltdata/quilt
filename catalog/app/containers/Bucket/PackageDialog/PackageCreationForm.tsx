@@ -701,7 +701,9 @@ function PackageCreationForm({
               onClick={handleSubmit}
               variant="contained"
               color="primary"
-              disabled={submitting || (submitFailed && hasValidationErrors)}
+              disabled={
+                submitting || (submitFailed && hasValidationErrors) || dropZoneOnly
+              }
             >
               {ui.submit || 'Create'}
             </M.Button>
