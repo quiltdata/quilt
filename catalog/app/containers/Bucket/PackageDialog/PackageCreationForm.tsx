@@ -731,6 +731,7 @@ function useInitialState() {
   const msg = searchParams.get('msg') || undefined
   const nameOverride = searchParams.get('name') || undefined
   const workflowId = searchParams.get('workflow') || undefined
+  const dropZoneOnly = !!searchParams.get('dropZoneOnly')
   return React.useCallback(
     (name?: string, path?: string, manifest?: Manifest) =>
       R.mergeRight(manifest || {}, {
@@ -738,8 +739,9 @@ function useInitialState() {
         name: nameOverride || name,
         path,
         workflowId,
+        dropZoneOnly,
       }),
-    [msg, nameOverride, workflowId],
+    [dropZoneOnly, msg, nameOverride, workflowId],
   )
 }
 
@@ -781,7 +783,6 @@ interface UsePackageCreationDialogProps {
   initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
-  dropZoneOnly?: boolean
 }
 
 // TODO: package can be created from some `src`:
@@ -795,7 +796,6 @@ export function usePackageCreationDialog({
   initialOpen,
   delayHashing = false,
   disableStateDisplay = false,
-  dropZoneOnly = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
@@ -932,7 +932,7 @@ export function usePackageCreationDialog({
             />
           ),
           Form: ({ manifest, workflowsConfig, sourceBuckets }) => {
-            const initial = getInitial(src?.name, s3Path, manifest)
+            const { dropZoneOnly, ...initial } = getInitial(src?.name, s3Path, manifest)
             return (
               <PD.SchemaFetcher
                 initialWorkflowId={initial?.workflowId || manifest?.workflowId}
