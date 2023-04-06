@@ -69,12 +69,15 @@ Format metadata has the following form:
 import copy
 import csv
 import gzip
+import importlib
 import io
 import json
 import sys
+import tempfile
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from pathlib import Path
 
 try:
     from importlib import metadata as importlib_metadata
@@ -323,6 +326,7 @@ class FormatRegistry:
 
                             Python Object Type     Serialization Formats
          <class 'pandas.core.frame.DataFrame'>  [ssv, csv, tsv, parquet]
+                     <class 'anndata.AnnData'>                   [.h5ad]
                        <class 'numpy.ndarray'>                [npy, npz]
                                  <class 'str'>      [md, json, rst, txt]
                                 <class 'dict'>                    [json]
@@ -333,19 +337,18 @@ class FormatRegistry:
                                <class 'float'>                    [json]
                                <class 'bytes'>                     [bin]
         """
-        try:
-            import numpy as np
-        except ImportError:
-            pass
-        else:
-            cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
-
-        try:
-            import pandas as pd
-        except ImportError:
-            pass
-        else:
-            cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
+        # Force FormatHandlers to register these classes as supported object types
+        for mod_name, cls_name in [
+            ('numpy', 'ndarray'),
+            ('pandas', 'DataFrame'),
+            ('anndata', 'AnnData'),
+        ]:
+            try:
+                mod = importlib.import_module(mod_name)
+            except ImportError:
+                pass
+            else:
+                cls.search(getattr(mod, cls_name))
 
         type_map = defaultdict(set)
         for handler in cls.registered_handlers:
@@ -1031,6 +1034,55 @@ class ParquetFormatHandler(BaseFormatHandler):
 # compat -- also handle 'pyarrow' in meta['target'] and meta['format']['name'].
 ParquetFormatHandler('pyarrow').register()
 ParquetFormatHandler().register()  # latest is preferred
+
+
+class AnnDataFormatHandler(BaseFormatHandler):
+    """Format for AnnData <--> .h5ad
+
+    Format Opts:
+        The following options may be used anywhere format opts are accepted,
+        or directly in metadata under `{'format': {'opts': {...: ...}}}`.
+
+        compression('gzip', 'lzf', None):  applies during serialization only.
+    """
+    name = 'h5ad'
+    handled_extensions = ['h5ad']
+    opts = ('compression',)
+    defaults = dict(
+        compression='lzf',
+    )
+
+    def handles_type(self, typ: type) -> bool:
+        # don't load module unless we actually have to use it.
+        if 'anndata' not in sys.modules:
+            return False
+        import anndata as ad
+        self.handled_types.add(ad.AnnData)
+        return super().handles_type(typ)
+
+    def serialize(self, obj, meta=None, ext=None, **format_opts):
+        opts = self.get_opts(meta, format_opts)
+        opts_with_defaults = copy.deepcopy(self.defaults)
+        opts_with_defaults.update(opts)
+
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'data.h5ad'
+            obj.write(path, **opts_with_defaults)
+            data = path.read_bytes()
+
+        return data, self._update_meta(meta, additions=opts_with_defaults)
+
+    def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
+        try:
+            import anndata as ad
+        except ImportError:
+            raise QuiltException("Please install quilt3[anndata]")
+
+        buf = io.BytesIO(bytes_obj)
+        return ad.read_h5ad(buf)
+
+
+AnnDataFormatHandler().register()
 
 
 class CompressionRegistry:
