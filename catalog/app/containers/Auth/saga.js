@@ -3,6 +3,7 @@ import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
 import cfg from 'constants/config'
 import { apiRequest, HTTPError } from 'utils/APIConnector'
 import defer from 'utils/defer'
+import log from 'utils/Logging'
 import { waitTil } from 'utils/sagaTools'
 import { timestamp } from 'utils/time'
 
@@ -160,10 +161,7 @@ function* setBrowseCookie(tokens) {
       credentials: 'include',
     })
   } catch (e) {
-    throw new errors.AuthError({
-      message: 'unable to set browse cookie',
-      originalError: e,
-    })
+    log.warn('Unable to set browse cookie', e)
   }
 }
 
