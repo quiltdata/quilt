@@ -740,9 +740,8 @@ function useInitialState(name: string) {
         name: nameOverride || packageName,
         path,
         workflowId,
-        dropZoneOnly,
       }),
-    [dropZoneOnly, msg, nameOverride, workflowId],
+    [msg, nameOverride, workflowId],
   )
   const isOpen = React.useMemo(
     () => searchParams.get('action') === name,
@@ -765,10 +764,7 @@ function useInitialState(name: string) {
     },
     [name, searchParams, history],
   )
-  return React.useMemo(
-    () => ({ getInitial, isOpen, setOpen }),
-    [getInitial, , isOpen, setOpen],
-  )
+  return { dropZoneOnly, getInitial, isOpen, setOpen }
 }
 
 const DialogState = tagged.create(
@@ -824,7 +820,7 @@ export function usePackageCreationDialog({
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
-  const { isOpen, setOpen, getInitial } = useInitialState(name)
+  const { dropZoneOnly, isOpen, setOpen, getInitial } = useInitialState(name)
 
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
@@ -917,7 +913,7 @@ export function usePackageCreationDialog({
           Closed: () => null,
           Loading: () => (
             <DialogLoading
-              skeletonElement={<FormSkeleton />}
+              skeletonElement={<FormSkeleton dropZoneOnly={dropZoneOnly} />}
               title="Fetching package manifest. One moment…"
               submitText={ui.submit}
               onCancel={close}
@@ -934,11 +930,7 @@ export function usePackageCreationDialog({
             />
           ),
           Form: ({ manifest, workflowsConfig, sourceBuckets }) => {
-            const { dropZoneOnly, ...initial } = getInitial(
-              src.packageHandle?.name,
-              src.s3Path,
-              manifest,
-            )
+            const initial = getInitial(src.packageHandle?.name, src.s3Path, manifest)
             return (
               <PD.SchemaFetcher
                 initialWorkflowId={initial?.workflowId || manifest?.workflowId}
