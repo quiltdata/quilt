@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+* [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
+
+# 5.2.1 - 2023-04-05
+## Python API
+* [Fixed] Fixed CSV serialization with pandas 2 ([#3395](https://github.com/quiltdata/quilt/pull/3395))
+
 # 5.2.0 - 2023-03-27
 ## Python API
 * [Added] Validation of package entries metadata ([#3286](https://github.com/quiltdata/quilt/pull/3286))
