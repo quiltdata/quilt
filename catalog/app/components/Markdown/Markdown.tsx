@@ -168,19 +168,22 @@ function htmlHandler(
 interface RendererArgs {
   processImg?: AttributeProcessor
   processLink?: AttributeProcessor
+  win?: Window
 }
 
-export const getRenderer = memoize(({ processImg, processLink }: RendererArgs) => {
-  const md = new Remarkable.Remarkable('full', {
-    highlight,
-    html: true,
-    typographer: true,
-  }).use(linkify)
-  md.use(checkboxHandler)
-  const purify = createDOMPurify(window)
-  purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
-  return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
-})
+export const getRenderer = memoize(
+  ({ processImg, processLink, win = window }: RendererArgs) => {
+    const md = new Remarkable.Remarkable('full', {
+      highlight,
+      html: true,
+      typographer: true,
+    }).use(linkify)
+    md.use(checkboxHandler)
+    const purify = createDOMPurify(win)
+    purify.addHook('uponSanitizeElement', htmlHandler(processLink, processImg))
+    return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+  },
+)
 
 interface ContainerProps {
   children: string
