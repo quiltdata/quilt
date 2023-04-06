@@ -3,12 +3,12 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
+import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as validators from 'utils/validators'
@@ -115,7 +115,7 @@ function DialogForm({
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
   const classes = useStyles()
 
-  const [, createPackage] = urql.useMutation(PACKAGE_FROM_FOLDER)
+  const createPackage = useMutation(PACKAGE_FROM_FOLDER)
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
@@ -135,7 +135,7 @@ function DialogForm({
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const res = await createPackage({
+        const { packageFromFolder: r } = await createPackage({
           params: {
             bucket: successor.slug,
             name,
@@ -154,9 +154,6 @@ function DialogForm({
             entries: prepareEntries(filesValue, path, filtered),
           },
         })
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data returned by the API')
-        const r = res.data.packageFromFolder
         switch (r.__typename) {
           case 'PackagePushSuccess':
             setSuccess({ name, hash: r.revision.hash })

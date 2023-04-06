@@ -2,8 +2,8 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
-import useQuery from 'utils/useQuery'
 
 import { MAX_POLICIES_PER_ROLE } from './shared'
 
@@ -89,7 +89,7 @@ export default function AttachedPolicies({
   const error =
     meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
-  const policiesData = useQuery({ query: POLICIES_QUERY })
+  const policiesData = GQL.useQuery(POLICIES_QUERY)
 
   const [policySelectionOpen, setPolicySelectionOpen] = React.useState(false)
 
@@ -114,7 +114,7 @@ export default function AttachedPolicies({
 
   const availablePolicies = React.useMemo(
     () =>
-      policiesData.case({
+      GQL.fold(policiesData, {
         fetching: () => null,
         error: () => null,
         data: ({ policies }) => {
@@ -134,7 +134,7 @@ export default function AttachedPolicies({
     <div className={className}>
       <M.Box display="flex" alignItems="center">
         <M.Typography variant="h6">Attached policies</M.Typography>
-        {policiesData.case({
+        {GQL.fold(policiesData, {
           data: () => null,
           fetching: () => (
             <M.Tooltip arrow title="Fetching policies">
