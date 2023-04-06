@@ -32,7 +32,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as BucketCache from 'utils/BucketCache'
 import { createBoundary } from 'utils/ErrorBoundary'
-import { GraphQLProvider } from 'utils/GraphQL'
+import * as GraphQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
@@ -344,7 +344,7 @@ function App({ init }) {
     [RouterProvider, { history }],
     Cache.Provider,
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
-    GraphQLProvider,
+    GraphQL.Provider,
     Notifications.Provider,
     [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
     [Auth.Provider, { storage }],

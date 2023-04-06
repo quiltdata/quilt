@@ -2,8 +2,8 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 import AR from 'utils/AsyncResult'
+import * as GQL from 'utils/GraphQL'
 import * as Types from 'utils/types'
-import useQuery from 'utils/useQuery'
 
 import * as errors from '../errors'
 import MANIFEST_QUERY from './gql/Manifest.generated'
@@ -34,23 +34,21 @@ export function useManifest({
   skipEntries = false,
   pause = false,
 }: UseManifestParams) {
-  const res = useQuery({
-    query: MANIFEST_QUERY,
-    variables: {
+  const res = GQL.useQuery(
+    MANIFEST_QUERY,
+    {
       bucket,
       name,
       hashOrTag: hash || 'latest',
       max: MANIFEST_LIMIT,
       skipEntries,
     },
-    pause: pause,
-  })
-  const { case: doCase } = res
-  const pausedNoData = !res.data && pause
+    { pause },
+  )
   const result = React.useMemo(() => {
     // XXX: use RemoteData?
-    if (pausedNoData) return AR.Pending()
-    return doCase({
+    if (!res.data && pause) return AR.Pending()
+    return GQL.fold(res, {
       data: (data) => {
         const r = data.package?.revision
         // TODO: more appropriate error?
@@ -72,7 +70,7 @@ export function useManifest({
       error: AR.Err,
       fetching: AR.Pending,
     })
-  }, [pausedNoData, doCase, bucket, skipEntries])
+  }, [pause, res, bucket, skipEntries])
 
   return React.useMemo(
     () => ({

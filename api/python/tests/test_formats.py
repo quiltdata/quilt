@@ -3,11 +3,13 @@ import pathlib
 import numpy as np
 import pandas as pd
 import pytest
+from anndata import AnnData
 
 from quilt3.formats import FormatRegistry
 from quilt3.util import QuiltException
 
 # Constants
+data_dir = pathlib.Path(__file__).parent / 'data'
 
 
 # Code
@@ -144,6 +146,36 @@ def test_formats_csv_roundtrip():
 
     assert test_data == bin
     assert df1.equals(df2)
+
+
+def test_formats_anndata_roundtrip():
+    meta = {'format': {'name': 'h5ad'}}
+    ad_file = data_dir / 'test.h5ad'
+    ad: AnnData = FormatRegistry.deserialize(ad_file.read_bytes(), meta)
+    assert isinstance(ad, AnnData)
+
+    bin, format_meta = FormatRegistry.serialize(ad, meta)
+    meta2 = {**meta, **format_meta}
+    ad2: AnnData = FormatRegistry.deserialize(bin, meta2)
+    np.allclose(ad.X, ad2.X)
+    ad.obs.equals(ad2.obs)
+    ad.var.equals(ad2.var)
+
+
+def test_all_supported_formats():
+    assert FormatRegistry.all_supported_formats() == {
+        AnnData: {'h5ad'},
+        pd.DataFrame: {'csv', 'parquet', 'ssv', 'tsv'},
+        np.ndarray: {'npy', 'npz'},
+        str: {'json', 'md', 'rst', 'txt'},
+        tuple: {'json'},
+        type(None): {'json'},
+        dict: {'json'},
+        int: {'json'},
+        list: {'json'},
+        float: {'json'},
+        bytes: {'bin'},
+    }
 
 
 def test_formats_search_fail_notfound():

@@ -3,13 +3,13 @@ import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as Dialogs from 'utils/Dialogs'
+import { useQueryS } from 'utils/GraphQL'
 import * as Cache from 'utils/ResourceCache'
 import * as Format from 'utils/format'
 import * as validators from 'utils/validators'
@@ -513,11 +513,7 @@ function UsersSkeleton() {
 // users: PT.object.isRequired,
 export default function Users({ users }) {
   const rows = Cache.suspend(users)
-  const [
-    {
-      data: { roles, defaultRole },
-    },
-  ] = urql.useQuery({ query: ROLES_QUERY })
+  const { roles, defaultRole } = useQueryS(ROLES_QUERY)
   const defaultRoleId = defaultRole?.id
 
   const req = APIConnector.use()

@@ -10,6 +10,7 @@ import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -19,7 +20,6 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
-import useQuery from 'utils/useQuery'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from '../PackageDialog'
@@ -441,13 +441,12 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     }
   })
 
-  const revisionCountQuery = useQuery({
-    query: REVISION_COUNT_QUERY,
-    variables: { bucket, name },
-  })
-  const revisionListQuery = useQuery({
-    query: REVISION_LIST_QUERY,
-    variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
+  const revisionCountQuery = GQL.useQuery(REVISION_COUNT_QUERY, { bucket, name })
+  const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
+    bucket,
+    name,
+    page: actualPage,
+    perPage: PER_PAGE,
   })
 
   const [successor, setSuccessor] = React.useState({
@@ -496,7 +495,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
         )}
       </M.Box>
 
-      {revisionCountQuery.case({
+      {GQL.fold(revisionCountQuery, {
         error: displayError(),
         fetching: () => renderRevisionSkeletons(10),
         data: (d) => {
@@ -513,7 +512,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
           return (
             <>
-              {revisionListQuery.case({
+              {GQL.fold(revisionListQuery, {
                 error: displayError(),
                 fetching: () => {
                   const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE

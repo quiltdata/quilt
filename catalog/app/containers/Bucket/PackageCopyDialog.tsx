@@ -2,12 +2,12 @@ import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
+import { useMutation } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
@@ -115,7 +115,7 @@ function DialogForm({
   const classes = useStyles()
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
-  const [, copyPackage] = urql.useMutation(PACKAGE_PROMOTE)
+  const copyPackage = useMutation(PACKAGE_PROMOTE)
 
   interface FormData {
     commitMessage: string
@@ -127,7 +127,7 @@ function DialogForm({
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }: FormData) => {
     try {
-      const res = await copyPackage({
+      const { packagePromote: r } = await copyPackage({
         params: {
           bucket: successor.slug,
           name,
@@ -147,9 +147,6 @@ function DialogForm({
           hash,
         },
       })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data returned by the API')
-      const r = res.data.packagePromote
       switch (r.__typename) {
         case 'PackagePushSuccess':
           setSuccess({ name, hash: r.revision.hash, bucket: successor.slug })

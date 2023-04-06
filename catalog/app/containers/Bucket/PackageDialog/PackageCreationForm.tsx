@@ -6,7 +6,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -19,6 +18,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
+import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -271,7 +271,7 @@ function PackageCreationForm({
     [uploads],
   )
 
-  const [, constructPackage] = urql.useMutation(PACKAGE_CONSTRUCT)
+  const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
   const uploadPackage = Upload.useUploadPackage()
@@ -392,7 +392,7 @@ function PackageCreationForm({
     )
 
     try {
-      const res = await constructPackage({
+      const { packageConstruct: r } = await constructPackage({
         params: {
           bucket: successor.slug,
           name,
@@ -410,9 +410,6 @@ function PackageCreationForm({
           entries: allEntries,
         },
       })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data returned by the API')
-      const r = res.data.packageConstruct
       switch (r.__typename) {
         case 'PackagePushSuccess':
           setSuccess({ name, hash: r.revision.hash })
