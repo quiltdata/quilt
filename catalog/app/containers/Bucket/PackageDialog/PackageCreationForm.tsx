@@ -49,6 +49,23 @@ import { Manifest, EMPTY_MANIFEST_ENTRIES, useManifest } from './Manifest'
 const CANCEL = 'cancel'
 const README_PATH = 'README.md'
 
+const ERRORS_MAP = {
+  name: {
+    required: 'Enter a package name',
+    invalid: 'Invalid package name',
+    pattern: `Name should match packages name pattern`,
+  },
+  msg: {
+    required: 'Enter a commit message',
+  },
+  files: {
+    schema: 'Files should match schema',
+    [FI.HASHING]: 'Please wait while we hash the files',
+    [FI.HASHING_ERROR]:
+      'Error hashing files, probably some of them are too large. Please try again or contact support.',
+  },
+}
+
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
 
 // TODO: use tree as the main data model / source of truth?
@@ -506,6 +523,7 @@ function PackageCreationForm({
       onSubmit={onSubmitWrapped}
       subscription={{
         error: true,
+        errors: dropZoneOnly,
         hasValidationErrors: true,
         submitError: true,
         submitFailed: true,
@@ -515,6 +533,7 @@ function PackageCreationForm({
     >
       {({
         error,
+        errors,
         hasValidationErrors,
         submitError,
         submitFailed,
@@ -684,6 +703,13 @@ function PackageCreationForm({
             </form>
           </M.DialogContent>
           <M.DialogActions>
+            {!!errors &&
+              Object.entries(errors).map(([input, err]) => (
+                <FormError
+                  submitting={submitting}
+                  error={R.path([input, err], ERRORS_MAP)}
+                />
+              ))}
             {submitting && (
               <SubmitSpinner value={uploads.progress.percent}>
                 {uploads.progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
