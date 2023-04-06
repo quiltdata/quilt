@@ -3,9 +3,9 @@ import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
 import * as Model from 'model'
+import { useQueryS } from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import StyledLink from 'utils/StyledLink'
-import useQuery from 'utils/useQuery'
 
 import Canaries from './Canaries'
 import Reports from './Reports'
@@ -17,15 +17,11 @@ const DEFAULT_REPORTS_PER_PAGE = 25
 const DEFAULT_REPORTS_ORDER = Model.GQLTypes.StatusReportListOrder.NEW_FIRST
 
 export default function Status() {
-  const { status } = useQuery({
-    query: STATUS_QUERY,
-    variables: {
-      statsWindow: STATS_WINDOW,
-      reportsPerPage: DEFAULT_REPORTS_PER_PAGE,
-      reportsOrder: DEFAULT_REPORTS_ORDER,
-    },
-    suspend: true,
-  }).data!
+  const { status } = useQueryS(STATUS_QUERY, {
+    statsWindow: STATS_WINDOW,
+    reportsPerPage: DEFAULT_REPORTS_PER_PAGE,
+    reportsOrder: DEFAULT_REPORTS_ORDER,
+  })
 
   return (
     <M.Box my={2}>

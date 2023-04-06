@@ -3,23 +3,21 @@ import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
-import type * as urql from 'urql'
-import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
 import * as DG from 'components/DataGrid'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import useQuery from 'utils/useQuery'
 
 import { useDataGridStyles } from './DataGrid'
 import REPORTS_QUERY from './gql/Reports.generated'
 import type STATUS_QUERY from './gql/Status.generated'
 
 type StatusResult = Extract<
-  ResultOf<typeof STATUS_QUERY>['status'],
+  GQL.DataForDoc<typeof STATUS_QUERY>['status'],
   { __typename: 'Status' }
 >
 type StatusReport = StatusResult['reports']['page'][number]
@@ -79,7 +77,7 @@ function PreviewLink({ loc }: ReportLinkProps) {
 }
 
 interface ErrorOverlayProps {
-  error: urql.CombinedError
+  error: GQL.ErrorForData<any>
   resetState: () => void
 }
 
@@ -258,13 +256,9 @@ export default function Reports({
 
   const pause = R.equals(defaults, variables)
 
-  const queryResult = useQuery({
-    query: REPORTS_QUERY,
-    pause,
-    variables,
-  })
+  const queryResult = GQL.useQuery(REPORTS_QUERY, variables, { pause })
 
-  invariant(queryResult.data?.status?.__typename !== 'Unavailable', 'Status unavalable')
+  invariant(queryResult.data?.status?.__typename !== 'Unavailable', 'Status unavailable')
 
   const rows = (
     pause ? firstPage : queryResult.data?.status?.reports.page ?? fallbacks.rows
