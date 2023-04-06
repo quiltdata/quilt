@@ -832,7 +832,7 @@ class Package:
             ValueError: When `update_policy` is invalid.
 
         Warnings:
-            meta(dict) will override any previously defined metadata
+            meta will override any previously defined metadata
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
@@ -1127,7 +1127,7 @@ class Package:
             self
 
         Warnings:
-            meta(dict) will override any previously defined metadata
+            meta will override any previously defined metadata
         """
         return self._set(logical_key=logical_key,
                          entry=entry,
