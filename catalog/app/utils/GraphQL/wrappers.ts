@@ -9,9 +9,16 @@ import useMemoEq from 'utils/useMemoEq'
 
 export class OperationError extends BaseError {}
 
-export class QueryError<Data = any> extends OperationError {
-  constructor(result?: ResultForData<Data>) {
+export class QueryError<Data, Variables = any> extends OperationError {
+  constructor(result?: ResultForData<Data, Variables>) {
     super('GraphQL query error')
+    this.result = result
+  }
+}
+
+export class Paused<Data, Variables> extends OperationError {
+  constructor(result?: ResultForData<Data, Variables>) {
+    super('GraphQL query paused')
     this.result = result
   }
 }
@@ -23,9 +30,11 @@ export class MutationError<Data, Variables> extends OperationError {
   }
 }
 
-type ResultForData<Data> = urql.UseQueryState<Data, any>
+type ResultForData<Data, Variables = any> = urql.UseQueryState<Data, Variables>
 
-type ErrorForData<Data> = urql.CombinedError | QueryError<Data>
+export type ErrorForData<Data, Variables = any> =
+  | urql.CombinedError
+  | QueryError<Data, Variables>
 
 type FoldOnData<Data, OnData> = (data: Data, result: ResultForData<Data>) => OnData
 
@@ -185,6 +194,8 @@ export function useQuery<Data, Variables = {}>(
  *
  * @throws An error if the query failed ({@link urql#CombinedError} if returned by the upstream, otherwise {@link QueryError}).
  *
+ * @throws {@link Paused} if the query is paused.
+ *
  * @example
  * ```ts
  * const data = useQueryS(MY_QUERY, variables)
@@ -207,8 +218,11 @@ export function useQueryS<Data, Variables>(
     return result.data
   }
 
-  // this should probably never happen, because urql is supposed to throw an error
-  // itself when getting no data in suspense mode
+  // this happens when the query is paused
+  if (restOpts.pause) throw new Paused(result)
+
+  // this should probably never happen, since urql is supposed to throw an error
+  // itself when getting no data in suspense mode while not paused
   const err = result.error || new QueryError(result)
   log.error('Critical error while executing the query:', err)
   Sentry.captureException(err, { extra: { result } })
