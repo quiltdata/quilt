@@ -297,7 +297,6 @@ export default function Dir({
   },
   location: l,
 }: RRDom.RouteComponentProps<DirParams>) {
-  const initialActions = PD.useInitialActions()
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const s3 = AWS.S3.use()
@@ -362,23 +361,17 @@ export default function Dir({
     )
   }, [data.result])
 
-  const [initialOpen] = React.useState(initialActions.includes('createPackage'))
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
   const packageDirectoryDialog = PD.usePackageCreationDialog({
-    initialOpen,
-    bucket,
+    name: 'createPackageFromDir',
+    src: { bucket, s3Path: path },
     delayHashing: true,
     disableStateDisplay: true,
+    successor,
+    onSuccessor: setSuccessor,
   })
-
-  const openPackageCreationDialog = React.useCallback(
-    (successor: workflows.Successor) => {
-      packageDirectoryDialog.open({
-        path,
-        successor,
-      })
-    },
-    [packageDirectoryDialog, path],
-  )
 
   return (
     <M.Box pt={2} pb={4}>
@@ -401,7 +394,7 @@ export default function Dir({
             <Successors.Button
               bucket={bucket}
               className={classes.button}
-              onChange={openPackageCreationDialog}
+              onChange={packageDirectoryDialog.open}
             >
               Create package from directory
             </Successors.Button>

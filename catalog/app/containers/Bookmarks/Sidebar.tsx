@@ -18,6 +18,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import { trimCenter } from 'utils/string'
+import type * as workflows from 'utils/workflows'
 
 import { useBookmarks } from './Provider'
 
@@ -250,10 +251,16 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
   const createDialog = usePackageCreationDialog({
-    bucket,
+    name: 'createPackageFromBookmarks',
+    src: { bucket },
     delayHashing: true,
     disableStateDisplay: true,
+    successor,
+    onSuccessor: setSuccessor,
   })
   const handleRemove = React.useCallback(
     (handle: Model.S3.S3ObjectLocation) => {

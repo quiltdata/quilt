@@ -25,6 +25,7 @@ import { JsonRecord } from 'utils/types'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
+import type * as workflows from 'utils/workflows'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
@@ -523,7 +524,6 @@ interface PackageListProps {
 }
 
 function PackageList({ bucket, sort, filter, page }: PackageListProps) {
-  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
@@ -602,13 +602,17 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   })
 
   const { preferences } = BucketPreferences.use()
-  const [initialOpen] = React.useState(initialActions.includes('createPackage'))
 
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
   const createDialog = PD.usePackageCreationDialog({
-    initialOpen,
-    bucket,
+    name: 'createPackage',
+    src: { bucket },
     delayHashing: true,
     disableStateDisplay: true,
+    successor,
+    onSuccessor: setSuccessor,
   })
   const openPackageCreationDialog = React.useCallback(
     () => createDialog.open(),

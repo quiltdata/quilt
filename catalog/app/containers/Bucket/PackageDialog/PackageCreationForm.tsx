@@ -485,16 +485,14 @@ function PackageCreationForm({
     [delayHashing, validateEntries],
   )
 
-  const [dropping, setDropping] = React.useState(false)
   const onFilesChange = React.useCallback(
     (submit) =>
-      async ({ dirtyFields }: FF.FormState<SubmitWebArgs>) => {
-        if (!dirtyFields.files || dropping) return
-        setDropping(true)
+      async ({ dirtyFields, hasValidationErrors }: FF.FormState<SubmitWebArgs>) => {
+        // FIXME: hasValidationErrors == "wait for files hashing"
+        if (!dirtyFields.files || hasValidationErrors) return
         await submit()
-        setDropping(false)
       },
-    [dropping],
+    [],
   )
 
   // HACK: FIXME: it triggers name validation with correct workflow
@@ -538,7 +536,7 @@ function PackageCreationForm({
             <form className={classes.form} onSubmit={handleSubmit}>
               {dropZoneOnly && (
                 <RF.FormSpy
-                  subscription={{ dirtyFields: true, values: true }}
+                  subscription={{ dirtyFields: true, hasValidationErrors: true }}
                   onChange={onFilesChange(handleSubmit)}
                 />
               )}
@@ -724,7 +722,7 @@ function prependSourceBucket(
   }
 }
 
-function useInitialState() {
+function useInitialState(name: string) {
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()
   const searchParams = React.useMemo(
@@ -736,28 +734,40 @@ function useInitialState() {
   const workflowId = searchParams.get('workflow') || undefined
   const dropZoneOnly = searchParams.has('dropZoneOnly')
   const getInitial = React.useCallback(
-    (name?: string, path?: string, manifest?: Manifest) =>
+    (packageName?: string, path?: string, manifest?: Manifest) =>
       R.mergeRight(manifest || {}, {
         msg,
-        name: nameOverride || name,
+        name: nameOverride || packageName,
         path,
         workflowId,
         dropZoneOnly,
       }),
     [dropZoneOnly, msg, nameOverride, workflowId],
   )
-  const disposeInitial = React.useCallback(() => {
-    searchParams.delete('msg')
-    searchParams.delete('name')
-    searchParams.delete('workflow')
-    searchParams.delete('dropZoneOnly')
-    history.replace({
-      search: searchParams.toString(),
-    })
-  }, [history, searchParams])
+  const isOpen = React.useMemo(
+    () => searchParams.get('action') === name,
+    [searchParams, name],
+  )
+  const setOpen = React.useCallback(
+    (shouldOpen: boolean) => {
+      if (shouldOpen) {
+        searchParams.set('action', name)
+      } else {
+        searchParams.delete('msg')
+        searchParams.delete('name')
+        searchParams.delete('workflow')
+        searchParams.delete('dropZoneOnly')
+        searchParams.delete('action')
+      }
+      history.push({
+        search: searchParams.toString(),
+      })
+    },
+    [name, searchParams, history],
+  )
   return React.useMemo(
-    () => ({ getInitial, disposeInitial }),
-    [getInitial, disposeInitial],
+    () => ({ getInitial, isOpen, setOpen }),
+    [getInitial, , isOpen, setOpen],
   )
 }
 
@@ -791,59 +801,54 @@ interface PackageCreationDialogUIOptions {
 }
 
 interface UsePackageCreationDialogProps {
-  bucket: string
-  src?: {
-    name: string
-    hash?: string
+  name: string
+  src: {
+    bucket: string
+    packageHandle?: {
+      name: string
+      hash?: string
+    }
+    s3Path?: string
   }
-  initialOpen?: boolean
+  successor: workflows.Successor // FIXME: successor -> dst
+  onSuccessor: (successor: workflows.Successor) => void
   delayHashing?: boolean
   disableStateDisplay?: boolean
 }
 
-// TODO: package can be created from some `src`:
-//         * s3 directory
-//         * existing package
-//       and pushed to `dst` (or maybe just `successor`):
-//         * successor
 export function usePackageCreationDialog({
-  bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
+  name,
   src,
-  initialOpen,
+  successor,
+  onSuccessor,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
-  const [isOpen, setOpen] = React.useState(initialOpen || false)
-  const [exited, setExited] = React.useState(!isOpen)
-  // TODO: put it to src as S3Handle
-  const [s3Path, setS3Path] = React.useState<string | undefined>()
+  const { isOpen, setOpen, getInitial } = useInitialState(name)
+
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
-  // TODO: move to props: { dst: { successor }, onSuccessorChange }
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
   const workflowsData = Data.use(
     requests.workflowsConfig,
     { s3, bucket: successor.slug },
-    { noAutoFetch: !bucket },
+    { noAutoFetch: !src.bucket },
   )
   // XXX: use AsyncResult
   const { preferences } = BucketPreferences.use()
 
   const manifestData = useManifest({
-    bucket,
+    bucket: src.bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
-    name: src?.name!,
-    hash: src?.hash,
-    pause: !(src && isOpen),
+    name: src.packageHandle?.name!,
+    hash: src.packageHandle?.hash,
+    pause: !(src.packageHandle && isOpen),
   })
 
-  const manifestResult = src ? manifestData.result : EMPTY_MANIFEST_RESULT
+  const manifestResult = src.packageHandle ? manifestData.result : EMPTY_MANIFEST_RESULT
 
   // AsyncResult<Model.PackageContentsFlatMap | undefined>
   const data = React.useMemo(
@@ -858,9 +863,9 @@ export function usePackageCreationDialog({
                       manifest,
                       workflowsConfig,
                       sourceBuckets:
-                        s3Path === undefined
+                        src.s3Path === undefined
                           ? preferences.ui.sourceBuckets
-                          : prependSourceBucket(preferences.ui.sourceBuckets, bucket),
+                          : prependSourceBucket(preferences.ui.sourceBuckets, src.bucket),
                     })
                   : AsyncResult.Pending(),
               _: R.identity,
@@ -869,43 +874,25 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, preferences],
+    [src.bucket, src.s3Path, workflowsData, manifestResult, preferences],
   )
 
-  const open = React.useCallback(
-    (initial?: { successor?: workflows.Successor; path?: string }) => {
-      if (initial?.successor) {
-        setSuccessor(initial?.successor)
-      }
-      if (initial?.path !== undefined) {
-        setS3Path(initial?.path)
-      }
-
-      setOpen(true)
-      setExited(false)
-    },
-    [setOpen, setExited],
-  )
-
-  const { getInitial, disposeInitial } = useInitialState()
+  const open = React.useCallback(() => {
+    setOpen(true)
+  }, [setOpen])
 
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
     setWorkflow(undefined) // TODO: is this necessary?
     addToPackage?.clear()
-  }, [addToPackage, submitting, setOpen])
-
-  const handleExited = React.useCallback(() => {
-    setExited(true)
     setSuccess(false)
-    disposeInitial()
-  }, [disposeInitial, setExited, setSuccess])
+  }, [addToPackage, submitting, setOpen])
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
   const state = React.useMemo<DialogState>(() => {
-    if (exited) return DialogState.Closed()
+    if (!isOpen) return DialogState.Closed()
     if (success) return DialogState.Success(success)
     return AsyncResult.case(
       {
@@ -915,15 +902,13 @@ export function usePackageCreationDialog({
       },
       data,
     )
-  }, [exited, success, data])
+  }, [isOpen, success, data])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
-    <PD.DialogWrapper
-      exited={exited}
+    <M.Dialog
       fullWidth
       maxWidth={success ? 'sm' : 'lg'}
       onClose={close}
-      onExited={handleExited}
       open={isOpen}
       scroll="body"
     >
@@ -940,7 +925,7 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
-              bucket={bucket}
+              bucket={src.bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}
@@ -949,7 +934,11 @@ export function usePackageCreationDialog({
             />
           ),
           Form: ({ manifest, workflowsConfig, sourceBuckets }) => {
-            const { dropZoneOnly, ...initial } = getInitial(src?.name, s3Path, manifest)
+            const { dropZoneOnly, ...initial } = getInitial(
+              src.packageHandle?.name,
+              src.s3Path,
+              manifest,
+            )
             return (
               <PD.SchemaFetcher
                 initialWorkflowId={initial?.workflowId || manifest?.workflowId}
@@ -960,7 +949,7 @@ export function usePackageCreationDialog({
                   <PackageCreationForm
                     {...schemaProps}
                     {...{
-                      bucket,
+                      bucket: src.bucket,
                       successor,
                       close,
                       setSubmitting,
@@ -972,7 +961,7 @@ export function usePackageCreationDialog({
                       delayHashing,
                       disableStateDisplay,
                       dropZoneOnly,
-                      onSuccessor: setSuccessor,
+                      onSuccessor,
                       ui: {
                         title: ui.title,
                         submit: ui.submit,
@@ -997,7 +986,7 @@ export function usePackageCreationDialog({
         },
         state,
       )}
-    </PD.DialogWrapper>
+    </M.Dialog>
   )
 
   return { open, close, render }

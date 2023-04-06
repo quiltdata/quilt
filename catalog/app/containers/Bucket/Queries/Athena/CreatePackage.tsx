@@ -6,6 +6,7 @@ import * as AddToPackage from 'containers/AddToPackage'
 import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
+import type * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 
@@ -130,10 +131,16 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
   const createDialog = usePackageCreationDialog({
-    bucket,
+    name: 'createPackageFromAthena',
+    src: { bucket },
     delayHashing: true,
     disableStateDisplay: true,
+    successor,
+    onSuccessor: setSuccessor,
   })
   const handleConfirm = React.useCallback(
     (ok: boolean) => {

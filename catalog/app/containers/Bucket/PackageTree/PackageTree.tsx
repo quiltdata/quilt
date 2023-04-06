@@ -185,7 +185,6 @@ function DirDisplay({
   crumbs,
   size,
 }: DirDisplayProps) {
-  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -200,19 +199,28 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
+  const packageHandle = React.useMemo(
+    () => ({ bucket, name, hash }),
+    [bucket, name, hash],
+  )
 
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
   const updateDialog = PD.usePackageCreationDialog({
-    initialOpen,
-    bucket,
-    src: { name, hash },
+    name: 'revisePackage',
+    src: { bucket, packageHandle },
+    successor,
+    onSuccessor: setSuccessor,
   })
 
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
+  const [copySuccessor, setCopySuccessor] = React.useState<workflows.Successor | null>(
+    null,
+  )
 
   const onPackageCopyDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-  }, [setSuccessor])
+    setCopySuccessor(null)
+  }, [setCopySuccessor])
 
   usePrevious({ bucket, name, hashOrTag }, (prev) => {
     // close the dialog when navigating away
@@ -272,11 +280,6 @@ function DirDisplay({
     }
   }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
 
-  const packageHandle = React.useMemo(
-    () => ({ bucket, name, hash }),
-    [bucket, name, hash],
-  )
-
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
@@ -294,8 +297,8 @@ function DirDisplay({
         bucket={bucket}
         hash={hash}
         name={name}
-        open={!!successor}
-        successor={successor}
+        open={!!copySuccessor}
+        successor={copySuccessor}
         onExited={onPackageCopyDialogExited}
       />
 
@@ -417,7 +420,7 @@ function DirDisplay({
                   <Successors.Button
                     className={classes.button}
                     bucket={bucket}
-                    onChange={setSuccessor}
+                    onChange={setCopySuccessor}
                   >
                     Push to bucket
                   </Successors.Button>

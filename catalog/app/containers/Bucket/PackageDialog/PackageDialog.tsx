@@ -535,28 +535,6 @@ export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
   )
 }
 
-interface DialogWrapperProps {
-  exited: boolean
-}
-
-export function DialogWrapper({
-  exited,
-  ...props
-}: DialogWrapperProps & React.ComponentProps<typeof M.Dialog>) {
-  const refProps = { exited, onExited: props.onExited }
-  const ref = React.useRef<typeof refProps>()
-  ref.current = refProps
-  React.useEffect(
-    () => () => {
-      // call onExited on unmount if it has not been called yet
-      if (!ref.current!.exited && ref.current!.onExited)
-        (ref.current!.onExited as () => void)()
-    },
-    [],
-  )
-  return <M.Dialog {...props} />
-}
-
 function isAjvError(e: Error | ErrorObject): e is ErrorObject {
   return !!(e as ErrorObject).instancePath
 }

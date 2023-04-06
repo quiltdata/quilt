@@ -20,6 +20,7 @@ import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 import useQuery from 'utils/useQuery'
+import type * as workflows from 'utils/workflows'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
@@ -420,7 +421,6 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const initialActions = PD.useInitialActions()
   const { preferences } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
@@ -450,8 +450,15 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
   })
 
-  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
-  const updateDialog = PD.usePackageCreationDialog({ initialOpen, bucket, src: { name } })
+  const [successor, setSuccessor] = React.useState({
+    slug: bucket,
+  } as workflows.Successor)
+  const updateDialog = PD.usePackageCreationDialog({
+    name: 'revisePackage',
+    src: { bucket, packageHandle: { name } },
+    successor,
+    onSuccessor: setSuccessor,
+  })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
