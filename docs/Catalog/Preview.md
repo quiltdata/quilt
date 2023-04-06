@@ -46,7 +46,7 @@ currently supported.
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
 * PDF (.pdf)
-* Powerpoint (.pptx)
+* PowerPoint (.pptx)
 * Excel (.xls, .xlsx)
 
 ## Advanced: Quilt Package File Server
