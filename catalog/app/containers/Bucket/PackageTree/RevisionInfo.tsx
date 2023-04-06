@@ -3,16 +3,15 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
-import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
+import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
-import { UseQueryResult } from 'utils/useQuery'
 
-import REVISION_LIST_QUERY from './gql/RevisionList.generated'
+import type REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
 const useRevisionInfoStyles = M.makeStyles((t) => ({
   revision: {
@@ -44,7 +43,7 @@ interface RevisionInfoProps {
   path: string
   hashOrTag: string
   hash?: string
-  revisionListQuery: UseQueryResult<ResultOf<typeof REVISION_LIST_QUERY>>
+  revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
 }
 
 export default function RevisionInfo({
@@ -108,7 +107,7 @@ export default function RevisionInfo({
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <M.List className={classes.list} ref={listRef}>
-          {revisionListQuery.case({
+          {GQL.fold(revisionListQuery, {
             data: (d) =>
               d.package ? (
                 d.package.revisions.page.map((r) => (
