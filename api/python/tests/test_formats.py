@@ -14,16 +14,16 @@ data_dir = pathlib.Path(__file__).parent / 'data'
 
 
 # Code
-@pytest.mark.parametrize('parquet_handler', FormatRegistry.for_format('parquet'))
-def test_buggy_parquet(parquet_handler):
+def test_buggy_parquet():
     """
     Test that Quilt avoids crashing on bad Pandas metadata from
     old pyarrow libaries.
     """
-    path = data_dir / 'buggy_parquet.parquet'
-    data = path.read_bytes()
-    # Make sure this doesn't crash.
-    parquet_handler.deserialize(data)
+    path = pathlib.Path(__file__).parent
+    for parquet_handler in FormatRegistry.for_format('parquet'):
+        with open(path / 'data' / 'buggy_parquet.parquet', 'rb') as bad_parq:
+            # Make sure this doesn't crash.
+            parquet_handler.deserialize(bad_parq.read())
 
 
 def test_formats_for_obj():
@@ -94,7 +94,7 @@ def test_formats_serdes():
 
 
 def test_formats_csv_read():
-    csv_file = data_dir / 'csv.csv'
+    csv_file = pathlib.Path(__file__).parent / 'data' / 'csv.csv'
 
     meta = {'format': {'name': 'csv'}}
     expected_bytes = b'a,b,c,d\n1,2,3,4\n5,6,7,8\n'
@@ -179,15 +179,20 @@ def test_all_supported_formats():
     }
 
 
-@pytest.mark.parametrize('args', [
-    dict(obj_type=type('Foo', (), {}), meta=None, ext=None),
-    dict(obj_type=None, meta={}, ext=None),
-    dict(obj_type=None, meta=None, ext='.fizz'),
-])
-def test_formats_search_fail_notfound(args):
-    """a search that finds nothing should raise with an explanation."""
-    with pytest.raises(QuiltException):
-        FormatRegistry.search(**args)
+def test_formats_search_fail_notfound():
+    # a search that finds nothing should raise with an explanation.
+    class Foo:
+        pass
+
+    bad_kwargs = [
+        dict(obj_type=Foo, meta=None, ext=None),
+        dict(obj_type=None, meta={}, ext=None),
+        dict(obj_type=None, meta=None, ext='.fizz'),
+    ]
+
+    for args in bad_kwargs:
+        with pytest.raises(QuiltException):
+            FormatRegistry.search(**args)
 
 
 def test_formats_search_order():
