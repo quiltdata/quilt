@@ -34,7 +34,7 @@ The following file formats are supported:
 The Quilt catalog uses the [AICSImageIO
 library](https://github.com/AllenCellModeling/aicsimageio) to
 automatically generate thumbnail previews of multiple
-microscopy image file formats. 
+microscopy image file formats.
 
 > Automated previews of 8-bit depth and higher image files are not
 currently supported.
