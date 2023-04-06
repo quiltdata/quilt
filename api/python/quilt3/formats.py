@@ -345,7 +345,7 @@ class FormatRegistry:
         ]:
             try:
                 mod = importlib.import_module(mod_name)
-            except ImportError:  # pragma: no cover
+            except ImportError:
                 pass
             else:
                 cls.search(getattr(mod, cls_name))
@@ -1036,7 +1036,6 @@ ParquetFormatHandler('pyarrow').register()
 ParquetFormatHandler().register()  # latest is preferred
 
 
-# noinspection PyPackageRequirements
 class AnnDataFormatHandler(BaseFormatHandler):
     """Format for AnnData <--> .h5ad
 
@@ -1055,7 +1054,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
 
     def handles_type(self, typ: type) -> bool:
         # don't load module unless we actually have to use it.
-        if 'anndata' not in sys.modules:  # pragma: no cover
+        if 'anndata' not in sys.modules:
             return False
         import anndata as ad
         self.handled_types.add(ad.AnnData)
@@ -1076,7 +1075,7 @@ class AnnDataFormatHandler(BaseFormatHandler):
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
         try:
             import anndata as ad
-        except ImportError:  # pragma: no cover
+        except ImportError:
             raise QuiltException("Please install quilt3[anndata]")
 
         buf = io.BytesIO(bytes_obj)

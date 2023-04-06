@@ -9,7 +9,6 @@ from quilt3.formats import FormatRegistry
 from quilt3.util import QuiltException
 
 # Constants
-
 data_dir = pathlib.Path(__file__).parent / 'data'
 
 
