@@ -1,23 +1,23 @@
 <!-- markdownlint-disable -->
-Quilt provides support for queries in the ElasticSearch DSL, as
+Quilt provides support for queries in the Elasticsearch DSL, as
 well as SQL queries in Athena.
 
-## ElasticSearch
+## Elasticsearch
 
 The objects in Amazon S3 buckets connected to Quilt are synchronized to
-an ElasticSearch cluster, which provides Quilt's search features.
+an Elasticsearch cluster, which provides Quilt's search features.
 This is available directly in the navigation bar, or 
 for custom queries you can use the **Queries** tab in the Quilt catalog
-to directly query the ElasticSearch cluster.
+to directly query the Elasticsearch cluster.
 
-Quilt uses ElasticSearch 6.7
+Quilt uses Elasticsearch 6.7
 ([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
 
 ### Indexing
 Quilt maintains a near-realtime index of the objects in your S3
-bucket in ElasticSearch.  Each bucket corresponds to one or more
-ElasticSearch indexes. As objects are mutated in S3, Quilt uses an
-event-driven system (via SNS and SQS) to update ElasticSearch.
+bucket in Elasticsearch.  Each bucket corresponds to one or more
+Elasticsearch indexes. As objects are mutated in S3, Quilt uses an
+event-driven system (via SNS and SQS) to update Elasticsearch.
 
 There are two types of indexing in Quilt:
 * *shallow* indexing includes object metadata (such as the file name and size)
@@ -43,7 +43,7 @@ The navigation bar on every page in the catalog provides a convenient
 shortcut for searching all objects and packages in an Amazon S3
 bucket.
 
-> Quilt uses ElasticSearch 6.7 [query string
+> Quilt uses Elasticsearch 6.7 [query string
 > syntax](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax).
 
 The following are all valid search parameters:
@@ -87,7 +87,7 @@ The following are all valid search parameters:
 
 ![](../imgs/catalog-es-queries-default.png)
 
-Quilt ElasticSearch queries support the following keys:
+Quilt Elasticsearch queries support the following keys:
 - `index` — comma-separated list of indexes to search ([learn
 more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/multi-index.html))
 - `filter_path` — to reducing response nesting, ([learn
