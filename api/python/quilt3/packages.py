@@ -509,8 +509,8 @@ class Package:
         return self._meta.get('user_meta', {})
 
     @classmethod
-    @ApiTelemetry("package.install_data_yaml")
-    def install_data_yaml(cls, group=None):
+    @ApiTelemetry("package._install_data_yaml")
+    def _install_data_yaml(cls, group=None):
         if group is None:
             group = DATA_YAML_DEFAULT_GROUP
 
@@ -681,8 +681,8 @@ class Package:
         return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
 
     @classmethod
-    @ApiTelemetry("package.browse_data_yaml")
-    def browse_data_yaml(cls, *, group=None):
+    @ApiTelemetry("package._browse_data_yaml")
+    def _browse_data_yaml(cls, *, group=None):
         if group is None:
             group = DATA_YAML_DEFAULT_GROUP
 
@@ -1452,9 +1452,9 @@ class Package:
             }
 
     @classmethod
-    @ApiTelemetry("package.push_data_yaml")
+    @ApiTelemetry("package._push_data_yaml")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):
+    def _push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):
         if group is None:
             group = DATA_YAML_DEFAULT_GROUP
 

@@ -217,7 +217,7 @@ def cmd_install(name, registry, top_hash, dest, dest_registry, path, sync, group
         if sync:
             raise QuiltException("--sync not allowed without a package name")
 
-        Package.install_data_yaml(group=group)
+        Package._install_data_yaml(group=group)
     else:
         Package.install(name, registry, top_hash, dest, dest_registry, path=path, sync=sync, group=group)
 
@@ -237,7 +237,7 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         if sync:
             raise QuiltException("--sync not allowed without a package name")
 
-        Package.push_data_yaml(force=force, dedupe=dedupe, group=group)
+        Package._push_data_yaml(force=force, dedupe=dedupe, group=group)
     else:
         try:
             pkg = Package.browse(name, None)
@@ -265,7 +265,7 @@ def cmd_browse(name, registry, top_hash, sync, group):
             raise QuiltException("--top-hash must be :latest")
         if sync:
             raise QuiltException("--sync not allowed without a package name")
-        Package.browse_data_yaml(group=group)
+        Package._browse_data_yaml(group=group)
     else:
         Package.browse(name, registry, top_hash, sync=sync, group=group)
 
