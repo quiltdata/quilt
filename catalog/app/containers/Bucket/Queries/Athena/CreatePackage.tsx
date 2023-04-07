@@ -3,10 +3,9 @@ import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
 import * as AddToPackage from 'containers/AddToPackage'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import { useCreatePackage } from 'containers/Bucket/PackageDialog/Provider'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
-import type * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 
@@ -123,32 +122,21 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CreatePackageProps {
-  bucket: string
   queryResults: requests.athena.QueryResultsResponse
 }
 
-export default function CreatePackage({ bucket, queryResults }: CreatePackageProps) {
+export default function CreatePackage({ queryResults }: CreatePackageProps) {
+  const createPackage = useCreatePackage()
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
-  const createDialog = usePackageCreationDialog({
-    name: 'createPackageFromAthena',
-    src: { bucket },
-    delayHashing: true,
-    disableStateDisplay: true,
-    successor,
-    onSuccessor: setSuccessor,
-  })
   const handleConfirm = React.useCallback(
     (ok: boolean) => {
       if (!ok) return
       addToPackage?.merge(entries.valid)
-      createDialog.open()
+      createPackage?.open()
     },
-    [addToPackage, entries, createDialog],
+    [addToPackage, entries, createPackage],
   )
   const confirm = Dialog.useConfirm({
     title: 'These rows will be discarded. Confirm creating package?',
@@ -164,9 +152,9 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
       confirm.open()
     } else {
       addToPackage?.merge(parsed.valid)
-      createDialog.open()
+      createPackage?.open()
     }
-  }, [addToPackage, confirm, createDialog, queryResults])
+  }, [addToPackage, confirm, createPackage, queryResults])
 
   if (!doQueryResultsContainManifestEntries(queryResults)) {
     return <SeeDocsForCreatingPackage />
@@ -174,13 +162,6 @@ export default function CreatePackage({ bucket, queryResults }: CreatePackagePro
 
   return (
     <>
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
       {confirm.render(
         <Results
           className={classes.results}

@@ -20,9 +20,8 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
-import type * as workflows from 'utils/workflows'
 
-import * as PD from '../PackageDialog'
+import * as CreatePackage from '../PackageDialog/Provider'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -412,6 +411,17 @@ function Revision({
   )
 }
 
+const REVISE_PACKAGE_UI = {
+  resetFiles: 'Undo changes',
+  submit: 'Push',
+  successBrowse: 'Browse',
+  successTitle: 'Push complete',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package revision {packageLink} successfully created</>
+  ),
+  title: 'Push package revision',
+}
+
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
 interface PackageRevisionsProps {
@@ -420,7 +430,7 @@ interface PackageRevisionsProps {
   page?: number
 }
 
-export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
+function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
   const { preferences } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
@@ -449,29 +459,8 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
-  const updateDialog = PD.usePackageCreationDialog({
-    name: 'revisePackage',
-    src: { bucket, packageHandle: { name } },
-    successor,
-    onSuccessor: setSuccessor,
-  })
-
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      {updateDialog.render({
-        resetFiles: 'Undo changes',
-        submit: 'Push',
-        successBrowse: 'Browse',
-        successTitle: 'Push complete',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package revision {packageLink} successfully created</>
-        ),
-        title: 'Push package revision',
-      })}
-
       <M.Box
         pt={{ xs: 2, sm: 3 }}
         pb={{ xs: 2, sm: 1 }}
@@ -484,14 +473,15 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
         </M.Typography>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.revisePackage && (
-          <M.Button
-            variant="contained"
-            color="primary"
-            style={{ marginTop: -3, marginBottom: -3 }}
-            onClick={() => updateDialog.open()}
-          >
-            Revise package
-          </M.Button>
+          <CreatePackage.Link>
+            <M.Button
+              variant="contained"
+              color="primary"
+              style={{ marginTop: -3, marginBottom: -3 }}
+            >
+              Revise package
+            </M.Button>
+          </CreatePackage.Link>
         )}
       </M.Box>
 
@@ -547,7 +537,14 @@ export default function PackageRevisionsWrapper({
     <>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageRevisions {...{ bucket, name, page }} />
+        <CreatePackage.Provider
+          bucket={bucket}
+          id="revision"
+          name={name}
+          ui={REVISE_PACKAGE_UI}
+        >
+          <PackageRevisions {...{ bucket, name, page }} />
+        </CreatePackage.Provider>
       </WithPackagesSupport>
     </>
   )

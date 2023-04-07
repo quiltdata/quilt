@@ -29,7 +29,6 @@ import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
 import Code from '../Code'
@@ -38,7 +37,7 @@ import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
-import * as PD from '../PackageDialog'
+import * as CreatePackage from '../PackageDialog/Provider'
 import Section from '../Section'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
@@ -200,21 +199,6 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const packageHandle = React.useMemo(
-    () => ({ bucket, name, hash }),
-    [bucket, name, hash],
-  )
-
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
-  const updateDialog = PD.usePackageCreationDialog({
-    name: 'revisePackage',
-    src: { bucket, packageHandle },
-    successor,
-    onSuccessor: setSuccessor,
-  })
-
   const [copySuccessor, setCopySuccessor] = React.useState<workflows.Successor | null>(
     null,
   )
@@ -222,11 +206,6 @@ function DirDisplay({
   const onPackageCopyDialogExited = React.useCallback(() => {
     setCopySuccessor(null)
   }, [setCopySuccessor])
-
-  usePrevious({ bucket, name, hashOrTag }, (prev) => {
-    // close the dialog when navigating away
-    if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
-  })
 
   const { preferences } = BucketPreferences.use()
 
@@ -278,6 +257,11 @@ function DirDisplay({
     }
   }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
 
+  const packageHandle = React.useMemo(
+    () => ({ bucket, name, hash }),
+    [bucket, name, hash],
+  )
+
   const openInDesktopState = OpenInDesktop.use(packageHandle, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
@@ -308,17 +292,6 @@ function DirDisplay({
         loading={deletionState.loading}
         onDelete={handlePackageDeletion}
       />
-
-      {updateDialog.render({
-        resetFiles: 'Undo changes',
-        submit: 'Push',
-        successBrowse: 'Browse',
-        successTitle: 'Push complete',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package revision {packageLink} successfully created</>
-        ),
-        title: 'Push package revision',
-      })}
 
       {GQL.fold(dirQuery, {
         // TODO: skeleton placeholder
@@ -403,16 +376,17 @@ function DirDisplay({
               {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {hasReviseButton && (
-                  <M.Button
-                    className={classes.button}
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                    onClick={() => updateDialog.open()}
-                  >
-                    Revise package
-                  </M.Button>
+                  <CreatePackage.Link>
+                    <M.Button
+                      className={classes.button}
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                    >
+                      Revise package
+                    </M.Button>
+                  </CreatePackage.Link>
                 )}
                 {preferences?.ui?.actions?.copyPackage && (
                   <Successors.Button
@@ -954,6 +928,17 @@ function PackageTreeQueries({
   })
 }
 
+const REVISE_PACKAGE_UI = {
+  resetFiles: 'Undo changes',
+  submit: 'Push',
+  successBrowse: 'Browse',
+  successTitle: 'Push complete',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package revision {packageLink} successfully created</>
+  ),
+  title: 'Push package revision',
+}
+
 interface PackageTreeRouteParams {
   bucket: string
   name: string
@@ -974,7 +959,13 @@ export default function PackageTreeWrapper({
     <>
       <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageTreeQueries {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }} />
+        <CreatePackage.Provider
+          {...{ id: 'package', bucket, name, hashOrTag, ui: REVISE_PACKAGE_UI }}
+        >
+          <PackageTreeQueries
+            {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }}
+          />
+        </CreatePackage.Provider>
       </WithPackagesSupport>
     </>
   )

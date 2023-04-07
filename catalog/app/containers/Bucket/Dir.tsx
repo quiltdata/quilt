@@ -20,13 +20,12 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
 import * as FileView from './FileView'
 import { Item, Listing, PrefixFilter } from './Listing'
 import Menu from './Menu'
-import * as PD from './PackageDialog'
+import * as CreatePackage from './PackageDialog/Provider'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -263,6 +262,14 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
   )
 }
 
+const CREATE_PACKAGE_UI = {
+  successTitle: 'Package created',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package {packageLink} successfully created</>
+  ),
+  title: 'Create package from directory',
+}
+
 const useStyles = M.makeStyles((t) => ({
   crumbs: {
     ...t.typography.body1,
@@ -288,21 +295,15 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DirParams {
   bucket: string
-  path?: string
+  path: string
+  prefix?: string
 }
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}: RRDom.RouteComponentProps<DirParams>) {
+function Dir({ bucket, path, prefix }: DirParams) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const s3 = AWS.S3.use()
   const { preferences } = BucketPreferences.use()
-  const { prefix } = parseSearch(l.search)
-  const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
 
   const code = React.useMemo(
@@ -361,29 +362,19 @@ export default function Dir({
     )
   }, [data.result])
 
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
-  const packageDirectoryDialog = PD.usePackageCreationDialog({
-    name: 'createPackageFromDir',
-    src: { bucket, s3Path: path },
-    delayHashing: true,
-    disableStateDisplay: true,
-    successor,
-    onSuccessor: setSuccessor,
-  })
+  const createPackage = CreatePackage.use()
+  const openCreatePackageFromDirectory = React.useCallback(
+    (s) => {
+      if (!createPackage) return
+      createPackage?.setDst(s)
+      createPackage?.open()
+    },
+    [createPackage],
+  )
 
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
-
-      {packageDirectoryDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package from directory',
-      })}
 
       <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
@@ -394,7 +385,7 @@ export default function Dir({
             <Successors.Button
               bucket={bucket}
               className={classes.button}
-              onChange={packageDirectoryDialog.open}
+              onChange={openCreatePackageFromDirectory}
             >
               Create package from directory
             </Successors.Button>
@@ -431,5 +422,33 @@ export default function Dir({
         },
       })}
     </M.Box>
+  )
+}
+
+interface DirRouteParams {
+  bucket: string
+  path?: string
+}
+
+export default function DirWrapper({
+  match: {
+    params: { bucket, path: encodedPath = '' },
+  },
+  location: l,
+}: RRDom.RouteComponentProps<DirRouteParams>) {
+  const path = s3paths.decode(encodedPath)
+  // FIXME: @nl0 is it safe to get only first prefix?
+  const { prefix } = parseSearch(l.search, true)
+  return (
+    <CreatePackage.Provider
+      id="dir"
+      bucket={bucket}
+      s3Path={path}
+      ui={CREATE_PACKAGE_UI}
+      delayHashing
+      disableStateDisplay
+    >
+      <Dir bucket={bucket} path={path} prefix={prefix} />
+    </CreatePackage.Provider>
   )
 }

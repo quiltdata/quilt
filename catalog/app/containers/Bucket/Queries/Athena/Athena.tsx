@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
+import { Provider as CreatePackageProvider } from 'containers/Bucket/PackageDialog/Provider'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -155,6 +156,14 @@ function ResultsContainerSkeleton({
   )
 }
 
+const CREATE_PACKAGE_UI = {
+  successTitle: 'Package created',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package {packageLink} successfully created</>
+  ),
+  title: 'Create package',
+}
+
 interface ResultsContainerProps {
   bucket: string
   className: string
@@ -182,7 +191,15 @@ function ResultsContainer({
         workgroup={workgroup}
       >
         {!!queryResults.rows.length && (
-          <CreatePackage bucket={bucket} queryResults={queryResults} />
+          <CreatePackageProvider
+            id="athena"
+            bucket={bucket}
+            ui={CREATE_PACKAGE_UI}
+            delayHashing
+            disableStateDisplay
+          >
+            <CreatePackage queryResults={queryResults} />
+          </CreatePackageProvider>
         )}
       </ResultsBreadcrumbs>
       {/* eslint-disable-next-line no-nested-ternary */}

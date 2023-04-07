@@ -7,7 +7,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as style from 'constants/style'
 import * as AddToPackage from 'containers/AddToPackage'
-import { usePackageCreationDialog } from 'containers/Bucket/PackageDialog/PackageCreationForm'
+import * as CreatePackage from 'containers/Bucket/PackageDialog/Provider'
 import {
   useBucketListing,
   BucketListingResult,
@@ -18,7 +18,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import { trimCenter } from 'utils/string'
-import type * as workflows from 'utils/workflows'
 
 import { useBookmarks } from './Provider'
 
@@ -234,11 +233,20 @@ function Drawer({
   )
 }
 
+const CREATE_PACKAGE_UI = {
+  successTitle: 'Package created',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package {packageLink} successfully created</>
+  ),
+  title: 'Create package',
+}
+
 interface SidebarProps {
   bucket?: string
 }
 
-export default function Sidebar({ bucket = '' }: SidebarProps) {
+function Sidebar({ bucket = '' }: SidebarProps) {
+  const createPackage = CreatePackage.use()
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.main.entries
@@ -251,17 +259,6 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
-  const createDialog = usePackageCreationDialog({
-    name: 'createPackageFromBookmarks',
-    src: { bucket },
-    delayHashing: true,
-    disableStateDisplay: true,
-    successor,
-    onSuccessor: setSuccessor,
-  })
   const handleRemove = React.useCallback(
     (handle: Model.S3.S3ObjectLocation) => {
       const isLastBookmark = handles.length === 1
@@ -281,7 +278,7 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
       const files = await handlesToS3Files(handles)
       addToPackage?.merge(files)
       setTraversing(false)
-      createDialog.open()
+      createPackage?.open()
       bookmarks?.hide()
     } catch (e) {
       if (e instanceof Error) {
@@ -291,26 +288,33 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
         throw e
       }
     }
-  }, [addToPackage, bookmarks, createDialog, handlesToS3Files, handles])
+  }, [addToPackage, bookmarks, createPackage, handlesToS3Files, handles])
+  return (
+    <Drawer
+      error={error}
+      handles={handles}
+      loading={traversing}
+      onClose={bookmarks?.hide}
+      onPackage={bucket ? handleSubmit : undefined}
+      onRemove={handleRemove}
+      onClear={handleClear}
+      open={bookmarks?.isOpened}
+    />
+  )
+}
+
+export default function SidebarWrapper({ bucket = '' }: SidebarProps) {
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <Drawer
-        error={error}
-        handles={handles}
-        loading={traversing}
-        onClose={bookmarks?.hide}
-        onPackage={bucket ? handleSubmit : undefined}
-        onRemove={handleRemove}
-        onClear={handleClear}
-        open={bookmarks?.isOpened}
-      />
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
+      <CreatePackage.Provider
+        id="bookmarks"
+        bucket={bucket}
+        ui={CREATE_PACKAGE_UI}
+        delayHashing
+        disableStateDisplay
+      >
+        <Sidebar bucket={bucket} />
+      </CreatePackage.Provider>
     </M.MuiThemeProvider>
   )
 }

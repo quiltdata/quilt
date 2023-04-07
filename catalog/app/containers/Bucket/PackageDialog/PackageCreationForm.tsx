@@ -745,7 +745,7 @@ function prependSourceBucket(
   }
 }
 
-function useInitialState(name: string) {
+function useInitialState(id: string) {
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()
   const searchParams = React.useMemo(
@@ -766,26 +766,23 @@ function useInitialState(name: string) {
       }),
     [msg, nameOverride, workflowId],
   )
-  const isOpen = React.useMemo(
-    () => searchParams.get('action') === name,
-    [searchParams, name],
-  )
+  const isOpen = searchParams.get('createPackage') === id
   const setOpen = React.useCallback(
     (shouldOpen: boolean) => {
       if (shouldOpen) {
-        searchParams.set('action', name)
+        searchParams.set('createPackage', 'true')
       } else {
         searchParams.delete('msg')
         searchParams.delete('name')
         searchParams.delete('workflow')
         searchParams.delete('dropZoneOnly')
-        searchParams.delete('action')
+        searchParams.delete('createPackage')
       }
       history.push({
         search: searchParams.toString(),
       })
     },
-    [name, searchParams, history],
+    [searchParams, history],
   )
   return { dropZoneOnly, getInitial, isOpen, setOpen }
 }
@@ -810,7 +807,7 @@ type DialogState = tagged.InstanceOf<typeof DialogState>
 
 const EMPTY_MANIFEST_RESULT = AsyncResult.Ok()
 
-interface PackageCreationDialogUIOptions {
+export interface PackageCreationDialogUIOptions {
   resetFiles?: React.ReactNode
   submit?: React.ReactNode
   successBrowse?: React.ReactNode
@@ -820,12 +817,12 @@ interface PackageCreationDialogUIOptions {
 }
 
 interface UsePackageCreationDialogProps {
-  name: string
+  id: string
   src: {
     bucket: string
     packageHandle?: {
       name: string
-      hash?: string
+      hashOrTag?: string
     }
     s3Path?: string
   }
@@ -836,14 +833,14 @@ interface UsePackageCreationDialogProps {
 }
 
 export function usePackageCreationDialog({
-  name,
+  id,
   src,
   successor,
   onSuccessor,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
-  const { dropZoneOnly, isOpen, setOpen, getInitial } = useInitialState(name)
+  const { dropZoneOnly, isOpen, setOpen, getInitial } = useInitialState(id)
 
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
@@ -863,7 +860,7 @@ export function usePackageCreationDialog({
     bucket: src.bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
     name: src.packageHandle?.name!,
-    hash: src.packageHandle?.hash,
+    hashOrTag: src.packageHandle?.hashOrTag,
     pause: !(src.packageHandle && isOpen),
   })
 
