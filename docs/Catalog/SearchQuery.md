@@ -6,9 +6,6 @@ well as SQL queries in Athena.
 
 The objects in Amazon S3 buckets connected to Quilt are synchronized to
 an Elasticsearch cluster, which provides Quilt's search features.
-This is available directly in the navigation bar, or 
-for custom queries you can use the **Queries** tab in the Quilt catalog
-to directly query the Elasticsearch cluster.
 
 Quilt uses Elasticsearch 6.7
 ([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
