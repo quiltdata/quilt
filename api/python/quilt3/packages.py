@@ -1668,6 +1668,10 @@ class Package:
         if src_dict and not extra_files_ok:
             return False
 
+        for lk, e in self.walk():
+            if e.hash["type"] != "SHA256":
+                raise QuiltException(f"Unsupported hash type: {e.hash['type']!r}. Try to update quilt3.")
+
         hash_list = calculate_sha256(url_list, size_list)
         for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
             if isinstance(url_hash, Exception):
