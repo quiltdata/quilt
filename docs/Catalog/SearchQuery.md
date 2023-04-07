@@ -25,12 +25,17 @@ There are two types of indexing in Quilt:
 indexing for the following file extensions:
   * .csv, .html, .json, .md, .rmd, .rst, .tab, .txt, .tsv (plain-text formats)
   * .fcs (FlowJo)
-  * .ipynb (Jupyter notebooks and Voila dashboards)
+  * .ipynb (Jupyter notebooks)
   * .parquet
   * .pdf
   * .pptx
   * .xls, .xlsx
 
+> By default, Quilt indexes a limited number of bytes per document for specified file
+formats (256KB). Both the maximum byte extract per document and file formats
+to deep index can optionally be defined per Bucket in the Catalog Admin settings.
+
+![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
 
 ### Navigation Bar
 

@@ -31,19 +31,21 @@ The following file formats are supported:
 
 ## Image previews
 
-The Quilt catalog uses the [AICSImageIO
-library](https://github.com/AllenCellModeling/aicsimageio) to
-automatically generate thumbnail previews of multiple
-microscopy image file formats.
+The Quilt Catalog uses a [Lambda
+function](https://github.com/quiltdata/quilt/tree/master/lambdas/thumbnail)
+to automatically generate thumbnail previews of common image file
+formats and specific microscopy image file formats.
 
-> Automated previews of 8-bit depth and higher image files are not
+### Known limitations
+
+Automated previews of 8-bit depth and higher image files are not
 currently supported.
 
 ## Binary and special file format previews
 
 * FCS Flow Cytometry files (.fcs)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
-* .ipynb (Jupyter and Voila dashboards)
+* Jupyter notebooks (.ipynb)
 * .parquet
 * PDF (.pdf)
 * PowerPoint (.pptx)
