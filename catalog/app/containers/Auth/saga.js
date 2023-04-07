@@ -1,4 +1,5 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
+import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import { apiRequest, HTTPError } from 'utils/APIConnector'
@@ -161,7 +162,8 @@ function* setBrowseCookie(tokens) {
       credentials: 'include',
     })
   } catch (e) {
-    log.warn('Unable to set browse cookie', e)
+    log.warn('Unable to set browse cookie:', e)
+    Sentry.captureException(e)
   }
 }
 
