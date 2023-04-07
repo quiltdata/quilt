@@ -408,14 +408,6 @@ def create_parser():
         type=str,
         required=False,
     )
-    install_p.add_argument(
-        "--sync",
-        type=str,
-    )
-    install_p.add_argument(
-        "--group",
-        type=str,
-    )
     install_p.set_defaults(func=cmd_install)
 
     # list-packages
@@ -527,14 +519,6 @@ def create_parser():
         action="store_true",
         help="Skip the push if the local package hash matches the remote hash.",
     )
-    push_p.add_argument(
-        "--sync",
-        type=str,
-    )
-    push_p.add_argument(
-        "--group",
-        type=str,
-    )
     push_p.set_defaults(func=cmd_push)
 
     # browse
@@ -554,14 +538,6 @@ def create_parser():
     browse_p.add_argument(
         "--top-hash",
         help="Hash of package to browse",
-        type=str,
-    )
-    browse_p.add_argument(
-        "--sync",
-        type=str,
-    )
-    browse_p.add_argument(
-        "--group",
         type=str,
     )
     browse_p.set_defaults(func=cmd_browse)
