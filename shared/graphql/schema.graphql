@@ -464,6 +464,13 @@ type SearchHitPackage {
   # tags: [String!]! // TODO: currently not provided
 }
 
+type Checksum {
+  type: String!
+  value: String!
+}
+
+union ChecksumResult = Checksum | OperationError
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -484,6 +491,7 @@ type Query {
   ): PackagesSearchResult!
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
+  checksum(bucket: String!, key: String!, version: String!): ChecksumResult!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
@@ -715,12 +723,19 @@ input PackagePushParams {
   name: String!
 }
 
+input PackageEntryHash {
+  type: String!
+  value: String!
+}
+
 input PackageConstructEntry {
   logicalKey: String!
   physicalKey: String!
-  hash: String
+  hash: PackageEntryHash
   # 32-bit Int may be too small to represent file size which may exceed several GB
   size: Float
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
   meta: JsonRecord
 }
 
@@ -802,8 +817,7 @@ type Mutation {
   ): PackageRevisionDeleteResult!
 
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
-  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
-    @admin
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult! @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
 
   policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
@@ -816,8 +830,7 @@ type Mutation {
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
   roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
   roleUpdateManaged(id: ID!, input: ManagedRoleInput!): RoleUpdateResult! @admin
-  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
-    @admin
+  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult! @admin
   roleDelete(id: ID!): RoleDeleteResult! @admin
   roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
 

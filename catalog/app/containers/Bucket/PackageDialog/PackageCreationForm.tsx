@@ -303,7 +303,7 @@ function PackageCreationForm({
 
     const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
-      return !e || e.hash !== file.hash.value
+      return !e || !R.equals(e.hash, file.hash.value)
     })
 
     const entries = filesStateToEntries(files)

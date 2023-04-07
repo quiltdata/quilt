@@ -44,16 +44,6 @@ export const getNormalizedPath = (f: { path?: string; name: string }) => {
   return p.startsWith('/') ? p.substring(1) : p
 }
 
-export async function hashFile(file: File) {
-  if (!window.crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
-  const buf = await file.arrayBuffer()
-  // XXX: consider using hashwasm for stream-based hashing to support larger files
-  const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
-  return Array.from(new Uint8Array(hashBuf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
   fn: (...args: I) => Promise<O>,
   wait: number,

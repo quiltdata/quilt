@@ -45,14 +45,13 @@ export const Loader = function ManifestLoader({ gated, handle, children }: Loade
         const [meta, ...entries] = [...data.head, ...data.tail]
         const packageMeta = meta ? JSON.parse(meta) : {}
         const packageEntries = R.map(
-          R.pipe(
-            JSON.parse,
-            R.evolve({
-              hash: R.prop('value'),
-              meta: JSON.stringify,
-              physical_keys: R.join(', '),
-            }),
-          ),
+          R.pipe(JSON.parse, ({ hash, ...e }) => ({
+            ...e,
+            physical_keys: e.physical_keys.join(', '),
+            'hash.type': hash.type,
+            'hash.value': hash.value,
+            meta: JSON.stringify(e.meta),
+          })),
           entries,
         )
         return PreviewData.Perspective({ packageMeta, data: packageEntries })
