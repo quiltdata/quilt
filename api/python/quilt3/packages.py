@@ -16,12 +16,12 @@ import uuid
 import warnings
 from collections import deque
 from multiprocessing import Pool
-from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import botocore.exceptions
 import jsonlines
-from tqdm import tqdm
 import yaml
+from tqdm import tqdm
 
 from . import util, workflows
 from .backends import get_package_registry
@@ -100,7 +100,7 @@ DATA_YAML_DEFAULT_GROUP = 'default'
 
 def _read_data_yaml(allow_missing=False):
     try:
-        with open(DATA_YAML_FILENAME) as fd:
+        with open(DATA_YAML_FILENAME, encoding='utf-8') as fd:
             data = yaml.safe_load(fd)
             return data['data']['com.quiltdata']
     except FileNotFoundError:
@@ -116,7 +116,7 @@ def _write_data_yaml(groups):
             'com.quiltdata': groups,
         },
     }
-    with open('data.yaml', 'w') as fd:
+    with open('data.yaml', 'w', encoding='utf-8') as fd:
         yaml.dump(data, fd)
 
 
