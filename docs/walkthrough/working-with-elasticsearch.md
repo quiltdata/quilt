@@ -1,9 +1,11 @@
 <!-- markdownlint-disable -->
 
 Each Quilt stack includes an Elasticsearch cluster that indexes
-objects and packages. To write specialized queries against your
-data stored in Amazon S3 buckets you may wish to connect directly
-to your Quilt Elasticsearch cluster.
+objects and packages as documents. You can connect to your Elasticsearch
+domain to query these documents.
+
+> If your Quilt stack uses private endpoints for Elasticsearch you will need to
+> connect to the cluster from a machine in the same VPC as the cluster.
 
 Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases:
 1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
