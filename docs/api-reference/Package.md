@@ -24,7 +24,7 @@ A string that represents the top hash of the package
 String representation of the Package.
 
 
-## Package.install(name, registry=None, top\_hash=None, dest=None, dest\_registry=None, \*, path=None)  {#Package.install}
+## Package.install(name, registry=None, top\_hash=None, dest=None, dest\_registry=None, \*, path=None, sync=None, group=None)  {#Package.install}
 
 Installs a named package to the local registry and downloads its files.
 
@@ -50,7 +50,7 @@ __Arguments__
 * __hash_prefix (str)__:  hash prefix with length between 6 and 64 characters
 
 
-## Package.browse(name, registry=None, top\_hash=None)  {#Package.browse}
+## Package.browse(name, registry=None, top\_hash=None, \*, sync=None, group=None)  {#Package.browse}
 
 Load a package into memory from a registry without making a local copy of
 the manifest.
@@ -270,7 +270,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False, sync=None, group=None)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,

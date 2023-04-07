@@ -98,6 +98,7 @@ def _filesystem_safe_encode(key):
 DATA_YAML_FILENAME = 'data.yaml'
 DATA_YAML_DEFAULT_GROUP = 'default'
 
+
 def _read_data_yaml(allow_missing=False):
     try:
         with open(DATA_YAML_FILENAME, encoding='utf-8') as fd:
@@ -108,6 +109,7 @@ def _read_data_yaml(allow_missing=False):
             return {}
         else:
             raise QuiltException(f"Requires an existing {DATA_YAML_FILENAME} file")
+
 
 def _write_data_yaml(groups):
     data = {
@@ -525,12 +527,27 @@ class Package:
             registry, package_name, package_hash, package_path = _decode_quilt_s3_url(uri)
 
             cls._install(
-                package_name, registry, package_hash, PhysicalKey.from_path(dir_name), local_registry, path=package_path,
+                package_name,
+                registry,
+                package_hash,
+                PhysicalKey.from_path(dir_name),
+                local_registry,
+                path=package_path,
             )
 
     @classmethod
     @ApiTelemetry("package.install")
-    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None, sync=None, group=None):
+    def install(cls,
+                name,
+                registry=None,
+                top_hash=None,
+                dest=None,
+                dest_registry=None,
+                *,
+                path=None,
+                sync=None,
+                group=None
+    ):
         """
         Installs a named package to the local registry and downloads its files.
 
@@ -665,7 +682,7 @@ class Package:
 
     @classmethod
     @ApiTelemetry("package.browse_data_yaml")
-    def browse_data_yaml(cls, *, group=None):
+    def browse_data_yaml(cls, *, group=None):  # noqa: D202
         """
         TODO
         """
@@ -1440,7 +1457,7 @@ class Package:
     @classmethod
     @ApiTelemetry("package.push_data_yaml")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):
+    def push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):  # noqa: D202
         """
         TODO
         """

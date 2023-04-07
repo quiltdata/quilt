@@ -376,7 +376,6 @@ def create_parser():
             "Name of package, in the USER/PKG format"
         ),
         type=str,
-        nargs='?',
     )
     install_p.add_argument(
         "--registry",
@@ -460,12 +459,12 @@ def create_parser():
         "name",
         help="Name of package, in the USER/PKG format",
         type=str,
-        nargs='?',
     )
     push_p.add_argument(
         "--dir",
         help="Directory to add to the new package",
         type=str,
+        required=True,
     )
     push_p.add_argument(
         '-h',
@@ -523,12 +522,17 @@ def create_parser():
 
     # browse
     shorthelp = "TODO"
-    browse_p = subparsers.add_parser("browse", description=shorthelp, help=shorthelp, allow_abbrev=False, add_help=False)
+    browse_p = subparsers.add_parser(
+        "browse",
+        description=shorthelp,
+        help=shorthelp,
+        allow_abbrev=False,
+        add_help=False
+    )
     browse_p.add_argument(
         "name",
         help="Name of package, in the USER/PKG format",
         type=str,
-        nargs='?',
     )
     browse_p.add_argument(
         "--registry",
