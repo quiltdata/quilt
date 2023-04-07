@@ -1,23 +1,21 @@
 <!-- markdownlint-disable -->
 
-The [Quilt web catalog
-search](../walkthrough/working-with-the-catalog#search) is powered
-by Elasticsearch. To write specialized queries against your data
-stored in Amazon S3 buckets you may wish to connect directly to
-your Quilt Elasticsearch cluster.
+Each Quilt stack includes an Elasticsearch cluster that indexes
+objects and packages. To write specialized queries against your
+data stored in Amazon S3 buckets you may wish to connect directly
+to your Quilt Elasticsearch cluster.
 
-> Note that Quilt is currently pinned to Elasticsearch 6.7
-
-Each Amazon S3 bucket connected to Quilt has two Elasticsearch indexes
-with the following aliases:
+Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases:
 1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
 2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
 
-## Querying Elasticsearch with Python
+> Quilt uses Amazon Elasticsearch version 6.7
 
-You can use the [`Elasticsearch`
-API](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/) to
-query your cluster.
+## Query Elasticsearch with Python
+
+You can use [`elasticsearch
+6.3.1`](https://elasticsearch-py.readthedocs.io/en/6.3.1/) as
+follows:
 
 <!--pytest.mark.skip-->
 ```python
@@ -52,7 +50,7 @@ query = rbody = {
 elastic.search(
     index="*_packages", # search all package indexes in this stack
     body=rbody,
-    _source=['*'], # return all fields in your documents
+    _source=['*'], # return all document fields
     size=1000,
 )
 ```
