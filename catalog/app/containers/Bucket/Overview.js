@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as redux from 'react-redux'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
@@ -19,6 +18,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import Data, { useData } from 'utils/Data'
+import { useQueryS } from 'utils/GraphQL'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -984,14 +984,10 @@ export default function Overview({
   },
 }) {
   const s3 = AWS.S3.use()
-  const [{ data }] = urql.useQuery({
-    query: BUCKET_CONFIG_QUERY,
-    variables: { bucket },
-  })
-  const bcfg = data?.bucketConfig
-  const inStack = !!bcfg
-  const overviewUrl = bcfg?.overviewUrl
-  const description = bcfg?.description
+  const { bucketConfig } = useQueryS(BUCKET_CONFIG_QUERY, { bucket })
+  const inStack = !!bucketConfig
+  const overviewUrl = bucketConfig?.overviewUrl
+  const description = bucketConfig?.description
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {inStack && (
@@ -999,7 +995,7 @@ export default function Overview({
           <LinkedData.BucketData bucket={bucket} />
         </React.Suspense>
       )}
-      {bcfg ? (
+      {bucketConfig ? (
         <Head {...{ s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box

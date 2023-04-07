@@ -3,13 +3,13 @@ import * as IO from 'io-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
+import * as GQL from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as Types from 'utils/types'
@@ -145,8 +145,8 @@ interface CreateProps {
 function Create({ close }: CreateProps) {
   const classes = useStyles()
 
-  const [, createManaged] = urql.useMutation(POLICY_CREATE_MANAGED_MUTATION)
-  const [, createUnmanaged] = urql.useMutation(POLICY_CREATE_UNMANAGED_MUTATION)
+  const createManaged = GQL.useMutation(POLICY_CREATE_MANAGED_MUTATION)
+  const createUnmanaged = GQL.useMutation(POLICY_CREATE_UNMANAGED_MUTATION)
 
   const { push } = Notifications.use()
 
@@ -155,17 +155,15 @@ function Create({ close }: CreateProps) {
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        let res
+        let data
         if (managed) {
           const input = R.applySpec(managedPolicyFormSpec)(values)
-          res = await createManaged({ input })
+          data = await createManaged({ input })
         } else {
           const input = R.applySpec(unmanagedPolicyFormSpec)(values)
-          res = await createUnmanaged({ input })
+          data = await createUnmanaged({ input })
         }
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.policyCreate
+        const r = data.policyCreate
         switch (r.__typename) {
           case 'Policy':
             push(`Policy "${r.title}" created`)
@@ -315,15 +313,12 @@ interface DeleteProps {
 
 function Delete({ policy, close }: DeleteProps) {
   const { push } = Notifications.use()
-  const [, deletePolicy] = urql.useMutation(POLICY_DELETE_MUTATION)
+  const deletePolicy = GQL.useMutation(POLICY_DELETE_MUTATION)
 
   const doDelete = React.useCallback(async () => {
     close()
     try {
-      const res = await deletePolicy({ id: policy.id })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.policyDelete
+      const { policyDelete: r } = await deletePolicy({ id: policy.id })
       switch (r.__typename) {
         case 'Ok':
           return
@@ -424,23 +419,21 @@ interface EditProps {
 }
 
 function Edit({ policy, close }: EditProps) {
-  const [, updateManaged] = urql.useMutation(POLICY_UPDATE_MANAGED_MUTATION)
-  const [, updateUnmanaged] = urql.useMutation(POLICY_UPDATE_UNMANAGED_MUTATION)
+  const updateManaged = GQL.useMutation(POLICY_UPDATE_MANAGED_MUTATION)
+  const updateUnmanaged = GQL.useMutation(POLICY_UPDATE_UNMANAGED_MUTATION)
 
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        let res
+        let data
         if (policy.managed) {
           const input = R.applySpec(managedPolicyFormSpec)(values)
-          res = await updateManaged({ input, id: policy.id })
+          data = await updateManaged({ input, id: policy.id })
         } else {
           const input = R.applySpec(unmanagedPolicyFormSpec)(values)
-          res = await updateUnmanaged({ input, id: policy.id })
+          data = await updateUnmanaged({ input, id: policy.id })
         }
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.policyUpdate
+        const r = data.policyUpdate
         switch (r.__typename) {
           case 'Policy':
             close()
@@ -654,8 +647,7 @@ interface DialogsOpenProps {
 }
 
 export default function Policies() {
-  const [{ data }] = urql.useQuery({ query: POLICIES_QUERY })
-  const rows = data!.policies
+  const { policies: rows } = GQL.useQueryS(POLICIES_QUERY)
 
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const dialogs = Dialogs.use()
