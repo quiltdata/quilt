@@ -11,7 +11,7 @@ Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases
 1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
 2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
 
-> Quilt uses Amazon Elasticsearch version 6.7
+> Quilt uses Amazon Elasticsearch version 6.7.
 
 ## Query Elasticsearch with Python
 
