@@ -32,15 +32,15 @@ indexing for the following file extensions:
   * .xls, .xlsx
 
 > By default, Quilt indexes a limited number of bytes per document for specified file
-formats (256KB). Both the maximum byte extract per document and file formats
-to deep index can optionally be defined per Bucket in the Catalog Admin settings.
+formats (100KB). Both the max number of bytes per document and which file formats
+to deep index can be customized per Bucket in the Catalog Admin settings.
 
 ![Example of Admin Bucket indexing options](../imgs/elastic-search-indexing-options.png)
 
 ### Navigation Bar
 
 The navigation bar on every page in the catalog provides a convenient
-shortcut for searching all objects and packages in an Amazon S3
+shortcut for searching objects and packages in an Amazon S3
 bucket.
 
 > Quilt uses Elasticsearch 6.7 [query string
