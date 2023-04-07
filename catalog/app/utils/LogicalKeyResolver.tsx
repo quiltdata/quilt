@@ -1,8 +1,8 @@
 import * as React from 'react'
 
-import type { S3HandleBase } from 'utils/s3paths'
+import type * as Model from 'model'
 
-export interface S3SummarizeHandle extends S3HandleBase {
+export interface S3SummarizeHandle extends Model.S3.S3ObjectLocation {
   logicalKey?: string
   size?: number
 }

@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Model from 'model'
+import type * as Model from 'model'
 
 type SortKey = 'email' | 'username' | 'permissionLevel'
 type Sort = Record<SortKey, boolean> // TODO: only one key at a time is allowed

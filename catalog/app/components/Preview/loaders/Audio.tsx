@@ -1,9 +1,9 @@
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData } from '../types'
 
@@ -13,10 +13,10 @@ export const detect = utils.extIn(['.flac', '.mp3', '.ogg', '.ts', '.tsa', '.wav
 
 interface AudioLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
 }
 
-function useAudioSrc(handle: S3HandleBase): string {
+function useAudioSrc(handle: Model.S3.S3ObjectLocation): string {
   const sign = AWS.Signer.useS3Signer()
   const url = React.useMemo(() => sign(handle), [handle, sign])
   const query = new URLSearchParams({

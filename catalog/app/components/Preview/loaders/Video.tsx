@@ -1,9 +1,9 @@
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { PreviewData } from '../types'
 
@@ -13,10 +13,10 @@ export const detect = utils.extIn(['.m2t', '.m2ts', '.mp4', '.webm'])
 
 interface VideoLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
 }
 
-function useVideoSrc(handle: S3HandleBase): string {
+function useVideoSrc(handle: Model.S3.S3ObjectLocation): string {
   const sign = AWS.Signer.useS3Signer()
   const url = React.useMemo(() => sign(handle), [handle, sign])
   const query = new URLSearchParams({ format: 'video/webm', url })

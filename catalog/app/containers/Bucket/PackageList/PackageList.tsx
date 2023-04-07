@@ -13,6 +13,7 @@ import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -24,7 +25,6 @@ import { readableQuantity } from 'utils/string'
 import { JsonRecord } from 'utils/types'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
-import useQuery from 'utils/useQuery'
 
 import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
@@ -51,7 +51,7 @@ const SORT_OPTIONS = [
   },
 ] as const
 
-type SortMode = typeof SORT_OPTIONS[number]['key']
+type SortMode = (typeof SORT_OPTIONS)[number]['key']
 
 const DEFAULT_SORT = SORT_OPTIONS[0]
 
@@ -534,25 +534,19 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   const computedFilter = filter || ''
   const filtering = useDebouncedInput(computedFilter, 500)
 
-  const totalCountQuery = useQuery({
-    query: PACKAGE_COUNT_QUERY,
-    variables: { bucket, filter: null },
+  const totalCountQuery = GQL.useQuery(PACKAGE_COUNT_QUERY, { bucket, filter: null })
+
+  const filteredCountQuery = GQL.useQuery(PACKAGE_COUNT_QUERY, {
+    bucket,
+    filter: filter || null,
   })
 
-  const filteredCountQuery = useQuery({
-    query: PACKAGE_COUNT_QUERY,
-    variables: { bucket, filter: filter || null },
-  })
-
-  const packagesQuery = useQuery({
-    query: PACKAGE_LIST_QUERY,
-    variables: {
-      bucket,
-      filter: filter || null,
-      order: computedSort.value,
-      page: computedPage,
-      perPage: PER_PAGE,
-    },
+  const packagesQuery = GQL.useQuery(PACKAGE_LIST_QUERY, {
+    bucket,
+    filter: filter || null,
+    order: computedSort.value,
+    page: computedPage,
+    perPage: PER_PAGE,
   })
 
   const makeSortUrl = React.useCallback(
@@ -622,7 +616,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
         title: 'Create package',
       })}
 
-      {totalCountQuery.case({
+      {GQL.fold(totalCountQuery, {
         fetching: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
@@ -740,7 +734,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 </M.Box>
               </M.Box>
 
-              {filteredCountQuery.case({
+              {GQL.fold(filteredCountQuery, {
                 fetching: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
                 error: displayError(),
                 data: (filteredCountData) => {
@@ -768,7 +762,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
 
                   return (
                     <>
-                      {packagesQuery.case({
+                      {GQL.fold(packagesQuery, {
                         fetching: () => {
                           const items =
                             computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE

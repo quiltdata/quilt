@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
@@ -36,8 +37,8 @@ const createPathResolver = (
         })
 
 const createUrlProcessor = (
-  sign: (handle: s3paths.S3HandleBase) => string,
-  resolvePath: (path: string) => Promise<s3paths.S3HandleBase>,
+  sign: (handle: Model.S3.S3ObjectLocation) => string,
+  resolvePath: (path: string) => Promise<Model.S3.S3ObjectLocation>,
 ) =>
   R.pipe(
     Resource.parse,

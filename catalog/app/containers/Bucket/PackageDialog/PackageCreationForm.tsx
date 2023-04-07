@@ -5,19 +5,19 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import cfg from 'constants/config'
 import * as AddToPackage from 'containers/AddToPackage'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
+import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -250,7 +250,7 @@ function PackageCreationForm({
     [uploads],
   )
 
-  const [, constructPackage] = urql.useMutation(PACKAGE_CONSTRUCT)
+  const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
   const uploadPackage = Upload.useUploadPackage()
@@ -313,7 +313,7 @@ function PackageCreationForm({
       if (reason === 'cancel') return mkFormError(CANCEL)
       if (reason === 'readme') {
         const file = createReadmeFile(name)
-        entries.push({ logical_key: README_PATH, size: file.size })
+        entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
         toUpload.push({ path: README_PATH, file })
       }
     }
@@ -346,10 +346,10 @@ function PackageCreationForm({
       addedS3Entries,
       R.map(
         ({ path, file }) =>
-          [path, { physicalKey: s3paths.handleToS3Url(file) }] as R.KeyValuePair<
-            string,
-            PartialPackageEntry
-          >,
+          [
+            path,
+            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+          ] as R.KeyValuePair<string, PartialPackageEntry>,
       ),
       R.fromPairs,
     )
@@ -371,7 +371,7 @@ function PackageCreationForm({
     )
 
     try {
-      const res = await constructPackage({
+      const { packageConstruct: r } = await constructPackage({
         params: {
           bucket: successor.slug,
           name,
@@ -389,9 +389,6 @@ function PackageCreationForm({
           entries: allEntries,
         },
       })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data returned by the API')
-      const r = res.data.packageConstruct
       switch (r.__typename) {
         case 'PackagePushSuccess':
           setSuccess({ name, hash: r.revision.hash })

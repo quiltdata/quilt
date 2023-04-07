@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-import useQuery from 'utils/useQuery'
+import * as GQL from 'utils/GraphQL'
 
 import { MAX_POLICIES_PER_ROLE } from './shared'
 
@@ -100,7 +100,7 @@ export default function AssociatedRoles({
   const error =
     meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
-  const rolesData = useQuery({ query: ROLES_QUERY })
+  const rolesData = GQL.useQuery(ROLES_QUERY)
 
   const [roleSelectionOpen, setRoleSelectionOpen] = React.useState(false)
 
@@ -125,7 +125,7 @@ export default function AssociatedRoles({
 
   const availableRoles = React.useMemo(
     () =>
-      rolesData.case({
+      GQL.fold(rolesData, {
         fetching: () => null,
         error: () => null,
         data: ({ roles }) => {
@@ -145,7 +145,7 @@ export default function AssociatedRoles({
     <div className={className}>
       <M.Box display="flex" alignItems="center">
         <M.Typography variant="h6">Associated roles</M.Typography>
-        {rolesData.case({
+        {GQL.fold(rolesData, {
           data: () => null,
           fetching: () => (
             <M.Tooltip arrow title="Fetching roles">

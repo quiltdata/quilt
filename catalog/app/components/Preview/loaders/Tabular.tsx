@@ -2,11 +2,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import { CONTEXT, PreviewData } from '../types'
 
@@ -34,7 +34,7 @@ export const detect = R.pipe(
   R.anyPass([isCsv, isExcel, isJsonl, isParquet, isTsv]),
 )
 
-type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv' | 'txt'
+type TabularType = 'csv' | 'jsonl' | 'excel' | 'parquet' | 'tsv'
 
 const detectTabularType: (type: string) => TabularType = R.pipe(
   utils.stripCompression,
@@ -44,7 +44,7 @@ const detectTabularType: (type: string) => TabularType = R.pipe(
     [isJsonl, R.always('jsonl')],
     [isParquet, R.always('parquet')],
     [isTsv, R.always('tsv')],
-    [R.T, R.always('txt')],
+    [R.T, R.always('csv')],
   ]),
 )
 
@@ -110,8 +110,8 @@ export const parseParquetData = (data: ParquetMetadataBackend): ParquetMetadata 
 
 interface LoadTabularDataArgs {
   compression?: 'gz' | 'bz2'
-  handle: S3HandleBase
-  sign: (h: S3HandleBase) => string
+  handle: Model.S3.S3ObjectLocation
+  sign: (h: Model.S3.S3ObjectLocation) => string
   type: TabularType
   size: 'small' | 'medium' | 'large'
 }
@@ -176,7 +176,7 @@ function getNeededSize(context: string, gated: boolean) {
 
 interface TabularLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
   options: { context: string } // TODO: restrict type
 }
 

@@ -5,9 +5,8 @@ import * as React from 'react'
 import * as quiltConfigs from 'constants/quiltConfigs'
 import { detect as isMarkdown } from 'components/Preview/loaders/Markdown'
 import * as PreviewUtils from 'components/Preview/loaders/utils'
-import * as AWS from 'utils/AWS'
-import type { S3HandleBase } from 'utils/s3paths'
 import type * as Model from 'model'
+import * as AWS from 'utils/AWS'
 
 import { Mode, EditorInputType } from './types'
 
@@ -94,7 +93,7 @@ export function useWriteData({
   bucket,
   key,
   version,
-}: S3HandleBase): (value: string) => Promise<Model.S3File> {
+}: Model.S3.S3ObjectLocation): (value: string) => Promise<Model.S3File> {
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {

@@ -2,8 +2,8 @@ import * as React from 'react'
 
 import * as PreviewUtils from 'components/Preview/loaders/utils'
 import PreviewDisplay from 'components/Preview/Display'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
-import type { S3HandleBase } from 'utils/s3paths'
 
 import Skeleton from './Skeleton'
 import { EditorState } from './State'
@@ -17,7 +17,7 @@ export { detect, isSupportedFileType } from './loader'
 interface EditorProps extends EditorState {
   editing: EditorInputType
   empty?: boolean
-  handle: S3HandleBase
+  handle: Model.S3.S3ObjectLocation
 }
 
 function EditorSuspended({

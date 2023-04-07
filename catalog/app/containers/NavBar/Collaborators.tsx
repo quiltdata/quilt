@@ -1,11 +1,11 @@
 import cx from 'classnames'
 import * as React from 'react'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import { Avatars, Popup } from 'components/Collaborators'
 import * as style from 'constants/style'
-import * as Model from 'model'
+import type * as Model from 'model'
+import { useQueryS } from 'utils/GraphQL'
 import usePotentialCollaborators from 'utils/usePotentialCollaborators'
 
 import BUCKET_COLLABORATORS from './BucketCollaborators.generated'
@@ -33,11 +33,8 @@ export default function Collaborators({ bucket, hidden }: CollaboratorsProps) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
-  const [{ data }] = urql.useQuery({
-    query: BUCKET_COLLABORATORS,
-    variables: { bucket },
-  })
-  const collaborators = data?.bucketConfig?.collaborators || NO_COLLABORATORS
+  const data = useQueryS(BUCKET_COLLABORATORS, { bucket })
+  const collaborators = data.bucketConfig?.collaborators || NO_COLLABORATORS
   const potentialCollaborators = usePotentialCollaborators()
   const allCollaborators: Model.Collaborators = React.useMemo(
     () => [
