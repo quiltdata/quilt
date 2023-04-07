@@ -546,8 +546,8 @@ class Package:
                 *,
                 path=None,
                 sync=None,
-                group=None
-    ):
+                group=None,
+                ):
         """
         Installs a named package to the local registry and downloads its files.
 
@@ -682,10 +682,7 @@ class Package:
 
     @classmethod
     @ApiTelemetry("package.browse_data_yaml")
-    def browse_data_yaml(cls, *, group=None):  # noqa: D202
-        """
-        TODO
-        """
+    def browse_data_yaml(cls, *, group=None):
         if group is None:
             group = DATA_YAML_DEFAULT_GROUP
 
@@ -1457,10 +1454,7 @@ class Package:
     @classmethod
     @ApiTelemetry("package.push_data_yaml")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):  # noqa: D202
-        """
-        TODO
-        """
+    def push_data_yaml(cls, *, force: bool = False, dedupe: bool = False, workflow=..., group=None):
         if group is None:
             group = DATA_YAML_DEFAULT_GROUP
 
