@@ -145,10 +145,8 @@ Pushes the new package to the remote registry
 positional arguments:
   name                 Name of package, in the USER/PKG format
 
-required arguments:
-  --dir DIR            Directory to add to the new package
-
 optional arguments:
+  --dir DIR            Directory to add to the new package
   -h, --help           show this help message and exit
   --registry REGISTRY  Registry where to create the new package. Defaults to
                        the default remote registry.
