@@ -69,17 +69,17 @@ const ERRORS_MAP = {
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
 
 // TODO: use tree as the main data model / source of truth?
-export interface LocalEntry {
+interface LocalEntry {
   path: string
   file: FI.LocalFile
 }
 
-export interface S3Entry {
+interface S3Entry {
   path: string
   file: Model.S3File
 }
 
-export interface PackageCreationSuccess {
+interface PackageCreationSuccess {
   name: string
   hash?: string
 }
@@ -830,15 +830,17 @@ interface UsePackageCreationDialogProps {
   onSuccessor: (successor: workflows.Successor) => void
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  ui: PackageCreationDialogUIOptions
 }
 
-export function usePackageCreationDialog({
+export function PackageCreationDialog({
   id,
   src,
   successor,
   onSuccessor,
   delayHashing = false,
   disableStateDisplay = false,
+  ui = {},
 }: UsePackageCreationDialogProps) {
   const { dropZoneOnly, isOpen, setOpen, getInitial } = useInitialState(id)
 
@@ -893,10 +895,6 @@ export function usePackageCreationDialog({
     [src.bucket, src.s3Path, workflowsData, manifestResult, preferences],
   )
 
-  const open = React.useCallback(() => {
-    setOpen(true)
-  }, [setOpen])
-
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
@@ -920,7 +918,7 @@ export function usePackageCreationDialog({
     )
   }, [isOpen, success, data])
 
-  const render = (ui: PackageCreationDialogUIOptions = {}) => (
+  return (
     <M.Dialog
       fullWidth
       maxWidth={success ? 'sm' : 'lg'}
@@ -1000,6 +998,4 @@ export function usePackageCreationDialog({
       )}
     </M.Dialog>
   )
-
-  return { open, close, render }
 }

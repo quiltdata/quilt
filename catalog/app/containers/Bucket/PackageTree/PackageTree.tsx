@@ -37,7 +37,7 @@ import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
 import Listing, { Item as ListingItem } from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
-import * as CreatePackage from '../PackageDialog/Provider'
+import * as PD from '../PackageDialog'
 import Section from '../Section'
 import * as Successors from '../Successors'
 import Summary from '../Summary'
@@ -376,7 +376,7 @@ function DirDisplay({
               {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {hasReviseButton && (
-                  <CreatePackage.Link>
+                  <PD.Link>
                     <M.Button
                       className={classes.button}
                       variant="contained"
@@ -386,7 +386,7 @@ function DirDisplay({
                     >
                       Revise package
                     </M.Button>
-                  </CreatePackage.Link>
+                  </PD.Link>
                 )}
                 {preferences?.ui?.actions?.copyPackage && (
                   <Successors.Button
@@ -959,13 +959,13 @@ export default function PackageTreeWrapper({
     <>
       <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <CreatePackage.Provider
+        <PD.Provider
           {...{ id: 'package', bucket, name, hashOrTag, ui: REVISE_PACKAGE_UI }}
         >
           <PackageTreeQueries
             {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }}
           />
-        </CreatePackage.Provider>
+        </PD.Provider>
       </WithPackagesSupport>
     </>
   )

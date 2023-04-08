@@ -26,7 +26,7 @@ import { JsonRecord } from 'utils/types'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import * as CreatePackage from '../PackageDialog/Provider'
+import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -642,11 +642,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 <M.Box pt={3} />
                 {preferences?.ui?.actions?.createPackage && (
                   <>
-                    <CreatePackage.Link>
+                    <PD.Link>
                       <M.Button variant="contained" color="primary">
                         Create package
                       </M.Button>
-                    </CreatePackage.Link>
+                    </PD.Link>
                     <M.Box pt={2} />
                     <M.Typography>
                       Or{' '}
@@ -694,7 +694,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
                 {preferences?.ui?.actions?.createPackage && (
                   <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
-                    <CreatePackage.Link>
+                    <PD.Link>
                       <M.Button
                         variant="contained"
                         size="large"
@@ -703,7 +703,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                       >
                         Create package
                       </M.Button>
-                    </CreatePackage.Link>
+                    </PD.Link>
                   </M.Box>
                 )}
                 <M.Box component={M.Paper} className={classes.paper}>
@@ -789,7 +789,7 @@ export default function PackageListWrapper({
     <>
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <CreatePackage.Provider
+        <PD.Provider
           id="list"
           bucket={bucket}
           ui={CREATE_PACKAGE_UI}
@@ -797,7 +797,7 @@ export default function PackageListWrapper({
           disableStateDisplay
         >
           <PackageList {...{ bucket, sort, filter, page }} />
-        </CreatePackage.Provider>
+        </PD.Provider>
       </WithPackagesSupport>
     </>
   )

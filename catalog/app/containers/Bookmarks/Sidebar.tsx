@@ -7,7 +7,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as style from 'constants/style'
 import * as AddToPackage from 'containers/AddToPackage'
-import * as CreatePackage from 'containers/Bucket/PackageDialog/Provider'
+import * as PD from 'containers/Bucket/PackageDialog'
 import {
   useBucketListing,
   BucketListingResult,
@@ -246,7 +246,7 @@ interface SidebarProps {
 }
 
 function Sidebar({ bucket = '' }: SidebarProps) {
-  const createPackage = CreatePackage.use()
+  const createPackage = PD.useCreatePackage()
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.main.entries
@@ -306,7 +306,7 @@ function Sidebar({ bucket = '' }: SidebarProps) {
 export default function SidebarWrapper({ bucket = '' }: SidebarProps) {
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <CreatePackage.Provider
+      <PD.Provider
         id="bookmarks"
         bucket={bucket}
         ui={CREATE_PACKAGE_UI}
@@ -314,7 +314,7 @@ export default function SidebarWrapper({ bucket = '' }: SidebarProps) {
         disableStateDisplay
       >
         <Sidebar bucket={bucket} />
-      </CreatePackage.Provider>
+      </PD.Provider>
     </M.MuiThemeProvider>
   )
 }

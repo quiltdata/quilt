@@ -25,7 +25,7 @@ import Code from './Code'
 import * as FileView from './FileView'
 import { Item, Listing, PrefixFilter } from './Listing'
 import Menu from './Menu'
-import * as CreatePackage from './PackageDialog/Provider'
+import * as PD from './PackageDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -362,10 +362,9 @@ function Dir({ bucket, path, prefix }: DirParams) {
     )
   }, [data.result])
 
-  const createPackage = CreatePackage.use()
+  const createPackage = PD.useCreatePackage()
   const openCreatePackageFromDirectory = React.useCallback(
     (s) => {
-      if (!createPackage) return
       createPackage?.setDst(s)
       createPackage?.open()
     },
@@ -440,7 +439,7 @@ export default function DirWrapper({
   // FIXME: @nl0 is it safe to get only first prefix?
   const { prefix } = parseSearch(l.search, true)
   return (
-    <CreatePackage.Provider
+    <PD.Provider
       id="dir"
       bucket={bucket}
       s3Path={path}
@@ -449,6 +448,6 @@ export default function DirWrapper({
       disableStateDisplay
     >
       <Dir bucket={bucket} path={path} prefix={prefix} />
-    </CreatePackage.Provider>
+    </PD.Provider>
   )
 }

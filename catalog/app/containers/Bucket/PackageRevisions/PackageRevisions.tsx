@@ -21,7 +21,7 @@ import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
-import * as CreatePackage from '../PackageDialog/Provider'
+import * as PD from '../PackageDialog'
 import Pagination from '../Pagination'
 import WithPackagesSupport from '../WithPackagesSupport'
 import { displayError } from '../errors'
@@ -473,7 +473,7 @@ function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
         </M.Typography>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.revisePackage && (
-          <CreatePackage.Link>
+          <PD.Link>
             <M.Button
               variant="contained"
               color="primary"
@@ -481,7 +481,7 @@ function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
             >
               Revise package
             </M.Button>
-          </CreatePackage.Link>
+          </PD.Link>
         )}
       </M.Box>
 
@@ -537,14 +537,9 @@ export default function PackageRevisionsWrapper({
     <>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <CreatePackage.Provider
-          bucket={bucket}
-          id="revision"
-          name={name}
-          ui={REVISE_PACKAGE_UI}
-        >
+        <PD.Provider bucket={bucket} id="revision" name={name} ui={REVISE_PACKAGE_UI}>
           <PackageRevisions {...{ bucket, name, page }} />
-        </CreatePackage.Provider>
+        </PD.Provider>
       </WithPackagesSupport>
     </>
   )
