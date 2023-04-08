@@ -222,7 +222,7 @@ def cmd_install(name, registry, top_hash, dest, dest_registry, path, sync, group
         Package.install(name, registry, top_hash, dest, dest_registry, path=path, sync=sync, group=group)
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, sync, group):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, sync=None, group=None):
     if name is None:
         if dir:
             raise QuiltException("--dir not allowed without a package name")
@@ -464,7 +464,7 @@ def create_parser():
         "--dir",
         help="Directory to add to the new package",
         type=str,
-        required=True,
+        required=False,
     )
     push_p.add_argument(
         '-h',
