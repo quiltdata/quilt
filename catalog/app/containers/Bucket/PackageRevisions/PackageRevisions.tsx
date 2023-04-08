@@ -537,7 +537,7 @@ export default function PackageRevisionsWrapper({
     <>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PD.Provider bucket={bucket} id="revision" name={name} ui={REVISE_PACKAGE_UI}>
+        <PD.Provider bucket={bucket} name={name} ui={REVISE_PACKAGE_UI}>
           <PackageRevisions {...{ bucket, name, page }} />
         </PD.Provider>
       </WithPackagesSupport>

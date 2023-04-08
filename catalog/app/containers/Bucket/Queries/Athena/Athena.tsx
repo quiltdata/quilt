@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
-import { Provider as CreatePackageProvider } from 'containers/Bucket/PackageDialog/Provider'
+import * as PD from 'containers/Bucket/PackageDialog'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import QuerySelect from '../QuerySelect'
@@ -191,15 +191,14 @@ function ResultsContainer({
         workgroup={workgroup}
       >
         {!!queryResults.rows.length && (
-          <CreatePackageProvider
-            id="athena"
+          <PD.Provider
             bucket={bucket}
             ui={CREATE_PACKAGE_UI}
             delayHashing
             disableStateDisplay
           >
             <CreatePackage queryResults={queryResults} />
-          </CreatePackageProvider>
+          </PD.Provider>
         )}
       </ResultsBreadcrumbs>
       {/* eslint-disable-next-line no-nested-ternary */}

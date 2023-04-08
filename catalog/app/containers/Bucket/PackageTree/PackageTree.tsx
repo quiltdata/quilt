@@ -959,9 +959,7 @@ export default function PackageTreeWrapper({
     <>
       <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PD.Provider
-          {...{ id: 'package', bucket, name, hashOrTag, ui: REVISE_PACKAGE_UI }}
-        >
+        <PD.Provider {...{ bucket, name, hashOrTag, ui: REVISE_PACKAGE_UI }}>
           <PackageTreeQueries
             {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }}
           />

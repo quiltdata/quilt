@@ -440,7 +440,6 @@ export default function DirWrapper({
   const { prefix } = parseSearch(l.search, true)
   return (
     <PD.Provider
-      id="dir"
       bucket={bucket}
       s3Path={path}
       ui={CREATE_PACKAGE_UI}

@@ -790,7 +790,6 @@ export default function PackageListWrapper({
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <PD.Provider
-          id="list"
           bucket={bucket}
           ui={CREATE_PACKAGE_UI}
           delayHashing

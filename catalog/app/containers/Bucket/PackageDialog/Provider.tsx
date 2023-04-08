@@ -9,10 +9,13 @@ import {
 } from '../PackageDialog/PackageCreationForm'
 
 export function Link(props: Omit<RRDom.LinkProps, 'to'>) {
-  // FIXME: don't erase other search params
-  return (
-    <RRDom.Link {...props} to={(loc) => ({ ...loc, search: '?createPackage=list' })} />
-  )
+  const location = RRDom.useLocation()
+  const search = React.useMemo(() => {
+    const searchParams = new URLSearchParams(location.search)
+    searchParams.set('createPackage', 'true')
+    return searchParams.toString()
+  }, [location.search])
+  return <RRDom.Link {...props} to={(loc) => ({ ...loc, search: `?${search}` })} />
 }
 
 const Ctx = React.createContext<{
@@ -21,8 +24,7 @@ const Ctx = React.createContext<{
 } | null>(null)
 
 interface ProviderProps {
-  // TODO: make bookmarks a special case only, and make id optional
-  id: 'athena' | 'package' | 'list' | 'bookmarks' | 'dir' | 'revision'
+  id?: 'bookmarks'
   bucket: string
   name?: string
   hashOrTag?: string
@@ -49,7 +51,7 @@ export function Provider({
     [location.search],
   )
   const open = React.useCallback(() => {
-    searchParams.set('createPackage', id)
+    searchParams.set('createPackage', id || 'true')
     history.push({
       search: searchParams.toString(),
     })

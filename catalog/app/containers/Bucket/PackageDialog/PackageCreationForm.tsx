@@ -745,7 +745,7 @@ function prependSourceBucket(
   }
 }
 
-function useInitialState(id: string) {
+function useInitialState(id?: string) {
   const history = RRDom.useHistory()
   const location = RRDom.useLocation()
   const searchParams = React.useMemo(
@@ -766,7 +766,9 @@ function useInitialState(id: string) {
       }),
     [msg, nameOverride, workflowId],
   )
-  const isOpen = searchParams.get('createPackage') === id
+  const isOpen = id
+    ? searchParams.get('createPackage') === id
+    : searchParams.has('createPackage')
   const setOpen = React.useCallback(
     (shouldOpen: boolean) => {
       if (shouldOpen) {
@@ -817,7 +819,7 @@ export interface PackageCreationDialogUIOptions {
 }
 
 interface UsePackageCreationDialogProps {
-  id: string
+  id?: string
   src: {
     bucket: string
     packageHandle?: {
