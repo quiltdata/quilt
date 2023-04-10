@@ -603,8 +603,8 @@ function PackageCreationForm({
                     )}
                     validateFields={['name']}
                     errors={{
-                      required: 'Enter a package name',
-                      invalid: 'Invalid package name',
+                      required: ERRORS_MAP.name.required,
+                      invalid: ERRORS_MAP.name.invalid,
                       pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                     }}
                     helperText={nameWarning}
@@ -618,7 +618,7 @@ function PackageCreationForm({
                     validateFields={['msg']}
                     initialValue={initial?.msg}
                     errors={{
-                      required: 'Enter a commit message',
+                      required: ERRORS_MAP.msg.required,
                     }}
                   />
 
@@ -666,12 +666,7 @@ function PackageCreationForm({
                       name="files"
                       validate={validateFiles as FF.FieldValidator<$TSFixMe>}
                       validateFields={['files']}
-                      errors={{
-                        schema: 'Files should match schema',
-                        [FI.HASHING]: 'Please wait while we hash the files',
-                        [FI.HASHING_ERROR]:
-                          'Error hashing files, probably some of them are too large. Please try again or contact support.',
-                      }}
+                      errors={ERRORS_MAP.files}
                       totalProgress={uploads.progress}
                       title="Files"
                       onFilesAction={onFilesAction}
