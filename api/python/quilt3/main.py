@@ -9,6 +9,7 @@ import json
 import sys
 import time
 
+import botocore
 import requests
 
 from . import Package
@@ -202,13 +203,18 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe):
-    try:
-        pkg = Package.browse(name, None)
-    except FileNotFoundError:
-        pkg = Package()
+def cmd_push(name, dir_logical_key, dir, registry, dest, message, meta, workflow, force, dedupe, browse):
+    pkg = Package()
 
-    pkg.set_dir('.', dir, meta=meta)
+    try:
+        pkg = Package.browse(name, browse)
+    except FileNotFoundError:
+        pass
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] != "NoSuchKey":
+            raise
+
+    pkg.set_dir(dir_logical_key, dir, meta=meta)
     pkg.push(
         name, registry=registry, dest=dest, message=message,
         workflow=workflow, force=force, dedupe=dedupe
@@ -464,6 +470,15 @@ def create_parser():
         "--dedupe",
         action="store_true",
         help="Skip the push if the local package hash matches the remote hash.",
+    )
+    optional_args.add_argument(
+        "--browse",
+        help="FIXME", # FIXME
+    )
+    optional_args.add_argument(
+        "--dir-logical-key",
+        help="FIXME", # FIXME
+        default=".",
     )
     push_p.set_defaults(func=cmd_push)
 
