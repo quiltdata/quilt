@@ -473,7 +473,7 @@ function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
         </M.Typography>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.revisePackage && (
-          <PD.Link>
+          <PD.CreatePackageLink>
             <M.Button
               variant="contained"
               color="primary"
@@ -481,7 +481,7 @@ function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
             >
               Revise package
             </M.Button>
-          </PD.Link>
+          </PD.CreatePackageLink>
         )}
       </M.Box>
 

@@ -642,11 +642,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 <M.Box pt={3} />
                 {preferences?.ui?.actions?.createPackage && (
                   <>
-                    <PD.Link>
+                    <PD.CreatePackageLink>
                       <M.Button variant="contained" color="primary">
                         Create package
                       </M.Button>
-                    </PD.Link>
+                    </PD.CreatePackageLink>
                     <M.Box pt={2} />
                     <M.Typography>
                       Or{' '}
@@ -694,7 +694,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
                 {preferences?.ui?.actions?.createPackage && (
                   <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
-                    <PD.Link>
+                    <PD.CreatePackageLink>
                       <M.Button
                         variant="contained"
                         size="large"
@@ -703,7 +703,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                       >
                         Create package
                       </M.Button>
-                    </PD.Link>
+                    </PD.CreatePackageLink>
                   </M.Box>
                 )}
                 <M.Box component={M.Paper} className={classes.paper}>

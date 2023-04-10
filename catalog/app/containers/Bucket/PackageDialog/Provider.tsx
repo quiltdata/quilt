@@ -8,7 +8,7 @@ import {
   PackageCreationDialog,
 } from '../PackageDialog/PackageCreationForm'
 
-export function Link(props: Omit<RRDom.LinkProps, 'to'>) {
+export function CreatePackageLink(props: Omit<RRDom.LinkProps, 'to'>) {
   const location = RRDom.useLocation()
   const search = React.useMemo(() => {
     const searchParams = new URLSearchParams(location.search)

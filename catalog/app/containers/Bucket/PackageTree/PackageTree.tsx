@@ -376,7 +376,7 @@ function DirDisplay({
               {prompt.render()}
               <TopBar crumbs={crumbs}>
                 {hasReviseButton && (
-                  <PD.Link>
+                  <PD.CreatePackageLink>
                     <M.Button
                       className={classes.button}
                       variant="contained"
@@ -386,7 +386,7 @@ function DirDisplay({
                     >
                       Revise package
                     </M.Button>
-                  </PD.Link>
+                  </PD.CreatePackageLink>
                 )}
                 {preferences?.ui?.actions?.copyPackage && (
                   <Successors.Button
