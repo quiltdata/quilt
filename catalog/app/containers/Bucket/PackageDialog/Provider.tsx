@@ -45,6 +45,8 @@ export function Provider({
   hashOrTag,
   s3Path,
   ui,
+  delayHashing,
+  disableStateDisplay,
   children,
 }: ProviderProps) {
   const history = RRDom.useHistory()
@@ -81,6 +83,8 @@ export function Provider({
         src={{ bucket, packageHandle, s3Path }}
         successor={successor}
         onSuccessor={setSuccessor}
+        delayHashing={delayHashing}
+        disableStateDisplay={disableStateDisplay}
       />
       {children}
     </Ctx.Provider>
