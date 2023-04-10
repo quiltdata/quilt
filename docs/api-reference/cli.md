@@ -136,9 +136,6 @@ optional arguments:
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
-                   [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe]
-                   name
 
 Pushes the new package to the remote registry
 
