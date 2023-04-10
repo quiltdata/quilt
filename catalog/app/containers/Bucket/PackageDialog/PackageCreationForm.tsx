@@ -501,6 +501,10 @@ function PackageCreationForm({
   const onFilesChange = React.useCallback(
     (submit) =>
       async ({ dirtyFields, hasValidationErrors }: FF.FormState<SubmitWebArgs>) => {
+        // NOTE:
+        // We show error while files are hashing
+        // then submit after hashing is ended because
+        // `hasValidationErrors` turns to false
         // FIXME: hasValidationErrors == "wait for files hashing"
         if (!dirtyFields.files || hasValidationErrors) return
         await submit()
