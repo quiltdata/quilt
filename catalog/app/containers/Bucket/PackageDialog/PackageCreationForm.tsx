@@ -467,7 +467,6 @@ function PackageCreationForm({
     [setMetaHeight],
   )
   const [filesDisabled, setFilesDisabled] = React.useState(false)
-
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
