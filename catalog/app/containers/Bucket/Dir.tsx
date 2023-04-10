@@ -363,7 +363,7 @@ function Dir({ bucket, path, prefix }: DirParams) {
   }, [data.result])
 
   const createPackage = PD.useCreatePackage()
-  const openCreatePackageFromDirectory = React.useCallback(
+  const openPackageCreationDialog = React.useCallback(
     (s) => {
       createPackage?.setDst(s)
       createPackage?.open()
@@ -384,7 +384,7 @@ function Dir({ bucket, path, prefix }: DirParams) {
             <Successors.Button
               bucket={bucket}
               className={classes.button}
-              onChange={openCreatePackageFromDirectory}
+              onChange={openPackageCreationDialog}
             >
               Create package from directory
             </Successors.Button>

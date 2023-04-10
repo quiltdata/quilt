@@ -52,14 +52,10 @@ export default function DialogSuccess({
     ? urls.bucketPackageTree(bucket, name, hash)
     : urls.bucketPackageRevisions(bucket, name)
   const packageLink = (
-    <StyledLink onClick={onClose} to={packageUrl}>
-      {hash ? `${name}@${R.take(10, hash)}` : name}
-    </StyledLink>
+    <StyledLink to={packageUrl}>{hash ? `${name}@${R.take(10, hash)}` : name}</StyledLink>
   )
   const bucketLink = (
-    <StyledLink onClick={onClose} to={urls.bucketOverview(bucket)}>
-      s3://{bucket}
-    </StyledLink>
+    <StyledLink to={urls.bucketOverview(bucket)}>s3://{bucket}</StyledLink>
   )
   const defaultBrowseText = isFullHash ? 'Browse package' : 'Browse package revisions'
   return (
