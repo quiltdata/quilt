@@ -24,6 +24,9 @@ const Ctx = React.createContext<{
 } | null>(null)
 
 interface ProviderProps {
+  // Use it if you need to add CreatePackage dialog for specific places
+  // ex. ?createPackage=bookmarks
+  // and ignore global ?cretePackage=true
   id?: 'bookmarks'
   bucket: string
   name?: string

@@ -246,7 +246,6 @@ interface SidebarProps {
 }
 
 function Sidebar({ bucket = '' }: SidebarProps) {
-  const createPackage = PD.useCreatePackage()
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
   const entries = bookmarks?.groups.main.entries
@@ -259,6 +258,7 @@ function Sidebar({ bucket = '' }: SidebarProps) {
   const bucketListing = useBucketListing()
   const headFile = useHeadFile()
   const handlesToS3Files = useHandlesToS3Files(bucketListing, headFile)
+  const createPackage = PD.useCreatePackage()
   const handleRemove = React.useCallback(
     (handle: Model.S3.S3ObjectLocation) => {
       const isLastBookmark = handles.length === 1
