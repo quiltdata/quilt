@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 import type * as Model from 'model'
 import { PackageHandle } from 'utils/packageHandle'
@@ -53,5 +54,9 @@ export const Loader = function WrappedNotebookLoader({
   handle,
   children,
 }: NotebookLoaderProps) {
-  return <NotebookLoader {...{ handle, children }} />
+  return (
+    <React.Suspense fallback={<M.CircularProgress />}>
+      <NotebookLoader {...{ handle, children }} />
+    </React.Suspense>
+  )
 }
