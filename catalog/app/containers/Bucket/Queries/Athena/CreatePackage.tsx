@@ -129,14 +129,14 @@ export default function CreatePackage({ queryResults }: CreatePackageProps) {
   const classes = useStyles()
   const [entries, setEntries] = React.useState<ParsedRows>({ valid: {}, invalid: [] })
   const addToPackage = AddToPackage.use()
-  const createDialog = useCreatePackage()
+  const createPackage = useCreatePackage()
   const handleConfirm = React.useCallback(
     (ok: boolean) => {
       if (!ok) return
       addToPackage?.merge(entries.valid)
-      createDialog?.open()
+      createPackage?.open()
     },
-    [addToPackage, entries, createDialog],
+    [addToPackage, entries, createPackage],
   )
   const confirm = Dialog.useConfirm({
     title: 'These rows will be discarded. Confirm creating package?',
@@ -152,9 +152,9 @@ export default function CreatePackage({ queryResults }: CreatePackageProps) {
       confirm.open()
     } else {
       addToPackage?.merge(parsed.valid)
-      createDialog?.open()
+      createPackage?.open()
     }
-  }, [addToPackage, confirm, createDialog, queryResults])
+  }, [addToPackage, confirm, createPackage, queryResults])
 
   if (!doQueryResultsContainManifestEntries(queryResults)) {
     return <SeeDocsForCreatingPackage />
