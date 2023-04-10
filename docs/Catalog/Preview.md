@@ -34,7 +34,7 @@ The following file formats are supported:
 The Quilt Catalog uses a [Lambda
 function](https://github.com/quiltdata/quilt/tree/master/lambdas/thumbnail)
 to automatically generate thumbnail previews of common image formats
-and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg, 
+and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg,
 .png, .webp, .tif, .tiff (including `OME-TIFF`), and .czi.
 
 ### Known limitations
