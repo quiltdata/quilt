@@ -199,13 +199,13 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const [copySuccessor, setCopySuccessor] = React.useState<workflows.Successor | null>(
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(
     null,
   )
 
   const onPackageCopyDialogExited = React.useCallback(() => {
-    setCopySuccessor(null)
-  }, [setCopySuccessor])
+    setSuccessor(null)
+  }, [setSuccessor])
 
   const { preferences } = BucketPreferences.use()
 
@@ -279,8 +279,8 @@ function DirDisplay({
         bucket={bucket}
         hash={hash}
         name={name}
-        open={!!copySuccessor}
-        successor={copySuccessor}
+        open={!!successor}
+        successor={successor}
         onExited={onPackageCopyDialogExited}
       />
 
@@ -392,7 +392,7 @@ function DirDisplay({
                   <Successors.Button
                     className={classes.button}
                     bucket={bucket}
-                    onChange={setCopySuccessor}
+                    onChange={setSuccessor}
                   >
                     Push to bucket
                   </Successors.Button>
