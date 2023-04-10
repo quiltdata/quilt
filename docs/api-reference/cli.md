@@ -134,7 +134,6 @@ optional arguments:
   -h, --help  show this help message and exit
 ```
 ## `push`
-
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
