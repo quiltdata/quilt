@@ -199,9 +199,7 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(
-    null,
-  )
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
   const onPackageCopyDialogExited = React.useCallback(() => {
     setSuccessor(null)
