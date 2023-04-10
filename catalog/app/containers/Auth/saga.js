@@ -1,7 +1,10 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
+import * as Sentry from '@sentry/react'
 
+import cfg from 'constants/config'
 import { apiRequest, HTTPError } from 'utils/APIConnector'
 import defer from 'utils/defer'
+import log from 'utils/Logging'
 import { waitTil } from 'utils/sagaTools'
 import { timestamp } from 'utils/time'
 
@@ -147,6 +150,20 @@ function* signIn(credentials) {
       message: 'unable to sign in',
       originalError: e,
     })
+  }
+}
+
+function* setBrowseCookie(tokens) {
+  try {
+    yield call(apiRequest, {
+      auth: { tokens, handleInvalidToken: false },
+      url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch (e) {
+    log.warn('Unable to set browse cookie:', e)
+    Sentry.captureException(e)
   }
 }
 
@@ -328,6 +345,7 @@ function* handleSignIn(
     const tokensRaw = yield call(signIn, credentials)
     const tokens = adjustTokensForLatency(tokensRaw, latency)
     const user = yield call(fetchUser, tokens)
+    yield fork(setBrowseCookie, tokens)
     yield fork(storeTokens, tokens)
     yield fork(storeUser, user)
     yield put(actions.signIn.resolve({ tokens, user }))
@@ -407,6 +425,7 @@ function* handleCheck(
 
     yield put(actions.refresh())
     const newTokens = yield call(refreshTokens, latency, tokens)
+    yield fork(setBrowseCookie, newTokens)
     yield fork(storeTokens, newTokens)
     let user
     if (refetch) {
