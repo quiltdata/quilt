@@ -16,7 +16,11 @@ Entries inside each section should be ordered by type:
 !-->
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
 * [Added] `--no-copy` parameter to `Package.push()` ([#3398](https://github.com/quiltdata/quilt/pull/3398))
+
+## Catalog, Lambdas
+* [Fixed] Fix package push failing for unrelated reason ([#3390](https://github.com/quiltdata/quilt/pull/3390))
 
 # 5.2.1 - 2023-04-05
 ## Python API

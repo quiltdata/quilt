@@ -33,7 +33,7 @@ import * as routes from 'constants/routes'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
-import { GraphQLProvider } from 'utils/GraphQL'
+import * as GraphQL from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -91,7 +91,7 @@ const render = () => {
       [RouterProvider, { history }],
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
-      GraphQLProvider,
+      GraphQL.Provider,
       AddToPackage.Provider,
       Bookmarks.Provider,
       Notifications.Provider,

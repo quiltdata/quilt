@@ -1,11 +1,11 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as urql from 'urql'
 import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
+import { useMutation } from 'utils/GraphQL'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
@@ -46,13 +46,10 @@ function mapPreviewError(retry: () => void, e?: ErrorLike) {
 }
 
 function useCreateSession() {
-  const [, createSession] = urql.useMutation(CREATE_BROWSING_SESSION)
+  const createSession = useMutation(CREATE_BROWSING_SESSION)
   return React.useCallback(
     async (scope: string, ttl) => {
-      const res = await createSession({ scope, ttl })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.browsingSessionCreate
+      const { browsingSessionCreate: r } = await createSession({ scope, ttl })
       switch (r.__typename) {
         case 'BrowsingSession':
           return r
@@ -73,13 +70,10 @@ function useCreateSession() {
 }
 
 function useRefreshSession() {
-  const [, refreshSession] = urql.useMutation(REFRESH_BROWSING_SESSION)
+  const refreshSession = useMutation(REFRESH_BROWSING_SESSION)
   return React.useCallback(
     async (id: string, ttl: number) => {
-      const res = await refreshSession({ id, ttl })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.browsingSessionRefresh
+      const { browsingSessionRefresh: r } = await refreshSession({ id, ttl })
       switch (r.__typename) {
         case 'BrowsingSession':
           return r
@@ -100,7 +94,7 @@ function useRefreshSession() {
 }
 
 function useDisposeSession() {
-  const [, disposeSession] = urql.useMutation(DISPOSE_BROWSING_SESSION)
+  const disposeSession = useMutation(DISPOSE_BROWSING_SESSION)
   return React.useCallback(
     (id?: string) => (id ? disposeSession({ id }) : null),
     [disposeSession],

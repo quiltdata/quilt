@@ -3,8 +3,8 @@ import * as React from 'react'
 import cfg from 'constants/config'
 import AsyncResult from 'utils/AsyncResult'
 import { useIsInStack } from 'utils/BucketConfig'
+import * as GQL from 'utils/GraphQL'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
-import useQuery from 'utils/useQuery'
 
 import * as IFrame from './IFrame'
 import * as Text from './Text'
@@ -16,6 +16,21 @@ import BUCKET_CONFIG_QUERY from './IFrame/BrowsableBucketConfig.generated'
 export const detect = utils.extIn(['.htm', '.html'])
 
 export const FILE_TYPE = FileType.Html
+
+function IFrameLoader({ handle, children }) {
+  const bucketData = GQL.useQuery(BUCKET_CONFIG_QUERY, { bucket: handle.bucket })
+  const inPackage = !!handle.packageHandle
+  return GQL.fold(bucketData, {
+    fetching: () => children(AsyncResult.Pending()),
+    error: (e) => children(AsyncResult.Err(e)),
+    data: ({ bucketConfig }) =>
+      bucketConfig?.browsable && inPackage ? (
+        <IFrame.LoaderBrowsable {...{ handle, children }} />
+      ) : (
+        <IFrame.LoaderSigned {...{ handle, children }} />
+      ),
+  })
+}
 
 // It's unsafe to render HTML in these conditions
 function useHtmlAsText(handle) {
@@ -29,22 +44,9 @@ function useHtmlAsText(handle) {
 }
 
 export const Loader = function HtmlLoader({ handle, children }) {
-  const renderHtmlAsText = useHtmlAsText(handle)
-  const bucketData = useQuery({
-    query: BUCKET_CONFIG_QUERY,
-    variables: { bucket: handle.bucket },
-    pause: renderHtmlAsText,
-  })
-  if (renderHtmlAsText) return <Text.Loader {...{ handle, children }} />
-  const inPackage = !!handle.packageHandle
-  return bucketData.case({
-    fetching: () => children(AsyncResult.Pending()),
-    error: (e) => children(AsyncResult.Err(e)),
-    data: ({ bucketConfig }) =>
-      bucketConfig?.browsable && inPackage ? (
-        <IFrame.LoaderBrowsable {...{ handle, children }} />
-      ) : (
-        <IFrame.LoaderSigned {...{ handle, children }} />
-      ),
-  })
+  return useHtmlAsText(handle) ? (
+    <Text.Loader {...{ handle, children }} />
+  ) : (
+    <IFrameLoader {...{ handle, children }} />
+  )
 }
