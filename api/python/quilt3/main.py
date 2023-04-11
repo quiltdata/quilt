@@ -229,7 +229,6 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
             raise
 
 
-
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -414,7 +413,7 @@ def create_parser():
 
     # push
     shorthelp = "Pushes the new package to the remote registry"
-    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False, add_help=False)
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False)
     required_args = push_p.add_argument_group('required arguments')
     optional_args = push_p.add_argument_group('optional arguments')
     push_p.add_argument(
