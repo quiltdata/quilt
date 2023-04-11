@@ -482,8 +482,9 @@ def create_parser():
     )
     optional_args.add_argument(
         "--browse",
-        help="By default, `push` first browses the top_hash from the 'local' registry. "+
-             "Specify 'remote' to explicitly tell push to retrieve the current top_hash from the destination registry, so that it always succeeds.",
+        help="By default, `push` first browses the top_hash from the 'local' registry. " +
+            "Specify 'remote' to explicitly tell push to retrieve the current top_hash " +
+            "from the destination registry, so that it always succeeds.",
         default="local",
     )
     optional_args.add_argument(
