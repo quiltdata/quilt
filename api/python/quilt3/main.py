@@ -477,7 +477,10 @@ def create_parser():
     )
     optional_args.add_argument(
         "--dir-logical-key",
-        help="By default, the specified `dir` is added to the top level of a package. Use this option to specify a subfolder."
+        help=(
+            "By default, the specified `dir` is added to the top level of a package. "
+            "Use this option to specify a subfolder.",
+        ),
         default=".",
     )
     push_p.set_defaults(func=cmd_push)
