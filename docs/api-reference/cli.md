@@ -135,9 +135,9 @@ optional arguments:
 ```
 ## `push`
 ```
-usage: quilt3 push --dir DIR [--registry REGISTRY] [] [--dest DEST]
+usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy] [--browse]
+                   [--force] [--dedupe] [--no-copy]
                    name
 
 Pushes the new package to the remote registry
@@ -166,11 +166,7 @@ optional arguments:
                        remote hash.
   --no-copy            Do not copy data. Package manifest entries will
                        reference the data at the original location.
-  --browse remote      Pull the parent top hash from the the remote
-                       registry so you can create a new revision even if
-                       your local state is behind the remote registry.
 ```
-
 ## `verify`
 ```
 usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
