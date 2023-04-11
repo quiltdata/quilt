@@ -208,7 +208,7 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, registry, dir, dest, message, meta, workflow, force, dedupe, no_copy, browse, dir_logical_key):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, browse, dir_logical_key):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
@@ -421,16 +421,16 @@ def create_parser():
         help="Name of package, in the USER/PKG format",
         type=str,
     )
-    optional_args.add_argument(
-        "--registry",
-        help="Registry where to create the new package. Defaults to the default remote registry.",
-        type=str,
-    )
     required_args.add_argument(
         "--dir",
         help="Directory to add to the new package",
         type=str,
         required=True,
+    )
+    optional_args.add_argument(
+        "--registry",
+        help="Registry where to create the new package. Defaults to the default remote registry.",
+        type=str,
     )
     optional_args.add_argument(
         "--dest",

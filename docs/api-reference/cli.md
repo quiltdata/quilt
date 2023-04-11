@@ -135,7 +135,7 @@ optional arguments:
 ```
 ## `push`
 ```
-usage: quilt3 push [-h] [--registry REGISTRY] [--dir DIR] [--dest DEST]
+usage: quilt3 push --dir DIR [--registry REGISTRY] [] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
                    [--force] [--dedupe] [--no-copy] [--browse]
                    name
@@ -145,11 +145,13 @@ Pushes the new package to the remote registry
 positional arguments:
   name                 Name of package, in the USER/PKG format
 
+required arguments:
+  --dir DIR            Directory to add to the new package
+
 optional arguments:
   -h, --help           show this help message and exit
   --registry REGISTRY  Registry where to create the new package. Defaults to
                        the default remote registry.
-  --dir DIR            Directory to add to the new package
   --dest DEST          Where to copy the objects in the package
   --message MESSAGE    The commit message for the new package
   --meta META          Sets package-level metadata. Format: A json string with
