@@ -221,13 +221,13 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         if e.response["Error"]["Code"] != "NoSuchKey":
             raise
 
-        pkg.set_dir(dir_logical_key, dir)
-        pkg.set_meta(meta)
-        pkg.push(
-            name, registry=registry, dest=dest, message=message,
-            workflow=workflow, force=force, dedupe=dedupe,
-            **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
-        )
+    pkg.set_dir(dir_logical_key, dir)
+    pkg.set_meta(meta)
+    pkg.push(
+        name, registry=registry, dest=dest, message=message,
+        workflow=workflow, force=force, dedupe=dedupe,
+        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
+    )
 
 
 def create_parser():
