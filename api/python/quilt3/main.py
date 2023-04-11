@@ -208,7 +208,7 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, browse, dir_logical_key, no_copy):
+def cmd_push(name, registry, dir, dest, message, meta, workflow, force, dedupe, no_copy, browse, dir_logical_key):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
@@ -421,23 +421,16 @@ def create_parser():
         help="Name of package, in the USER/PKG format",
         type=str,
     )
+    optional_args.add_argument(
+        "--registry",
+        help="Registry where to create the new package. Defaults to the default remote registry.",
+        type=str,
+    )
     required_args.add_argument(
         "--dir",
         help="Directory to add to the new package",
         type=str,
         required=True,
-    )
-    optional_args.add_argument(
-        '-h',
-        '--help',
-        action='help',
-        default=argparse.SUPPRESS,
-        help='show this help message and exit'
-    )
-    optional_args.add_argument(
-        "--registry",
-        help="Registry where to create the new package. Defaults to the default remote registry.",
-        type=str,
     )
     optional_args.add_argument(
         "--dest",
@@ -480,6 +473,11 @@ def create_parser():
         help="Skip the push if the local package hash matches the remote hash.",
     )
     optional_args.add_argument(
+        "--no-copy",
+        action="store_true",
+        help="Do not copy data. Package manifest entries will reference the data at the original location.",
+    )
+    optional_args.add_argument(
         "--browse",
         help="""
             By default, `push` first browses the top_hash from the 'local' registry.
@@ -495,11 +493,6 @@ def create_parser():
             "Use this option to specify a subfolder.",
         ),
         default=".",
-    )
-    optional_args.add_argument(
-        "--no-copy",
-        action="store_true",
-        help="Do not copy data. Package manifest entries will reference the data at the original location.",
     )
     push_p.set_defaults(func=cmd_push)
 
