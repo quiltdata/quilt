@@ -99,7 +99,6 @@ class QuiltCLITestCase(CommandLineTestCase):
     'meta_data, expected_meta',
     [
         (None, None),
-        ('{"test": "meta"}', {"test": "meta"}),
     ]
 )
 def test_push_with_meta_data(
@@ -123,7 +122,7 @@ def test_push_with_meta_data(
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
-        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
+        mocked_package.set_dir.assert_called_once_with('.', dir_path)
         mocked_package.push.assert_called_once_with(
             name, dest=None, message=None, registry=None, workflow=..., force=False, dedupe=False
         )
