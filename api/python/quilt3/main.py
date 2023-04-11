@@ -213,7 +213,8 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
     try:
-        pkg = Package.browse(name, browse)
+        browse_registry = (browse == "remote") ? registry : None
+        pkg = Package.browse(name, registry=browse_registry)
     except FileNotFoundError:
         pass
     except botocore.exceptions.ClientError as e:
@@ -481,7 +482,9 @@ def create_parser():
     )
     optional_args.add_argument(
         "--browse",
-        help="FIXME", # FIXME
+        help="By default, `push` first browses the top_hash from the 'local' registry.  Specify 'remote' to explicitly tell push to retrieve the current top_hash from the destination registry, so that it always succeeds.",
+        default="local",
+        ```
     )
     optional_args.add_argument(
         "--dir-logical-key",
