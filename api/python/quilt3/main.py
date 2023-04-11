@@ -208,7 +208,7 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, browse, no_copy):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, browse, dir_logical_key, no_copy):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
@@ -490,6 +490,7 @@ def create_parser():
             "Use this option to specify a subfolder.",
         ),
         default=".",
+    )
     optional_args.add_argument(
         "--no-copy",
         action="store_true",
