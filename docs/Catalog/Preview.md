@@ -29,14 +29,28 @@ The following file formats are supported:
 * .ent
 * .pdb
 
+## Image previews
+
+The Quilt Catalog uses a [Lambda
+function](https://github.com/quiltdata/quilt/tree/master/lambdas/thumbnail)
+to automatically generate thumbnail previews of common image formats
+and select microscopy image formats such as .bmp, .gif, .jpg, .jpeg,
+.png, .webp, .tif, .tiff (including `OME-TIFF`), and .czi.
+
+### Known limitations
+
+Automated previews of 8-bit depth and higher image files are not
+currently supported.
+
 ## Binary and special file format previews
 
-* Excel (.xls, .xlsx)
 * FCS Flow Cytometry files (.fcs)
-* Images (.gif, .jpg, .png, .tif, .tiff, etc.)
 * Media (.mp4, .webm, .flac, .m2t, .mp3, .mp4, .ogg, .ts, .tsa, .tsv, .wav)
-* .ipynb (Jupyter and Voila dashboards)
+* Jupyter notebooks (.ipynb)
 * .parquet
+* PDF (.pdf)
+* PowerPoint (.pptx)
+* Excel (.xls, .xlsx)
 
 ## Advanced: Quilt Package File Server
 

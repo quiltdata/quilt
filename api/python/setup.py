@@ -77,6 +77,7 @@ setup(
         ],
         'anndata': ['anndata>=0.8.0'],
         'tests': [
+            'anndata!=0.9.0',
             'quilt3[pyarrow,anndata]',
             'pytest==6.*',
             'pytest-cov',
