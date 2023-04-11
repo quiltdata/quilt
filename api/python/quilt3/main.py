@@ -215,19 +215,19 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     try:
         browse_registry = registry if (browse == "remote") else None
         pkg = Package.browse(name, registry=browse_registry)
+        pkg.set_dir(dir_logical_key, dir)
+        pkg.set_meta(meta)
+        pkg.push(
+            name, registry=registry, dest=dest, message=message,
+            workflow=workflow, force=force, dedupe=dedupe,
+            **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
+        )
     except FileNotFoundError:
         pass
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] != "NoSuchKey":
             raise
 
-    pkg.set_dir(dir_logical_key, dir)
-    pkg.set_meta(meta)
-    pkg.push(
-        name, registry=registry, dest=dest, message=message,
-        workflow=workflow, force=force, dedupe=dedupe,
-        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
-    )
 
 
 def create_parser():
@@ -482,9 +482,11 @@ def create_parser():
     )
     optional_args.add_argument(
         "--browse",
-        help="By default, `push` first browses the top_hash from the 'local' registry. " +
-            "Specify 'remote' to explicitly tell push to retrieve the current top_hash " +
-            "from the destination registry, so that it always succeeds.",
+        help="""
+            By default, `push` first browses the top_hash from the 'local' registry.
+            Specify 'remote' to explicitly tell push to retrieve the current top_hash
+            from the destination registry, so that it always succeeds."
+            """,
         default="local",
     )
     optional_args.add_argument(
