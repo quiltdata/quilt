@@ -214,7 +214,8 @@ def cmd_push(name, dir_logical_key, dir, registry, dest, message, meta, workflow
         if e.response["Error"]["Code"] != "NoSuchKey":
             raise
 
-    pkg.set_dir(dir_logical_key, dir, meta=meta)
+    pkg.set_dir(dir_logical_key, dir)
+    pkg.set_meta(meta)
     pkg.push(
         name, registry=registry, dest=dest, message=message,
         workflow=workflow, force=force, dedupe=dedupe
