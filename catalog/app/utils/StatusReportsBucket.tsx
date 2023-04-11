@@ -18,6 +18,7 @@ export function useStatusReportsBucket() {
   } catch (e) {
     // this happens when the user is not authenticated
     if (e instanceof GQL.Paused) return null
-    throw e
+    // FIXME: don't swallow errors
+    return null
   }
 }
