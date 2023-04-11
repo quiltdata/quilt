@@ -213,7 +213,7 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
     try:
-        browse_registry = (browse == "remote") ? registry : None
+        browse_registry = registry if (browse == "remote") else None
         pkg = Package.browse(name, registry=browse_registry)
     except FileNotFoundError:
         pass
@@ -482,9 +482,9 @@ def create_parser():
     )
     optional_args.add_argument(
         "--browse",
-        help="By default, `push` first browses the top_hash from the 'local' registry.  Specify 'remote' to explicitly tell push to retrieve the current top_hash from the destination registry, so that it always succeeds.",
+        help="By default, `push` first browses the top_hash from the 'local' registry. "+
+             "Specify 'remote' to explicitly tell push to retrieve the current top_hash from the destination registry, so that it always succeeds.",
         default="local",
-        ```
     )
     optional_args.add_argument(
         "--dir-logical-key",
