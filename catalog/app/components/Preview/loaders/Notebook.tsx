@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as M from '@material-ui/core'
 
 import type * as Model from 'model'
+import AsyncResult from 'utils/AsyncResult'
 import { PackageHandle } from 'utils/packageHandle'
 import { useVoila } from 'utils/voila'
 
@@ -55,7 +55,7 @@ export const Loader = function WrappedNotebookLoader({
   children,
 }: NotebookLoaderProps) {
   return (
-    <React.Suspense fallback={<M.CircularProgress />}>
+    <React.Suspense fallback={() => children(AsyncResult.Pending())}>
       <NotebookLoader {...{ handle, children }} />
     </React.Suspense>
   )
