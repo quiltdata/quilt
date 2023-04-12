@@ -143,15 +143,14 @@ export function Dialog({
   )
 
   const crumbs = useCrumbs(path, 'ROOT', R.identity)
-
-  const getCrumbLinkProps = ({ to }: { to?: string | null }) =>
+  const getCrumbLinkProps = ({ to }: { to?: string }) =>
     to
       ? {
           onClick: () => {
             setPath(to)
           },
         }
-      : null
+      : undefined
 
   React.useLayoutEffect(() => {
     // reset accumulated results when bucket, path and / or prefix change
@@ -253,7 +252,6 @@ export function Dialog({
         </M.Typography>
       </M.DialogTitle>
       <div className={classes.crumbs}>
-        {/* @ts-expect-error, TODO: convert Breadcrumbs to typescript */}
         {renderCrumbs(crumbs, { getLinkProps: getCrumbLinkProps })}
       </div>
       {data.case({

@@ -1,4 +1,3 @@
-import type { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -9,7 +8,7 @@ import * as tagged from 'utils/taggedV2'
 const EMPTY = <i>{'<EMPTY>'}</i>
 
 export const Crumb = tagged.create('app/components/BreadCrumbs:Crumb' as const, {
-  Segment: (v: { label?: string; to?: LocationDescriptor | null }) => v,
+  Segment: (v: { label?: string; to?: string }) => v,
   Sep: (v: React.ReactNode) => v,
 })
 
@@ -17,12 +16,12 @@ export const Crumb = tagged.create('app/components/BreadCrumbs:Crumb' as const, 
 export type Crumb = tagged.InstanceOf<typeof Crumb>
 
 type LinkPropsConverter = (p: {
-  to?: LocationDescriptor | null
-}) => React.ComponentProps<typeof Link>
+  to?: string
+}) => React.ComponentProps<typeof Link> | undefined
 
 interface SegmentProps {
   label?: string
-  to?: LocationDescriptor | null
+  to?: string
   getLinkProps?: LinkPropsConverter
 }
 
@@ -67,14 +66,14 @@ const DefaultSeparator = Crumb.Sep(<>&nbsp;/ </>)
 export function useCrumbs(
   path: string,
   rootLabel: string,
-  getRoute: (segPath: string) => LocationDescriptor,
+  getRoute: (segPath: string) => string,
 ): Crumb[] {
   return React.useMemo(
     () =>
       [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
         .map(({ label, path: segPath }) => ({
           label,
-          to: segPath === path ? getRoute(segPath) : null,
+          to: segPath === path ? getRoute(segPath) : undefined,
         }))
         .map(Crumb.Segment)
         .reduce(
