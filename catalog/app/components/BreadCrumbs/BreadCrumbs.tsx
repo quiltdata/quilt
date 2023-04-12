@@ -64,20 +64,23 @@ export const copyWithoutSpaces: React.ClipboardEventHandler<HTMLElement> = (e) =
   e.preventDefault()
 }
 
-const DefaultSeparator = Crumb.Sep(<>&nbsp;/ </>)
-export function getCrumbs(
+type GetCrumbsFunction = (
   path: string,
   rootLabel: string,
   getRoute: (segPath: string) => string,
-  {
-    tailLink = false,
-    tailSeparator = false,
-  }: { skipRoot?: boolean; tailLink?: boolean; tailSeparator?: boolean } = {},
-): Crumb[] {
-  return (
-    rootLabel
-      ? [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
-      : getBreadCrumbs(path)
+  options?: { skipRoot?: boolean; tailLink?: boolean; tailSeparator?: boolean },
+) => Crumb[]
+
+const DefaultSeparator = Crumb.Sep(<>&nbsp;/ </>)
+export const getCrumbs: GetCrumbsFunction = (
+  path,
+  rootLabel,
+  getRoute,
+  { tailLink = false, tailSeparator = false } = {},
+) =>
+  (rootLabel
+    ? [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
+    : getBreadCrumbs(path)
   )
     .map(({ label, path: segPath }) => ({
       label,
@@ -89,21 +92,16 @@ export function getCrumbs(
       [] as Crumb[],
     )
     .concat(tailSeparator ? DefaultSeparator : [])
-}
 
-export function useCrumbs(
-  path: string,
-  rootLabel: string,
-  getRoute: (segPath: string) => string,
-  {
-    tailLink = false,
-    tailSeparator = false,
-  }: { tailLink?: boolean; tailSeparator?: boolean } = {},
-): Crumb[] {
-  return React.useMemo(
+export const useCrumbs: GetCrumbsFunction = (
+  path,
+  rootLabel,
+  getRoute,
+  { tailLink = false, tailSeparator = false } = {},
+) =>
+  React.useMemo(
     () => getCrumbs(path, rootLabel, getRoute, { tailLink, tailSeparator }),
     [getRoute, path, rootLabel, tailLink, tailSeparator],
   )
-}
 
 export const use = useCrumbs
