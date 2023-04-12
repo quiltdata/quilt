@@ -6,7 +6,7 @@ import * as React from 'react'
 import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -23,7 +23,6 @@ import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
 import * as EmbedConfig from './EmbedConfig'
-import getCrumbs from './getCrumbs'
 
 const formatListing = ({ urls, scope }, r) => {
   const dirs = r.dirs.map((name) => ({
@@ -137,11 +136,19 @@ export default function Dir({
     [history, urls, bucket, path],
   )
 
+  const scoped = ecfg.scope && path.startsWith(ecfg.scope)
+  const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
+  const crumbs = BreadCrumbs.use(
+    scopedPath,
+    scoped ? basename(ecfg.scope) : 'ROOT',
+    (segPath) => urls.bucketDir(bucket, `${scoped ? scope : ''}${segPath}`),
+  )
+
   return (
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
-        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls, scope: ecfg.scope }))}
+        <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+          {BreadCrumbs.render(crumbs)}
         </div>
         <M.Box flexGrow={1} />
         {!cfg.noDownload && (
