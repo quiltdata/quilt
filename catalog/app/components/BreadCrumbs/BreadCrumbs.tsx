@@ -72,9 +72,13 @@ export function getCrumbs(
   {
     tailLink = false,
     tailSeparator = false,
-  }: { tailLink?: boolean; tailSeparator?: boolean } = {},
+  }: { skipRoot?: boolean; tailLink?: boolean; tailSeparator?: boolean } = {},
 ): Crumb[] {
-  return [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
+  return (
+    rootLabel
+      ? [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
+      : getBreadCrumbs(path)
+  )
     .map(({ label, path: segPath }) => ({
       label,
       to: path === segPath && !tailLink ? undefined : getRoute(segPath),
@@ -86,6 +90,7 @@ export function getCrumbs(
     )
     .concat(tailSeparator ? DefaultSeparator : [])
 }
+
 export function useCrumbs(
   path: string,
   rootLabel: string,
