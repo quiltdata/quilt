@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
@@ -36,43 +36,31 @@ function ObjectCrumbs({ handle, showBucket = false }) {
   const { urls } = NamedRoutes.use()
   const isDir = handle.key.endsWith('/')
 
-  const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
-    const dirs = R.init(all).map(({ label, path }) => ({
-      to: urls.bucketFile(handle.bucket, path),
-      children: label,
-    }))
-    const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
-      children: R.last(all).label,
-    }
-    const bucket = showBucket
-      ? {
-          to: urls.bucketRoot(handle.bucket),
-          children: handle.bucket,
-        }
-      : null
-    return { bucket, dirs, file }
-  }, [handle, urls, showBucket])
+  const rootLabel = showBucket ? handle.bucket : ''
+  const getSegmentRoute = React.useCallback(
+    (segPath) => {
+      switch (segPath) {
+        case '':
+          return urls.bucketRoot(handle.bucket)
+        case handle.key:
+          return urls.bucketFile(handle.bucket, segPath, { version: handle.version })
+        default:
+          return urls.bucketFile(handle.bucket, segPath)
+      }
+    },
+    [handle.bucket, handle.key, urls],
+  )
+  const crumbs = BreadCrumbs.use(handle.key, rootLabel, getSegmentRoute, {
+    tailLink: true,
+    rootRoute: urls.bucketRoot(handle.bucket),
+  })
 
   return (
-    <span onCopy={copyWithoutSpaces}>
+    <span onCopy={BreadCrumbs.copyWithoutSpaces}>
       <HeaderIcon title={isDir ? 'Directory' : 'File'}>
         {isDir ? 'folder_open' : 'insert_drive_file'}
       </HeaderIcon>
-      {crumbs.bucket && (
-        <>
-          <CrumbLink {...crumbs.bucket} />
-          &nbsp;/{' '}
-        </>
-      )}
-      {crumbs.dirs.map((c) => (
-        <React.Fragment key={`crumb:${c.to}`}>
-          <CrumbLink {...c} />
-          &nbsp;/{' '}
-        </React.Fragment>
-      ))}
-      <CrumbLink {...crumbs.file} />
+      {BreadCrumbs.render(crumbs)}
     </span>
   )
 }
