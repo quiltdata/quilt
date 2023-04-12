@@ -490,16 +490,16 @@ def create_parser():
         help="""
             By default, `push` first browses the top_hash from the 'local' registry.
             Specify 'remote' to explicitly tell push to retrieve the current top_hash
-            from the destination registry, so that it always succeeds."
+            from the destination registry, so that it always succeeds.
             """,
         default="local",
     )
     optional_args.add_argument(
         "--dir-logical-key",
-        help=(
-            "By default, the specified `dir` is added to the top level of a package. "
-            "Use this option to specify a subfolder.",
-        ),
+        help="""
+            By default, the specified `dir` is added to the top level of a package.
+            Use this option to specify a subfolder.
+            """,
         default=".",
     )
     push_p.set_defaults(func=cmd_push)

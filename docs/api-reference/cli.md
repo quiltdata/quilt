@@ -135,6 +135,46 @@ optional arguments:
 ```
 ## `push`
 ```
+usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
+                   [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
+                   [--force] [--dedupe] [--no-copy] [--browse BROWSE]
+                   [--dir-logical-key DIR_LOGICAL_KEY]
+                   name
+
+Pushes the new package to the remote registry
+
+positional arguments:
+  name                  Name of package, in the USER/PKG format
+
+required arguments:
+  --dir DIR             Directory to add to the new package
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --registry REGISTRY   Registry where to create the new package. Defaults to
+                        the default remote registry.
+  --dest DEST           Where to copy the objects in the package
+  --message MESSAGE     The commit message for the new package
+  --meta META           Sets package-level metadata. Format: A json string
+                        with keys in double quotes '{"key": "value"}'
+  --workflow WORKFLOW   Workflow ID or empty string to skip workflow
+                        validation. If not specified, the default workflow
+                        will be used.
+  --force               Skip the parent top hash check and create a new
+                        revision even if your local state is behind the remote
+                        registry.
+  --dedupe              Skip the push if the local package hash matches the
+                        remote hash.
+  --no-copy             Do not copy data. Package manifest entries will
+                        reference the data at the original location.
+  --browse BROWSE       By default, `push` first browses the top_hash from the
+                        'local' registry. Specify 'remote' to explicitly tell
+                        push to retrieve the current top_hash from the
+                        destination registry, so that it always succeeds.
+  --dir-logical-key DIR_LOGICAL_KEY
+                        By default, the specified `dir` is added to the top
+                        level of a package. Use this option to specify a
+                        subfolder.
 ```
 ## `verify`
 ```
