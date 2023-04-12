@@ -2,7 +2,7 @@ import * as React from 'react'
 import renderer from 'react-test-renderer'
 import { MemoryRouter } from 'react-router-dom'
 
-import * as BreadCrumbs from './BreadCrumbs'
+import * as BreadCrumbs from './'
 
 describe('components/BreadCrumbs', () => {
   describe('Segment', () => {
@@ -72,5 +72,10 @@ describe('components/BreadCrumbs', () => {
         .toJSON()
       expect(tree).toMatchSnapshot()
     })
+  })
+  test('copyWithoutSpaces', () => {
+    const input = `ROOT / aa a
+      / bb-b / c / <EMPTY> / d_d`
+    expect(BreadCrumbs.trimSeparatorSpaces(input)).toBe('/aa a/bb-b/c//d_d')
   })
 })

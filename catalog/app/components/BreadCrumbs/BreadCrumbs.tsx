@@ -49,14 +49,16 @@ export const render = (
     }),
   )
 
-export const copyWithoutSpaces: React.ClipboardEventHandler<HTMLElement> = (e) => {
-  if (typeof document === 'undefined') return
-  const crumbsString = document
-    ?.getSelection()
-    ?.toString()
+export function trimSeparatorSpaces(str?: string): string | undefined {
+  return str
     ?.replace('<EMPTY>', '')
     ?.replace('ROOT', '')
     ?.replace(/\s*\/\s*/g, '/')
+}
+
+export const copyWithoutSpaces: React.ClipboardEventHandler<HTMLElement> = (e) => {
+  if (typeof document === 'undefined') return
+  const crumbsString = trimSeparatorSpaces(document?.getSelection()?.toString())
   if (!crumbsString) return
   e.clipboardData?.setData('text/plain', crumbsString)
   e.preventDefault()
