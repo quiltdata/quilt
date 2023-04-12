@@ -209,8 +209,6 @@ function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
   )
 }
 
-const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
-
 interface CrumbsProps {
   handle: Model.S3.S3ObjectLocation
 }
