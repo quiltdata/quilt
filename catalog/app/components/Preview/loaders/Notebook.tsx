@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import type * as Model from 'model'
+import AsyncResult from 'utils/AsyncResult'
 import { PackageHandle } from 'utils/packageHandle'
 import { useVoila } from 'utils/voila'
 
@@ -53,5 +54,9 @@ export const Loader = function WrappedNotebookLoader({
   handle,
   children,
 }: NotebookLoaderProps) {
-  return <NotebookLoader {...{ handle, children }} />
+  return (
+    <React.Suspense fallback={() => children(AsyncResult.Pending())}>
+      <NotebookLoader {...{ handle, children }} />
+    </React.Suspense>
+  )
 }
