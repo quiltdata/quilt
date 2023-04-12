@@ -66,15 +66,18 @@ const DefaultSeparator = Crumb.Sep(<>&nbsp;/ </>)
 export function useCrumbs(
   path: string,
   rootLabel: string,
-  getRoute: (segPath: string) => string | undefined,
-  { tailSeparator = false }: { tailSeparator?: boolean } = {},
+  getRoute: (segPath: string) => string,
+  {
+    tailLink = false,
+    tailSeparator = false,
+  }: { tailLink?: boolean; tailSeparator?: boolean } = {},
 ): Crumb[] {
   return React.useMemo(
     () =>
       [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
         .map(({ label, path: segPath }) => ({
           label,
-          to: getRoute(segPath),
+          to: path === segPath && !tailLink ? undefined : getRoute(segPath),
         }))
         .map(Crumb.Segment)
         .reduce(
@@ -83,6 +86,6 @@ export function useCrumbs(
           [] as Crumb[],
         )
         .concat(tailSeparator ? DefaultSeparator : []),
-    [getRoute, path, rootLabel],
+    [getRoute, path, rootLabel, tailLink, tailSeparator],
   )
 }

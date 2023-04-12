@@ -801,13 +801,12 @@ function PackageTree({
   const isDir = s3paths.isDir(path)
 
   const getSegmentRoute = React.useCallback(
-    (segPath: string) =>
-      path === segPath
-        ? undefined
-        : urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
-    [bucket, hashOrTag, name, path, urls],
+    (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
+    [bucket, hashOrTag, name, urls],
   )
-  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute, { tailSeparator: true })
+  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute, {
+    tailSeparator: path.endsWith('/'),
+  })
 
   return (
     <FileView.Root>

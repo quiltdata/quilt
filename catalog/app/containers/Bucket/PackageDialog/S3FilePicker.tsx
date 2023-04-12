@@ -142,11 +142,7 @@ export function Dialog({
     [locked, onClose],
   )
 
-  const getSegmentRoute = React.useCallback(
-    (segPath: string) => (segPath === path ? undefined : segPath),
-    [path],
-  )
-  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute)
+  const crumbs = useCrumbs(path, 'ROOT', R.identity)
   const getCrumbLinkProps = ({ to }: { to?: string }) =>
     to
       ? {
