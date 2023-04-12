@@ -18,7 +18,6 @@ import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
-import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -48,7 +47,7 @@ function ObjectCrumbs({ handle, showBucket = false }) {
           return urls.bucketFile(handle.bucket, segPath)
       }
     },
-    [handle.bucket, handle.key, urls],
+    [handle.bucket, handle.key, handle.version, urls],
   )
   const crumbs = BreadCrumbs.use(handle.key, rootLabel, getSegmentRoute, {
     tailLink: true,
