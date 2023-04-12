@@ -144,11 +144,14 @@ export function Dialog({
 
   const crumbs = useCrumbs(path, 'ROOT', R.identity)
 
-  const getCrumbLinkProps = ({ to }: { to: string }) => ({
-    onClick: () => {
-      setPath(to)
-    },
-  })
+  const getCrumbLinkProps = ({ to }: { to?: string | null }) =>
+    to
+      ? {
+          onClick: () => {
+            setPath(to)
+          },
+        }
+      : null
 
   React.useLayoutEffect(() => {
     // reset accumulated results when bucket, path and / or prefix change

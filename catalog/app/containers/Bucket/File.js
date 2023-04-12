@@ -7,7 +7,11 @@ import * as React from 'react'
 import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import {
+  copyWithoutSpaces,
+  render as renderCrumbs,
+  useCrumbs,
+} from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
@@ -27,7 +31,7 @@ import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
-import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
+import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
@@ -37,15 +41,6 @@ import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 import { useViewModes, viewModeToSelectOption } from './viewModes'
-
-const getCrumbs = ({ bucket, path, urls }) =>
-  R.chain(
-    ({ label, path: segPath }) => [
-      Crumb.Segment({ label, to: urls.bucketDir(bucket, segPath) }),
-      Crumb.Sep(<>&nbsp;/ </>),
-    ],
-    [{ label: bucket, path: '' }, ...getBreadCrumbs(up(path))],
-  )
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
@@ -451,12 +446,18 @@ export default function File({
     [bookmarks, handle],
   )
 
+  const getSegmentRoute = React.useCallback(
+    (segPath) => urls.bucketDir(bucket, segPath),
+    [bucket, urls],
+  )
+  const crumbs = useCrumbs(up(path), bucket, getSegmentRoute)
+
   return (
     <FileView.Root>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-        {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+        {renderCrumbs(crumbs)}
       </div>
       <div className={classes.topBar}>
         <div className={classes.name}>
