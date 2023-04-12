@@ -4,7 +4,7 @@ import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
@@ -73,7 +73,7 @@ export function useUploads() {
       files: { path: string; file: LocalFile }[]
       bucket: string
       prefix: string
-      getMeta?: (path: string) => object | undefined
+      getMeta?: (path: string) => Model.EntryMeta | undefined
     }) => {
       const limit = pLimit(2)
       let rejected = false

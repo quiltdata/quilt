@@ -202,6 +202,10 @@ async def dir_view(
     if offset is None:
         offset = 0
 
+    path = path.rstrip("/")
+    if path:
+        path += "/"
+
     meta = asyncio.create_task(select_meta(bucket, manifest, path))
 
     # Call s3 select to fetch only logical keys matching the desired prefix (folder path)

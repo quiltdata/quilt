@@ -5,19 +5,19 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import cfg from 'constants/config'
 import * as AddToPackage from 'containers/AddToPackage'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as Dialogs from 'utils/Dialogs'
+import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import { mkFormError, mapInputErrors } from 'utils/formTools'
 import * as s3paths from 'utils/s3paths'
@@ -64,6 +64,20 @@ export interface S3Entry {
 export interface PackageCreationSuccess {
   name: string
   hash?: string
+}
+
+// Convert FilesState to entries consumed by Schema validation
+function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
+  return FP.function.pipe(
+    R.mergeLeft(files.added, files.existing),
+    R.omit(Object.keys(files.deleted)),
+    Object.entries,
+    R.map(([path, file]) => ({
+      logical_key: path,
+      meta: file.meta?.user_meta || {},
+      size: file.size,
+    })),
+  )
 }
 
 function createReadmeFile(name: string) {
@@ -236,7 +250,7 @@ function PackageCreationForm({
     [uploads],
   )
 
-  const [, constructPackage] = urql.useMutation(PACKAGE_CONSTRUCT)
+  const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
   const uploadPackage = Upload.useUploadPackage()
@@ -290,15 +304,7 @@ function PackageCreationForm({
       return !e || e.hash !== file.hash.value
     })
 
-    const entries = FP.function.pipe(
-      R.mergeLeft(files.added, files.existing),
-      R.omit(Object.keys(files.deleted)),
-      Object.entries,
-      R.map(([path, file]) => ({
-        logical_key: path,
-        size: file.size,
-      })),
-    )
+    const entries = filesStateToEntries(files)
 
     if (!entries.length) {
       const reason = await dialogs.open((props: DialogsOpenProps) => (
@@ -307,13 +313,13 @@ function PackageCreationForm({
       if (reason === 'cancel') return mkFormError(CANCEL)
       if (reason === 'readme') {
         const file = createReadmeFile(name)
-        entries.push({ logical_key: README_PATH, size: file.size })
+        entries.push({ logical_key: README_PATH, size: file.size, meta: {} })
         toUpload.push({ path: README_PATH, file })
       }
     }
 
     const error = await validateEntries(entries)
-    if (error && error.length) {
+    if (error?.length) {
       setEntriesError(error)
       return {
         files: 'schema',
@@ -340,10 +346,10 @@ function PackageCreationForm({
       addedS3Entries,
       R.map(
         ({ path, file }) =>
-          [path, { physicalKey: s3paths.handleToS3Url(file) }] as R.KeyValuePair<
-            string,
-            PartialPackageEntry
-          >,
+          [
+            path,
+            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+          ] as R.KeyValuePair<string, PartialPackageEntry>,
       ),
       R.fromPairs,
     )
@@ -365,7 +371,7 @@ function PackageCreationForm({
     )
 
     try {
-      const res = await constructPackage({
+      const { packageConstruct: r } = await constructPackage({
         params: {
           bucket: successor.slug,
           name,
@@ -383,9 +389,6 @@ function PackageCreationForm({
           entries: allEntries,
         },
       })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data returned by the API')
-      const r = res.data.packageConstruct
       switch (r.__typename) {
         case 'PackagePushSuccess':
           setSuccess({ name, hash: r.revision.hash })
@@ -442,10 +445,10 @@ function PackageCreationForm({
       }),
     [setMetaHeight],
   )
+  const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
-    async ({ dirtyFields, values }) => {
+    ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
-      if (dirtyFields?.files) setEntriesError(null)
     },
     [handleNameChange],
   )
@@ -457,9 +460,21 @@ function PackageCreationForm({
     }
   }, [editorElement, resizeObserver])
 
-  const validateFiles = React.useMemo(
-    () => (delayHashing ? () => {} : FI.validateHashingComplete),
-    [delayHashing],
+  const validateFiles = React.useCallback(
+    async (files: FI.FilesState) => {
+      const hashihgError = delayHashing && FI.validateHashingComplete(files)
+      if (hashihgError) return hashihgError
+
+      setFilesDisabled(true)
+      const entries = filesStateToEntries(files)
+      const errors = await validateEntries(entries)
+      setEntriesError(errors || null)
+      setFilesDisabled(false)
+      if (errors?.length) {
+        return 'schema'
+      }
+    },
+    [delayHashing, validateEntries],
   )
 
   // HACK: FIXME: it triggers name validation with correct workflow
@@ -627,12 +642,14 @@ function PackageCreationForm({
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
+                      validationErrors={submitFailed ? entriesError : []}
+                      disabled={filesDisabled}
                     />
                   )}
 
                   <JsonValidationErrors
                     className={classes.filesError}
-                    error={entriesError}
+                    error={submitFailed ? entriesError : []}
                   />
                 </Layout.RightColumn>
               </Layout.Container>

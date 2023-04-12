@@ -1,7 +1,8 @@
-ARG base_image="debian:bullseye-slim"
 ARG FUNCTION_DIR="/function"
 
-FROM ${base_image} as build-image
+FROM debian:bullseye-20230411-slim@sha256:9404b05bd09b57c76eccc0c5505b3c88b5feccac808d9b193a4fbac87bb44745 as base-image
+
+FROM base-image as build-image
 
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
@@ -25,7 +26,7 @@ COPY shared/ /src/shared/
 COPY thumbnail/ /src/thumbnail/
 RUN pip install --target /lambda --no-deps /src/shared/ /src/thumbnail/
 
-FROM ${base_image}
+FROM base-image
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends\

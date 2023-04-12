@@ -6,22 +6,23 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
+import * as Dialog from 'components/Dialog'
 import * as Pagination from 'components/Pagination'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
+import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as Sentry from 'utils/Sentry'
+import StyledTooltip from 'utils/StyledTooltip'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -78,6 +79,66 @@ const integerInRange = (min: number, max: number) => (v: string | null | undefin
   const n = Number(v)
   if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
   return undefined
+}
+
+const usePFSCheckboxStyles = M.makeStyles({
+  root: {
+    marginBottom: -9,
+    marginTop: -9,
+  },
+})
+function PFSCheckbox({ input, meta }: Form.CheckboxProps & M.CheckboxProps) {
+  const classes = usePFSCheckboxStyles()
+  const confirm = React.useCallback((checked) => input?.onChange(checked), [input])
+  const dialog = Dialog.useConfirm({
+    submitTitle: 'I agree',
+    title:
+      'You are about to enable JavaScript execution and data access in iframe previews of HTML files',
+    onSubmit: confirm,
+  })
+  const handleCheckbox = React.useCallback(
+    (event, checked: boolean) => {
+      if (checked) {
+        dialog.open()
+      } else {
+        input?.onChange(checked)
+      }
+    },
+    [dialog, input],
+  )
+  return (
+    <>
+      {dialog.render(
+        <M.Typography>
+          Warning: you must only enable this feature for buckets with trusted contents.
+          Failure to heed this warning may result in breach of sensitive data.
+        </M.Typography>,
+      )}
+      <M.FormControlLabel
+        control={
+          <M.Checkbox
+            classes={classes}
+            disabled={meta.submitting || meta.submitSucceeded}
+            checked={!!input?.checked}
+            onChange={handleCheckbox}
+          />
+        }
+        label={
+          <>
+            Enable permissive HTML rendering
+            <Hint>
+              This allows execution of any linked JavaScript code and fetching network
+              resources relative to the package. Be aware that the iframe with rendered
+              HTML (and package resources) can be shared publicly during the session
+              lifespan. The session is active while the page with rendered HTML is open.
+              <br />
+              Enable only on trusted AWS S3 buckets.
+            </Hint>
+          </>
+        }
+      />
+    </>
+  )
 }
 
 const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
@@ -158,6 +219,10 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   ),
   skipMetaDataIndexing: R.pipe(
     R.prop('skipMetaDataIndexing'),
+    Types.decode(Types.fromNullable(IO.boolean, false)),
+  ),
+  browsable: R.pipe(
+    R.prop('browsable'),
     Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
 }
@@ -260,12 +325,13 @@ interface HintProps {
 
 function Hint({ children }: HintProps) {
   const classes = useHintStyles()
+  const tooltipClasses = React.useMemo(() => ({ tooltip: classes.tooltip }), [classes])
   return (
-    <M.Tooltip arrow title={children} classes={{ tooltip: classes.tooltip }}>
+    <StyledTooltip arrow title={children} classes={tooltipClasses}>
       <M.Icon fontSize="small" className={classes.icon}>
         help
       </M.Icon>
-    </M.Tooltip>
+    </StyledTooltip>
   )
 }
 
@@ -306,15 +372,8 @@ interface BucketFieldsProps {
 function BucketFields({ bucket, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
 
-  const [{ error, data }] = urql.useQuery({ query: CONTENT_INDEXING_SETTINGS_QUERY })
-  if (!data && error) throw error
-
-  const sentry = Sentry.use()
-  React.useEffect(() => {
-    if (data && error) sentry('captureException', error)
-  }, [error, data, sentry])
-
-  const settings = data!.config.contentIndexingSettings
+  const data = GQL.useQueryS(CONTENT_INDEXING_SETTINGS_QUERY)
+  const settings = data.config.contentIndexingSettings
 
   return (
     <M.Box>
@@ -631,6 +690,20 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
           )}
         </M.Box>
       </M.Accordion>
+      <M.Accordion elevation={0} className={classes.panel}>
+        <M.AccordionSummary
+          expandIcon={<M.Icon>expand_more</M.Icon>}
+          classes={{
+            root: classes.panelSummary,
+            content: classes.panelSummaryContent,
+          }}
+        >
+          <M.Typography variant="h6">File preview options</M.Typography>
+        </M.AccordionSummary>
+        <M.Box className={classes.group} pt={1}>
+          <RF.Field component={PFSCheckbox} name="browsable" type="checkbox" />
+        </M.Box>
+      </M.Accordion>
     </M.Box>
   )
 }
@@ -655,15 +728,12 @@ interface AddProps {
 function Add({ close }: AddProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const [, add] = urql.useMutation(ADD_MUTATION)
+  const add = GQL.useMutation(ADD_MUTATION)
   const onSubmit = React.useCallback(
     async (values) => {
       try {
         const input = R.applySpec(addFormSpec)(values)
-        const res = await add({ input })
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.bucketAdd
+        const { bucketAdd: r } = await add({ input })
         switch (r.__typename) {
           case 'BucketAddSuccess':
             push(`Bucket "${r.bucketConfig.name}" added`)
@@ -907,7 +977,7 @@ interface EditProps {
 }
 
 function Edit({ bucket, close }: EditProps) {
-  const [, update] = urql.useMutation(UPDATE_MUTATION)
+  const update = GQL.useMutation(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
@@ -917,10 +987,7 @@ function Edit({ bucket, close }: EditProps) {
     async (values) => {
       try {
         const input = R.applySpec(editFormSpec)(values)
-        const res = await update({ name: bucket.name, input })
-        if (res.error) throw res.error
-        if (!res.data) throw new Error('No data')
-        const r = res.data.bucketUpdate
+        const { bucketUpdate: r } = await update({ name: bucket.name, input })
         switch (r.__typename) {
           case 'BucketUpdateSuccess':
             close()
@@ -975,6 +1042,7 @@ function Edit({ bucket, close }: EditProps) {
         ? DO_NOT_SUBSCRIBE_SYM
         : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
+    browsable: bucket.browsable ?? false,
   }
 
   return (
@@ -1056,14 +1124,11 @@ interface DeleteProps {
 function Delete({ bucket, close }: DeleteProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const [, rm] = urql.useMutation(REMOVE_MUTATION)
+  const rm = GQL.useMutation(REMOVE_MUTATION)
   const doDelete = React.useCallback(async () => {
     close()
     try {
-      const res = await rm({ name: bucket.name })
-      if (res.error) throw res.error
-      if (!res.data) throw new Error('No data')
-      const r = res.data.bucketRemove
+      const { bucketRemove: r } = await rm({ name: bucket.name })
       switch (r.__typename) {
         case 'BucketRemoveSuccess':
           t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
@@ -1206,15 +1271,7 @@ interface CRUDProps {
 }
 
 function CRUD({ bucketName }: CRUDProps) {
-  const [{ error, data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
-  if (!data && error) throw error
-
-  const sentry = Sentry.use()
-  React.useEffect(() => {
-    if (data && error) sentry('captureException', error)
-  }, [error, data, sentry])
-
-  const rows = data!.bucketConfigs
+  const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
     // @ts-expect-error

@@ -1,8 +1,9 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import type * as Model from 'model'
+import AsyncResult from 'utils/AsyncResult'
 import { PackageHandle } from 'utils/packageHandle'
-import type { S3HandleBase } from 'utils/s3paths'
 import { useVoila } from 'utils/voila'
 
 import { PreviewData } from '../types'
@@ -23,7 +24,7 @@ interface PreviewResult {
   }
 }
 
-interface FileHandle extends S3HandleBase {
+interface FileHandle extends Model.S3.S3ObjectLocation {
   packageHandle: PackageHandle
 }
 
@@ -53,5 +54,9 @@ export const Loader = function WrappedNotebookLoader({
   handle,
   children,
 }: NotebookLoaderProps) {
-  return <NotebookLoader {...{ handle, children }} />
+  return (
+    <React.Suspense fallback={() => children(AsyncResult.Pending())}>
+      <NotebookLoader {...{ handle, children }} />
+    </React.Suspense>
+  )
 }

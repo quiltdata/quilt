@@ -3,12 +3,13 @@ import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
 import * as urls from 'constants/urls'
-import * as Model from 'model'
+import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
@@ -28,6 +29,7 @@ const COLORS = {
   added: M.colors.green[900],
   modified: M.darken(M.colors.yellow[900], 0.2),
   deleted: M.colors.red[900],
+  invalid: M.colors.red[400],
 }
 
 interface FileWithHash extends File {
@@ -74,7 +76,7 @@ export const FilesAction = tagged.create(
     AddFromS3: (v: { files: Model.S3File[]; basePrefix: string; prefix?: string }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
-    Meta: (v: { path: string; meta: Types.JsonRecord }) => v,
+    Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -97,7 +99,7 @@ export interface FilesState {
 
 const addMetaToFile = (
   file: Model.PackageEntry | LocalFile | Model.S3File,
-  meta: Types.JsonRecord,
+  meta?: Model.EntryMeta,
 ) => {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
@@ -194,7 +196,13 @@ interface DispatchFilesAction {
   (action: FilesAction): void
 }
 
-type FilesEntryState = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
+type FilesEntryState =
+  | 'deleted'
+  | 'modified'
+  | 'unchanged'
+  | 'hashing'
+  | 'added'
+  | 'invalid'
 
 type FilesEntryType = 's3' | 'local'
 
@@ -211,7 +219,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
-    meta?: Types.JsonRecord | null
+    meta?: Model.EntryMeta
   }) => v,
 })
 
@@ -264,14 +272,27 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
-  meta?: Types.JsonRecord | null
+  meta?: Model.EntryMeta
 }
 
-const computeEntries = ({ added, deleted, existing }: FilesState) => {
+function matchErrorToEntry(path: string, errors: PD.EntriesValidationErrors | null) {
+  return errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)
+}
+
+const computeEntries = ({
+  value: { added, deleted, existing },
+  errors,
+}: {
+  value: FilesState
+  errors: PD.EntriesValidationErrors | null
+}) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
     ([path, { size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
+      }
+      if (matchErrorToEntry(path, errors)) {
+        return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
         const a = added[path]
@@ -296,6 +317,15 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
+    if (matchErrorToEntry(path, errors)) {
+      return acc.concat({
+        state: 'invalid' as const,
+        type: 'local' as const,
+        path,
+        size: f.size,
+        meta: f.meta,
+      })
+    }
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
     return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
@@ -363,16 +393,23 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     left: 0,
     position: 'absolute',
     width: 12,
+    '$invalid &': {
+      borderColor: COLORS.invalid,
+    },
   },
   state: {
     fontFamily: t.typography.fontFamily,
     fontWeight: t.typography.fontWeightBold,
     fontSize: 9,
     color: t.palette.background.paper,
+    '$invalid &': {
+      color: COLORS.invalid,
+    },
   },
   hashProgress: {
     color: t.palette.background.paper,
   },
+  invalid: {},
 }))
 
 type EntryIconProps = React.PropsWithChildren<{
@@ -384,13 +421,14 @@ function EntryIcon({ state, overlay, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
   const stateContents = {
     added: '+',
+    invalid: '!',
     deleted: <>&ndash;</>,
     modified: '~',
     hashing: 'hashing',
     unchanged: undefined,
   }[state]
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, { [classes.invalid]: state === 'invalid' })}>
       <M.Icon className={classes.icon}>{children}</M.Icon>
       {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
@@ -413,6 +451,12 @@ const useFileStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   interactive: {},
+  invalid: {},
+  actions: {
+    '$invalid &': {
+      color: t.palette.primary.contrastText,
+    },
+  },
   root: {
     alignItems: 'center',
     color: COLORS.default,
@@ -437,6 +481,10 @@ const useFileStyles = M.makeStyles((t) => ({
     },
     '&$interactive': {
       cursor: 'pointer',
+    },
+    '&$invalid': {
+      background: COLORS.invalid,
+      color: t.palette.primary.contrastText,
     },
   },
   inner: {
@@ -469,9 +517,9 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
-  meta?: Types.JsonRecord | null
+  meta?: Model.EntryMeta
   metaDisabled?: boolean
-  onMeta?: (value: Types.JsonRecord) => void
+  onMeta?: (value?: Model.EntryMeta) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -493,7 +541,7 @@ function File({
   ...props
 }: FileProps) {
   const classes = useFileStyles()
-  const stateDisplay = disableStateDisplay ? 'unchanged' : state
+  const stateDisplay = disableStateDisplay && state !== 'invalid' ? 'unchanged' : state
 
   // XXX: reset EditFileMeta state when file is reverted
   const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
@@ -517,14 +565,17 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta
-        disabled={metaDisabled}
-        key={metaKey}
-        name={name}
-        onChange={onMeta}
-        value={meta}
-      />
-      {action}
+      <div className={classes.actions}>
+        <EditFileMeta
+          disabled={metaDisabled}
+          key={metaKey}
+          name={name}
+          onChange={onMeta}
+          state={stateDisplay}
+          value={meta}
+        />
+        {action}
+      </div>
     </div>
   )
 }
@@ -536,6 +587,7 @@ const useDirStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   active: {},
+  invalid: {},
   root: {
     cursor: 'pointer',
     outline: 'none',
@@ -561,6 +613,10 @@ const useDirStyles = M.makeStyles((t) => ({
     },
     '$deleted > &': {
       color: COLORS.deleted,
+    },
+    '$invalid > &': {
+      background: COLORS.invalid,
+      color: t.palette.primary.contrastText,
     },
   },
   headInner: {
@@ -1079,6 +1135,12 @@ function FileUpload({
           icon: 'clear',
           handler: handle(FilesAction.Delete(path)),
         }
+      case 'invalid':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.Delete(path)),
+        }
       default:
         assertNever(state)
     }
@@ -1090,7 +1152,7 @@ function FileUpload({
   }, [])
 
   const onMeta = React.useCallback(
-    (m: Types.JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
+    (m?: Model.EntryMeta) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
 
@@ -1109,7 +1171,12 @@ function FileUpload({
       metaDisabled={state === 'deleted'}
       onMeta={onMeta}
       action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+        <M.IconButton
+          color="inherit"
+          onClick={action.handler}
+          size="small"
+          title={action.hint}
+        >
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
         </M.IconButton>
       }
@@ -1202,6 +1269,12 @@ function DirUpload({
           icon: 'clear',
           handler: handle(FilesAction.DeleteDir(path)),
         }
+      case 'invalid':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.DeleteDir(path)),
+        }
       default:
         assertNever(state)
     }
@@ -1281,15 +1354,7 @@ interface FilesInputProps {
   className?: string
   disabled?: boolean
   errors?: Record<string, React.ReactNode>
-  meta: {
-    submitting: boolean
-    submitSucceeded: boolean
-    submitFailed: boolean
-    dirty: boolean
-    error?: string
-    submitError?: string
-    initial: FilesState
-  }
+  meta: RF.FieldMetaState<FilesState> & { initial: FilesState }
   onFilesAction?: (
     action: FilesAction,
     oldValue: FilesState,
@@ -1309,6 +1374,7 @@ interface FilesInputProps {
   ui?: {
     reset?: React.ReactNode
   }
+  validationErrors: PD.EntriesValidationErrors | null
 }
 
 export function FilesInput({
@@ -1327,6 +1393,7 @@ export function FilesInput({
   disableStateDisplay = false,
   ui = {},
   initialS3Path,
+  validationErrors,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1345,7 +1412,8 @@ export function FilesInput({
   }
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && (meta.error || meta.submitError)
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const refProps = {
     value,
@@ -1394,7 +1462,11 @@ export function FilesInput({
     onDrop,
   })
 
-  const computedEntries = useMemoEq(value, computeEntries)
+  const valueWithErrors = React.useMemo(
+    () => ({ errors: validationErrors, value }),
+    [validationErrors, value],
+  )
+  const computedEntries = useMemoEq(valueWithErrors, computeEntries)
 
   const stats = useMemoEq(value, ({ added, existing }) => ({
     upload: Object.entries(added).reduce(
@@ -1566,7 +1638,7 @@ export function FilesInput({
 
           <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
         </Contents>
-        {submitting && <Lock progress={totalProgress} />}
+        {(submitting || disabled) && <Lock progress={totalProgress} />}
       </ContentsContainer>
       <div className={classes.actions}>
         <M.Button
@@ -1766,7 +1838,7 @@ export function FilesSelector({
               </M.Typography>
             </M.Box>
           )}
-          {submitting && <Lock progress={PROGRESS_EMPTY} />}
+          {(submitting || disabled) && <Lock progress={PROGRESS_EMPTY} />}
         </Contents>
       </ContentsContainer>
 

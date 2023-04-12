@@ -593,6 +593,9 @@ def create_package(req_file):
 
             hash_ = entry.get('hash')
             obj_size = entry.get('size')
+            # `meta` is the full metadata dict for entry that includes
+            # optional `user_meta` property,
+            # see PackageEntry._meta vs PackageEntry.meta.
             meta = entry.get('meta')
 
             if hash_ and obj_size is not None:
@@ -606,7 +609,8 @@ def create_package(req_file):
                     )
                 )
             else:
-                pkg.set(logical_key, str(physical_key), meta)
+                pkg.set(logical_key, str(physical_key))
+                pkg[logical_key]._meta = meta or {}
 
                 size_to_hash += pkg[logical_key].size
                 if size_to_hash > PKG_FROM_FOLDER_MAX_PKG_SIZE:
