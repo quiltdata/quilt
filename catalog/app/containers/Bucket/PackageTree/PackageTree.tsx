@@ -9,6 +9,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import {
+  Crumb,
   copyWithoutSpaces,
   render as renderCrumbs,
   useCrumbs,
@@ -145,7 +146,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
 }))
 
 interface TopBarProps {
-  crumbs: $TSFixMe[] // Crumb
+  crumbs: Crumb[]
 }
 
 function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
@@ -175,7 +176,7 @@ interface DirDisplayProps {
   hash: string
   hashOrTag: string
   path: string
-  crumbs: $TSFixMe[] // Crumb
+  crumbs: Crumb[]
   size?: number
 }
 
@@ -530,7 +531,7 @@ interface FileDisplayQueryProps {
   hash: string
   hashOrTag: string
   path: string
-  crumbs: $TSFixMe[] // Crumb
+  crumbs: Crumb[]
   mode?: string
 }
 
@@ -800,10 +801,17 @@ function PackageTree({
   const isDir = s3paths.isDir(path)
 
   const getSegmentRoute = React.useCallback(
-    (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
-    [bucket, name, hashOrTag, urls],
+    (segPath: string) =>
+      path === segPath
+        ? undefined
+        : urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
+    [bucket, hashOrTag, name, path, urls],
   )
-  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute)
+  const preCrumbs = useCrumbs(path, 'ROOT', getSegmentRoute)
+  const crumbs = React.useMemo(
+    () => preCrumbs.concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/ </>) : []),
+    [preCrumbs, path],
+  )
 
   return (
     <FileView.Root>

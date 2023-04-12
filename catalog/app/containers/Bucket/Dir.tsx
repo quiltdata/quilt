@@ -368,8 +368,8 @@ export default function Dir({
 
   const { urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
-    (segPath: string) => urls.bucketDir(bucket, segPath),
-    [bucket, urls],
+    (segPath: string) => (path === segPath ? undefined : urls.bucketDir(bucket, segPath)),
+    [bucket, path, urls],
   )
   const crumbs = useCrumbs(path, bucket, getSegmentRoute)
 

@@ -8,6 +8,7 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import {
+  Crumb,
   copyWithoutSpaces,
   render as renderCrumbs,
   useCrumbs,
@@ -450,7 +451,11 @@ export default function File({
     (segPath) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = useCrumbs(up(path), bucket, getSegmentRoute)
+  const preCrumbs = useCrumbs(up(path), bucket, getSegmentRoute)
+  const crumbs = React.useMemo(
+    () => preCrumbs.concat(Crumb.Sep(<>&nbsp;/ </>)),
+    [preCrumbs],
+  )
 
   return (
     <FileView.Root>
