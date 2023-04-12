@@ -8,7 +8,11 @@ import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import {
+  copyWithoutSpaces,
+  render as renderCrumbs,
+  useCrumbs,
+} from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
@@ -752,32 +756,6 @@ function ResolverProvider({
   )
 }
 
-const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
-function useCrumbs(
-  bucket: string,
-  name: string,
-  hashOrTag: string,
-  path: string,
-): Crumb[] {
-  const { urls } = NamedRoutes.use()
-  return React.useMemo(
-    () =>
-      [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
-        .map(({ label, path: segPath }) => ({
-          label,
-          to: urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
-        }))
-        .map(Crumb.Segment)
-        .reduce(
-          (memo, segment, i) =>
-            i === 0 ? [segment] : [...memo, CrumbsSeparator, segment],
-          [] as Crumb[],
-        ),
-
-    [bucket, name, hashOrTag, path, urls],
-  )
-}
-
 const useStyles = M.makeStyles({
   alertMsg: {
     overflow: 'hidden',
@@ -821,7 +799,11 @@ function PackageTree({
 
   const isDir = s3paths.isDir(path)
 
-  const crumbs = useCrumbs(bucket, name, hashOrTag, path)
+  const getSegmentRoute = React.useCallback(
+    (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
+    [bucket, name, hashOrTag, urls],
+  )
+  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute)
 
   return (
     <FileView.Root>

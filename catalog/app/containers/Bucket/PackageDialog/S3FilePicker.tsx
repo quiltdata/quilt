@@ -6,11 +6,11 @@ import * as M from '@material-ui/core'
 import * as DG from '@material-ui/data-grid'
 
 import Lock from 'components/Lock'
-import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
+import { render as renderCrumbs, useCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
+import { ensureNoSlash, withoutPrefix } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
@@ -28,25 +28,6 @@ export const isS3File = (f: any): f is Model.S3File =>
   typeof f.key === 'string' &&
   (typeof f.version === 'string' || typeof f.version === 'undefined') &&
   typeof f.size === 'number'
-
-const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
-function useCrumbs(path: string): Crumb[] {
-  return React.useMemo(
-    () =>
-      [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)]
-        .map(({ label, path: segPath }) => ({
-          label,
-          to: segPath === path ? segPath : null,
-        }))
-        .map(Crumb.Segment)
-        .reduce(
-          (memo, segment, i) =>
-            i === 0 ? [segment] : [...memo, CrumbsSeparator, segment],
-          [] as Crumb[],
-        ),
-    [path],
-  )
-}
 
 function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>
@@ -161,7 +142,7 @@ export function Dialog({
     [locked, onClose],
   )
 
-  const crumbs = useCrumbs(path)
+  const crumbs = useCrumbs(path, 'ROOT', R.identity)
 
   const getCrumbLinkProps = ({ to }: { to: string }) => ({
     onClick: () => {

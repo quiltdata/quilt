@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import Link from 'utils/StyledLink'
+import { getBreadCrumbs } from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -60,4 +61,27 @@ export const copyWithoutSpaces: React.ClipboardEventHandler<HTMLElement> = (e) =
   if (!crumbsString) return
   e.clipboardData?.setData('text/plain', crumbsString)
   e.preventDefault()
+}
+
+const DefaultSeparator = Crumb.Sep(<>&nbsp;/ </>)
+export function useCrumbs(
+  path: string,
+  rootLabel: string,
+  getRoute: (segPath: string) => LocationDescriptor,
+): Crumb[] {
+  return React.useMemo(
+    () =>
+      [{ label: rootLabel, path: '' }, ...getBreadCrumbs(path)]
+        .map(({ label, path: segPath }) => ({
+          label,
+          to: segPath === path ? getRoute(segPath) : null,
+        }))
+        .map(Crumb.Segment)
+        .reduce(
+          (memo, segment, i) =>
+            i === 0 ? [segment] : [...memo, DefaultSeparator, segment],
+          [] as Crumb[],
+        ),
+    [getRoute, path, rootLabel],
+  )
 }

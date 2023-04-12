@@ -6,7 +6,11 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import {
+  copyWithoutSpaces,
+  render as renderCrumbs,
+  useCrumbs,
+} from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
@@ -145,26 +149,6 @@ interface RouteMap {
       version?: string
     },
   ]
-}
-
-const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
-function useCrumbs(bucket: string): (path: string) => Crumb[] {
-  const { urls } = NamedRoutes.use<RouteMap>()
-  return React.useCallback(
-    (path: string) =>
-      [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)]
-        .map(({ label, path: segPath }) => ({
-          label,
-          to: urls.bucketDir(bucket, segPath),
-        }))
-        .map(Crumb.Segment)
-        .reduce(
-          (memo, segment, i) =>
-            i === 0 ? [segment] : [...memo, CrumbsSeparator, segment],
-          [] as Crumb[],
-        ),
-    [bucket, urls],
-  )
 }
 
 function useFormattedListing(r: requests.BucketListingResult) {
@@ -382,7 +366,12 @@ export default function Dir({
     [packageDirectoryDialog, path],
   )
 
-  const getCrumbs = useCrumbs(bucket)
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const getSegmentRoute = React.useCallback(
+    (segPath: string) => urls.bucketDir(bucket, segPath),
+    [bucket, urls],
+  )
+  const crumbs = useCrumbs(path, bucket, getSegmentRoute)
 
   return (
     <M.Box pt={2} pb={4}>
@@ -398,7 +387,7 @@ export default function Dir({
 
       <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs(path))}
+          {renderCrumbs(crumbs)}
         </div>
         <div className={classes.actions}>
           {preferences?.ui?.actions?.createPackage && (
