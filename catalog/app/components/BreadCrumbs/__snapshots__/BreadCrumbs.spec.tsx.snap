@@ -1,0 +1,127 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/BreadCrumbs Segment should render EMPTY 1`] = `
+<i>
+  &lt;EMPTY&gt;
+</i>
+`;
+
+exports[`components/BreadCrumbs Segment should render label 1`] = `"Lorem ipsum"`;
+
+exports[`components/BreadCrumbs Segment should render link 1`] = `
+<a
+  className="makeStyles-root-1"
+  href="/a"
+  onClick={[Function]}
+>
+  A
+</a>
+`;
+
+exports[`components/BreadCrumbs render and end with separator 1`] = `
+Array [
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/"
+  >
+    ROOT
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/a/"
+  >
+    a
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/a/b"
+  >
+    b
+  </a>,
+  " / ",
+]
+`;
+
+exports[`components/BreadCrumbs render and make links for every crumb 1`] = `
+Array [
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/"
+  >
+    ROOT
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/a/"
+  >
+    a
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/a/b"
+  >
+    b
+  </a>,
+]
+`;
+
+exports[`components/BreadCrumbs render and transform links 1`] = `
+Array [
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/"
+  >
+    ROOT
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="https://quiltdata.com/a/"
+  >
+    a
+  </a>,
+  " / ",
+  "b",
+]
+`;
+
+exports[`components/BreadCrumbs render basic breadcrumbs 1`] = `
+Array [
+  <a
+    className="makeStyles-root-1"
+    to=""
+  >
+    ROOT
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="/aa a/"
+    onClick={[Function]}
+  >
+    aa a
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="/aa a/bb-b/"
+    onClick={[Function]}
+  >
+    bb-b
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="/aa a/bb-b/c/"
+    onClick={[Function]}
+  >
+    c
+  </a>,
+  " / ",
+  "d_d",
+]
+`;
