@@ -14,7 +14,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+# 5.3.0 - 2023-04-11
 ## Python API
 * [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
 * [Added] `--no-copy` parameter to `Package.push()` ([#3398](https://github.com/quiltdata/quilt/pull/3398))
