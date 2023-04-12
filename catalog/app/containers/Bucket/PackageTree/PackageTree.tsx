@@ -762,19 +762,18 @@ function useCrumbs(
   const { urls } = NamedRoutes.use()
   return React.useMemo(
     () =>
-      [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)].reduce(
-        (memo, { label, path: segPath }, index) => {
-          const segment =
-            segPath === path
-              ? Crumb.Segment({
-                  label,
-                  to: urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
-                })
-              : Crumb.Segment({ label })
-          return index === 0 ? [segment] : [...memo, CrumbsSeparator, segment]
-        },
-        [] as Crumb[],
-      ),
+      [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
+        .map(({ label, path: segPath }) => ({
+          label,
+          to: urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
+        }))
+        .map(Crumb.Segment)
+        .reduce(
+          (memo, segment, i) =>
+            i === 0 ? [segment] : [...memo, CrumbsSeparator, segment],
+          [] as Crumb[],
+        ),
+
     [bucket, name, hashOrTag, path, urls],
   )
 }

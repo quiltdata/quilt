@@ -33,19 +33,17 @@ const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
 function useCrumbs(path: string): Crumb[] {
   return React.useMemo(
     () =>
-      [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].reduce(
-        (memo, { label, path: segPath }, index) => {
-          const segment =
-            segPath === path
-              ? Crumb.Segment({
-                  label,
-                  to: segPath,
-                })
-              : Crumb.Segment({ label })
-          return index === 0 ? [segment] : [...memo, CrumbsSeparator, segment]
-        },
-        [] as Crumb[],
-      ),
+      [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)]
+        .map(({ label, path: segPath }) => ({
+          label,
+          to: segPath === path ? segPath : null,
+        }))
+        .map(Crumb.Segment)
+        .reduce(
+          (memo, segment, i) =>
+            i === 0 ? [segment] : [...memo, CrumbsSeparator, segment],
+          [] as Crumb[],
+        ),
     [path],
   )
 }

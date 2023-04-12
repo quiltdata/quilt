@@ -152,19 +152,17 @@ function useCrumbs(bucket: string): (path: string) => Crumb[] {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useCallback(
     (path: string) =>
-      [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)].reduce(
-        (memo, { label, path: segPath }, index) => {
-          const segment =
-            segPath === path
-              ? Crumb.Segment({
-                  label,
-                  to: urls.bucketDir(bucket, segPath),
-                })
-              : Crumb.Segment({ label })
-          return index === 0 ? [segment] : [...memo, CrumbsSeparator, segment]
-        },
-        [] as Crumb[],
-      ),
+      [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)]
+        .map(({ label, path: segPath }) => ({
+          label,
+          to: urls.bucketDir(bucket, segPath),
+        }))
+        .map(Crumb.Segment)
+        .reduce(
+          (memo, segment, i) =>
+            i === 0 ? [segment] : [...memo, CrumbsSeparator, segment],
+          [] as Crumb[],
+        ),
     [bucket, urls],
   )
 }
