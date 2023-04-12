@@ -147,19 +147,27 @@ interface RouteMap {
   ]
 }
 
-type Urls = NamedRoutes.Urls<RouteMap>
-
-const getCrumbs = R.compose(
-  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
-  ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
-    [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)].map(
-      ({ label, path: segPath }) =>
-        Crumb.Segment({
-          label,
-          to: segPath === path ? undefined : urls.bucketDir(bucket, segPath),
-        }),
-    ),
-)
+const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
+function useCrumbs(bucket: string): (path: string) => Crumb[] {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  return React.useCallback(
+    (path: string) =>
+      [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)].reduce(
+        (memo, { label, path: segPath }, index) => {
+          const segment =
+            segPath === path
+              ? Crumb.Segment({
+                  label,
+                  to: urls.bucketDir(bucket, segPath),
+                })
+              : Crumb.Segment({ label })
+          return index === 0 ? [segment] : [...memo, CrumbsSeparator, segment]
+        },
+        [] as Crumb[],
+      ),
+    [bucket, urls],
+  )
+}
 
 function useFormattedListing(r: requests.BucketListingResult) {
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -298,7 +306,6 @@ export default function Dir({
   location: l,
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use<RouteMap>()
   const s3 = AWS.S3.use()
   const { preferences } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
@@ -377,6 +384,8 @@ export default function Dir({
     [packageDirectoryDialog, path],
   )
 
+  const getCrumbs = useCrumbs(bucket)
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
@@ -391,7 +400,7 @@ export default function Dir({
 
       <div className={classes.topbar}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+          {renderCrumbs(getCrumbs(path))}
         </div>
         <div className={classes.actions}>
           {preferences?.ui?.actions?.createPackage && (

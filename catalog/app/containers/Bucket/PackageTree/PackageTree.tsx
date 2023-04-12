@@ -752,6 +752,33 @@ function ResolverProvider({
   )
 }
 
+const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
+function useCrumbs(
+  bucket: string,
+  name: string,
+  hashOrTag: string,
+  path: string,
+): Crumb[] {
+  const { urls } = NamedRoutes.use()
+  return React.useMemo(
+    () =>
+      [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)].reduce(
+        (memo, { label, path: segPath }, index) => {
+          const segment =
+            segPath === path
+              ? Crumb.Segment({
+                  label,
+                  to: urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
+                })
+              : Crumb.Segment({ label })
+          return index === 0 ? [segment] : [...memo, CrumbsSeparator, segment]
+        },
+        [] as Crumb[],
+      ),
+    [bucket, name, hashOrTag, path, urls],
+  )
+}
+
 const useStyles = M.makeStyles({
   alertMsg: {
     overflow: 'hidden',
@@ -795,21 +822,7 @@ function PackageTree({
 
   const isDir = s3paths.isDir(path)
 
-  const crumbs = React.useMemo(() => {
-    const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
-    return R.intersperse(
-      Crumb.Sep(<>&nbsp;/ </>),
-      segments.map(({ label, path: segPath }) =>
-        Crumb.Segment({
-          label,
-          to:
-            path === segPath
-              ? undefined
-              : urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
-        }),
-      ),
-    ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
-  }, [bucket, name, hashOrTag, path, urls])
+  const crumbs = useCrumbs(bucket, name, hashOrTag, path)
 
   return (
     <FileView.Root>

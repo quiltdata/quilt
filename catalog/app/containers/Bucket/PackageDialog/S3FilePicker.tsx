@@ -29,11 +29,26 @@ export const isS3File = (f: any): f is Model.S3File =>
   (typeof f.version === 'string' || typeof f.version === 'undefined') &&
   typeof f.size === 'number'
 
-const getCrumbs = R.compose(R.intersperse(Crumb.Sep(<>&nbsp;/ </>)), (path: string) =>
-  [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].map(({ label, path: segPath }) =>
-    Crumb.Segment({ label, to: segPath === path ? undefined : segPath }),
-  ),
-)
+const CrumbsSeparator = Crumb.Sep(<>&nbsp;/ </>)
+function useCrumbs(path: string): Crumb[] {
+  return React.useMemo(
+    () =>
+      [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].reduce(
+        (memo, { label, path: segPath }, index) => {
+          const segment =
+            segPath === path
+              ? Crumb.Segment({
+                  label,
+                  to: segPath,
+                })
+              : Crumb.Segment({ label })
+          return index === 0 ? [segment] : [...memo, CrumbsSeparator, segment]
+        },
+        [] as Crumb[],
+      ),
+    [path],
+  )
+}
 
 function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>
@@ -148,7 +163,7 @@ export function Dialog({
     [locked, onClose],
   )
 
-  const crumbs = React.useMemo(() => getCrumbs(path), [path])
+  const crumbs = useCrumbs(path)
 
   const getCrumbLinkProps = ({ to }: { to: string }) => ({
     onClick: () => {

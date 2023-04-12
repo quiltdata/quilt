@@ -9,10 +9,11 @@ const EMPTY = <i>{'<EMPTY>'}</i>
 
 export const Crumb = tagged.create('app/components/BreadCrumbs:Crumb' as const, {
   Segment: (v: { label?: string; to?: LocationDescriptor | null }) => v,
-  Sep: (v: string) => v,
+  Sep: (v: React.ReactNode) => v,
 })
 
-type Crumb = tagged.InstanceOf<typeof Crumb>
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Crumb = tagged.InstanceOf<typeof Crumb>
 
 type LinkPropsConverter = (p: {
   to?: LocationDescriptor | null
@@ -48,7 +49,7 @@ export const render = (
     }),
   )
 
-export function copyWithoutSpaces(e: ClipboardEvent) {
+export const copyWithoutSpaces: React.ClipboardEventHandler<HTMLElement> = (e) => {
   if (typeof document === 'undefined') return
   const crumbsString = document
     ?.getSelection()
