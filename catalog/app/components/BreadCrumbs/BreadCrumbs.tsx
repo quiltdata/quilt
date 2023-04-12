@@ -89,3 +89,5 @@ export function useCrumbs(
     [getRoute, path, rootLabel, tailLink, tailSeparator],
   )
 }
+
+export const use = useCrumbs

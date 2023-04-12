@@ -6,11 +6,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import {
-  copyWithoutSpaces,
-  render as renderCrumbs,
-  useCrumbs,
-} from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
@@ -371,7 +367,7 @@ export default function Dir({
     (segPath: string) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = useCrumbs(path, bucket, getSegmentRoute)
+  const crumbs = BreadCrumbs.use(path, bucket, getSegmentRoute)
 
   return (
     <M.Box pt={2} pb={4}>
@@ -386,8 +382,8 @@ export default function Dir({
       })}
 
       <div className={classes.topbar}>
-        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(crumbs)}
+        <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+          {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
           {preferences?.ui?.actions?.createPackage && (

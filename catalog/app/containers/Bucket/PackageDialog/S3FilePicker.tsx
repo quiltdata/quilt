@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import * as DG from '@material-ui/data-grid'
 
 import Lock from 'components/Lock'
-import { render as renderCrumbs, useCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
@@ -142,7 +142,7 @@ export function Dialog({
     [locked, onClose],
   )
 
-  const crumbs = useCrumbs(path, 'ROOT', R.identity)
+  const crumbs = BreadCrumbs.use(path, 'ROOT', R.identity)
   const getCrumbLinkProps = ({ to }: { to?: string }) =>
     to
       ? {
@@ -252,7 +252,7 @@ export function Dialog({
         </M.Typography>
       </M.DialogTitle>
       <div className={classes.crumbs}>
-        {renderCrumbs(crumbs, { getLinkProps: getCrumbLinkProps })}
+        {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
       </div>
       {data.case({
         // TODO: customized error display?

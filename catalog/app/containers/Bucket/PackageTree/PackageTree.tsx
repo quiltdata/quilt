@@ -8,12 +8,7 @@ import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import {
-  Crumb,
-  copyWithoutSpaces,
-  render as renderCrumbs,
-  useCrumbs,
-} from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
@@ -146,15 +141,15 @@ const useTopBarStyles = M.makeStyles((t) => ({
 }))
 
 interface TopBarProps {
-  crumbs: Crumb[]
+  crumbs: BreadCrumbs.Crumb[]
 }
 
 function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   const classes = useTopBarStyles()
   return (
     <div className={classes.topBar}>
-      <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-        {renderCrumbs(crumbs)}
+      <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+        {BreadCrumbs.render(crumbs)}
       </div>
       <div className={classes.content}>{children}</div>
     </div>
@@ -176,7 +171,7 @@ interface DirDisplayProps {
   hash: string
   hashOrTag: string
   path: string
-  crumbs: Crumb[]
+  crumbs: BreadCrumbs.Crumb[]
   size?: number
 }
 
@@ -531,7 +526,7 @@ interface FileDisplayQueryProps {
   hash: string
   hashOrTag: string
   path: string
-  crumbs: Crumb[]
+  crumbs: BreadCrumbs.Crumb[]
   mode?: string
 }
 
@@ -804,7 +799,7 @@ function PackageTree({
     (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
     [bucket, hashOrTag, name, urls],
   )
-  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute, {
+  const crumbs = BreadCrumbs.use(path, 'ROOT', getSegmentRoute, {
     tailSeparator: path.endsWith('/'),
   })
 

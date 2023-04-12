@@ -7,11 +7,7 @@ import * as React from 'react'
 import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import {
-  copyWithoutSpaces,
-  render as renderCrumbs,
-  useCrumbs,
-} from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
@@ -450,7 +446,7 @@ export default function File({
     (segPath) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = useCrumbs(up(path), bucket, getSegmentRoute, {
+  const crumbs = BreadCrumbs.use(up(path), bucket, getSegmentRoute, {
     tailLink: true,
     tailSeparator: true,
   })
@@ -459,8 +455,8 @@ export default function File({
     <FileView.Root>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
-      <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-        {renderCrumbs(crumbs)}
+      <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+        {BreadCrumbs.render(crumbs)}
       </div>
       <div className={classes.topBar}>
         <div className={classes.name}>
