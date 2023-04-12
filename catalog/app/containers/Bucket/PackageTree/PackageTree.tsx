@@ -807,11 +807,7 @@ function PackageTree({
         : urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
     [bucket, hashOrTag, name, path, urls],
   )
-  const preCrumbs = useCrumbs(path, 'ROOT', getSegmentRoute)
-  const crumbs = React.useMemo(
-    () => preCrumbs.concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/ </>) : []),
-    [preCrumbs, path],
-  )
+  const crumbs = useCrumbs(path, 'ROOT', getSegmentRoute, { tailSeparator: true })
 
   return (
     <FileView.Root>

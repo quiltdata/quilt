@@ -451,11 +451,7 @@ export default function File({
     (segPath) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const preCrumbs = useCrumbs(up(path), bucket, getSegmentRoute)
-  const crumbs = React.useMemo(
-    () => preCrumbs.concat(Crumb.Sep(<>&nbsp;/ </>)),
-    [preCrumbs],
-  )
+  const crumbs = useCrumbs(up(path), bucket, getSegmentRoute, { tailSeparator: true })
 
   return (
     <FileView.Root>

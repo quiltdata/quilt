@@ -67,6 +67,7 @@ export function useCrumbs(
   path: string,
   rootLabel: string,
   getRoute: (segPath: string) => string | undefined,
+  { tailSeparator = false }: { tailSeparator?: boolean } = {},
 ): Crumb[] {
   return React.useMemo(
     () =>
@@ -80,7 +81,8 @@ export function useCrumbs(
           (memo, segment, i) =>
             i === 0 ? [segment] : [...memo, DefaultSeparator, segment],
           [] as Crumb[],
-        ),
+        )
+        .concat(tailSeparator ? DefaultSeparator : []),
     [getRoute, path, rootLabel],
   )
 }
