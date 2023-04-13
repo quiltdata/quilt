@@ -1,11 +1,10 @@
 import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
-import * as Sentry from 'utils/Sentry'
 
 import { BucketPreferences, extendDefaults } from './BucketPreferences'
 
-const localModePreferences = {
+const localModePreferences = extendDefaults({
   ui: {
     actions: {
       copyPackage: false,
@@ -20,7 +19,7 @@ const localModePreferences = {
       queries: false,
     },
   },
-}
+})
 
 interface LocalProviderProps {
   context: React.Context<{ preferences: BucketPreferences | null; result: $TSFixMe }>
@@ -28,11 +27,10 @@ interface LocalProviderProps {
 }
 
 export default function LocalProvider({ context: Ctx, children }: LocalProviderProps) {
-  const sentry = Sentry.use()
-  const preferences = React.useMemo(
-    () => extendDefaults(localModePreferences, sentry),
-    [sentry],
+  const result = AsyncResult.Ok(localModePreferences)
+  return (
+    <Ctx.Provider value={{ preferences: localModePreferences, result }}>
+      {children}
+    </Ctx.Provider>
   )
-  const result = AsyncResult.Ok(preferences)
-  return <Ctx.Provider value={{ preferences, result }}>{children}</Ctx.Provider>
 }

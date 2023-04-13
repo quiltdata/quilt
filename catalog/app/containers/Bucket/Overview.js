@@ -17,6 +17,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import Data, { useData } from 'utils/Data'
 import { useQueryS } from 'utils/GraphQL'
 import * as LinkedData from 'utils/LinkedData'
@@ -988,6 +989,7 @@ export default function Overview({
   const inStack = !!bucketConfig
   const overviewUrl = bucketConfig?.overviewUrl
   const description = bucketConfig?.description
+  const { result: prefsResult } = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {inStack && (
@@ -1008,7 +1010,19 @@ export default function Overview({
         </M.Box>
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
-      {!cfg.noOverviewImages && <Imgs {...{ s3, bucket, inStack, overviewUrl }} />}
+      {!cfg.noOverviewImages &&
+        BucketPreferences.Result.match(
+          {
+            Ok: ({ ui: { blocks } }) =>
+              blocks.gallery &&
+              !!blocks.gallery.overview && (
+                <Imgs {...{ s3, bucket, inStack, overviewUrl }} />
+              ),
+            Pending: () => <M.CircularProgress />,
+            Init: R.F,
+          },
+          prefsResult,
+        )}
       <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )

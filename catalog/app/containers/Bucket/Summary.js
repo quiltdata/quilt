@@ -112,6 +112,13 @@ function SummaryItemFile({ handle, name, mkUrl }) {
   )
 }
 
+function ThumbnailsWrapper({ preferences: galleryPrefs, images, mkUrl, inPackage }) {
+  if (!images.length || !galleryPrefs) return null
+  if (!galleryPrefs.files) return null
+  if (inPackage && !galleryPrefs.packages) return null
+  return <Thumbnails {...{ images, mkUrl }} />
+}
+
 const useThumbnailsStyles = M.makeStyles((t) => ({
   container: {
     display: 'flex',
@@ -196,7 +203,7 @@ function Thumbnails({ images, mkUrl }) {
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
-  const { preferences } = BucketPreferences.use()
+  const { result: prefsResult } = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -215,13 +222,28 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           mkUrl={mkUrl}
         />
       )}
-      {!readme &&
-        !path &&
-        !!packageHandle &&
-        !!preferences?.ui?.actions?.revisePackage && (
-          <AddReadmeSection packageHandle={packageHandle} path={path} />
-        )}
-      {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions, blocks } }) => (
+            <>
+              {!!actions.revisePackage && !readme && !path && !!packageHandle && (
+                <AddReadmeSection packageHandle={packageHandle} path={path} />
+              )}
+              <ThumbnailsWrapper
+                {...{
+                  images,
+                  mkUrl,
+                  preferences: blocks.gallery,
+                  inPackage: !!packageHandle,
+                }}
+              />
+            </>
+          ),
+          Pending: () => <M.CircularProgress />,
+          Init: () => null,
+        },
+        prefsResult,
+      )}
       {summarize && (
         <Summarize.SummaryNested
           handle={summarize}

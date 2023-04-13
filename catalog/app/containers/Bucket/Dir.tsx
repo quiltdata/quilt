@@ -300,7 +300,7 @@ export default function Dir({
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const s3 = AWS.S3.use()
-  const { preferences } = BucketPreferences.use()
+  const { result: prefsResult } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -394,14 +394,22 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <div className={classes.actions}>
-          {preferences?.ui?.actions?.createPackage && (
-            <Successors.Button
-              bucket={bucket}
-              className={classes.button}
-              onChange={openPackageCreationDialog}
-            >
-              Create package from directory
-            </Successors.Button>
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) =>
+                actions.createPackage && (
+                  <Successors.Button
+                    bucket={bucket}
+                    className={classes.button}
+                    onChange={openPackageCreationDialog}
+                  >
+                    Create package from directory
+                  </Successors.Button>
+                ),
+              Pending: () => null,
+              Init: () => null,
+            },
+            prefsResult,
           )}
           {!cfg.noDownload && !cfg.desktop && (
             <FileView.ZipDownloadForm
@@ -413,8 +421,14 @@ export default function Dir({
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
       </div>
-
-      {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => blocks.code && <Code gutterBottom>{code}</Code>,
+          Pending: () => null,
+          Init: () => null,
+        },
+        prefsResult,
+      )}
 
       {data.case({
         Err: displayError(),
