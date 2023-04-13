@@ -8,9 +8,10 @@ from unittest import TestCase, skip
 from unittest.mock import patch
 
 import boto3
+import botocore
 import pandas as pd
+import pytest
 import responses
-
 from t4_lambda_shared.utils import buffer_s3response, read_body
 
 from .. import index as pkgselect
@@ -418,9 +419,10 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            response = pkgselect.lambda_handler(params, None)
-            print(response)
-            assert response['statusCode'] == 404
+            with pytest.raises(botocore.exceptions.ClientError):
+                response = pkgselect.lambda_handler(params, None)
+                print(response)
+                assert response['statusCode'] == 404
 
     def test_non_string_keys(self):
         """

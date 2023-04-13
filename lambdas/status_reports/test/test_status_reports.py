@@ -1,7 +1,7 @@
-import unittest
 import asyncio
+import unittest
 
-import src.t4_lambda_status_reports as status_reports
+import t4_lambda_status_reports as status_reports
 
 
 class TestStatusReports(unittest.TestCase):
