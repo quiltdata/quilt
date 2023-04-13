@@ -2,12 +2,15 @@ coverage:
   status:
     project:
       default:
+        target: 80%
         paths:
           - '!**/tests/'
           - '!**/test/'
         informational: true
     patch:
       default:
+        target: 80%
+      diff:
         target: 80%
       informational: true
 
@@ -17,8 +20,10 @@ flag_management:
       - name_prefix: 'auto-'
         type: project
         threshold: 0.1
+        target: 80%
       - name_prefix: 'auto-'
         type: patch
+        target: 80%
   individual_flags:
     # Looks like these are left from testing codecov flags,
     # but it's not clear why they are still appear, ignore them.
