@@ -2,6 +2,7 @@ coverage:
   status:
     project:
       default:
+        target: 80%
         paths:
           - '!**/tests/'
           - '!**/test/'
