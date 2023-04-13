@@ -138,9 +138,13 @@ export default function Dir({
 
   const scoped = ecfg.scope && path.startsWith(ecfg.scope)
   const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
+  const getSegmentRoute = React.useCallback(
+    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
+    [bucket, ecfg.scope, scoped, urls],
+  )
   const crumbs = BreadCrumbs.use(
     scopedPath,
-    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
+    getSegmentRoute,
     scoped ? basename(ecfg.scope) : 'ROOT',
   )
 
