@@ -172,7 +172,7 @@ class DirView:
 async def dir_view(
     bucket: str,
     manifest: str,
-    path: T.Optional[str] = None,
+    path: T.Optional[str] = '.',
     limit: T.Optional[int] = None,
     offset: T.Optional[int] = None,
 ) -> DirView:
