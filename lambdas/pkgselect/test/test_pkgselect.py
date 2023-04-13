@@ -16,7 +16,7 @@ from t4_lambda_shared.utils import buffer_s3response, read_body
 from .. import index as pkgselect
 
 
-@skip("TODO: fix tests")
+# @skip("TODO: fix tests")
 class TestPackageSelect(TestCase):
     """
     Unit tests for the PackageSelect API endpoint.
