@@ -195,3 +195,4 @@ jobs:
           flags: lambda
           name: ${{ github.job }}
           env_vars: LAMBDA
+          MINIMUM_COVERAGE: 80
