@@ -130,6 +130,9 @@ class FileView:
     hash: str
     meta: T.Optional[dict]
     logical_key: str
+    physical_key: str
+    physical_keys: T.List[str]
+
 
 async def file_view(bucket: str, manifest: str, path: str) -> T.Optional[FileView]:
     """

@@ -281,14 +281,13 @@ class TestPackageSelect(TestCase):
                 self.s3response_meta,
             ]
         ) as client_patch, patch('boto3.Session.client', return_value=mock_s3):
-            with pytest.raises(botocore.exceptions.ClientError):
-                response = pkgselect.lambda_handler(params, None)
-                print(response)
-                folder = json.loads(read_body(response))['result']
-                assert len(folder['prefixes']) == 1
-                assert len(folder['objects']) == 1
-                assert folder['objects'][0]['logical_key'] == 'foo.csv'
-                assert folder['prefixes'][0]['logical_key'] == 'bar/'
+            response = pkgselect.lambda_handler(params, None)
+            print(response)
+            folder = json.loads(read_body(response))['result']
+            assert len(folder['prefixes']) == 1
+            assert len(folder['objects']) == 1
+            assert folder['objects'][0]['logical_key'] == 'foo.csv'
+            assert folder['prefixes'][0]['logical_key'] == 'bar/'
 
     def test_folder_view_paging(self):
         """
@@ -336,14 +335,13 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            with pytest.raises(botocore.exceptions.ClientError):
-                response = pkgselect.lambda_handler(params, None)
-                print(response)
-                folder = json.loads(read_body(response))['result']
-                assert len(folder['prefixes']) == 0
-                assert len(folder['objects']) == 10
-                assert folder['total'] == 1000
-                assert folder['objects'][0]['logical_key'] == 'f010.csv'
+            response = pkgselect.lambda_handler(params, None)
+            print(response)
+            folder = json.loads(read_body(response))['result']
+            assert len(folder['prefixes']) == 0
+            assert len(folder['objects']) == 10
+            assert folder['total'] == 1000
+            assert folder['objects'][0]['logical_key'] == 'f010.csv'
 
     def test_detail_view(self):
         """
@@ -381,10 +379,9 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            with pytest.raises(botocore.exceptions.ClientError):
-                response = pkgselect.lambda_handler(params, None)
-                print(response)
-                json.loads(read_body(response))['result']
+            response = pkgselect.lambda_handler(params, None)
+            print(response)
+            json.loads(read_body(response))['result']
 
     def test_non_existing_logical_key(self):
         """
@@ -483,15 +480,14 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            with pytest.raises(botocore.exceptions.ClientError):
-                response = pkgselect.lambda_handler(params, None)
-                print(response)
-                folder = json.loads(read_body(response))['result']
-                assert not folder['prefixes']
-                assert len(folder['objects']) == 3
-                assert folder['objects'][0]['logical_key'] == '1'
-                assert folder['objects'][1]['logical_key'] == '2'
-                assert folder['objects'][2]['logical_key'] == '3'
+            response = pkgselect.lambda_handler(params, None)
+            print(response)
+            folder = json.loads(read_body(response))['result']
+            assert not folder['prefixes']
+            assert len(folder['objects']) == 3
+            assert folder['objects'][0]['logical_key'] == '1'
+            assert folder['objects'][1]['logical_key'] == '2'
+            assert folder['objects'][2]['logical_key'] == '3'
 
     def test_empty_manifest(self):
         """
@@ -535,10 +531,9 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            with pytest.raises(botocore.exceptions.ClientError):
-                response = pkgselect.lambda_handler(params, None)
-                print(response)
-                folder = json.loads(read_body(response))['result']
-                assert not folder['prefixes']
-                assert not folder['objects']
-                assert folder['total'] == 0
+            response = pkgselect.lambda_handler(params, None)
+            print(response)
+            folder = json.loads(read_body(response))['result']
+            assert not folder['prefixes']
+            assert not folder['objects']
+            assert folder['total'] == 0
