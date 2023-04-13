@@ -27,14 +27,14 @@ describe('components/BreadCrumbs', () => {
   })
   describe('render', () => {
     it('basic breadcrumbs', () => {
-      const crumbs = BreadCrumbs.getCrumbs('aa a/bb-b/c/d_d', 'ROOT', (x) => x)
+      const crumbs = BreadCrumbs.getCrumbs('aa a/bb-b/c/d_d', (x) => x, 'ROOT')
       const tree = renderer
         .create(<MemoryRouter>{BreadCrumbs.render(crumbs)}</MemoryRouter>)
         .toJSON()
       expect(tree).toMatchSnapshot()
     })
     it('and transform links', () => {
-      const crumbs = BreadCrumbs.getCrumbs('a/b', 'ROOT', (x) => x)
+      const crumbs = BreadCrumbs.getCrumbs('a/b', (x) => x, 'ROOT')
       const getLinkProps = ({ to }: { to?: string }) => ({
         href: `https://quiltdata.com/${to || ''}`,
       })
@@ -46,7 +46,7 @@ describe('components/BreadCrumbs', () => {
       expect(tree).toMatchSnapshot()
     })
     it('and make links for every crumb', () => {
-      const crumbs = BreadCrumbs.getCrumbs('a/b', 'ROOT', (x) => x, { tailLink: true })
+      const crumbs = BreadCrumbs.getCrumbs('a/b', (x) => x, 'ROOT', { tailLink: true })
       const getLinkProps = ({ to }: { to?: string }) => ({
         href: `https://quiltdata.com/${to || ''}`,
       })
@@ -58,7 +58,7 @@ describe('components/BreadCrumbs', () => {
       expect(tree).toMatchSnapshot()
     })
     it('and end with separator', () => {
-      const crumbs = BreadCrumbs.getCrumbs('a/b', 'ROOT', (x) => x, {
+      const crumbs = BreadCrumbs.getCrumbs('a/b', (x) => x, 'ROOT', {
         tailLink: true,
         tailSeparator: true,
       })
