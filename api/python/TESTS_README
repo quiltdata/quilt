@@ -1,1 +1,7 @@
+# Testing api/python/quilt3
+
 Use pytest during normal development.
+
+```bash
+make install-local test
+```

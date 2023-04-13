@@ -1,6 +1,9 @@
+PYTHON=python3
+PIP=$(PYTHON) -m pip
 
 test:
-	pytest --disable-warnings
+	$(PYTHON) -m pytest --disable-warnings
 
 install-local:
-	pip install -e .[tests]
+	$(PIP) install -e '.[tests]'
+

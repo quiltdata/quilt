@@ -79,7 +79,7 @@ setup(
         'tests': [
             'anndata!=0.9.0',
             'quilt3[pyarrow,anndata]',
-            'pytest==6.*',
+            'pytest==7.*',
             'pytest-cov',
             'coverage==6.4',
             'pytest-env',
