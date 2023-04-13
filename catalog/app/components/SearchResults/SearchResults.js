@@ -49,7 +49,7 @@ function ObjectCrumbs({ handle, showBucket = false }) {
     },
     [handle.bucket, handle.key, handle.version, urls],
   )
-  const crumbs = BreadCrumbs.use(handle.key, rootLabel, getSegmentRoute, {
+  const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, rootLabel, {
     tailLink: true,
     rootRoute: urls.bucketRoot(handle.bucket),
   })

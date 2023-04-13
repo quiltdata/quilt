@@ -799,7 +799,7 @@ function PackageTree({
     (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
     [bucket, hashOrTag, name, urls],
   )
-  const crumbs = BreadCrumbs.use(path, 'ROOT', getSegmentRoute, {
+  const crumbs = BreadCrumbs.use(path, getSegmentRoute, 'ROOT', {
     tailSeparator: path.endsWith('/'),
   })
 

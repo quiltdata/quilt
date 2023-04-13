@@ -219,7 +219,9 @@ function Crumbs({ handle }: CrumbsProps) {
     (segPath) => urls.bucketFile(handle.bucket, segPath),
     [urls, handle.bucket],
   )
-  const crumbs = BreadCrumbs.use(handle.key, '', getSegmentRoute, { tailLink: true })
+  const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, undefined, {
+    tailLink: true,
+  })
   return <span onCopy={BreadCrumbs.copyWithoutSpaces}>{BreadCrumbs.render(crumbs)}</span>
 }
 

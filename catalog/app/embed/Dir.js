@@ -140,8 +140,8 @@ export default function Dir({
   const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
   const crumbs = BreadCrumbs.use(
     scopedPath,
+    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
     scoped ? basename(ecfg.scope) : 'ROOT',
-    (segPath) => urls.bucketDir(bucket, `${scoped ? scope : ''}${segPath}`),
   )
 
   return (

@@ -432,8 +432,8 @@ export default function File({
   const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
   const crumbs = BreadCrumbs.use(
     s3paths.up(scopedPath),
+    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
     scoped ? basename(ecfg.scope) : 'ROOT',
-    (segPath) => urls.bucketDir(bucket, `${scoped ? scope : ''}${segPath}`),
 
     { tailLink: true, tailSeparator: true },
   )

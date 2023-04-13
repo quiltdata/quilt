@@ -446,7 +446,7 @@ export default function File({
     (segPath) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(up(path), bucket, getSegmentRoute, {
+  const crumbs = BreadCrumbs.use(up(path), getSegmentRoute, bucket, {
     tailLink: true,
     tailSeparator: true,
   })

@@ -142,7 +142,7 @@ export function Dialog({
     [locked, onClose],
   )
 
-  const crumbs = BreadCrumbs.use(path, 'ROOT', R.identity)
+  const crumbs = BreadCrumbs.use(path, R.identity, 'ROOT')
   const getCrumbLinkProps = ({ to }: { to?: string }) =>
     to
       ? {

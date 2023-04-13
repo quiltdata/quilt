@@ -367,7 +367,7 @@ export default function Dir({
     (segPath: string) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(path, bucket, getSegmentRoute)
+  const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
   return (
     <M.Box pt={2} pb={4}>

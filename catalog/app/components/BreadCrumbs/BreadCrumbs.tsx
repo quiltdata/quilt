@@ -66,16 +66,16 @@ export const copyWithoutSpaces: React.ClipboardEventHandler<HTMLElement> = (e) =
 
 type GetCrumbsFunction = (
   path: string,
-  rootLabel: string,
   getRoute: (segPath: string) => string,
+  rootLabel?: string,
   options?: { skipRoot?: boolean; tailLink?: boolean; tailSeparator?: boolean },
 ) => Crumb[]
 
 const DefaultSeparator = Crumb.Sep(<>&nbsp;/ </>)
 export const getCrumbs: GetCrumbsFunction = (
   path,
-  rootLabel,
   getRoute,
+  rootLabel,
   { tailLink = false, tailSeparator = false } = {},
 ) =>
   (rootLabel
@@ -95,12 +95,12 @@ export const getCrumbs: GetCrumbsFunction = (
 
 export const useCrumbs: GetCrumbsFunction = (
   path,
-  rootLabel,
   getRoute,
+  rootLabel,
   { tailLink = false, tailSeparator = false } = {},
 ) =>
   React.useMemo(
-    () => getCrumbs(path, rootLabel, getRoute, { tailLink, tailSeparator }),
+    () => getCrumbs(path, getRoute, rootLabel, { tailLink, tailSeparator }),
     [getRoute, path, rootLabel, tailLink, tailSeparator],
   )
 
