@@ -1294,7 +1294,7 @@ class Package:
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
     def push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow=..., force: bool = False, dedupe: bool = False
+        workflow=..., force: bool = False, dedupe: bool = False, request: str = None,
     ):
         """
         Copies objects to path, then creates a new package that points to those objects.
@@ -1319,7 +1319,8 @@ class Package:
         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
         By default, push will not overwrite an existing package if its top hash does not match
-        the parent hash of the package being pushed. Use `force=True` to skip the check.
+        the parent hash of the package being pushed. Use `--request put` to 
+        skip the check and replace, or `--request patch` to skip the check and merge.
 
         Args:
             name: name for package in registry
@@ -1425,7 +1426,7 @@ class Package:
                 raise QuiltConflictException(
                     f"Package with hash {latest_hash} already exists at the destination; "
                     f"expected {None if self._origin is None else self._origin.top_hash}. "
-                    "Use force=True (Python) or --force (CLI) to overwrite."
+                    "Use request (Python) or --request (CLI) with `put` to replace or `patch` to merge."
                 )
 
         # Get the latest hash if we're either checking for conflicts or deduping.

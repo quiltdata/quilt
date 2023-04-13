@@ -208,25 +208,28 @@ def _selector_fn_no_copy(*args):
     return False
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, browse, dir_logical_key):
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, request, dir_logical_key):
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
     try:
-        browse_registry = registry if (browse == "remote") else None
-        pkg = Package.browse(name, registry=browse_registry)
+        pkg = Package.browse(name, registry=None)
     except FileNotFoundError:
         pkg = Package()
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] != "NoSuchKey":
             raise
+    
+    if force and request == None:
+        print("WARNING: -`-force` is deprecated. Please use `--request put` instead.")
+        request = "put"
 
     pkg.set_dir(dir_logical_key, dir)
     pkg.set_meta(meta)
     pkg.push(
         name, registry=registry, dest=dest, message=message,
-        workflow=workflow, force=force, dedupe=dedupe,
-        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
+        workflow=workflow, force=force, dedupe=dedupe, request=request,
+        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}), 
     )
 
 
@@ -471,8 +474,7 @@ def create_parser():
         "--force",
         action="store_true",
         help="""
-            Skip the parent top hash check and create a new revision
-            even if your local state is behind the remote registry.
+            Deprecated. Use `--request put` instead.
             """,
     )
     optional_args.add_argument(
@@ -486,13 +488,12 @@ def create_parser():
         help="Do not copy data. Package manifest entries will reference the data at the original location.",
     )
     optional_args.add_argument(
-        "--browse",
+        "-X","--request",
         help="""
-            By default, `push` first browses the top_hash from the 'local' registry.
-            Specify 'remote' to explicitly tell push to retrieve the current top_hash
-            from the destination registry, so that it always succeeds.
-            """,
-        default="local",
+        Push by default will not succeed without installing the most recent version of an existing package. 
+        Use `--request put` to ignore and replace, or `--request patch` to ignore and merge.
+       """,
+        default=None,
     )
     optional_args.add_argument(
         "--dir-logical-key",

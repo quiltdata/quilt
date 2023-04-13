@@ -42,10 +42,10 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False, request=None
             )
 
-    def test_push_force(self):
+    def test_push_force_deprecated(self):
         name = 'test/name'
         dir_path = 'test/dir/path'
 
@@ -59,7 +59,41 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=True, dedupe=False
+                name, registry=None, dest=None, message=None, workflow=..., force=True, dedupe=False, request='put'
+            )
+
+    def test_push_request_put(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
+
+            main.main(('push', '--dir', dir_path, name, '--request', 'put'))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False, request='put'
+            )
+
+    def test_push_request_patch(self):
+        name = 'test/name'
+        dir_path = 'test/dir/path'
+
+        with patch_package_class as mocked_package_class:
+            mocked_package_class.browse.side_effect = FileNotFoundError()
+
+            main.main(('push', '--dir', dir_path, name, '--request', 'patch'))
+
+            mocked_package_class.browse.assert_called_once_with(name, None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path)
+            mocked_package.push.assert_called_once_with(
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False, request='patch'
             )
 
     def test_push_dedupe(self):
@@ -76,7 +110,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=True
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=True, request=None
             )
 
     def test_push_existing(self):
@@ -91,7 +125,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package = mocked_package_class.browse.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path)
             mocked_package.push.assert_called_once_with(
-                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False
+                name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False, request=None
             )
 
 
@@ -124,7 +158,7 @@ def test_push_with_meta_data(
         mocked_package = mocked_package_class.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path)
         mocked_package.push.assert_called_once_with(
-            name, dest=None, message=None, registry=None, workflow=..., force=False, dedupe=False
+            name, dest=None, message=None, registry=None, workflow=..., force=False, dedupe=False, request=None
         )
 
 
@@ -179,7 +213,7 @@ def test_push_workflow(workflow_input, expected_workflow):
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package.set_dir.assert_called_once_with('.', dir_path)
         mocked_package.push.assert_called_once_with(
-            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False, dedupe=False
+            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False, dedupe=False, request=None
         )
 
 
@@ -207,7 +241,7 @@ def test_push_no_copy():
         mocked_package = mocked_package_class.browse.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path)
         mocked_package.push.assert_called_once_with(
-            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False,
+            name, registry=None, dest=None, message=None, workflow=..., force=False, dedupe=False, request=None,
             selector_fn=main._selector_fn_no_copy,
         )
 
