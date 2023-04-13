@@ -72,6 +72,13 @@ describe('components/BreadCrumbs', () => {
         .toJSON()
       expect(tree).toMatchSnapshot()
     })
+    it('without root label', () => {
+      const crumbs = BreadCrumbs.getCrumbs('a/b/c', (x) => x)
+      const tree = renderer
+        .create(<MemoryRouter>{BreadCrumbs.render(crumbs)}</MemoryRouter>)
+        .toJSON()
+      expect(tree).toMatchSnapshot()
+    })
   })
   test('copyWithoutSpaces', () => {
     const input = `ROOT / aa a

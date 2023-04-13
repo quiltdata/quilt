@@ -125,3 +125,25 @@ Array [
   "d_d",
 ]
 `;
+
+exports[`components/BreadCrumbs render without root label 1`] = `
+Array [
+  <a
+    className="makeStyles-root-1"
+    href="/a/"
+    onClick={[Function]}
+  >
+    a
+  </a>,
+  " / ",
+  <a
+    className="makeStyles-root-1"
+    href="/a/b/"
+    onClick={[Function]}
+  >
+    b
+  </a>,
+  " / ",
+  "c",
+]
+`;
