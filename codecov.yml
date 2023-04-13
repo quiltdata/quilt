@@ -6,9 +6,9 @@ coverage:
           - '!**/tests/'
           - '!**/test/'
         informational: true
-      diff:
-        target: 80%
     patch:
+      default:
+        target: 80%
       informational: true
 
 flag_management:
