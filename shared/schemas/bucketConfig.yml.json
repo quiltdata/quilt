@@ -106,6 +106,10 @@
                     "overview": {
                       "type": "boolean",
                       "description": "Show/hide gallery in Overview tab"
+                    },
+                    "summarize": {
+                      "type": "boolean",
+                      "description": "Show/hide gallery if quilt_summarize.json is present"
                     }
                   }
                 }

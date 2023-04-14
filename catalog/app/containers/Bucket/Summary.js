@@ -97,10 +97,11 @@ function SummaryItemFile({ handle, name, mkUrl }) {
   )
 }
 
-function ThumbnailsWrapper({ preferences: galleryPrefs, images, mkUrl, inPackage }) {
+function ThumbnailsWrapper({ preferences: galleryPrefs, images, mkUrl, inPackage, hasSummarize }) {
   if (!images.length || !galleryPrefs) return null
   if (!galleryPrefs.files) return null
   if (inPackage && !galleryPrefs.packages) return null
+  if (hasSummarize && !galleryPrefs.summarize) return null
   return <Gallery.Thumbnails {...{ images, mkUrl }} />
 }
 
@@ -139,6 +140,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
                   mkUrl,
                   preferences: blocks.gallery,
                   inPackage: !!packageHandle,
+                  hasSummarize: !!summarize,
                 }}
               />
             </>

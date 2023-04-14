@@ -30,7 +30,7 @@ export interface MetaBlockPreferences {
   }
 }
 
-export type GalleryPreferences = Record<'files' | 'packages' | 'overview', boolean>
+export type GalleryPreferences = Record<'files' | 'packages' | 'overview' | 'summarize', boolean>
 
 interface BlocksPreferencesInput {
   analytics?: boolean
@@ -123,6 +123,7 @@ const defaultGallery: GalleryPreferences = {
   files: true,
   overview: true,
   packages: true,
+  summarize: false,
 }
 
 const defaultPreferences: BucketPreferences = {
@@ -194,6 +195,7 @@ function parseGalleryBlock(
     files: gallery.files || defaultGallery.files,
     packages: gallery.packages || defaultGallery.packages,
     overview: gallery.packages || defaultGallery.overview,
+    summarize: gallery.summarize || defaultGallery.summarize,
   }
 }
 
