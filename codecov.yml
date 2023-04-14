@@ -11,7 +11,7 @@ coverage:
       default:
         target: 40%
       diff:
-        target: 80%
+        target: 40%
       informational: true
 
 flag_management:

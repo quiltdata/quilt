@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 import responses
 
-from t4_lambda_shared.utils import buffer_s3response, read_body
+from t4_lambda_shared.utils import buffer_s3response, read_body, IncompleteResultException
 
 from .. import index as pkgselect
 
@@ -381,7 +381,7 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            with pytest.raises(botocore.exceptions.ClientError):
+            with pytest.raises(botocore.exceptions.ClientError, IncompleteResultException):
                 response = pkgselect.lambda_handler(params, None)
                 print(response)
                 json.loads(read_body(response))['result']

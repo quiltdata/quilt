@@ -86,8 +86,8 @@ def read_body(resp):
     Helper function to decode response body depending on how the body was encoded
     prior to transfer to and from lambda.
     """
-    if not 'body' in resp:
-        return resp
+    if 'body' not in resp:
+        raise IncompleteResultException("Response body not found")
     body = resp['body']
     if resp['isBase64Encoded']:
         body = b64decode(body)
