@@ -219,8 +219,8 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] != "NoSuchKey":
             raise
-    
-    if force and request == None:
+
+    if force and request is None:
         print("WARNING: -`-force` is deprecated. Please use `--request put` instead.")
         request = "put"
 
@@ -229,7 +229,7 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     pkg.push(
         name, registry=registry, dest=dest, message=message,
         workflow=workflow, force=force, dedupe=dedupe, request=request,
-        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}), 
+        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
     )
 
 

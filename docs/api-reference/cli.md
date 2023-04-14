@@ -15,7 +15,7 @@ positional arguments:
                      in a package name in the form 'BUCKET:USER/PKG' to go to
                      the package viewer.
 
-optional arguments:
+options:
   -h, --help         show this help message and exit
   --detailed_help    Display detailed information about this command and then
                      exit
@@ -49,7 +49,7 @@ positional arguments:
   catalog_url           URL of catalog to config with, or empty string to
                         reset the config
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --set KEY=VALUE [KEY=VALUE ...]
                         Set a number of key-value pairs for config_values(do
@@ -68,7 +68,7 @@ positional arguments:
   default_remote_registry
                         The default remote registry to use, e.g. s3://quilt-ml
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 ```
 ## `disable-telemetry`
@@ -77,7 +77,7 @@ usage: quilt3 disable-telemetry [-h]
 
 Disable anonymous usage metrics
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `install`
@@ -92,7 +92,7 @@ Install a package
 positional arguments:
   name                  Name of package, in the USER/PKG format
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --registry REGISTRY   Registry where package is located, usually s3://MY-
                         BUCKET. Defaults to the default remote registry.
@@ -112,7 +112,7 @@ List all packages in a registry
 positional arguments:
   registry    Registry for packages, e.g. s3://quilt-example
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `login`
@@ -121,7 +121,7 @@ usage: quilt3 login [-h]
 
 Log in to configured Quilt server
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `logout`
@@ -130,51 +130,40 @@ usage: quilt3 logout [-h]
 
 Log out of current Quilt server
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
 ```
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy] [--browse BROWSE]
-                   [--dir-logical-key DIR_LOGICAL_KEY]
+                   [--force] [--dedupe]
                    name
 
 Pushes the new package to the remote registry
 
 positional arguments:
-  name                  Name of package, in the USER/PKG format
+  name                 Name of package, in the USER/PKG format
 
 required arguments:
-  --dir DIR             Directory to add to the new package
+  --dir DIR            Directory to add to the new package
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --registry REGISTRY   Registry where to create the new package. Defaults to
-                        the default remote registry.
-  --dest DEST           Where to copy the objects in the package
-  --message MESSAGE     The commit message for the new package
-  --meta META           Sets package-level metadata. Format: A json string
-                        with keys in double quotes '{"key": "value"}'
-  --workflow WORKFLOW   Workflow ID or empty string to skip workflow
-                        validation. If not specified, the default workflow
-                        will be used.
-  --force               Skip the parent top hash check and create a new
-                        revision even if your local state is behind the remote
-                        registry.
-  --dedupe              Skip the push if the local package hash matches the
-                        remote hash.
-  --no-copy             Do not copy data. Package manifest entries will
-                        reference the data at the original location.
-  --browse BROWSE       By default, `push` first browses the top_hash from the
-                        'local' registry. Specify 'remote' to explicitly tell
-                        push to retrieve the current top_hash from the
-                        destination registry, so that it always succeeds.
-  --dir-logical-key DIR_LOGICAL_KEY
-                        By default, the specified `dir` is added to the top
-                        level of a package. Use this option to specify a
-                        subfolder.
+  -h, --help           show this help message and exit
+  --registry REGISTRY  Registry where to create the new package. Defaults to
+                       the default remote registry.
+  --dest DEST          Where to copy the objects in the package
+  --message MESSAGE    The commit message for the new package
+  --meta META          Sets package-level metadata. Format: A json string with
+                       keys in double quotes '{"key": "value"}'
+  --workflow WORKFLOW  Workflow ID or empty string to skip workflow
+                       validation. If not specified, the default workflow will
+                       be used.
+  --force              Skip the parent top hash check and create a new
+                       revision even if your local state is behind the remote
+                       registry.
+  --dedupe             Skip the push if the local package hash matches the
+                       remote hash.
 ```
 ## `verify`
 ```
@@ -187,7 +176,7 @@ Verify that package contents matches a given directory
 positional arguments:
   name                 Name of package, in the USER/PKG format
 
-optional arguments:
+options:
   -h, --help           show this help message and exit
   --registry REGISTRY  Registry where package is located, usually s3://MY-
                        BUCKET
