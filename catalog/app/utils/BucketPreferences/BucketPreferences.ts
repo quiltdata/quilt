@@ -263,7 +263,6 @@ export function extendDefaults(data: BucketPreferencesInput): BucketPreferences 
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
-      // ...defaultPreferences.ui,
       athena: parseAthena(data?.ui?.athena),
       blocks: parseBlocks(data?.ui?.blocks),
       packageDescription: parsePackages(
