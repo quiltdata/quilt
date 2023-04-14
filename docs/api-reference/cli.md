@@ -137,7 +137,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy] [--browse BROWSE]
+                   [--force] [--dedupe] [--no-copy] [-X REQUEST]
                    [--dir-logical-key DIR_LOGICAL_KEY]
                    name
 

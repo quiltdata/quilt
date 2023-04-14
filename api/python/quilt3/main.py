@@ -488,9 +488,9 @@ def create_parser():
         help="Do not copy data. Package manifest entries will reference the data at the original location.",
     )
     optional_args.add_argument(
-        "-X","--request",
+        "-X", "--request",
         help="""
-        Push by default will not succeed without installing the most recent version of an existing package. 
+        Push by default will not succeed without installing the most recent version of an existing package.
         Use `--request put` to ignore and replace, or `--request patch` to ignore and merge.
        """,
         default=None,

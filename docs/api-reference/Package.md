@@ -270,7 +270,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis, force: bool = False, dedupe: bool = False, request: str = None)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -294,7 +294,8 @@ If `selector_fn('entry_1', pkg["entry_1"]) == True`,
 `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
 By default, push will not overwrite an existing package if its top hash does not match
-the parent hash of the package being pushed. Use `force=True` to skip the check.
+the parent hash of the package being pushed. Use `--request put` to
+skip the check and replace, or `--request patch` to skip the check and merge.
 
 __Arguments__
 

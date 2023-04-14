@@ -128,9 +128,9 @@ class FileView:
     size: int
     hash: str
     meta: T.Optional[dict]
+    physical_keys: T.Optional[T.List[str]]
     physical_key: str = dataclasses.field(default_factory=str, repr=False)
     logical_key: str = dataclasses.field(default_factory=str, repr=False)
-    physical_keys: T.Optional[T.List[str]]
 
 
 async def file_view(bucket: str, manifest: str, path: str) -> T.Optional[FileView]:

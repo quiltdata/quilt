@@ -213,7 +213,8 @@ def test_push_workflow(workflow_input, expected_workflow):
         mocked_package_class.browse.assert_called_once_with(name, None)
         mocked_package.set_dir.assert_called_once_with('.', dir_path)
         mocked_package.push.assert_called_once_with(
-            name, dest=None, message=None, registry=None, workflow=expected_workflow, force=False, dedupe=False, request=None
+            name, dest=None, message=None, registry=None, workflow=expected_workflow,
+            force=False, dedupe=False, request=None
         )
 
 
