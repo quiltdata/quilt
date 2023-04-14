@@ -97,7 +97,13 @@ function SummaryItemFile({ handle, name, mkUrl }) {
   )
 }
 
-function ThumbnailsWrapper({ preferences: galleryPrefs, images, mkUrl, inPackage, hasSummarize }) {
+function ThumbnailsWrapper({
+  preferences: galleryPrefs,
+  images,
+  mkUrl,
+  inPackage,
+  hasSummarize,
+}) {
   if (!images.length || !galleryPrefs) return null
   if (!galleryPrefs.files) return null
   if (inPackage && !galleryPrefs.packages) return null
