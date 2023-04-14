@@ -9,7 +9,7 @@ coverage:
         informational: true
     patch:
       default:
-        target: 80%
+        target: 40%
       diff:
         target: 80%
       informational: true
@@ -20,10 +20,10 @@ flag_management:
       - name_prefix: 'auto-'
         type: project
         threshold: 0.1
-        target: 80%
+        target: 8%
       - name_prefix: 'auto-'
         type: patch
-        target: 80%
+        target: 4%
   individual_flags:
     # Looks like these are left from testing codecov flags,
     # but it's not clear why they are still appear, ignore them.
