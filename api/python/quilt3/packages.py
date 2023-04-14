@@ -1319,7 +1319,7 @@ class Package:
         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
         By default, push will not overwrite an existing package if its top hash does not match
-        the parent hash of the package being pushed. Use `--request put` to 
+        the parent hash of the package being pushed. Use `--request put` to
         skip the check and replace, or `--request patch` to skip the check and merge.
 
         Args:
