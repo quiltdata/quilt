@@ -13,7 +13,11 @@ import pandas as pd
 import pytest
 import responses
 
-from t4_lambda_shared.utils import buffer_s3response, read_body, IncompleteResultException
+from t4_lambda_shared.utils import (
+    IncompleteResultException,
+    buffer_s3response,
+    read_body, 
+)
 
 from .. import index as pkgselect
 

@@ -1,6 +1,7 @@
 """
 Helper functions.
 """
+import botocore
 import gzip
 import io
 import json
@@ -96,7 +97,7 @@ def read_body(resp):
     return body
 
 
-class IncompleteResultException(Exception):
+class IncompleteResultException(botocore.exceptions.ClientError):
     """
     Exception indicating an incomplete response
     (e.g., from S3 Select)
