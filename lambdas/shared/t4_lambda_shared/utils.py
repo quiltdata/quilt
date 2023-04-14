@@ -86,7 +86,7 @@ def read_body(resp):
     Helper function to decode response body depending on how the body was encoded
     prior to transfer to and from lambda.
     """
-    body = resp['body']
+    body = resp['body'] if 'body' in resp else resp
     if resp['isBase64Encoded']:
         body = b64decode(body)
     if resp['headers'].get('Content-Encoding') == 'gzip':
