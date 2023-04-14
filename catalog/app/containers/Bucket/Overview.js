@@ -8,10 +8,8 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
-import * as Pagination from 'components/Pagination'
 import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
-import Thumbnail from 'components/Thumbnail'
 import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
@@ -23,9 +21,9 @@ import { useQueryS } from 'utils/GraphQL'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
-import Link from 'utils/StyledLink'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
+import * as Gallery from './Gallery'
 import * as Summarize from './Summarize'
 import * as requests from './requests'
 import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
@@ -852,79 +850,6 @@ function Head({ s3, overviewUrl, bucket, description }) {
   )
 }
 
-const ImageGrid = M.styled(M.Box)(({ theme: t }) => ({
-  display: 'grid',
-  gridAutoRows: 'max-content',
-  gridColumnGap: t.spacing(2),
-  gridRowGap: t.spacing(2),
-  gridTemplateColumns: '1fr',
-  [t.breakpoints.up('sm')]: {
-    gridTemplateColumns: '1fr 1fr 1fr',
-  },
-  [t.breakpoints.up('md')]: {
-    gridTemplateColumns: '1fr 1fr 1fr 1fr',
-  },
-  [t.breakpoints.up('lg')]: {
-    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
-  },
-}))
-
-const useThumbnailsStyles = M.makeStyles({
-  link: {
-    overflow: 'hidden',
-  },
-  img: {
-    display: 'block',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxWidth: '100%',
-  },
-})
-
-function Thumbnails({ images }) {
-  const classes = useThumbnailsStyles()
-  const { urls } = NamedRoutes.use()
-
-  const scrollRef = React.useRef(null)
-  const scroll = React.useCallback(
-    (prev) => {
-      if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
-    },
-    [scrollRef],
-  )
-
-  const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
-
-  return (
-    <Summarize.Section
-      heading={
-        <>
-          Images ({pagination.from}&ndash;{Math.min(pagination.to, images.length)} of{' '}
-          {images.length})
-        </>
-      }
-    >
-      <div ref={scrollRef} />
-      <ImageGrid>
-        {pagination.paginated.map((i) => (
-          <Link
-            key={i.key}
-            to={urls.bucketFile(i.bucket, i.key, { version: i.version })}
-            className={classes.link}
-          >
-            <Thumbnail handle={i} className={classes.img} alt={i.key} title={i.key} />
-          </Link>
-        ))}
-      </ImageGrid>
-      {pagination.pages > 1 && (
-        <M.Box display="flex" justifyContent="flex-end" pt={2}>
-          <Pagination.Controls {...pagination} />
-        </M.Box>
-      )}
-    </Summarize.Section>
-  )
-}
-
 function Readmes({ s3, overviewUrl, bucket }) {
   return (
     <Data fetch={requests.bucketReadmes} params={{ s3, overviewUrl, bucket }}>
@@ -960,20 +885,8 @@ function Imgs({ s3, overviewUrl, inStack, bucket }) {
   return (
     <Data fetch={requests.bucketImgs} params={{ req, s3, overviewUrl, inStack, bucket }}>
       {AsyncResult.case({
-        Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
-        _: () => (
-          <Summarize.Section key="thumbs:skel" heading={<Summarize.HeadingSkel />}>
-            <ImageGrid>
-              {R.times(
-                (i) => (
-                  // eslint-disable-next-line react/no-array-index-key
-                  <Skeleton key={i} height={200} />
-                ),
-                9,
-              )}
-            </ImageGrid>
-          </Summarize.Section>
-        ),
+        Ok: (images) => (images.length ? <Gallery.Thumbnails images={images} /> : null),
+        _: () => <Gallery.Skeleton />,
       })}
     </Data>
   )
