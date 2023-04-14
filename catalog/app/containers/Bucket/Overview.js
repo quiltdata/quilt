@@ -892,6 +892,30 @@ function Imgs({ s3, overviewUrl, inStack, bucket }) {
   )
 }
 
+function ThumbnailsWrapper({
+  s3,
+  overviewUrl,
+  inStack,
+  bucket,
+  preferences: galleryPrefs,
+}) {
+  if (cfg.noOverviewImages || !galleryPrefs) return null
+  if (!galleryPrefs.overview) return null
+  return (
+    <Data fetch={requests.ensureQuiltSummarizeIsPresent} params={{ s3, bucket }}>
+      {AsyncResult.case({
+        Ok: (h) =>
+          (!h || galleryPrefs.summarize) && (
+            <Imgs {...{ s3, bucket, inStack, overviewUrl }} />
+          ),
+        Err: () => <Imgs {...{ s3, bucket, inStack, overviewUrl }} />,
+        Pending: () => <Gallery.Skeleton />,
+        _: () => null,
+      })}
+    </Data>
+  )
+}
+
 export default function Overview({
   match: {
     params: { bucket },
@@ -923,19 +947,18 @@ export default function Overview({
         </M.Box>
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
-      {!cfg.noOverviewImages &&
-        BucketPreferences.Result.match(
-          {
-            Ok: ({ ui: { blocks } }) =>
-              blocks.gallery &&
-              !!blocks.gallery.overview && (
-                <Imgs {...{ s3, bucket, inStack, overviewUrl }} />
-              ),
-            Pending: () => <M.CircularProgress />,
-            Init: R.F,
-          },
-          prefsResult,
-        )}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => (
+            <ThumbnailsWrapper
+              {...{ s3, bucket, inStack, overviewUrl, preferences: blocks.gallery }}
+            />
+          ),
+          Pending: () => <Gallery.Skeleton />,
+          Init: R.F,
+        },
+        prefsResult,
+      )}
       <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
