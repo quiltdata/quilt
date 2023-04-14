@@ -682,21 +682,17 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
-  return (
-    <FileThemeContext.Provider value={FileThemes.Nested}>
-      {data.case({
-        Err: (e: Error) => <SummaryFailed error={e} />,
-        Ok: (entries: SummarizeFile[]) => (
-          <SummaryEntries
-            entries={entries}
-            s3={s3}
-            mkUrl={mkUrl}
-            packageHandle={packageHandle}
-          />
-        ),
-        Pending: () => <FilePreviewSkel />,
-        _: () => null,
-      })}
-    </FileThemeContext.Provider>
-  )
+  return data.case({
+    Err: (e: Error) => <SummaryFailed error={e} />,
+    Ok: (entries: SummarizeFile[]) => (
+      <SummaryEntries
+        entries={entries}
+        s3={s3}
+        mkUrl={mkUrl}
+        packageHandle={packageHandle}
+      />
+    ),
+    Pending: () => <FilePreviewSkel />,
+    _: () => null,
+  })
 }
