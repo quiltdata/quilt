@@ -160,17 +160,16 @@ optional arguments:
   --workflow WORKFLOW   Workflow ID or empty string to skip workflow
                         validation. If not specified, the default workflow
                         will be used.
-  --force               Skip the parent top hash check and create a new
-                        revision even if your local state is behind the remote
-                        registry.
+  --force               Deprecated. Use `--request put` instead.
   --dedupe              Skip the push if the local package hash matches the
                         remote hash.
   --no-copy             Do not copy data. Package manifest entries will
                         reference the data at the original location.
-  --browse BROWSE       By default, `push` first browses the top_hash from the
-                        'local' registry. Specify 'remote' to explicitly tell
-                        push to retrieve the current top_hash from the
-                        destination registry, so that it always succeeds.
+  -X REQUEST, --request REQUEST
+                        Push by default will not succeed without installing
+                        the most recent version of an existing package. Use
+                        `--request put` to ignore and replace, or `--request
+                        patch` to ignore and merge.
   --dir-logical-key DIR_LOGICAL_KEY
                         By default, the specified `dir` is added to the top
                         level of a package. Use this option to specify a

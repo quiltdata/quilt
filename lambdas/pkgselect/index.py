@@ -128,8 +128,8 @@ class FileView:
     size: int
     hash: str
     meta: T.Optional[dict]
-    physical_key: T.Optional[str]
-    logical_key: T.Optional[str]
+    physical_key: str = dataclasses.field(default_factory=str, repr=False)
+    logical_key: str = dataclasses.field(default_factory=str, repr=False)
     physical_keys: T.Optional[T.List[str]]
 
 
