@@ -1125,9 +1125,6 @@ class Package:
 
         Returns:
             self
-
-        Warnings:
-            meta will override any previously defined metadata
         """
         return self._set(logical_key=logical_key,
                          entry=entry,
