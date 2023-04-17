@@ -6,7 +6,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
@@ -147,20 +147,6 @@ interface RouteMap {
   ]
 }
 
-type Urls = NamedRoutes.Urls<RouteMap>
-
-const getCrumbs = R.compose(
-  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
-  ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
-    [{ label: bucket, path: '' }, ...s3paths.getBreadCrumbs(path)].map(
-      ({ label, path: segPath }) =>
-        Crumb.Segment({
-          label,
-          to: segPath === path ? undefined : urls.bucketDir(bucket, segPath),
-        }),
-    ),
-)
-
 function useFormattedListing(r: requests.BucketListingResult) {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
@@ -298,7 +284,6 @@ export default function Dir({
   location: l,
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use<RouteMap>()
   const s3 = AWS.S3.use()
   const { result: prefsResult } = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
@@ -377,6 +362,13 @@ export default function Dir({
     [packageDirectoryDialog, path],
   )
 
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const getSegmentRoute = React.useCallback(
+    (segPath: string) => urls.bucketDir(bucket, segPath),
+    [bucket, urls],
+  )
+  const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
@@ -390,8 +382,8 @@ export default function Dir({
       })}
 
       <div className={classes.topbar}>
-        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+        <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+          {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
           {BucketPreferences.Result.match(

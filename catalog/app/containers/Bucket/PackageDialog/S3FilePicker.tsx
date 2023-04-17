@@ -6,11 +6,11 @@ import * as M from '@material-ui/core'
 import * as DG from '@material-ui/data-grid'
 
 import Lock from 'components/Lock'
-import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
+import { ensureNoSlash, withoutPrefix } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
@@ -28,12 +28,6 @@ export const isS3File = (f: any): f is Model.S3File =>
   typeof f.key === 'string' &&
   (typeof f.version === 'string' || typeof f.version === 'undefined') &&
   typeof f.size === 'number'
-
-const getCrumbs = R.compose(R.intersperse(Crumb.Sep(<>&nbsp;/ </>)), (path: string) =>
-  [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].map(({ label, path: segPath }) =>
-    Crumb.Segment({ label, to: segPath === path ? undefined : segPath }),
-  ),
-)
 
 function ExpandMore({ className }: { className?: string }) {
   return <M.Icon className={className}>expand_more</M.Icon>
@@ -148,11 +142,10 @@ export function Dialog({
     [locked, onClose],
   )
 
-  const crumbs = React.useMemo(() => getCrumbs(path), [path])
-
-  const getCrumbLinkProps = ({ to }: { to: string }) => ({
+  const crumbs = BreadCrumbs.use(path, R.identity, 'ROOT')
+  const getCrumbLinkProps = ({ to }: { to?: string }) => ({
     onClick: () => {
-      setPath(to)
+      setPath(to || '')
     },
   })
 
@@ -256,8 +249,7 @@ export function Dialog({
         </M.Typography>
       </M.DialogTitle>
       <div className={classes.crumbs}>
-        {/* @ts-expect-error, TODO: convert Breadcrumbs to typescript */}
-        {renderCrumbs(crumbs, { getLinkProps: getCrumbLinkProps })}
+        {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
       </div>
       {data.case({
         // TODO: customized error display?
