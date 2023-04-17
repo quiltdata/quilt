@@ -7,7 +7,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
@@ -34,7 +34,6 @@ import * as requests from 'containers/Bucket/requests'
 
 import * as EmbedConfig from './EmbedConfig'
 import * as Overrides from './Overrides'
-import getCrumbs from './getCrumbs'
 import * as ipc from './ipc'
 
 const defaults = {
@@ -429,12 +428,23 @@ export default function File({
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
+  const scoped = ecfg.scope && path.startsWith(ecfg.scope)
+  const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
+  const getSegmentRoute = React.useCallback(
+    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
+    [bucket, ecfg.scope, scoped, urls],
+  )
+  const crumbs = BreadCrumbs.use(
+    s3paths.up(scopedPath),
+    getSegmentRoute,
+    scoped ? basename(ecfg.scope) : 'ROOT',
+    { tailLink: true, tailSeparator: true },
+  )
+
   return (
     <FileView.Root>
-      <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-        {renderCrumbs(
-          getCrumbs({ bucket, path, urls, scope: ecfg.scope, excludeBase: true }),
-        )}
+      <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+        {BreadCrumbs.render(crumbs)}
       </div>
       <div className={classes.topBar}>
         <div className={classes.name}>

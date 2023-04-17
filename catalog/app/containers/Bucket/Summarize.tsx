@@ -5,7 +5,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
@@ -209,38 +209,20 @@ function PreviewBox({ children, expanded, onToggle }: PreviewBoxProps) {
   )
 }
 
-const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
-
 interface CrumbsProps {
   handle: Model.S3.S3ObjectLocation
 }
 
 function Crumbs({ handle }: CrumbsProps) {
   const { urls } = NamedRoutes.use()
-  const crumbs = React.useMemo(() => {
-    const all = s3paths.getBreadCrumbs(handle.key)
-    const dirs = R.init(all).map(({ label, path }) => ({
-      to: urls.bucketFile(handle.bucket, path),
-      children: label,
-    }))
-    const file = {
-      to: urls.bucketFile(handle.bucket, handle.key),
-      children: R.last(all)?.label,
-    }
-    return { dirs, file }
-  }, [handle.bucket, handle.key, urls])
-
-  return (
-    <span onCopy={copyWithoutSpaces}>
-      {crumbs.dirs.map((c) => (
-        <React.Fragment key={`crumb:${c.to}`}>
-          <CrumbLink {...c} />
-          &nbsp;/{' '}
-        </React.Fragment>
-      ))}
-      <CrumbLink {...crumbs.file} />
-    </span>
+  const getSegmentRoute = React.useCallback(
+    (segPath) => urls.bucketFile(handle.bucket, segPath),
+    [urls, handle.bucket],
   )
+  const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, undefined, {
+    tailLink: true,
+  })
+  return <span onCopy={BreadCrumbs.copyWithoutSpaces}>{BreadCrumbs.render(crumbs)}</span>
 }
 
 interface FilePreviewProps {
