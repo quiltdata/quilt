@@ -14,7 +14,6 @@ import pytest
 import responses
 
 from t4_lambda_shared.utils import (
-    IncompleteResultException,
     buffer_s3response,
     read_body,
 )
@@ -385,10 +384,9 @@ class TestPackageSelect(TestCase):
             'boto3.Session.client',
             return_value=mock_s3
         ):
-            with pytest.raises(botocore.exceptions.ClientError, IncompleteResultException):
-                response = pkgselect.lambda_handler(params, None)
-                print(response)
-                json.loads(read_body(response))['result']
+            response = pkgselect.lambda_handler(params, None)
+            print(response)
+            json.loads(read_body(response))['result']
 
     def test_non_existing_logical_key(self):
         """

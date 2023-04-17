@@ -9,8 +9,6 @@ import os
 from base64 import b64decode
 from typing import Iterable
 
-import botocore
-
 LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
 POINTER_PREFIX_V1 = ".quilt/named_packages/"
@@ -98,7 +96,7 @@ def read_body(resp):
     return body
 
 
-class IncompleteResultException(botocore.exceptions.ClientError):
+class IncompleteResultException(Exception):
     """
     Exception indicating an incomplete response
     (e.g., from S3 Select)
