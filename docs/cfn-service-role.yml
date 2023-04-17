@@ -1,7 +1,16 @@
+Outputs:
+  Role:
+    Value: !GetAtt 'CloudFormationServiceRole.Arn'
+
 Resources:
   QuiltCloudFormationServiceRole:
     Type: AWS::IAM::Role
     Properties:
+      Description: 'CloudFormation service role used for deploying Quilt.'
+      RoleName: !Sub '${AWS::StackName}-cfn-service-role'
+      Tags:
+        - Key: "Application Name"
+          Value: "Quilt"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -82,6 +91,7 @@ Resources:
                   - ecs:DescribeClusters
                   - ecs:DescribeServices
                   - ecs:RegisterTaskDefinition
+                  - ecs:UpdateService
                   - elasticloadbalancing:CreateListener
                   - elasticloadbalancing:CreateLoadBalancer
                   - elasticloadbalancing:CreateRule
@@ -99,6 +109,8 @@ Resources:
                   - es:CreateElasticsearchDomain
                   - es:DeleteElasticsearchDomain
                   - es:DescribeElasticsearchDomain
+                  - es:UpdateDomainConfig
+                  - es:UpdateElasticsearchDomainConfig
                   - events:DeleteRule
                   - events:DescribeRule
                   - events:PutRule
@@ -170,6 +182,11 @@ Resources:
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:ListDeadLetterSourceQueues
+                  - sqs:ListQueues
+                  - sqs:ListQueueTags
+                  - sqs:SetQueueAttributes
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
