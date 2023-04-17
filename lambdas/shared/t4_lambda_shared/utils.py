@@ -1,7 +1,6 @@
 """
 Helper functions.
 """
-import botocore
 import gzip
 import io
 import json
@@ -9,6 +8,8 @@ import logging
 import os
 from base64 import b64decode
 from typing import Iterable
+
+import botocore
 
 LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
