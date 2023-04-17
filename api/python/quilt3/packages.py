@@ -189,7 +189,7 @@ class PackageEntry:
         Sets the user_meta for this PackageEntry.
 
         Args:
-            meta(dict): user level metadata dict
+            meta(dict): object-level metadata
         """
         self._meta['user_meta'] = meta
 
