@@ -60,9 +60,7 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     if (['NoSuchKey', 'NotFound'].includes((e as AWSError).name)) {
       throw PreviewError.DoesNotExist({ handle })
     }
-    // eslint-disable-next-line no-console
     log.error('Error loading preview')
-    // eslint-disable-next-line no-console
     log.error(e)
     throw e
   }
