@@ -13,14 +13,10 @@ const handle = {
 
 function mockS3(responseFunc: any, opts?: any) {
   return {
-    headObject: () => {
-      return {
-        promise: async () => {
-          return responseFunc()
-        },
-        ...opts,
-      }
-    },
+    headObject: () => ({
+      promise: async () => responseFunc(),
+      ...opts,
+    }),
   } as S3
 }
 
