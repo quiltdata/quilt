@@ -177,7 +177,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools
+          python -m pip install --upgrade pip
           if [ ${{ matrix.path }} == "shared" ]
             python -m pip install -e lambdas/shared[tests]
           then
