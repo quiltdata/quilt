@@ -3,6 +3,7 @@ import type { S3, AWSError } from 'aws-sdk'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
+import log from 'utils/Logging'
 
 import { PreviewError } from '../types'
 
@@ -16,10 +17,6 @@ const SIZE_THRESHOLDS: SizeThresholds = {
   neverFetch: 1024 * 1024, // never load if > 1MB
 }
 
-function isAWSError(error: unknown): error is AWSError {
-  return error instanceof Error && !!(error as AWSError).code
-}
-
 interface GateArgs {
   s3: S3
   handle: Model.S3.S3ObjectLocation
@@ -27,7 +24,7 @@ interface GateArgs {
 }
 
 // TODO: make it more general-purpose "head"?
-async function gate({ s3, handle, thresholds = {} }: GateArgs) {
+export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
   let length: number | undefined
   const req = s3.headObject({
     Bucket: handle.bucket,
@@ -43,9 +40,6 @@ async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     }
   } catch (e) {
     if (PreviewError.is(e)) throw e
-    if (!isAWSError(e)) throw e
-    // NOTE: it is actually not an AWSError strictly
-    //       e.code can be a number
     // TODO: use `e.statusCode`?
     if ((e as $TSFixMe).code === 405 && handle.version != null) {
       // assume delete marker when 405 and version is defined,
@@ -53,23 +47,23 @@ async function gate({ s3, handle, thresholds = {} }: GateArgs) {
       // (https://github.com/boto/botocore/issues/674)
       throw PreviewError.Deleted({ handle })
     }
-    if (e.code === 'BadRequest' && handle.version != null) {
+    if ((e as AWSError).code === 'BadRequest' && handle.version != null) {
       // assume invalid version when 400 and version is defined
       throw PreviewError.InvalidVersion({ handle })
     }
     if (
-      e.code === 'NotFound' &&
+      (e as AWSError).code === 'NotFound' &&
       (req as $TSFixMe).response.httpResponse.headers['x-amz-delete-marker'] === 'true'
     ) {
       throw PreviewError.Deleted({ handle })
     }
-    if (['NoSuchKey', 'NotFound'].includes(e.name)) {
+    if (['NoSuchKey', 'NotFound'].includes((e as AWSError).name)) {
       throw PreviewError.DoesNotExist({ handle })
     }
     // eslint-disable-next-line no-console
-    console.error('Error loading preview')
+    log.error('Error loading preview')
     // eslint-disable-next-line no-console
-    console.error(e)
+    log.error(e)
     throw e
   }
   if (length && length > (thresholds.autoFetch || SIZE_THRESHOLDS.autoFetch)) {
