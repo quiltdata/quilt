@@ -1324,7 +1324,7 @@ class Package:
         Args:
             name: name for package in registry
             dest: where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
-                in the registry bucket, or a callable that takes logical_key, package_entry, and top_hash 
+                in the registry bucket, or a callable that takes logical_key, package_entry, and top_hash
                 and returns an S3 URI.
             registry: registry where to create the new package
             message: the commit message for the new package
