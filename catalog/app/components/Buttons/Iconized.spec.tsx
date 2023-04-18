@@ -1,3 +1,5 @@
+// TODO: test matching media queries
+// import mediaQuery from 'css-mediaquery'
 import * as React from 'react'
 import renderer from 'react-test-renderer'
 
