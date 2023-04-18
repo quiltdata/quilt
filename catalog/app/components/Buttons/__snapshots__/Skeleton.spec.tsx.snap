@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Buttons/Skeleton render 1`] = `
+<div
+  className="MuiBox-root MuiBox-root-8 makeStyles-root-1 makeStyles-medium-3 makeStyles-root-5 makeStyles-animate-7"
+/>
+`;
