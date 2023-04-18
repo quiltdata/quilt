@@ -9,7 +9,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import ButtonIconized from 'components/ButtonIconized'
+import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
@@ -666,7 +666,7 @@ function FileDisplay({
                   size={size}
                 />
                 {isEditable && (
-                  <ButtonIconized
+                  <Buttons.Iconized
                     className={classes.button}
                     icon="edit"
                     label="Edit"
