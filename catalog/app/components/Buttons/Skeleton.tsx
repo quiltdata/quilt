@@ -6,9 +6,10 @@ import Skeleton from 'components/Skeleton'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    display: 'inline-block',
-    boxShadow: t.shadows[4],
     borderRadius: '4px',
+    boxShadow: t.shadows[4],
+    display: 'inline-flex',
+    verticalAlign: 'middle',
     width: t.spacing(15),
   },
   small: {
