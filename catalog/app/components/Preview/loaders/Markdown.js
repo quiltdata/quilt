@@ -14,6 +14,7 @@ import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData, PreviewError } from '../types'
 import FileType from './fileType'
+import useGate from './useGate'
 import * as utils from './utils'
 
 export const FILE_TYPE = FileType.Markdown
@@ -89,7 +90,7 @@ function MarkdownLoader({ gated, handle, children }) {
 }
 
 export const Loader = function GatedMarkdownLoader({ handle, children }) {
-  const data = utils.useGate(handle)
+  const data = useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return pipeThru(handled)(
     AsyncResult.case({
