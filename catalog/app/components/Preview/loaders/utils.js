@@ -13,11 +13,6 @@ import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewError } from '../types'
 
-export const SIZE_THRESHOLDS = [
-  128 * 1024, // automatically load if <= 128kB
-  1024 * 1024, // never load if > 1MB
-]
-
 export const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
 
 export const GLACIER_ERROR_RE =
@@ -39,60 +34,6 @@ export const stripCompression = (key) => {
 export const extIs = (ext) => (key) => extname(key).toLowerCase() === ext
 
 export const extIn = (exts) => (key) => exts.includes(extname(key).toLowerCase())
-
-// TODO: make it more general-purpose "head"?
-const gate = async ({ s3, handle }) => {
-  let length
-  const req = s3.headObject({
-    Bucket: handle.bucket,
-    Key: handle.key,
-    VersionId: handle.version,
-  })
-  try {
-    const head = await req.promise()
-    length = head.ContentLength
-    if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
-    if (head.StorageClass === 'GLACIER' || head.StorageClass === 'DEEP_ARCHIVE') {
-      throw PreviewError.Archived({ handle })
-    }
-  } catch (e) {
-    if (PreviewError.is(e)) throw e
-    // TODO: should it be 'status'?
-    if (e.code === 405 && handle.version != null) {
-      // assume delete marker when 405 and version is defined,
-      // since GET and HEAD methods are not allowed on delete markers
-      // (https://github.com/boto/botocore/issues/674)
-      throw PreviewError.Deleted({ handle })
-    }
-    if (e.code === 'BadRequest' && handle.version != null) {
-      // assume invalid version when 400 and version is defined
-      throw PreviewError.InvalidVersion({ handle })
-    }
-    if (
-      e.code === 'NotFound' &&
-      req.response.httpResponse.headers['x-amz-delete-marker'] === 'true'
-    ) {
-      throw PreviewError.Deleted({ handle })
-    }
-    if (['NoSuchKey', 'NotFound'].includes(e.name)) {
-      throw PreviewError.DoesNotExist({ handle })
-    }
-    // eslint-disable-next-line no-console
-    console.error('Error loading preview')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
-  if (length > SIZE_THRESHOLDS[1]) {
-    throw PreviewError.TooLarge({ handle })
-  }
-  return length > SIZE_THRESHOLDS[0]
-}
-
-export function useGate(handle) {
-  const s3 = AWS.S3.use()
-  return Data.use(gate, { s3, handle })
-}
 
 const parseRange = (range) => {
   if (!range) return undefined
