@@ -1,7 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`components/Buttons/Skeleton render 1`] = `
+exports[`components/Buttons/Skeleton render large 1`] = `
+<div
+  className="MuiBox-root MuiBox-root-10 makeStyles-root-1 makeStyles-large-4 makeStyles-root-5 makeStyles-animate-7"
+/>
+`;
+
+exports[`components/Buttons/Skeleton render medium by default 1`] = `
 <div
   className="MuiBox-root MuiBox-root-8 makeStyles-root-1 makeStyles-medium-3 makeStyles-root-5 makeStyles-animate-7"
+/>
+`;
+
+exports[`components/Buttons/Skeleton render small 1`] = `
+<div
+  className="MuiBox-root MuiBox-root-9 makeStyles-root-1 makeStyles-small-2 makeStyles-root-5 makeStyles-animate-7"
 />
 `;
