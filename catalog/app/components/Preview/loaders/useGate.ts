@@ -6,10 +6,15 @@ import * as Data from 'utils/Data'
 
 import { PreviewError } from '../types'
 
-export const SIZE_THRESHOLDS = [
-  128 * 1024, // automatically load if <= 128kB
-  1024 * 1024, // never load if > 1MB
-]
+interface SizeThresholds {
+  autoFetch: number
+  neverFetch: number
+}
+
+const SIZE_THRESHOLDS: SizeThresholds = {
+  autoFetch: 128 * 1024, // automatically load if <= 128kB
+  neverFetch: 1024 * 1024, // never load if > 1MB
+}
 
 function isAWSError(error: unknown): error is AWSError {
   return error instanceof Error && !!(error as AWSError).code
@@ -18,10 +23,11 @@ function isAWSError(error: unknown): error is AWSError {
 interface GateArgs {
   s3: S3
   handle: Model.S3.S3ObjectLocation
+  thresholds?: Partial<SizeThresholds>
 }
 
 // TODO: make it more general-purpose "head"?
-async function gate({ s3, handle }: GateArgs) {
+async function gate({ s3, handle, thresholds = {} }: GateArgs) {
   let length: number | undefined
   const req = s3.headObject({
     Bucket: handle.bucket,
@@ -66,13 +72,16 @@ async function gate({ s3, handle }: GateArgs) {
     console.error(e)
     throw e
   }
-  if (length && length > SIZE_THRESHOLDS[1]) {
+  if (length && length > (thresholds.autoFetch || SIZE_THRESHOLDS.autoFetch)) {
     throw PreviewError.TooLarge({ handle })
   }
-  return length && length > SIZE_THRESHOLDS[0]
+  return length && length > (thresholds.neverFetch || SIZE_THRESHOLDS.neverFetch)
 }
 
-export default function useGate(handle: Model.S3.S3ObjectLocation) {
+export default function useGate(
+  handle: Model.S3.S3ObjectLocation,
+  thresholds?: Partial<SizeThresholds>,
+) {
   const s3 = AWS.S3.use()
-  return Data.use(gate, { s3, handle })
+  return Data.use(gate, { s3, handle, thresholds })
 }
