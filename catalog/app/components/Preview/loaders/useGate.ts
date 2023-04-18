@@ -38,7 +38,10 @@ async function gate({ s3, handle }: GateArgs) {
   } catch (e) {
     if (PreviewError.is(e)) throw e
     if (!isAWSError(e)) throw e
-    if (e.statusCode === 405 && handle.version != null) {
+    // NOTE: it is actually not an AWSError strictly
+    //       e.code can be a number
+    // TODO: use `e.statusCode`?
+    if ((e as $TSFixMe).code === 405 && handle.version != null) {
       // assume delete marker when 405 and version is defined,
       // since GET and HEAD methods are not allowed on delete markers
       // (https://github.com/boto/botocore/issues/674)
