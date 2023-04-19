@@ -772,7 +772,7 @@ export function usePackageCreationDialog({
     bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
     name: src?.name!,
-    hash: src?.hash,
+    hashOrTag: src?.hash,
     pause: !(src && isOpen),
   })
 
