@@ -518,6 +518,12 @@ function PackageCreationForm({
   // TODO: move useLocalFolder to its own component shared by Download and Upload
   const [defaultLocalFolder] = Download.useLocalFolder()
 
+  const titlePrefix = React.useMemo(() => {
+    if (ui.title) return `${ui.title} in`
+    if (dropZoneOnly && R.isEmpty(existingEntries)) return 'Add files to package in'
+    return 'Create package in'
+  }, [ui.title, dropZoneOnly, existingEntries])
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -543,7 +549,7 @@ function PackageCreationForm({
         <>
           {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
           <M.DialogTitle>
-            {ui.title || 'Create package'} in{' '}
+            {titlePrefix}
             <Successors.Dropdown
               bucket={bucket || ''}
               successor={successor}
