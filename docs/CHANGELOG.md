@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
+
 # 5.3.0 - 2023-04-11
 ## Python API
 * [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
@@ -22,7 +30,6 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 * [Fixed] Fix package push failing for unrelated reason ([#3390](https://github.com/quiltdata/quilt/pull/3390))
 * [Fixed] Fix package page flash when there is Jupyter Notebook ([#3408](https://github.com/quiltdata/quilt/pull/3408))
-* [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
 
 # 5.2.1 - 2023-04-05
 ## Python API
