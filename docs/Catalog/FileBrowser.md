@@ -1,5 +1,3 @@
-## Files browser
-
 Every S3 bucket attached to Quilt has a "Bucket" tab in the Catalog
 that displays all files in the bucket.
 
