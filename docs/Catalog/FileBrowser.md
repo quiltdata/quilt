@@ -1,4 +1,4 @@
-<!-- markdownlint-disable -->
+<!-- markdownlint-disable-next-line first-line-h1 -->
 Every S3 bucket attached to Quilt has a "Bucket" tab in the Catalog
 that displays all files in the bucket.
 
