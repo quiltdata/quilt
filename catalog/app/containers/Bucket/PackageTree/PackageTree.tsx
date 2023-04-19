@@ -8,7 +8,7 @@ import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import ButtonIconized from 'components/ButtonIconized'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
@@ -140,15 +140,15 @@ const useTopBarStyles = M.makeStyles((t) => ({
 }))
 
 interface TopBarProps {
-  crumbs: $TSFixMe[] // Crumb
+  crumbs: BreadCrumbs.Crumb[]
 }
 
 function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
   const classes = useTopBarStyles()
   return (
     <div className={classes.topBar}>
-      <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-        {renderCrumbs(crumbs)}
+      <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+        {BreadCrumbs.render(crumbs)}
       </div>
       <div className={classes.content}>{children}</div>
     </div>
@@ -170,7 +170,7 @@ interface DirDisplayProps {
   hash: string
   hashOrTag: string
   path: string
-  crumbs: $TSFixMe[] // Crumb
+  crumbs: BreadCrumbs.Crumb[]
   size?: number
 }
 
@@ -501,7 +501,7 @@ interface FileDisplayQueryProps {
   hash: string
   hashOrTag: string
   path: string
-  crumbs: $TSFixMe[] // Crumb
+  crumbs: BreadCrumbs.Crumb[]
   mode?: string
 }
 
@@ -770,21 +770,13 @@ function PackageTree({
 
   const isDir = s3paths.isDir(path)
 
-  const crumbs = React.useMemo(() => {
-    const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
-    return R.intersperse(
-      Crumb.Sep(<>&nbsp;/ </>),
-      segments.map(({ label, path: segPath }) =>
-        Crumb.Segment({
-          label,
-          to:
-            path === segPath
-              ? undefined
-              : urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
-        }),
-      ),
-    ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
-  }, [bucket, name, hashOrTag, path, urls])
+  const getSegmentRoute = React.useCallback(
+    (segPath: string) => urls.bucketPackageTree(bucket, name, hashOrTag, segPath),
+    [bucket, hashOrTag, name, urls],
+  )
+  const crumbs = BreadCrumbs.use(path, getSegmentRoute, 'ROOT', {
+    tailSeparator: path.endsWith('/'),
+  })
 
   return (
     <FileView.Root>

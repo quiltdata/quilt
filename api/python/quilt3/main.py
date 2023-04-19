@@ -13,7 +13,7 @@ import requests
 
 from . import Package
 from . import __version__ as quilt3_version
-from . import api, session
+from . import api, session, util
 from .backends import get_package_registry
 from .session import open_url
 from .util import (
@@ -202,7 +202,15 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe):
+# This is not a lambda to ease of testing.
+def _selector_fn_no_copy(*args):
+    return False
+
+
+def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy):
+    if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
+        raise QuiltException("--no-copy flag can be specified only for remote data.")
+
     try:
         pkg = Package.browse(name, None)
     except FileNotFoundError:
@@ -211,7 +219,8 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe):
     pkg.set_dir('.', dir, meta=meta)
     pkg.push(
         name, registry=registry, dest=dest, message=message,
-        workflow=workflow, force=force, dedupe=dedupe
+        workflow=workflow, force=force, dedupe=dedupe,
+        **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
     )
 
 
@@ -464,6 +473,11 @@ def create_parser():
         "--dedupe",
         action="store_true",
         help="Skip the push if the local package hash matches the remote hash.",
+    )
+    optional_args.add_argument(
+        "--no-copy",
+        action="store_true",
+        help="Do not copy data. Package manifest entries will reference the data at the original location.",
     )
     push_p.set_defaults(func=cmd_push)
 
