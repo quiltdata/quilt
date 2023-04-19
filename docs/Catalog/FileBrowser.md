@@ -1,5 +1,7 @@
-Every S3 bucket attached to Quilt has a "Bucket" tab that displays
-all files in the bucket.
+## Files browser
+
+Every S3 bucket attached to Quilt has a "Bucket" tab in the Catalog
+that displays all files in the bucket.
 
 ![Files browser tab](../imgs/catalog-filesbrowser-tab.png)
 
