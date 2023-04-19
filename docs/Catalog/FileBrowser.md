@@ -1,5 +1,3 @@
-zsh:1: command not found: fm5t
-
 Every S3 bucket attached to Quilt has a "Bucket" tab that displays
 all files in the bucket.
 
