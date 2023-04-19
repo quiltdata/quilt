@@ -46,7 +46,7 @@ __Arguments__
 ## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
 Lists versions of a given package.
 
-Returns an iterable of (unix_timestamp, hash) of package revisions.
+Returns an iterable of (latest_or_unix_ts, hash) of package revisions.
 If the registry is None, default to the local registry.
 
 __Arguments__
