@@ -52,7 +52,7 @@ export const Result = tagged.create('app/utils/BucketPreferences:Result' as cons
 export type Result = tagged.InstanceOf<typeof Result>
 
 const Ctx = React.createContext<{
-  /** @deprecated */
+  /** @deprecated use `result`, and then return result only */
   preferences: BucketPreferences | null
   result: Result
 }>({
