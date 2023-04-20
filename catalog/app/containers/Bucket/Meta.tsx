@@ -142,7 +142,7 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
 }
 
 export function PackageMeta({ data, ...props }: WrapperProps) {
-  const { result } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return AsyncResult.case(
     {
       Ok: (meta?: MetaData) => {
@@ -155,7 +155,7 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
               ),
             _: noop,
           },
-          result,
+          prefs,
         )
       },
       Err: errorHandler,

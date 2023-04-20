@@ -418,7 +418,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -487,7 +487,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
               ),
             _: () => null, // TODO: Buttons.Skeleton
           },
-          prefsResult,
+          prefs,
         )}
       </M.Box>
 

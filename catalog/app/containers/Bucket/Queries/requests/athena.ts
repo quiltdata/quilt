@@ -164,7 +164,7 @@ export function useWorkgroups(
   prev: WorkgroupsResponse | null,
 ): AsyncData<WorkgroupsResponse> {
   const athena = AWS.Athena.use()
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const preferences = React.useMemo(
     () =>
       BucketPreferences.Result.match(
@@ -172,9 +172,9 @@ export function useWorkgroups(
           Ok: ({ ui }) => ui.athena,
           _: () => undefined,
         },
-        prefsResult,
+        prefs,
       ),
-    [prefsResult],
+    [prefs],
   )
   return useData(fetchWorkgroups, { athena, prev, preferences })
 }

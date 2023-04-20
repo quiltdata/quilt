@@ -220,7 +220,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
     history.push(urls.bucketPackageList(bucket))
@@ -437,7 +437,7 @@ function DirDisplay({
                   ),
                   _: () => null, // TODO: Buttons.Skeleton
                 },
-                prefsResult,
+                prefs,
               )}
               {BucketPreferences.Result.match(
                 {
@@ -462,7 +462,7 @@ function DirDisplay({
                   ),
                   _: () => null,
                 },
-                prefsResult,
+                prefs,
               )}
             </>
           )
@@ -607,7 +607,7 @@ function FileDisplay({
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const packageHandle = React.useMemo(
     () => ({ bucket, name, hash }),
@@ -692,7 +692,7 @@ function FileDisplay({
                       ),
                     _: () => null, // TODO: Buttons.Skeleton
                   },
-                  prefsResult,
+                  prefs,
                 )}
                 {!!viewModes.modes.length && (
                   <FileView.ViewModeSelector
@@ -722,7 +722,7 @@ function FileDisplay({
                   ),
                   _: () => null,
                 },
-                prefsResult,
+                prefs,
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>

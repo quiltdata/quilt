@@ -765,7 +765,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
@@ -799,7 +799,7 @@ export function usePackageCreationDialog({
                     Pending: AsyncResult.Pending(),
                     Init: AsyncResult.Init(),
                   },
-                  prefsResult,
+                  prefs,
                 ),
 
               _: R.identity,
@@ -808,7 +808,7 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, prefsResult],
+    [bucket, s3Path, workflowsData, manifestResult, prefs],
   )
 
   const open = React.useCallback(

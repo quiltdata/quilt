@@ -285,7 +285,7 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -417,7 +417,7 @@ export default function Dir({
           Pending: () => null,
           Init: () => null,
         },
-        prefsResult,
+        prefs,
       )}
 
       {data.case({

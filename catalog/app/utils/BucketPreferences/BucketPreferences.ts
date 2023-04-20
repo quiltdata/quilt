@@ -5,6 +5,7 @@ import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import * as bucketErrors from 'containers/Bucket/errors'
 import { makeSchemaValidator } from 'utils/json-schema'
+import * as tagged from 'utils/taggedV2'
 import * as YAML from 'utils/yaml'
 
 export type ActionPreferences = Record<
@@ -102,7 +103,7 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
-export interface BucketPreferences {
+interface BucketPreferences {
   ui: UiPreferences
 }
 
@@ -261,3 +262,13 @@ export function parse(bucketPreferencesYaml: string): BucketPreferences {
 
   return extendDefaults(data)
 }
+
+export const Result = tagged.create('app/utils/BucketPreferences:Result' as const, {
+  // TODO: Error: (e: Error) => e,
+  Ok: (prefs: BucketPreferences) => prefs,
+  Pending: () => null,
+  Init: () => null,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Result = tagged.InstanceOf<typeof Result>

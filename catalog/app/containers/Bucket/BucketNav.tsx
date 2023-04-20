@@ -87,7 +87,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const { result } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {
       Ok: ({ ui: { nav } }) => (
@@ -96,6 +96,6 @@ export default function BucketNav({ bucket, section = false }: BucketNavProps) {
       Pending: () => <BucketNavSkeleton />,
       Init: () => null,
     },
-    result,
+    prefs,
   )
 }

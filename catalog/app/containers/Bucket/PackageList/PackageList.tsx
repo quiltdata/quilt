@@ -224,7 +224,7 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return (
     <div className={classes.root}>
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
@@ -255,7 +255,7 @@ function RevisionMeta({ revision }: RevisionMetaProps) {
                 ),
               _: () => null,
             },
-            prefsResult,
+            prefs,
           )}
         </div>
       )}
@@ -276,7 +276,7 @@ function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) 
 function usePackageDescription(
   name: string,
 ): BucketPreferences.PackagePreferences | null {
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return React.useMemo(
     () =>
       BucketPreferences.Result.match(
@@ -291,9 +291,9 @@ function usePackageDescription(
           },
           _: () => null,
         },
-        prefsResult,
+        prefs,
       ),
-    [name, prefsResult],
+    [name, prefs],
   )
 }
 
@@ -613,7 +613,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,
@@ -701,7 +701,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                       ),
                     _: () => null, // TODO: Buttons.Skeleton
                   },
-                  prefsResult,
+                  prefs,
                 )}
               </M.Box>
             )
@@ -756,7 +756,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                       ),
                     _: () => null, // TODO: Buttons.Skeleton
                   },
-                  prefsResult,
+                  prefs,
                 )}
                 <M.Box component={M.Paper} className={classes.paper}>
                   <SortDropdown
