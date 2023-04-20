@@ -418,7 +418,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const { preferences } = BucketPreferences.use()
+  const { result: prefsResult } = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -472,15 +472,22 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
           revisions
         </M.Typography>
         <M.Box flexGrow={1} />
-        {preferences?.ui?.actions?.revisePackage && (
-          <M.Button
-            variant="contained"
-            color="primary"
-            style={{ marginTop: -3, marginBottom: -3 }}
-            onClick={() => updateDialog.open()}
-          >
-            Revise package
-          </M.Button>
+        {BucketPreferences.Result.match(
+          {
+            Ok: ({ ui: { actions } }) =>
+              actions.revisePackage && (
+                <M.Button
+                  variant="contained"
+                  color="primary"
+                  style={{ marginTop: -3, marginBottom: -3 }}
+                  onClick={() => updateDialog.open()}
+                >
+                  Revise package
+                </M.Button>
+              ),
+            _: () => null, // TODO: Buttons.Skeleton
+          },
+          prefsResult,
         )}
       </M.Box>
 

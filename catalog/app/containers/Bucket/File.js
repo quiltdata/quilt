@@ -332,7 +332,7 @@ export default function File({
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
-  const { preferences } = BucketPreferences.use()
+  const { result: prefsResult } = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -517,12 +517,22 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              {preferences?.ui?.blocks?.code && <Code>{code}</Code>}
-              {!!cfg.analyticsBucket && !!preferences?.ui?.blocks?.analytics && (
-                <Analytics {...{ bucket, path }} />
-              )}
-              {preferences?.ui?.blocks?.meta && (
-                <Meta bucket={bucket} path={path} version={version} />
+              {BucketPreferences.Result.match(
+                {
+                  Ok: ({ ui: { blocks } }) => (
+                    <>
+                      {blocks.code && <Code>{code}</Code>}
+                      {!!cfg.analyticsBucket && !!blocks.analytics && (
+                        <Analytics {...{ bucket, path }} />
+                      )}
+                      {blocks.meta && (
+                        <Meta bucket={bucket} path={path} version={version} />
+                      )}
+                    </>
+                  ),
+                  _: () => null,
+                },
+                prefsResult,
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>

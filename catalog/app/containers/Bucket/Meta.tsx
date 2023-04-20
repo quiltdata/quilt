@@ -147,7 +147,7 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
     {
       Ok: (meta?: MetaData) => {
         if (!meta || R.isEmpty(meta)) return null
-        return BucketPreferences.Result.case(
+        return BucketPreferences.Result.match(
           {
             Ok: ({ ui: { blocks } }) =>
               !!blocks.meta && (

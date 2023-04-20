@@ -765,8 +765,7 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  // XXX: use AsyncResult
-  const { preferences } = BucketPreferences.use()
+  const { result: prefsResult } = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
@@ -786,23 +785,30 @@ export function usePackageCreationDialog({
           AsyncResult.case(
             {
               Ok: (manifest: Manifest | undefined) =>
-                preferences
-                  ? AsyncResult.Ok({
-                      manifest,
-                      workflowsConfig,
-                      sourceBuckets:
-                        s3Path === undefined
-                          ? preferences.ui.sourceBuckets
-                          : prependSourceBucket(preferences.ui.sourceBuckets, bucket),
-                    })
-                  : AsyncResult.Pending(),
+                BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { sourceBuckets } }) =>
+                      AsyncResult.Ok({
+                        manifest,
+                        workflowsConfig,
+                        sourceBuckets:
+                          s3Path === undefined
+                            ? sourceBuckets
+                            : prependSourceBucket(sourceBuckets, bucket),
+                      }),
+                    Pending: AsyncResult.Pending(),
+                    Init: AsyncResult.Init(),
+                  },
+                  prefsResult,
+                ),
+
               _: R.identity,
             },
             manifestResult,
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, preferences],
+    [bucket, s3Path, workflowsData, manifestResult, prefsResult],
   )
 
   const open = React.useCallback(
