@@ -40,12 +40,12 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
-    python_requires='>=3.9',
+    python_requires='>=3.7',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
@@ -79,7 +79,7 @@ setup(
         'tests': [
             'anndata!=0.9.0',
             'quilt3[pyarrow,anndata]',
-            'pytest==7.*',
+            'pytest==6.*',
             'pytest-cov',
             'coverage==6.4',
             'pytest-env',

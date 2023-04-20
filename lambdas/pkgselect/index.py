@@ -125,12 +125,10 @@ async def select_meta(bucket: str, manifest: str, path: T.Optional[str] = None) 
 
 @dataclasses.dataclass
 class FileView:
+    physical_key: str
     size: int
     hash: str
     meta: T.Optional[dict]
-    physical_keys: T.Optional[T.List[str]]
-    physical_key: str = dataclasses.field(default_factory=str, repr=False)
-    logical_key: str = dataclasses.field(default_factory=str, repr=False)
 
 
 async def file_view(bucket: str, manifest: str, path: str) -> T.Optional[FileView]:
@@ -174,7 +172,7 @@ class DirView:
 async def dir_view(
     bucket: str,
     manifest: str,
-    path: T.Optional[str] = '.',
+    path: T.Optional[str],
     limit: T.Optional[int] = None,
     offset: T.Optional[int] = None,
 ) -> DirView:
