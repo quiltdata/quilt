@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
+
 # 5.3.0 - 2023-04-11
 ## Python API
 * [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
