@@ -7,7 +7,7 @@ const useCodeStyles = M.makeStyles((t) => ({
     background: t.palette.grey[300],
     borderRadius: '2px',
     color: t.palette.text.primary,
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+    fontFamily: t.typography.monospace.fontFamily,
     padding: '0 3px',
     whiteSpace: 'pre-wrap',
   },
