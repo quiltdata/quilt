@@ -104,7 +104,7 @@ interface NoteValueProps {
 const useNoteValueStyles = M.makeStyles((t) => ({
   default: {
     color: t.palette.divider,
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+    fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,
     display: 'flex',
     '&:hover': {
