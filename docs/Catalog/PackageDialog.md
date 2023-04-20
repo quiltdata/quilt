@@ -33,3 +33,7 @@ Open "Create package" dialog and set initial values:
 Open "Create package" in simplified form:
 <!-- markdownlint-disable-next-line line-length -->
 `https://your-stack/b/bucket/packages/foo/bar/?createPackage=true&dropZoneOnly=true&msg=Test commit`.
+
+Open "Revise package" dialog, use content of the `foo/bar` package and create
+`abc/xyz` package (or push new revision if `abc/xyz` exists):
+`https://your-stack/b/bucket/packages/foo/bar/?createPackage=true&name=abc/xyz`.
