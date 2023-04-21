@@ -212,23 +212,30 @@ def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, 
     if util.PhysicalKey.from_url(util.fix_url(dir)).is_local() and no_copy:
         raise QuiltException("--no-copy flag can be specified only for remote data.")
 
+    if force and request is None:
+        print("WARNING: -`-force` is deprecated. Please use `--request put` instead.")
+        request = "put"
+
     try:
-        pkg = Package.browse(name, registry=None)
+        if request == "put":
+            force = True
+            pkg = Package()
+        elif request == "patch":
+            pkg = Package.browse(name, registry=registry)
+        else:
+            pkg = Package.browse(name, registry=None)
     except FileNotFoundError:
         pkg = Package()
     except botocore.exceptions.ClientError as e:
         if e.response["Error"]["Code"] != "NoSuchKey":
             raise
 
-    if force and request is None:
-        print("WARNING: -`-force` is deprecated. Please use `--request put` instead.")
-        request = "put"
 
     pkg.set_dir(dir_logical_key, dir)
     pkg.set_meta(meta)
     pkg.push(
         name, registry=registry, dest=dest, message=message,
-        workflow=workflow, force=force, dedupe=dedupe, request=request,
+        workflow=workflow, force=force, dedupe=dedupe,
         **({"selector_fn": _selector_fn_no_copy} if no_copy else {}),
     )
 
