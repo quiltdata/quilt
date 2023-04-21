@@ -54,6 +54,7 @@
 * [Event-driven packaging](advanced-features/event-driven-packaging.md)
 * [GxP & Quilt](advanced-features/good-practice.md)
 * [Private endpoints](advanced-features/private-endpoint-access.md)
+* [Self-signed certificates](advanced-features/self-signed-certificates.md)
 
 ### More
 * [Frequently Asked Questions](FAQ.md)
