@@ -27,12 +27,12 @@ and inaccessible to keyboard input, so you should fill them some other way:
  * commit message can be set using the `msg` parameter
    (ex., `?createPackage=true&dropZoneOnly=true&msg=Test+message`)
  * workflow ID, is optional unless `is_workflow_required: True` in
-  <!-- markdownlint-disable-next-line line-length -->
-  [`.quilt/workflows/config.yml`](../advanced/workflows#package-name-defaults-quilt-catalog).
-  You can set it
-    - using the `default_workflow` field in `.quilt/workflows/config.yml`
-    - `workflow` parameter
-      (ex. `?createPackage=true&dropZoneOnly=true&msg=Test+message&workflow=w-id`)
+   <!-- markdownlint-disable-next-line line-length -->
+   [`.quilt/workflows/config.yml`](../advanced/workflows#package-name-defaults-quilt-catalog).
+   You can set it
+   - using the `default_workflow` field in `.quilt/workflows/config.yml`
+   - `workflow` parameter
+     (ex. `?createPackage=true&dropZoneOnly=true&msg=Test+message&workflow=w-id`)
 
 ## Examples
 
