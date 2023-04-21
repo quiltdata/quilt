@@ -37,20 +37,20 @@ and save the change.
 1. Open a new browser window and navigate to any HTTPS website.
 2. Click the «lock icon» in the browser navigation/address bar.
 3. Click «View certificates» and record the `Issued by` value (e.g.
-`mitmproxy`).
+`mycert`).
 4. Open the Command Prompt («Win + R») and type `certmgr`. This
 opens the Windows Certificate Manager for the current user.
 5. Search all certificates stores for a certificate `Issued by` value
-that equals the value recorded (`mitmproxy` in our example).
+that equals the value recorded (`mycert` in our example).
 
    ![MITM certificate](../imgs/certmgr-windows.png)
 
 6. Export the certificate in Base-64 encoded X.509 (.CER) to your
-file system (`Path\To\mitm.cer`).
+file system (`Path\To\mycert.cer`).
 7. Add the certificate to your localhosts list of trusted CA's via the
 `REQUESTS_CA_BUNDLE` environment variable:
     ```sh
-    > set REQUESTS_CA_BUNDLE=%REQUESTS_CA_BUNDLE%;Path\To\mitm.cer
+    > set REQUESTS_CA_BUNDLE=%REQUESTS_CA_BUNDLE%;Path\To\mycert.cer
     ```
 
 > Note: This only affects the current shell session, not the whole system.
