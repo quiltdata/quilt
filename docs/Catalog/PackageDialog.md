@@ -2,22 +2,36 @@
 
 You can use permanent links to the package dialog with pre-defined state.
 
-To control pre-filled values, you can use these query string parameters:
+Available parameters are
+ * `createPackage=true` to open package dialog,
+ * `dropZoneOnly=true` to hide everything from the package dialog except files drop zone,
+ * `msg` to set the commit message,
+ * `name` to set the  package name,
+ * `workflow` to set workflow ID.
 
-* `msg` sets commit message
-* `name` sets package name
-* `workflow` sets workflow ID
+You can use `?createPackage=true` on almost any page, and it will open Package dialog depending on context:
+* on the package page: revise current package
+* on the package list: create package from scratch
+* on the bucket directory: create package from current directory
 
-To open package dialog, use `createPackage`.
-
-To show package dialog in simplified form with dropzone only use `dropZoneOnly`.
-Since other fields are hidden, you should set them via query string parameters.
-So, `msg` is always required. `name` is required if the package name is not set
-by other ways like opening package dialog from existing package, or if
-[`package_handle`](../advanced/workflows#package-name-defaults-quilt-catalog) is
-missing. `workflow` is required if `is_workflow_required` is set to `True` and
-`default_workflow` is missing, see
-[workflows docs](../advanced/workflows#package-name-defaults-quilt-catalog).
+Note, that when you set `dropZoneOnly=true`, all other input fields are hidden,
+and inaccessible to keyboard input, so you should fill them some other way:
+ * package name can be
+   - auto-filled when you revise package,
+     i.e. open package dialog from the package page
+   - auto-filled using
+     [`package_handle`](../advanced/workflows#package-name-defaults-quilt-catalog)
+   - set using `name` parameter
+     (ex., `?createPackage=true&dropZoneOnly=true&name=foo/bar`)
+ * commit message can be set using `msg` parameter
+   (ex., `?createPackage=true&dropZoneOnly=true&msg=Test+message`)
+ * workflow ID, is optional unless `is_workflow_required: True` in
+  <!-- markdownlint-disable-next-line line-length -->
+  [`.quilt/workflows/config.yml`](../advanced/workflows#package-name-defaults-quilt-catalog).
+  You can set it
+    - using `default_workflow` field in `.quilt/workflows/config.yml`
+    - `workflow` param
+      (ex. `?createPackage=true&dropZoneOnly=true&msg=Test+message&workflow=w-id`)
 
 ## Examples
 
@@ -30,9 +44,9 @@ Open "Revise package" dialog:
 Open "Create package" dialog and set initial values:
 `https://your-stack/b/bucket/packages/?createPackage=true&name=foo/bar&msg=Test commit&workflow=my-wrkflw-id`.
 
-Open "Create package" in simplified form:
+Open "Revise package" in simplified form:
 <!-- markdownlint-disable-next-line line-length -->
-`https://your-stack/b/bucket/packages/foo/bar/?createPackage=true&dropZoneOnly=true&msg=Test commit`.
+`https://your-stack/b/bucket/packages/foo/bar/?createPackage=true&dropZoneOnly=true&msg=Test+commit`.
 
 Open "Revise package" dialog, use content of the `foo/bar` package and create
 `abc/xyz` package (or push new revision if `abc/xyz` exists):
