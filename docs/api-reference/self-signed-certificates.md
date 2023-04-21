@@ -20,14 +20,14 @@ to your localhost.
 7. In the Terminal, open your shell profile (e.g. `~/.bashrc` or
 `~/.zshrc`).
 8. Add the line `export
-REQUESTS_CA_BUNDLE=/path/to/converted/certificate.crt` and save the
+REQUESTS_CA_BUNDLE=/path/to/converted/certificate.crt:$REQUESTS_CA_BUNDLE` and save the
 change.
 9. Exit your shell or Terminal app, then reopen.
 
 ## Linux
 
 1. Open your shell profile (e.g. `~/.bashrc` or `~/.zshrc`).
-2. Add the line `export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt`
+2. Add the line `export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt:$REQUESTS_CA_BUNDLE`
 and save the change.
 3. Exit your shell, then reopen.
 
@@ -49,8 +49,10 @@ file system (`Path\To\mitm.cer`).
 7. Add the certificate to your localhosts list of trusted CA's via the
 `REQUESTS_CA_BUNDLE` environment variable:
     ```sh
-    > set REQUESTS_CA_BUNDLE=Path\To\mitm.cer
+    > set REQUESTS_CA_BUNDLE=%REQUESTS_CA_BUNDLE%;Path\To\mitm.cer
     ```
+
+> Note: This only affects the current shell session, not the whole system.
 
 ## Verification
 
