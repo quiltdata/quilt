@@ -1,25 +1,24 @@
-# Files manipulation in Catalog
-
-## Files browser
-
-Every bucket has "Bucket" tab where the user can see all files in his bucket.
+<!-- markdownlint-disable-next-line first-line-h1 -->
+Every S3 bucket attached to Quilt has a "Bucket" tab in the Catalog
+that displays all files in the bucket.
 
 ![Files browser tab](../imgs/catalog-filesbrowser-tab.png)
 
-See also [docs on how to hide this tab](./Preferences.md).
+> If desired, [this tab can be hidden](./Preferences.md).
 
 ## Bookmarks
 
-If you want to create a package including multiple files
-from different directories and even different buckets,
-you can browse files and bookmark needed files. You can select needed files
-and click "Add to bookmarks".
-You can also navigate to a specific file
-and bookmark an individual file from that file's page.
+To create a package that includes multiple files from different
+directories in a single S3 bucket, or even across different S3
+buckets attached to Quilt, you can browse and create a "bookmark"
+of chosen files. Select files by checking the box and clicking "Add
+selected items to bookmarks". You can also navigate to a specific
+file and bookmark an individual file by clicking "Add to bookmarks".
 
 ![Select and add to bookmarks](../imgs/catalog-filesbrowser-addtobookmarks.png)
 
-Then you can open the Bookmarks pane and a create package from all those bookmarks.
+Open the Bookmarks pane (listed in the User account menu) and
+optionally create a new package from the bookmarked files.
 
 ![Open bookmarks](../imgs/catalog-filesbrowser-bookmarksmenu.png)
 
@@ -27,13 +26,15 @@ Then you can open the Bookmarks pane and a create package from all those bookmar
 
 ## Text editor
 
-You can edit plain text, Markdown, JSON and YAML files.
+Inline editing of plain text, Markdown, JSON and YAML file formats
+is supported.
 
 ![Edit button](../imgs/catalog-texteditor-edit.png)
 
-You can also create new files in editable file formats.
-The button for creating text files is located above the file browser,
-in the far right «burger»-menu
+New text files can be created individually in editable file formats.
+To create one, click the «kebab» menu (three vertical dots) located
+in the far-right, above the file browser. Choose a file name and
+format (the default is README.md), enter your content, and click save.
 
 ![Open menu](../imgs/catalog-texteditor-create.png)
 
