@@ -1,3 +1,4 @@
+<!--pytest-codeblocks:skipfile-->
 <!-- markdownlint-disable-next-line first-line-h1 -->
 When using the `quilt3` API or CLI with a client-to-site (remote
 access) VPN you may need to use a self-signed certificate to
