@@ -208,6 +208,7 @@ def _selector_fn_no_copy(*args):
 
 
 push_cmd_detailed_help = """
+<!--pytest.mark.skip-->
 ### push Example
 
 ```bash
@@ -217,8 +218,8 @@ quilt3 push myuser/my_package --dir ./my_package/ --registry s3://my-bucket
 # Reference files from s3://your-bucket/data in the package at quilt+s3://my-bucket#package=myuser/my_alias
 quilt3 push myuser/my_alias --no-copy --dir s3://your-bucket/data --registry s3://my-bucket
 ```
-
 """
+
 
 def cmd_push(name, dir, registry, dest, message, meta, workflow, force, dedupe, no_copy, detailed_help=False):
     """

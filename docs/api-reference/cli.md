@@ -137,7 +137,7 @@ optional arguments:
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
-                   [--force] [--dedupe] [--no-copy]
+                   [--force] [--dedupe] [--no-copy] [--detailed_help]
                    name
 
 Pushes the new package to the remote registry
@@ -166,6 +166,8 @@ optional arguments:
                        remote hash.
   --no-copy            Do not copy data. Package manifest entries will
                        reference the data at the original location.
+  --detailed_help      Display detailed information about this command and
+                       then exit
 ```
 
 ### push Example
