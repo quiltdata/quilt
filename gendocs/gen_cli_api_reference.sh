@@ -26,6 +26,7 @@ gen_cmd_docs 'list-packages'
 gen_cmd_docs 'login'
 gen_cmd_docs 'logout'
 gen_cmd_docs 'push'
+quilt3 push --detailed_help >> cli.md
 gen_cmd_docs 'verify'
 
 # Document environment varialbes and constants
