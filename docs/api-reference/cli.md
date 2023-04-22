@@ -172,6 +172,7 @@ optional arguments:
 
 ### push Example
 
+<!--pytest.mark.skip-->
 ```bash
 # Copy all files from local directory to quilt+s3://my-bucket#package=myuser/my_package
 quilt3 push myuser/my_package --dir ./my_package/ --registry s3://my-bucket

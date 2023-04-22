@@ -208,9 +208,9 @@ def _selector_fn_no_copy(*args):
 
 
 push_cmd_detailed_help = """
-<!--pytest.mark.skip-->
 ### push Example
 
+<!--pytest.mark.skip-->
 ```bash
 # Copy all files from local directory to quilt+s3://my-bucket#package=myuser/my_package
 quilt3 push myuser/my_package --dir ./my_package/ --registry s3://my-bucket
