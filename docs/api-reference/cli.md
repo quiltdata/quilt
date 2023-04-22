@@ -171,11 +171,11 @@ optional arguments:
 ### push Example
 
 ```bash
-$ quilt3 push myuser/my_package --dir ./my_package/ --registry s3://my-bucket
 # Copy all files from local directory to quilt+s3://my-bucket#package=myuser/my_package
+quilt3 push myuser/my_package --dir ./my_package/ --registry s3://my-bucket
 
-$ quilt3 push myuser/my_alias --no-copy --dir s3://your-bucket/data --registry s3://my-bucket
 # Reference files from s3://your-bucket/data in the package at quilt+s3://my-bucket#package=myuser/my_alias
+quilt3 push myuser/my_alias --no-copy --dir s3://your-bucket/data --registry s3://my-bucket
 ```
 
 ## `verify`
