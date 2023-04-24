@@ -1,6 +1,8 @@
-# Package dialog state
+# Opening package dialog via a URL
 
-You can use permanent links to the package dialog with pre-defined state.
+You can use the `createPackage` query parameter to create a URL that opens
+the Quilt Catalog directly to the package dialog with certain information
+already filled in.
 
 Available parameters are
 
