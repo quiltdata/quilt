@@ -58,9 +58,7 @@ optional arguments:
                         quotes: foo="this is a sentence". Note that values are
                         always treated as strings.
 ```
-
 ## `config-default-remote-registry`
-
 ```
 usage: quilt3 config-default-remote-registry [-h] default_remote_registry
 
@@ -73,7 +71,6 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
 ```
-
 ## `disable-telemetry`
 ```
 usage: quilt3 disable-telemetry [-h]
@@ -83,9 +80,7 @@ Disable anonymous usage metrics
 optional arguments:
   -h, --help  show this help message and exit
 ```
-
 ## `install`
-
 ```
 usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
                       [--dest DEST] [--dest-registry DEST_REGISTRY]
@@ -174,6 +169,7 @@ optional arguments:
   --detailed_help      Display detailed information about this command and
                        then exit
 ```
+
 ### push Example
 
 <!--pytest.mark.skip-->
@@ -188,9 +184,8 @@ quilt3 push myuser/my_alias --no-copy --dir s3://your-bucket/data --registry s3:
 ## `verify`
 ```
 usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
-
- [--extra-files-ok]
- name
+                     [--extra-files-ok]
+                     name
 
 
 Verify that package contents matches a given directory
@@ -202,21 +197,18 @@ positional arguments:
 
 optional arguments:
 
- -h, --help           show this help message and exit
- --registry REGISTRY  Registry where package is located, usually s3://MY-
- BUCKET
- --top-hash TOP_HASH  Hash of package to verify
- --dir DIR            Directory to verify
- --extra-files-ok     Whether extra files in the directory should cause a
- failure
+  -h, --help           show this help message and exit
+  --registry REGISTRY  Registry where package is located, usually s3://MY-BUCKET
+  --top-hash TOP_HASH  Hash of package to verify
+  --dir DIR            Directory to verify
+  --extra-files-ok     Whether extra files in the directory should cause a failure
 
 ```
 ## Environment variables
 
 ### `QUILT_DISABLE_CACHE`
 Turn off cache. Defaults to `False`.
-
- ```
+```
 $ export QUILT_DISABLE_CACHE=true
 ```
 
