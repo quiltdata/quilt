@@ -199,7 +199,7 @@ optional arguments:
                        BUCKET
   --top-hash TOP_HASH  Hash of package to verify
   --dir DIR            Directory to verify
-  --extra-files-ok     Whether extra files in the directory should cause a 
+  --extra-files-ok     Whether extra files in the directory should cause a
                        failure
 
 ```
