@@ -16,7 +16,7 @@ const useParquetMetaStyles = M.makeStyles((t) => ({
     margin: t.spacing(1, 0, 1, 3),
   },
   mono: {
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+    fontFamily: t.typography.monospace.fontFamily,
   },
   metaName: {
     paddingRight: t.spacing(1),
