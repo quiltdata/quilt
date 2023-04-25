@@ -187,7 +187,6 @@ usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
                      [--extra-files-ok]
                      name
 
-
 Verify that package contents matches a given directory
 
 positional arguments:
@@ -201,7 +200,6 @@ optional arguments:
   --dir DIR            Directory to verify
   --extra-files-ok     Whether extra files in the directory should cause a
                        failure
-
 ```
 ## Environment variables
 
