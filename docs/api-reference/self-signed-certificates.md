@@ -8,7 +8,7 @@ VPN you may need to trust a custom certificate in Python.
 1. Direct your browser to an HTTPS website that uses a custom certificate.
 1. Click the lock icon in the address bar.
 1. Click View certificates and copy the certificate name to a safe place.
-1. Open Keychain Access and select System Keychains > System Roots
+1. Open Keychain Access and select System Keychains > System Roots.
 1. Click the Certificates tab.
 1. Find the certificate that you noted above.
 1. Click File > Export Items... to export the root certificate.
@@ -23,19 +23,19 @@ VPN you may need to trust a custom certificate in Python.
 
 ## Linux
 
-1. Export the single-file versions of CA certificates variable (e.g.
+1. Export the single-file version of CA certificates variable (e.g.
 `~/.bashrc` or `~/.zshrc`):
     ```sh
-    export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt`
+    export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
     ```
 
 > The single-file version of CA certificates may be located elsewhere
 in different Linux distributions. For example, in Ubuntu Linux
-distributions the file is located at `/etc/ssh/certs/ca-certificates.crt`
+distributions the file is located at `/etc/ssh/certs/ca-certificates.crt`.
 
 ## Windows
 
-1. Direct your browser to an HTTPS website that uses the custom certificate.
+1. Direct your browser to an HTTPS website that uses a custom certificate.
 1. Click the lock icon in the address bar.
 1. Click View certificates and copy the certificate name to a safe place.
 1. Open the Command Prompt («Win + R») and type `certmgr`. This
