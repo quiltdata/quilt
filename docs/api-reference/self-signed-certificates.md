@@ -1,25 +1,18 @@
 <!--pytest-codeblocks:skipfile-->
 <!-- markdownlint-disable-next-line first-line-h1 -->
-When using the `quilt3` API or CLI with a client-to-site (remote
-access) VPN you may need to use a self-signed certificate to
-securely connect. This requires adding the certificate to your
-Python environment.
+When using the `quilt3` API or CLI with a client-to-site
+VPN you may need to trust a custom certificate in Python.
 
 ## Mac OS X
 
-1. Open a new browser window and navigate to any HTTPS website.
-2. Click the «lock icon» in the browser navigation/address bar.
-3. Click «View certificates» and record the certificate name value
-(e.g. `mycert`).
-4. Open Keychain Access.
-5. Select System Keychains > System Roots.
-6. Select the «Certificates» tab.
-7. Search all certificates for a certificate name value that equals
-the value recorded (`mycert` in the example).
-8. Click «File», select "Export Items...", export the root certificate
-to your localhost.
-9. In the Terminal, convert the exported certificate with
-[OpenSSL](https://www.openssl.org/):
+1. Direct your browser to an HTTPS website that uses the custom certificate.
+2. Click the lock icon in the address bar.
+3. Click View certificates and copy the certificate name to a safe place.
+1. Open Keychain Access and select System Keychains > System Roots
+6. Click the Certificates tab.
+7. Find the certificate that you noted above
+8. Click File > Export Items... to export the root certificate.
+9. Convert the exported certificate in Terminal as follows:
     ```sh
     openssl x509 -inform der -in /path/to/your/certificate.cer -out /path/to/converted/certificate.crt
     ```
@@ -29,8 +22,6 @@ to your localhost.
     ```ssh
     export REQUESTS_CA_BUNDLE=/path/to/converted/certificate.crt`
     ```
-12. Save the change.
-13. Exit your shell or Terminal app, then reopen.
 
 ## Linux
 
