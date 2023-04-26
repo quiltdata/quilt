@@ -5,7 +5,7 @@ VPN you may need to trust a custom certificate in Python.
 
 ## Mac OS X
 
-1. Direct your browser to an HTTPS website that uses the custom certificate.
+1. Direct your browser to an HTTPS website that uses a custom certificate.
 1. Click the lock icon in the address bar.
 1. Click View certificates and copy the certificate name to a safe place.
 1. Open Keychain Access and select System Keychains > System Roots
