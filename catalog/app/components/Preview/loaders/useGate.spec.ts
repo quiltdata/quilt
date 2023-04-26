@@ -92,7 +92,7 @@ describe('components/Preview/loaders/useGate', () => {
       })
     })
     describe('handles not found', () => {
-      it('using NotSuchKey code', () => {
+      it('using NoSuchKey code', () => {
         const s3 = mockS3(() => {
           throw createError('NoSuchKey')
         })

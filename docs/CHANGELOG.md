@@ -21,7 +21,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 * [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
-* [Changed] Increased available file size to render Markdown preview to 3Mb ([#3427](https://github.com/quiltdata/quilt/pull/3427))
+* [Changed] Increased available file size to render Markdown preview to 3MiB ([#3427](https://github.com/quiltdata/quilt/pull/3427))
 
 # 5.3.0 - 2023-04-11
 ## Python API

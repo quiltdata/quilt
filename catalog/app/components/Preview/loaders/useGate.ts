@@ -13,8 +13,8 @@ interface SizeThresholds {
 }
 
 const SIZE_THRESHOLDS: SizeThresholds = {
-  autoFetch: 128 * 1024, // automatically load if <= 128kB
-  neverFetch: 1024 * 1024, // never load if > 1MB
+  autoFetch: 128 * 1024, // automatically load if <= 128KiB
+  neverFetch: 1024 * 1024, // never load if > 1MiB
 }
 
 interface GateArgs {
@@ -64,10 +64,10 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     log.error(e)
     throw e
   }
-  if (length && length > (thresholds.autoFetch || SIZE_THRESHOLDS.autoFetch)) {
+  if (length && length > (thresholds.autoFetch ?? SIZE_THRESHOLDS.autoFetch)) {
     throw PreviewError.TooLarge({ handle })
   }
-  return length && length > (thresholds.neverFetch || SIZE_THRESHOLDS.neverFetch)
+  return length && length > (thresholds.neverFetch ?? SIZE_THRESHOLDS.neverFetch)
 }
 
 export default function useGate(
