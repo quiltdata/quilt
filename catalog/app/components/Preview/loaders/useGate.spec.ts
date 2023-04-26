@@ -126,15 +126,15 @@ describe('components/Preview/loaders/useGate', () => {
     })
     it('handles auto fetch threshold', () => {
       const s3 = mockS3(() => ({ ContentLength: 1000 }))
-      return expect(
-        gate({ s3, handle, thresholds: { autoFetch: 100 } }),
-      ).rejects.toMatchObject(PreviewError.TooLarge({ handle }))
+      return expect(gate({ s3, handle, thresholds: { autoFetch: 100 } })).resolves.toBe(
+        true,
+      )
     })
     it('handles never fetch threshold', () => {
       const s3 = mockS3(() => ({ ContentLength: 1000 }))
-      return expect(gate({ s3, handle, thresholds: { neverFetch: 100 } })).resolves.toBe(
-        true,
-      )
+      return expect(
+        gate({ s3, handle, thresholds: { neverFetch: 100 } }),
+      ).rejects.toMatchObject(PreviewError.TooLarge({ handle }))
     })
   })
 })
