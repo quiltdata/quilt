@@ -6,11 +6,6 @@ Resources:
   QuiltCloudFormationServiceRole:
     Type: AWS::IAM::Role
     Properties:
-      Description: 'CloudFormation service role used for deploying Quilt.'
-      RoleName: !Sub '${AWS::StackName}-cfn-service-role'
-      Tags:
-        - Key: "Application Name"
-          Value: "Quilt"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
