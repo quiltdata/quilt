@@ -64,10 +64,10 @@ export async function gate({ s3, handle, thresholds = {} }: GateArgs) {
     log.error(e)
     throw e
   }
-  if (length && length > (thresholds.autoFetch ?? SIZE_THRESHOLDS.autoFetch)) {
+  if (length && length > (thresholds.neverFetch ?? SIZE_THRESHOLDS.neverFetch)) {
     throw PreviewError.TooLarge({ handle })
   }
-  return length && length > (thresholds.neverFetch ?? SIZE_THRESHOLDS.neverFetch)
+  return length && length > (thresholds.autoFetch ?? SIZE_THRESHOLDS.autoFetch)
 }
 
 export default function useGate(
