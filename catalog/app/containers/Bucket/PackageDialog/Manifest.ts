@@ -22,7 +22,7 @@ export interface Manifest {
 interface UseManifestParams {
   bucket: string
   name: string
-  hash?: string | undefined
+  hashOrTag?: string | undefined
   skipEntries?: boolean
   pause?: boolean
 }
@@ -30,7 +30,7 @@ interface UseManifestParams {
 export function useManifest({
   bucket,
   name,
-  hash,
+  hashOrTag,
   skipEntries = false,
   pause = false,
 }: UseManifestParams) {
@@ -39,7 +39,7 @@ export function useManifest({
     {
       bucket,
       name,
-      hashOrTag: hash || 'latest',
+      hashOrTag: hashOrTag || 'latest',
       max: MANIFEST_LIMIT,
       skipEntries,
     },
