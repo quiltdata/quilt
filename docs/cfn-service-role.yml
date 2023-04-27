@@ -115,10 +115,12 @@ Resources:
                   - glue:CreateTable
                   - glue:DeleteDatabase
                   - glue:DeleteTable
+                  - kms:*
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
                   - iam:CreateInstanceProfile
                   - iam:CreatePolicy
+                  - iam:CreatePolicyVersion
                   - iam:CreateRole
                   - iam:DeleteInstanceProfile
                   - iam:DeletePolicy
@@ -167,13 +169,20 @@ Resources:
                   - s3:CreateBucket
                   - s3:DeleteBucket
                   - s3:DeleteBucketPolicy
+                  - s3:GetBucketOwnershipControls
                   - s3:GetBucketPolicy
                   - s3:GetObject
                   - s3:PutBucketCORS
+                  - s3:PutBucketOwnershipControls
                   - s3:PutBucketPolicy
+                  - s3:PutBucketPublicAccessBlock
                   - s3:PutBucketVersioning
                   - s3:PutLifecycleConfiguration
+                  - sns:CreateTopic
+                  - sns:DeleteTopic
+                  - sns:GetTopicAttributes
                   - sns:Publish  # To publish to CFN notification topic.
+                  - sns:SetTopicAttributes
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
@@ -185,4 +194,5 @@ Resources:
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
+                  - synthetics:*
                 Resource: '*'
