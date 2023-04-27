@@ -23,23 +23,21 @@ VPN you may need to trust a custom certificate in Python.
 
 ## Linux
 
-1. Export the single-file version of CA certificates variable (e.g.
-`~/.bashrc` or `~/.zshrc`):
+1. Export the following variable. You may wish to do this in a startup file for repeatability.
     ```sh
     export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
     ```
 
-> The single-file version of CA certificates may be located elsewhere
-in different Linux distributions. For example, in Ubuntu Linux
-distributions the file is located at `/etc/ssh/certs/ca-certificates.crt`.
+> The single-file version of your CA certificate may be found in different locations
+> depending upon your operating system.
 
 ## Windows
 
 1. Direct your browser to an HTTPS website that uses a custom certificate.
 1. Click the lock icon in the address bar.
 1. Click View certificates and copy the certificate name to a safe place.
-1. Open the Command Prompt («Win + R») and type `certmgr`. This
-opens the Windows Certificate Manager for the current user.
+1. Open the Command Prompt («Win + R») and type `certmgr` to open
+your Windows Certificate Manager.
 1. Find the certificate that you noted above.
 
    ![MITM certificate](../imgs/certmgr-windows.png)
@@ -48,14 +46,13 @@ opens the Windows Certificate Manager for the current user.
 file system (`Path\To\mycert.cer`).
 1. Export the following variable:
     ```sh
-    > set REQUESTS_CA_BUNDLE=Path\To\mycert.cer
+    set REQUESTS_CA_BUNDLE=Path\To\mycert.cer
     ```
 > This only affects the current shell session.
 
 ## Verification
 
-Requesting access to a registry with the `quilt3` API or CLI should
-no longer fail with SSL errors.
+`quilt3` should no longer fail with SSL errors related to the custom certificate.
 
 ## Further information
 
