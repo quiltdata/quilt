@@ -196,7 +196,7 @@ function Thumbnails({ images, mkUrl }) {
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -227,7 +227,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           Pending: () => null, // TODO: Buttons.Skeleton
           Init: () => null,
         },
-        prefsResult,
+        prefs,
       )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (

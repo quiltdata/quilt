@@ -796,8 +796,8 @@ export function usePackageCreationDialog({
                             ? sourceBuckets
                             : prependSourceBucket(sourceBuckets, bucket),
                       }),
-                    Pending: AsyncResult.Pending(),
-                    Init: AsyncResult.Init(),
+                    Pending: AsyncResult.Pending,
+                    Init: AsyncResult.Init,
                   },
                   prefs,
                 ),

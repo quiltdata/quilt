@@ -332,7 +332,7 @@ export default function File({
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const path = decode(encodedPath)
 
@@ -532,7 +532,7 @@ export default function File({
                   ),
                   _: () => null,
                 },
-                prefsResult,
+                prefs,
               )}
               {editorState.editing ? (
                 <Section icon="text_fields" heading="Edit content" defaultExpanded>
