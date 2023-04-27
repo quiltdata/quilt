@@ -17,7 +17,7 @@ echo "# Quilt3 CLI and environment" >> cli.md
 echo "" >> cli.md
 
 gen_cmd_docs 'catalog'
-quilt3 catalog --detailed_help >> cli.md
+quilt3 catalog --detailed-help >> cli.md
 gen_cmd_docs 'config'
 gen_cmd_docs 'config-default-remote-registry'
 gen_cmd_docs 'disable-telemetry'
