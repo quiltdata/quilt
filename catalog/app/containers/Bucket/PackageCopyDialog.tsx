@@ -461,7 +461,7 @@ export default function PackageCopyDialog({
   const manifestData = PD.useManifest({
     bucket,
     name,
-    hash,
+    hashOrTag: hash,
     skipEntries: true,
     pause: !successor || !open,
   })
