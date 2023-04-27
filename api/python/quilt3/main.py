@@ -292,7 +292,7 @@ def create_parser():
             nargs="?"
     )
     catalog_p.add_argument(
-            "--detailed_help",
+            "--detailed-help", "--detailed_help",
             help="Display detailed information about this command and then exit",
             action="store_true",
     )
