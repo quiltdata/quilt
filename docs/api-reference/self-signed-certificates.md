@@ -48,14 +48,14 @@ your Windows Certificate Manager.
 file system (`\Path\To\mycert.cer`).
 1. Convert the exported certificate in the Command Prompt as follows
 (assumes OpenSSL is installed):
-    1.1. Certificate in `der` encoding:
-    ```sh
-    openssl x509 -inform der -in \Path\To/mycert.cer -out \Path\To\Converted/mycert.crt
-    ```
-    1.1 Certificate in `pem` encoding (no conversion necessary):
-    ```sh
-    openssl x509 -in \Path\To/mycert.cer -out \Path\To\Converted/mycert.crt
-    ```
+  - Certificate in `der` encoding:
+  ```sh
+  openssl x509 -inform der -in \Path\To/mycert.cer -out \Path\To\Converted/mycert.crt
+  ```
+  - Certificate in `pem` encoding (no conversion necessary):
+  ```sh
+  openssl x509 -in \Path\To/mycert.cer -out \Path\To\Converted/mycert.crt
+  ```
 1. Export the following variable, which affects the current shell session:
     ```sh
     set REQUESTS_CA_BUNDLE=Path\To\mycert.cer
@@ -65,7 +65,7 @@ where Python looks for the custom exported certificate:
     ```sh
     conda config --set ssl_verify \Path\To\Converted/mycert.crt
     ```
-This adds a line to `USER_PROFILE\.condarc`:
+    This adds a line to `USER_PROFILE\.condarc`:
     ```sh
     ssl_verify: \Path\To\Converted/mycert.crt
     ```
