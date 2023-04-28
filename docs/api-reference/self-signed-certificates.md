@@ -65,10 +65,6 @@ where Python looks for the custom exported certificate:
     ```sh
     conda config --set ssl_verify \Path\To\Converted/mycert.crt
     ```
-    This adds a line to `USER_PROFILE\.condarc`:
-    ```sh
-    ssl_verify: \Path\To\Converted/mycert.crt
-    ```
 
 ## Verification
 
