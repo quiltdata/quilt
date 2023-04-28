@@ -50,20 +50,16 @@ file system (`\Path\To\mycert.cer`).
 (assumes OpenSSL is installed):
     - Certificate in `der` encoding:
     ```sh
-    openssl x509 -inform der -in \Path\To/mycert.cer -out \Path\To\Converted/mycert.crt
+    openssl x509 -inform der -in \Path\To\mycert.cer -out \Path\To\Converted\mycert.crt
     ```
     - Certificate in `pem` encoding (no conversion necessary):
     ```sh
-    openssl x509 -in \Path\To/mycert.cer -out \Path\To\Converted/mycert.crt
+    openssl x509 -in \Path\To\mycert.cer -out \Path\To\Converted\mycert.crt
     ```
-1. Export the following variable, which affects the current shell session:
+1. Export the following variable. You may wish to do this in a
+startup file for repeatability.
     ```sh
-    set REQUESTS_CA_BUNDLE=Path\To\mycert.cer
-    ```
-1. If using an Anaconda Python distribution, you may wish to permanently define
-where Python looks for the custom exported certificate:
-    ```sh
-    conda config --set ssl_verify \Path\To\Converted/mycert.crt
+    set REQUESTS_CA_BUNDLE=Path\To\Converted\mycert.crt
     ```
 
 ## Verification
