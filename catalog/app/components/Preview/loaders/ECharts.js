@@ -12,6 +12,7 @@ import * as s3paths from 'utils/s3paths'
 import { PreviewData, PreviewError } from '../types'
 
 import FileType from './fileType'
+import useGate from './useGate'
 import * as utils from './utils'
 
 export const FILE_TYPE = FileType.ECharts
@@ -156,7 +157,7 @@ function EChartsLoader({ gated, handle, children }) {
 }
 
 export const Loader = function GatedEChartsLoader({ handle, children }) {
-  const data = utils.useGate(handle)
+  const data = useGate(handle)
   const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
   return AsyncResult.case({
     _: children,
