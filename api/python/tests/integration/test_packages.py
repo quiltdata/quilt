@@ -1626,7 +1626,7 @@ class PackageTest(QuiltTestCase):
         assert pkg.verify('test')
 
     def test_verify_poo_hash_type(self):
-        expected_err_msg = "Unsupported hash type: '💩'. Try to update quilt3."
+        expected_err_msg = "Unsupported hash type: '💩'. Supported types: SHA256. Try to update quilt3."
 
         self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
         pkg = Package()
