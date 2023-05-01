@@ -26,7 +26,7 @@ FSx will consume the S3 event notifications. So you can use EventBridge to send
 similar notifications to Quilt, thus circumventing the need for Quilt to rely 
 directly on S3 event notifications.
 
-You may of course script the following steps. See
+You may of course script the following steps.
 
 1. Create an SNS topic in the same region as `Bucket` 
 1. For existing Quilt stacks, if you see a trail under CloudFormation > YourStack > Resources,

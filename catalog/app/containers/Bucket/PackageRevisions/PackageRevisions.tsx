@@ -299,7 +299,6 @@ function RevisionSkel() {
 
 const useRevisionStyles = M.makeStyles((t) => ({
   mono: {
-    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
   },
   time: {
@@ -317,7 +316,6 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
   hash: {
     color: t.palette.text.secondary,
-    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     maxWidth: 'calc(100% - 48px)',

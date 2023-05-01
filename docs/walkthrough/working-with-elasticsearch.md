@@ -1,44 +1,23 @@
 <!-- markdownlint-disable -->
 
-## About ElasticSearch
+Each Quilt stack includes an Elasticsearch cluster that indexes
+objects and packages as documents. You can connect to your Elasticsearch
+domain to query these documents.
 
-The [Quilt web catalog
-search](../walkthrough/working-with-the-catalog#search) is powered
-by ElasticSearch. To write specialized queries against your data
-stored in Amazon S3 buckets you may wish to connect directly to
-your Quilt ElasticSearch cluster.
+> If your Quilt stack uses private endpoints for Elasticsearch you will need to
+> connect to the cluster from a machine in the same VPC as the cluster.
 
-> Note that Quilt is currently pinned to ElasticSearch 6.7
+Each Amazon S3 bucket connected to Quilt implies two Elasticsearch index aliases:
+1. `YOUR_BUCKET_NAME`: Contains one document per object in the bucket.
+2. `YOUR_BUCKET_NAME_packages`: Contains one document per package revision in the bucket.
 
-Each Amazon S3 bucket connected to Quilt has two ElasticSearch indexes:
-1. `<s3-bucket>`: For S3 object documents
-2. `<s3-bucket>_packages`: For Quilt data package documents
+> Quilt uses Amazon Elasticsearch version 6.7.
 
-Provided you have IAM permissions, you can write queries against
-the indexes which will search across all your Amazon S3 buckets
-connected to Quilt.
+## Query Elasticsearch with Python
 
-## Connecting to your indexes
-
-Before writing your specialized queries, you will need to ensure
-that you have authenticated and have access to AWS resources. The
-best way to do this is to [configure your AWS CLI
-credentials](https://docs.quiltdata.com/more/faq#do-i-have-to-login-via-quilt3-to-use-the-quilt-apis-how-do-i-push-to-quilt-from-a-headless-environme).
-
-<!--pytest.mark.skip-->
-```bash
-% export AWS_PROFILE=<your-aws-profile>
-```
-
-You can then connect directly to the ElasticSearch cluster to write
-custom queries. This is faster than writing queries to multiple S3
-buckets due to how registries are laid out in Amazon S3. 
-
-### Example
-
-Below is an example using Python to search the Quilt data package 
-documents index (`*_packages`) across all S3 buckets (`*`), 
-returning the top `1000` results.
+You can use [`elasticsearch
+6.3.1`](https://elasticsearch-py.readthedocs.io/en/6.3.1/) as
+follows:
 
 <!--pytest.mark.skip-->
 ```python
@@ -70,13 +49,10 @@ query = rbody = {
     }
 }
 
-to_search = "*_packages"
-_source = ['*']
-
 elastic.search(
-    index=to_search,
+    index="*_packages", # search all package indexes in this stack
     body=rbody,
-    _source=_source,
+    _source=['*'], # return all document fields
     size=1000,
 )
 ```
