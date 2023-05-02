@@ -61,7 +61,8 @@ this gallery lists all images in the current directory
 this gallery lists all images in the current directory in package
 * `ui.blocks.gallery.overview: False` - hide gallery in Overview tab;
 this gallery lists all images in the current bucket
-* `ui.blocks.gallery.summarize: False` - hide gallery when `quilt_summarize.json` is present
+* `ui.blocks.gallery.summarize: False` - hide gallery when `quilt_summarize.json`
+is present
 * `ui.blocks.meta: False` - hide Metadata block on Package page
 * `ui.blocks.meta.user_meta.expanded: True` - expands user_meta properties
 * `ui.blocks.meta.workflows.expanded: 2` - expands workflows two level deep
