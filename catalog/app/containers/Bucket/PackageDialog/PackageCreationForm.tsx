@@ -59,7 +59,7 @@ const ERRORS_MAP = {
     required: 'Enter a commit message',
   },
   files: {
-    schema: 'Files should match schema',
+    schema: 'Files should match the schema',
     [FI.HASHING]: 'Please wait while we hash the files',
     [FI.HASHING_ERROR]:
       'Error hashing files, probably some of them are too large. Please try again or contact support.',
