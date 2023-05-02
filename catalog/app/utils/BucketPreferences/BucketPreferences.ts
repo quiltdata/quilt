@@ -196,10 +196,10 @@ function parseGalleryBlock(
   if (gallery === false) return false
   if (gallery === true || gallery === undefined) return defaultGallery
   return {
-    files: gallery.files || defaultGallery.files,
-    packages: gallery.packages || defaultGallery.packages,
-    overview: gallery.packages || defaultGallery.overview,
-    summarize: gallery.summarize || defaultGallery.summarize,
+    files: gallery.files ?? defaultGallery.files,
+    packages: gallery.packages ?? defaultGallery.packages,
+    overview: gallery.packages ?? defaultGallery.overview,
+    summarize: gallery.summarize ?? defaultGallery.summarize,
   }
 }
 
