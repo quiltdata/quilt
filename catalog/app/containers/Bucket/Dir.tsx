@@ -413,6 +413,7 @@ export default function Dir({
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>
       </div>
+
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { blocks } }) => blocks.code && <Code gutterBottom>{code}</Code>,
