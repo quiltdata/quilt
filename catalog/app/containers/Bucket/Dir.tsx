@@ -285,7 +285,7 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -386,15 +386,20 @@ export default function Dir({
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          {preferences?.ui?.actions?.createPackage && (
-            <Successors.Button
-              bucket={bucket}
-              className={classes.button}
-              onChange={openPackageCreationDialog}
-            >
-              Create package from directory
-            </Successors.Button>
-          )}
+          {BucketPreferences.Result.match({
+            Ok: ({ ui: { actions } }) =>
+              actions.createPackage && (
+                <Successors.Button
+                  bucket={bucket}
+                  className={classes.button}
+                  onChange={openPackageCreationDialog}
+                >
+                  Create package from directory
+                </Successors.Button>
+              ),
+            Pending: () => null, // TODO: Buttons.Skeleton
+            Init: () => null,
+          }, prefs)}
           {!cfg.noDownload && !cfg.desktop && (
             <FileView.ZipDownloadForm
               className={classes.button}
@@ -406,7 +411,14 @@ export default function Dir({
         </div>
       </div>
 
-      {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => blocks.code && <Code gutterBottom>{code}</Code>,
+          Pending: () => null,
+          Init: () => null,
+        },
+        prefs,
+      )}
 
       {data.case({
         Err: displayError(),
