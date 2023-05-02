@@ -396,57 +396,59 @@ function DirDisplay({
           return (
             <>
               {prompt.render()}
-              {BucketPreferences.Result.match(
-                {
-                  Ok: ({ ui: { actions } }) => (
-                    <TopBar crumbs={crumbs}>
-                      {actions.revisePackage && (
-                        <M.Button
+              <TopBar crumbs={crumbs}>
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) => (
+                      <>
+                        {actions.revisePackage && (
+                          <M.Button
+                            className={classes.button}
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                            onClick={() => updateDialog.open()}
+                          >
+                            Revise package
+                          </M.Button>
+                        )}
+                        {actions.copyPackage && (
+                          <Successors.Button
+                            className={classes.button}
+                            bucket={bucket}
+                            onChange={setSuccessor}
+                          >
+                            Push to bucket
+                          </Successors.Button>
+                        )}
+                        <Download.DownloadButton
                           className={classes.button}
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                          onClick={() => updateDialog.open()}
-                        >
-                          Revise package
-                        </M.Button>
-                      )}
-                      {actions.copyPackage && (
-                        <Successors.Button
+                          label={path ? 'Download sub-package' : 'Download package'}
+                          onClick={openInDesktopState.confirm}
+                          path={downloadPath}
+                        />
+                        <RevisionMenu
                           className={classes.button}
-                          bucket={bucket}
-                          onChange={setSuccessor}
-                        >
-                          Push to bucket
-                        </Successors.Button>
-                      )}
-                      <Download.DownloadButton
-                        className={classes.button}
-                        label={path ? 'Download sub-package' : 'Download package'}
-                        onClick={openInDesktopState.confirm}
-                        path={downloadPath}
-                      />
-                      <RevisionMenu
-                        className={classes.button}
-                        onDelete={confirmDelete}
-                        onDesktop={openInDesktopState.confirm}
-                        onCreateFile={prompt.open}
-                      />
-                    </TopBar>
-                  ),
-                  Pending: () => (
-                    <TopBar crumbs={[]}>
-                      <Buttons.Skeleton className={classes.button} size="small" />
-                      <Buttons.Skeleton className={classes.button} size="small" />
-                      <Buttons.Skeleton className={classes.button} size="small" />
-                      <Buttons.Skeleton className={classes.button} size="small" />
-                    </TopBar>
-                  ),
-                  Init: () => null,
-                },
-                prefs,
-              )}
+                          onDelete={confirmDelete}
+                          onDesktop={openInDesktopState.confirm}
+                          onCreateFile={prompt.open}
+                        />
+                      </>
+                    ),
+                    Pending: () => (
+                      <>
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                      </>
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
+                )}
+              </TopBar>
               {BucketPreferences.Result.match(
                 {
                   Ok: ({ ui: { blocks } }) => (
