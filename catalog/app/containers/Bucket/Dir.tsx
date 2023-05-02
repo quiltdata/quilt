@@ -428,7 +428,6 @@ export default function DirWrapper({
   location: l,
 }: RRDom.RouteComponentProps<DirRouteParams>) {
   const path = s3paths.decode(encodedPath)
-  // FIXME: @nl0 is it safe to get only first prefix?
   const { prefix } = parseSearch(l.search, true)
   return (
     <PD.Provider
