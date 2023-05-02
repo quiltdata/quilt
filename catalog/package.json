@@ -149,7 +149,7 @@
   },
   "devDependencies": {
     "@finos/perspective-webpack-plugin": "^1.4.0",
-    "@graphql-codegen/cli": "^1.21.8",
+    "@graphql-codegen/cli": "^2.0.0",
     "@graphql-codegen/near-operation-file-preset": "^1.18.6",
     "@graphql-codegen/typed-document-node": "^1.18.10",
     "@graphql-codegen/typescript": "^1.23.0",
