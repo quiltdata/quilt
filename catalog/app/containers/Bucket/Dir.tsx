@@ -399,7 +399,7 @@ export default function Dir({
               ),
             Pending: () => null, // TODO: Buttons.Skeleton
             Init: () => null,
-          })}
+          }, prefs)}
           {!cfg.noDownload && !cfg.desktop && (
             <FileView.ZipDownloadForm
               className={classes.button}
