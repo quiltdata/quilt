@@ -1636,27 +1636,26 @@ class PackageTest(QuiltTestCase):
 
         pkg['foo'].hash['type'] = '💩'
 
+        def _test_verify_fails(*args, **kwargs):
+            with pytest.raises(QuiltException) as excinfo:
+                pkg.verify(*args, **kwargs)
+            assert str(excinfo.value) == expected_err_msg
+
         Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
-        with pytest.raises(QuiltException) as excinfo:
-            pkg.verify('test')
-        assert str(excinfo.value) == expected_err_msg
-        with pytest.raises(QuiltException) as excinfo:
-            pkg.verify('test', extra_files_ok=True)
-        assert str(excinfo.value) == expected_err_msg
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
 
         Path('test/blah').write_text('123')
-        assert pkg.verify('test') is False
-        with pytest.raises(QuiltException) as excinfo:
-            pkg.verify('test', extra_files_ok=True)
-        assert str(excinfo.value) == expected_err_msg
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
 
         Path('test/foo').write_text('123')
-        assert pkg.verify('test') is False
-        assert pkg.verify('test', extra_files_ok=True) is False
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
 
         Path('test/blah').unlink()
-        assert pkg.verify('test') is False
-        assert pkg.verify('test', extra_files_ok=True) is False
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
 
     @patch('quilt3.packages.calculate_sha256')
     def test_fix_sha256_fail(self, mocked_calculate_sha256):

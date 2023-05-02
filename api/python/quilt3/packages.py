@@ -1664,6 +1664,9 @@ class Package:
         Returns:
             True if the package matches the directory; False otherwise.
         """
+        for lk, e in self.walk():
+            _check_hash_type_support(e.hash["type"])
+
         src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
         url_list = []
@@ -1680,9 +1683,6 @@ class Package:
 
         if src_dict and not extra_files_ok:
             return False
-
-        for lk, e in self.walk():
-            _check_hash_type_support(e.hash["type"])
 
         hash_list = calculate_sha256(url_list, size_list)
         for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
