@@ -65,6 +65,10 @@ MANIFEST_MAX_RECORD_SIZE = util.get_pos_int_from_env('QUILT_MANIFEST_MAX_RECORD_
 if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
 
+SUPPORTED_HASH_TYPES = (
+    "SHA256",
+)
+
 
 def _fix_docstring(**kwargs):
     def f(wrapped):
@@ -90,6 +94,15 @@ def _filesystem_safe_encode(key):
     """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts,
     avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+def _check_hash_type_support(hash_type: str) -> None:
+    if hash_type not in SUPPORTED_HASH_TYPES:
+        raise QuiltException(
+            f"Unsupported hash type: {hash_type!r}. "
+            f"Supported types: {', '.join(SUPPORTED_HASH_TYPES)}. "
+            "Try to update quilt3."
+        )
 
 
 class ObjectPathCache:
@@ -196,8 +209,7 @@ class PackageEntry:
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
-        if self.hash.get('type') != 'SHA256':
-            raise NotImplementedError
+        _check_hash_type_support(self.hash.get('type'))
         digest = hashlib.sha256(read_bytes).hexdigest()
         if digest != self.hash.get('value'):
             raise QuiltException("Hash validation failed")
@@ -1651,6 +1663,9 @@ class Package:
         Returns:
             True if the package matches the directory; False otherwise.
         """
+        for lk, e in self.walk():
+            _check_hash_type_support(e.hash["type"])
+
         src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
         url_list = []
