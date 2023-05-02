@@ -350,8 +350,8 @@ function Dir({ bucket, path, prefix }: DirParams) {
   const createPackage = PD.useCreatePackage()
   const openPackageCreationDialog = React.useCallback(
     (s) => {
-      createPackage?.setDst(s)
-      createPackage?.open()
+      createPackage.setDst(s)
+      createPackage.open()
     },
     [createPackage],
   )

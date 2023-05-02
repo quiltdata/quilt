@@ -278,7 +278,7 @@ function Sidebar({ bucket = '' }: SidebarProps) {
       const files = await handlesToS3Files(handles)
       addToPackage?.merge(files)
       setTraversing(false)
-      createPackage?.open()
+      createPackage.open()
       bookmarks?.hide()
     } catch (e) {
       if (e instanceof Error) {

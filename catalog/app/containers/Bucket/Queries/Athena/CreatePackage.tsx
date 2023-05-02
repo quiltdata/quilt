@@ -134,7 +134,7 @@ export default function CreatePackage({ queryResults }: CreatePackageProps) {
     (ok: boolean) => {
       if (!ok) return
       addToPackage?.merge(entries.valid)
-      createPackage?.open()
+      createPackage.open()
     },
     [addToPackage, entries, createPackage],
   )
@@ -152,7 +152,7 @@ export default function CreatePackage({ queryResults }: CreatePackageProps) {
       confirm.open()
     } else {
       addToPackage?.merge(parsed.valid)
-      createPackage?.open()
+      createPackage.open()
     }
   }, [addToPackage, confirm, createPackage, queryResults])
 

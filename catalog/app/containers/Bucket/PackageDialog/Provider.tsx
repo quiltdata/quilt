@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
@@ -91,6 +92,10 @@ export function Provider({
   )
 }
 
-export const useCreatePackage = () => React.useContext(Ctx)
+export const useCreatePackage = () => {
+  const createPackage = React.useContext(Ctx)
+  invariant(createPackage, `Package Dialog context wasn't initialized`)
+  return createPackage
+}
 
 export const use = useCreatePackage
