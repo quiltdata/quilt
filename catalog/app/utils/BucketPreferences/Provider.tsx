@@ -8,9 +8,8 @@ import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import { useData } from 'utils/Data'
-import * as tagged from 'utils/taggedV2'
 
-import { BucketPreferences, parse } from './BucketPreferences'
+import { Result, parse } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
 
 interface FetchBucketPreferencesArgs {
@@ -41,23 +40,7 @@ async function fetchBucketPreferences({ s3, bucket }: FetchBucketPreferencesArgs
   }
 }
 
-export const Result = tagged.create('app/utils/BucketPreferences:Result' as const, {
-  // TODO: Error: (e: Error) => e,
-  Ok: (prefs: BucketPreferences) => prefs,
-  Pending: () => null,
-  Init: () => null,
-})
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type Result = tagged.InstanceOf<typeof Result>
-
-const Ctx = React.createContext<{
-  preferences: BucketPreferences | null
-  result: Result
-}>({
-  result: Result.Init(),
-  preferences: null,
-})
+const Ctx = React.createContext<Result>(Result.Init())
 
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
@@ -66,16 +49,15 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
   const settings = CatalogSettings.use()
   const data = useData(fetchBucketPreferences, { s3, bucket })
 
-  // XXX: migrate to BucketPreferences.Result
   const preferences = data.case({
     Ok: settings?.beta
-      ? R.assocPath(['ui', 'actions', 'openInDesktop'], true)
-      : R.identity,
-    Err: () => parse(''),
-    _: () => null,
+      ? R.pipe(R.assocPath(['ui', 'actions', 'openInDesktop'], true), Result.Ok)
+      : Result.Ok,
+    Err: () => Result.Ok(parse('')),
+    Pending: Result.Pending,
+    Init: Result.Init,
   })
-  const result = preferences ? Result.Ok(preferences) : Result.Pending()
-  return <Ctx.Provider value={{ preferences, result }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={preferences}> {children} </Ctx.Provider>
 }
 
 export function Provider({ bucket, children }: ProviderProps) {
