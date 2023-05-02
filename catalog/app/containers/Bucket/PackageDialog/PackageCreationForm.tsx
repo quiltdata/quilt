@@ -53,7 +53,7 @@ const ERRORS_MAP = {
   name: {
     required: 'Enter a package name',
     invalid: 'Invalid package name',
-    pattern: `Name should match packages name pattern`,
+    pattern: (w?: workflows.Workflow) => `Name should match ${w?.packageNamePattern}`,
   },
   msg: {
     required: 'Enter a commit message',
@@ -142,17 +142,18 @@ function ConfirmReadme({ close }: DialogsOpenProps) {
 
 interface FormErrorProps {
   submitting: boolean
-  error: React.ReactNode
+  error: React.ReactNode | ((w?: workflows.Workflow) => React.ReactNode)
+  workflow?: workflows.Workflow
 }
 
-function FormError({ submitting, error }: FormErrorProps) {
+function FormError({ submitting, error, workflow }: FormErrorProps) {
   if (submitting || !error || error === CANCEL) return null
   return (
     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
       <M.Icon color="error">error_outline</M.Icon>
       <M.Box pl={1} />
       <M.Typography variant="body2" color="error">
-        {error}
+        {typeof error === 'function' ? error(workflow) : error}
       </M.Typography>
     </M.Box>
   )
@@ -709,6 +710,7 @@ function PackageCreationForm({
                 <FormError
                   submitting={submitting}
                   error={R.path([input, err], ERRORS_MAP)}
+                  workflow={selectedWorkflow}
                 />
               ))}
             {submitting && (
@@ -717,7 +719,11 @@ function PackageCreationForm({
               </SubmitSpinner>
             )}
 
-            <FormError submitting={submitting} error={error || submitError} />
+            <FormError
+              submitting={submitting}
+              error={error || submitError}
+              workflow={selectedWorkflow}
+            />
 
             <M.Button onClick={close} disabled={submitting}>
               Cancel
