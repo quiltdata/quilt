@@ -114,7 +114,7 @@ bucket contents and displays thumbnail image previews in a
 paginated grid (25 per page by default) of 
 all [supported image types](../Catalog/Preview.md#binary-and-special-file-format-previews).
 
-> To hide this block, use the `gallery` field in 
+> To hide this block, use the `gallery` field in
 your [bucket preferences](./Preferences.md) file.
 
 In the **Bucket** tab, the Catalog displays thumbnail image 
