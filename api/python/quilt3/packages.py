@@ -98,7 +98,6 @@ def _filesystem_safe_encode(key):
 
 def _check_hash_type_support(hash_type: str) -> None:
     if hash_type not in SUPPORTED_HASH_TYPES:
-
         raise QuiltException(
             f"Unsupported hash type: {hash_type!r}. "
             f"Supported types: {', '.join(SUPPORTED_HASH_TYPES)}. "
