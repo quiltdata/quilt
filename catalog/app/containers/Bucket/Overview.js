@@ -926,7 +926,7 @@ export default function Overview({
   const inStack = !!bucketConfig
   const overviewUrl = bucketConfig?.overviewUrl
   const description = bucketConfig?.description
-  const { result: prefsResult } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {inStack && (
@@ -957,7 +957,7 @@ export default function Overview({
           Pending: () => <Gallery.Skeleton />,
           Init: R.F,
         },
-        prefsResult,
+        prefs,
       )}
       <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
