@@ -16,6 +16,7 @@ Entries inside each section should be ordered by type:
 !-->
 # unreleased
 ## Python API
+* [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
 
 ## CLI
 
