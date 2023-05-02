@@ -53,7 +53,7 @@ const ERRORS_MAP = {
   name: {
     required: 'Enter a package name',
     invalid: 'Invalid package name',
-    pattern: (w?: workflows.Workflow) => `Name should match ${w?.packageNamePattern}`,
+    pattern: (w?: workflows.Workflow) => `Package name must match ${w?.packageNamePattern}`,
   },
   msg: {
     required: 'Enter a commit message',
@@ -615,7 +615,7 @@ function PackageCreationForm({
                     errors={{
                       required: ERRORS_MAP.name.required,
                       invalid: ERRORS_MAP.name.invalid,
-                      pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
+                      pattern: ERRORS_MAP.name.pattern(selectedWorkflow),
                     }}
                     helperText={nameWarning}
                     validating={nameValidator.processing}
