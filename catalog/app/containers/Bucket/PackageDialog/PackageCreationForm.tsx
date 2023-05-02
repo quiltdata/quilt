@@ -822,7 +822,7 @@ export interface PackageCreationDialogUIOptions {
   title?: React.ReactNode
 }
 
-interface UsePackageCreationDialogProps {
+interface PackageCreationDialogProps {
   id?: string
   src: {
     bucket: string
@@ -847,7 +847,7 @@ export function PackageCreationDialog({
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
-}: UsePackageCreationDialogProps) {
+}: PackageCreationDialogProps) {
   const { dropZoneOnly, isOpen, setOpen, getInitial } = useInitialState(id)
 
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
