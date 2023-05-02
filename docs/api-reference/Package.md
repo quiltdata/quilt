@@ -299,9 +299,9 @@ the parent hash of the package being pushed. Use `force=True` to skip the check.
 __Arguments__
 
 * __name__:  name for package in registry
-* __dest__:  where to copy the objects in the package
-    Must be either an S3 URI prefix in the registry bucket, or a callable that takes
-* __logical_key, package_entry, and top_hash and returns S3 URI. S3 URIs format is s3__: //$bucket/$key.
+* __dest__:  where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
+    in the registry bucket, or a callable that takes logical_key, package_entry, and top_hash
+    and returns an S3 URI.
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3.

@@ -18,30 +18,40 @@ export default function RevisionMenu({
   onDelete,
   onDesktop,
 }: RevisionMenuProps) {
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
-  const items = React.useMemo(() => {
-    const menu = []
-    if (preferences?.ui?.actions?.revisePackage) {
-      menu.push({
-        onClick: onCreateFile,
-        title: 'Create file',
-      })
-    }
-    if (preferences?.ui?.actions?.deleteRevision) {
-      menu.push({
-        onClick: onDelete,
-        title: 'Delete revision',
-      })
-    }
-    if (preferences?.ui?.actions?.openInDesktop && !cfg.desktop) {
-      menu.push({
-        onClick: onDesktop,
-        title: 'Open in Teleport',
-      })
-    }
-    return menu
-  }, [onCreateFile, onDelete, onDesktop, preferences])
+  const items = React.useMemo(
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) => {
+            const menu = []
+            if (actions.revisePackage) {
+              menu.push({
+                onClick: onCreateFile,
+                title: 'Create file',
+              })
+            }
+            if (actions.deleteRevision) {
+              menu.push({
+                onClick: onDelete,
+                title: 'Delete revision',
+              })
+            }
+            if (actions.openInDesktop && !cfg.desktop) {
+              menu.push({
+                onClick: onDesktop,
+                title: 'Open in Teleport',
+              })
+            }
+            return menu
+          },
+          _: () => [],
+        },
+        prefs,
+      ),
+    [onCreateFile, onDelete, onDesktop, prefs],
+  )
 
   if (!items.length) return null
 

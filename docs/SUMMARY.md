@@ -26,6 +26,7 @@
 ### Catalog
 * [Admin UI](Catalog/Admin.md)
 * [Configuration](Catalog/Preferences.md)
+* [Working with files](Catalog/FileBrowser.md)
 * [Embed](Catalog/Embed.md)
 * [Metadata for teams](Catalog/Metadata.md)
 * [Preview](Catalog/Preview.md)

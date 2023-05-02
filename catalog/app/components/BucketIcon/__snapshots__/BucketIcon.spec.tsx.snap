@@ -1,0 +1,41 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/BucketIcon class names should apply \`\` className if src is set 1`] = `
+<img
+  alt="Custom className"
+  className="makeStyles-root-1 C A"
+  src="https://custom-src"
+/>
+`;
+
+exports[`components/BucketIcon class names should apply \`stub\` className if no src 1`] = `
+<img
+  alt="Stub className"
+  className="makeStyles-root-1 S A"
+  src="IMAGE_MOCK"
+/>
+`;
+
+exports[`components/BucketIcon class names should apply className 1`] = `
+<img
+  alt="Set className"
+  className="makeStyles-root-1 A"
+  src="https://custom-src"
+/>
+`;
+
+exports[`components/BucketIcon should render custom src 1`] = `
+<img
+  alt="Custom src"
+  className="makeStyles-root-1"
+  src="https://custom-src"
+/>
+`;
+
+exports[`components/BucketIcon should render default when no src 1`] = `
+<img
+  alt="No src"
+  className="makeStyles-root-1"
+  src="IMAGE_MOCK"
+/>
+`;
