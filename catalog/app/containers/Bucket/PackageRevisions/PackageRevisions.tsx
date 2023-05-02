@@ -6,6 +6,7 @@ import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
@@ -485,7 +486,8 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                   Revise package
                 </M.Button>
               ),
-            _: () => null, // TODO: Buttons.Skeleton
+            Pending: () => <Buttons.Skeleton />,
+            Init: () => null,
           },
           prefs,
         )}

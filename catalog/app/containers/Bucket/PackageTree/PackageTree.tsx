@@ -435,7 +435,15 @@ function DirDisplay({
                       />
                     </TopBar>
                   ),
-                  _: () => null, // TODO: Buttons.Skeleton
+                  Pending: () => (
+                    <TopBar crumbs={[]}>
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    </TopBar>
+                  ),
+                  Init: () => null,
                 },
                 prefs,
               )}
@@ -690,7 +698,9 @@ function FileDisplay({
                           onClick={handleEdit}
                         />
                       ),
-                    Pending: () => <Buttons.Skeleton size="small" />,
+                    Pending: () => (
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    ),
                     Init: () => null,
                   },
                   prefs,
