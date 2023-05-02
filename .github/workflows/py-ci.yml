@@ -177,7 +177,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip setuptools
+          # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
+          # from thumbnail lambda fails whithout installed wheel.
+          # See https://github.com/pypa/pip/issues/8559.
+          python -m pip install wheel
           if [ ${{ matrix.path }} == "shared" ]
             python -m pip install -e lambdas/shared[tests]
           then

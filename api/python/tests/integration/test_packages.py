@@ -1625,6 +1625,38 @@ class PackageTest(QuiltTestCase):
         Path('test/blah').unlink()
         assert pkg.verify('test')
 
+    def test_verify_poo_hash_type(self):
+        expected_err_msg = "Unsupported hash type: '💩'. Supported types: SHA256. Try to update quilt3."
+
+        self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg = Package()
+
+        pkg.set('foo', b'Hello, World!')
+        pkg.build('quilt/test')
+
+        pkg['foo'].hash['type'] = '💩'
+
+        def _test_verify_fails(*args, **kwargs):
+            with pytest.raises(QuiltException) as excinfo:
+                pkg.verify(*args, **kwargs)
+            assert str(excinfo.value) == expected_err_msg
+
+        Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
+
+        Path('test/blah').write_text('123')
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
+
+        Path('test/foo').write_text('123')
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
+
+        Path('test/blah').unlink()
+        _test_verify_fails('test')
+        _test_verify_fails('test', extra_files_ok=True)
+
     @patch('quilt3.packages.calculate_sha256')
     def test_fix_sha256_fail(self, mocked_calculate_sha256):
         data = b'Hello, World!'

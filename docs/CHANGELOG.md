@@ -14,6 +14,16 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased
+## Python API
+* [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
+* [Changed] Increased available file size to render Markdown preview to 3MiB ([#3427](https://github.com/quiltdata/quilt/pull/3427))
+
 # 5.3.0 - 2023-04-11
 ## Python API
 * [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))

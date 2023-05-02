@@ -20,7 +20,6 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
     display: 'inline-flex',
   },
   mono: {
-    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
   },
   line: {

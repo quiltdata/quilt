@@ -563,6 +563,8 @@ export const objectVersions = ({ s3, bucket, path }) =>
       ),
     )
 
+// TODO: handle archive, delete markers
+//       make re-useable head request with such handlers
 export const objectMeta = ({ s3, bucket, path, version }) =>
   s3
     .headObject({
