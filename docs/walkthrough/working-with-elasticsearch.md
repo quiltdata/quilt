@@ -103,3 +103,30 @@ directly.
 
 - [Sizing Amazon OpenSearch Service
 domains](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/sizing-domains.html)
+
+## Auto-Tune and CloudFormation
+
+Auto-Tune is a feature of the Amazon OpenSearch service that analyzes
+cluster performance over time and suggests optimizations based on
+workload. There is known bug in CloudFormation when deploying and/or
+upgrading Quilt stacks using t2 or t3 instance types. During stack
+deployments the following error may be encountered:
+
+```
+Autotune is not supported in t2/t3 instance types.
+Disable autotune or change your instance type.
+(Service: AWSElasticsearch; Status Code: 400; Error Code: ValidationException;
+Request ID: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX; Proxy: null)
+```
+
+This is due to CloudFormation turning Auto-Tune on by default. There
+is currently no way to modify Auto-Tune configurations using
+CloudFormation. Your Quilt administrator will need to take the following
+actions and re-run the Quilt CloudFormation deployment:
+
+1. Access the Quilt ElasticSearch cluster (see steps 1 - 3 above).
+1. Select the "Auto-Tune" tab.
+1. Review the "Status" value. If the value is **Turned on**, click the "Edit" button.
+1. Select the option to "Turn off" Auto-Tune and click the "Save changes" button:
+
+![Auto-Tune configuration](../imgs/elastic-search-autotune.png)
