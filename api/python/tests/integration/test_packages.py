@@ -1646,8 +1646,6 @@ class PackageTest(QuiltTestCase):
         assert pkg.verify('test')
 
     def test_verify_poo_hash_type(self):
-        expected_err_msg = "Unsupported hash type: '💩'. Supported types: SHA256. Try to update quilt3."
-
         self.patch_local_registry('shorten_top_hash', return_value='7a67ff4')
         pkg = Package()
 
@@ -1657,9 +1655,8 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].hash['type'] = '💩'
 
         def _test_verify_fails(*args, **kwargs):
-            with pytest.raises(QuiltException) as excinfo:
+            with pytest.raises(QuiltException, match="Unsupported hash type: '💩'") as excinfo:
                 pkg.verify(*args, **kwargs)
-            assert str(excinfo.value) == expected_err_msg
 
         Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
         _test_verify_fails('test')
@@ -1916,6 +1913,9 @@ class PackageTest(QuiltTestCase):
             method='copy_object',
             service_response={
                 'VersionId': dst_version,
+                'CopyObjectResult': {
+                    'ChecksumSHA256': '123456',
+                },
             },
             expected_params={
                 'Bucket': dst_bucket,
@@ -1925,6 +1925,7 @@ class PackageTest(QuiltTestCase):
                     'Key': src_key,
                     'VersionId': src_version,
                 },
+                'ChecksumAlgorithm': 'SHA256',
             }
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
