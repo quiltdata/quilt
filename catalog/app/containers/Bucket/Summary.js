@@ -196,7 +196,7 @@ function Thumbnails({ images, mkUrl }) {
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -215,12 +215,20 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           mkUrl={mkUrl}
         />
       )}
-      {!readme &&
-        !path &&
-        !!packageHandle &&
-        !!preferences?.ui?.actions?.revisePackage && (
-          <AddReadmeSection packageHandle={packageHandle} path={path} />
-        )}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) =>
+            !readme &&
+            !path &&
+            !!packageHandle &&
+            !!actions.revisePackage && (
+              <AddReadmeSection packageHandle={packageHandle} path={path} />
+            ),
+          Pending: () => null, // TODO: Buttons.Skeleton
+          Init: () => null,
+        },
+        prefs,
+      )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested

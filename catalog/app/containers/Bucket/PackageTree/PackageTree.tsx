@@ -220,7 +220,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
   })
 
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
     history.push(urls.bucketPackageList(bucket))
@@ -392,62 +392,78 @@ function DirDisplay({
           const downloadPath = path
             ? `package/${bucket}/${name}/${hash}/${path}`
             : `package/${bucket}/${name}/${hash}`
-          // TODO: disable if nothing to revise on desktop
-          const hasReviseButton = preferences?.ui?.actions?.revisePackage
 
           return (
             <>
               {prompt.render()}
-              <TopBar crumbs={crumbs}>
-                {hasReviseButton && (
-                  <M.Button
-                    className={classes.button}
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                    onClick={() => updateDialog.open()}
-                  >
-                    Revise package
-                  </M.Button>
-                )}
-                {preferences?.ui?.actions?.copyPackage && (
-                  <Successors.Button
-                    className={classes.button}
-                    bucket={bucket}
-                    onChange={setSuccessor}
-                  >
-                    Push to bucket
-                  </Successors.Button>
-                )}
-                <Download.DownloadButton
-                  className={classes.button}
-                  label={path ? 'Download sub-package' : 'Download package'}
-                  onClick={openInDesktopState.confirm}
-                  path={downloadPath}
-                />
-                <RevisionMenu
-                  className={classes.button}
-                  onDelete={confirmDelete}
-                  onDesktop={openInDesktopState.confirm}
-                  onCreateFile={prompt.open}
-                />
-              </TopBar>
-              {preferences?.ui?.blocks?.code && (
-                <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+              {BucketPreferences.Result.match(
+                {
+                  Ok: ({ ui: { actions } }) => (
+                    <TopBar crumbs={crumbs}>
+                      {actions.revisePackage && (
+                        <M.Button
+                          className={classes.button}
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                          onClick={() => updateDialog.open()}
+                        >
+                          Revise package
+                        </M.Button>
+                      )}
+                      {actions.copyPackage && (
+                        <Successors.Button
+                          className={classes.button}
+                          bucket={bucket}
+                          onChange={setSuccessor}
+                        >
+                          Push to bucket
+                        </Successors.Button>
+                      )}
+                      <Download.DownloadButton
+                        className={classes.button}
+                        label={path ? 'Download sub-package' : 'Download package'}
+                        onClick={openInDesktopState.confirm}
+                        path={downloadPath}
+                      />
+                      <RevisionMenu
+                        className={classes.button}
+                        onDelete={confirmDelete}
+                        onDesktop={openInDesktopState.confirm}
+                        onCreateFile={prompt.open}
+                      />
+                    </TopBar>
+                  ),
+                  _: () => null, // TODO: Buttons.Skeleton
+                },
+                prefs,
               )}
-              {!!preferences?.ui?.blocks?.meta && (
-                <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
+              {BucketPreferences.Result.match(
+                {
+                  Ok: ({ ui: { blocks } }) => (
+                    <>
+                      {blocks.code && (
+                        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                      )}
+                      {blocks.meta && (
+                        <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
+                      )}
+                      <M.Box mt={2}>
+                        {blocks.browser && <Listing items={items} key={hash} />}
+                        <Summary
+                          path={path}
+                          files={summaryHandles}
+                          mkUrl={mkUrl}
+                          packageHandle={packageHandle}
+                        />
+                      </M.Box>
+                    </>
+                  ),
+                  _: () => null,
+                },
+                prefs,
               )}
-              <M.Box mt={2}>
-                {preferences?.ui?.blocks?.browser && <Listing items={items} key={hash} />}
-                <Summary
-                  path={path}
-                  files={summaryHandles}
-                  mkUrl={mkUrl}
-                  packageHandle={packageHandle}
-                />
-              </M.Box>
             </>
           )
         },
@@ -591,7 +607,7 @@ function FileDisplay({
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const packageHandle = React.useMemo(
     () => ({ bucket, name, hash }),
@@ -607,10 +623,6 @@ function FileDisplay({
     [bucket, history, name, path, hashOrTag, urls],
   )
 
-  const isEditable =
-    FileEditor.isSupportedFileType(path) &&
-    hashOrTag === 'latest' &&
-    !!preferences?.ui?.actions?.revisePackage
   const handleEdit = React.useCallback(() => {
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
     const physicalHandle = s3paths.parseS3Url(file.physicalKey)
@@ -665,13 +677,22 @@ function FileDisplay({
                   lastModified={lastModified}
                   size={size}
                 />
-                {isEditable && (
-                  <ButtonIconized
-                    className={classes.button}
-                    icon="edit"
-                    label="Edit"
-                    onClick={handleEdit}
-                  />
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      FileEditor.isSupportedFileType(path) &&
+                      hashOrTag === 'latest' &&
+                      actions.revisePackage && (
+                        <ButtonIconized
+                          className={classes.button}
+                          icon="edit"
+                          label="Edit"
+                          onClick={handleEdit}
+                        />
+                      ),
+                    _: () => null, // TODO: Buttons.Skeleton
+                  },
+                  prefs,
                 )}
                 {!!viewModes.modes.length && (
                   <FileView.ViewModeSelector
@@ -687,11 +708,21 @@ function FileDisplay({
                   <FileView.DownloadButton className={classes.button} handle={handle} />
                 )}
               </TopBar>
-              {preferences?.ui?.blocks?.code && (
-                <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
-              )}
-              {preferences?.ui?.blocks?.meta && (
-                <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
+              {BucketPreferences.Result.match(
+                {
+                  Ok: ({ ui: { blocks } }) => (
+                    <>
+                      {blocks.code && (
+                        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                      )}
+                      {blocks.meta && (
+                        <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
+                      )}
+                    </>
+                  ),
+                  _: () => null,
+                },
+                prefs,
               )}
               <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                 <div className={classes.preview}>
