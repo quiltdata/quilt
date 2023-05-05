@@ -5,6 +5,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
@@ -224,7 +225,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
             !!actions.revisePackage && (
               <AddReadmeSection packageHandle={packageHandle} path={path} />
             ),
-          Pending: () => null, // TODO: Buttons.Skeleton
+          Pending: () => <Buttons.Skeleton size="small" />,
           Init: () => null,
         },
         prefs,

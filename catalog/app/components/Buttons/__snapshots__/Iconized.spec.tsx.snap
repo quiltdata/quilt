@@ -1,0 +1,112 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Buttons/Iconized render contained 1`] = `
+<button
+  className="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedSizeSmall MuiButton-sizeSmall"
+  disabled={false}
+  onBlur={[Function]}
+  onDragLeave={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex={0}
+  type="button"
+>
+  <span
+    className="MuiButton-label"
+  >
+    <span
+      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+    >
+      <span
+        aria-hidden={true}
+        className="material-icons MuiIcon-root makeStyles-icon-1"
+      >
+        ac_unit
+      </span>
+    </span>
+    A
+  </span>
+</button>
+`;
+
+exports[`components/Buttons/Iconized render icon and label 1`] = `
+<button
+  className="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  disabled={false}
+  onBlur={[Function]}
+  onDragLeave={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex={0}
+  type="button"
+>
+  <span
+    className="MuiButton-label"
+  >
+    <span
+      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+    >
+      <span
+        aria-hidden={true}
+        className="material-icons MuiIcon-root makeStyles-icon-1"
+      >
+        ac_unit
+      </span>
+    </span>
+    A
+  </span>
+</button>
+`;
+
+exports[`components/Buttons/Iconized render rotated 1`] = `
+<button
+  className="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSizeSmall MuiButton-sizeSmall"
+  disabled={false}
+  onBlur={[Function]}
+  onDragLeave={[Function]}
+  onFocus={[Function]}
+  onKeyDown={[Function]}
+  onKeyUp={[Function]}
+  onMouseDown={[Function]}
+  onMouseLeave={[Function]}
+  onMouseUp={[Function]}
+  onTouchEnd={[Function]}
+  onTouchMove={[Function]}
+  onTouchStart={[Function]}
+  tabIndex={0}
+  type="button"
+>
+  <span
+    className="MuiButton-label"
+  >
+    <span
+      className="MuiButton-startIcon MuiButton-iconSizeSmall"
+    >
+      <span
+        aria-hidden={true}
+        className="material-icons MuiIcon-root makeStyles-icon-1 makeStyles-iconRotated-2"
+      >
+        ac_unit
+      </span>
+    </span>
+    A
+  </span>
+  <span
+    className="MuiTouchRipple-root"
+  />
+</button>
+`;
