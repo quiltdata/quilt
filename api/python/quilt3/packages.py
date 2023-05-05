@@ -24,6 +24,9 @@ from tqdm import tqdm
 from . import util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
+    CHECKSUM_MULTIPART_THRESHOLD,
+    MULTI_PART_HASH_NAME,
+    SIMPLE_HASH_NAME,
     calculate_sha256,
     calculate_sha256_bytes,
     copy_file,
@@ -67,12 +70,10 @@ MANIFEST_MAX_RECORD_SIZE = util.get_pos_int_from_env('QUILT_MANIFEST_MAX_RECORD_
 if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
 
-HASH_NAME = 'AWSChecksumSHA256'
-LEGACY_HASH_NAME = 'SHA256'
 
 SUPPORTED_HASH_TYPES = (
-    HASH_NAME,
-    LEGACY_HASH_NAME,
+    SIMPLE_HASH_NAME,
+    MULTI_PART_HASH_NAME,
 )
 
 
@@ -216,13 +217,8 @@ class PackageEntry:
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
         _check_hash_type_support(self.hash.get('type'))
-        if self.hash.get('type') == LEGACY_HASH_NAME:
-            digest = hashlib.sha256(read_bytes).hexdigest()
-        elif self.hash.get('type') == HASH_NAME:
-            digest = calculate_sha256_bytes(read_bytes)
-        else:
-            assert False
-        if digest != self.hash.get('value'):
+        hash_type, hash_value = calculate_sha256_bytes(read_bytes)
+        if hash_type != self.hash.get('type') or hash_value != self.hash.get('value'):
             raise QuiltException("Hash validation failed")
 
     def set(self, path=None, meta=None):
@@ -971,11 +967,12 @@ class Package:
 
         results = calculate_sha256(physical_keys, sizes)
         exc = None
-        for entry, obj_hash in zip(self._incomplete_entries, results):
-            if isinstance(obj_hash, Exception):
-                exc = obj_hash
+        for entry, result in zip(self._incomplete_entries, results):
+            if isinstance(result, Exception):
+                exc = result
             else:
-                entry.hash = dict(type=HASH_NAME, value=obj_hash)
+                hash_type, obj_hash = result
+                entry.hash = dict(type=hash_type, value=obj_hash)
         if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
@@ -1498,12 +1495,12 @@ class Package:
 
         results = copy_file_list(file_list, message="Copying objects")
 
-        for (logical_key, entry), (versioned_key, checksum) in zip(entries, results):
+        for (logical_key, entry), (versioned_key, checksum_type, checksum) in zip(entries, results):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
-            if checksum is not None:
-                new_entry.hash = dict(type=HASH_NAME, value=checksum)
+            if checksum_type is not None:
+                new_entry.hash = dict(type=checksum_type, value=checksum)
             pkg._set(logical_key, new_entry)
 
         # Needed if the files already exist in S3, but were uploaded without ChecksumAlgorithm='SHA256'.
@@ -1696,24 +1693,28 @@ class Package:
             if src_size is None or entry.size != src_size:
                 return False
             entry_url = src.join(logical_key)
-            if entry.hash['type'] == HASH_NAME:
-                expected_hash_list.append(entry.hash['value'])
+            hash_type = entry.hash['type']
+            hash_value = entry.hash['value']
+            if (hash_type == MULTI_PART_HASH_NAME or
+                (hash_type == SIMPLE_HASH_NAME and src_size < CHECKSUM_MULTIPART_THRESHOLD)):
+                expected_hash_list.append(hash_value)
                 url_list.append(entry_url)
                 size_list.append(src_size)
-            elif entry.hash['type'] == LEGACY_HASH_NAME:
-                legacy_expected_hash_list.append(entry.hash['value'])
+            elif hash_type == SIMPLE_HASH_NAME:
+                legacy_expected_hash_list.append(hash_value)
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
             else:
-                return False
+                assert False, hash_type
 
         if src_dict and not extra_files_ok:
             return False
 
         hash_list = calculate_sha256(url_list, size_list)
-        for expected_hash, url_hash in zip(expected_hash_list, hash_list):
-            if isinstance(url_hash, Exception):
-                raise url_hash
+        for expected_hash, result in zip(expected_hash_list, hash_list):
+            if isinstance(result, Exception):
+                raise result
+            _, url_hash = result
             if expected_hash != url_hash:
                 return False
 

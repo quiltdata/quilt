@@ -44,7 +44,7 @@ LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
 
 def _mock_copy_file_list(file_list, callback=None, message=None):
-    return [(key, None) for _, key, _ in file_list]
+    return [(key, None, None) for _, key, _ in file_list]
 
 
 class PackageTest(QuiltTestCase):
@@ -221,7 +221,7 @@ class PackageTest(QuiltTestCase):
             method='put_object',
             service_response={
                 'VersionId': version,
-                'ChecksumSHA256': '123456',
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,  # TODO: use data here.
@@ -476,7 +476,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '04ac395a79045e624238c9f68ab2865155dc378a24822ff6c755d6da5823cf12',
+            '3789f2ababda373b6b8bb7f81f0691dd2a967b2a94c22f1b70112e5db7c7da0e',
             pointer_name=str(timestamp1),
         )
         with patch('time.time', return_value=timestamp1), \
@@ -490,7 +490,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '04ac395a79045e624238c9f68ab2865155dc378a24822ff6c755d6da5823cf12',
+            '3789f2ababda373b6b8bb7f81f0691dd2a967b2a94c22f1b70112e5db7c7da0e',
             pointer_name=str(timestamp2),
         )
         with patch('time.time', return_value=timestamp2), \
@@ -1036,7 +1036,7 @@ class PackageTest(QuiltTestCase):
                 method='copy_object',
                 service_response={
                     'CopyObjectResult': {
-                        'ChecksumSHA256': '123456',
+                        'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
                     },
                 },
                 expected_params={
@@ -1697,10 +1697,10 @@ class PackageTest(QuiltTestCase):
         _, entry = next(pkg.walk())
 
         hash_ = object()
-        mocked_calculate_sha256.return_value = [hash_]
+        mocked_calculate_sha256.return_value = [('SHA256', hash_)]
         pkg._fix_sha256()
         mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
-        assert entry.hash == {'type': 'AWSChecksumSHA256', 'value': hash_}
+        assert entry.hash == {'type': 'SHA256', 'value': hash_}
 
     def test_resolve_hash_invalid_pkg_name(self):
         with pytest.raises(QuiltException, match='Invalid package name'):
@@ -1849,7 +1849,7 @@ class PackageTest(QuiltTestCase):
             method='put_object',
             service_response={
                 'VersionId': '1',
-                'ChecksumSHA256': '123456',
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
@@ -1884,7 +1884,7 @@ class PackageTest(QuiltTestCase):
         selector_fn = mock.MagicMock(return_value=False)
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_sha256', return_value=["a" * 64]):
+        with patch('quilt3.packages.calculate_sha256', return_value=[('SHA256', "a" * 64)]):
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
@@ -1914,7 +1914,7 @@ class PackageTest(QuiltTestCase):
             service_response={
                 'VersionId': dst_version,
                 'CopyObjectResult': {
-                    'ChecksumSHA256': '123456',
+                    'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
                 },
             },
             expected_params={
