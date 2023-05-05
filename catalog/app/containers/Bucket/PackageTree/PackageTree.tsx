@@ -9,7 +9,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import ButtonIconized from 'components/ButtonIconized'
+import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
@@ -396,49 +396,59 @@ function DirDisplay({
           return (
             <>
               {prompt.render()}
-              {BucketPreferences.Result.match(
-                {
-                  Ok: ({ ui: { actions } }) => (
-                    <TopBar crumbs={crumbs}>
-                      {actions.revisePackage && (
-                        <M.Button
+              <TopBar crumbs={crumbs}>
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) => (
+                      <>
+                        {actions.revisePackage && (
+                          <M.Button
+                            className={classes.button}
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                            onClick={() => updateDialog.open()}
+                          >
+                            Revise package
+                          </M.Button>
+                        )}
+                        {actions.copyPackage && (
+                          <Successors.Button
+                            className={classes.button}
+                            bucket={bucket}
+                            onChange={setSuccessor}
+                          >
+                            Push to bucket
+                          </Successors.Button>
+                        )}
+                        <Download.DownloadButton
                           className={classes.button}
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                          onClick={() => updateDialog.open()}
-                        >
-                          Revise package
-                        </M.Button>
-                      )}
-                      {actions.copyPackage && (
-                        <Successors.Button
+                          label={path ? 'Download sub-package' : 'Download package'}
+                          onClick={openInDesktopState.confirm}
+                          path={downloadPath}
+                        />
+                        <RevisionMenu
                           className={classes.button}
-                          bucket={bucket}
-                          onChange={setSuccessor}
-                        >
-                          Push to bucket
-                        </Successors.Button>
-                      )}
-                      <Download.DownloadButton
-                        className={classes.button}
-                        label={path ? 'Download sub-package' : 'Download package'}
-                        onClick={openInDesktopState.confirm}
-                        path={downloadPath}
-                      />
-                      <RevisionMenu
-                        className={classes.button}
-                        onDelete={confirmDelete}
-                        onDesktop={openInDesktopState.confirm}
-                        onCreateFile={prompt.open}
-                      />
-                    </TopBar>
-                  ),
-                  _: () => null, // TODO: Buttons.Skeleton
-                },
-                prefs,
-              )}
+                          onDelete={confirmDelete}
+                          onDesktop={openInDesktopState.confirm}
+                          onCreateFile={prompt.open}
+                        />
+                      </>
+                    ),
+                    Pending: () => (
+                      <>
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                        <Buttons.Skeleton className={classes.button} size="small" />
+                      </>
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
+                )}
+              </TopBar>
               {BucketPreferences.Result.match(
                 {
                   Ok: ({ ui: { blocks } }) => (
@@ -683,14 +693,17 @@ function FileDisplay({
                       FileEditor.isSupportedFileType(path) &&
                       hashOrTag === 'latest' &&
                       actions.revisePackage && (
-                        <ButtonIconized
+                        <Buttons.Iconized
                           className={classes.button}
                           icon="edit"
                           label="Edit"
                           onClick={handleEdit}
                         />
                       ),
-                    _: () => null, // TODO: Buttons.Skeleton
+                    Pending: () => (
+                      <Buttons.Skeleton className={classes.button} size="small" />
+                    ),
+                    Init: () => null,
                   },
                   prefs,
                 )}
