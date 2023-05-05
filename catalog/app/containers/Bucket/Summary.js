@@ -105,7 +105,7 @@ function ThumbnailsWrapper({
   hasSummarize,
 }) {
   if (!images.length || !galleryPrefs) return null
-  if (!galleryPrefs.files) return null
+  if (!inPackage && !galleryPrefs.files) return null
   if (inPackage && !galleryPrefs.packages) return null
   if (hasSummarize && !galleryPrefs.summarize) return null
   return <Gallery.Thumbnails {...{ images, mkUrl }} />
