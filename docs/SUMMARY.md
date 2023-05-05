@@ -22,7 +22,7 @@
 * [quilt3.Bucket](api-reference/Bucket.md)
 * [CLI, environment](api-reference/cli.md)
 * [Known limitations](api-reference/limitations.md)
-* [Self-signed certificates](api-reference/self-signed-certificates.md)
+* [Custom SSL certificates](api-reference/custom-ssl-certificates.md)
 
 ### Catalog
 * [Admin UI](Catalog/Admin.md)
