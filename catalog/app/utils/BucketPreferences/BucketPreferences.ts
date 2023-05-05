@@ -198,7 +198,7 @@ function parseGalleryBlock(
   return {
     files: gallery.files ?? defaultGallery.files,
     packages: gallery.packages ?? defaultGallery.packages,
-    overview: gallery.packages ?? defaultGallery.overview,
+    overview: gallery.overview ?? defaultGallery.overview,
     summarize: gallery.summarize ?? defaultGallery.summarize,
   }
 }
