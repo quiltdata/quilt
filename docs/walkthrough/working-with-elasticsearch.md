@@ -72,12 +72,7 @@ will be one result (`Logical ID` value of `Search`).
 Elasticsearch cluster in the AWS OpenSearch service.
 1. Select the "Cluster health" tab.
 1. Review the "Summary" section (look for **Green** Status):
-   - If your Status is **Red**, review the [AWS
-   documentation](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/handling-errors.html#handling-errors-red-cluster-status)
-   and notify your Quilt account manager.
-   - If your Status is **Yellow**, review the [AWS
-   documentation](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/handling-errors.html#handling-errors-yellow-cluster-status)
-   and notify your Quilt account manager.
+   - If your cluster Status is **Red** or **Yellow**, notify your Quilt account manager.
 1. In the "Overall health" section, update the "Time range" to `2w`
 and review all graphs, paying particular attention to:
     - Total free storage space: if one or more nodes in your cluster
