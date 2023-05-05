@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
@@ -699,7 +700,8 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                           </M.Typography>
                         </>
                       ),
-                    _: () => null, // TODO: Buttons.Skeleton
+                    Pending: () => <Buttons.Skeleton />,
+                    Init: () => null,
                   },
                   prefs,
                 )}
@@ -754,7 +756,12 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                           </M.Button>
                         </M.Box>
                       ),
-                    _: () => null, // TODO: Buttons.Skeleton
+                    Pending: () => (
+                      <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                        <Buttons.Skeleton size="large" />
+                      </M.Box>
+                    ),
+                    Init: () => null,
                   },
                   prefs,
                 )}
