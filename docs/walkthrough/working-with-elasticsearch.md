@@ -1,8 +1,9 @@
 <!-- markdownlint-disable -->
 
 Each Quilt stack includes an Elasticsearch cluster that indexes
-objects and packages as documents. You can connect to your Elasticsearch
-domain to query these documents.
+objects and packages as documents. The cluster is deployed in the
+AWS OpenSearch service. You can connect to your Elasticsearch
+domain to query documents.
 
 > If your Quilt stack uses private endpoints for Elasticsearch you will need to
 > connect to the cluster from a machine in the same VPC as the cluster.
@@ -67,7 +68,8 @@ To review your Elasticsearch cluster:
 1. In CloudFormation, select your Quilt stack.
 1. In the "Resources" tab, type `AWS::Elasticsearch::Domain`. There
 will be one result (`Logical ID` value of `Search`).
-1. Click the link in the `Physical ID` column to access the Quilt search cluster.
+1. Click the link in the `Physical ID` column to access the Quilt
+Elasticsearch cluster in the AWS OpenSearch service.
 1. Select the "Cluster health" tab.
 1. Review the "Summary" section (look for **Green** Status):
    - If your Status is **Red**, review the [AWS
@@ -124,7 +126,7 @@ is currently no way to modify Auto-Tune configurations using
 CloudFormation. Your Quilt administrator will need to take the following
 actions and re-run the Quilt CloudFormation deployment:
 
-1. Access the Quilt ElasticSearch cluster (see steps 1 - 3 above).
+1. Access the Quilt OpenSearch cluster (see steps 1 - 3 above).
 1. Select the "Auto-Tune" tab.
 1. Review the "Status" value. If the value is **Turned on**, click the "Edit" button.
 1. Select the option to "Turn off" Auto-Tune and click the "Save changes" button:
