@@ -8,7 +8,7 @@ import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import ButtonIconized from 'components/ButtonIconized'
+import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
@@ -490,7 +490,7 @@ export default function File({
               onSave={handleEditorSave}
             />
           )}
-          <ButtonIconized
+          <Buttons.Iconized
             className={classes.button}
             icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
             label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}

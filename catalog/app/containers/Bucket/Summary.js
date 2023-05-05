@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import * as Preview from 'components/Preview'
 import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
@@ -135,21 +136,30 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
       )}
       {BucketPreferences.Result.match(
         {
-          Ok: ({ ui: { actions, blocks } }) => (
-            <>
-              {actions.revisePackage && !readme && !path && !!packageHandle && (
-                <AddReadmeSection packageHandle={packageHandle} path={path} />
-              )}
-              <ThumbnailsWrapper
-                {...{
-                  images,
-                  mkUrl,
-                  preferences: blocks.gallery,
-                  inPackage: !!packageHandle,
-                  hasSummarize: !!summarize,
-                }}
-              />
-            </>
+          Ok: ({ ui: { actions } }) =>
+            !readme &&
+            !path &&
+            !!packageHandle &&
+            !!actions.revisePackage && (
+              <AddReadmeSection packageHandle={packageHandle} path={path} />
+            ),
+          Pending: () => <Buttons.Skeleton size="small" />,
+          Init: () => null,
+        },
+        prefs,
+      )}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => (
+            <ThumbnailsWrapper
+              {...{
+                images,
+                mkUrl,
+                preferences: blocks.gallery,
+                inPackage: !!packageHandle,
+                hasSummarize: !!summarize,
+              }}
+            />
           ),
           Pending: () => <Gallery.Skeleton />,
           Init: () => null,
