@@ -166,7 +166,7 @@ to support@quiltdata.io:
     All As HAR**.
     - Apple Safari: Click the **Export** button
   1. Save the HAR-formatted file to your localhost.
-    ![Save browser Network error logs as HAR content]()
+    ![Save browser Network error logs as HAR content](imgs/troubleshooting-logs-browser.png)
 1. CloudWatch logs for the Quilt cluster Elastic Container Service:
   1. Install the [AWS CLI](https://aws.amazon.com/cli/) tool.
   1. Export the AWS profile for your Quilt stack:
