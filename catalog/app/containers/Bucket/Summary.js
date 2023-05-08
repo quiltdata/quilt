@@ -5,6 +5,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
@@ -196,7 +197,7 @@ function Thumbnails({ images, mkUrl }) {
 // files: Array of s3 handles
 export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
@@ -215,12 +216,20 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           mkUrl={mkUrl}
         />
       )}
-      {!readme &&
-        !path &&
-        !!packageHandle &&
-        !!preferences?.ui?.actions?.revisePackage && (
-          <AddReadmeSection packageHandle={packageHandle} path={path} />
-        )}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) =>
+            !readme &&
+            !path &&
+            !!packageHandle &&
+            !!actions.revisePackage && (
+              <AddReadmeSection packageHandle={packageHandle} path={path} />
+            ),
+          Pending: () => <Buttons.Skeleton size="small" />,
+          Init: () => null,
+        },
+        prefs,
+      )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
       {summarize && (
         <Summarize.SummaryNested

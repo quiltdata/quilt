@@ -53,7 +53,8 @@ const ERRORS_MAP = {
   name: {
     required: 'Enter a package name',
     invalid: 'Invalid package name',
-    pattern: (w?: workflows.Workflow) => `Package name must match ${w?.packageNamePattern}`,
+    pattern: (w?: workflows.Workflow) =>
+      `Package name must match ${w?.packageNamePattern}`,
   },
   msg: {
     required: 'Enter a commit message',
@@ -867,8 +868,7 @@ export function PackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !src.bucket },
   )
-  // XXX: use AsyncResult
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket: src.bucket,
@@ -888,23 +888,29 @@ export function PackageCreationDialog({
           AsyncResult.case(
             {
               Ok: (manifest: Manifest | undefined) =>
-                preferences
-                  ? AsyncResult.Ok({
-                      manifest,
-                      workflowsConfig,
-                      sourceBuckets:
-                        src.s3Path === undefined
-                          ? preferences.ui.sourceBuckets
-                          : prependSourceBucket(preferences.ui.sourceBuckets, src.bucket),
-                    })
-                  : AsyncResult.Pending(),
+                BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { sourceBuckets } }) =>
+                      AsyncResult.Ok({
+                        manifest,
+                        workflowsConfig,
+                        sourceBuckets:
+                          src.s3Path === undefined
+                            ? sourceBuckets
+                            : prependSourceBucket(sourceBuckets, src.bucket),
+                      }),
+                    Pending: AsyncResult.Pending,
+                    Init: AsyncResult.Init,
+                  },
+                  prefs,
+                ),
               _: R.identity,
             },
             manifestResult,
           ),
         _: R.identity,
       }),
-    [src.bucket, src.s3Path, workflowsData, manifestResult, preferences],
+    [src.bucket, src.s3Path, workflowsData, manifestResult, prefs],
   )
 
   const close = React.useCallback(() => {

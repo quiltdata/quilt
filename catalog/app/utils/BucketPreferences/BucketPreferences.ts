@@ -1,12 +1,12 @@
 import * as R from 'ramda'
+import * as Sentry from '@sentry/react'
 
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 
 import * as bucketErrors from 'containers/Bucket/errors'
 import { makeSchemaValidator } from 'utils/json-schema'
+import * as tagged from 'utils/taggedV2'
 import * as YAML from 'utils/yaml'
-
-export type SentryInstance = (command: 'captureMessage', message: string) => void
 
 export type ActionPreferences = Record<
   'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
@@ -103,7 +103,7 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
-export interface BucketPreferences {
+interface BucketPreferences {
   ui: UiPreferences
 }
 
@@ -217,7 +217,6 @@ function parsePackages(
 }
 
 function parseSourceBuckets(
-  sentry: SentryInstance,
   sourceBuckets?: SourceBucketsInput,
   defaultSourceBucketInput?: DefaultSourceBucketInput,
 ): SourceBuckets {
@@ -229,10 +228,7 @@ function parseSourceBuckets(
         const found = list.find((name) => name === defaultSourceBucket)
         if (found) return found
         // TODO: use more civilized logger, log all similar configuration errors
-        sentry(
-          'captureMessage',
-          `defaultSourceBucket ${defaultSourceBucket} is incorrect`,
-        )
+        Sentry.captureMessage(`defaultSourceBucket ${defaultSourceBucket} is incorrect`)
       }
       return list[0] || ''
     },
@@ -240,10 +236,7 @@ function parseSourceBuckets(
   }
 }
 
-export function extendDefaults(
-  data: BucketPreferencesInput,
-  sentry: SentryInstance,
-): BucketPreferences {
+export function extendDefaults(data: BucketPreferencesInput): BucketPreferences {
   return {
     ui: {
       ...R.mergeDeepRight(defaultPreferences.ui, data?.ui || {}),
@@ -254,7 +247,6 @@ export function extendDefaults(
         data?.ui?.package_description_multiline,
       ),
       sourceBuckets: parseSourceBuckets(
-        sentry,
         data?.ui?.sourceBuckets,
         data?.ui?.defaultSourceBucket,
       ),
@@ -262,14 +254,21 @@ export function extendDefaults(
   }
 }
 
-export function parse(
-  bucketPreferencesYaml: string,
-  sentry: SentryInstance,
-): BucketPreferences {
+export function parse(bucketPreferencesYaml: string): BucketPreferences {
   const data = YAML.parse(bucketPreferencesYaml)
   if (!data) return defaultPreferences
 
   validate(data)
 
-  return extendDefaults(data, sentry)
+  return extendDefaults(data)
 }
+
+export const Result = tagged.create('app/utils/BucketPreferences:Result' as const, {
+  // TODO: Error: (e: Error) => e,
+  Ok: (prefs: BucketPreferences) => prefs,
+  Pending: () => null,
+  Init: () => null,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Result = tagged.InstanceOf<typeof Result>

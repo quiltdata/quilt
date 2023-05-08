@@ -6,6 +6,7 @@ import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
@@ -428,8 +429,8 @@ interface PackageRevisionsProps {
   page?: number
 }
 
-function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const { preferences } = BucketPreferences.use()
+export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
+  const prefs = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -470,16 +471,24 @@ function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
           revisions
         </M.Typography>
         <M.Box flexGrow={1} />
-        {preferences?.ui?.actions?.revisePackage && (
-          <PD.CreatePackageLink>
-            <M.Button
-              variant="contained"
-              color="primary"
-              style={{ marginTop: -3, marginBottom: -3 }}
-            >
-              Revise package
-            </M.Button>
-          </PD.CreatePackageLink>
+        {BucketPreferences.Result.match(
+          {
+            Ok: ({ ui: { actions } }) =>
+              actions.revisePackage && (
+                <PD.CreatePackageLink>
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    style={{ marginTop: -3, marginBottom: -3 }}
+                  >
+                    Revise package
+                  </M.Button>
+                </PD.CreatePackageLink>
+              ),
+            Pending: () => <Buttons.Skeleton />,
+            Init: () => null,
+          },
+          prefs,
         )}
       </M.Box>
 

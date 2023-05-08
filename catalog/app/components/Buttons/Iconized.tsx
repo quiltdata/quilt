@@ -11,21 +11,21 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface ButtonIconShrinkingProps extends M.IconButtonProps {
+interface ButtonIconizedProps extends M.IconButtonProps {
   icon: string
   label: string
   rotate?: boolean
   variant?: 'text' | 'outlined' | 'contained'
 }
 
-export default function ButtonIconShrinking({
+export default function ButtonIconized({
   className,
   label,
   icon,
   rotate,
   variant = 'outlined',
   ...props
-}: ButtonIconShrinkingProps) {
+}: ButtonIconizedProps) {
   const classes = useStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
