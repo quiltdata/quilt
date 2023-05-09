@@ -173,7 +173,7 @@ to support@quiltdata.io:
         ```
         export AWS_PROFILE=stage
         ```
-    1. Use the `cloudformation` command to retrieve your Quilt stack log group name:
+    1. Execute the `cloudformation` command to retrieve your Quilt stack log group name:
         ```
         aws cloudformation describe-stack-resource --stack-name "YOUR_QUILT_STACK" --logical-resource-id "LogGroup"
         ```
@@ -194,8 +194,8 @@ to support@quiltdata.io:
             }
         }
         ```
-    1. Use the following Bash script to save all the log entries for
-    the last 30 minutes to a file `query_results.tsv`:
+    1. Execute the following Bash script to save all Quilt ECS containers log entries for
+    the last 30 minutes to a tab-delimited text file `query_results.tsv`:
         ```bash
         #!/bin/bash
 
