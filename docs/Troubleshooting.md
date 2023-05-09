@@ -145,90 +145,90 @@ Quilt, please capture the following logs and attach to an email
 to support@quiltdata.io:
 
 1. Browser logs (isolating the most recent request that triggered an error):
-  1. Go to the affected page in your Quilt Catalog.
-  1. Open the browser Developer tools:
-    - Google Chrome: Press **F12**, **Ctrl+Shift+I** or from the
-    Chrome menu select **More tools > Developer tools**.
-    - Mozilla Firefox: Press **F12** or go to **Tools > Browser Tools > Web Developer Tools**.
-    - Apple Safari: Go to **Develop > Show Web Inspector**.
-  1. Select the **Network** tab.
-  1. Ensure the session is recorded:
-    - Google Chrome: Check the red button in the upper left corner is set to **Record**.
-    - Mozilla Firefox: Check the Pause/Resume button is set to **Resume**.
-    - Apple Safari: Sessions are recorded by default.
-  1. Ensure **Preserve Log** is enabled (**Persist Logs** in Mozilla Firefox).
-  1. Click the **Clear** button to clear out existing logs.
-  1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
-  1. Export the logs as HAR format.
-    - Google Chrome: **Ctrl + Click** anywhere on the grid of
-    network requests and select **Save all as HAR with content**.
-    - Mozilla Firefox: Select the gear icon () and select **Save
-    All As HAR**.
-    - Apple Safari: Click the **Export** button
-  1. Save the HAR-formatted file to your localhost.
-    ![Save browser Network error logs as HAR content](imgs/troubleshooting-logs-browser.png)
+    1. Go to the affected page in your Quilt Catalog.
+    1. Open the browser Developer tools:
+        - Google Chrome: Press **F12**, **Ctrl+Shift+I** or from the
+        Chrome menu select **More tools > Developer tools**.
+        - Mozilla Firefox: Press **F12** or go to **Tools > Browser Tools > Web Developer Tools**.
+        - Apple Safari: Go to **Develop > Show Web Inspector**.
+    1. Select the **Network** tab.
+    1. Ensure the session is recorded:
+        - Google Chrome: Check the red button in the upper left corner is set to **Record**.
+        - Mozilla Firefox: Check the Pause/Resume button is set to **Resume**.
+        - Apple Safari: Sessions are recorded by default.
+    1. Ensure **Preserve Log** is enabled (**Persist Logs** in Mozilla Firefox).
+    1. Click the **Clear** button to clear out existing logs.
+    1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
+    1. Export the logs as HAR format.
+        - Google Chrome: **Ctrl + Click** anywhere on the grid of
+        network requests and select **Save all as HAR with content**.
+        - Mozilla Firefox: Select the gear icon () and select **Save
+        All As HAR**.
+        - Apple Safari: Click the **Export** button
+    1. Save the HAR-formatted file to your localhost.
+        ![Save browser Network error logs as HAR content](imgs/troubleshooting-logs-browser.png)
 1. CloudWatch logs for the Quilt cluster Elastic Container Service:
-  1. Install the [AWS CLI](https://aws.amazon.com/cli/) tool.
-  1. Export the AWS profile for your Quilt stack:
-  ```
-  export AWS_PROFILE=stage
-  ```
-  1. Use the `cloudformation` utility to retrieve your Quilt stack log group name:
-  ```
-  aws cloudformation describe-stack-resource --stack-name "YOUR_QUILT_STACK" --logical-resource-id "LogGroup"
-  {
-      "StackResourceDetail": {
-          "StackName": "YOUR_QUILT_STACK",
-          "StackId": "arn:aws:cloudformation:REGION:XXXXXXXXXXXX:stack/YOUR_QUILT_STACK/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
-          "LogicalResourceId": "LogGroup",
-          "PhysicalResourceId": "YOUR_QUILT_STACK_LOG_GROUP_NAME",
-          "ResourceType": "AWS::Logs::LogGroup",
-          "LastUpdatedTimestamp": "2022-01-11T04:44:26.778Z",
-          "ResourceStatus": "UPDATE_COMPLETE",
-          "Metadata": "{}",
-          "DriftInformation": {
-              "StackResourceDriftStatus": "IN_SYNC"
-          }
-      }
-  }
-  ```
-  1. Use the following Bash script to save all the log entries for
-  the last 30 minutes to a file `query_results.tsv`:
-  ```bash
-  #!/bin/bash
+    1. Install the [AWS CLI](https://aws.amazon.com/cli/) tool.
+    1. Export the AWS profile for your Quilt stack:
+        ```
+        export AWS_PROFILE=stage
+        ```
+    1. Use the `cloudformation` utility to retrieve your Quilt stack log group name:
+        ```
+        aws cloudformation describe-stack-resource --stack-name "YOUR_QUILT_STACK" --logical-resource-id "LogGroup"
+        {
+            "StackResourceDetail": {
+                "StackName": "YOUR_QUILT_STACK",
+                "StackId": "arn:aws:cloudformation:REGION:XXXXXXXXXXXX:stack/YOUR_QUILT_STACK/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+                "LogicalResourceId": "LogGroup",
+                "PhysicalResourceId": "YOUR_QUILT_STACK_LOG_GROUP_NAME",
+                "ResourceType": "AWS::Logs::LogGroup",
+                "LastUpdatedTimestamp": "2022-01-11T04:44:26.778Z",
+                "ResourceStatus": "UPDATE_COMPLETE",
+                "Metadata": "{}",
+                "DriftInformation": {
+                    "StackResourceDriftStatus": "IN_SYNC"
+                }
+            }
+        }
+        ```
+    1. Use the following Bash script to save all the log entries for
+    the last 30 minutes to a file `query_results.tsv`:
+    ```bash
+    #!/bin/bash
 
-  # Substitute the log group name from the aws cloudformation
-  # describe-stack-resource command above
-  log_group_name="YOUR_QUILT_STACK_LOG_GROUP_NAME"
-  file_out="query_results.tsv"
+    # Substitute the log group name from the aws cloudformation
+    # describe-stack-resource command above
+    log_group_name="YOUR_QUILT_STACK_LOG_GROUP_NAME"
+    file_out="query_results.tsv"
 
-  # Time now (in epoch seconds)
-  end_time=$(date +%s)
-  # Time 30 minutes ago (in epoch seconds)
-  start_time=$(date -v-30M +%s)
+    # Time now (in epoch seconds)
+    end_time=$(date +%s)
+    # Time 30 minutes ago (in epoch seconds)
+    start_time=$(date -v-30M +%s)
 
-  echo "end_time: $end_time"
-  echo "start_time: $start_time"
-  echo "log_group_name: $log_group_name"
+    echo "end_time: $end_time"
+    echo "start_time: $start_time"
+    echo "log_group_name: $log_group_name"
 
-  # Define the query
-  query_string="fields @timestamp, @message | sort @timestamp desc"
-  query_id=$(aws logs start-query \
-      --log-group-name "$log_group_name" \
-      --start-time "$start_time" \
-      --end-time "$end_time" \
-      --query-string "$query_string" \
-      --output text \
-      --query 'queryId')
+    # Define the query
+    query_string="fields @timestamp, @message | sort @timestamp desc"
+    query_id=$(aws logs start-query \
+        --log-group-name "$log_group_name" \
+        --start-time "$start_time" \
+        --end-time "$end_time" \
+        --query-string "$query_string" \
+        --output text \
+        --query 'queryId')
+ 
+    # Output the query id
+    echo "query_id: $query_id"
+ 
+    # Give the query time to run
+    echo "sleep for 10 seconds (let the query run)..."
+    sleep 10
 
-  # Output the query id
-  echo "query_id: $query_id"
-
-  # Give the query time to run
-  echo "sleep for 10 seconds (let the query run)..."
-  sleep 10
-
-  echo "write results to $file_out"
-  query_results=$(aws logs get-query-results --query-id $query_id)
-  echo "$query_results" | jq -r '.results[] | [.[] | .value] | @tsv' | column -t > $file_out
-  ```
+    echo "write results to $file_out"
+    query_results=$(aws logs get-query-results --query-id $query_id)
+    echo "$query_results" | jq -r '.results[] | [.[] | .value] | @tsv' | column -t > $file_out
+    ```
