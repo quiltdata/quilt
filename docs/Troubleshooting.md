@@ -173,9 +173,11 @@ to support@quiltdata.io:
         ```
         export AWS_PROFILE=stage
         ```
-    1. Use the `cloudformation` utility to retrieve your Quilt stack log group name:
+    1. Use the `cloudformation` command to retrieve your Quilt stack log group name:
         ```
         aws cloudformation describe-stack-resource --stack-name "YOUR_QUILT_STACK" --logical-resource-id "LogGroup"
+        ```
+        ```
         {
             "StackResourceDetail": {
                 "StackName": "YOUR_QUILT_STACK",
@@ -194,41 +196,41 @@ to support@quiltdata.io:
         ```
     1. Use the following Bash script to save all the log entries for
     the last 30 minutes to a file `query_results.tsv`:
-    ```bash
-    #!/bin/bash
+        ```bash
+        #!/bin/bash
 
-    # Substitute the log group name from the aws cloudformation
-    # describe-stack-resource command above
-    log_group_name="YOUR_QUILT_STACK_LOG_GROUP_NAME"
-    file_out="query_results.tsv"
+        # Substitute the log group name from the aws cloudformation
+        # describe-stack-resource command above
+        log_group_name="YOUR_QUILT_STACK_LOG_GROUP_NAME"
+        file_out="query_results.tsv"
 
-    # Time now (in epoch seconds)
-    end_time=$(date +%s)
-    # Time 30 minutes ago (in epoch seconds)
-    start_time=$(date -v-30M +%s)
+        # Time now (in epoch seconds)
+        end_time=$(date +%s)
+        # Time 30 minutes ago (in epoch seconds)
+        start_time=$(date -v-30M +%s)
 
-    echo "end_time: $end_time"
-    echo "start_time: $start_time"
-    echo "log_group_name: $log_group_name"
+        echo "end_time: $end_time"
+        echo "start_time: $start_time"
+        echo "log_group_name: $log_group_name"
 
-    # Define the query
-    query_string="fields @timestamp, @message | sort @timestamp desc"
-    query_id=$(aws logs start-query \
-        --log-group-name "$log_group_name" \
-        --start-time "$start_time" \
-        --end-time "$end_time" \
-        --query-string "$query_string" \
-        --output text \
-        --query 'queryId')
+        # Define the query
+        query_string="fields @timestamp, @message | sort @timestamp desc"
+        query_id=$(aws logs start-query \
+            --log-group-name "$log_group_name" \
+            --start-time "$start_time" \
+            --end-time "$end_time" \
+            --query-string "$query_string" \
+            --output text \
+            --query 'queryId')
  
-    # Output the query id
-    echo "query_id: $query_id"
+        # Output the query id
+        echo "query_id: $query_id"
  
-    # Give the query time to run
-    echo "sleep for 10 seconds (let the query run)..."
-    sleep 10
+        # Give the query time to run
+        echo "sleep for 10 seconds (let the query run)..."
+        sleep 10
 
-    echo "write results to $file_out"
-    query_results=$(aws logs get-query-results --query-id $query_id)
-    echo "$query_results" | jq -r '.results[] | [.[] | .value] | @tsv' | column -t > $file_out
-    ```
+        echo "write results to $file_out"
+        query_results=$(aws logs get-query-results --query-id $query_id)
+        echo "$query_results" | jq -r '.results[] | [.[] | .value] | @tsv' | column -t > $file_out
+        ```
