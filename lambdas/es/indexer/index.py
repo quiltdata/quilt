@@ -52,7 +52,7 @@ import os
 import pathlib
 import re
 from os.path import split
-from typing import List, Optional
+from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
 import boto3
@@ -192,20 +192,20 @@ def get_compression(ext: str):
     return "gz" if ext == ".gz" else None
 
 
-def get_normalized_extensions(key) -> List[str]:
+def get_normalized_extensions(key) -> Tuple[str]:
     """standard function turning keys into a list of (possibly empty) extensions"""
     path = pathlib.PurePosixPath(key)
     try:
         ext_last = path.suffix.lower()
         ext_next_last = path.with_suffix('').suffix.lower()
     except ValueError:
-        return ["", ""]
+        return ("", "")
 
     # return in left-to-right order as they occur in the key
-    return [ext_next_last, ext_last]
+    return (ext_next_last, ext_last)
 
 
-def infer_extensions(key, exts: List[str], compression):
+def infer_extensions(key, exts: Tuple[str], compression):
     """guess extensions if possible"""
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
@@ -215,7 +215,7 @@ def infer_extensions(key, exts: List[str], compression):
             re.fullmatch(r".c\d{3,5}", long_ext) or re.fullmatch(r".*-c\d{3,5}$", key)
             or key.endswith("_0")
             or exts[-1] == ".pq"
-            or compression and exts[0] == ".pq"
+            or (compression and exts[0] == ".pq")
     ):
         return ".parquet"
     elif compression:
@@ -775,7 +775,7 @@ def handler(event, context):
                     text = maybe_get_contents(
                         bucket,
                         key,
-                        infer_extensions(key, [ext_next_last, ext_last], compression),
+                        infer_extensions(key, (ext_next_last, ext_last), compression),
                         etag=etag,
                         version_id=version_id,
                         s3_client=s3_client,

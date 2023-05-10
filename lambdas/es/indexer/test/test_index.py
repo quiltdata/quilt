@@ -306,17 +306,17 @@ def test_get_compression(ext, expected):
 
 
 @pytest.mark.parametrize(
-    "key, expected", [
-        ("foo/bar.baz/hello world.txt", ["", ".txt"]),
-        ("foo/bar.baz/hello.world.csv", [".world", ".csv"]),
-        ("foo/bar.baz/hello-world.csv.gz", [".csv", ".gz"]),
-        ("abarefilenoextensions", ["", ""]),
-        ("f", ["", ""]),
-        (" ", ["", ""]),
-        ("..", ["", ""]),
-        (".", ["", ""]),
-        ("", ["", ""]),
-    ]
+    "key, expected", (
+        ("foo/bar.baz/hello world.txt", ("", ".txt")),
+        ("foo/bar.baz/hello.world.csv", (".world", ".csv")),
+        ("foo/bar.baz/hello-world.csv.gz", (".csv", ".gz")),
+        ("abarefilenoextensions", ("", "")),
+        ("f", ("", "")),
+        (" ", ("", "")),
+        ("..", ("", "")),
+        (".", ("", "")),
+        ("", ("", "")),
+    )
 )
 def test_get_normalized_extensions(key, expected):
     assert index.get_normalized_extensions(key) == expected
