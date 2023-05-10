@@ -192,7 +192,7 @@ def get_compression(ext: str):
     return "gz" if ext == ".gz" else None
 
 
-def get_normalized_extensions(key) -> Tuple[str]:
+def get_normalized_extensions(key) -> Tuple[str, str]:
     """standard function turning keys into a list of (possibly empty) extensions"""
     path = pathlib.PurePosixPath(key)
     try:
@@ -205,7 +205,7 @@ def get_normalized_extensions(key) -> Tuple[str]:
     return (ext_next_last, ext_last)
 
 
-def infer_extensions(key, exts: Tuple[str], compression):
+def infer_extensions(key, exts: Tuple[str, str], compression):
     """guess extensions if possible"""
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
