@@ -58,7 +58,6 @@ setup(
     keywords='',
     install_requires=[
         'platformdirs>=2',
-        'aws-requests-auth>=0.4.2',
         'boto3>=1.21.7',
         'jsonlines==1.2.0',
         'PyYAML>=5.1',
