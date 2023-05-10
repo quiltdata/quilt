@@ -293,6 +293,62 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
         assert _append_mock.call_count == 1
 
 
+@pytest.mark.parametrize(
+    "ext, expected", [
+        (".gz", "gz"),
+        (".bz2", None),
+        (".zip", None),
+        (".csv", None),
+    ]
+)
+def test_get_compression(ext, expected):
+    assert index.get_compression(ext) == expected
+
+
+@pytest.mark.parametrize(
+    "key, expected", [
+        ("foo/bar.baz/hello world.txt", ["", ".txt"]),
+        ("foo/bar.baz/hello.world.csv", [".world", ".csv"]),
+        ("foo/bar.baz/hello-world.csv.gz", [".csv", ".gz"]),
+        ("abarefilenoextensions", ["", ""]),
+        ("f", ["", ""]),
+        (" ", ["", ""]),
+        ("..", ["", ""]),
+        (".", ["", ""]),
+        ("", ["", ""]),
+    ]
+)
+def test_get_normalized_extensions(key, expected):
+    assert index.get_normalized_extensions(key) == expected
+
+
+@pytest.mark.parametrize(
+    "key, compression, expected", [
+        # parquet
+        ("s3/some/file.c000", None, ".parquet"),
+        # parquet, nonzero part number
+        ("s3/some/file.c001", None, ".parquet"),
+        # -c0001 file
+        ("s3/some/file-c0001", None, ".parquet"),
+        # -c00111 file (should never happen)
+        ("s3/some/file-c000121", None, ""),
+        ("s3/some/file-boom-boom!bam.pq", None, ".parquet"),
+        ("s3/some/file-boom-boom!bam.pq.gz", "gz", ".parquet"),
+        pytest.param("s3/some/file-boom-boom!bam.pq.gz", None, ".parquet", marks=pytest.mark.xfail),
+        ("s3/some/file-boom-boom!maga_0", None, ".parquet"),
+        # .txt file, should be unchanged
+        ("s3/some/file-c0000.txt", None, ".txt"),
+        ("s3/to.path/a/file.with.lots.of.dots.h5ad.json", None, ".json"),
+        ("s3/to.path/a/file.csv.gz", "gz", ".csv"),
+        # we dont' support .bz2
+        ("s3/to.path/a/file.csv.bz2", None, ".bz2")
+    ]
+)
+def test_infer_extensions(key, compression, expected):
+    """ensure we are guessing file types well"""
+    assert index.infer_extensions(key, index.get_normalized_extensions(key), compression) == expected
+
+
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
     for name in CREATE_EVENT_TYPES.union(DELETE_EVENT_TYPES).union({UNKNOWN_EVENT_TYPE}):
@@ -368,10 +424,11 @@ class TestIndex(TestCase):
 
         self.requests_mock.stop()
 
-    def _get_contents(self, name, ext):
+    def _get_contents(self, name, ext, compression=None):
         return index.maybe_get_contents(
             'test-bucket', name, ext,
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
+            compression=compression
         )
 
     def _make_es_callback(
@@ -1012,28 +1069,6 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
 
-    def test_infer_extensions(self):
-        """ensure we are guessing file types well"""
-        # parquet
-        assert index.infer_extensions("s3/some/file.c000", ".c000") == ".parquet", \
-            "Expected .c0000 to infer as .parquet"
-        # parquet, nonzero part number
-        assert index.infer_extensions("s3/some/file.c001", ".c001") == ".parquet", \
-            "Expected .c0001 to infer as .parquet"
-        # -c0001 file
-        assert index.infer_extensions("s3/some/file-c0001", "") == ".parquet", \
-            "Expected -c0001 to infer as .parquet"
-        # -c00111 file (should never happen)
-        assert index.infer_extensions("s3/some/file-c000121", "") == "", \
-            "Expected -c000121 not to infer as .parquet"
-        assert index.infer_extensions("s3/some/file-boom-boom!bam.pq", ".pq") == ".parquet", \
-            "Expected .pq to infer as .parquet"
-        assert index.infer_extensions("s3/some/file-boom-boom!maga_0", "") == ".parquet", \
-            "Expected *_0 to infer as .parquet"
-        # .txt file, should be unchanged
-        assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
-            "Expected .txt to infer as .txt"
-
     def test_multiple_index_events(self):
         """
         Messages from SQS contain up to N messages.
@@ -1428,6 +1463,33 @@ class TestIndex(TestCase):
             col = f'column_{letter}'
             assert col not in contents, f'missing column: {col}'
 
+    @patch(__name__ + '.index.get_content_index_bytes', return_value=462)
+    def test_get_contents_dots(self, mocked_get_content_index_bytes):
+        json_ = (BASE_DIR / 'sample.json.gz').read_bytes()
+        # mock up the responses
+        size = len(json_)
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': size,
+                'Body': BytesIO(json_),
+            }
+        )
+        contents = index.maybe_get_contents(
+            'test-bucket',
+            'some/dir.with.dots/data.another.something.json',
+            '.json',
+            s3_client=self.s3_client,
+            etag='11223344',
+            size=size,
+            version_id='abcde',
+            compression='gz'
+        )
+        dict_ = json.loads(contents)
+        assert dict_["input"] == "dummy"
+        assert len(dict_.keys()) == 5
+
     @patch.object(index, 'get_available_memory')
     def test_get_contents_large(self, get_memory_mock):
         get_memory_mock.return_value = 1
@@ -1537,7 +1599,7 @@ class TestIndex(TestCase):
             }
         )
 
-        assert self._get_contents('foo.txt.gz', '.txt.gz') == "Hello World!"
+        assert self._get_contents('foo.txt.gz', '.txt', compression='gz') == "Hello World!"
 
     def test_notebook_contents(self):
         notebook = (BASE_DIR / 'normal.ipynb').read_bytes()
@@ -1575,7 +1637,7 @@ class TestIndex(TestCase):
             }
         )
 
-        assert "Model results visualization" in self._get_contents('foo.ipynb.gz', '.ipynb.gz')
+        assert "Model results visualization" in self._get_contents('foo.ipynb.gz', '.ipynb', compression='gz')
 
     def test_parquet_contents(self):
         parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
