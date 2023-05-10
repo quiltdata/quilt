@@ -210,6 +210,7 @@ def infer_extensions(key, exts: List[str], compression):
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
     long_ext = "".join(exts)
+    # pylint: disable=too-many-boolean-expressions)
     if (
             re.fullmatch(r".c\d{3,5}", long_ext) or re.fullmatch(r".*-c\d{3,5}$", key)
             or key.endswith("_0")
