@@ -224,7 +224,6 @@ def infer_extensions(key, exts: Tuple[str], compression):
     return exts[-1]
 
 
-
 def should_retry_exception(exception):
     """don't retry certain 40X errors"""
     if hasattr(exception, 'response'):
