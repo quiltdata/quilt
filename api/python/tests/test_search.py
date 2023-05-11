@@ -1,7 +1,8 @@
+from unittest import mock
+
 import responses
 
 from quilt3 import search
-from quilt3.util import get_from_config
 
 from .utils import QuiltTestCase
 
@@ -13,9 +14,7 @@ class ResponseMock:
 class SearchTestCase(QuiltTestCase):
 
     def test_all_bucket_search(self):
-        navigator_url = get_from_config('navigator_url')
-        api_gateway_url = get_from_config('apiGatewayEndpoint')
-        search_url = api_gateway_url + '/search'
+        registry_url = "https://registry.example.com"
         mock_search = {
             'hits': {
                 'hits': [{
@@ -32,10 +31,14 @@ class SearchTestCase(QuiltTestCase):
             }
         }
 
-        self.requests_mock.add(responses.GET,
-                               f"{search_url}?index=%2A&action=search&query=%2A",
-                               json=mock_search,
-                               status=200,
-                               match_querystring=True)
-        results = search("*")
+        self.requests_mock.get(
+            f"{registry_url}/api/search",
+            match=[responses.matchers.query_param_matcher(dict(action="search", index="_all", size=10, query="*"))],
+            json=mock_search,
+            status=200,
+        )
+        with mock.patch("quilt3.session.get_registry_url", return_value=registry_url) as get_registry_url_mock:
+            results = search("*")
+
+        get_registry_url_mock.assert_called_with()
         assert len(results) == 1
