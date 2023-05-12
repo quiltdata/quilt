@@ -196,7 +196,7 @@ jobs:
           # - Run "strip" on shared libraries
           python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
           find deps -name tests -type d -exec rm -r \{} \+
-          strip $(find deps -name '*.so.*')
+          find deps -name '*.so.*' -type f -exec strip \{} \+
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
