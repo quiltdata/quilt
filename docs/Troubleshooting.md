@@ -171,7 +171,7 @@ to support@quiltdata.io:
 1. Select the **Console** tab.
 1. Click the **Clear** button to clear out existing logs.
 1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
-1. Export the logs as HAR format.
+1. Export the logs.
     - Google Chrome: **Ctrl + Click** anywhere on the grid of
     network requests and select **Save as...**.
 1. Save the log file to your localhost.
