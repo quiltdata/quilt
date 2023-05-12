@@ -49,7 +49,7 @@ compatible with S3 bucket lifecycle rules that transition S3 objects to
 Glacier storage classes.
 
 There are currently three types of S3 object archive storage class that
-work differently with the Quilt Catalog (and API).
+work differently with the Quilt Catalog, `quilt3` CLI and Python API.
 
 1. **S3 Glacier Instant Retrieval:** Objects in this storage class are
 available as normal in the Bucket and Packages tabs in the Quilt
