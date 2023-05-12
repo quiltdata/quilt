@@ -187,8 +187,9 @@ jobs:
             python -m pip install -e lambdas/shared
             python -m pip install -e lambdas/${{ matrix.path }}
           fi
-          python -m pip install --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
+          # Use --no-deps to ensure that second-order dependencies are included in the requirements file.
+          python -m pip install --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
