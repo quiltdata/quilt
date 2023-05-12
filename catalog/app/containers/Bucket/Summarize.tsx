@@ -6,7 +6,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
@@ -124,27 +123,10 @@ const useSectionStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
   },
   heading: {
-    ...t.typography.h6,
-    display: 'flex',
-    lineHeight: 1.75,
     marginBottom: t.spacing(1),
     [t.breakpoints.up('sm')]: {
       marginBottom: t.spacing(2),
     },
-    [t.breakpoints.up('md')]: {
-      ...t.typography.h5,
-    },
-  },
-  headingText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  menu: {
-    display: 'flex',
-    marginLeft: t.spacing(1),
-  },
-  toggle: {
-    marginLeft: 'auto',
   },
 }))
 
@@ -173,19 +155,9 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       <div className={classes.content}>
         {!!heading && (
-          <div className={classes.heading}>
-            <div className={classes.headingText}>{heading}</div>
-            {onToggle && (
-              <Buttons.Iconized
-                className={classes.toggle}
-                label={expanded ? 'Collapse' : 'Expand'}
-                icon={expanded ? 'unfold_less' : 'unfold_more'}
-                rotate={expanded}
-                onClick={onToggle}
-              />
-            )}
-            {handle && <Preview.Menu className={classes.menu} handle={handle} />}
-          </div>
+          <Preview.Header expanded={expanded} onToggle={onToggle} handle={handle}>
+            {heading}
+          </Preview.Header>
         )}
         {!!description && <div className={classes.description}>{description}</div>}
         {children}

@@ -39,26 +39,26 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface HeaderProps {
+  children: React.ReactNode
   className?: string
   downloadable?: boolean
-  expanded: boolean
+  expanded?: boolean
   handle?: Model.S3.S3ObjectLocation
-  heading: React.ReactNode
   onToggle?: () => void
 }
 
 export default function Header({
   downloadable = false,
-  expanded,
+  expanded = false,
   handle,
-  heading,
+  children,
   onToggle,
   className,
 }: HeaderProps) {
   const classes = useStyles()
   return (
     <div className={cx(classes.heading, className)}>
-      <div className={classes.headingText}>{heading}</div>
+      <div className={classes.headingText}>{children}</div>
       <div className={classes.actions}>
         {onToggle && (
           <Buttons.Iconized
