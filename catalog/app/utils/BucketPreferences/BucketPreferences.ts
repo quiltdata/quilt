@@ -31,11 +31,17 @@ export interface MetaBlockPreferences {
   }
 }
 
+export type GalleryPreferences = Record<
+  'files' | 'packages' | 'overview' | 'summarize',
+  boolean
+>
+
 interface BlocksPreferencesInput {
   analytics?: boolean
   browser?: boolean
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
+  gallery?: boolean | GalleryPreferences
 }
 
 interface BlocksPreferences {
@@ -43,6 +49,7 @@ interface BlocksPreferences {
   browser: boolean
   code: boolean
   meta: false | MetaBlockPreferences
+  gallery: false | GalleryPreferences
 }
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
@@ -116,6 +123,13 @@ const defaultBlockMeta: MetaBlockPreferences = {
   },
 }
 
+const defaultGallery: GalleryPreferences = {
+  files: true,
+  overview: true,
+  packages: true,
+  summarize: true,
+}
+
 const defaultPreferences: BucketPreferences = {
   ui: {
     actions: {
@@ -131,6 +145,7 @@ const defaultPreferences: BucketPreferences = {
       browser: true,
       code: true,
       meta: defaultBlockMeta,
+      gallery: defaultGallery,
     },
     nav: {
       files: true,
@@ -175,6 +190,19 @@ function parseAthena(athena?: AthenaPreferencesInput): AthenaPreferences {
   }
 }
 
+function parseGalleryBlock(
+  gallery?: boolean | GalleryPreferences,
+): false | GalleryPreferences {
+  if (gallery === false) return false
+  if (gallery === true || gallery === undefined) return defaultGallery
+  return {
+    files: gallery.files ?? defaultGallery.files,
+    packages: gallery.packages ?? defaultGallery.packages,
+    overview: gallery.overview ?? defaultGallery.overview,
+    summarize: gallery.summarize ?? defaultGallery.summarize,
+  }
+}
+
 function parseMetaBlock(
   meta?: boolean | MetaBlockPreferencesInput,
 ): false | MetaBlockPreferences {
@@ -191,6 +219,7 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
     ...defaultPreferences.ui.blocks,
     ...blocks,
     meta: parseMetaBlock(blocks?.meta),
+    gallery: parseGalleryBlock(blocks?.gallery),
   }
 }
 

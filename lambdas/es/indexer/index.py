@@ -52,7 +52,7 @@ import os
 import pathlib
 import re
 from os.path import split
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
 import boto3
@@ -187,18 +187,41 @@ def now_like_boto3():
     return datetime.datetime.now(tz=tzutc())
 
 
-def infer_extensions(key, ext):
+def get_compression(ext: str):
+    """return the compression type or None if not supported"""
+    return "gz" if ext == ".gz" else None
+
+
+def get_normalized_extensions(key) -> Tuple[str, str]:
+    """standard function turning keys into a list of (possibly empty) extensions"""
+    path = pathlib.PurePosixPath(key)
+    try:
+        ext_last = path.suffix.lower()
+        ext_next_last = path.with_suffix('').suffix.lower()
+    except ValueError:
+        return ("", "")
+
+    # return in left-to-right order as they occur in the key
+    return (ext_next_last, ext_last)
+
+
+def infer_extensions(key, exts: Tuple[str, str], compression):
     """guess extensions if possible"""
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
+    long_ext = "".join(exts)
+    # pylint: disable=too-many-boolean-expressions)
     if (
-            re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key)
+            re.fullmatch(r".c\d{3,5}", long_ext) or re.fullmatch(r".*-c\d{3,5}$", key)
             or key.endswith("_0")
-            or ext == ".pq"
+            or exts[-1] == ".pq"
+            or (compression and exts[0] == ".pq")
     ):
         return ".parquet"
+    elif compression:
+        return exts[0]
 
-    return ext
+    return exts[-1]
 
 
 def should_retry_exception(exception):
@@ -401,20 +424,13 @@ def extract_pptx(fileobj, max_size: int) -> str:
     return '\n'.join(out)
 
 
-def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
+def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client, size, compression=None):
     """get the byte contents of a file if it's a target for deep indexing"""
     logger_ = get_quilt_logger()
-
-    if ext.endswith('.gz'):
-        compression = 'gz'
-        ext = ext[:-len('.gz')]
-    else:
-        compression = None
     logger_.debug(
         "Entering maybe_get_contents (could run out of mem.) %s %s %s", bucket, key, version_id
     )
     content = ""
-    inferred_ext = infer_extensions(key, ext)
     if inferred_ext in get_content_index_extensions(bucket_name=bucket):
         def _get_obj():
             return retry_s3(
@@ -699,10 +715,9 @@ def handler(event, context):
                     event_["s3"]["object"].get("lastModified") or event_["eventTime"]
                 )
                 # Get two levels of extensions to handle files like .csv.gz
-                path = pathlib.PurePosixPath(key)
-                ext1 = path.suffix
-                ext2 = path.with_suffix('').suffix
-                ext = (ext2 + ext1).lower()
+                ext_next_last, ext_last = get_normalized_extensions(key)
+                compression = get_compression(ext_last)
+                ext = ext_next_last + ext_last
                 # Handle delete and deletemarker first and then continue so that
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
@@ -759,11 +774,12 @@ def handler(event, context):
                     text = maybe_get_contents(
                         bucket,
                         key,
-                        ext,
+                        infer_extensions(key, (ext_next_last, ext_last), compression),
                         etag=etag,
                         version_id=version_id,
                         s3_client=s3_client,
-                        size=size
+                        size=size,
+                        compression=compression
                     )
                 # we still want an entry for this document in elastic so that, e.g.,
                 # the file counts from elastic are correct
