@@ -169,15 +169,12 @@ to support@quiltdata.io:
     - Google Chrome: Press **F12**, **Ctrl+Shift+I** or from the
     Chrome menu select **More tools > Developer tools**.
 1. Select the **Console** tab.
-1. Ensure the session is recorded:
-    - Google Chrome: Check the red button in the upper left corner is set to **Record**.
-1. Ensure **Preserve Log** is enabled.
 1. Click the **Clear** button to clear out existing logs.
 1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
 1. Export the logs as HAR format.
     - Google Chrome: **Ctrl + Click** anywhere on the grid of
-    network requests and select **Save all as HAR with content**.
-1. Save the HAR-formatted file to your localhost.
+    network requests and select **Save as...**.
+1. Save the log file to your localhost.
 
 ### Elastic Container Service (ECS) logs
 
