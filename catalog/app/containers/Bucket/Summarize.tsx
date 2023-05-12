@@ -10,6 +10,7 @@ import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import cfg from 'constants/config'
 import { docs } from 'constants/urls'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
@@ -155,7 +156,12 @@ export function Section({
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       <div className={classes.content}>
         {!!heading && (
-          <Preview.Header expanded={expanded} onToggle={onToggle} handle={handle}>
+          <Preview.Header
+            downloadable={!cfg.noDownload}
+            expanded={expanded}
+            handle={handle}
+            onToggle={onToggle}
+          >
             {heading}
           </Preview.Header>
         )}

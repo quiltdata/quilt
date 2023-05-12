@@ -85,11 +85,11 @@ function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onTo
   const classes = useObjectHeaderStyles()
   return (
     <Preview.Header
+      className={classes.root}
       downloadable={downloadable}
       expanded={expanded}
-      onToggle={onToggle}
-      className={classes.root}
       handle={handle}
+      onToggle={onToggle}
     >
       <ObjectCrumbs {...{ handle, showBucket }} />
     </Preview.Header>
