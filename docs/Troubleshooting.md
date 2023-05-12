@@ -178,18 +178,17 @@ to support@quiltdata.io:
 
 ### Elastic Container Service (ECS) logs
 
-To collect CloudWatch logs for the Quilt cluster ECS:
-    1. Find the name of your Quilt stack from querying all deployed
-    stacks (in your default region, which is listed in your
-    `~/.aws/config` file):
-        ```bash
-        aws cloudformation list-stacks
-        ```
-    1. Run the `aws logs` command to filter all Quilt ECS containers log entries for
-    the last 30 minutes:
-        ```bash
-        aws logs filter-log-events \
-            --log-group-name YOUR_QUILT_STACK_NAME
-            --start-time "$(( $(date -u -v-30M +%s) * 1000 ))" \
-            --end-time "$(( $(date -u +%s) * 1000 ))" > log-events.json
-        ```
+1. Find the name of your Quilt stack from querying all deployed
+stacks (in your default region, which is listed in your
+`~/.aws/config` file):
+    ```bash
+    aws cloudformation list-stacks
+    ```
+1. Run the `aws logs` command to filter all Quilt ECS containers log entries for
+the last 30 minutes:
+    ```bash
+    aws logs filter-log-events \
+        --log-group-name YOUR_QUILT_STACK_NAME
+        --start-time "$(( $(date -u -v-30M +%s) * 1000 ))" \
+        --end-time "$(( $(date -u +%s) * 1000 ))" > log-events.json
+    ```
