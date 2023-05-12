@@ -190,5 +190,5 @@ the last 30 minutes (assumes Mac BSD `date` command syntax):
     aws logs filter-log-events \
         --log-group-name YOUR_QUILT_STACK_NAME
         --start-time "$(( $(date -u -v-30M +%s) * 1000 ))" \
-        --end-time "$(( $(date -u +%s) * 1000 ))" > log-events.json
+        --end-time "$(( $(date -u +%s) * 1000 ))" > log-quilt-ecs-events.json
     ```
