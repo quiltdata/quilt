@@ -17,7 +17,7 @@
           "properties": {
             "files": {
               "default": true,
-              "description": "Hides Files tab",
+              "description": "Hides Bucket tab",
               "type": "boolean",
               "examples": [true, false]
             },
@@ -86,6 +86,42 @@
               "description": "Show/hide code block",
               "type": "boolean",
               "examples": [true, false]
+            },
+            "gallery": {
+              "default": true,
+              "description": "Show/hide image galleries",
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "boolean",
+                      "description": "Show/hide gallery in Bucket tab"
+                    },
+                    "packages": {
+                      "type": "boolean",
+                      "description": "Show/hide gallery in Packages tab"
+                    },
+                    "overview": {
+                      "type": "boolean",
+                      "description": "Show/hide gallery in Overview tab"
+                    },
+                    "summarize": {
+                      "type": "boolean",
+                      "description": "Show/hide gallery if quilt_summarize.json is present"
+                    }
+                  }
+                }
+              ],
+              "examples": [
+                true,
+                false,
+                {
+                  "files": true,
+                  "overview": false
+                }
+              ]
             },
             "meta": {
               "default": true,
