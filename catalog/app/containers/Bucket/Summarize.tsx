@@ -157,6 +157,7 @@ export function Section({
       <div className={classes.content}>
         {!!heading && (
           <Preview.Header
+            className={classes.heading}
             downloadable={!cfg.noDownload}
             expanded={expanded}
             handle={handle}
