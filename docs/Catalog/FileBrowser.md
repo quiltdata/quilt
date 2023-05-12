@@ -48,10 +48,10 @@ Glacier storage classes are built for data archiving. Quilt is
 compatible with S3 bucket lifecycle rules that transition S3 objects to
 Glacier storage classes.
 
-There are several types of S3 object archive storage class that
-working differently with the Quilt Catalog (and API).
+There are currently three types of S3 object archive storage class that
+work differently with the Quilt Catalog (and API).
 
-1. **S3 Glacier Instant Retrieval:** Objects in this storage class as
+1. **S3 Glacier Instant Retrieval:** Objects in this storage class are
 available as normal in the Bucket and Packages tabs in the Quilt
 Catalog.
 1. **S3 Glacier Flexible Retrieval (formerly S3 Glacier):** Objects are
@@ -69,5 +69,5 @@ the S3 object, you need to restore it first.
 ![Glacier S3 objects object
 view](../imgs/catalog-filesbrowser-glacier-objectview.png)
 
-> The AWS Glacier service is rapidly evolving and the changing
-feature set may impact the Quilt Catalog and/or API.
+> The AWS Glacier service is rapidly evolving and may impact the
+functionality of the Quilt Catalog and/or API.
