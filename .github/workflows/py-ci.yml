@@ -171,6 +171,7 @@ jobs:
     env:
       QUILT_DISABLE_USAGE_METRICS: true
       PYTHONPATH: deps
+      JUPYTER_PATH: deps  # Jupyter is not smart enough to handle custom Python paths
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
