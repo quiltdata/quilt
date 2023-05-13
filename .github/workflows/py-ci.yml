@@ -170,6 +170,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
+      PYTHONPATH: deps
+      JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -188,8 +190,14 @@ jobs:
             python -m pip install -e lambdas/${{ matrix.path }}
           fi
           python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
-          # Use --no-deps to ensure that second-order dependencies are included in the requirements file.
-          python -m pip install --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+
+          # Try to simulate the lambda .zip file:
+          # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
+          # - Remove "tests" directories
+          # - Run "strip" on shared libraries
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+          find deps -name tests -type d -exec rm -r \{} \+
+          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
       - name: Pytest
         run: |
           pytest --cov=lambdas lambdas/${{ matrix.path }}
