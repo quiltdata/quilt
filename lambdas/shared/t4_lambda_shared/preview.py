@@ -137,10 +137,8 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
         file_ - file-like object opened in binary mode (+b)
 
     Observations & assumptions:
-        * Parquet file in memory in batches is a small constant factor (as observed
-        in practice)
-        * Deserializing and converting batches to dataframes and strings is,
-        asymptotically, where memory is consumed
+        * ParquetFile and iter_batches size in memory are negligible in practice
+        * Deserializing and converting batches to dataframes and strings consumes the most memory
         * First row group (0) contains more than enough data for search, preview
         * We'll hit our own bytes limits way before we run out of RAM (except maybe
         for pathologically large rows)
