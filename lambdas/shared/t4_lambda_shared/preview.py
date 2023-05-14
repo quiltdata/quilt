@@ -168,27 +168,29 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
     info['shape'] = [meta.num_rows, meta.num_columns]
 
     available = get_available_memory()
-    batches = []
+    first_batch = None
+    iter_batches = None
     # 10MB heuristic; should never happen, e.g. with current default of 512MB
-    if available < 10_000 or skip_rows:
+    if (available < 10_000) or skip_rows:
         logger_.warning("Insufficient memory to index parquet file: %s", info)
         info['warnings'] = "Skipped rows; insufficient memory"
     else:
-        if meta.num_row_groups:
-            for b in pf.iter_batches(batch_size=128, row_groups=[0]):
-                batches.append(b)
+        if meta.num_row_groups and meta.num_rows:
+            iter_batches = pf.iter_batches(batch_size=128, row_groups=[0])
+            first_batch = next(iter_batches)
         else:
             logger_.warning("Parquet file with no rows: %s", info)
     if as_html:
         # one batch is sufficient (repr_html is short)
-        df = batches[0].to_pandas() if batches else pandas.DataFrame(columns=meta.schema.names)
+        df = first_batch.to_pandas() if first_batch else pandas.DataFrame(columns=meta.schema.names)
         body = remove_pandas_footer(df._repr_html_())  # pylint: disable=protected-access
-    elif batches:
+    elif first_batch:
         buffer = []
         size = 0
         done = False
-        for b in batches:
-            partial = batches[0].to_pandas()
+        def process_batch(batch):
+            nonlocal buffer, size, done
+            partial = batch.to_pandas()
             for _, row in partial.iterrows():
                 for column in row.astype(str):
                     encoded = column.encode()
@@ -205,8 +207,14 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
                 size += 1
                 if done:
                     break
+            return size
+
+        process_batch(first_batch)
+        for b in iter_batches:
             if done:
                 break
+            process_batch(b)
+
         body = b"".join(buffer).decode()
     else:
         body = ""
