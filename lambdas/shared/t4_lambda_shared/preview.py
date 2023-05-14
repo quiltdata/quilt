@@ -1,17 +1,17 @@
 """
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
-import math
 import re
 import tempfile
 import zlib
 from io import BytesIO
+from typing import Tuple
 
 import fcsparser
 import pandas
 from xlrd.biffh import XLRDError
 
-from .utils import get_available_memory
+from .utils import get_available_memory, get_quilt_logger
 
 AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
@@ -26,7 +26,7 @@ READ_CHUNK = 1024
 # common string used to explain truncation to user
 TRUNCATED = (
     'Rows and columns truncated for preview. '
-    'S3 object contains more data than shown.'
+    'S3 object may contain more data than shown.'
 )
 
 
@@ -129,27 +129,32 @@ def extract_fcs(file_, as_html=True):
     return body, info
 
 
-def extract_parquet(file_, as_html=True, skip_rows=False, *, max_bytes: int):
+def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: int) -> Tuple[str, str]:
     """
     parse and extract key metadata from parquet files
 
     Args:
         file_ - file-like object opened in binary mode (+b)
 
+    Observations & assumptions:
+        * ParquetFile and iter_batches sizes in memory are negligible in practice
+        * Deserializing and converting batches to dataframes and strings consumes the most memory
+        * First row group contains more than enough data for search, preview
+        * This function will hit system bytes limits (DOC_LIMIT_BYTES, etc.) long
+            before it runs out of RAM (except maybe for pathologically large rows)
+
     Returns:
-        dict
+        tuple
             body - summary of main contents (if applicable)
-            info - metdata for user consumption
+            info - metadata for user consumption
     """
-    # TODO: generalize to datasets, multipart files
-    # As written, only works for single files, and metadata
-    # is slanted towards the first row_group
-    # local import reduces amortized latency, saves memory
+    logger_ = get_quilt_logger()
     import pyarrow.parquet as pq  # pylint: disable=C0415
 
     pf = pq.ParquetFile(file_)
     meta = pf.metadata
 
+    body = ""
     info = {}
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
@@ -157,52 +162,57 @@ def extract_parquet(file_, as_html=True, skip_rows=False, *, max_bytes: int):
     info['num_row_groups'] = meta.num_row_groups
     # in previous versions (git blame) we sent a lot more schema information
     # but it's heavy on the browser and low information; just send column names
-    info['schema'] = {
-        'names': meta.schema.names
-    }
-    info['serialized_size'] = meta.serialized_size
+    info['schema'] = {'names': meta.schema.names}
+    info['serialized_size'] = meta.serialized_size  # footer serialized size
     info['shape'] = [meta.num_rows, meta.num_columns]
-    # TODO: refactor preview code to use dask/s3fs and pyarrow.dataset scanner to
-    # spare memory; part of the reason this is so inefficient: we've already read
-    # the entire parquet file into a BytesIO by the time we get here
-    if meta.num_row_groups:
-        # guess because we meta doesn't reveal how many rows in first group
-        num_rows_guess = math.ceil(meta.num_rows / meta.num_row_groups)
-        size_guess = num_rows_guess * meta.num_columns * AVG_PARQUET_CELL_BYTES
-        if skip_rows or (size_guess > get_available_memory()):
-            # minimal dataframe with all columns and one row
-            dataframe = pandas.DataFrame(columns=meta.schema.names)
-            info['warnings'] = 'Large file: skipped rows to conserve memory, only showing column names'
+
+    available = get_available_memory()
+    first_batch = None
+    iter_batches = None
+    # 10MB heuristic; should never happen, e.g. with current default of 512MB
+    if (available < 10E6) or skip_rows:
+        logger_.warning("Insufficient memory to index parquet file: %s", info)
+        info['warnings'] = "Skipped rows; insufficient memory"
+    else:
+        if meta.num_row_groups and meta.num_rows:
+            iter_batches = pf.iter_batches(batch_size=128, row_groups=[0])
+            first_batch = next(iter_batches)
         else:
-            dataframe = pf.read_row_group(0)[:MAX_PREVIEW_ROWS].to_pandas()
-    # sometimes there are neither rows nor row_groups, just columns
-    # therefore we do not call read_row_group because (with 0 row_groups)
-    # it would barf
-    else:
-        # :0 is a safety valve but there really should be no rows in this case
-        dataframe = pf.read()[:0].to_pandas()
+            logger_.warning("Parquet file with no rows: %s", info)
     if as_html:
-        body = remove_pandas_footer(dataframe._repr_html_())  # pylint: disable=protected-access
-    else:
+        # one batch is sufficient (repr_html is short)
+        df = first_batch.to_pandas() if first_batch else pandas.DataFrame(columns=meta.schema.names)
+        body = remove_pandas_footer(df._repr_html_())  # pylint: disable=protected-access
+    elif first_batch:
         buffer = []
         size = 0
         done = False
-        for _, row in dataframe.iterrows():
-            for column in row.astype(str):
-                encoded = column.encode()
-                # +1 for \t
-                encoded_size = len(encoded) + 1
-                if (size + encoded_size) < max_bytes:
-                    buffer.append(encoded)
-                    buffer.append(b"\t")
-                    size += encoded_size
-                else:
-                    done = True
-                    break
-            buffer.append(b"\n")
-            size += 1
+
+        def process_batch(batch):
+            nonlocal buffer, size, done
+            for _, row in batch.to_pandas().iterrows():
+                for column in row.astype(str):
+                    encoded = column.encode()
+                    # +1 for \t
+                    encoded_size = len(encoded) + 1
+                    if (size + encoded_size) < max_bytes:
+                        buffer.append(encoded)
+                        buffer.append(b"\t")
+                        size += encoded_size
+                    else:
+                        done = True
+                        break
+                buffer.append(b"\n")
+                size += 1
+                if done:
+                    return
+
+        process_batch(first_batch)
+        for b in iter_batches:
             if done:
                 break
+            process_batch(b)
+
         body = b"".join(buffer).decode()
 
     return body, info
