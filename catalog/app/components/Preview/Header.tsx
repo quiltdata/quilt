@@ -10,27 +10,23 @@ import Menu from './Menu'
 const useStyles = M.makeStyles((t) => ({
   heading: {
     ...t.typography.h6,
+    alignItems: 'flex-start',
     display: 'flex',
     lineHeight: 1.75,
-    alignItems: 'flex-start',
-    // marginBottom: t.spacing(1),
-    [t.breakpoints.up('sm')]: {
-      // marginBottom: t.spacing(2),
-    },
     [t.breakpoints.up('md')]: {
       ...t.typography.h5,
     },
   },
   headingText: {
+    flexGrow: 1,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    flexGrow: 1,
   },
   actions: {
-    marginLeft: t.spacing(2),
-    flexShrink: 0,
-    marginTop: '2px',
     display: 'flex',
+    flexShrink: 0,
+    marginLeft: t.spacing(2),
+    marginTop: '2px',
   },
   menu: {
     display: 'flex',

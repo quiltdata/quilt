@@ -75,17 +75,9 @@ function HeaderIcon(props) {
   )
 }
 
-const useObjectHeaderStyles = M.makeStyles({
-  root: {
-    marginBottom: 0,
-  },
-})
-
 function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
-  const classes = useObjectHeaderStyles()
   return (
     <Preview.Header
-      className={classes.root}
       downloadable={downloadable}
       expanded={expanded}
       handle={handle}
