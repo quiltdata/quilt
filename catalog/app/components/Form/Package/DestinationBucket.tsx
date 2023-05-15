@@ -52,11 +52,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+type BucketsGroup = BucketConfig[] | typeof L | Error
+
 interface DestinationBucketProps {
   className?: string
   errors: Error[]
   onChange: (v: BucketConfig | null) => void
   successors: BucketConfig[] | typeof L | Error
+  buckets: BucketConfig[] | typeof L | Error
   value: BucketConfig | null
 }
 
@@ -64,6 +67,7 @@ export default function DestinationBucket({
   className,
   errors,
   onChange,
+  buckets,
   successors,
   value,
 }: DestinationBucketProps) {
@@ -74,22 +78,32 @@ export default function DestinationBucket({
   )
   const errorMessage = errors.map(({ message }) => message).join('; ')
   if (successors === L) return <Skeleton />
-  if (successors instanceof Error)
+  if (successors instanceof Error) {
     return (
       <Lab.Alert className={classes.alert} severity="error">
         {successors.message}
       </Lab.Alert>
     )
+  }
+  const items = React.useMemo(() => {
+    if (Array.isArray(buckets)) return [...successors, ...buckets]
+    return successors
+  }, [successors, buckets])
   return (
     <Lab.Autocomplete
       className={cx({ [classes.noHelperText]: !errorMessage }, className)}
-      options={successors}
+      options={items}
+      groupBy={(option) => {
+        if (Array.isArray(buckets) && buckets.includes(option)) return 'All buckets'
+        if (successors.includes(option)) return 'Successors'
+        return 'Other'
+      }}
       getOptionLabel={(option) => option.name}
       onChange={handleChange}
       value={value}
       renderOption={(option) => (
         <M.ListItemText
-          primary={`${option.title} (${option.name})`}
+          primary={`${option.title ? option.title : option.name} (s3://${option.name})`}
           secondary={option.description}
         />
       )}
@@ -104,6 +118,15 @@ export default function DestinationBucket({
           }}
           helperText={errorMessage}
           error={!!errorMessage}
+          InputProps={{
+            ...params.InputProps,
+            endAdornment: (
+              <>
+                {buckets === L ? <M.CircularProgress color="inherit" size={18} /> : null}
+                {params.InputProps.endAdornment}
+              </>
+            ),
+          }}
         />
       )}
     />
