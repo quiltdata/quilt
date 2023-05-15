@@ -79,6 +79,10 @@ export default function DestinationBucket({
     [onChange],
   )
   const errorMessage = errors.map(({ message }) => message).join('; ')
+  const items = React.useMemo(() => {
+    if (!Array.isArray(successors)) return []
+    return Array.isArray(buckets) ? [...successors, ...buckets] : successors
+  }, [successors, buckets])
   if (successors === L) return <Skeleton />
   if (successors instanceof Error) {
     return (
@@ -87,10 +91,6 @@ export default function DestinationBucket({
       </Lab.Alert>
     )
   }
-  const items = React.useMemo(() => {
-    if (Array.isArray(buckets)) return [...successors, ...buckets]
-    return successors
-  }, [successors, buckets])
   return (
     <Lab.Autocomplete
       className={cx({ [classes.noHelperText]: !errorMessage }, className)}

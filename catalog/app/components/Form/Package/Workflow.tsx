@@ -4,7 +4,7 @@ import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
 import Skel from 'components/Skeleton'
-import * as workflows from 'utils/workflows'
+import type { Workflow as WorkflowStruct } from 'utils/workflows'
 
 import { L } from './types'
 
@@ -39,7 +39,7 @@ function Skeleton({ className }: SkeletonProps) {
 }
 
 const filterOptions = Lab.createFilterOptions({
-  stringify: (option: workflows.Workflow) => JSON.stringify(option),
+  stringify: (option: WorkflowStruct) => JSON.stringify(option),
 })
 
 const useStyles = M.makeStyles((t) => ({
@@ -54,9 +54,9 @@ const useStyles = M.makeStyles((t) => ({
 interface WorkflowProps {
   className?: string
   errors?: Error[]
-  onChange: (v: workflows.Workflow | null) => void
-  workflows: workflows.Workflow[] | typeof L | Error
-  value: workflows.Workflow | null
+  onChange: (v: WorkflowStruct | null) => void
+  workflows: WorkflowStruct[] | typeof L | Error
+  value: WorkflowStruct | null
 }
 
 export default function Workflow({
@@ -68,7 +68,7 @@ export default function Workflow({
 }: WorkflowProps) {
   const classes = useStyles()
   const handleChange = React.useCallback(
-    (__e, newValue: workflows.Workflow | null) => onChange(newValue),
+    (__e, newValue: WorkflowStruct | null) => onChange(newValue),
     [onChange],
   )
   const errorMessage = errors.map(({ message }) => message).join('; ')
