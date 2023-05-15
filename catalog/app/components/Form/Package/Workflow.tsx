@@ -4,14 +4,9 @@ import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
 import Skel from 'components/Skeleton'
-import * as Model from 'model'
+import * as workflows from 'utils/workflows'
 
 import { L } from './types'
-
-export type BucketConfig = Pick<
-  Model.GQLTypes.BucketConfig,
-  'name' | 'title' | 'description'
->
 
 const useSkeletonStyles = M.makeStyles({
   label: {
@@ -44,7 +39,7 @@ function Skeleton({ className }: SkeletonProps) {
 }
 
 const filterOptions = Lab.createFilterOptions({
-  stringify: (option: BucketConfig) => JSON.stringify(option),
+  stringify: (option: workflows.Workflow) => JSON.stringify(option),
 })
 
 const useStyles = M.makeStyles((t) => ({
@@ -56,79 +51,59 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DestinationBucketProps {
+interface WorkflowProps {
   className?: string
-  errors: Error[]
-  onChange: (v: BucketConfig | null) => void
-  successors: BucketConfig[] | typeof L | Error
-  buckets: BucketConfig[] | typeof L | Error
-  value: BucketConfig | null
+  errors?: Error[]
+  onChange: (v: workflows.Workflow | null) => void
+  workflows: workflows.Workflow[] | typeof L | Error
+  value: workflows.Workflow | null
 }
 
-export default function DestinationBucket({
+export default function Workflow({
   className,
-  errors,
+  errors = [],
   onChange,
-  buckets,
-  successors,
+  workflows,
   value,
-}: DestinationBucketProps) {
+}: WorkflowProps) {
   const classes = useStyles()
   const handleChange = React.useCallback(
-    (__e, newValue: BucketConfig | null) => onChange(newValue),
+    (__e, newValue: workflows.Workflow | null) => onChange(newValue),
     [onChange],
   )
   const errorMessage = errors.map(({ message }) => message).join('; ')
-  if (successors === L) return <Skeleton />
-  if (successors instanceof Error) {
+  if (workflows === L) return <Skeleton />
+  if (workflows instanceof Error) {
     return (
       <Lab.Alert className={classes.alert} severity="error">
-        {successors.message}
+        {workflows.message}
       </Lab.Alert>
     )
   }
-  const items = React.useMemo(() => {
-    if (Array.isArray(buckets)) return [...successors, ...buckets]
-    return successors
-  }, [successors, buckets])
   return (
     <Lab.Autocomplete
       className={cx({ [classes.noHelperText]: !errorMessage }, className)}
       filterOptions={filterOptions}
-      groupBy={(option) => {
-        if (Array.isArray(buckets) && buckets.includes(option)) return 'All buckets'
-        if (successors.includes(option)) return 'Successors'
-        return 'Other'
-      }}
-      getOptionLabel={(option) => option.title}
+      getOptionLabel={(option) => option.name || option.slug.toString()}
       onChange={handleChange}
-      options={items}
-      renderOption={(option) => (
-        <M.ListItemText
-          primary={`${option.title ? option.title : option.name} (s3://${option.name})`}
-          secondary={option.description}
-        />
-      )}
+      options={workflows}
       renderInput={(params) => (
         <M.TextField
           {...params}
           fullWidth
-          label="Destination bucket"
-          placeholder="Destination bucket"
+          label="Workflow"
+          placeholder="Workflow"
           InputLabelProps={{
             shrink: true,
           }}
           helperText={errorMessage}
           error={!!errorMessage}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {buckets === L ? <M.CircularProgress color="inherit" size={18} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
+        />
+      )}
+      renderOption={(option) => (
+        <M.ListItemText
+          primary={option.name ? option.name : option.slug}
+          secondary={option.description}
         />
       )}
       value={value}
