@@ -167,34 +167,28 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
     info['shape'] = [meta.num_rows, meta.num_columns]
 
     available = get_available_memory()
-    first_batch = None
     iter_batches = None
     # 10MB heuristic; should never happen, e.g. with current default of 512MB
     if (available < 10E6) or skip_rows:
         logger_.warning("Insufficient memory to index parquet file: %s", info)
         info['warnings'] = "Skipped rows; insufficient memory"
+    elif meta.num_rows and meta.num_row_groups:
+        iter_batches = pf.iter_batches(batch_size=128, row_groups=[0])
     else:
-        if meta.num_row_groups and meta.num_rows:
-            iter_batches = pf.iter_batches(batch_size=128, row_groups=[0])
-            first_batch = next(iter_batches)
-        else:
-            logger_.warning("Parquet file with no rows: %s", info)
-    if as_html:
-        # one batch is sufficient (repr_html is short)
-        df = first_batch.to_pandas() if first_batch else pandas.DataFrame(columns=meta.schema.names)
-        body = remove_pandas_footer(df._repr_html_())  # pylint: disable=protected-access
-    elif first_batch:
+        logger_.warning("Parquet file with no rows: %s", info)
+    if iter_batches:
         buffer = []
         size = 0
         done = False
-
-        def process_batch(batch):
-            nonlocal buffer, size, done
-            for _, row in batch.to_pandas().iterrows():
+        for batch in iter_batches:
+            df = batch.to_pandas()
+            if as_html:
+                body = remove_pandas_footer(df._repr_html_())
+                return body, info
+            for _, row in df.iterrows():
                 for column in row.astype(str):
                     encoded = column.encode()
-                    # +1 for \t
-                    encoded_size = len(encoded) + 1
+                    encoded_size = len(encoded) + 1  # +1 for \t
                     if (size + encoded_size) < max_bytes:
                         buffer.append(encoded)
                         buffer.append(b"\t")
@@ -204,16 +198,11 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
                         break
                 buffer.append(b"\n")
                 size += 1
-                if done:
-                    return
-
-        process_batch(first_batch)
-        for b in iter_batches:
             if done:
                 break
-            process_batch(b)
-
         body = b"".join(buffer).decode()
+    elif as_html:
+        body = remove_pandas_footer(pandas.DataFrame(columns=meta.schema.names)._repr_html_())
 
     return body, info
 
