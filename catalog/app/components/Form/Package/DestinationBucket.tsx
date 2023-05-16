@@ -28,7 +28,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DestinationBucketProps {
   className?: string
-  errors: Error[]
+  errors?: Error[]
   onChange: (v: BucketConfig | null) => void
   successors: BucketConfig[] | typeof L | Error
   buckets: BucketConfig[] | typeof L | Error
@@ -48,7 +48,9 @@ export default function DestinationBucket({
     (__e, newValue: BucketConfig | null) => onChange(newValue),
     [onChange],
   )
-  const errorMessage = errors.map(({ message }) => message).join('; ')
+  const errorMessage = Array.isArray(errors)
+    ? errors.map(({ message }) => message).join('; ')
+    : ''
   const items = React.useMemo(() => {
     if (!Array.isArray(successors)) return []
     return Array.isArray(buckets) ? [...successors, ...buckets] : successors
