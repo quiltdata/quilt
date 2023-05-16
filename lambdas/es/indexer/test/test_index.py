@@ -386,6 +386,28 @@ def test_map_event_name_and_validate():
     assert not index.shape_event(malformed)
 
 
+@pytest.mark.parametrize(
+    "env_var, check, expected", [
+        (".txt,.csv", ".parquet", False),
+        (".txt,.csv", ".csv", True),
+        (".txt,.csv", ".txt", True),
+        (".parquet,.tsvl", ".parquet", True),
+        (".parquet,.tsvl", ".csv", False),
+    ]
+)
+def test_skip_rows_env(env_var, check, expected):
+    """test whether or not index skips rows per SKIP_ROWS_EXTS=LIST"""
+    # because of module caching we can't just patch the environment variable
+    # since index.SKIP_ROWS_EXTS will never change after import
+    with patch.dict(os.environ, {'SKIP_ROWS_EXTS': env_var}):
+        exts = separated_env_to_iter('SKIP_ROWS_EXTS')
+        with patch('index.SKIP_ROWS_EXTS', exts):
+            if expected:
+                assert check in exts
+            else:
+                assert check not in exts
+
+
 class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
@@ -424,10 +446,15 @@ class TestIndex(TestCase):
 
         self.requests_mock.stop()
 
-    def _get_contents(self, name, ext, compression=None):
+    def _get_contents(self, name, ext, compression=None, size=123):
         return index.maybe_get_contents(
-            'test-bucket', name, ext,
-            etag='etag', version_id=None, s3_client=self.s3_client, size=123,
+            'test-bucket',
+            name,
+            ext,
+            etag='etag',
+            version_id=None,
+            s3_client=self.s3_client,
+            size=size,
             compression=compression
         )
 
@@ -1128,23 +1155,6 @@ class TestIndex(TestCase):
             assert self._get_contents('foo.txt', '.txt') == ""
             assert self._get_contents('foo.ipynb', '.ipynb') == ""
 
-    def test_skip_rows_env(self):
-        """test whether or not index skips rows per SKIP_ROWS_EXTS=LIST"""
-        # because of module caching we can't just patch the environment variable
-        # since index.SKIP_ROWS_EXTS will never change after import
-        with patch.dict(os.environ, {'SKIP_ROWS_EXTS': '.txt,.csv'}):
-            exts = separated_env_to_iter('SKIP_ROWS_EXTS')
-            with patch('index.SKIP_ROWS_EXTS', exts):
-                assert '.parquet' not in exts
-                assert '.csv' in exts
-                assert '.txt' in exts
-
-        with patch.dict(os.environ, {'SKIP_ROWS_EXTS': '.parquet,.tsvl'}):
-            exts = separated_env_to_iter('SKIP_ROWS_EXTS')
-            with patch('index.SKIP_ROWS_EXTS', exts):
-                assert '.parquet' in exts
-                assert '.csv' not in exts
-
     @pytest.mark.xfail(
         raises=ParamValidationError,
         reason="boto bug https://github.com/boto/botocore/issues/1621",
@@ -1671,7 +1681,6 @@ class TestIndex(TestCase):
         for f in files:
             print(f"Testing {f}")
             parquet = f.read_bytes()
-
             self.s3_stubber.add_response(
                 method='get_object',
                 service_response={
@@ -1685,6 +1694,9 @@ class TestIndex(TestCase):
                     'IfMatch': 'etag',
                 }
             )
+            contents = self._get_contents('foo.parquet', '.parquet')
+            size = len(contents.encode('utf-8', 'ignore'))
+            assert size <= document_queue.ELASTIC_LIMIT_BYTES
 
 
 def test_extract_pptx():
