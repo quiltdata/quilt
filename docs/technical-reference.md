@@ -321,7 +321,7 @@ for further details.
     Do not allow wildcard `*` in the login URI redirect. This will be something like the following:
 
         ```
-        https://quilt.<MY_COMPANY>.com/
+        https://quilt.<MY_COMPANY>.com/oauth-callback
         ```
 
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
