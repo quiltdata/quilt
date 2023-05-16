@@ -13,7 +13,6 @@ from xlrd.biffh import XLRDError
 
 from .utils import get_available_memory, get_quilt_logger
 
-AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
@@ -21,8 +20,8 @@ AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 CATALOG_LIMIT_BYTES = 1024*1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_LINES = 100_000
-MAX_PREVIEW_ROWS = 1_000
 READ_CHUNK = 1024
+SKIPPED = "Skipped rows; insufficient memory"
 # common string used to explain truncation to user
 TRUNCATED = (
     'Rows and columns truncated for preview. '
@@ -171,7 +170,7 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
     # 10MB heuristic; should never happen, e.g. with current default of 512MB
     if (available < 10E6) or skip_rows:
         logger_.warning("Insufficient memory to index parquet file: %s", info)
-        info['warnings'] = "Skipped rows; insufficient memory"
+        info['warnings'] = SKIPPED
     elif meta.num_rows and meta.num_row_groups:
         iter_batches = pf.iter_batches(batch_size=128, row_groups=[0])
     else:
@@ -181,6 +180,8 @@ def extract_parquet(file_, as_html=True, skip_rows: bool = False, *, max_bytes: 
         size = 0
         done = False
         for batch in iter_batches:
+            if done:
+                break
             df = batch.to_pandas()
             if as_html:
                 body = remove_pandas_footer(df._repr_html_())
