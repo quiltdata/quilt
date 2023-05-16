@@ -3,45 +3,15 @@ import * as React from 'react'
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
-import Skel from 'components/Skeleton'
 import * as Model from 'model'
 
+import InputSkeleton from './InputSkeleton'
 import { L } from './types'
 
 export type BucketConfig = Pick<
   Model.GQLTypes.BucketConfig,
   'name' | 'title' | 'description'
 >
-
-const useSkeletonStyles = M.makeStyles({
-  label: {
-    height: '12px',
-    width: '100px',
-  },
-  input: {
-    height: '32px',
-    margin: '6px 0',
-  },
-  helperText: {
-    height: '18px',
-    width: '50%',
-  },
-})
-
-interface SkeletonProps {
-  className?: string
-}
-
-function Skeleton({ className }: SkeletonProps) {
-  const classes = useSkeletonStyles()
-  return (
-    <div className={className}>
-      <Skel className={classes.label} animate />
-      <Skel className={classes.input} animate />
-      <Skel className={classes.helperText} animate />
-    </div>
-  )
-}
 
 const filterOptions = Lab.createFilterOptions({
   stringify: (option: BucketConfig) => JSON.stringify(option),
@@ -83,7 +53,7 @@ export default function DestinationBucket({
     if (!Array.isArray(successors)) return []
     return Array.isArray(buckets) ? [...successors, ...buckets] : successors
   }, [successors, buckets])
-  if (successors === L) return <Skeleton />
+  if (successors === L) return <InputSkeleton />
   if (successors instanceof Error) {
     return (
       <Lab.Alert className={classes.alert} severity="error">
