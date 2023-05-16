@@ -181,6 +181,7 @@ to support@quiltdata.io:
 1. Find the name of your Quilt stack from querying all deployed
 stacks (in your default region, which is listed in your
 `~/.aws/config` file):
+    <!--pytest.mark.skip-->
     ```bash
     aws cloudformation list-stacks
     ```
