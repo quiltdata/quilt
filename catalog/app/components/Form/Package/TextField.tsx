@@ -20,7 +20,8 @@ interface TextFieldEssential {
   value: string
 }
 
-export type TextFieldProps = M.TextFieldProps & TextFieldEssential
+export type TextFieldProps = TextFieldEssential &
+  Omit<M.TextFieldProps, 'onChange' | 'value'>
 
 export default function TextField({
   className,
