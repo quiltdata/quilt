@@ -72,9 +72,9 @@ interface ContextData {
 function useBucket(bucket: string): BucketContext {
   const buckets = useRelevantBucketConfigs()
   const bucketsMap = buckets.reduce(
-    (memo, bucket) => ({
+    (memo, b) => ({
       ...memo,
-      [bucket.name]: bucket,
+      [b.name]: b,
     }),
     {} as Record<string, BucketConfig>,
   )
@@ -84,8 +84,8 @@ function useBucket(bucket: string): BucketContext {
   const config = useWorkflowsConfig(bucket)
   const successors = React.useMemo(() => {
     if (config === L || config instanceof Error) return config
-    return config.successors.map(({ slug }) => ({...bucketsMap[slug]}))
-  }, [config])
+    return config.successors.map(({ slug }) => ({ ...bucketsMap[slug] }))
+  }, [bucketsMap, config])
   return React.useMemo(
     () => ({
       state: {
@@ -142,19 +142,24 @@ function usePage(bucket: string): PageContext {
   )
 }
 
-function useWorkflow(): WorkflowContext {
+function useWorkflow(dstBucket: BucketConfig | null): WorkflowContext {
+  const config = useWorkflowsConfig(dstBucket?.name || null)
   const [value, setValue] = React.useState<WorkflowStruct | null>(null)
+  const workflows = React.useMemo(() => {
+    if (config === L || config instanceof Error) return config
+    return config.workflows
+  }, [config])
   return React.useMemo(
     () => ({
       state: {
         value,
-        workflows: [],
+        workflows,
       },
       actions: {
         onChange: setValue,
       },
     }),
-    [value],
+    [value, workflows],
   )
 }
 
@@ -183,7 +188,7 @@ export default function Provider({ bucket: srcBucket, children }: ProviderProps)
   const bucket = useBucket(srcBucket)
   const name = useName()
   const message = useMessage()
-  const workflow = useWorkflow()
+  const workflow = useWorkflow(bucket.state.value)
   const value = React.useMemo(
     () => ({
       page,
