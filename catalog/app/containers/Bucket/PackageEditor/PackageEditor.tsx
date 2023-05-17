@@ -6,25 +6,11 @@ import DestinationBucket from 'components/Form/Package/DestinationBucket'
 import RouteContainer from './RouteContainer'
 import StateProvider, { useContext } from './StateProvider'
 
-interface PackageEditorProps {
-  bucket: string
-  name: string
-  hashOrTag: string
-  hash?: string
-  path: string
-  mode?: string
-  resolvedFrom?: string
-  size?: number
-}
-
-function PackageEditor(props: PackageEditorProps) {
-  const { state, actions } = useContext()
-  React.useEffect(() => {
-    actions.bucket.onPageLoad()
-  }, [])
+function PackageEditor() {
+  const { bucket } = useContext()
   return (
     <div>
-      <DestinationBucket {...state.bucket} onChange={actions.bucket.onChange} />
+      <DestinationBucket {...bucket.state} onChange={bucket.actions.onChange} />
     </div>
   )
 }
@@ -43,7 +29,7 @@ export default function PackageTreeWrapper(
     <RouteContainer {...props}>
       {(resolvedProps) => (
         <StateProvider {...resolvedProps}>
-          <PackageEditor {...resolvedProps} />
+          <PackageEditor />
         </StateProvider>
       )}
     </RouteContainer>
