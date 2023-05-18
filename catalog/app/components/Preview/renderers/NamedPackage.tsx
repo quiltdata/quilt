@@ -9,7 +9,7 @@ import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
   text: {
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
+    fontFamily: t.typography.monospace.fontFamily,
     overflow: 'auto',
     whiteSpace: 'pre',
   },

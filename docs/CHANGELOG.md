@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# 5.3.1 - 2023-05-02
+## Python API
+* [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
+
+## Catalog, Lambdas
+* [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
+* [Changed] Increased available file size to render Markdown preview to 3MiB ([#3427](https://github.com/quiltdata/quilt/pull/3427))
+
 # 5.3.0 - 2023-04-11
 ## Python API
 * [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
@@ -22,6 +30,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 * [Fixed] Fix package push failing for unrelated reason ([#3390](https://github.com/quiltdata/quilt/pull/3390))
 * [Fixed] Fix package page flash when there is Jupyter Notebook ([#3408](https://github.com/quiltdata/quilt/pull/3408))
+* [Added] Add `gallery` field for configuring galleries visibility ([#3421](https://github.com/quiltdata/quilt/pull/3421))
 
 # 5.2.1 - 2023-04-05
 ## Python API

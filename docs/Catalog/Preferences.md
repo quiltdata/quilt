@@ -25,6 +25,11 @@ ui:
     analytics: True
     browser: True
     code: True
+    gallery:
+      files: True
+      packages: True
+      overview: True
+      summarize: True
     meta:
       user_meta:
         expanded: False
@@ -49,6 +54,15 @@ drag-and-drop or from folders in S3
 * `ui.blocks.analytics: False` - hide Analytics block on file page
 * `ui.blocks.browser: False` - hide files browser on both Bucket and Packages tab
 * `ui.blocks.code: False` - hide Code block with quilt3 code boilerplate
+* `ui.blocks.gallery: False` - hide all galleries (see below for list of galleries)
+* `ui.blocks.gallery.files: False` - hide gallery in Bucket tab;
+this gallery lists all images in the current directory
+* `ui.blocks.gallery.packages: False` - hide gallery in Packages tab;
+this gallery lists all images in the current directory in package
+* `ui.blocks.gallery.overview: False` - hide gallery in Overview tab;
+this gallery lists all images in the current bucket
+* `ui.blocks.gallery.summarize: False` - hide gallery when `quilt_summarize.json`
+is present
 * `ui.blocks.meta: False` - hide Metadata block on Package page
 * `ui.blocks.meta.user_meta.expanded: True` - expands user_meta properties
 * `ui.blocks.meta.workflows.expanded: 2` - expands workflows two level deep

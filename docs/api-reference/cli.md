@@ -2,26 +2,27 @@
 
 ## `catalog`
 ```
-usage: quilt3 catalog [-h] [--detailed_help] [--host HOST] [--port PORT]
+usage: quilt3 catalog [-h] [--detailed-help] [--host HOST] [--port PORT]
                       [--no-browser]
                       [navigation_target]
 
 Run Quilt catalog locally
 
 positional arguments:
-  navigation_target  Which page in the local catalog to open. Leave blank to
-                     go to the catalog landing page, pass in an s3 url (e.g.
-                     's3://bucket/myfile.txt') to go to file viewer, or pass
-                     in a package name in the form 'BUCKET:USER/PKG' to go to
-                     the package viewer.
+  navigation_target     Which page in the local catalog to open. Leave blank
+                        to go to the catalog landing page, pass in an s3 url
+                        (e.g. 's3://bucket/myfile.txt') to go to file viewer,
+                        or pass in a package name in the form
+                        'BUCKET:USER/PKG' to go to the package viewer.
 
 optional arguments:
-  -h, --help         show this help message and exit
-  --detailed_help    Display detailed information about this command and then
-                     exit
-  --host HOST        Bind socket to this host
-  --port PORT        Bind to a socket with this port
-  --no-browser       Don't open catalog in a browser after startup
+  -h, --help            show this help message and exit
+  --detailed-help, --detailed_help
+                        Display detailed information about this command and
+                        then exit
+  --host HOST           Bind socket to this host
+  --port PORT           Bind to a socket with this port
+  --no-browser          Don't open catalog in a browser after startup
 ```
 
 Run the Quilt catalog on your machine. Running `quilt3 catalog` launches a

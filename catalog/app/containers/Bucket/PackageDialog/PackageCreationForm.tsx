@@ -765,14 +765,13 @@ export function usePackageCreationDialog({
     { s3, bucket: successor.slug },
     { noAutoFetch: !bucket },
   )
-  // XXX: use AsyncResult
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const manifestData = useManifest({
     bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
     name: src?.name!,
-    hash: src?.hash,
+    hashOrTag: src?.hash,
     pause: !(src && isOpen),
   })
 
@@ -786,23 +785,30 @@ export function usePackageCreationDialog({
           AsyncResult.case(
             {
               Ok: (manifest: Manifest | undefined) =>
-                preferences
-                  ? AsyncResult.Ok({
-                      manifest,
-                      workflowsConfig,
-                      sourceBuckets:
-                        s3Path === undefined
-                          ? preferences.ui.sourceBuckets
-                          : prependSourceBucket(preferences.ui.sourceBuckets, bucket),
-                    })
-                  : AsyncResult.Pending(),
+                BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { sourceBuckets } }) =>
+                      AsyncResult.Ok({
+                        manifest,
+                        workflowsConfig,
+                        sourceBuckets:
+                          s3Path === undefined
+                            ? sourceBuckets
+                            : prependSourceBucket(sourceBuckets, bucket),
+                      }),
+                    Pending: AsyncResult.Pending,
+                    Init: AsyncResult.Init,
+                  },
+                  prefs,
+                ),
+
               _: R.identity,
             },
             manifestResult,
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, preferences],
+    [bucket, s3Path, workflowsData, manifestResult, prefs],
   )
 
   const open = React.useCallback(
