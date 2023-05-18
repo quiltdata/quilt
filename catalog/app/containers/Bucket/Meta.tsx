@@ -150,7 +150,7 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
         return BucketPreferences.Result.match(
           {
             Ok: ({ ui: { blocks } }) =>
-              !!blocks.meta && (
+              blocks.meta && (
                 <PackageMetaSection meta={meta} preferences={blocks.meta} {...props} />
               ),
             _: noop,
