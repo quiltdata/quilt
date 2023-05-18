@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
-import type { Workflow as WorkflowStruct } from 'utils/workflows'
+import { Workflow as WorkflowStruct, notAvailable, notSelected } from 'utils/workflows'
 
 import InputSkeleton from './InputSkeleton'
 import { L } from './types'
@@ -20,6 +20,11 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(3),
   },
 }))
+function getOptionLabel(option: WorkflowStruct) {
+  if (option.name) return option.name
+  if (option.slug === notAvailable || option.slug === notSelected) return 'None'
+  return option.slug.toString()
+}
 
 interface WorkflowProps {
   className?: string
@@ -54,9 +59,10 @@ export default function Workflow({
     <Lab.Autocomplete
       className={cx({ [classes.noHelperText]: !errorMessage }, className)}
       filterOptions={filterOptions}
-      getOptionLabel={(option) => option.name || option.slug.toString()}
+      getOptionLabel={getOptionLabel}
       onChange={handleChange}
       options={workflows}
+      disabled={value?.slug === notAvailable}
       renderInput={(params) => (
         <M.TextField
           {...params}
@@ -71,10 +77,7 @@ export default function Workflow({
         />
       )}
       renderOption={(option) => (
-        <M.ListItemText
-          primary={option.name || option.slug.toString()}
-          secondary={option.description}
-        />
+        <M.ListItemText primary={getOptionLabel(option)} secondary={option.description} />
       )}
       value={value}
     />
