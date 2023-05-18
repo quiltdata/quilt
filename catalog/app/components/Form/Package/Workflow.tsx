@@ -72,7 +72,7 @@ export default function Workflow({
       )}
       renderOption={(option) => (
         <M.ListItemText
-          primary={option.name ? option.name : option.slug}
+          primary={option.name || option.slug.toString()}
           secondary={option.description}
         />
       )}

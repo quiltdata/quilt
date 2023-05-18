@@ -2,9 +2,9 @@ import React from 'react'
 import * as M from '@material-ui/core'
 
 import DestinationBucket from 'components/Form/Package/DestinationBucket'
-// import CommitMessage from "components/Form/Package/CommitMessage";
+import CommitMessage from 'components/Form/Package/CommitMessage'
 import InputSkeleton from 'components/Form/Package/InputSkeleton'
-// import PackageName from "components/Form/Package/PackageName";
+import PackageName from 'components/Form/Package/PackageName'
 import Workflow from 'components/Form/Package/Workflow'
 import { L } from 'components/Form/Package/types'
 
@@ -29,7 +29,7 @@ const useInputsStyles = M.makeStyles(() => ({
 }))
 
 export default function Inputs() {
-  const { bucket, workflow } = useContext()
+  const { bucket, message, name, workflow } = useContext()
   const classes = useInputsStyles()
 
   return (
@@ -47,23 +47,20 @@ export default function Inputs() {
         </div>
       </div>
       <div className={classes.inputsPackage}>
-        {/*
-        {state.name === L ? (
-          <InputSkeleton />
-        ) : (
-          <PackageName onChange={actions.name.onChange} {...state.name} />
-        )}
-        <div style={{ marginTop: "8px" }}>
-          {state.message === L ? (
+        <div className={classes.input}>
+          {name.state === L ? (
             <InputSkeleton />
           ) : (
-            <CommitMessage
-              onChange={actions.message.onChange}
-              {...state.message}
-            />
+            <PackageName onChange={name.actions.onChange} {...name.state} />
           )}
         </div>
-        */}
+        <div className={classes.input}>
+          {message.state === L ? (
+            <InputSkeleton />
+          ) : (
+            <CommitMessage onChange={message.actions.onChange} {...message.state} />
+          )}
+        </div>
       </div>
     </div>
   )

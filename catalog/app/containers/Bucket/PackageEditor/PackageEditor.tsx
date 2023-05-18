@@ -9,6 +9,7 @@ import StateProvider from './StateProvider'
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
+    marginTop: t.spacing(2),
   },
   main: {
     marginTop: t.spacing(2),

@@ -1,11 +1,21 @@
+import * as R from 'ramda'
 import * as React from 'react'
 
 import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 import { L } from 'components/Form/Package/types'
+import AsyncResult from 'utils/AsyncResult'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
-import type { Workflow as WorkflowStruct } from 'utils/workflows'
+import { Workflow as WorkflowStruct, notSelected } from 'utils/workflows'
+
+import { Manifest, useManifest as useFetchManifest } from '../PackageDialog/Manifest'
 
 import useWorkflowsConfig from './io/workflowsConfig'
+
+interface Src {
+  bucket: string
+  packageHandle?: { name: string; hashOrTag: string }
+  s3Path?: string
+}
 
 export interface InputState {
   errors?: Error[] | typeof L
@@ -23,10 +33,6 @@ export interface BucketState {
   value: BucketConfig | null
   successors: BucketConfig[] | typeof L | Error
   buckets: BucketConfig[] | typeof L | Error
-}
-
-export interface PageState {
-  bucket: string
 }
 
 interface BucketContext {
@@ -50,10 +56,6 @@ interface NameContext {
   }
 }
 
-interface PageContext {
-  state: PageState
-}
-
 interface WorkflowContext {
   state: WorkflowState | typeof L
   actions: {
@@ -65,11 +67,10 @@ interface ContextData {
   bucket: BucketContext
   message: MessageContext
   name: NameContext
-  page: PageContext
   workflow: WorkflowContext
 }
 
-function useBucket(bucket: string): BucketContext {
+function useBucket({ bucket }: Src): BucketContext {
   const buckets = useRelevantBucketConfigs()
   const bucketsMap = buckets.reduce(
     (memo, b) => ({
@@ -84,12 +85,14 @@ function useBucket(bucket: string): BucketContext {
   const config = useWorkflowsConfig(bucket)
   const successors = React.useMemo(() => {
     if (config === L || config instanceof Error) return config
-    return config.successors.map(({ slug }) => ({ ...bucketsMap[slug] }))
+    return config.successors.map(({ slug }) => bucketsMap[slug])
   }, [bucketsMap, config])
   return React.useMemo(
     () => ({
       state: {
-        buckets,
+        buckets: Array.isArray(successors)
+          ? buckets.filter((b) => !successors.includes(b))
+          : buckets,
         successors,
         value,
       },
@@ -116,50 +119,68 @@ function useMessage(): MessageContext {
   )
 }
 
-function useName(): NameContext {
-  const [value, setValue] = React.useState('')
+function useName(src: Src, workflow: WorkflowContext): NameContext {
+  const [value, setValue] = React.useState(src.packageHandle?.name || '')
+  const state = React.useMemo(
+    () => (workflow.state === L ? L : { value }),
+    [value, workflow.state],
+  )
   return React.useMemo(
     () => ({
-      state: {
-        value,
-      },
+      state,
       actions: {
         onChange: setValue,
       },
     }),
-    [value],
+    [state],
   )
 }
 
-function usePage(bucket: string): PageContext {
-  return React.useMemo(
-    () => ({
-      state: {
-        bucket,
-      },
-    }),
-    [bucket],
-  )
-}
-
-function useWorkflow(dstBucket: BucketConfig | null): WorkflowContext {
-  const config = useWorkflowsConfig(dstBucket?.name || null)
-  const [value, setValue] = React.useState<WorkflowStruct | null>(null)
-  const workflows = React.useMemo(() => {
+function useWorkflowsList(
+  bucket: BucketConfig | null,
+): WorkflowStruct[] | typeof L | Error {
+  const config = useWorkflowsConfig(bucket?.name || null)
+  return React.useMemo(() => {
     if (config === L || config instanceof Error) return config
     return config.workflows
   }, [config])
+}
+
+function getDefaultWorkflow(workflows: WorkflowStruct[], manifest?: Manifest) {
+  return (
+    workflows.find((w) => w.slug === manifest?.workflowId) ||
+    workflows.find((w) => w.isDefault) ||
+    workflows.find((w) => w.slug === notSelected) ||
+    null
+  )
+}
+
+function useWorkflow(
+  bucket: BucketConfig | null,
+  manifest?: Manifest | typeof L,
+): WorkflowContext {
+  const [value, setValue] = React.useState<WorkflowStruct | null>(null)
+
+  const workflows = useWorkflowsList(bucket)
+
+  const state = React.useMemo(() => {
+    if (manifest === L || workflows === L) return L
+    if (workflows instanceof Error) return { value: null, workflows }
+    if (value) return { value, workflows }
+    return {
+      value: getDefaultWorkflow(workflows, manifest),
+      workflows,
+    }
+  }, [manifest, value, workflows])
+
   return React.useMemo(
     () => ({
-      state: {
-        value,
-        workflows,
-      },
+      state,
       actions: {
         onChange: setValue,
       },
     }),
-    [value, workflows],
+    [state],
   )
 }
 
@@ -169,6 +190,27 @@ export function useContext(): ContextData {
   const data = React.useContext(Ctx)
   if (!data) throw new Error('Set provider')
   return data
+}
+
+function useManifest(src: Src): Manifest | typeof L | undefined {
+  const manifestData = useFetchManifest({
+    bucket: src.bucket,
+    name: src.packageHandle!.name,
+    hashOrTag: src.packageHandle?.hashOrTag,
+    pause: !src.packageHandle?.name,
+  })
+  return React.useMemo(
+    () =>
+      AsyncResult.case(
+        {
+          Ok: R.identity,
+          Pending: () => L,
+          _: () => undefined, // FIXME
+        },
+        src.packageHandle ? manifestData.result : AsyncResult.Ok(),
+      ),
+    [manifestData.result, src.packageHandle],
+  )
 }
 
 interface ProviderProps {
@@ -183,21 +225,35 @@ interface ProviderProps {
   children: React.ReactNode
 }
 
-export default function Provider({ bucket: srcBucket, children }: ProviderProps) {
-  const page = usePage(srcBucket)
-  const bucket = useBucket(srcBucket)
-  const name = useName()
-  const message = useMessage()
-  const workflow = useWorkflow(bucket.state.value)
-  const value = React.useMemo(
+export default function Provider({
+  bucket: srcBucket,
+  name: srcName,
+  hashOrTag,
+  path,
+  children,
+}: ProviderProps) {
+  const src: Src = React.useMemo(
     () => ({
-      page,
+      bucket: srcBucket,
+      packageHandle: srcName && hashOrTag ? { name: srcName, hashOrTag } : undefined,
+      s3Path: path,
+    }),
+    [srcBucket, srcName, hashOrTag, path],
+  )
+  const bucket = useBucket(src)
+
+  const manifest = useManifest(src)
+  const workflow = useWorkflow(bucket.state?.value, manifest)
+  const name = useName(src, workflow)
+  const message = useMessage()
+  const v = React.useMemo(
+    () => ({
       bucket,
-      name,
       message,
+      name,
       workflow,
     }),
-    [page, bucket, name, message, workflow],
+    [bucket, message, name, workflow],
   )
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={v}>{children}</Ctx.Provider>
 }

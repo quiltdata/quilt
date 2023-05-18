@@ -402,16 +402,18 @@ function DirDisplay({
                     Ok: ({ ui: { actions } }) => (
                       <>
                         {actions.revisePackage && (
-                          <M.Button
-                            className={classes.button}
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                            onClick={() => updateDialog.open()}
-                          >
-                            Revise package
-                          </M.Button>
+                          <RRDom.Link to={urls.bucketPackageEditor(bucket, name, hash)}>
+                            <M.Button
+                              className={classes.button}
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                              onClick={() => updateDialog.open()}
+                            >
+                              Revise package
+                            </M.Button>
+                          </RRDom.Link>
                         )}
                         {actions.copyPackage && (
                           <Successors.Button
