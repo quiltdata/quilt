@@ -6,38 +6,31 @@ import * as quiltConfigs from 'constants/quiltConfigs'
 import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import { useData } from 'utils/Data'
-import * as Sentry from 'utils/Sentry'
 
-import { BucketPreferences, SentryInstance, parse } from './BucketPreferences'
+import { Result, parse } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
 
 interface FetchBucketPreferencesArgs {
   s3: $TSFixMe
   bucket: string
-  sentry: SentryInstance
 }
 
-async function fetchBucketPreferences({
-  s3,
-  sentry,
-  bucket,
-}: FetchBucketPreferencesArgs) {
+async function fetchBucketPreferences({ s3, bucket }: FetchBucketPreferencesArgs) {
   try {
     const response = await requests.fetchFile({
       s3,
       bucket,
       path: quiltConfigs.bucketPreferences,
     })
-    return parse(response.Body.toString('utf-8'), sentry)
+    return parse(response.Body.toString('utf-8'))
   } catch (e) {
     if (
       e instanceof bucketErrors.FileNotFound ||
       e instanceof bucketErrors.VersionNotFound
     )
-      return parse('', sentry)
+      return parse('')
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -47,32 +40,24 @@ async function fetchBucketPreferences({
   }
 }
 
-const Ctx = React.createContext<{
-  preferences: BucketPreferences | null
-  result: $TSFixMe
-}>({
-  result: AsyncResult.Init(),
-  preferences: null,
-})
+const Ctx = React.createContext<Result>(Result.Init())
 
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
 function CatalogProvider({ bucket, children }: ProviderProps) {
-  const sentry = Sentry.use()
   const s3 = AWS.S3.use()
   const settings = CatalogSettings.use()
-  const data = useData(fetchBucketPreferences, { s3, sentry, bucket })
+  const data = useData(fetchBucketPreferences, { s3, bucket })
 
-  // XXX: migrate to AsyncResult
   const preferences = data.case({
     Ok: settings?.beta
-      ? R.assocPath(['ui', 'actions', 'openInDesktop'], true)
-      : R.identity,
-    Err: () => parse('', sentry),
-    _: () => null,
+      ? R.pipe(R.assocPath(['ui', 'actions', 'openInDesktop'], true), Result.Ok)
+      : Result.Ok,
+    Err: () => Result.Ok(parse('')),
+    Pending: Result.Pending,
+    Init: Result.Init,
   })
-  const result = preferences ? AsyncResult.Ok(preferences) : AsyncResult.Pending()
-  return <Ctx.Provider value={{ preferences, result }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={preferences}> {children} </Ctx.Provider>
 }
 
 export function Provider({ bucket, children }: ProviderProps) {

@@ -1,38 +1,31 @@
 import * as React from 'react'
 
-import AsyncResult from 'utils/AsyncResult'
-import * as Sentry from 'utils/Sentry'
+import { Result, extendDefaults } from './BucketPreferences'
 
-import { BucketPreferences, extendDefaults } from './BucketPreferences'
-
-const localModePreferences = {
-  ui: {
-    actions: {
-      copyPackage: false,
-      createPackage: false,
-      deleteRevision: false,
-      revisePackage: false,
+const localModePreferences = Result.Ok(
+  extendDefaults({
+    ui: {
+      actions: {
+        copyPackage: false,
+        createPackage: false,
+        deleteRevision: false,
+        revisePackage: false,
+      },
+      blocks: {
+        analytics: false,
+      },
+      nav: {
+        queries: false,
+      },
     },
-    blocks: {
-      analytics: false,
-    },
-    nav: {
-      queries: false,
-    },
-  },
-}
+  }),
+)
 
 interface LocalProviderProps {
-  context: React.Context<{ preferences: BucketPreferences | null; result: $TSFixMe }>
+  context: React.Context<Result>
   children: React.ReactNode
 }
 
 export default function LocalProvider({ context: Ctx, children }: LocalProviderProps) {
-  const sentry = Sentry.use()
-  const preferences = React.useMemo(
-    () => extendDefaults(localModePreferences, sentry),
-    [sentry],
-  )
-  const result = AsyncResult.Ok(preferences)
-  return <Ctx.Provider value={{ preferences, result }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={localModePreferences}>{children}</Ctx.Provider>
 }
