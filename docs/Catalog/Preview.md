@@ -60,10 +60,7 @@ File Server). It is at your discretion which JS library (or libraries)
 you wish to import in your HTML file.
 
 To enable "permissive" visualizations, check the `Enable permissive HTML
-rendering` checkbox in [Bucket settings](Admin.md#buckets). Please note
-that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package
-creates a short-lived **publicly available** session for the lifetime of the
-session, although all session traffic _remains encrypted_.
+rendering` checkbox in [Bucket settings](Admin.md#buckets).
 
 ### Example
 
