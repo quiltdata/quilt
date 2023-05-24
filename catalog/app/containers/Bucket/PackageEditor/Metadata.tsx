@@ -11,8 +11,8 @@ export default function Metadata() {
   if (meta.state === L) return <M.CircularProgress />
   return (
     <JsonEditor
-      multiColumned
       errors={[]}
+      multiColumned
       onChange={() => {}}
       schema={meta.state.schema}
       value={meta.state.value}
