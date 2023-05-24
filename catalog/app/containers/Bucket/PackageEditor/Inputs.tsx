@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import React from 'react'
 import * as M from '@material-ui/core'
 
@@ -10,16 +11,15 @@ import { L } from 'components/Form/Package/types'
 
 import { useContext } from './StateProvider'
 
-const useInputsStyles = M.makeStyles(() => ({
-  inputs: {
+const useInputsStyles = M.makeStyles((t) => ({
+  root: {
     display: 'flex',
   },
-  inputsSources: {
-    width: '48%',
-  },
-  inputsPackage: {
-    width: '48%',
-    marginLeft: 'auto',
+  group: {
+    width: `calc(50% - ${t.spacing(2)}px)`,
+    '& + &': {
+      marginLeft: t.spacing(2),
+    },
   },
   input: {
     '&+ &': {
@@ -28,25 +28,16 @@ const useInputsStyles = M.makeStyles(() => ({
   },
 }))
 
-export default function Inputs() {
+interface InputsProps {
+  className: string
+}
+
+export default function Inputs({ className }: InputsProps) {
   const { bucket, message, name, workflow } = useContext()
   const classes = useInputsStyles()
-
   return (
-    <div className={classes.inputs}>
-      <div className={classes.inputsSources}>
-        <div className={classes.input}>
-          <DestinationBucket onChange={bucket.actions.onChange} {...bucket.state} />
-        </div>
-        <div className={classes.input}>
-          {workflow.state === L ? (
-            <InputSkeleton />
-          ) : (
-            <Workflow onChange={workflow.actions.onChange} {...workflow.state} />
-          )}
-        </div>
-      </div>
-      <div className={classes.inputsPackage}>
+    <div className={cx(classes.root, className)}>
+      <div className={classes.group}>
         <div className={classes.input}>
           {name.state === L ? (
             <InputSkeleton />
@@ -59,6 +50,18 @@ export default function Inputs() {
             <InputSkeleton />
           ) : (
             <CommitMessage onChange={message.actions.onChange} {...message.state} />
+          )}
+        </div>
+      </div>
+      <div className={classes.group}>
+        <div className={classes.input}>
+          <DestinationBucket onChange={bucket.actions.onChange} {...bucket.state} />
+        </div>
+        <div className={classes.input}>
+          {workflow.state === L ? (
+            <InputSkeleton />
+          ) : (
+            <Workflow onChange={workflow.actions.onChange} {...workflow.state} />
           )}
         </div>
       </div>
