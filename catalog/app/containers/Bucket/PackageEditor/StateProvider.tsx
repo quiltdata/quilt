@@ -5,7 +5,8 @@ import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 import { L } from 'components/Form/Package/types'
 import AsyncResult from 'utils/AsyncResult'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
-import { Workflow as WorkflowStruct, notSelected } from 'utils/workflows'
+import type * as Types from 'utils/types'
+import { Schema, Workflow as WorkflowStruct, notSelected } from 'utils/workflows'
 
 import { Manifest, useManifest as useFetchManifest } from '../PackageDialog/Manifest'
 
@@ -20,6 +21,11 @@ interface Src {
 export interface InputState {
   errors?: Error[] | typeof L
   value: string
+}
+
+export interface MetaState {
+  value?: Types.JsonRecord
+  schema?: Schema
 }
 
 export interface WorkflowState {
@@ -49,6 +55,10 @@ interface MessageContext {
   }
 }
 
+interface MetaContext {
+  state: MetaState | typeof L
+}
+
 interface NameContext {
   state: InputState | typeof L
   actions: {
@@ -66,6 +76,7 @@ interface WorkflowContext {
 interface ContextData {
   bucket: BucketContext
   message: MessageContext
+  meta: MetaContext
   name: NameContext
   workflow: WorkflowContext
 }
@@ -184,6 +195,22 @@ function useWorkflow(
   )
 }
 
+function useMeta(workflow: WorkflowContext, manifest?: Manifest | typeof L): MetaContext {
+  const state = React.useMemo(() => {
+    if (manifest === L || workflow.state === L) return L
+    return {
+      value: manifest?.meta,
+      schema: workflow.state.value?.schema,
+    }
+  }, [workflow.state, manifest])
+  return React.useMemo(
+    () => ({
+      state,
+    }),
+    [state],
+  )
+}
+
 const Ctx = React.createContext<ContextData | null>(null)
 
 export function useContext(): ContextData {
@@ -246,12 +273,14 @@ export default function Provider({
   const workflow = useWorkflow(bucket.state?.value, manifest)
   const name = useName(src, workflow)
   const message = useMessage()
+  const meta = useMeta(workflow, manifest)
   const v = React.useMemo(
     () => ({
       bucket,
       message,
       name,
       workflow,
+      meta,
     }),
     [bucket, message, name, workflow],
   )

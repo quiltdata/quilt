@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import React from 'react'
 import * as M from '@material-ui/core'
 
@@ -28,15 +27,11 @@ const useInputsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface InputsProps {
-  className: string
-}
-
-export default function Inputs({ className }: InputsProps) {
+export default function Inputs() {
   const { bucket, message, name, workflow } = useContext()
   const classes = useInputsStyles()
   return (
-    <div className={cx(classes.root, className)}>
+    <div className={classes.root}>
       <div className={classes.group}>
         <div className={classes.input}>
           {name.state === L ? (

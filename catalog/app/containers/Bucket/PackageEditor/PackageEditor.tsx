@@ -1,8 +1,10 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import type * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Inputs from './Inputs'
+import FilesWorkspace from './FilesWorkspace'
+import Metadata from './Metadata'
 import RouteContainer from './RouteContainer'
 import StateProvider from './StateProvider'
 
@@ -15,6 +17,9 @@ const useSectionStyles = M.makeStyles((t) => ({
     },
   },
   expanded: {},
+  content: {
+    flexGrow: 1,
+  },
 }))
 
 interface SectionProps {
@@ -29,7 +34,9 @@ function Section({ title, children }: SectionProps) {
       <M.AccordionSummary>
         <M.Typography variant="h5">{title}</M.Typography>
       </M.AccordionSummary>
-      <M.AccordionDetails>{children}</M.AccordionDetails>
+      <M.AccordionDetails>
+        <div className={classes.content}>{children}</div>
+      </M.AccordionDetails>
     </M.Accordion>
   )
 }
@@ -39,9 +46,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     marginTop: t.spacing(2),
   },
-  main: {
-    flexGrow: 1,
-  },
 }))
 
 function PackageEditor() {
@@ -49,13 +53,13 @@ function PackageEditor() {
   return (
     <div className={classes.root}>
       <Section title="Info">
-        <Inputs className={classes.main} />
+        <Inputs />
       </Section>
       <Section title="Files">
-        <h1>Files</h1>
+        <FilesWorkspace />
       </Section>
       <Section title="Metadata">
-        <h1>Metadata</h1>
+        <Metadata />
       </Section>
     </div>
   )
