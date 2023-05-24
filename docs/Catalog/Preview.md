@@ -55,7 +55,7 @@ currently supported.
 ## Advanced: Quilt Package File Server
 
 The Quilt Catalog supports HTML and JavaScript in preview via iframes. By default,
-preview iframes do not have access to S3.
+preview iframes do not have access to external files in S3.
 
 If you wish for your HTML to access data within the package (at the viewer's
 level of permissions) you must opt in to `Enable permissive HTML rendering` in
