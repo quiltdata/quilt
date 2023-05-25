@@ -59,6 +59,7 @@ export function Provider({
     }),
     [bucket, files, message, meta, name, workflow],
   )
+  // console.log('STATE:', v)
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>
 }
 

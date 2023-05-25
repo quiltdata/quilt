@@ -98,7 +98,7 @@ export default function FilesWorkspace() {
       ) : (
         <Actions
           className={classes.actions}
-          onLocal={files.actions.openFilePicker}
+          onLocal={files.actions.dropzone.openFilePicker}
           onRemote={() => setRemoteOpened(true)}
         />
       )}

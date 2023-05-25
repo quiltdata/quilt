@@ -40,6 +40,10 @@ interface StagedFilesProps {
 export default function StagedFiles({ className, expanded, onExpand }: StagedFilesProps) {
   const classes = useStyles()
   const { files } = State.use()
+  const list = React.useMemo(
+    () => (files.state === L ? [] : Object.keys(files.state.value)),
+    [files.state],
+  )
   if (files.state === L) return null
   return (
     <div className={cx(classes.root, className)}>
@@ -54,6 +58,11 @@ export default function StagedFiles({ className, expanded, onExpand }: StagedFil
       <div className={classes.dropzone} {...files.state.dropzone.root}>
         <input {...files.state.dropzone.input} />
         Drop files or click to browse
+        <M.List>
+          {list.map((n) => (
+            <M.ListItem key={n}>{n}</M.ListItem>
+          ))}
+        </M.List>
       </div>
     </div>
   )

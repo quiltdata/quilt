@@ -8,8 +8,16 @@ import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
 
 import type { WorkflowContext } from './Workflow'
 
+export const TAB_BOOKMARKS = Symbol('bookmarks')
+export const TAB_S3 = Symbol('s3')
+export type Tab = typeof TAB_S3 | typeof TAB_BOOKMARKS | typeof L
+
 interface FilesState {
-  value?: Model.PackageContentsFlatMap
+  filter: {
+    value: string
+  }
+  tab: Tab
+  value: Model.PackageContentsFlatMap
   dropzone: {
     root: DropzoneRootProps
     input: DropzoneInputProps
@@ -19,7 +27,13 @@ interface FilesState {
 export interface FilesContext {
   state: FilesState | typeof L
   actions: {
-    openFilePicker: () => void
+    dropzone: {
+      openFilePicker: () => void
+    }
+    onTab: (t: Tab) => void
+    filter: {
+      onChange: (v: string) => void
+    }
   }
 }
 
@@ -28,21 +42,33 @@ export default function useFiles(
   manifest?: Manifest | typeof L,
 ): FilesContext {
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone()
-  const state = React.useMemo(() => {
+  const [filter, setFilter] = React.useState('')
+  const [tab, setTab] = React.useState<Tab>(TAB_S3)
+  const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
     return {
+      tab,
+      filter: {
+        value: filter,
+      },
       value: manifest?.entries || EMPTY_MANIFEST_ENTRIES,
       dropzone: {
         root: getRootProps(),
         input: getInputProps(),
       },
     }
-  }, [getRootProps, getInputProps, manifest, workflow.state])
+  }, [getRootProps, getInputProps, filter, tab, manifest, workflow.state])
   return React.useMemo(
     () => ({
       state,
       actions: {
-        openFilePicker,
+        dropzone: {
+          openFilePicker,
+        },
+        onTab: setTab,
+        filter: {
+          onChange: setFilter,
+        },
       },
     }),
     [state, openFilePicker],
