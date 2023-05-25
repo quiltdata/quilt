@@ -3,8 +3,11 @@ import { useDropzone, DropzoneRootProps, DropzoneInputProps } from 'react-dropzo
 
 import type * as Model from 'model'
 import { L } from 'components/Form/Package/types'
+import { useData } from 'utils/Data'
+import * as AWS from 'utils/AWS'
 
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
+import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
 
@@ -18,6 +21,7 @@ interface FilesState {
   }
   tab: Tab
   value: Model.PackageContentsFlatMap
+  remote: $TSFixMe
   dropzone: {
     root: DropzoneRootProps
     input: DropzoneInputProps
@@ -41,6 +45,14 @@ export default function useFiles(
   workflow: WorkflowContext,
   manifest?: Manifest | typeof L,
 ): FilesContext {
+  const s3 = AWS.S3.use()
+  const data = useData(requests.bucketListing, {
+    s3,
+    bucket: 'fiskus-sandbox-dev',
+    path: '',
+    prefix: '',
+    prev: null,
+  })
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone()
   const [filter, setFilter] = React.useState('')
   const [tab, setTab] = React.useState<Tab>(TAB_S3)
@@ -52,6 +64,7 @@ export default function useFiles(
         value: filter,
       },
       value: manifest?.entries || EMPTY_MANIFEST_ENTRIES,
+      remote: data,
       dropzone: {
         root: getRootProps(),
         input: getInputProps(),

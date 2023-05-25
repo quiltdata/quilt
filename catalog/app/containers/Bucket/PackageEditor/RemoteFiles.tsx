@@ -3,6 +3,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { L } from 'components/Form/Package/types'
+import { readableBytes } from 'utils/string'
+
+import type { BucketListingResult } from '../requests'
 
 import * as State from './State'
 import { TAB_BOOKMARKS, TAB_S3, Tab } from './State/Files'
@@ -111,7 +114,18 @@ export default function RemoteFiles({ className }: RemoteFilesProps) {
         onChange={files.actions.filter.onChange}
         className={classes.filter}
       />
-      <div className={classes.content}>List</div>
+      <div className={classes.content}>
+        {files.state.remote.case({
+          Ok: ({ files }: BucketListingResult) => (
+            <M.List dense>
+              {files.map((f) => (
+                <M.ListItem><M.ListItemText primary={f.key} secondary={readableBytes(f.size)}/></M.ListItem>
+              ))}
+            </M.List>
+          ),
+          _: () => <M.CircularProgress />,
+        })}
+      </div>
     </div>
   )
 }
