@@ -116,9 +116,9 @@ export default function RemoteFiles({ className }: RemoteFilesProps) {
       />
       <div className={classes.content}>
         {files.state.remote.case({
-          Ok: ({ dirs, files }: BucketListingResult) => (
+          Ok: (r: BucketListingResult) => (
             <M.List dense>
-              {dirs.map((n) => (
+              {r.dirs.map((n) => (
                 <M.ListItem>
                   <M.ListItemIcon>
                     <M.Icon>folder_outlined</M.Icon>
@@ -126,7 +126,7 @@ export default function RemoteFiles({ className }: RemoteFilesProps) {
                   <M.ListItemText primary={n} />
                 </M.ListItem>
               ))}
-              {files.map((f) => (
+              {r.files.map((f) => (
                 <M.ListItem>
                   <M.ListItemIcon>
                     <M.Icon>insert_drive_file</M.Icon>

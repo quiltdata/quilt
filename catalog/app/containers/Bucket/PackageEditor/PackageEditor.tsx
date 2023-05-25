@@ -31,8 +31,9 @@ interface SectionProps {
 
 function Section({ title, children }: SectionProps) {
   const classes = useSectionStyles()
+  const accordionClasses = React.useMemo(() => ({ root: classes.root }), [classes.root])
   return (
-    <M.Accordion defaultExpanded classes={classes}>
+    <M.Accordion defaultExpanded classes={accordionClasses}>
       <M.AccordionSummary>
         <M.Typography variant="h5">{title}</M.Typography>
       </M.AccordionSummary>
@@ -43,12 +44,11 @@ function Section({ title, children }: SectionProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles({
   root: {
     position: 'relative',
-    marginTop: t.spacing(2),
   },
-}))
+})
 
 function PackageEditor() {
   const classes = useStyles()

@@ -70,7 +70,7 @@ export default function useFiles(
         input: getInputProps(),
       },
     }
-  }, [getRootProps, getInputProps, filter, tab, manifest, workflow.state])
+  }, [data, getRootProps, getInputProps, filter, tab, manifest, workflow.state])
   return React.useMemo(
     () => ({
       state,
