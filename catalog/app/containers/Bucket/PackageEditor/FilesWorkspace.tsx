@@ -81,7 +81,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function FilesWorkspace() {
   const classes = useStyles()
-  const [remoteOpened, setRemoteOpened] = React.useState(false)
+  const [remoteOpened, setRemoteOpened] = React.useState(true)
   const { files } = State.use()
   return (
     <div className={classes.root}>

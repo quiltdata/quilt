@@ -2,12 +2,13 @@ import * as React from 'react'
 import type * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as State from './State'
 import FilesWorkspace from './FilesWorkspace'
 import Header from './Header'
 import Inputs from './Inputs'
 import Metadata from './Metadata'
 import RouteContainer from './RouteContainer'
-import * as State from './State'
+import Success from './Success'
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
@@ -63,6 +64,7 @@ function PackageEditor() {
       <Section title="Metadata">
         <Metadata />
       </Section>
+      <Success />
     </div>
   )
 }
