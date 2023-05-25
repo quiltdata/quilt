@@ -13,11 +13,12 @@ import * as State from './State'
 const useInputsStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
+    justifyContent: 'space-between',
   },
   group: {
     width: `calc(50% - ${t.spacing(2)}px)`,
     '& + &': {
-      marginLeft: t.spacing(2),
+      marginLeft: t.spacing(4),
     },
   },
   input: {
