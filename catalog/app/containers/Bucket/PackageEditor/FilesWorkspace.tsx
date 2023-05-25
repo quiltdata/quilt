@@ -1,6 +1,105 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import RemoteFiles from './RemoteFiles'
+import StagedFiles from './StagedFiles'
+
+const useActionStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  button: {
+    '& + &': {
+      marginTop: t.spacing(1),
+    },
+  },
+}))
+
+interface ActionsProps {
+  className: string
+  onLocal: () => void
+  onRemote: () => void
+}
+
+function Actions({ className, onLocal, onRemote }: ActionsProps) {
+  const classes = useActionStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Button
+        className={classes.button}
+        variant="outlined"
+        size="small"
+        onClick={onLocal}
+      >
+        Add local files
+      </M.Button>
+      <M.Button
+        className={classes.button}
+        variant="outlined"
+        size="small"
+        onClick={onRemote}
+      >
+        Add S3 files
+      </M.Button>
+    </div>
+  )
+}
+
+const useDividerStyles = M.makeStyles((t) => ({
+  root: {
+    width: t.spacing(4),
+    height: '100%',
+  },
+}))
+
+function Divider() {
+  const classes = useDividerStyles()
+  return <div className={classes.root}></div>
+}
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    minHeight: t.spacing(70),
+  },
+  staged: {
+    flexGrow: 1,
+    width: `calc(50% - ${t.spacing(4)}px)`,
+  },
+  remote: {
+    width: `calc(50% - ${t.spacing(4)}px)`,
+    flexGrow: 1,
+  },
+  actions: {
+    marginLeft: t.spacing(2),
+    marginTop: '45px',
+  },
+}))
+
 export default function FilesWorkspace() {
-  return <h1>Files</h1>
+  const classes = useStyles()
+  const [remoteOpened, setRemoteOpened] = React.useState(false)
+  return (
+    <div className={classes.root}>
+      <StagedFiles
+        className={classes.staged}
+        expanded={remoteOpened}
+        onExpand={() => setRemoteOpened(false)}
+      />
+      {remoteOpened ? (
+        <>
+          <Divider />
+          <RemoteFiles className={classes.remote} />
+        </>
+      ) : (
+        <Actions
+          className={classes.actions}
+          onLocal={() => setRemoteOpened(true)}
+          onRemote={() => setRemoteOpened(true)}
+        />
+      )}
+    </div>
+  )
 }
