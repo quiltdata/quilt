@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import RemoteFiles from './RemoteFiles'
 import StagedFiles from './StagedFiles'
+import * as State from './State'
 
 const useActionStyles = M.makeStyles((t) => ({
   root: {
@@ -81,6 +82,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function FilesWorkspace() {
   const classes = useStyles()
   const [remoteOpened, setRemoteOpened] = React.useState(false)
+  const { files } = State.use()
   return (
     <div className={classes.root}>
       <StagedFiles
@@ -96,7 +98,7 @@ export default function FilesWorkspace() {
       ) : (
         <Actions
           className={classes.actions}
-          onLocal={() => setRemoteOpened(true)}
+          onLocal={files.actions.openFilePicker}
           onRemote={() => setRemoteOpened(true)}
         />
       )}

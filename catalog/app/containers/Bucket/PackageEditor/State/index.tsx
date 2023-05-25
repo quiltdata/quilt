@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import useBucket, { BucketContext } from './Bucket'
+import useFiles, { FilesContext } from './Files'
 import useManifest from './Manifest'
 import useMessage, { MessageContext } from './Message'
 import useMeta, { MetaContext } from './Meta'
@@ -10,6 +11,7 @@ import useWorkflow, { WorkflowContext } from './Workflow'
 
 interface ContextData {
   bucket: BucketContext
+  files: FilesContext
   message: MessageContext
   meta: MetaContext
   name: NameContext
@@ -44,16 +46,18 @@ export function Provider({
   const workflow = useWorkflow(bucket.state?.value, manifest)
   const name = useName(src, workflow)
   const message = useMessage()
+  const files = useFiles(workflow, manifest)
   const meta = useMeta(workflow, manifest)
   const v = React.useMemo(
     () => ({
       bucket,
+      files,
       message,
+      meta,
       name,
       workflow,
-      meta,
     }),
-    [bucket, message, meta, name, workflow],
+    [bucket, files, message, meta, name, workflow],
   )
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>
 }

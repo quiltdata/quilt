@@ -2,6 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { L } from 'components/Form/Package/types'
+
+import * as State from './State'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -35,6 +39,8 @@ interface StagedFilesProps {
 
 export default function StagedFiles({ className, expanded, onExpand }: StagedFilesProps) {
   const classes = useStyles()
+  const { files } = State.use()
+  if (files.state === L) return null
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.header}>
@@ -45,7 +51,10 @@ export default function StagedFiles({ className, expanded, onExpand }: StagedFil
           </M.IconButton>
         </M.Fade>
       </div>
-      <div className={classes.dropzone}>Drop files or click to browse</div>
+      <div className={classes.dropzone} {...files.state.dropzone.root}>
+        <input {...files.state.dropzone.input} />
+        Drop files or click to browse
+      </div>
     </div>
   )
 }
