@@ -6,6 +6,7 @@ import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
@@ -299,7 +300,6 @@ function RevisionSkel() {
 
 const useRevisionStyles = M.makeStyles((t) => ({
   mono: {
-    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
   },
   time: {
@@ -317,7 +317,6 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
   hash: {
     color: t.palette.text.secondary,
-    // @ts-expect-error
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     maxWidth: 'calc(100% - 48px)',
@@ -420,7 +419,7 @@ interface PackageRevisionsProps {
 }
 
 export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
   const actualPage = page || 1
@@ -474,15 +473,23 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
           revisions
         </M.Typography>
         <M.Box flexGrow={1} />
-        {preferences?.ui?.actions?.revisePackage && (
-          <M.Button
-            variant="contained"
-            color="primary"
-            style={{ marginTop: -3, marginBottom: -3 }}
-            onClick={() => updateDialog.open()}
-          >
-            Revise package
-          </M.Button>
+        {BucketPreferences.Result.match(
+          {
+            Ok: ({ ui: { actions } }) =>
+              actions.revisePackage && (
+                <M.Button
+                  variant="contained"
+                  color="primary"
+                  style={{ marginTop: -3, marginBottom: -3 }}
+                  onClick={() => updateDialog.open()}
+                >
+                  Revise package
+                </M.Button>
+              ),
+            Pending: () => <Buttons.Skeleton />,
+            Init: () => null,
+          },
+          prefs,
         )}
       </M.Box>
 

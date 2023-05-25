@@ -4,7 +4,7 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 // import Message from 'components/Message'
-import ButtonIconized from 'components/ButtonIconized'
+import * as Buttons from 'components/Buttons'
 import SelectDropdown from 'components/SelectDropdown'
 import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
@@ -16,7 +16,7 @@ export * from './Meta'
 
 export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
-    <ButtonIconized
+    <Buttons.Iconized
       className={className}
       href={url}
       download
@@ -60,7 +60,12 @@ export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <ButtonIconized className={className} label={label} icon="archive" type="submit" />
+      <Buttons.Iconized
+        className={className}
+        label={label}
+        icon="archive"
+        type="submit"
+      />
     </form>
   )
 }

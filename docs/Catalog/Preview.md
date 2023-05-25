@@ -54,16 +54,16 @@ currently supported.
 
 ## Advanced: Quilt Package File Server
 
-The Quilt Catalog supports secure, custom Javascript-enabled
-visualizations and dashboards embedded inside iframes (Package
-File Server). It is at your discretion which JS library (or libraries)
-you wish to import in your HTML file.
+The Quilt Catalog supports HTML and JavaScript in preview via iframes. By default,
+preview iframes do not have IAM permissions and are therefore unable to access
+private files in S3.
 
-To enable "permissive" visualizations, check the `Enable permissive HTML
-rendering` checkbox in [Bucket settings](Admin.md#buckets). Please note
-that rendering Javascript-enabled HTML files in your S3 bucket or Quilt package
-creates a short-lived **publicly available** session for the lifetime of the
-session, although all session traffic _remains encrypted_.
+If you wish for your HTML to access data within the package (at the viewer's
+level of permissions) you must opt in to `Enable permissive HTML rendering` in
+[Bucket settings](Admin.md#buckets).
+
+> You should _only enable this feature for buckets where you implicitly
+> trust_ the contents of the HTML files.
 
 ### Example
 
