@@ -6,7 +6,7 @@ import Inputs from './Inputs'
 import FilesWorkspace from './FilesWorkspace'
 import Metadata from './Metadata'
 import RouteContainer from './RouteContainer'
-import StateProvider from './StateProvider'
+import StateProvider from './State/Provider'
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {

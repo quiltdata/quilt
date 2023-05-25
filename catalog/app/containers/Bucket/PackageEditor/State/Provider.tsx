@@ -8,9 +8,9 @@ import { useRelevantBucketConfigs } from 'utils/BucketConfig'
 import type * as Types from 'utils/types'
 import { Schema, Workflow as WorkflowStruct, notSelected } from 'utils/workflows'
 
-import { Manifest, useManifest as useFetchManifest } from '../PackageDialog/Manifest'
+import { Manifest, useManifest as useFetchManifest } from '../../PackageDialog/Manifest'
 
-import useWorkflowsConfig from './io/workflowsConfig'
+import useWorkflowsConfig from '../io/workflowsConfig'
 
 interface Src {
   bucket: string

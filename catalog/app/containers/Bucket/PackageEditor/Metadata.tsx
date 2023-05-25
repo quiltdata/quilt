@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 import { L } from 'components/Form/Package/types'
 import JsonEditor from 'components/JsonEditor'
 
-import { useContext } from './StateProvider'
+import { useContext } from './State/Provider'
 
 export default function Metadata() {
   const { meta } = useContext()
