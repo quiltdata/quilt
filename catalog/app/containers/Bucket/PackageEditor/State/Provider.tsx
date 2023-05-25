@@ -1,22 +1,17 @@
-import * as R from 'ramda'
 import * as React from 'react'
 
 import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 import { L } from 'components/Form/Package/types'
-import AsyncResult from 'utils/AsyncResult'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
 import type * as Types from 'utils/types'
 import { Schema, Workflow as WorkflowStruct, notSelected } from 'utils/workflows'
 
-import { Manifest, useManifest as useFetchManifest } from '../../PackageDialog/Manifest'
+import type { Manifest } from '../../PackageDialog/Manifest'
 
 import useWorkflowsConfig from '../io/workflowsConfig'
 
-interface Src {
-  bucket: string
-  packageHandle?: { name: string; hashOrTag: string }
-  s3Path?: string
-}
+import useSource, { Src } from './Source'
+import useManifest from './Manifest'
 
 export interface InputState {
   errors?: Error[] | typeof L
@@ -219,27 +214,6 @@ export function useContext(): ContextData {
   return data
 }
 
-function useManifest(src: Src): Manifest | typeof L | undefined {
-  const manifestData = useFetchManifest({
-    bucket: src.bucket,
-    name: src.packageHandle!.name,
-    hashOrTag: src.packageHandle?.hashOrTag,
-    pause: !src.packageHandle?.name,
-  })
-  return React.useMemo(
-    () =>
-      AsyncResult.case(
-        {
-          Ok: R.identity,
-          Pending: () => L,
-          _: () => undefined, // FIXME
-        },
-        src.packageHandle ? manifestData.result : AsyncResult.Ok(),
-      ),
-    [manifestData.result, src.packageHandle],
-  )
-}
-
 interface ProviderProps {
   bucket: string
   name: string
@@ -259,14 +233,7 @@ export default function Provider({
   path,
   children,
 }: ProviderProps) {
-  const src: Src = React.useMemo(
-    () => ({
-      bucket: srcBucket,
-      packageHandle: srcName && hashOrTag ? { name: srcName, hashOrTag } : undefined,
-      s3Path: path,
-    }),
-    [srcBucket, srcName, hashOrTag, path],
-  )
+  const src = useSource(srcBucket, srcName, hashOrTag, path)
   const bucket = useBucket(src)
 
   const manifest = useManifest(src)
@@ -282,7 +249,7 @@ export default function Provider({
       workflow,
       meta,
     }),
-    [bucket, message, name, workflow],
+    [bucket, message, meta, name, workflow],
   )
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>
 }
