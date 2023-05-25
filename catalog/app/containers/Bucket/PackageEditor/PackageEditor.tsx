@@ -2,8 +2,9 @@ import * as React from 'react'
 import type * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import Inputs from './Inputs'
 import FilesWorkspace from './FilesWorkspace'
+import Header from './Header'
+import Inputs from './Inputs'
 import Metadata from './Metadata'
 import RouteContainer from './RouteContainer'
 import * as State from './State'
@@ -52,6 +53,7 @@ function PackageEditor() {
   const classes = useStyles()
   return (
     <div className={classes.root}>
+      <Header />
       <Section title="Info">
         <Inputs />
       </Section>
