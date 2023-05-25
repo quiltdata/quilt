@@ -24,7 +24,7 @@ jsonschema==4.6.0
     # via t4-lambda-shared (../shared/setup.py)
 pyrsistent==0.18.1
     # via jsonschema
-requests==2.27.1
+requests==2.31.0
     # via t4-lambda-molecule (setup.py)
 simplejson==3.17.2
     # via awslambdaric
