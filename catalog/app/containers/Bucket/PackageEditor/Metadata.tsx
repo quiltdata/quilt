@@ -4,10 +4,10 @@ import * as M from '@material-ui/core'
 import { L } from 'components/Form/Package/types'
 import JsonEditor from 'components/JsonEditor'
 
-import { useContext } from './State/Provider'
+import * as State from './State'
 
 export default function Metadata() {
-  const { meta } = useContext()
+  const { meta } = State.use()
   if (meta.state === L) return <M.CircularProgress />
   return (
     <JsonEditor

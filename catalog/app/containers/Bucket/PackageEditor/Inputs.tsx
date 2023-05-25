@@ -8,7 +8,7 @@ import PackageName from 'components/Form/Package/PackageName'
 import Workflow from 'components/Form/Package/Workflow'
 import { L } from 'components/Form/Package/types'
 
-import { useContext } from './State/Provider'
+import * as State from './State'
 
 const useInputsStyles = M.makeStyles((t) => ({
   root: {
@@ -28,7 +28,7 @@ const useInputsStyles = M.makeStyles((t) => ({
 }))
 
 export default function Inputs() {
-  const { bucket, message, name, workflow } = useContext()
+  const { bucket, message, name, workflow } = State.use()
   const classes = useInputsStyles()
   return (
     <div className={classes.root}>

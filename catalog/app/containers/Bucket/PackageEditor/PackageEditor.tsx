@@ -6,7 +6,7 @@ import Inputs from './Inputs'
 import FilesWorkspace from './FilesWorkspace'
 import Metadata from './Metadata'
 import RouteContainer from './RouteContainer'
-import StateProvider from './State/Provider'
+import * as State from './State'
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
@@ -78,9 +78,9 @@ export default function PackageTreeWrapper(
   return (
     <RouteContainer {...props}>
       {(resolvedProps) => (
-        <StateProvider {...resolvedProps}>
+        <State.Provider {...resolvedProps}>
           <PackageEditor />
-        </StateProvider>
+        </State.Provider>
       )}
     </RouteContainer>
   )

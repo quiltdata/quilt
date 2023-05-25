@@ -30,7 +30,7 @@ interface ProviderProps {
   children: React.ReactNode
 }
 
-export default function Provider({
+export function Provider({
   bucket: srcBucket,
   name: srcName,
   hashOrTag,
