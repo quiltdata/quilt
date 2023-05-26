@@ -209,9 +209,9 @@ corresponding stack Outputs.
 
 | CNAME | Value |
 | ------ | ------- |
-| _QuiltWebHost Key_  | _LoadBalancerDNSName_ | 
-| _RegistryHostName Key_  | _LoadBalancerDNSName_ |
-| _S3ProxyHost Key_  | _LoadBalancerDNSName_ | 
+| `<QuiltWebHost>` Key  | `LoadBalancerDNSName` | 
+| `<RegistryHostName>` Key  | `LoadBalancerDNSName` |
+| `<S3ProxyHost>` Key  | `LoadBalancerDNSName` | 
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
@@ -266,7 +266,7 @@ to Google's OAuth 2.0 server.
 ![](./imgs/google_console.png)
 
 Copy the `Client ID` and `Client secret` to a safe place.
-Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
+Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Active Directory
 
@@ -274,7 +274,7 @@ Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
 1. Click "New Registration".
 1. Name the app, select the Supported account types.
 1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
-`YOUR_QUILT_CATALOG_URL/oauth-callback`. Click "Save" at the bottom.
+`<QuiltWebHost>/oauth-callback`. Click "Save" at the bottom.
 1. Once the application has been created you will need both its `Application
 (client) ID` and `Directory (tenant) ID`.
 
@@ -317,17 +317,12 @@ for further details.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `YOUR_QUILT_CATALOG_URL/oauth-callback` URL. 
-    Do not allow wildcard `*` in the login URI redirect. This will be something like the following:
-
-        ```
-        https://quilt.<MY_COMPANY>.com/
-        ```
-
+    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL. 
+    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked**.
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 1. Once you click the `Save` button you will have a new application integration to review.
-    1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
+    1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
     1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
@@ -335,7 +330,7 @@ for further details.
     following:
 
         ```
-        https://<MY_COMPANY>.okta.com/oauth2/default
+        <MY_COMPANY>.okta.com/oauth2/default
         ```
 
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
@@ -347,7 +342,7 @@ for further details.
 1. Click `New Connector`
     1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
-    1. Set `Login URL` to `YOUR_QUILT_CATALOG_URL/oauth-callback`
+    1. Set `Login URL` to `<QuiltWebHost>/oauth-callback`
     1. Click "Save"
 1. Go back to Applications > Custom Connectors
 1. Click `Add App to Connector`
