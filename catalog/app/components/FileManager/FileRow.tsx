@@ -7,11 +7,26 @@ import { readableBytes } from 'utils/string'
 
 export const HEIGHT = 32
 
-interface Entry {
+interface RemoteEntry {
   modifiedDate: Date
   name: string
-  size: number
+  size?: number
 }
+
+export enum Status {
+  Changed,
+  Unchanged,
+  Hashing,
+}
+
+interface LocalEntry {
+  modifiedDate?: undefined
+  status: Status
+  name: string
+  size?: number
+}
+
+type Entry = RemoteEntry | LocalEntry
 
 const useCellStyles = M.makeStyles({
   root: {
@@ -27,16 +42,18 @@ const useCellStyles = M.makeStyles({
 })
 
 interface CellProps {
-  children: React.ReactNode
+  children?: React.ReactNode
   className: string
+  noWrap?: boolean
   onClick?: () => void
 }
 
-function Cell({ className, children, onClick }: CellProps) {
+function Cell({ className, children, noWrap, onClick }: CellProps) {
   const classes = useCellStyles()
+  if (!children) return <div className={cx(classes.root, className)} />
   return (
     <div className={cx(classes.root, className)} onClick={onClick}>
-      <span className={classes.wrap}>{children}</span>
+      {noWrap ? children : <span className={classes.wrap}>{children}</span>}
     </div>
   )
 }
@@ -51,6 +68,34 @@ function Name({ className, onClick, value }: NameProps) {
   return (
     <Cell className={className} onClick={onClick}>
       {value}
+    </Cell>
+  )
+}
+
+interface StatusCellProps {
+  className: string
+  value: Status
+}
+
+function StatusCell({ className, value }: StatusCellProps) {
+  const text = React.useMemo(() => {
+    switch (value) {
+      case Status.Changed:
+        return (
+          <M.IconButton size="small">
+            <M.Icon fontSize="small">undo</M.Icon>
+          </M.IconButton>
+        )
+      case Status.Unchanged:
+        return ''
+      case Status.Hashing:
+        return <M.CircularProgress size={20} style={{ marginLeft: '3px' }} />
+      // no default
+    }
+  }, [value])
+  return (
+    <Cell className={className} noWrap>
+      {text}
     </Cell>
   )
 }
@@ -72,10 +117,11 @@ function ModifiedDate({ className, value }: ModifiedDateProps) {
 
 interface SizeProps {
   className: string
-  value: number
+  value?: number
 }
 
 function Size({ className, value }: SizeProps) {
+  if (!value) return <Cell className={className} />
   return (
     <Cell className={className}>
       <span title={`${value}B`}>{readableBytes(value)}</span>
@@ -129,6 +175,11 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 0.5),
     width: t.spacing(20),
   },
+  status: {
+    flexShrink: 0,
+    padding: t.spacing(0, 0.5),
+    width: t.spacing(14),
+  },
   size: {
     flexShrink: 0,
     justifyContent: 'flex-end',
@@ -171,7 +222,7 @@ export default function FileRow({
   onToggle,
   selected,
 }: FileRowProps) {
-  const { name, modifiedDate, size } = entry
+  const { name, size } = entry
   const classes = useStyles()
   const iconStr = React.useMemo(() => {
     if (!hasChildren) return 'insert_drive_file'
@@ -191,7 +242,11 @@ export default function FileRow({
         <M.Icon fontSize="small">{iconStr}</M.Icon>
       </M.IconButton>
       <Name className={classes.name} value={name} onClick={onClick} />
-      <ModifiedDate className={classes.modifiedDate} value={modifiedDate} />
+      {entry.modifiedDate ? (
+        <ModifiedDate className={classes.modifiedDate} value={entry.modifiedDate} />
+      ) : (
+        <StatusCell className={classes.status} value={entry.status} />
+      )}
       <Size className={classes.size} value={size} />
       <div className={classes.menuHandle}>
         <M.IconButton size="small" color="inherit">
