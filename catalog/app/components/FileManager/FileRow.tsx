@@ -7,10 +7,14 @@ import { readableBytes } from 'utils/string'
 
 export const HEIGHT = 32
 
-interface RemoteEntry {
-  modifiedDate: Date
+interface BaseEntry {
+  id: string
   name: string
   size?: number
+}
+
+interface RemoteEntry extends BaseEntry {
+  modifiedDate: Date
 }
 
 export enum Status {
@@ -19,14 +23,12 @@ export enum Status {
   Hashing,
 }
 
-interface LocalEntry {
-  modifiedDate?: undefined
+interface LocalEntry extends BaseEntry {
+  modifiedDate?: undefined // FIXME
   status: Status
-  name: string
-  size?: number
 }
 
-type Entry = RemoteEntry | LocalEntry
+export type Entry = RemoteEntry | LocalEntry
 
 const useCellStyles = M.makeStyles({
   root: {
