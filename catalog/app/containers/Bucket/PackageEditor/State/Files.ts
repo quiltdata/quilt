@@ -7,11 +7,13 @@ import { Status } from 'components/FileManager/FileRow'
 import type { TreeEntry } from 'components/FileManager/FileTree'
 import { useData } from 'utils/Data'
 import * as AWS from 'utils/AWS'
+import * as s3paths from 'utils/s3paths'
 
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
 import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
+import type { Src } from './Source'
 
 // export const TAB_BOOKMARKS = Symbol('bookmarks')
 // export const TAB_S3 = Symbol('s3')
@@ -58,7 +60,7 @@ function calcChildren(
   children: TreeEntry[] = [],
 ): TreeEntry[] {
   const [name, ...tail] = tailParts
-  const found = children.find((child) => child.name === name)
+  const found = children.find((child) => child.id === name)
   if (found) {
     if (tail.length) {
       found.children = calcChildren(entry, tail, found.children)
@@ -68,7 +70,7 @@ function calcChildren(
 
   return children.concat({
     id: name,
-    name,
+    name: tail.length ? s3paths.ensureSlash(name) : name,
     size: tail.length ? 0 : entry.size,
     status: Status.Unchanged,
     children: tail.length ? calcChildren(entry, tail, []) : undefined,
@@ -96,7 +98,7 @@ function convertFilesMapToTree(map: Model.PackageContentsFlatMap): TreeEntry[] {
       memo[head] ||
       ({
         id: head,
-        name: head,
+        name: s3paths.ensureSlash(head),
         size: 0,
         status: Status.Unchanged,
         children: [],
@@ -113,6 +115,7 @@ function convertFilesMapToTree(map: Model.PackageContentsFlatMap): TreeEntry[] {
 }
 
 export default function useFiles(
+  src: Src,
   workflow: WorkflowContext,
   manifest?: Manifest | typeof L,
 ): FilesContext {
@@ -121,8 +124,8 @@ export default function useFiles(
     requests.bucketListing,
     {
       s3,
-      bucket: 'fiskus-sandbox-dev',
-      path: '',
+      bucket: src.bucket,
+      path: src.s3Path || '',
       prefix: '',
       prev: null,
     },

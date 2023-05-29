@@ -76,6 +76,7 @@ function Listing({ r }: { r: BucketListingResult }) {
       ...r.dirs.map((name) => ({
         id: name,
         name,
+        children: [],
       })),
       ...r.files.map((file) => ({
         id: file.key,
