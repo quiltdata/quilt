@@ -13,15 +13,15 @@ const useStyles = M.makeStyles((t) => ({
     marginRight: 'auto',
   },
   sticky: {
-    background: t.palette.background.paper,
-    borderRadius: `0 0 ${t.shape.borderRadius} ${t.shape.borderRadius}`,
-    boxShadow: t.shadows[8],
     left: 0,
     position: 'fixed',
     right: 0,
     top: 0,
     zIndex: t.zIndex.appBar + 1,
     '& $container': {
+      background: t.palette.background.paper,
+      borderRadius: `0 0 ${t.shape.borderRadius} ${t.shape.borderRadius}`,
+      boxShadow: t.shadows[8],
       padding: t.spacing(0, 2),
     },
   },
