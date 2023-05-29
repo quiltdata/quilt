@@ -50,7 +50,7 @@ function Actions({ className, onLocal, onRemote }: ActionsProps) {
 
 const useDividerStyles = M.makeStyles((t) => ({
   root: {
-    width: t.spacing(4),
+    width: t.spacing(8),
     height: '100%',
   },
 }))
@@ -67,10 +67,10 @@ const useStyles = M.makeStyles((t) => ({
   },
   staged: {
     flexGrow: 1,
-    width: `calc(50% - ${t.spacing(4)}px)`,
+    width: `calc(50% - ${t.spacing(8)}px)`,
   },
   remote: {
-    width: `calc(50% - ${t.spacing(4)}px)`,
+    width: `calc(50% - ${t.spacing(8)}px)`,
     flexGrow: 1,
   },
   actions: {

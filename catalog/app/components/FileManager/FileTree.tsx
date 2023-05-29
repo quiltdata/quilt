@@ -10,14 +10,16 @@ type TreeEntry = Entry & {
 
 interface FileTreeProps {
   className?: string
+  draggable?: boolean
   entries: TreeEntry[]
   initialSelection?: Record<string, boolean>
 }
 
 export default function FileTree({
   className,
-  initialSelection = {},
+  draggable = false,
   entries,
+  initialSelection = {},
 }: FileTreeProps) {
   const [selectedMap, setSelectedMap] =
     React.useState<Record<string, boolean>>(initialSelection)
@@ -45,10 +47,11 @@ export default function FileTree({
     <div className={className}>
       {entries.map((entry) => (
         <FileRowWrapper
-          key={entry.id}
+          draggable={draggable}
           entry={entry}
           expanded={!!expandedMap[entry.id]}
           hasChildren={!!entry.children}
+          key={entry.id}
           onClick={() => handleExpand(entry)}
           onSelect={() => handleSelect(entry)}
           onToggle={() => handleExpand(entry)}

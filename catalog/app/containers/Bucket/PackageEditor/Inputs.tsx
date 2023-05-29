@@ -16,9 +16,9 @@ const useInputsStyles = M.makeStyles((t) => ({
     justifyContent: 'space-between',
   },
   group: {
-    width: `calc(50% - ${t.spacing(2)}px)`,
+    width: `calc(50% - ${t.spacing(4)}px)`,
     '& + &': {
-      marginLeft: t.spacing(4),
+      marginLeft: t.spacing(8),
     },
   },
   input: {

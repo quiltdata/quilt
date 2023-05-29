@@ -14,7 +14,7 @@ interface BaseEntry {
 }
 
 interface RemoteEntry extends BaseEntry {
-  modifiedDate: Date
+  modifiedDate?: Date
 }
 
 export enum Status {
@@ -23,7 +23,7 @@ export enum Status {
   Hashing,
 }
 
-interface LocalEntry extends BaseEntry {
+export interface LocalEntry extends BaseEntry {
   modifiedDate?: undefined // FIXME
   status: Status
 }
@@ -104,10 +104,11 @@ function StatusCell({ className, value }: StatusCellProps) {
 
 interface ModifiedDateProps {
   className: string
-  value: Date
+  value?: Date
 }
 
 function ModifiedDate({ className, value }: ModifiedDateProps) {
+  if (!value) return <Cell className={className} />
   return (
     <Cell className={className}>
       <span title={value.toLocaleString()}>
@@ -142,7 +143,6 @@ const useStyles = M.makeStyles((t) => ({
       background: t.palette.background.paper,
       borderRadius: t.shape.borderRadius,
       boxShadow: t.shadows[4],
-      marginLeft: `-${HEIGHT}px`,
       marginRight: `-${HEIGHT}px`,
     },
     '&:hover $dragHandle': {
@@ -150,6 +150,11 @@ const useStyles = M.makeStyles((t) => ({
     },
     '&:hover $menuHandle': {
       display: 'flex',
+    },
+  },
+  draggable: {
+    '&:hover': {
+      marginLeft: `-${HEIGHT}px`,
     },
   },
   dragHandle: {
@@ -213,6 +218,7 @@ export interface FileRowProps {
   onSelect: (v: boolean) => void
   onToggle: () => void
   selected: boolean
+  draggable?: boolean
 }
 
 export default function FileRow({
@@ -223,6 +229,7 @@ export default function FileRow({
   onSelect,
   onToggle,
   selected,
+  draggable = false,
 }: FileRowProps) {
   const { name, size } = entry
   const classes = useStyles()
@@ -231,10 +238,12 @@ export default function FileRow({
     return expanded ? 'folder_open' : 'folder'
   }, [expanded, hasChildren])
   return (
-    <div className={classes.root}>
-      <div className={classes.dragHandle}>
-        <M.Icon fontSize="small">drag_handle</M.Icon>
-      </div>
+    <div className={cx(classes.root, { [classes.draggable]: draggable })}>
+      {draggable && (
+        <div className={classes.dragHandle}>
+          <M.Icon fontSize="small">drag_indicator</M.Icon>
+        </div>
+      )}
       <M.Checkbox
         className={classes.checkbox}
         checked={selected}
@@ -244,15 +253,18 @@ export default function FileRow({
         <M.Icon fontSize="small">{iconStr}</M.Icon>
       </M.IconButton>
       <Name className={classes.name} value={name} onClick={onClick} />
-      {entry.modifiedDate ? (
-        <ModifiedDate className={classes.modifiedDate} value={entry.modifiedDate} />
+      {(entry as LocalEntry).status ? (
+        <StatusCell className={classes.status} value={(entry as LocalEntry).status} />
       ) : (
-        <StatusCell className={classes.status} value={entry.status} />
+        <ModifiedDate
+          className={classes.modifiedDate}
+          value={(entry as RemoteEntry).modifiedDate}
+        />
       )}
       <Size className={classes.size} value={size} />
       <div className={classes.menuHandle}>
         <M.IconButton size="small" color="inherit">
-          <M.Icon fontSize="small">more_horiz</M.Icon>
+          <M.Icon fontSize="small">more_vert</M.Icon>
         </M.IconButton>
       </div>
     </div>

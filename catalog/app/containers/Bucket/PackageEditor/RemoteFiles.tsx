@@ -2,43 +2,44 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import FileTree from 'components/FileManager/FileTree'
 import { L } from 'components/Form/Package/types'
-import { readableBytes } from 'utils/string'
+// import { readableBytes } from 'utils/string'
 
 import type { BucketListingResult } from '../requests'
 
 import * as State from './State'
-import { TAB_BOOKMARKS, TAB_S3, Tab } from './State/Files'
+// import { TAB_BOOKMARKS, TAB_S3, Tab } from './State/Files'
 
-const useTabsStyles = M.makeStyles((t) => ({
-  tabs: {
-    marginLeft: 'auto',
-    minHeight: t.spacing(3),
-  },
-  tab: {
-    fontWeight: 'normal',
-    fontSize: '12px',
-    minWidth: t.spacing(15),
-    minHeight: t.spacing(3),
-  },
-}))
-
-interface TabsProps {
-  className: string
-  value: Tab
-  onChange: (v: Tab) => void
-}
-
-function Tabs({ className, value, onChange }: TabsProps) {
-  const classes = useTabsStyles()
-  const handleChange = React.useCallback((event, v: Tab) => onChange(v), [onChange])
-  return (
-    <M.Tabs className={cx(classes.tabs, className)} onChange={handleChange} value={value}>
-      <M.Tab className={classes.tab} label="S3 Bucket" value={TAB_S3} />
-      <M.Tab className={classes.tab} label="Bookmarks" value={TAB_BOOKMARKS} />
-    </M.Tabs>
-  )
-}
+// const useTabsStyles = M.makeStyles((t) => ({
+//   tabs: {
+//     marginLeft: 'auto',
+//     minHeight: t.spacing(3),
+//   },
+//   tab: {
+//     fontWeight: 'normal',
+//     fontSize: '12px',
+//     minWidth: t.spacing(15),
+//     minHeight: t.spacing(3),
+//   },
+// }))
+//
+// interface TabsProps {
+//   className: string
+//   value: Tab
+//   onChange: (v: Tab) => void
+// }
+//
+// function Tabs({ className, value, onChange }: TabsProps) {
+//   const classes = useTabsStyles()
+//   const handleChange = React.useCallback((event, v: Tab) => onChange(v), [onChange])
+//   return (
+//     <M.Tabs className={cx(classes.tabs, className)} onChange={handleChange} value={value}>
+//       <M.Tab className={classes.tab} label="S3 Bucket" value={TAB_S3} />
+//       <M.Tab className={classes.tab} label="Bookmarks" value={TAB_BOOKMARKS} />
+//     </M.Tabs>
+//   )
+// }
 
 const useFilterStyles = M.makeStyles(() => ({
   root: {},
@@ -68,6 +69,25 @@ function Filter({ className, value, onChange }: FilterProps) {
   )
 }
 
+function Listing({ r }: { r: BucketListingResult }) {
+  const entries = React.useMemo(
+    () => [
+      ...r.dirs.map((name) => ({
+        id: name,
+        name,
+      })),
+      ...r.files.map((file) => ({
+        id: file.key,
+        modifiedDate: file.modified,
+        name: file.key,
+        size: file.size,
+      })),
+    ],
+    [r.dirs, r.files],
+  )
+  return <FileTree entries={entries} draggable />
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -81,9 +101,9 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
     display: 'flex',
   },
-  tabs: {
-    marginLeft: 'auto',
-  },
+  // tabs: {
+  //   marginLeft: 'auto',
+  // },
   content: {
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
@@ -103,11 +123,13 @@ export default function RemoteFiles({ className }: RemoteFilesProps) {
     <div className={cx(classes.root, className)}>
       <div className={classes.header}>
         S3 sources
+        {/*
         <Tabs
           className={classes.tabs}
           value={files.state.tab}
           onChange={files.actions.onTab}
         />
+        */}
       </div>
       <Filter
         value={files.state.filter.value}
@@ -116,26 +138,7 @@ export default function RemoteFiles({ className }: RemoteFilesProps) {
       />
       <div className={classes.content}>
         {files.state.remote.case({
-          Ok: (r: BucketListingResult) => (
-            <M.List dense>
-              {r.dirs.map((n) => (
-                <M.ListItem>
-                  <M.ListItemIcon>
-                    <M.Icon>folder_outlined</M.Icon>
-                  </M.ListItemIcon>
-                  <M.ListItemText primary={n} />
-                </M.ListItem>
-              ))}
-              {r.files.map((f) => (
-                <M.ListItem>
-                  <M.ListItemIcon>
-                    <M.Icon>insert_drive_file</M.Icon>
-                  </M.ListItemIcon>
-                  <M.ListItemText primary={f.key} secondary={readableBytes(f.size)} />
-                </M.ListItem>
-              ))}
-            </M.List>
-          ),
+          Ok: (r: BucketListingResult) => <Listing r={r} />,
           _: () => <M.CircularProgress />,
         })}
       </div>

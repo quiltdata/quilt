@@ -11,15 +11,15 @@ import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
 
-export const TAB_BOOKMARKS = Symbol('bookmarks')
-export const TAB_S3 = Symbol('s3')
-export type Tab = typeof TAB_S3 | typeof TAB_BOOKMARKS | typeof L
+// export const TAB_BOOKMARKS = Symbol('bookmarks')
+// export const TAB_S3 = Symbol('s3')
+// export type Tab = typeof TAB_S3 | typeof TAB_BOOKMARKS | typeof L
 
 interface FilesState {
   filter: {
     value: string
   }
-  tab: Tab
+  // tab: Tab
   value: Model.PackageContentsFlatMap
   remote: $TSFixMe
   dropzone: {
@@ -34,7 +34,7 @@ export interface FilesContext {
     dropzone: {
       openFilePicker: () => void
     }
-    onTab: (t: Tab) => void
+    // onTab: (t: Tab) => void
     filter: {
       onChange: (v: string) => void
     }
@@ -55,11 +55,11 @@ export default function useFiles(
   })
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone()
   const [filter, setFilter] = React.useState('')
-  const [tab, setTab] = React.useState<Tab>(TAB_S3)
+  // const [tab, setTab] = React.useState<Tab>(TAB_S3)
   const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
     return {
-      tab,
+      // tab,
       filter: {
         value: filter,
       },
@@ -70,7 +70,7 @@ export default function useFiles(
         input: getInputProps(),
       },
     }
-  }, [data, getRootProps, getInputProps, filter, tab, manifest, workflow.state])
+  }, [data, getRootProps, getInputProps, filter, manifest, workflow.state])
   return React.useMemo(
     () => ({
       state,
@@ -78,7 +78,7 @@ export default function useFiles(
         dropzone: {
           openFilePicker,
         },
-        onTab: setTab,
+        // onTab: setTab,
         filter: {
           onChange: setFilter,
         },
