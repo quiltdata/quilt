@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import FileTree from 'components/FileManager/FileTree'
+import FilesTreeSkeleton from 'components/FileManager/Skeleton'
 import { L } from 'components/Form/Package/types'
 // import { readableBytes } from 'utils/string'
 
@@ -137,7 +138,7 @@ export default function RemoteFiles({ className }: RemoteFilesProps) {
       <div className={classes.content}>
         {files.state.remote.case({
           Ok: (r: BucketListingResult) => <Listing r={r} />,
-          _: () => <M.CircularProgress />,
+          _: () => <FilesTreeSkeleton />,
         })}
       </div>
     </div>

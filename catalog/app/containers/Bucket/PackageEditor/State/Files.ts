@@ -46,13 +46,17 @@ export default function useFiles(
   manifest?: Manifest | typeof L,
 ): FilesContext {
   const s3 = AWS.S3.use()
-  const data = useData(requests.bucketListing, {
-    s3,
-    bucket: 'fiskus-sandbox-dev',
-    path: '',
-    prefix: '',
-    prev: null,
-  })
+  const data = useData(
+    requests.bucketListing,
+    {
+      s3,
+      bucket: 'fiskus-sandbox-dev',
+      path: '',
+      prefix: '',
+      prev: null,
+    },
+    // FIXME: { noAutoFetch },
+  )
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone()
   const [filter, setFilter] = React.useState('')
   // const [tab, setTab] = React.useState<Tab>(TAB_S3)

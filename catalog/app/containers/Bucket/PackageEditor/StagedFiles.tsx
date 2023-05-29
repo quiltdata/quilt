@@ -47,11 +47,12 @@ const useStyles = M.makeStyles((t) => ({
   dropzone: {
     alignItems: 'center',
     background: t.palette.action.selected,
-    border: `1 px solid ${t.palette.action.disabled}`,
+    border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
+    minHeight: t.spacing(16),
   },
   expand: {
     marginLeft: 'auto',
