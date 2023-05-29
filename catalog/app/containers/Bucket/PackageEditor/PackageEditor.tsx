@@ -21,6 +21,7 @@ const useSectionStyles = M.makeStyles((t) => ({
   expanded: {},
   content: {
     flexGrow: 1,
+    maxWidth: '100%',
   },
 }))
 

@@ -4,7 +4,7 @@ import FileRowWrapper from 'components/FileManager/FileRowWrapper'
 import type { Entry } from 'components/FileManager/FileRow'
 import { L } from 'components/Form/Package/types'
 
-type TreeEntry = Entry & {
+export type TreeEntry = Entry & {
   children?: TreeEntry[]
 }
 

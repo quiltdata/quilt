@@ -2,11 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { Status, LocalEntry } from 'components/FileManager/FileRow'
 import FileTree from 'components/FileManager/FileTree'
+import FilesTreeSkeleton from 'components/FileManager/Skeleton'
 import { L } from 'components/Form/Package/types'
 import Skeleton from 'components/Skeleton'
-import FilesTreeSkeleton from 'components/FileManager/Skeleton'
 
 import * as State from './State'
 
@@ -72,17 +71,11 @@ interface StagedFilesProps {
 export default function StagedFiles({ className, expanded, onExpand }: StagedFilesProps) {
   const classes = useStyles()
   const { files } = State.use()
-  const entries: LocalEntry[] = React.useMemo(() => {
-    if (files.state === L) return []
-    return Object.entries(files.state.value).map(([name, entry]) => ({
-      id: entry.physicalKey,
-      name: name,
-      size: entry.size,
-      status: Status.Unchanged,
-    }))
-  }, [files.state])
-  if (files.state === L)
+
+  if (files.state === L) {
     return <StagedFilesSkeleton className={cx(classes.root, className)} />
+  }
+
   return (
     <div className={cx(classes.root, className)}>
       {expanded && (
@@ -96,7 +89,7 @@ export default function StagedFiles({ className, expanded, onExpand }: StagedFil
         </div>
       )}
       <div className={classes.fileTree}>
-        {entries.length && <FileTree entries={entries} />}
+        {files.state.tree.length && <FileTree entries={files.state.tree} />}
       </div>
       <div className={classes.dropzone} {...files.state.dropzone.root}>
         <input {...files.state.dropzone.input} />
