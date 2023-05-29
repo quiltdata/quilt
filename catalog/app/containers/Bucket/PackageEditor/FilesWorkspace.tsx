@@ -2,6 +2,9 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Buttons from 'components/Buttons'
+import { L } from 'components/Form/Package/types'
+
 import RemoteFiles from './RemoteFiles'
 import StagedFiles from './StagedFiles'
 import * as State from './State'
@@ -20,12 +23,21 @@ const useActionStyles = M.makeStyles((t) => ({
 
 interface ActionsProps {
   className: string
+  pending: boolean
   onLocal: () => void
   onRemote: () => void
 }
 
-function Actions({ className, onLocal, onRemote }: ActionsProps) {
+function Actions({ pending, className, onLocal, onRemote }: ActionsProps) {
   const classes = useActionStyles()
+  if (pending) {
+    return (
+      <div className={cx(classes.root, className)}>
+        <Buttons.Skeleton size="small" className={classes.button} />
+        <Buttons.Skeleton size="small" className={classes.button} />
+      </div>
+    )
+  }
   return (
     <div className={cx(classes.root, className)}>
       <M.Button
@@ -42,7 +54,7 @@ function Actions({ className, onLocal, onRemote }: ActionsProps) {
         size="small"
         onClick={onRemote}
       >
-        Add S3 files
+        Add files from bucket
       </M.Button>
     </div>
   )
@@ -74,8 +86,7 @@ const useStyles = M.makeStyles((t) => ({
     flexGrow: 1,
   },
   actions: {
-    marginLeft: t.spacing(2),
-    marginTop: '45px',
+    marginLeft: t.spacing(8),
   },
 }))
 
@@ -97,6 +108,7 @@ export default function FilesWorkspace() {
         </>
       ) : (
         <Actions
+          pending={files.state === L}
           className={classes.actions}
           onLocal={files.actions.dropzone.openFilePicker}
           onRemote={() => setRemoteOpened(true)}

@@ -143,7 +143,9 @@ const useStyles = M.makeStyles((t) => ({
       background: t.palette.background.paper,
       borderRadius: t.shape.borderRadius,
       boxShadow: t.shadows[4],
+      marginLeft: t.spacing(-1),
       marginRight: `-${HEIGHT}px`,
+      paddingLeft: t.spacing(1),
     },
     '&:hover $dragHandle': {
       display: 'flex',
@@ -155,6 +157,7 @@ const useStyles = M.makeStyles((t) => ({
   draggable: {
     '&:hover': {
       marginLeft: `-${HEIGHT}px`,
+      paddingLeft: 0,
     },
   },
   dragHandle: {

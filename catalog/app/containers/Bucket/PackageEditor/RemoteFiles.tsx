@@ -105,8 +105,6 @@ const useStyles = M.makeStyles((t) => ({
   //   marginLeft: 'auto',
   // },
   content: {
-    border: `1px solid ${t.palette.action.disabled}`,
-    borderRadius: t.shape.borderRadius,
     flexGrow: 1,
   },
 }))
