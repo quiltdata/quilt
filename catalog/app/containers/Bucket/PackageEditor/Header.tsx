@@ -26,8 +26,8 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   stickyToWindow: {
-    transition: 'transform 0.15s',
     transform: 'translateY(0)',
+    transition: 'transform 0.15s',
   },
   stickToHeader: {
     transform: `translateY(${t.spacing(8)}px)`,

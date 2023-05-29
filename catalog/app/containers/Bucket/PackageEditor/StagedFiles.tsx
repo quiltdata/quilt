@@ -12,8 +12,8 @@ import * as State from './State'
 
 const useStagedFilesSkeletonStyles = M.makeStyles((t) => ({
   dropzone: {
-    marginTop: t.spacing(1),
     flexGrow: 1,
+    marginTop: t.spacing(1),
   },
 }))
 
@@ -38,19 +38,19 @@ const useStyles = M.makeStyles((t) => ({
   },
   header: {
     ...t.typography.subtitle1,
-    marginBottom: t.spacing(2),
     display: 'flex',
+    marginBottom: t.spacing(2),
   },
   fileTree: {
     marginBottom: t.spacing(2),
   },
   dropzone: {
+    alignItems: 'center',
     background: t.palette.action.selected,
     border: `1 px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
-    flexGrow: 1,
     display: 'flex',
-    alignItems: 'center',
+    flexGrow: 1,
     justifyContent: 'center',
   },
   expand: {
