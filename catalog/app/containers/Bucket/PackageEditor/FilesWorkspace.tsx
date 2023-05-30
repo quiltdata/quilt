@@ -77,7 +77,8 @@ function Divider() {
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
-    minHeight: t.spacing(70),
+    // maxHeight: '64vh',
+    minHeight: '32vh',
   },
   staged: {
     flexGrow: 1,

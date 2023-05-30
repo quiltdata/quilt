@@ -34,6 +34,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
+    position: 'relative',
   },
   header: {
     ...t.typography.subtitle1,
@@ -44,6 +45,7 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(2),
   },
   dropzone: {
+    ...t.typography.body2,
     alignItems: 'center',
     background: t.palette.action.selected,
     border: `1px solid ${t.palette.action.disabled}`,
@@ -51,7 +53,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
-    minHeight: t.spacing(16),
+    padding: t.spacing(6, 0),
   },
   expand: {
     marginLeft: 'auto',
@@ -59,6 +61,17 @@ const useStyles = M.makeStyles((t) => ({
     '&:hover': {
       opacity: 1,
     },
+  },
+  dragging: {
+    ...t.typography.h3,
+    background: t.palette.grey[300],
+    bottom: '1px',
+    left: '1px',
+    borderStyle: 'dashed',
+    borderWidth: '2px',
+    position: 'absolute',
+    right: '1px',
+    top: '1px',
   },
 }))
 
@@ -71,6 +84,20 @@ interface StagedFilesProps {
 export default function StagedFiles({ className, expanded, onExpand }: StagedFilesProps) {
   const classes = useStyles()
   const { files } = State.use()
+
+  const [dragging, setDragging] = React.useState(false)
+  const handleDragStart = React.useCallback(() => setDragging(true), [])
+  const handleDragEnd = React.useCallback(() => setDragging(false), [])
+  React.useEffect(() => {
+    document.addEventListener('dragover', handleDragStart)
+    document.addEventListener('drop', handleDragEnd)
+    document.addEventListener('dragleave', handleDragEnd)
+    return () => {
+      document.removeEventListener('dragstart', handleDragStart)
+      document.removeEventListener('drop', handleDragEnd)
+      document.removeEventListener('dragleave', handleDragEnd)
+    }
+  }, [handleDragStart, handleDragEnd])
 
   if (files.state === L || files.state.staged.value === L) {
     return <StagedFilesSkeleton className={cx(classes.root, className)} />
@@ -93,9 +120,12 @@ export default function StagedFiles({ className, expanded, onExpand }: StagedFil
           <FileTree entries={files.state.staged.value} />
         )}
       </div>
-      <div className={classes.dropzone} {...files.state.dropzone.root}>
+      <div
+        className={cx(classes.dropzone, { [classes.dragging]: dragging })}
+        {...files.state.dropzone.root}
+      >
         <input {...files.state.dropzone.input} />
-        Drop files or click to browse
+        Drop files here or click to browse
       </div>
     </div>
   )
