@@ -31,9 +31,10 @@ interface FilesState {
   filter: {
     value: string
   }
+  staged: {
+    value: TreeEntry[] | typeof L
+  }
   // tab: Tab
-  value: Model.PackageContentsFlatMap
-  tree: TreeEntry[]
   remote: $TSFixMe
   dropzone: {
     root: DropzoneRootProps
@@ -51,11 +52,17 @@ export interface FilesContext {
     filter: {
       onChange: (v: string) => void
     }
+    staged: {
+      onChange: (v: TreeEntry[]) => void
+    }
+    remote: {
+      onChange: (v: { path: string; files: Model.S3File[] }) => void
+    }
   }
 }
 
 function calcChildren(
-  entry: Model.PackageEntry,
+  entry: Model.PackageEntry | Model.S3File,
   tailParts: string[],
   children: TreeEntry[] = [],
 ): TreeEntry[] {
@@ -75,6 +82,42 @@ function calcChildren(
     status: Status.Unchanged,
     children: tail.length ? calcChildren(entry, tail, []) : undefined,
   })
+}
+
+function convertS3FilesListToTree(path: string, files: Model.S3File[]): TreeEntry[] {
+  const rootMap = files.reduce((memo, file) => {
+    const filePath = s3paths.withoutPrefix(path, file.key)
+    const pathParts = filePath.split('/')
+    if (pathParts.length === 1) {
+      return {
+        ...memo,
+        [filePath]: {
+          id: filePath,
+          name: filePath,
+          size: file.size,
+          status: Status.S3,
+        },
+      }
+    }
+    const [head, ...tail] = pathParts
+    const dir =
+      memo[head] ||
+      ({
+        id: head,
+        name: s3paths.ensureSlash(head),
+        size: 0,
+        status: Status.S3,
+        children: [],
+      } as TreeEntry)
+
+    dir.children = sortEntries(calcChildren(file, tail, dir.children))
+
+    return {
+      ...memo,
+      [head]: dir,
+    }
+  }, {} as Record<string, TreeEntry>)
+  return sortEntries(Object.values(rootMap))
 }
 
 function convertFilesMapToTree(map: Model.PackageContentsFlatMap): TreeEntry[] {
@@ -114,11 +157,62 @@ function convertFilesMapToTree(map: Model.PackageContentsFlatMap): TreeEntry[] {
   return sortEntries(Object.values(rootMap))
 }
 
+// FIXME: it's not finished
+// function useRemoteFilesLists(src: Src) {
+//   const [map, setMap] = React.useState<Record<string, TreeEntry[] | typeof L>>({})
+//   const store = React.useRef<Record<string, Promise<TreeEntry[]>>>({})
+//   const s3 = AWS.S3.use()
+//   const fetch = React.useCallback(
+//     async (bucket: string, path: string = '') => {
+//       if (!!store.current[path]) return store.current[path]
+//
+//       setMap((x) => ({ ...x, [path]: L }))
+//       store.current[path] =
+//         store.current[path] ||
+//         requests
+//           .bucketListing({
+//             s3,
+//             bucket,
+//             path,
+//             prefix: '',
+//             // prev: null,
+//           })
+//           .then((r) => {
+//             return [
+//               ...r.dirs.map((name) => ({
+//                 id: name,
+//                 name,
+//                 children: [],
+//               })),
+//               ...r.files.map((file) => ({
+//                 id: file.key,
+//                 modifiedDate: file.modified,
+//                 name: file.key,
+//                 size: file.size,
+//               })),
+//             ]
+//           })
+//
+//       const list = await store.current[path]
+//       setMap((x) => ({
+//         ...x,
+//         [path]: list,
+//       }))
+//     },
+//     [map, s3],
+//   )
+//   React.useEffect(() => {
+//     fetch(src.bucket, src.s3Path)
+//   }, [fetch])
+//   return map['']
+// }
+
 export default function useFiles(
   src: Src,
   workflow: WorkflowContext,
   manifest?: Manifest | typeof L,
 ): FilesContext {
+  // useRemoteFilesLists(src)
   const s3 = AWS.S3.use()
   const data = useData(
     requests.bucketListing,
@@ -134,6 +228,21 @@ export default function useFiles(
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone()
   const [filter, setFilter] = React.useState('')
   // const [tab, setTab] = React.useState<Tab>(TAB_S3)
+  const [value, setValue] = React.useState<TreeEntry[] | typeof L>(L)
+  const handleS3FilePicker = React.useCallback(
+    ({ path, files }: { path: string; files: Model.S3File[] }) => {
+      setValue((x) => {
+        if (x === L) return x
+        return [...x, ...convertS3FilesListToTree(path, files)]
+      })
+    },
+    [],
+  )
+  React.useEffect(() => {
+    if (manifest === L) return
+    setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
+  }, [manifest])
+
   const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
     return {
@@ -141,15 +250,16 @@ export default function useFiles(
       filter: {
         value: filter,
       },
-      value: manifest?.entries || EMPTY_MANIFEST_ENTRIES,
-      tree: convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES),
+      staged: {
+        value,
+      },
       remote: data,
       dropzone: {
         root: getRootProps(),
         input: getInputProps(),
       },
     }
-  }, [data, getRootProps, getInputProps, filter, manifest, workflow.state])
+  }, [data, getRootProps, getInputProps, filter, manifest, workflow.state, value])
   return React.useMemo(
     () => ({
       state,
@@ -161,8 +271,14 @@ export default function useFiles(
         filter: {
           onChange: setFilter,
         },
+        staged: {
+          onChange: setValue,
+        },
+        remote: {
+          onChange: handleS3FilePicker,
+        },
       },
     }),
-    [state, openFilePicker],
+    [handleS3FilePicker, state, openFilePicker],
   )
 }

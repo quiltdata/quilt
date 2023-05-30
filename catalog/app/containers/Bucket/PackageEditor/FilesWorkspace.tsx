@@ -5,6 +5,8 @@ import * as M from '@material-ui/core'
 import * as Buttons from 'components/Buttons'
 import { L } from 'components/Form/Package/types'
 
+import * as S3FilePicker from '../PackageDialog/S3FilePicker'
+
 import RemoteFiles from './RemoteFiles'
 import StagedFiles from './StagedFiles'
 import * as State from './State'
@@ -93,9 +95,40 @@ const useStyles = M.makeStyles((t) => ({
 export default function FilesWorkspace() {
   const classes = useStyles()
   const [remoteOpened, setRemoteOpened] = React.useState(false)
-  const { files } = State.use()
+  const { files, bucket, src } = State.use()
+  const [selectedBucket, setSelectedBucket] = React.useState(src.bucket)
+
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
+
+  const buckets: string[] | typeof L = React.useMemo(() => {
+    const { successors } = bucket.state
+    if (successors === L || successors instanceof Error) return L
+    return successors.map(({ name }) => name).concat(src.bucket)
+  }, [bucket.state, src])
+
+  const handleClose = React.useCallback(
+    (reason: S3FilePicker.CloseReason) => {
+      if (!!reason && typeof reason === 'object') {
+        files.actions.remote.onChange(reason)
+      }
+      setS3FilePickerOpen(false)
+    },
+    [files.actions.remote, setS3FilePickerOpen],
+  )
+
   return (
     <div className={classes.root}>
+      {buckets !== L && (
+        <S3FilePicker.Dialog
+          bucket={selectedBucket}
+          buckets={buckets}
+          selectBucket={setSelectedBucket}
+          open={s3FilePickerOpen}
+          onClose={handleClose}
+          initialPath={''}
+        />
+      )}
+
       <StagedFiles
         className={classes.staged}
         expanded={remoteOpened}
@@ -108,10 +141,10 @@ export default function FilesWorkspace() {
         </>
       ) : (
         <Actions
-          pending={files.state === L}
+          pending={files.state === L || buckets === L}
           className={classes.actions}
           onLocal={files.actions.dropzone.openFilePicker}
-          onRemote={() => setRemoteOpened(true)}
+          onRemote={() => setS3FilePickerOpen(true)}
         />
       )}
     </div>

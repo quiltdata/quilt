@@ -37,7 +37,10 @@ export default function FileTree({
   )
   const handleExpand = React.useCallback(
     (entry: TreeEntry) => {
-      const newSelection = { ...expandedMap, [entry.id]: !expandedMap[entry.id] }
+      const newSelection: Record<string, typeof L | boolean> = {
+        ...expandedMap,
+        [entry.id]: true,
+      }
       setExpandedMap(newSelection)
       // onSelect(rows.filter((r) => newSelection[`${r.id}`]));
     },
@@ -49,7 +52,7 @@ export default function FileTree({
         <FileRowWrapper
           draggable={draggable}
           entry={entry}
-          expanded={!!expandedMap[entry.id]}
+          expanded={expandedMap[entry.id]}
           hasChildren={!!entry.children}
           key={entry.id}
           onClick={() => handleExpand(entry)}

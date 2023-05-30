@@ -21,6 +21,7 @@ export enum Status {
   Changed,
   Unchanged,
   Hashing,
+  S3,
 }
 
 export interface LocalEntry extends BaseEntry {
@@ -92,6 +93,8 @@ function StatusCell({ className, value }: StatusCellProps) {
         return ''
       case Status.Hashing:
         return <M.CircularProgress size={20} style={{ marginLeft: '3px' }} />
+      case Status.S3:
+        return <M.Icon fontSize="small">cloud</M.Icon>
       // no default
     }
   }, [value])

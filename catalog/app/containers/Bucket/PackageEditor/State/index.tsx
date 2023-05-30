@@ -7,7 +7,7 @@ import useMessage, { MessageContext } from './Message'
 import useMeta, { MetaContext } from './Meta'
 import useName, { NameContext } from './Name'
 import useMain, { MainContext } from './Main'
-import useSource from './Source'
+import useSource, { Src } from './Source'
 import useWorkflow, { WorkflowContext } from './Workflow'
 
 interface ContextData {
@@ -17,6 +17,7 @@ interface ContextData {
   message: MessageContext
   meta: MetaContext
   name: NameContext
+  src: Src
   workflow: WorkflowContext
 }
 
@@ -59,9 +60,10 @@ export function Provider({
       main,
       meta,
       name,
+      src,
       workflow,
     }),
-    [bucket, files, message, main, meta, name, workflow],
+    [bucket, files, message, main, meta, name, src, workflow],
   )
   return <Ctx.Provider value={v}>{children}</Ctx.Provider>
 }

@@ -72,7 +72,7 @@ export default function StagedFiles({ className, expanded, onExpand }: StagedFil
   const classes = useStyles()
   const { files } = State.use()
 
-  if (files.state === L) {
+  if (files.state === L || files.state.staged.value === L) {
     return <StagedFilesSkeleton className={cx(classes.root, className)} />
   }
 
@@ -89,7 +89,9 @@ export default function StagedFiles({ className, expanded, onExpand }: StagedFil
         </div>
       )}
       <div className={classes.fileTree}>
-        {files.state.tree.length && <FileTree entries={files.state.tree} />}
+        {files.state.staged.value.length && (
+          <FileTree entries={files.state.staged.value} />
+        )}
       </div>
       <div className={classes.dropzone} {...files.state.dropzone.root}>
         <input {...files.state.dropzone.input} />
