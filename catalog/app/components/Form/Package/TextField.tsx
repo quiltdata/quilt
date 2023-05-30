@@ -18,6 +18,7 @@ interface TextFieldEssential {
   errors?: Error[] | typeof L
   onChange: (v: string) => void
   value: string
+  warnings?: string[] | typeof L
 }
 
 export type TextFieldProps = TextFieldEssential &
@@ -28,6 +29,7 @@ export default function TextField({
   errors,
   onChange,
   value,
+  warnings,
   ...props
 }: TextFieldProps) {
   const classes = useStyles()
@@ -38,22 +40,24 @@ export default function TextField({
   const errorMessage = Array.isArray(errors)
     ? errors.map(({ message }) => message).join('; ')
     : ''
+  const warningsMessage = Array.isArray(warnings) ? warnings.join('; ') : ''
+  const helperText = [errorMessage, warningsMessage].filter(Boolean).join('; ')
   return (
     <M.TextField
       InputLabelProps={{
         shrink: true,
       }}
       InputProps={{
-        endAdornment: errors === L && (
+        endAdornment: (errors === L || warnings === L) && (
           <M.InputAdornment position="end">
             <M.CircularProgress size={18} />
           </M.InputAdornment>
         ),
       }}
-      className={cx({ [classes.noHelperText]: !errorMessage }, className)}
+      className={cx({ [classes.noHelperText]: !helperText }, className)}
       error={!!errorMessage}
       fullWidth
-      helperText={errorMessage}
+      helperText={helperText}
       onChange={handleChange}
       value={value}
       {...props}
