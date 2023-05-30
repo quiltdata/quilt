@@ -3,29 +3,23 @@ import { useDropzone, DropzoneRootProps, DropzoneInputProps } from 'react-dropzo
 
 import type * as Model from 'model'
 import { L } from 'components/Form/Package/types'
-import { Status } from 'components/FileManager/FileRow'
 import type { TreeEntry } from 'components/FileManager/FileTree'
 import { useData } from 'utils/Data'
 import * as AWS from 'utils/AWS'
-import * as s3paths from 'utils/s3paths'
 
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
 import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
 import type { Src } from './Source'
+import convertDesktopFilesToTree from './adapters/desktop'
+import convertFilesMapToTree from './adapters/manifest'
+import convertS3FilesListToTree from './adapters/s3'
+import { sortEntries } from './adapters/utils'
 
 // export const TAB_BOOKMARKS = Symbol('bookmarks')
 // export const TAB_S3 = Symbol('s3')
 // export type Tab = typeof TAB_S3 | typeof TAB_BOOKMARKS | typeof L
-
-function sortEntries(entries: TreeEntry[]): TreeEntry[] {
-  return [...entries].sort((a, b) => {
-    if (a.children && !b.children) return -1
-    if (!a.children && b.children) return 1
-    return a.name.localeCompare(b.name)
-  })
-}
 
 interface FilesState {
   filter: {
@@ -59,102 +53,6 @@ export interface FilesContext {
       onChange: (v: { path: string; files: Model.S3File[] }) => void
     }
   }
-}
-
-function calcChildren(
-  entry: Model.PackageEntry | Model.S3File,
-  tailParts: string[],
-  children: TreeEntry[] = [],
-): TreeEntry[] {
-  const [name, ...tail] = tailParts
-  const found = children.find((child) => child.id === name)
-  if (found) {
-    if (tail.length) {
-      found.children = calcChildren(entry, tail, found.children)
-    }
-    return children
-  }
-
-  return children.concat({
-    id: name,
-    name: tail.length ? s3paths.ensureSlash(name) : name,
-    size: tail.length ? 0 : entry.size,
-    status: Status.Unchanged,
-    children: tail.length ? calcChildren(entry, tail, []) : undefined,
-  })
-}
-
-function convertS3FilesListToTree(path: string, files: Model.S3File[]): TreeEntry[] {
-  const rootMap = files.reduce((memo, file) => {
-    const filePath = s3paths.withoutPrefix(path, file.key)
-    const pathParts = filePath.split('/')
-    if (pathParts.length === 1) {
-      return {
-        ...memo,
-        [filePath]: {
-          id: filePath,
-          name: filePath,
-          size: file.size,
-          status: Status.S3,
-        },
-      }
-    }
-    const [head, ...tail] = pathParts
-    const dir =
-      memo[head] ||
-      ({
-        id: head,
-        name: s3paths.ensureSlash(head),
-        size: 0,
-        status: Status.S3,
-        children: [],
-      } as TreeEntry)
-
-    dir.children = sortEntries(calcChildren(file, tail, dir.children))
-
-    return {
-      ...memo,
-      [head]: dir,
-    }
-  }, {} as Record<string, TreeEntry>)
-  return sortEntries(Object.values(rootMap))
-}
-
-function convertFilesMapToTree(map: Model.PackageContentsFlatMap): TreeEntry[] {
-  const rootMap = Object.entries(map).reduce((memo, [name, entry]) => {
-    const pathParts = name.split('/')
-
-    if (pathParts.length === 1) {
-      return {
-        ...memo,
-        [name]: {
-          id: entry.physicalKey,
-          name,
-          size: entry.size,
-          status: Status.Unchanged,
-        },
-      }
-    }
-
-    const [head, ...tail] = pathParts
-    const dir =
-      memo[head] ||
-      ({
-        id: head,
-        name: s3paths.ensureSlash(head),
-        size: 0,
-        status: Status.Unchanged,
-        children: [],
-      } as TreeEntry)
-
-    dir.children = sortEntries(calcChildren(entry, tail, dir.children))
-
-    return {
-      ...memo,
-      [head]: dir,
-    }
-  }, {} as Record<string, TreeEntry>)
-  return sortEntries(Object.values(rootMap))
 }
 
 // FIXME: it's not finished
@@ -225,7 +123,13 @@ export default function useFiles(
     },
     // FIXME: { noAutoFetch },
   )
-  const { getRootProps, getInputProps, open: openFilePicker } = useDropzone()
+  const onDrop = React.useCallback((files) => {
+    setValue((x) => {
+      if (x === L) return x
+      return sortEntries([...x, ...convertDesktopFilesToTree(files)])
+    })
+  }, [])
+  const { getRootProps, getInputProps, open: openFilePicker } = useDropzone({ onDrop })
   const [filter, setFilter] = React.useState('')
   // const [tab, setTab] = React.useState<Tab>(TAB_S3)
   const [value, setValue] = React.useState<TreeEntry[] | typeof L>(L)
@@ -233,11 +137,12 @@ export default function useFiles(
     ({ path, files }: { path: string; files: Model.S3File[] }) => {
       setValue((x) => {
         if (x === L) return x
-        return [...x, ...convertS3FilesListToTree(path, files)]
+        return sortEntries([...x, ...convertS3FilesListToTree(path, files)])
       })
     },
     [],
   )
+
   React.useEffect(() => {
     if (manifest === L) return
     setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
@@ -260,6 +165,7 @@ export default function useFiles(
       },
     }
   }, [data, getRootProps, getInputProps, filter, manifest, workflow.state, value])
+
   return React.useMemo(
     () => ({
       state,
