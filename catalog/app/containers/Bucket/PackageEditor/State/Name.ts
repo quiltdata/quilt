@@ -52,16 +52,16 @@ export default function useName(
           return new Error(error)
       }
     },
-    [nameValidator, selectedWorkflow],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nameValidator.validate, selectedWorkflow],
   )
 
-  const handleChange = React.useCallback(
-    async (v: string) => {
-      valueTracker.current = v
-      setValue(v)
+  React.useEffect(() => {
+    async function onValueChange() {
+      valueTracker.current = value
       setErrors(undefined)
 
-      if (!v) {
+      if (!value) {
         setWarnings(undefined)
         setErrors([new Error('Enter a package name')])
         return
@@ -70,15 +70,16 @@ export default function useName(
       setWarnings(L)
       setErrors(L)
       const [nameExists, error] = await Promise.all([
-        nameExistence.validate(v),
-        validate(v),
+        nameExistence.validate(value),
+        validate(value),
       ])
-      if (valueTracker.current !== v) return
+      if (valueTracker.current !== value) return
       setErrors(error ? [error] : undefined)
       setWarnings(error ? undefined : [nameExists ? 'Existing package' : 'New package'])
-    },
-    [nameExistence, validate],
-  )
+    }
+    onValueChange()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nameExistence.validate, validate, value])
 
   const state = React.useMemo(
     () => (workflow.state === L ? L : ({ errors, value, warnings } as NameState)),
@@ -89,9 +90,9 @@ export default function useName(
     () => ({
       state,
       actions: {
-        onChange: handleChange,
+        onChange: setValue,
       },
     }),
-    [handleChange, state],
+    [state],
   )
 }

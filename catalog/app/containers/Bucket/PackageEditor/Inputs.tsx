@@ -31,6 +31,7 @@ const useInputsStyles = M.makeStyles((t) => ({
 export default function Inputs() {
   const { bucket, main, message, name, workflow } = State.use()
   const classes = useInputsStyles()
+
   return (
     <div className={classes.root}>
       <div className={classes.group}>

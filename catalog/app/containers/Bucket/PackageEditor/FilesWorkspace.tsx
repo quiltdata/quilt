@@ -117,7 +117,7 @@ export default function FilesWorkspace() {
     [files.actions.remote, setS3FilePickerOpen],
   )
   const handleStagedExpand = React.useCallback(() => setRemoteOpened(false), [])
-  const handleRemoteExpand = React.useCallback(() => setRemoteOpened(true), [])
+  const handleRemoteExpand = React.useCallback(() => setS3FilePickerOpen(true), [])
 
   return (
     <div className={classes.root}>

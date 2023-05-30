@@ -15,13 +15,13 @@ export interface MessageContext {
 export default function useMessage(): MessageContext {
   const [value, setValue] = React.useState('')
   const [errors, setErrors] = React.useState<Error[] | undefined>()
-  const handleChange = React.useCallback((message: string) => {
-    setValue(message)
+  React.useEffect(() => {
     setErrors(undefined)
-    if (!message) {
+    if (!value) {
       setErrors([new Error('Enter a commit message')])
     }
-  }, [])
+  }, [value])
+
   return React.useMemo(
     () => ({
       state: {
@@ -29,9 +29,9 @@ export default function useMessage(): MessageContext {
         value,
       },
       actions: {
-        onChange: handleChange,
+        onChange: setValue,
       },
     }),
-    [handleChange, errors, value],
+    [errors, value],
   )
 }

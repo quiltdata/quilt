@@ -71,13 +71,18 @@ function useVisibility() {
 }
 
 function useDisabled() {
-  const { name } = State.use()
+  const { message, name, workflow } = State.use()
   return React.useMemo(() => {
     if (name.state === L) return true
-    const { errors, warnings } = name.state
-    if (errors === L || errors?.length || warnings === L) return true
+    if (name.state.errors === L || name.state.errors?.length || name.state.warnings === L)
+      return true
+
+    if (message.state.errors?.length) return true
+
+    if (workflow.state === L || workflow.state.errors?.length) return true
+
     return false
-  }, [name])
+  }, [name.state, message.state, workflow.state])
 }
 
 export default function Header() {
@@ -85,6 +90,10 @@ export default function Header() {
   const { main } = State.use()
   const visibility = useVisibility()
   const disabled = useDisabled()
+  const handleSubmit = React.useCallback(() => {
+    // TODO: if disabled - reveal errors, don't actually submit
+    main.actions.onSubmit()
+  }, [main.actions])
   return (
     <div className={classes.root}>
       <div
@@ -99,8 +108,8 @@ export default function Header() {
             <M.Typography className={classes.title}>Curate package</M.Typography>
             <M.Button
               color="primary"
-              disabled={disabled}
-              onClick={main.actions.onSubmit}
+              disabled={main.state && disabled}
+              onClick={handleSubmit}
               variant="contained"
             >
               <M.Icon>publish</M.Icon>Create

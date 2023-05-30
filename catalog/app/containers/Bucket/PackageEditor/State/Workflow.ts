@@ -21,16 +21,6 @@ export interface WorkflowContext {
   }
 }
 
-function useWorkflowsList(
-  bucket: BucketConfig | null,
-): WorkflowStruct[] | typeof L | Error {
-  const config = useWorkflowsConfig(bucket?.name || null)
-  return React.useMemo(() => {
-    if (config === L || config instanceof Error) return config
-    return config.workflows
-  }, [config])
-}
-
 function getDefaultWorkflow(workflows: WorkflowStruct[], manifest?: Manifest) {
   return (
     workflows.find((w) => w.slug === manifest?.workflowId) ||
@@ -45,18 +35,28 @@ export default function useWorkflow(
   manifest?: Manifest | typeof L,
 ): WorkflowContext {
   const [value, setValue] = React.useState<WorkflowStruct | null>(null)
+  const [errors, setErrors] = React.useState<Error[] | undefined>()
 
-  const workflows = useWorkflowsList(bucket)
+  const config = useWorkflowsConfig(bucket?.name || null)
+  React.useEffect(() => {
+    if (config === L || config instanceof Error) {
+      setErrors([new Error('Workflows config is not available')])
+      return
+    }
+    if (config.isWorkflowRequired && (value === null || value.slug === notSelected)) {
+      setErrors([new Error('Workflow is required for this bucket')])
+    }
+  }, [config, value])
 
   const state = React.useMemo(() => {
-    if (manifest === L || workflows === L) return L
-    if (workflows instanceof Error) return { value: null, workflows }
-    if (value) return { value, workflows }
+    if (manifest === L || config === L) return L
+    if (config instanceof Error) return { value: null, workflows: config }
     return {
-      value: getDefaultWorkflow(workflows, manifest),
-      workflows,
+      errors,
+      value: value || getDefaultWorkflow(config.workflows, manifest),
+      workflows: config.workflows,
     }
-  }, [manifest, value, workflows])
+  }, [errors, manifest, value, config])
 
   return React.useMemo(
     () => ({
