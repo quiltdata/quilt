@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { L } from 'components/Form/Package/types'
+
 import * as State from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -49,9 +51,7 @@ const STICK_TO_HEADER = Symbol('Stick to header')
 
 type Visibility = typeof INLINE | typeof STICK_TO_WINDOW | typeof STICK_TO_HEADER
 
-export default function Header() {
-  const classes = useStyles()
-  const { main } = State.use()
+function useVisibility() {
   const trigger = M.useScrollTrigger()
   const [visibility, setVisibility] = React.useState<Visibility>(INLINE)
   const handleScroll = React.useCallback(() => {
@@ -67,6 +67,24 @@ export default function Header() {
     document.addEventListener('scroll', handleScroll)
     return () => document.removeEventListener('scroll', handleScroll)
   }, [handleScroll])
+  return visibility
+}
+
+function useDisabled() {
+  const { name } = State.use()
+  return React.useMemo(() => {
+    if (name.state === L) return true
+    const { errors, warnings } = name.state
+    if (errors === L || errors?.length || warnings === L) return true
+    return false
+  }, [name])
+}
+
+export default function Header() {
+  const classes = useStyles()
+  const { main } = State.use()
+  const visibility = useVisibility()
+  const disabled = useDisabled()
   return (
     <div className={classes.root}>
       <div
@@ -79,7 +97,12 @@ export default function Header() {
         <M.Container maxWidth="lg" disableGutters={visibility === INLINE}>
           <div className={classes.container}>
             <M.Typography className={classes.title}>Curate package</M.Typography>
-            <M.Button color="primary" variant="contained" onClick={main.actions.onSubmit}>
+            <M.Button
+              color="primary"
+              disabled={disabled}
+              onClick={main.actions.onSubmit}
+              variant="contained"
+            >
               <M.Icon>publish</M.Icon>Create
             </M.Button>
           </div>

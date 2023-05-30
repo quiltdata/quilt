@@ -152,19 +152,15 @@ export default function useFiles(
     if (manifest === L || workflow.state === L) return L
     return {
       // tab,
-      filter: {
-        value: filter,
-      },
-      staged: {
-        value,
-      },
-      remote: data,
       dropzone: {
         root: getRootProps(),
         input: getInputProps(),
       },
+      filter: { value: filter },
+      remote: data,
+      staged: { value },
     }
-  }, [data, getRootProps, getInputProps, filter, manifest, workflow.state, value])
+  }, [data, filter, getInputProps, getRootProps, manifest, value, workflow.state])
 
   return React.useMemo(
     () => ({

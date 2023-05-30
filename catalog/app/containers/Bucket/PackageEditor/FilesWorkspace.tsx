@@ -95,8 +95,8 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function FilesWorkspace() {
   const classes = useStyles()
+  const { bucket, files, src } = State.use()
   const [remoteOpened, setRemoteOpened] = React.useState(false)
-  const { files, bucket, src } = State.use()
   const [selectedBucket, setSelectedBucket] = React.useState(src.bucket)
 
   const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
@@ -116,6 +116,8 @@ export default function FilesWorkspace() {
     },
     [files.actions.remote, setS3FilePickerOpen],
   )
+  const handleStagedExpand = React.useCallback(() => setRemoteOpened(false), [])
+  const handleRemoteExpand = React.useCallback(() => setRemoteOpened(true), [])
 
   return (
     <div className={classes.root}>
@@ -133,7 +135,7 @@ export default function FilesWorkspace() {
       <StagedFiles
         className={classes.staged}
         expanded={remoteOpened}
-        onExpand={() => setRemoteOpened(false)}
+        onExpand={handleStagedExpand}
       />
       {remoteOpened ? (
         <>
@@ -145,7 +147,7 @@ export default function FilesWorkspace() {
           pending={files.state === L || buckets === L}
           className={classes.actions}
           onLocal={files.actions.dropzone.openFilePicker}
-          onRemote={() => setS3FilePickerOpen(true)}
+          onRemote={handleRemoteExpand}
         />
       )}
     </div>

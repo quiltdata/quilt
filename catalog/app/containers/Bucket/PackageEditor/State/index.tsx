@@ -47,7 +47,7 @@ export function Provider({
 
   const manifest = useManifest(src)
   const workflow = useWorkflow(bucket.state?.value, manifest)
-  const name = useName(src, workflow)
+  const name = useName(src, bucket, workflow)
   const message = useMessage()
   const files = useFiles(src, workflow, manifest)
   const meta = useMeta(workflow, manifest)

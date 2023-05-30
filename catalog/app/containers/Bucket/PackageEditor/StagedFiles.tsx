@@ -84,7 +84,6 @@ interface StagedFilesProps {
 export default function StagedFiles({ className, expanded, onExpand }: StagedFilesProps) {
   const classes = useStyles()
   const { files } = State.use()
-
   const [dragging, setDragging] = React.useState(false)
   const handleDragStart = React.useCallback(() => setDragging(true), [])
   const handleDragEnd = React.useCallback(() => setDragging(false), [])

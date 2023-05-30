@@ -29,7 +29,7 @@ const useInputsStyles = M.makeStyles((t) => ({
 }))
 
 export default function Inputs() {
-  const { bucket, message, name, workflow } = State.use()
+  const { bucket, main, message, name, workflow } = State.use()
   const classes = useInputsStyles()
   return (
     <div className={classes.root}>
@@ -38,26 +38,34 @@ export default function Inputs() {
           {name.state === L ? (
             <InputSkeleton />
           ) : (
-            <PackageName onChange={name.actions.onChange} {...name.state} />
+            <PackageName
+              {...name.state}
+              errors={main.state ? name.state.errors : undefined}
+              onChange={name.actions.onChange}
+            />
           )}
         </div>
         <div className={classes.input}>
-          {message.state === L ? (
-            <InputSkeleton />
-          ) : (
-            <CommitMessage onChange={message.actions.onChange} {...message.state} />
-          )}
+          <CommitMessage
+            {...message.state}
+            errors={main.state ? message.state.errors : undefined}
+            onChange={message.actions.onChange}
+          />
         </div>
       </div>
       <div className={classes.group}>
         <div className={classes.input}>
-          <DestinationBucket onChange={bucket.actions.onChange} {...bucket.state} />
+          <DestinationBucket {...bucket.state} onChange={bucket.actions.onChange} />
         </div>
         <div className={classes.input}>
           {workflow.state === L ? (
             <InputSkeleton />
           ) : (
-            <Workflow onChange={workflow.actions.onChange} {...workflow.state} />
+            <Workflow
+              {...workflow.state}
+              errors={main.state ? workflow.state.errors : undefined}
+              onChange={workflow.actions.onChange}
+            />
           )}
         </div>
       </div>

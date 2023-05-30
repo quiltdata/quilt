@@ -1,14 +1,12 @@
 import * as React from 'react'
 
-import { L } from 'components/Form/Package/types'
-
 interface MessageState {
-  errors?: Error[] | typeof L
+  errors?: Error[]
   value: string
 }
 
 export interface MessageContext {
-  state: MessageState | typeof L
+  state: MessageState
   actions: {
     onChange: (v: string) => void
   }
@@ -16,15 +14,24 @@ export interface MessageContext {
 
 export default function useMessage(): MessageContext {
   const [value, setValue] = React.useState('')
+  const [errors, setErrors] = React.useState<Error[] | undefined>()
+  const handleChange = React.useCallback((message: string) => {
+    setValue(message)
+    setErrors(undefined)
+    if (!message) {
+      setErrors([new Error('Enter a commit message')])
+    }
+  }, [])
   return React.useMemo(
     () => ({
       state: {
+        errors,
         value,
       },
       actions: {
-        onChange: setValue,
+        onChange: handleChange,
       },
     }),
-    [value],
+    [handleChange, errors, value],
   )
 }
