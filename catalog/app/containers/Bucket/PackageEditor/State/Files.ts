@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 import { useDropzone, DropzoneRootProps, DropzoneInputProps } from 'react-dropzone'
 
@@ -8,6 +9,7 @@ import { useData } from 'utils/Data'
 import * as AWS from 'utils/AWS'
 
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
+import { useEntriesValidator } from '../../PackageDialog/PackageDialog'
 import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
@@ -15,6 +17,7 @@ import type { Src } from './Source'
 import convertDesktopFilesToTree from './adapters/desktop'
 import convertFilesMapToTree from './adapters/manifest'
 import convertS3FilesListToTree from './adapters/s3'
+import convertTreeToFilesMap from './adapters/package'
 import { sortEntries } from './adapters/utils'
 
 // export const TAB_BOOKMARKS = Symbol('bookmarks')
@@ -26,6 +29,7 @@ interface FilesState {
     value: string
   }
   staged: {
+    errors?: (ErrorObject | Error)[] | typeof L
     value: TreeEntry[] | typeof L
   }
   // tab: Tab
@@ -112,6 +116,14 @@ export default function useFiles(
 ): FilesContext {
   // useRemoteFilesLists(src)
   const s3 = AWS.S3.use()
+  const [errors, setErrors] = React.useState<
+    (Error | ErrorObject)[] | typeof L | undefined
+  >()
+  const selectedWorkflow = React.useMemo(
+    () => (workflow.state !== L ? workflow.state.value : null),
+    [workflow.state],
+  )
+  const validateEntries = useEntriesValidator(selectedWorkflow || undefined)
   const data = useData(
     requests.bucketListing,
     {
@@ -148,6 +160,16 @@ export default function useFiles(
     setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
   }, [manifest])
 
+  React.useEffect(() => {
+    async function onFilesChange() {
+      if (value === L) return
+      const entries = convertTreeToFilesMap(value, '')
+      const validationErrors = await validateEntries(entries)
+      setErrors(validationErrors?.length ? validationErrors : undefined)
+    }
+    onFilesChange()
+  }, [validateEntries, value])
+
   const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
     return {
@@ -158,9 +180,9 @@ export default function useFiles(
       },
       filter: { value: filter },
       remote: data,
-      staged: { value },
+      staged: { errors, value },
     }
-  }, [data, filter, getInputProps, getRootProps, manifest, value, workflow.state])
+  }, [data, errors, filter, getInputProps, getRootProps, manifest, value, workflow.state])
 
   return React.useMemo(
     () => ({
