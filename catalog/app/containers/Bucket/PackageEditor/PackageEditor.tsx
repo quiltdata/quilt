@@ -3,7 +3,7 @@ import type * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as State from './State'
-import FilesWorkspace from './FilesWorkspace'
+import LegacyFilesWorkspace from './LegacyFilesWorkspace'
 import Header from './Header'
 import Inputs from './Inputs'
 import Metadata from './Metadata'
@@ -60,7 +60,7 @@ function PackageEditor() {
         <Inputs />
       </Section>
       <Section title="Files">
-        <FilesWorkspace />
+        <LegacyFilesWorkspace />
       </Section>
       <Section title="Metadata">
         <Metadata />

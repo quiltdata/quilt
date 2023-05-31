@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 import { useDropzone, DropzoneRootProps, DropzoneInputProps } from 'react-dropzone'
 
@@ -8,8 +7,12 @@ import type { TreeEntry } from 'components/FileManager/FileTree'
 import { useData } from 'utils/Data'
 import * as AWS from 'utils/AWS'
 
+import { LocalFile } from '../../PackageDialog/FilesInput'
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
-import { useEntriesValidator } from '../../PackageDialog/PackageDialog'
+import {
+  useEntriesValidator,
+  EntriesValidationErrors,
+} from '../../PackageDialog/PackageDialog'
 import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
@@ -24,12 +27,22 @@ import { sortEntries } from './adapters/utils'
 // export const TAB_S3 = Symbol('s3')
 // export type Tab = typeof TAB_S3 | typeof TAB_BOOKMARKS | typeof L
 
+export interface FS {
+  added: Record<string, LocalFile | Model.S3File>
+  deleted: Record<string, true>
+  existing: Model.PackageContentsFlatMap
+  // XXX: workaround used to re-trigger validation and dependent computations
+  // required due to direct mutations of File objects
+  counter?: number
+}
+
 interface FilesState {
   filter: {
     value: string
   }
   staged: {
-    errors?: (ErrorObject | Error)[] | typeof L
+    map: FS | typeof L
+    errors?: EntriesValidationErrors | typeof L
     value: TreeEntry[] | typeof L
   }
   // tab: Tab
@@ -52,6 +65,7 @@ export interface FilesContext {
     }
     staged: {
       onChange: (v: TreeEntry[]) => void
+      onMapChange: (v: FS) => void
     }
     remote: {
       onChange: (v: { path: string; files: Model.S3File[] }) => void
@@ -117,7 +131,7 @@ export default function useFiles(
   // useRemoteFilesLists(src)
   const s3 = AWS.S3.use()
   const [errors, setErrors] = React.useState<
-    (Error | ErrorObject)[] | typeof L | undefined
+    EntriesValidationErrors | typeof L | undefined
   >()
   const selectedWorkflow = React.useMemo(
     () => (workflow.state !== L ? workflow.state.value : null),
@@ -135,16 +149,21 @@ export default function useFiles(
     },
     // FIXME: { noAutoFetch },
   )
-  const onDrop = React.useCallback((files) => {
+  const onDrop = React.useCallback(async (files) => {
+    // setHashing(true)
+    // const hashingFiles: LocalFile[] = files.map(computeHash)
+    // await Promise.all(hashingFiles.map(({ hash }) => hash.promise))
     setValue((x) => {
       if (x === L) return x
       return sortEntries([...x, ...convertDesktopFilesToTree(files)])
     })
+    // setHashing(false)
   }, [])
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone({ onDrop })
   const [filter, setFilter] = React.useState('')
   // const [tab, setTab] = React.useState<Tab>(TAB_S3)
   const [value, setValue] = React.useState<TreeEntry[] | typeof L>(L)
+  const [map, setMap] = React.useState<FS | typeof L>(L)
   const handleS3FilePicker = React.useCallback(
     ({ path, files }: { path: string; files: Model.S3File[] }) => {
       setValue((x) => {
@@ -158,8 +177,14 @@ export default function useFiles(
   React.useEffect(() => {
     if (manifest === L) return
     setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
+    setMap({
+      added: {},
+      deleted: {},
+      existing: manifest?.entries || EMPTY_MANIFEST_ENTRIES,
+    })
   }, [manifest])
 
+  // TODO: use setValue(x, CALLBACK)
   React.useEffect(() => {
     async function onFilesChange() {
       if (value === L) return
@@ -180,9 +205,19 @@ export default function useFiles(
       },
       filter: { value: filter },
       remote: data,
-      staged: { errors, value },
+      staged: { map, errors, value },
     }
-  }, [data, errors, filter, getInputProps, getRootProps, manifest, value, workflow.state])
+  }, [
+    data,
+    errors,
+    filter,
+    getInputProps,
+    getRootProps,
+    manifest,
+    map,
+    value,
+    workflow.state,
+  ])
 
   return React.useMemo(
     () => ({
@@ -197,6 +232,7 @@ export default function useFiles(
         },
         staged: {
           onChange: setValue,
+          onMapChange: setMap,
         },
         remote: {
           onChange: handleS3FilePicker,

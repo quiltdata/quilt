@@ -17,10 +17,10 @@ const useStagedFilesSkeletonStyles = M.makeStyles((t) => ({
 }))
 
 interface StagedFilesSkeletonProps {
-  className: string
+  className?: string
 }
 
-function StagedFilesSkeleton({ className }: StagedFilesSkeletonProps) {
+export function StagedFilesSkeleton({ className }: StagedFilesSkeletonProps) {
   const classes = useStagedFilesSkeletonStyles()
   return (
     <div className={className}>
