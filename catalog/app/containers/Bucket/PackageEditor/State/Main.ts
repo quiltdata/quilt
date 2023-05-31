@@ -2,8 +2,13 @@ import * as React from 'react'
 
 import { L } from 'components/Form/Package/types'
 
+interface MainState {
+  submitted: boolean
+  succeed: boolean
+}
+
 export interface MainContext {
-  state: boolean | Error[] | typeof L
+  state: MainState | typeof L
   actions: {
     onSubmit: () => void
   }
@@ -11,13 +16,20 @@ export interface MainContext {
 
 export default function useMain(): MainContext {
   const [submitted, setSubmitted] = React.useState(false)
+  const [succeed] = React.useState(false)
+  const onSubmit = React.useCallback(() => {
+    setSubmitted(true)
+  }, [])
   return React.useMemo(
     () => ({
-      state: submitted,
+      state: {
+        submitted,
+        succeed,
+      },
       actions: {
-        onSubmit: () => setSubmitted(true),
+        onSubmit,
       },
     }),
-    [submitted],
+    [submitted, succeed, onSubmit],
   )
 }

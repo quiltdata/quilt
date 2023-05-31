@@ -1,5 +1,7 @@
+import * as FP from 'fp-ts'
+import * as R from 'ramda'
 import * as React from 'react'
-import { useDropzone, DropzoneRootProps, DropzoneInputProps } from 'react-dropzone'
+import { DropzoneInputProps, DropzoneRootProps, useDropzone } from 'react-dropzone'
 
 import type * as Model from 'model'
 import { L } from 'components/Form/Package/types'
@@ -10,17 +12,18 @@ import * as AWS from 'utils/AWS'
 import { LocalFile } from '../../PackageDialog/FilesInput'
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
 import {
-  useEntriesValidator,
   EntriesValidationErrors,
+  ValidationEntry,
+  useEntriesValidator,
 } from '../../PackageDialog/PackageDialog'
 import * as requests from '../../requests'
 
 import type { WorkflowContext } from './Workflow'
 import type { Src } from './Source'
 import convertDesktopFilesToTree from './adapters/desktop'
-import convertFilesMapToTree from './adapters/manifest'
+// import convertFilesMapToTree from './adapters/manifest'
 import convertS3FilesListToTree from './adapters/s3'
-import convertTreeToFilesMap from './adapters/package'
+// import convertTreeToFilesMap from './adapters/package'
 import { sortEntries } from './adapters/utils'
 
 // export const TAB_BOOKMARKS = Symbol('bookmarks')
@@ -123,6 +126,19 @@ export interface FilesContext {
 //   return map['']
 // }
 
+function filesStateToEntries(files: FS): ValidationEntry[] {
+  return FP.function.pipe(
+    R.mergeLeft(files.added, files.existing),
+    R.omit(Object.keys(files.deleted)),
+    Object.entries,
+    R.map(([path, file]) => ({
+      logical_key: path,
+      meta: file.meta?.user_meta || {},
+      size: file.size,
+    })),
+  )
+}
+
 export default function useFiles(
   src: Src,
   workflow: WorkflowContext,
@@ -176,7 +192,7 @@ export default function useFiles(
 
   React.useEffect(() => {
     if (manifest === L) return
-    setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
+    // setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
     setMap({
       added: {},
       deleted: {},
@@ -187,13 +203,14 @@ export default function useFiles(
   // TODO: use setValue(x, CALLBACK)
   React.useEffect(() => {
     async function onFilesChange() {
-      if (value === L) return
-      const entries = convertTreeToFilesMap(value, '')
+      if (map === L) return
+      // const entries = convertTreeToFilesMap(value, '')
+      const entries = filesStateToEntries(map)
       const validationErrors = await validateEntries(entries)
       setErrors(validationErrors?.length ? validationErrors : undefined)
     }
     onFilesChange()
-  }, [validateEntries, value])
+  }, [validateEntries, map])
 
   const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
