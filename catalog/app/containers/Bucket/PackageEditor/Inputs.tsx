@@ -32,6 +32,7 @@ export default function Inputs() {
   const { bucket, main, message, name, workflow } = State.use()
   const classes = useInputsStyles()
 
+  // FIXME: Errors as getters to state?
   const showErrors = main.state.submitted
   const disabled = main.state.submitting
 

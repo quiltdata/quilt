@@ -7,9 +7,9 @@ import { useRelevantBucketConfigs } from 'utils/BucketConfig'
 import useWorkflowsConfig from '../io/workflowsConfig'
 
 import type { Src } from './Source'
+import NOT_READY from './errorNotReady'
 
 export interface BucketState {
-  errors?: Error[]
   value: BucketConfig | null
   successors: BucketConfig[] | typeof L | Error
   buckets: BucketConfig[] | typeof L | Error
@@ -17,9 +17,24 @@ export interface BucketState {
 
 export interface BucketContext {
   state: BucketState
+  getters: {
+    disabled: () => boolean
+    formData: () => string
+  }
   actions: {
     onChange: (v: BucketConfig | null) => void
   }
+}
+
+export function getFormData(state: BucketState) {
+  if (!state.value) {
+    throw NOT_READY
+  }
+  return state.value.name
+}
+
+export function isDisabled(state: BucketState) {
+  return !state.value
 }
 
 export default function useBucket({ bucket }: Src): BucketContext {
@@ -39,19 +54,29 @@ export default function useBucket({ bucket }: Src): BucketContext {
     if (config === L || config instanceof Error) return config
     return config.successors.map(({ slug }) => bucketsMap[slug])
   }, [bucketsMap, config])
+
+  const state: BucketState = React.useMemo(
+    () => ({
+      buckets: Array.isArray(successors)
+        ? buckets.filter((b) => !successors.includes(b))
+        : buckets,
+      successors,
+      value,
+    }),
+    [buckets, successors, value],
+  )
+
   return React.useMemo(
     () => ({
-      state: {
-        buckets: Array.isArray(successors)
-          ? buckets.filter((b) => !successors.includes(b))
-          : buckets,
-        successors,
-        value,
+      state,
+      getters: {
+        formData: () => getFormData(state),
+        disabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,
       },
     }),
-    [buckets, successors, value],
+    [state],
   )
 }

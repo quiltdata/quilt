@@ -7,9 +7,21 @@ export interface MessageState {
 
 export interface MessageContext {
   state: MessageState
+  getters: {
+    formData: () => string
+    disabled: () => boolean
+  }
   actions: {
     onChange: (v: string) => void
   }
+}
+
+export function getFormData(state: MessageState) {
+  return state.value
+}
+
+export function isDisabled(state: MessageState) {
+  return !!state.errors?.length
 }
 
 export default function useMessage(): MessageContext {
@@ -22,16 +34,25 @@ export default function useMessage(): MessageContext {
     }
   }, [value])
 
+  const state = React.useMemo(
+    () => ({
+      errors,
+      value,
+    }),
+    [errors, value],
+  )
+
   return React.useMemo(
     () => ({
-      state: {
-        errors,
-        value,
+      state,
+      getters: {
+        formData: () => getFormData(state),
+        disabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,
       },
     }),
-    [errors, value],
+    [state],
   )
 }

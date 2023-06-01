@@ -4,11 +4,15 @@ import * as React from 'react'
 import { DropzoneInputProps, DropzoneRootProps, useDropzone } from 'react-dropzone'
 
 import type * as Model from 'model'
-import { L } from 'components/Form/Package/types'
 import type { TreeEntry } from 'components/FileManager/FileTree'
-import { useData } from 'utils/Data'
+import { L } from 'components/Form/Package/types'
 import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
+import * as s3paths from 'utils/s3paths'
+import type * as Types from 'utils/types'
+import { useUploads } from '../../PackageDialog/Uploads'
 
+import { isS3File } from '../../PackageDialog/S3FilePicker'
 import type { LocalFile } from '../../PackageDialog/FilesInput'
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
 import {
@@ -25,6 +29,7 @@ import convertDesktopFilesToTree from './adapters/desktop'
 import convertS3FilesListToTree from './adapters/s3'
 // import convertTreeToFilesMap from './adapters/package'
 import { sortEntries } from './adapters/utils'
+import NOT_READY from './errorNotReady'
 
 // export const TAB_BOOKMARKS = Symbol('bookmarks')
 // export const TAB_S3 = Symbol('s3')
@@ -39,11 +44,32 @@ export interface FS {
   counter?: number
 }
 
+interface NullablePackageEntry {
+  logicalKey: string
+  physicalKey: string
+  hash: string | null
+  meta?: Model.EntryMeta | null
+  size: number | null
+}
+
+interface LocalEntry {
+  path: string
+  file: LocalFile
+}
+
+interface S3Entry {
+  path: string
+  file: Model.S3File
+}
+
+type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
+
 export interface FilesState {
   filter: {
     value: string
   }
   staged: {
+    uploads: $TSFixMe
     map: FS | typeof L
     errors?: EntriesValidationErrors | typeof L
     value: TreeEntry[] | typeof L
@@ -58,6 +84,10 @@ export interface FilesState {
 
 export interface FilesContext {
   state: FilesState | typeof L
+  getters: {
+    disabled: () => boolean
+    formData: (bucket: string, name: string) => Promise<NullablePackageEntry[]>
+  }
   actions: {
     dropzone: {
       openFilePicker: () => void
@@ -74,6 +104,73 @@ export interface FilesContext {
       onChange: (v: { path: string; files: Model.S3File[] }) => void
     }
   }
+}
+
+export async function getFormData(
+  state: FilesState | typeof L,
+  bucket: string,
+  name: string,
+) {
+  if (state === L || state.staged.map === L) {
+    throw NOT_READY
+  }
+
+  const files = state.staged.map
+
+  const addedS3Entries: S3Entry[] = []
+  const addedLocalEntries: LocalEntry[] = []
+  Object.entries(files.added).forEach(([path, file]) => {
+    if (isS3File(file)) {
+      addedS3Entries.push({ path, file })
+    } else {
+      addedLocalEntries.push({ path, file })
+    }
+  })
+
+  const toUpload = addedLocalEntries.filter(({ path, file }) => {
+    const e = files.existing[path]
+    return !e || e.hash !== file.hash.value
+  })
+
+  const uploadedEntries = await state.staged.uploads.upload({
+    files: toUpload,
+    bucket,
+    prefix: name,
+    getMeta: (path: string) => files.existing[path]?.meta || files.added[path]?.meta,
+  })
+
+  const s3Entries = FP.function.pipe(
+    addedS3Entries,
+    R.map(
+      ({ path, file }) =>
+        [
+          path,
+          { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+        ] as R.KeyValuePair<string, PartialPackageEntry>,
+    ),
+    R.fromPairs,
+  )
+
+  const allEntries = FP.function.pipe(
+    files.existing,
+    R.omit(Object.keys(files.deleted)),
+    R.mergeLeft(uploadedEntries),
+    R.mergeLeft(s3Entries),
+    R.toPairs,
+    R.map(([logicalKey, data]: [string, PartialPackageEntry]) => ({
+      logicalKey,
+      physicalKey: data.physicalKey,
+      hash: data.hash ?? null,
+      meta: data.meta ?? null,
+      size: data.size ?? null,
+    })),
+    R.sortBy(R.prop('logicalKey')),
+  )
+  return allEntries
+}
+
+export function isDisabled(state: FilesState | typeof L) {
+  return state === L || state.staged.errors === L || !!state.staged.errors?.length
 }
 
 // FIXME: it's not finished
@@ -176,6 +273,7 @@ export default function useFiles(
     // setHashing(false)
   }, [])
   const { getRootProps, getInputProps, open: openFilePicker } = useDropzone({ onDrop })
+  const uploads = useUploads()
   const [filter, setFilter] = React.useState('')
   // const [tab, setTab] = React.useState<Tab>(TAB_S3)
   const [value, setValue] = React.useState<TreeEntry[] | typeof L>(L)
@@ -222,7 +320,7 @@ export default function useFiles(
       },
       filter: { value: filter },
       remote: data,
-      staged: { map, errors, value },
+      staged: { map, errors, uploads, value },
     }
   }, [
     data,
@@ -232,6 +330,7 @@ export default function useFiles(
     getRootProps,
     manifest,
     map,
+    uploads,
     value,
     workflow.state,
   ])
@@ -239,6 +338,10 @@ export default function useFiles(
   return React.useMemo(
     () => ({
       state,
+      getters: {
+        formData: (bucket: string, name: string) => getFormData(state, bucket, name),
+        disabled: () => isDisabled(state),
+      },
       actions: {
         dropzone: {
           openFilePicker,

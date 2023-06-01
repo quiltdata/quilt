@@ -7,6 +7,7 @@ import { useNameExistence, useNameValidator } from '../../PackageDialog/PackageD
 import type { BucketContext } from './Bucket'
 import type { Src } from './Source'
 import type { WorkflowContext } from './Workflow'
+import NOT_READY from './errorNotReady'
 
 export interface NameState {
   errors?: Error[] | typeof L
@@ -14,11 +15,34 @@ export interface NameState {
   warnings?: string[] | typeof L
 }
 
+export interface NameFormData {
+  value: string
+}
+
 export interface NameContext {
   state: NameState | typeof L
+  getters: {
+    formData: () => string
+    disabled: () => boolean
+  }
   actions: {
     onChange: (v: string) => void
   }
+}
+
+export function getFormData(state: NameState | typeof L) {
+  if (state === L) {
+    throw NOT_READY
+  }
+  return state.value
+}
+
+function isDisabled(state: NameState | typeof L) {
+  if (state === L) return true
+  if (state.errors === L || state.errors?.length || state.warnings === L) {
+    return true
+  }
+  return false
 }
 
 export default function useName(
@@ -89,6 +113,10 @@ export default function useName(
   return React.useMemo(
     () => ({
       state,
+      getters: {
+        formData: () => getFormData(state),
+        disabled: () => isDisabled(state),
+      },
       actions: {
         onChange: setValue,
       },

@@ -2,11 +2,12 @@ import * as React from 'react'
 
 import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 import { L } from 'components/Form/Package/types'
-import { Workflow as WorkflowStruct, notSelected } from 'utils/workflows'
+import { Workflow as WorkflowStruct, notAvailable, notSelected } from 'utils/workflows'
 
 import type { Manifest } from '../../PackageDialog/Manifest'
-
 import useWorkflowsConfig from '../io/workflowsConfig'
+
+import NOT_READY from './errorNotReady'
 
 export interface WorkflowState {
   errors?: Error[]
@@ -16,9 +17,32 @@ export interface WorkflowState {
 
 export interface WorkflowContext {
   state: WorkflowState | typeof L
+  getters: {
+    disabled: () => boolean
+    formData: () => string | null
+  }
   actions: {
     onChange: (v: WorkflowStruct | null) => void
   }
+}
+
+export function getFormData(state: WorkflowState | typeof L) {
+  if (state === L || !state.value) {
+    throw NOT_READY
+  }
+  const workflowSlug = state.value.slug
+  switch (workflowSlug) {
+    case notAvailable:
+      return null
+    case notSelected:
+      return ''
+    default:
+      return workflowSlug
+  }
+}
+
+export function isDisabled(state: WorkflowState | typeof L) {
+  return state === L || !!state.errors?.length
 }
 
 function getDefaultWorkflow(workflows: WorkflowStruct[], manifest?: Manifest) {
@@ -70,6 +94,10 @@ export default function useWorkflow(
   return React.useMemo(
     () => ({
       state,
+      getters: {
+        formData: () => getFormData(state),
+        disabled: () => isDisabled(state),
+      },
       actions: {
         onChange: setValue,
       },

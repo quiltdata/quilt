@@ -11,6 +11,7 @@ import { mkMetaValidator } from '../../PackageDialog/PackageDialog'
 import useWorkflowsConfig from '../io/metadataSchema'
 
 import type { WorkflowContext } from './Workflow'
+import NOT_READY from './errorNotReady'
 
 export interface MetaState {
   errors?: (Error | ErrorObject)[]
@@ -20,9 +21,24 @@ export interface MetaState {
 
 export interface MetaContext {
   state: MetaState | typeof L
+  getters: {
+    disabled: () => boolean
+    formData: () => Types.JsonRecord | null
+  }
   actions: {
     onChange: (v: Types.JsonRecord) => void
   }
+}
+
+export function getFormData(state: MetaState | typeof L) {
+  if (state === L) {
+    throw NOT_READY
+  }
+  return state.value || null
+}
+
+export function isDisabled(state: MetaState | typeof L) {
+  return state === L || !!state.errors?.length
 }
 
 export default function useMeta(
@@ -69,6 +85,10 @@ export default function useMeta(
   return React.useMemo(
     () => ({
       state,
+      getters: {
+        formData: () => getFormData(state),
+        disabled: () => isDisabled(state),
+      },
       actions: {
         onChange: setValue,
       },

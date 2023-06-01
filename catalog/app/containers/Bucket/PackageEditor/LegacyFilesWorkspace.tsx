@@ -9,7 +9,6 @@ import * as State from './State'
 
 export default function LegacyFilesWorkspace() {
   const { bucket, files, main, src } = State.use()
-  const { uploads } = main.state
   const input = React.useMemo(() => {
     if (files.state === L || files.state.staged.map === L) return L
     return {
@@ -35,18 +34,17 @@ export default function LegacyFilesWorkspace() {
     return errors
   }, [files.state])
 
-  const onFilesAction = React.useMemo(
-    () =>
-      FilesAction.match({
-        _: () => {},
-        Revert: uploads.remove,
-        RevertDir: uploads.removeByPrefix,
-        Reset: uploads.reset,
-      }),
-    [uploads],
-  )
+  const onFilesAction = React.useMemo(() => {
+    if (files.state === L) return
+    return FilesAction.match({
+      _: () => {},
+      Revert: files.state.staged.uploads.remove,
+      RevertDir: files.state.staged.uploads.removeByPrefix,
+      Reset: files.state.staged.uploads.reset,
+    })
+  }, [files.state])
 
-  if (input === L) return <StagedFilesSkeleton />
+  if (input === L || files.state === L) return <StagedFilesSkeleton />
 
   return (
     <FilesInput
@@ -56,7 +54,7 @@ export default function LegacyFilesWorkspace() {
       meta={meta}
       onFilesAction={onFilesAction}
       title="Files"
-      totalProgress={uploads.progress}
+      totalProgress={files.state.staged.uploads.progress}
       validationErrors={validationErrors}
     />
   )
