@@ -21,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Metadata() {
   const { main, meta } = State.use()
   const classes = useStyles()
-  if (meta.state === L) return <MetaInputSkeleton />
+  if (meta.state === L || meta.state.schema === L) return <MetaInputSkeleton />
   return (
     <div className={classes.root}>
       <JsonEditor
