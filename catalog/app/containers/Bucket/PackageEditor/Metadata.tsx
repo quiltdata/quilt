@@ -3,7 +3,11 @@ import * as M from '@material-ui/core'
 
 import { L } from 'components/Form/Package/types'
 import JsonEditor from 'components/JsonEditor'
+import type { ValidationErrors } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'
+import type * as Types from 'utils/types'
+import type { Schema } from 'utils/workflows'
+
 import { MetaInputSkeleton } from '../PackageDialog/Skeleton'
 
 import * as State from './State'
@@ -18,21 +22,45 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Metadata() {
-  const { main, meta } = State.use()
+interface MetadataProps {
+  errors: ValidationErrors
+  onChange: (v: Types.JsonRecord) => void
+  schema?: Schema
+  submitting: boolean
+  value?: Types.JsonRecord
+}
+
+function Metadata({ errors, onChange, schema, submitting, value }: MetadataProps) {
   const classes = useStyles()
-  if (meta.state === L || meta.state.schema === L) return <MetaInputSkeleton />
   return (
     <div className={classes.root}>
       <JsonEditor
-        disabled={main.state.submitting}
-        errors={meta.state.errors || []}
+        disabled={submitting}
+        errors={errors}
         multiColumned
-        onChange={meta.actions.onChange}
-        schema={meta.state.schema}
-        value={meta.state.value}
+        onChange={onChange}
+        schema={schema}
+        value={value}
       />
-      <JsonValidationErrors className={classes.errors} error={meta.state.errors || []} />
+      <JsonValidationErrors className={classes.errors} error={errors} />
     </div>
+  )
+}
+
+export default function MetadataContainer() {
+  const { main, meta } = State.use()
+
+  if (meta.state === L || meta.state.schema === L) {
+    return <MetaInputSkeleton />
+  }
+
+  return (
+    <Metadata
+      errors={meta.state.errors || []}
+      onChange={meta.actions.onChange}
+      schema={meta.state.schema}
+      submitting={main.state.submitting}
+      value={meta.state.value}
+    />
   )
 }
