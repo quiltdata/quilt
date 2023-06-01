@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 import { L } from 'components/Form/Package/types'
 import JsonEditor from 'components/JsonEditor'
 import JsonValidationErrors from 'components/JsonValidationErrors'
+import { MetaInputSkeleton } from '../PackageDialog/Skeleton'
 
 import * as State from './State'
 
@@ -20,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Metadata() {
   const { main, meta } = State.use()
   const classes = useStyles()
-  if (meta.state === L) return <M.CircularProgress />
+  if (meta.state === L) return <MetaInputSkeleton />
   return (
     <div className={classes.root}>
       <JsonEditor
