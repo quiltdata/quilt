@@ -3,13 +3,13 @@ import * as React from 'react'
 import { L } from 'components/Form/Package/types'
 
 import { FilesAction, FilesInput } from '../PackageDialog/FilesInput'
-import { useUploads } from '../PackageDialog/Uploads'
 
 import { StagedFilesSkeleton } from './StagedFiles'
 import * as State from './State'
 
 export default function LegacyFilesWorkspace() {
-  const { bucket, files, src } = State.use()
+  const { bucket, files, main, src } = State.use()
+  const { uploads } = main.state
   const input = React.useMemo(() => {
     if (files.state === L || files.state.staged.map === L) return L
     return {
@@ -23,17 +23,17 @@ export default function LegacyFilesWorkspace() {
     return bucket.state.successors.map(({ name }) => name)
   }, [bucket.state.successors])
   const meta = React.useMemo(() => {
-    if (input == L) return { initial: { added: {}, deleted: {}, existing: {} } }
-    return { initial: input.value }
-  }, [input])
+    if (input == L) {
+      return { initial: { added: {}, deleted: {}, existing: {} }, submitting: false }
+    }
+    return { initial: input.value, submitting: main.state.submitting }
+  }, [input, main.state])
   const validationErrors = React.useMemo(() => {
     if (files.state === L) return null
     const { errors } = files.state.staged
     if (errors === L || !errors) return null
     return errors
   }, [files.state])
-
-  const uploads = useUploads()
 
   const onFilesAction = React.useMemo(
     () =>

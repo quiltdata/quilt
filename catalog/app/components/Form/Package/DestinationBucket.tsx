@@ -33,6 +33,7 @@ interface DestinationBucketProps {
   successors: BucketConfig[] | typeof L | Error
   buckets: BucketConfig[] | typeof L | Error
   value: BucketConfig | null
+  disabled?: boolean
 }
 
 export default function DestinationBucket({
@@ -42,6 +43,7 @@ export default function DestinationBucket({
   buckets,
   successors,
   value,
+  disabled = false,
 }: DestinationBucketProps) {
   const classes = useStyles()
   const handleChange = React.useCallback(
@@ -75,6 +77,7 @@ export default function DestinationBucket({
       getOptionLabel={(option) => option.title}
       onChange={handleChange}
       options={items}
+      disabled={disabled}
       renderOption={(option) => (
         <M.ListItemText
           primary={`${option.title ? option.title : option.name} (s3://${option.name})`}

@@ -2,8 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { L } from 'components/Form/Package/types'
-
 import * as State from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -88,7 +86,7 @@ export default function Header() {
             <M.Typography className={classes.title}>Curate package</M.Typography>
             <M.Button
               color="primary"
-              disabled={main.state === L || main.state.disabled}
+              disabled={main.state.disabled}
               onClick={main.actions.onSubmit}
               variant="contained"
             >

@@ -43,11 +43,14 @@ interface MainState {
   disabled: boolean
   errors: Error[] | null
   submitted: boolean
+  submitting: boolean
   success: Success | null
+  uploads: $TSFixMe
+  // TODO: Error[] | L | Success
 }
 
 export interface MainContext {
-  state: MainState | typeof L
+  state: MainState
   actions: {
     onSubmit: () => void
   }
@@ -84,7 +87,7 @@ function useDisabled({ files, message, meta, name, workflow }: Everything) {
       return true
     }
 
-    if (meta.state === L || meta.state.errors === L || meta.state.errors?.length) {
+    if (meta.state === L || meta.state.errors?.length) {
       return true
     }
 
@@ -141,12 +144,13 @@ interface NullablePackageEntry {
   size: number | null
 }
 
-function useFiles(
-  state: FilesState | typeof L,
-): (b: string, n: string) => Promise<NullablePackageEntry[]> {
+function useFiles(state: FilesState | typeof L): {
+  uploads: $TSFixMe
+  getFiles: (b: string, n: string) => Promise<NullablePackageEntry[]>
+} {
   const uploads = useUploads()
 
-  return React.useCallback(
+  const getFiles = React.useCallback(
     async (bucket: string, name: string) => {
       if (state === L || state.staged.map === L) {
         throw NOT_READY
@@ -207,6 +211,8 @@ function useFiles(
     },
     [state, uploads],
   )
+
+  return { getFiles, uploads }
 }
 
 function useMeta(state: MetaState | typeof L): () => Types.JsonRecord | null {
@@ -231,14 +237,17 @@ interface FormData {
   }
 }
 
-function useFormData(ctx: Everything): () => Promise<FormData> {
+function useFormData(ctx: Everything): {
+  uploads: $TSFixMe
+  getFormData: () => Promise<FormData>
+} {
   const getName = useName(ctx.name.state)
   const getBucket = useBucket(ctx.bucket.state)
   const getMessage = useMessage(ctx.message.state)
   const getMeta = useMeta(ctx.meta.state)
   const getWorkflow = useWorkflow(ctx.workflow.state)
-  const getFiles = useFiles(ctx.files.state)
-  return React.useCallback(async () => {
+  const { getFiles, uploads } = useFiles(ctx.files.state)
+  const getFormData = React.useCallback(async () => {
     const name = getName()
     const bucket = getBucket()
     const entries = await getFiles(bucket, name)
@@ -248,6 +257,7 @@ function useFormData(ctx: Everything): () => Promise<FormData> {
     const workflow = getWorkflow()
     return { params: { name, message, bucket, workflow, userMeta }, src: { entries } }
   }, [getBucket, getFiles, getMessage, getMeta, getName, getWorkflow])
+  return { getFormData, uploads }
 }
 
 function useCreatePackage() {
@@ -264,13 +274,15 @@ function useCreatePackage() {
 export default function useMain(ctx: Everything): MainContext {
   const disabled = useDisabled(ctx)
   const [errors, setErrors] = React.useState<Error[] | null>(null)
-  const getFormData = useFormData(ctx)
+  const { getFormData, uploads } = useFormData(ctx)
   const createPackage = useCreatePackage()
   const [submitted, setSubmitted] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
   const [success, setSuccess] = React.useState<Success | null>(null)
   const onSubmit = React.useCallback(async () => {
     setSubmitted(true)
     if (disabled) return
+    setSubmitting(true)
     try {
       const formData = await getFormData()
       const r = await createPackage(formData)
@@ -291,16 +303,19 @@ export default function useMain(ctx: Everything): MainContext {
       // eslint-disable-next-line no-console
       console.error(error)
     }
+    setSubmitting(false)
   }, [createPackage, disabled, getFormData])
 
   const state = React.useMemo(
     () => ({
       disabled: submitted && disabled,
-      submitted,
-      success,
       errors,
+      submitted,
+      submitting,
+      success,
+      uploads,
     }),
-    [errors, disabled, submitted, success],
+    [submitting, errors, disabled, submitted, success, uploads],
   )
 
   return React.useMemo(

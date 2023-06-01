@@ -32,10 +32,8 @@ export default function Inputs() {
   const { bucket, main, message, name, workflow } = State.use()
   const classes = useInputsStyles()
 
-  const showErrors = React.useMemo(() => {
-    if (main.state === L) return false
-    return main.state.submitted
-  }, [main.state])
+  const showErrors = main.state.submitted
+  const disabled = main.state.submitting
 
   return (
     <div className={classes.root}>
@@ -46,6 +44,7 @@ export default function Inputs() {
           ) : (
             <PackageName
               {...name.state}
+              disabled={disabled}
               errors={showErrors ? name.state.errors : undefined}
               onChange={name.actions.onChange}
             />
@@ -54,6 +53,7 @@ export default function Inputs() {
         <div className={classes.input}>
           <CommitMessage
             {...message.state}
+            disabled={disabled}
             errors={showErrors ? message.state.errors : undefined}
             onChange={message.actions.onChange}
           />
@@ -61,7 +61,11 @@ export default function Inputs() {
       </div>
       <div className={classes.group}>
         <div className={classes.input}>
-          <DestinationBucket {...bucket.state} onChange={bucket.actions.onChange} />
+          <DestinationBucket
+            {...bucket.state}
+            disabled={disabled}
+            onChange={bucket.actions.onChange}
+          />
         </div>
         <div className={classes.input}>
           {workflow.state === L ? (
@@ -69,6 +73,7 @@ export default function Inputs() {
           ) : (
             <Workflow
               {...workflow.state}
+              disabled={disabled}
               errors={showErrors ? workflow.state.errors : undefined}
               onChange={workflow.actions.onChange}
             />

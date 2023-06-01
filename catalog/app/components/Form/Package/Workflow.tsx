@@ -32,6 +32,7 @@ interface WorkflowProps {
   onChange: (v: WorkflowStruct | null) => void
   workflows: WorkflowStruct[] | typeof L | Error
   value: WorkflowStruct | null
+  disabled?: boolean
 }
 
 export default function Workflow({
@@ -40,6 +41,7 @@ export default function Workflow({
   onChange,
   workflows,
   value,
+  disabled = false,
 }: WorkflowProps) {
   const classes = useStyles()
   const handleChange = React.useCallback(
@@ -62,7 +64,7 @@ export default function Workflow({
       getOptionLabel={getOptionLabel}
       onChange={handleChange}
       options={workflows}
-      disabled={value?.slug === notAvailable}
+      disabled={disabled || value?.slug === notAvailable}
       renderInput={(params) => (
         <M.TextField
           {...params}
