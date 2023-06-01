@@ -9,7 +9,7 @@ import type { TreeEntry } from 'components/FileManager/FileTree'
 import { useData } from 'utils/Data'
 import * as AWS from 'utils/AWS'
 
-import { LocalFile } from '../../PackageDialog/FilesInput'
+import type { LocalFile } from '../../PackageDialog/FilesInput'
 import { Manifest, EMPTY_MANIFEST_ENTRIES } from '../../PackageDialog/Manifest'
 import {
   EntriesValidationErrors,
@@ -39,7 +39,7 @@ export interface FS {
   counter?: number
 }
 
-interface FilesState {
+export interface FilesState {
   filter: {
     value: string
   }

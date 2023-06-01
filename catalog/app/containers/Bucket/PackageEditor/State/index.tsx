@@ -51,7 +51,7 @@ export function Provider({
   const message = useMessage()
   const files = useFiles(src, workflow, manifest)
   const meta = useMeta(workflow, manifest)
-  const main = useMain()
+  const main = useMain({ bucket, files, message, meta, name, workflow })
   const v = React.useMemo(
     () => ({
       bucket,

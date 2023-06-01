@@ -8,7 +8,7 @@ import useWorkflowsConfig from '../io/workflowsConfig'
 
 import type { Src } from './Source'
 
-interface BucketState {
+export interface BucketState {
   errors?: Error[]
   value: BucketConfig | null
   successors: BucketConfig[] | typeof L | Error

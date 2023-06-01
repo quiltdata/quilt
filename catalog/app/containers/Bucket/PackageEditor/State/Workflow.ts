@@ -8,7 +8,7 @@ import type { Manifest } from '../../PackageDialog/Manifest'
 
 import useWorkflowsConfig from '../io/workflowsConfig'
 
-interface WorkflowState {
+export interface WorkflowState {
   errors?: Error[]
   value: WorkflowStruct | null
   workflows: WorkflowStruct[] | typeof L | Error
@@ -38,6 +38,13 @@ export default function useWorkflow(
   const [errors, setErrors] = React.useState<Error[] | undefined>()
 
   const config = useWorkflowsConfig(bucket?.name || null)
+
+  React.useEffect(() => {
+    if (value || manifest === L || config === L || config instanceof Error) return
+    const defaultWorkflow = getDefaultWorkflow(config.workflows, manifest)
+    if (defaultWorkflow) setValue(defaultWorkflow)
+  }, [config, manifest, value])
+
   React.useEffect(() => {
     if (config === L || config instanceof Error) {
       setErrors([new Error('Workflows config is not available')])
@@ -45,7 +52,9 @@ export default function useWorkflow(
     }
     if (config.isWorkflowRequired && (value === null || value.slug === notSelected)) {
       setErrors([new Error('Workflow is required for this bucket')])
+      return
     }
+    setErrors(undefined)
   }, [config, value])
 
   const state = React.useMemo(() => {
@@ -53,7 +62,7 @@ export default function useWorkflow(
     if (config instanceof Error) return { value: null, workflows: config }
     return {
       errors,
-      value: value || getDefaultWorkflow(config.workflows, manifest),
+      value,
       workflows: config.workflows,
     }
   }, [errors, manifest, value, config])

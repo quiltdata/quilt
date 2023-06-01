@@ -8,7 +8,8 @@ import type { Manifest } from '../../PackageDialog/Manifest'
 
 import type { WorkflowContext } from './Workflow'
 
-interface MetaState {
+export interface MetaState {
+  errors?: Error[] | typeof L
   value?: Types.JsonRecord
   schema?: Schema
 }

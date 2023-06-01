@@ -8,7 +8,7 @@ import type { BucketContext } from './Bucket'
 import type { Src } from './Source'
 import type { WorkflowContext } from './Workflow'
 
-interface NameState {
+export interface NameState {
   errors?: Error[] | typeof L
   value: string
   warnings?: string[] | typeof L

@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-interface MessageState {
+export interface MessageState {
   errors?: Error[]
   value: string
 }

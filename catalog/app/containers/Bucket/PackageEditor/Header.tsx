@@ -70,39 +70,10 @@ function useVisibility() {
   return visibility
 }
 
-function useDisabled() {
-  const { files, message, main, name, workflow } = State.use()
-  return React.useMemo(() => {
-    if (main.state === L) return true
-    if (!main.state.submitted) return false
-
-    if (name.state === L) return true
-    if (name.state.errors === L || name.state.errors?.length || name.state.warnings === L)
-      return true
-
-    if (message.state.errors?.length) return true
-
-    if (workflow.state === L || workflow.state.errors?.length) return true
-    if (
-      files.state === L ||
-      files.state.staged.errors === L ||
-      files.state.staged.errors?.length
-    )
-      return true
-
-    return false
-  }, [files.state, main.state, name.state, message.state, workflow.state])
-}
-
 export default function Header() {
   const classes = useStyles()
   const { main } = State.use()
   const visibility = useVisibility()
-  const disabled = useDisabled()
-  const handleSubmit = React.useCallback(() => {
-    // TODO: if disabled - reveal errors, don't actually submit
-    main.actions.onSubmit()
-  }, [main.actions])
   return (
     <div className={classes.root}>
       <div
@@ -117,8 +88,8 @@ export default function Header() {
             <M.Typography className={classes.title}>Curate package</M.Typography>
             <M.Button
               color="primary"
-              disabled={disabled}
-              onClick={handleSubmit}
+              disabled={main.state === L || main.state.disabled}
+              onClick={main.actions.onSubmit}
               variant="contained"
             >
               <M.Icon>publish</M.Icon>Create
@@ -129,9 +100,3 @@ export default function Header() {
     </div>
   )
 }
-
-/*
-div wrapper
-  div sticky
-    container
-*/
