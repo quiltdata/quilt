@@ -314,7 +314,6 @@ export default function useFiles(
     })
   }, [manifest])
 
-  // TODO: use setValue(x, CALLBACK)
   const errors = useValidation(map, workflow)
 
   const state: FilesState | typeof L = React.useMemo(() => {
