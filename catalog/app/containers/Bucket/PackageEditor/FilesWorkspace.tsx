@@ -76,22 +76,18 @@ function LegacyFilesWorkspace({
 
 export default function LegacyFilesWorkspaceContainer() {
   const { bucket, files, main, src } = State.use()
-  if (
-    files.state === L ||
-    files.state.staged.map === L ||
-    bucket.state.successors === L
-  ) {
+  if (files.state === L || files.state.value === L || bucket.state.successors === L) {
     return <FilesInputSkeleton />
   }
   return (
     <LegacyFilesWorkspace
       bucket={src.bucket}
-      value={files.state.staged.map}
+      value={files.state.value}
       successors={bucket.state.successors}
-      onChange={files.actions.staged.onMapChange}
+      onChange={files.actions.onMapChange}
       submitting={main.state.status === L}
-      errors={files.state.staged.errors}
-      uploads={files.state.staged.uploads}
+      errors={files.state.errors}
+      uploads={files.state.uploads}
     />
   )
 }

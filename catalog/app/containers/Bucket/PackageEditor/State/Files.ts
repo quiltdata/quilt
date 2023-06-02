@@ -52,11 +52,9 @@ interface S3Entry {
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
 
 export interface FilesState {
-  staged: {
-    uploads: Uploads
-    map: FS | typeof L
-    errors?: EntriesValidationErrors | typeof L
-  }
+  uploads: Uploads
+  value: FS | typeof L
+  errors?: EntriesValidationErrors | typeof L
 }
 
 export interface FilesContext {
@@ -66,9 +64,7 @@ export interface FilesContext {
     formData: (bucket: string, name: string) => Promise<NullablePackageEntry[]>
   }
   actions: {
-    staged: {
-      onMapChange: (v: FS) => void
-    }
+    onMapChange: (v: FS) => void
   }
 }
 
@@ -77,11 +73,11 @@ export async function getFormData(
   bucket: string,
   name: string,
 ) {
-  if (state === L || state.staged.map === L) {
+  if (state === L || state.value === L) {
     throw NOT_READY
   }
 
-  const files = state.staged.map
+  const files = state.value
 
   const addedS3Entries: S3Entry[] = []
   const addedLocalEntries: LocalEntry[] = []
@@ -98,7 +94,7 @@ export async function getFormData(
     return !e || e.hash !== file.hash.value
   })
 
-  const uploadedEntries = await state.staged.uploads.upload({
+  const uploadedEntries = await state.uploads.upload({
     files: toUpload,
     bucket,
     prefix: name,
@@ -136,7 +132,7 @@ export async function getFormData(
 }
 
 function isDisabled(state: FilesState | typeof L) {
-  return state === L || state.staged.errors === L || !!state.staged.errors?.length
+  return state === L || state.errors === L || !!state.errors?.length
 }
 
 function filesStateToEntries(files: FS): ValidationEntry[] {
@@ -178,25 +174,27 @@ export default function useFiles(
   manifest?: Manifest | typeof L,
 ): FilesContext {
   const uploads = useUploads()
-  const [map, setMap] = React.useState<FS | typeof L>(L)
+  const [value, setValue] = React.useState<FS | typeof L>(L)
 
   React.useEffect(() => {
     if (manifest === L) return
-    setMap({
+    setValue({
       added: {},
       deleted: {},
       existing: manifest?.entries || EMPTY_MANIFEST_ENTRIES,
     })
   }, [manifest])
 
-  const errors = useValidation(map, workflow)
+  const errors = useValidation(value, workflow)
 
   const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
     return {
-      staged: { map, errors, uploads },
+      value,
+      errors,
+      uploads,
     }
-  }, [errors, manifest, map, uploads, workflow.state])
+  }, [errors, manifest, value, uploads, workflow.state])
 
   return React.useMemo(
     () => ({
@@ -206,9 +204,7 @@ export default function useFiles(
         disabled: () => isDisabled(state),
       },
       actions: {
-        staged: {
-          onMapChange: setMap,
-        },
+        onMapChange: setValue,
       },
     }),
     [state],
