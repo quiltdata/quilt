@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import { L } from 'components/Form/Package/types'
 import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import type * as Types from 'utils/types'
@@ -13,22 +14,22 @@ import type { MetaContext } from './Meta'
 import type { NameContext } from './Name'
 import type { WorkflowContext } from './Workflow'
 
-interface Success {
+export interface Success {
   name: string
   hash: string
 }
 
 interface MainState {
   disabled: boolean
-  errors: Error[] | null
+  status: Error[] | typeof L | Success | null
   submitted: boolean
-  submitting: boolean
-  success: Success | null
-  // TODO: Error[] | L | Success
 }
 
 export interface MainContext {
   state: MainState
+  getters: {
+    success: () => Success | null
+  }
   actions: {
     onSubmit: () => void
   }
@@ -83,6 +84,11 @@ function useFormData(ctx: Everything): () => Promise<FormData> {
   }, [ctx])
 }
 
+function getSuccess(state: MainState): Success | null {
+  if (!state.status || state.status === L || Array.isArray(state.status)) return null
+  return state.status
+}
+
 function useCreatePackage() {
   const constructPackage = useMutation(PACKAGE_CONSTRUCT)
   return React.useCallback(
@@ -95,54 +101,54 @@ function useCreatePackage() {
 }
 
 export default function useMain(ctx: Everything): MainContext {
+  const [status, setStatus] = React.useState<Error[] | typeof L | Success | null>(null)
+  const [submitted, setSubmitted] = React.useState(false)
+
   const disabled = useDisabled(ctx)
-  const [errors, setErrors] = React.useState<Error[] | null>(null)
   const getFormData = useFormData(ctx)
   const createPackage = useCreatePackage()
-  const [submitted, setSubmitted] = React.useState(false)
-  const [submitting, setSubmitting] = React.useState(false)
-  const [success, setSuccess] = React.useState<Success | null>(null)
+
   const onSubmit = React.useCallback(async () => {
     setSubmitted(true)
     if (disabled) return
-    setSubmitting(true)
+    setStatus(L)
     try {
       const formData = await getFormData()
       const r = await createPackage(formData)
       switch (r.__typename) {
         case 'PackagePushSuccess':
-          setSuccess({ name: formData.params.name, hash: r.revision.hash })
+          setStatus({ name: formData.params.name, hash: r.revision.hash })
           break
         case 'OperationError':
-          setErrors([new Error(r.message)])
+          setStatus([new Error(r.message)])
           break
         case 'InvalidInput':
-          setErrors(r.errors.map(({ message }) => new Error(message)))
+          setStatus(r.errors.map(({ message }) => new Error(message)))
           break
         default:
+          setStatus([new Error((r as unknown as any).__typename)])
           assertNever(r)
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error)
+      setStatus([error as unknown as Error])
     }
-    setSubmitting(false)
   }, [createPackage, disabled, getFormData])
 
-  const state = React.useMemo(
+  const state: MainState = React.useMemo(
     () => ({
       disabled: submitted && disabled,
-      errors,
       submitted,
-      submitting,
-      success,
+      status,
     }),
-    [submitting, errors, disabled, submitted, success],
+    [disabled, submitted, status],
   )
 
   return React.useMemo(
     () => ({
       state,
+      getters: {
+        success: () => getSuccess(state),
+      },
       actions: {
         onSubmit,
       },

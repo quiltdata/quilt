@@ -59,7 +59,7 @@ export default function MetadataContainer() {
       errors={meta.state.errors || []}
       onChange={meta.actions.onChange}
       schema={meta.state.schema}
-      submitting={main.state.submitting}
+      submitting={main.state.status === L}
       value={meta.state.value}
     />
   )

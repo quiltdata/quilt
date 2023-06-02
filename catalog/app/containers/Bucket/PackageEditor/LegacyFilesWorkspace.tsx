@@ -89,7 +89,7 @@ export default function LegacyFilesWorkspaceContainer() {
       value={files.state.staged.map}
       successors={bucket.state.successors}
       onChange={files.actions.staged.onMapChange}
-      submitting={main.state.submitting}
+      submitting={main.state.status === L}
       errors={files.state.staged.errors}
       uploads={files.state.staged.uploads}
     />

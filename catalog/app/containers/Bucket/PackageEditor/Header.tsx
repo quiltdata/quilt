@@ -49,17 +49,22 @@ const STICK_TO_HEADER = Symbol('Stick to header')
 
 type Visibility = typeof INLINE | typeof STICK_TO_WINDOW | typeof STICK_TO_HEADER
 
+function calcVisibility(scrollY: number, isHeaderHidden: boolean): Visibility {
+  if (scrollY < 64) {
+    return INLINE
+  } else if (isHeaderHidden) {
+    return STICK_TO_WINDOW
+  } else {
+    return STICK_TO_HEADER
+  }
+}
+
 function useVisibility() {
   const trigger = M.useScrollTrigger()
   const [visibility, setVisibility] = React.useState<Visibility>(INLINE)
   const handleScroll = React.useCallback(() => {
-    if (window.scrollY < 64) {
-      if (visibility !== INLINE) setVisibility(INLINE)
-    } else if (trigger) {
-      if (visibility !== STICK_TO_WINDOW) setVisibility(STICK_TO_WINDOW)
-    } else {
-      if (visibility !== STICK_TO_HEADER) setVisibility(STICK_TO_HEADER)
-    }
+    const newVisibility = calcVisibility(window.scrollY, trigger)
+    if (visibility !== newVisibility) setVisibility(newVisibility)
   }, [trigger, visibility])
   React.useEffect(() => {
     document.addEventListener('scroll', handleScroll)

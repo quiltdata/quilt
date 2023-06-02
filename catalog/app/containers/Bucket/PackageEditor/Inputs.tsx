@@ -34,7 +34,7 @@ export default function Inputs() {
 
   // FIXME: Errors as getters to state?
   const showErrors = main.state.submitted
-  const disabled = main.state.submitting
+  const disabled = main.state.status === L
 
   return (
     <div className={classes.root}>
