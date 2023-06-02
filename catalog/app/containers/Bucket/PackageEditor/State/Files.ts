@@ -10,7 +10,7 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as s3paths from 'utils/s3paths'
 import type * as Types from 'utils/types'
-import { useUploads } from '../../PackageDialog/Uploads'
+import { useUploads, Uploads } from '../../PackageDialog/Uploads'
 
 import { isS3File } from '../../PackageDialog/S3FilePicker'
 import type { LocalFile } from '../../PackageDialog/FilesInput'
@@ -30,6 +30,8 @@ import convertS3FilesListToTree from './adapters/s3'
 // import convertTreeToFilesMap from './adapters/package'
 import { sortEntries } from './adapters/utils'
 import NOT_READY from './errorNotReady'
+
+export type { Uploads } from '../../PackageDialog/Uploads'
 
 // export const TAB_BOOKMARKS = Symbol('bookmarks')
 // export const TAB_S3 = Symbol('s3')
@@ -63,8 +65,6 @@ interface S3Entry {
 }
 
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
-
-export type Uploads = $TSFixMe
 
 export interface FilesState {
   filter: {
