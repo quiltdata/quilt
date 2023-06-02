@@ -26,7 +26,7 @@ export interface WorkflowContext {
   }
 }
 
-export function getFormData(state: WorkflowState | typeof L) {
+function getFormData(state: WorkflowState | typeof L) {
   if (state === L || !state.value) {
     throw NOT_READY
   }
@@ -41,7 +41,7 @@ export function getFormData(state: WorkflowState | typeof L) {
   }
 }
 
-export function isDisabled(state: WorkflowState | typeof L) {
+function isDisabled(state: WorkflowState | typeof L) {
   return state === L || !!state.errors?.length
 }
 

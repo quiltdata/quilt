@@ -16,11 +16,11 @@ export interface MessageContext {
   }
 }
 
-export function getFormData(state: MessageState) {
+function getFormData(state: MessageState) {
   return state.value
 }
 
-export function isDisabled(state: MessageState) {
+function isDisabled(state: MessageState) {
   return !!state.errors?.length
 }
 

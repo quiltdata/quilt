@@ -171,7 +171,7 @@ export async function getFormData(
   return allEntries
 }
 
-export function isDisabled(state: FilesState | typeof L) {
+function isDisabled(state: FilesState | typeof L) {
   return state === L || state.staged.errors === L || !!state.staged.errors?.length
 }
 

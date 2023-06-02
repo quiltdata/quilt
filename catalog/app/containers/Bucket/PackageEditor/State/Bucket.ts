@@ -26,14 +26,14 @@ export interface BucketContext {
   }
 }
 
-export function getFormData(state: BucketState) {
+function getFormData(state: BucketState) {
   if (!state.value) {
     throw NOT_READY
   }
   return state.value.name
 }
 
-export function isDisabled(state: BucketState) {
+function isDisabled(state: BucketState) {
   return !state.value
 }
 

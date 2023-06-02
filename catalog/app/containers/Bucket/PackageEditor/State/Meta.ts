@@ -30,14 +30,14 @@ export interface MetaContext {
   }
 }
 
-export function getFormData(state: MetaState | typeof L) {
+function getFormData(state: MetaState | typeof L) {
   if (state === L) {
     throw NOT_READY
   }
   return state.value || null
 }
 
-export function isDisabled(state: MetaState | typeof L) {
+function isDisabled(state: MetaState | typeof L) {
   return state === L || !!state.errors?.length
 }
 
