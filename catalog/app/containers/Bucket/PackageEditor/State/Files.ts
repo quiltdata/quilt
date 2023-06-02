@@ -238,13 +238,7 @@ function filesStateToEntries(files: FS): ValidationEntry[] {
   )
 }
 
-export default function useFiles(
-  src: Src,
-  workflow: WorkflowContext,
-  manifest?: Manifest | typeof L,
-): FilesContext {
-  // useRemoteFilesLists(src)
-  const s3 = AWS.S3.use()
+function useValidation(value: FS | typeof L, workflow: WorkflowContext) {
   const [errors, setErrors] = React.useState<
     EntriesValidationErrors | typeof L | undefined
   >()
@@ -253,6 +247,26 @@ export default function useFiles(
     [workflow.state],
   )
   const validateEntries = useEntriesValidator(selectedWorkflow || undefined)
+  React.useEffect(() => {
+    async function onFilesChange() {
+      if (value === L) return
+      // const entries = convertTreeToFilesMap(value, '')
+      const entries = filesStateToEntries(value)
+      const validationErrors = await validateEntries(entries)
+      setErrors(validationErrors?.length ? validationErrors : undefined)
+    }
+    onFilesChange()
+  }, [validateEntries, value])
+  return errors
+}
+
+export default function useFiles(
+  src: Src,
+  workflow: WorkflowContext,
+  manifest?: Manifest | typeof L,
+): FilesContext {
+  // useRemoteFilesLists(src)
+  const s3 = AWS.S3.use()
   const data = useData(
     requests.bucketListing,
     {
@@ -301,16 +315,7 @@ export default function useFiles(
   }, [manifest])
 
   // TODO: use setValue(x, CALLBACK)
-  React.useEffect(() => {
-    async function onFilesChange() {
-      if (map === L) return
-      // const entries = convertTreeToFilesMap(value, '')
-      const entries = filesStateToEntries(map)
-      const validationErrors = await validateEntries(entries)
-      setErrors(validationErrors?.length ? validationErrors : undefined)
-    }
-    onFilesChange()
-  }, [validateEntries, map])
+  const errors = useValidation(map, workflow)
 
   const state: FilesState | typeof L = React.useMemo(() => {
     if (manifest === L || workflow.state === L) return L
