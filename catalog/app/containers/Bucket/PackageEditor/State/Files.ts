@@ -64,12 +64,14 @@ interface S3Entry {
 
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
 
+export type Uploads = $TSFixMe
+
 export interface FilesState {
   filter: {
     value: string
   }
   staged: {
-    uploads: $TSFixMe
+    uploads: Uploads
     map: FS | typeof L
     errors?: EntriesValidationErrors | typeof L
     value: TreeEntry[] | typeof L

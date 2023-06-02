@@ -1,61 +1,97 @@
 import * as React from 'react'
 
 import { L } from 'components/Form/Package/types'
+import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 
 import { FilesAction, FilesInput } from '../PackageDialog/FilesInput'
+import type { EntriesValidationErrors } from '../PackageDialog/PackageDialog'
 
 import { StagedFilesSkeleton } from './StagedFiles'
 import * as State from './State'
+import type { FS, Uploads } from './State/Files'
 
-export default function LegacyFilesWorkspace() {
-  const { bucket, files, main, src } = State.use()
-  const input = React.useMemo(() => {
-    if (files.state === L || files.state.staged.map === L) return L
-    return {
-      value: files.state.staged.map,
-      onChange: files.actions.staged.onMapChange,
-    }
-  }, [files.state, files.actions.staged.onMapChange])
-  const successors = React.useMemo(() => {
-    if (bucket.state.successors === L || bucket.state.successors instanceof Error)
-      return []
-    return bucket.state.successors.map(({ name }) => name)
-  }, [bucket.state.successors])
-  const meta = React.useMemo(() => {
-    if (input == L) {
-      return { initial: { added: {}, deleted: {}, existing: {} }, submitting: false }
-    }
-    return { initial: input.value, submitting: main.state.submitting }
-  }, [input, main.state])
+interface LegacyFilesWorkspaceProps {
+  bucket: string
+  errors?: EntriesValidationErrors | typeof L
+  onChange: (v: FS) => void
+  submitting: boolean
+  successors: BucketConfig[] | Error
+  uploads: Uploads
+  value: FS
+}
+
+function LegacyFilesWorkspace({
+  bucket,
+  errors,
+  onChange,
+  submitting,
+  successors,
+  uploads,
+  value,
+}: LegacyFilesWorkspaceProps) {
+  const input = React.useMemo(
+    () => ({
+      value,
+      onChange,
+    }),
+    [value, onChange],
+  )
+  const buckets = React.useMemo(() => {
+    if (successors instanceof Error) return []
+    return successors.map(({ name }) => name)
+  }, [successors])
+  const meta = React.useMemo(
+    () => ({ initial: input.value, submitting }),
+    [input, submitting],
+  )
   const validationErrors = React.useMemo(() => {
-    if (files.state === L) return null
-    const { errors } = files.state.staged
     if (errors === L || !errors) return null
     return errors
-  }, [files.state])
+  }, [errors])
 
-  const onFilesAction = React.useMemo(() => {
-    if (files.state === L) return
-    return FilesAction.match({
-      _: () => {},
-      Revert: files.state.staged.uploads.remove,
-      RevertDir: files.state.staged.uploads.removeByPrefix,
-      Reset: files.state.staged.uploads.reset,
-    })
-  }, [files.state])
-
-  if (input === L || files.state === L) return <StagedFilesSkeleton />
+  const onFilesAction = React.useMemo(
+    () =>
+      FilesAction.match({
+        _: () => {},
+        Revert: uploads.remove,
+        RevertDir: uploads.removeByPrefix,
+        Reset: uploads.reset,
+      }),
+    [uploads],
+  )
 
   return (
     <FilesInput
-      bucket={src.bucket}
-      buckets={successors}
+      bucket={bucket}
+      buckets={buckets}
       input={input}
       meta={meta}
       onFilesAction={onFilesAction}
       title="Files"
-      totalProgress={files.state.staged.uploads.progress}
+      totalProgress={uploads.progress}
       validationErrors={validationErrors}
+    />
+  )
+}
+
+export default function LegacyFilesWorkspaceContainer() {
+  const { bucket, files, main, src } = State.use()
+  if (
+    files.state === L ||
+    files.state.staged.map === L ||
+    bucket.state.successors === L
+  ) {
+    return <StagedFilesSkeleton />
+  }
+  return (
+    <LegacyFilesWorkspace
+      bucket={src.bucket}
+      value={files.state.staged.map}
+      successors={bucket.state.successors}
+      onChange={files.actions.staged.onMapChange}
+      submitting={main.state.submitting}
+      errors={files.state.staged.errors}
+      uploads={files.state.staged.uploads}
     />
   )
 }
