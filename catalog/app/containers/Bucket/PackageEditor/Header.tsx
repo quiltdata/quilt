@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as State from './State'
 
@@ -8,9 +9,18 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     height: t.spacing(8),
   },
-  title: {
-    ...t.typography.h4,
-    marginRight: 'auto',
+  button: {
+    marginLeft: 'auto',
+  },
+  container: {
+    alignItems: 'center',
+    display: 'flex',
+    height: t.spacing(8),
+    padding: t.spacing(0),
+    transition: 'padding 0.15s',
+  },
+  errors: {
+    marginLeft: t.spacing(2),
   },
   sticky: {
     left: 0,
@@ -32,12 +42,8 @@ const useStyles = M.makeStyles((t) => ({
   stickToHeader: {
     transform: `translateY(${t.spacing(8)}px)`,
   },
-  container: {
-    alignItems: 'center',
-    display: 'flex',
-    height: t.spacing(8),
-    padding: t.spacing(0),
-    transition: 'padding 0.15s',
+  title: {
+    ...t.typography.h4,
   },
 }))
 
@@ -89,7 +95,13 @@ export default function Header() {
         <M.Container maxWidth="lg" disableGutters={visibility === INLINE}>
           <div className={classes.container}>
             <M.Typography className={classes.title}>Curate package</M.Typography>
+            {Array.isArray(main.state.status) && (
+              <Lab.Alert className={classes.errors} severity="error">
+                {main.state.status.map(({ message }) => message).join('; ')}
+              </Lab.Alert>
+            )}
             <M.Button
+              className={classes.button}
               color="primary"
               disabled={main.state.disabled}
               onClick={main.actions.onSubmit}
