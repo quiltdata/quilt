@@ -20,8 +20,7 @@ export default function useManifest(src: Src): Manifest | typeof L | undefined {
       AsyncResult.case(
         {
           Ok: R.identity,
-          Pending: () => L,
-          _: () => undefined, // FIXME
+          _: () => L,
         },
         src.packageHandle ? manifestData.result : AsyncResult.Ok(),
       ),
