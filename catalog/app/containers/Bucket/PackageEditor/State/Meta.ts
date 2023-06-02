@@ -15,7 +15,7 @@ import NOT_READY from './errorNotReady'
 
 export interface MetaState {
   errors?: (Error | ErrorObject)[]
-  value?: Types.JsonRecord
+  value?: Types.JsonRecord | typeof L
   schema?: Schema | typeof L
 }
 
@@ -31,7 +31,7 @@ export interface MetaContext {
 }
 
 function getFormData(state: MetaState | typeof L) {
-  if (state === L) {
+  if (state === L || state.value === L) {
     throw NOT_READY
   }
   return state.value || null
@@ -41,14 +41,27 @@ function isDisabled(state: MetaState | typeof L) {
   return state === L || !!state.errors?.length
 }
 
+function useValidation(value?: Types.JsonRecord | typeof L, schema?: Schema | typeof L) {
+  const [errors, setErrors] = React.useState<(Error | ErrorObject)[] | undefined>(
+    undefined,
+  )
+  React.useEffect(() => {
+    if (schema === L || value === L) return
+    const validationErrors = mkMetaValidator(schema)(value || null)
+    if (validationErrors && !Array.isArray(validationErrors)) {
+      setErrors([validationErrors])
+    } else {
+      setErrors(validationErrors)
+    }
+  }, [value, schema])
+  return errors
+}
+
 export default function useMeta(
   workflow: WorkflowContext,
   manifest?: Manifest | typeof L,
 ): MetaContext {
   const [value, setValue] = React.useState<Types.JsonRecord | typeof L | undefined>(
-    undefined,
-  )
-  const [errors, setErrors] = React.useState<(Error | ErrorObject)[] | undefined>(
     undefined,
   )
 
@@ -63,17 +76,9 @@ export default function useMeta(
   const schemaUrl = workflow.state === L ? '' : workflow.state.value?.schema?.url
   const schema = useWorkflowsConfig(schemaUrl)
 
-  React.useEffect(() => {
-    if (schema === L || value === L) return
-    const validationErrors = mkMetaValidator(schema)(value || null)
-    if (validationErrors && !Array.isArray(validationErrors)) {
-      setErrors([validationErrors])
-    } else {
-      setErrors(validationErrors)
-    }
-  }, [value, schema, workflow.state])
+  const errors = useValidation(value, schema)
 
-  const state = React.useMemo(() => {
+  const state: MetaState | typeof L = React.useMemo(() => {
     if (value === L || schema === L) return L
     return {
       errors,

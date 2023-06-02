@@ -2,7 +2,12 @@ import * as React from 'react'
 
 import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 import { L } from 'components/Form/Package/types'
-import { Workflow as WorkflowStruct, notAvailable, notSelected } from 'utils/workflows'
+import {
+  Workflow as WorkflowStruct,
+  WorkflowsConfig,
+  notAvailable,
+  notSelected,
+} from 'utils/workflows'
 
 import type { Manifest } from '../../PackageDialog/Manifest'
 import useWorkflowsConfig from '../io/workflowsConfig'
@@ -45,6 +50,25 @@ function isDisabled(state: WorkflowState | typeof L) {
   return state === L || !!state.errors?.length
 }
 
+function useValidation(
+  value: WorkflowStruct | null,
+  config: WorkflowsConfig | Error | typeof L,
+) {
+  const [errors, setErrors] = React.useState<Error[] | undefined>()
+  React.useEffect(() => {
+    if (config === L || config instanceof Error) {
+      setErrors([new Error('Workflows config is not available')])
+      return
+    }
+    if (config.isWorkflowRequired && (value === null || value.slug === notSelected)) {
+      setErrors([new Error('Workflow is required for this bucket')])
+      return
+    }
+    setErrors(undefined)
+  }, [config, value])
+  return errors
+}
+
 function getDefaultWorkflow(workflows: WorkflowStruct[], manifest?: Manifest) {
   return (
     workflows.find((w) => w.slug === manifest?.workflowId) ||
@@ -59,7 +83,6 @@ export default function useWorkflow(
   manifest?: Manifest | typeof L,
 ): WorkflowContext {
   const [value, setValue] = React.useState<WorkflowStruct | null>(null)
-  const [errors, setErrors] = React.useState<Error[] | undefined>()
 
   const config = useWorkflowsConfig(bucket?.name || null)
 
@@ -69,17 +92,7 @@ export default function useWorkflow(
     if (defaultWorkflow) setValue(defaultWorkflow)
   }, [config, manifest, value])
 
-  React.useEffect(() => {
-    if (config === L || config instanceof Error) {
-      setErrors([new Error('Workflows config is not available')])
-      return
-    }
-    if (config.isWorkflowRequired && (value === null || value.slug === notSelected)) {
-      setErrors([new Error('Workflow is required for this bucket')])
-      return
-    }
-    setErrors(undefined)
-  }, [config, value])
+  const errors = useValidation(value, config)
 
   const state = React.useMemo(() => {
     if (manifest === L || config === L) return L
