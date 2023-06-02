@@ -24,8 +24,7 @@ export function isDisabled(state: MessageState) {
   return !!state.errors?.length
 }
 
-export default function useMessage(): MessageContext {
-  const [value, setValue] = React.useState('')
+function useValidation(value: string) {
   const [errors, setErrors] = React.useState<Error[] | undefined>()
   React.useEffect(() => {
     setErrors(undefined)
@@ -33,6 +32,13 @@ export default function useMessage(): MessageContext {
       setErrors([new Error('Enter a commit message')])
     }
   }, [value])
+  return errors
+}
+
+export default function useMessage(): MessageContext {
+  const [value, setValue] = React.useState('')
+
+  const errors = useValidation(value)
 
   const state = React.useMemo(
     () => ({

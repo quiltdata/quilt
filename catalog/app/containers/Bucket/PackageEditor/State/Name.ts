@@ -45,12 +45,7 @@ function isDisabled(state: NameState | typeof L) {
   return false
 }
 
-export default function useName(
-  src: Src,
-  bucket: BucketContext,
-  workflow: WorkflowContext,
-): NameContext {
-  const [value, setValue] = React.useState(src.packageHandle?.name || '')
+function useValidation(value: string, bucket: BucketContext, workflow: WorkflowContext) {
   const [errors, setErrors] = React.useState<Error[] | typeof L | undefined>()
   const [warnings, setWarnings] = React.useState<string[] | typeof L | undefined>()
 
@@ -104,6 +99,18 @@ export default function useName(
     onValueChange()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nameExistence.validate, validate, value])
+
+  return { errors, warnings }
+}
+
+export default function useName(
+  src: Src,
+  bucket: BucketContext,
+  workflow: WorkflowContext,
+): NameContext {
+  const [value, setValue] = React.useState(src.packageHandle?.name || '')
+
+  const { errors, warnings } = useValidation(value, bucket, workflow)
 
   const state = React.useMemo(
     () => (workflow.state === L ? L : ({ errors, value, warnings } as NameState)),
