@@ -5,8 +5,8 @@ import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
 
 import { FilesAction, FilesInput } from '../PackageDialog/FilesInput'
 import type { EntriesValidationErrors } from '../PackageDialog/PackageDialog'
+import { FilesInputSkeleton } from '../PackageDialog/Skeleton'
 
-import { StagedFilesSkeleton } from './StagedFiles'
 import * as State from './State'
 import type { FS, Uploads } from './State/Files'
 
@@ -81,7 +81,7 @@ export default function LegacyFilesWorkspaceContainer() {
     files.state.staged.map === L ||
     bucket.state.successors === L
   ) {
-    return <StagedFilesSkeleton />
+    return <FilesInputSkeleton />
   }
   return (
     <LegacyFilesWorkspace
