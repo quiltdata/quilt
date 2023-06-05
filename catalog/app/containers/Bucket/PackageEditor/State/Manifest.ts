@@ -8,6 +8,8 @@ import { Manifest, useManifest as useFetchManifest } from '../../PackageDialog/M
 
 import type { Src } from './Source'
 
+// TODO: move to ../io/manifest.ts
+//       it means you need to decouple from `State.Src`
 export default function useManifest(src: Src): Manifest | typeof L | undefined {
   const manifestData = useFetchManifest({
     bucket: src.bucket,
