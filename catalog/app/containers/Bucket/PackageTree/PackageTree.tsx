@@ -401,8 +401,20 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
-                        {actions.revisePackage && (
-                          <RRDom.Link to={urls.bucketPackageEditor(bucket, name, hash)}>
+                        {actions.revisePackage &&
+                          (actions.editPackage ? (
+                            <RRDom.Link to={urls.bucketPackageEditor(bucket, name, hash)}>
+                              <M.Button
+                                className={classes.button}
+                                variant="contained"
+                                color="primary"
+                                size="small"
+                                style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                              >
+                                Revise package
+                              </M.Button>
+                            </RRDom.Link>
+                          ) : (
                             <M.Button
                               className={classes.button}
                               variant="contained"
@@ -413,8 +425,7 @@ function DirDisplay({
                             >
                               Revise package
                             </M.Button>
-                          </RRDom.Link>
-                        )}
+                          ))}
                         {actions.copyPackage && (
                           <Successors.Button
                             className={classes.button}

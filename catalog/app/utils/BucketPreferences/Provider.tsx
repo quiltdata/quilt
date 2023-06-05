@@ -9,7 +9,7 @@ import * as AWS from 'utils/AWS'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import { useData } from 'utils/Data'
 
-import { Result, parse } from './BucketPreferences'
+import { BucketPreferences, Result, parse } from './BucketPreferences'
 import LocalProvider from './LocalProvider'
 
 interface FetchBucketPreferencesArgs {
@@ -51,7 +51,14 @@ function CatalogProvider({ bucket, children }: ProviderProps) {
 
   const preferences = data.case({
     Ok: settings?.beta
-      ? R.pipe(R.assocPath(['ui', 'actions', 'openInDesktop'], true), Result.Ok)
+      ? R.pipe(
+          R.assocPath<boolean, BucketPreferences>(
+            ['ui', 'actions', 'openInDesktop'],
+            true,
+          ),
+          R.assocPath<boolean, BucketPreferences>(['ui', 'actions', 'editPackage'], true),
+          Result.Ok,
+        )
       : Result.Ok,
     Err: () => Result.Ok(parse('')),
     Pending: Result.Pending,
