@@ -10,12 +10,12 @@ import Metadata from './Metadata'
 import RouteContainer from './RouteContainer'
 import Success from './Success'
 
-const useSectionStyles = M.makeStyles((t) => ({
+const useSectionStyles = M.makeStyles({
   content: {
     flexGrow: 1,
     maxWidth: '100%',
   },
-}))
+})
 
 interface SectionProps {
   title: string
