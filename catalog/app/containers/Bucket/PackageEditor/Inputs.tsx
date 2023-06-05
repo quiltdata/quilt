@@ -10,7 +10,61 @@ import L from 'constants/loading'
 
 import * as State from './State'
 
-const useInputsStyles = M.makeStyles((t) => ({
+interface InputFieldProps {
+  disabled: boolean
+  showErrors: boolean
+}
+
+function PackageNameContainer({ disabled, showErrors }: InputFieldProps) {
+  const { name } = State.use()
+  if (name.state === L) return <InputSkeleton />
+  return (
+    <PackageName
+      {...name.state}
+      disabled={disabled}
+      errors={showErrors ? name.state.errors : undefined}
+      onChange={name.actions.onChange}
+    />
+  )
+}
+
+function CommitMessageContainer({ disabled, showErrors }: InputFieldProps) {
+  const { message } = State.use()
+  return (
+    <CommitMessage
+      {...message.state}
+      disabled={disabled}
+      errors={showErrors ? message.state.errors : undefined}
+      onChange={message.actions.onChange}
+    />
+  )
+}
+
+function DestinationBucketContainer({ disabled }: Omit<InputFieldProps, 'showErrors'>) {
+  const { bucket } = State.use()
+  return (
+    <DestinationBucket
+      {...bucket.state}
+      disabled={disabled}
+      onChange={bucket.actions.onChange}
+    />
+  )
+}
+
+function WorkflowContainer({ disabled, showErrors }: InputFieldProps) {
+  const { workflow } = State.use()
+  if (workflow.state === L) return <InputSkeleton />
+  return (
+    <Workflow
+      {...workflow.state}
+      disabled={disabled}
+      errors={showErrors ? workflow.state.errors : undefined}
+      onChange={workflow.actions.onChange}
+    />
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -29,10 +83,9 @@ const useInputsStyles = M.makeStyles((t) => ({
 }))
 
 export default function Inputs() {
-  const { bucket, main, message, name, workflow } = State.use()
-  const classes = useInputsStyles()
+  const { main } = State.use()
+  const classes = useStyles()
 
-  // FIXME: Errors as getters to state?
   const showErrors = main.state.submitted
   const disabled = main.state.status === L
 
@@ -40,45 +93,18 @@ export default function Inputs() {
     <div className={classes.root}>
       <div className={classes.group}>
         <div className={classes.input}>
-          {name.state === L ? (
-            <InputSkeleton />
-          ) : (
-            <PackageName
-              {...name.state}
-              disabled={disabled}
-              errors={showErrors ? name.state.errors : undefined}
-              onChange={name.actions.onChange}
-            />
-          )}
+          <PackageNameContainer disabled={disabled} showErrors={showErrors} />
         </div>
         <div className={classes.input}>
-          <CommitMessage
-            {...message.state}
-            disabled={disabled}
-            errors={showErrors ? message.state.errors : undefined}
-            onChange={message.actions.onChange}
-          />
+          <CommitMessageContainer disabled={disabled} showErrors={showErrors} />
         </div>
       </div>
       <div className={classes.group}>
         <div className={classes.input}>
-          <DestinationBucket
-            {...bucket.state}
-            disabled={disabled}
-            onChange={bucket.actions.onChange}
-          />
+          <DestinationBucketContainer disabled={disabled} />
         </div>
         <div className={classes.input}>
-          {workflow.state === L ? (
-            <InputSkeleton />
-          ) : (
-            <Workflow
-              {...workflow.state}
-              disabled={disabled}
-              errors={showErrors ? workflow.state.errors : undefined}
-              onChange={workflow.actions.onChange}
-            />
-          )}
+          <WorkflowContainer disabled={disabled} showErrors={showErrors} />
         </div>
       </div>
     </div>

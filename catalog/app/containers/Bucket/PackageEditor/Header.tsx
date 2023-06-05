@@ -79,10 +79,15 @@ function useVisibility() {
   return visibility
 }
 
-export default function Header() {
+interface HeaderProps {
+  error?: string
+  visibility: Visibility
+  disabled: boolean
+  onSubmit: () => void
+}
+
+function Header({ error, visibility, disabled, onSubmit }: HeaderProps) {
   const classes = useStyles()
-  const { main } = State.use()
-  const visibility = useVisibility()
   return (
     <div className={classes.root}>
       <div
@@ -95,16 +100,16 @@ export default function Header() {
         <M.Container maxWidth="lg" disableGutters={visibility === INLINE}>
           <div className={classes.container}>
             <M.Typography className={classes.title}>Curate package</M.Typography>
-            {Array.isArray(main.state.status) && (
+            {error && (
               <Lab.Alert className={classes.errors} severity="error">
-                {main.state.status.map(({ message }) => message).join('; ')}
+                {error}
               </Lab.Alert>
             )}
             <M.Button
               className={classes.button}
               color="primary"
-              disabled={main.state.disabled}
-              onClick={main.actions.onSubmit}
+              disabled={disabled}
+              onClick={onSubmit}
               variant="contained"
             >
               <M.Icon>publish</M.Icon>Create
@@ -113,5 +118,22 @@ export default function Header() {
         </M.Container>
       </div>
     </div>
+  )
+}
+
+export default function HeaderContainer() {
+  const { main } = State.use()
+  const error = React.useMemo(() => {
+    if (!Array.isArray(main.state.status)) return
+    return main.state.status.map(({ message }) => message).join('; ')
+  }, [main.state.status])
+  const visibility = useVisibility()
+  return (
+    <Header
+      disabled={main.state.disabled}
+      error={error}
+      onSubmit={main.actions.onSubmit}
+      visibility={visibility}
+    />
   )
 }
