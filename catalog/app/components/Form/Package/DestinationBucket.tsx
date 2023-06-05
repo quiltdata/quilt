@@ -3,10 +3,10 @@ import * as React from 'react'
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
+import L from 'constants/loading'
 import * as Model from 'model'
 
 import InputSkeleton from './InputSkeleton'
-import { L } from './types'
 
 export type BucketConfig = Pick<
   Model.GQLTypes.BucketConfig,

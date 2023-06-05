@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { L } from './types'
+import L from 'constants/loading'
 
 const useStyles = M.makeStyles((t) => ({
   alert: {

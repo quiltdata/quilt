@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 import { useMutation } from 'utils/GraphQL'
 import assertNever from 'utils/assertNever'
 import type * as Types from 'utils/types'

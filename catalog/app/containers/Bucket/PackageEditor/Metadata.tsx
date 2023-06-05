@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 import JsonEditor from 'components/JsonEditor'
 import type { ValidationErrors } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'

@@ -1,7 +1,7 @@
 import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 import type * as Types from 'utils/types'
 import type { Schema } from 'utils/workflows'
 

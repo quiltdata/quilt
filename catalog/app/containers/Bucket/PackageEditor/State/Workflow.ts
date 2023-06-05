@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 import {
   Workflow as WorkflowStruct,
   WorkflowsConfig,

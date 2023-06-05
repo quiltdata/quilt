@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 

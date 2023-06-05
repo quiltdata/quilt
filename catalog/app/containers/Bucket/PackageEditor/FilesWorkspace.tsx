@@ -1,7 +1,7 @@
 import * as React from 'react'
 
-import { L } from 'components/Form/Package/types'
 import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
+import L from 'constants/loading'
 
 import { FilesAction, FilesInput } from '../PackageDialog/FilesInput'
 import type { EntriesValidationErrors } from '../PackageDialog/PackageDialog'

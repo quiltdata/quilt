@@ -6,7 +6,7 @@ import CommitMessage from 'components/Form/Package/CommitMessage'
 import InputSkeleton from 'components/Form/Package/InputSkeleton'
 import PackageName from 'components/Form/Package/PackageName'
 import Workflow from 'components/Form/Package/Workflow'
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 
 import * as State from './State'
 

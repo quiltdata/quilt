@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as R from 'ramda'
 
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 import AsyncResult from 'utils/AsyncResult'
 
 import { Manifest, useManifest as useFetchManifest } from '../../PackageDialog/Manifest'

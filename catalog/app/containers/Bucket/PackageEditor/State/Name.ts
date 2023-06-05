@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { L } from 'components/Form/Package/types'
+import L from 'constants/loading'
 
 import { useNameExistence, useNameValidator } from '../../PackageDialog/PackageDialog'
 

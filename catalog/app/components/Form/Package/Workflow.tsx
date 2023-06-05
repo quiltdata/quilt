@@ -3,10 +3,10 @@ import * as React from 'react'
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 
+import L from 'constants/loading'
 import { Workflow as WorkflowStruct, notAvailable, notSelected } from 'utils/workflows'
 
 import InputSkeleton from './InputSkeleton'
-import { L } from './types'
 
 const filterOptions = Lab.createFilterOptions({
   stringify: (option: WorkflowStruct) => JSON.stringify(option),
