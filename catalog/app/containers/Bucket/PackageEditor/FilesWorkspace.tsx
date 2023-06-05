@@ -10,7 +10,7 @@ import { FilesInputSkeleton } from '../PackageDialog/Skeleton'
 import * as State from './State'
 import type { FS, Uploads } from './State/Files'
 
-interface LegacyFilesWorkspaceProps {
+interface FilesWorkspaceProps {
   bucket: string
   errors?: EntriesValidationErrors | typeof L
   onChange: (v: FS) => void
@@ -20,7 +20,7 @@ interface LegacyFilesWorkspaceProps {
   value: FS
 }
 
-function LegacyFilesWorkspace({
+function FilesWorkspace({
   bucket,
   errors,
   onChange,
@@ -28,7 +28,7 @@ function LegacyFilesWorkspace({
   successors,
   uploads,
   value,
-}: LegacyFilesWorkspaceProps) {
+}: FilesWorkspaceProps) {
   const input = React.useMemo(
     () => ({
       value,
@@ -74,13 +74,13 @@ function LegacyFilesWorkspace({
   )
 }
 
-export default function LegacyFilesWorkspaceContainer() {
+export default function FilesWorkspaceContainer() {
   const { bucket, files, main, src } = State.use()
   if (files.state === L || files.state.value === L || bucket.state.successors === L) {
     return <FilesInputSkeleton />
   }
   return (
-    <LegacyFilesWorkspace
+    <FilesWorkspace
       bucket={src.bucket}
       value={files.state.value}
       successors={bucket.state.successors}
