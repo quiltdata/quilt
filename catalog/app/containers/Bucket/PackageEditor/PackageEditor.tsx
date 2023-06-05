@@ -11,14 +11,6 @@ import RouteContainer from './RouteContainer'
 import Success from './Success'
 
 const useSectionStyles = M.makeStyles((t) => ({
-  root: {
-    '&:$expanded': {
-      margin: '0 !important',
-      minHeight: 'auto !important',
-      paddingTop: t.spacing(1),
-    },
-  },
-  expanded: {},
   content: {
     flexGrow: 1,
     maxWidth: '100%',
@@ -32,9 +24,8 @@ interface SectionProps {
 
 function Section({ title, children }: SectionProps) {
   const classes = useSectionStyles()
-  const accordionClasses = React.useMemo(() => ({ root: classes.root }), [classes.root])
   return (
-    <M.Accordion defaultExpanded classes={accordionClasses}>
+    <M.Accordion defaultExpanded>
       <M.AccordionSummary>
         <M.Typography variant="h5">{title}</M.Typography>
       </M.AccordionSummary>
