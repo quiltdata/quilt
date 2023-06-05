@@ -179,11 +179,11 @@ stacks (in your default region, which is listed in your
     aws cloudformation list-stacks
     ```
 1. Run the `aws logs` command to filter all Quilt ECS containers log entries for
-the last 30 minutes (assumes Mac BSD `date` command syntax):
+the last 30 minutes:
     <!--pytest.mark.skip-->
     ```bash
     aws logs filter-log-events \
-        --log-group-name YOUR_QUILT_STACK_NAME
-        --start-time "$(( $(date -u -v-30M +%s) * 1000 ))" \
-        --end-time "$(( $(date -u +%s) * 1000 ))" > log-quilt-ecs-events.json
+        --log-group-name YOUR_QUILT_STACK_NAME \
+        --start-time "$(( ($(date +%s) - 1800) * 1000 ))" \
+        --end-time "$(( $(date +%s) * 1000 ))" > log-quilt-ecs-events.json
     ```
