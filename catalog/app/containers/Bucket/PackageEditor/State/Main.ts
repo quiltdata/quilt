@@ -35,7 +35,7 @@ export interface MainContext {
   }
 }
 
-interface Everything {
+interface FormFields {
   bucket: BucketContext
   files: FilesContext
   message: MessageContext
@@ -44,7 +44,7 @@ interface Everything {
   workflow: WorkflowContext
 }
 
-function useDisabled(ctx: Everything) {
+function useDisabled(ctx: FormFields) {
   return React.useMemo(
     () =>
       ctx.bucket.getters.disabled() ||
@@ -71,7 +71,7 @@ interface FormData {
   }
 }
 
-function useFormData(ctx: Everything): () => Promise<FormData> {
+function useFormData(ctx: FormFields): () => Promise<FormData> {
   return React.useCallback(async () => {
     const bucket = ctx.bucket.getters.formData()
     const message = ctx.message.getters.formData()
@@ -102,7 +102,7 @@ function useCreatePackage() {
   )
 }
 
-export default function useMain(ctx: Everything): MainContext {
+export default function useMain(ctx: FormFields): MainContext {
   const [status, setStatus] = React.useState<Error[] | typeof L | Success | null>(null)
   const [submitted, setSubmitted] = React.useState(false)
 
