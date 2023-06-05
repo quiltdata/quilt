@@ -45,8 +45,13 @@ export function Provider({
   const src = useSource(srcBucket, srcName, hashOrTag, path)
   const bucket = useBucket(src)
 
+  // TODO: The rest doesn't make sense without src and bucket,
+  //       so you can put it in a nested component
   const manifest = useManifest(src)
   const workflow = useWorkflow(bucket.state?.value, manifest)
+
+  // TODO: The rest doesn't make sense without manifest and workflow,
+  //       so you can put it in a nested component
   const name = useName(src, bucket, workflow)
   const message = useMessage()
   const files = useFiles(workflow, manifest)
