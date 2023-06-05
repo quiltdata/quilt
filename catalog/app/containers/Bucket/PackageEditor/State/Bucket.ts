@@ -39,13 +39,17 @@ function isDisabled(state: BucketState) {
 
 export default function useBucket({ bucket }: Src): BucketContext {
   const buckets = useRelevantBucketConfigs()
-  const bucketsMap = React.useMemo(() => buckets.reduce(
-    (memo, b) => ({
-      ...memo,
-      [b.name]: b,
-    }),
-    {} as Record<string, BucketConfig>,
-  ), [buckets])
+  const bucketsMap = React.useMemo(
+    () =>
+      buckets.reduce(
+        (memo, b) => ({
+          ...memo,
+          [b.name]: b,
+        }),
+        {} as Record<string, BucketConfig>,
+      ),
+    [buckets],
+  )
   const [value, setValue] = React.useState<BucketConfig | null>(
     bucketsMap[bucket] || null,
   )
