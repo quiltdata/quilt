@@ -37,11 +37,16 @@ export default function TextField({
     (event) => onChange(event.target.value),
     [onChange],
   )
-  const errorMessage = Array.isArray(errors)
-    ? errors.map(({ message }) => message).join('; ')
-    : ''
-  const warningsMessage = Array.isArray(warnings) ? warnings.join('; ') : ''
-  const helperText = [errorMessage, warningsMessage].filter(Boolean).join('; ')
+  const { invalid, helperText } = React.useMemo(() => {
+    const errorMessage = Array.isArray(errors)
+      ? errors.map(({ message }) => message).join('; ')
+      : ''
+    const warningMessage = Array.isArray(warnings) ? warnings.join('; ') : ''
+    return {
+      invalid: !!errorMessage,
+      helperText: [errorMessage, warningMessage].filter(Boolean).join('; '),
+    }
+  }, [errors, warnings])
   return (
     <M.TextField
       InputLabelProps={{
@@ -55,7 +60,7 @@ export default function TextField({
         ),
       }}
       className={cx({ [classes.noHelperText]: !helperText }, className)}
-      error={!!errorMessage}
+      error={invalid}
       fullWidth
       helperText={helperText}
       onChange={handleChange}
