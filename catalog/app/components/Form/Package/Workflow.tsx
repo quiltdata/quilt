@@ -12,6 +12,30 @@ const filterOptions = Lab.createFilterOptions({
   stringify: (option: WorkflowStruct) => JSON.stringify(option),
 })
 
+function getOptionLabel(option: WorkflowStruct) {
+  if (option.name) return option.name
+  if (option.slug === notAvailable || option.slug === notSelected) return 'None'
+  return option.slug.toString()
+}
+
+const renderInput = (params: M.TextFieldProps, errorMessage: string) => (
+  <M.TextField
+    {...params}
+    fullWidth
+    label="Workflow"
+    placeholder="Workflow"
+    InputLabelProps={{
+      shrink: true,
+    }}
+    helperText={errorMessage}
+    error={!!errorMessage}
+  />
+)
+
+const renderOption = (option: WorkflowStruct) => (
+  <M.ListItemText primary={getOptionLabel(option)} secondary={option.description} />
+)
+
 const useStyles = M.makeStyles((t) => ({
   alert: {
     height: '70px',
@@ -20,22 +44,17 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(3),
   },
 }))
-function getOptionLabel(option: WorkflowStruct) {
-  if (option.name) return option.name
-  if (option.slug === notAvailable || option.slug === notSelected) return 'None'
-  return option.slug.toString()
-}
 
 interface WorkflowProps {
   className?: string
   errors?: Error[]
   onChange: (v: WorkflowStruct | null) => void
-  workflows: WorkflowStruct[] | typeof L | Error
+  workflows: WorkflowStruct[]
   value: WorkflowStruct | null
   disabled?: boolean
 }
 
-export default function Workflow({
+function Workflow({
   className,
   errors = [],
   onChange,
@@ -49,14 +68,12 @@ export default function Workflow({
     [onChange],
   )
   const errorMessage = errors.map(({ message }) => message).join('; ')
-  if (workflows === L) return <InputSkeleton />
-  if (workflows instanceof Error) {
-    return (
-      <Lab.Alert className={classes.alert} severity="error">
-        {workflows.message}
-      </Lab.Alert>
-    )
-  }
+
+  const renderInputMemo = React.useCallback(
+    (params) => renderInput(params, errorMessage),
+    [errorMessage],
+  )
+
   return (
     <Lab.Autocomplete
       className={cx({ [classes.noHelperText]: !errorMessage }, className)}
@@ -65,23 +82,31 @@ export default function Workflow({
       onChange={handleChange}
       options={workflows}
       disabled={disabled || value?.slug === notAvailable}
-      renderInput={(params) => (
-        <M.TextField
-          {...params}
-          fullWidth
-          label="Workflow"
-          placeholder="Workflow"
-          InputLabelProps={{
-            shrink: true,
-          }}
-          helperText={errorMessage}
-          error={!!errorMessage}
-        />
-      )}
-      renderOption={(option) => (
-        <M.ListItemText primary={getOptionLabel(option)} secondary={option.description} />
-      )}
+      renderInput={renderInputMemo}
+      renderOption={renderOption}
       value={value}
     />
   )
+}
+
+interface WorkflowContainerProps extends Omit<WorkflowProps, 'workflows'> {
+  workflows: WorkflowStruct[] | typeof L | Error
+}
+
+export default function WorkflowContainer({
+  workflows,
+  ...props
+}: WorkflowContainerProps) {
+  const classes = useStyles()
+
+  if (workflows === L) return <InputSkeleton />
+  if (workflows instanceof Error) {
+    return (
+      <Lab.Alert className={classes.alert} severity="error">
+        {workflows.message}
+      </Lab.Alert>
+    )
+  }
+
+  return <Workflow workflows={workflows} {...props} />
 }

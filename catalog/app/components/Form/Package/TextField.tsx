@@ -4,6 +4,24 @@ import * as M from '@material-ui/core'
 
 import L from 'constants/loading'
 
+export type TextFieldProps = TextFieldEssential &
+  Omit<M.TextFieldProps, 'onChange' | 'value'>
+
+const InputLabelProps = {
+  shrink: true,
+}
+
+function CircularProgress() {
+  return (
+    <M.InputAdornment position="end">
+      <M.CircularProgress size={18} />
+    </M.InputAdornment>
+  )
+}
+const InputProps = {
+  endAdornment: <CircularProgress />,
+}
+
 const useStyles = M.makeStyles((t) => ({
   alert: {
     height: '70px',
@@ -20,9 +38,6 @@ interface TextFieldEssential {
   value: string
   warnings?: string[] | typeof L
 }
-
-export type TextFieldProps = TextFieldEssential &
-  Omit<M.TextFieldProps, 'onChange' | 'value'>
 
 export default function TextField({
   className,
@@ -49,16 +64,8 @@ export default function TextField({
   }, [errors, warnings])
   return (
     <M.TextField
-      InputLabelProps={{
-        shrink: true,
-      }}
-      InputProps={{
-        endAdornment: (errors === L || warnings === L) && (
-          <M.InputAdornment position="end">
-            <M.CircularProgress size={18} />
-          </M.InputAdornment>
-        ),
-      }}
+      InputLabelProps={InputLabelProps}
+      InputProps={errors === L || warnings === L ? InputProps : undefined}
       className={cx({ [classes.noHelperText]: !helperText }, className)}
       error={invalid}
       fullWidth
