@@ -1,5 +1,9 @@
 import * as React from 'react'
 
+import type L from 'constants/loading'
+
+import { Manifest } from '../../PackageDialog/Manifest'
+
 import useBucket, { BucketContext } from './Bucket'
 import useFiles, { FilesContext } from './Files'
 import useManifest from './Manifest'
@@ -23,6 +27,50 @@ interface ContextData {
 
 const Ctx = React.createContext<ContextData | null>(null)
 
+interface WithSrcProps {
+  src: Src
+  bucket: BucketContext
+  children: React.ReactNode
+}
+
+function WithSrc({ bucket, children, src }: WithSrcProps) {
+  const manifest = useManifest(src)
+  const workflow = useWorkflow(bucket.state?.value, manifest)
+
+  return <WithWorkflow {...{ bucket, children, manifest, src, workflow }} />
+}
+
+interface WithWorkflowProps {
+  bucket: BucketContext
+  children: React.ReactNode
+  manifest?: Manifest | typeof L
+  src: Src
+  workflow: WorkflowContext
+}
+
+function WithWorkflow({ bucket, children, manifest, src, workflow }: WithWorkflowProps) {
+  const name = useName(src, bucket, workflow)
+  const message = useMessage()
+  const files = useFiles(workflow, manifest)
+  const meta = useMeta(workflow, manifest)
+
+  const formFields = React.useMemo(
+    () => ({ bucket, files, message, meta, name, workflow }),
+    [bucket, files, message, meta, name, workflow],
+  )
+  const main = useMain(formFields)
+
+  const value = React.useMemo(
+    () => ({
+      ...formFields,
+      main,
+      src,
+    }),
+    [formFields, main, src],
+  )
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
 interface ProviderProps {
   bucket: string
   name: string
@@ -44,33 +92,7 @@ export function Provider({
 }: ProviderProps) {
   const src = useSource(srcBucket, srcName, hashOrTag, path)
   const bucket = useBucket(src)
-
-  // TODO: The rest doesn't make sense without src and bucket,
-  //       so you can put it in a nested component
-  const manifest = useManifest(src)
-  const workflow = useWorkflow(bucket.state?.value, manifest)
-
-  // TODO: The rest doesn't make sense without manifest and workflow,
-  //       so you can put it in a nested component
-  const name = useName(src, bucket, workflow)
-  const message = useMessage()
-  const files = useFiles(workflow, manifest)
-  const meta = useMeta(workflow, manifest)
-  const main = useMain({ bucket, files, message, meta, name, workflow })
-  const v = React.useMemo(
-    () => ({
-      bucket,
-      files,
-      message,
-      main,
-      meta,
-      name,
-      src,
-      workflow,
-    }),
-    [bucket, files, message, main, meta, name, src, workflow],
-  )
-  return <Ctx.Provider value={v}>{children}</Ctx.Provider>
+  return <WithSrc {...{ bucket, src, children }} />
 }
 
 export function useContext(): ContextData {
