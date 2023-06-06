@@ -23,8 +23,8 @@ export interface WorkflowState {
 export interface WorkflowContext {
   state: WorkflowState | typeof L
   getters: {
-    disabled: () => boolean
     formData: () => string | null
+    submitDisabled: () => boolean
   }
   actions: {
     onChange: (v: WorkflowStruct | null) => void
@@ -110,7 +110,7 @@ export default function useWorkflow(
       state,
       getters: {
         formData: () => getFormData(state),
-        disabled: () => isDisabled(state),
+        submitDisabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,

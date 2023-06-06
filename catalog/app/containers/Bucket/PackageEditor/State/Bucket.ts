@@ -18,8 +18,8 @@ export interface BucketState {
 export interface BucketContext {
   state: BucketState
   getters: {
-    disabled: () => boolean
     formData: () => string
+    submitDisabled: () => boolean
   }
   actions: {
     onChange: (v: BucketConfig | null) => void
@@ -75,7 +75,7 @@ export default function useBucket({ bucket }: Src): BucketContext {
       state,
       getters: {
         formData: () => getFormData(state),
-        disabled: () => isDisabled(state),
+        submitDisabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,

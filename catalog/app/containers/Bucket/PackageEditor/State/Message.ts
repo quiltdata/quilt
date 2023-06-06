@@ -9,7 +9,7 @@ export interface MessageContext {
   state: MessageState
   getters: {
     formData: () => string
-    disabled: () => boolean
+    submitDisabled: () => boolean
   }
   actions: {
     onChange: (v: string) => void
@@ -53,7 +53,7 @@ export default function useMessage(): MessageContext {
       state,
       getters: {
         formData: () => getFormData(state),
-        disabled: () => isDisabled(state),
+        submitDisabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,

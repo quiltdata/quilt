@@ -46,12 +46,12 @@ interface FormFields {
 
 function isDisabled(fields: FormFields) {
   return (
-    fields.bucket.getters.disabled() ||
-    fields.files.getters.disabled() ||
-    fields.message.getters.disabled() ||
-    fields.meta.getters.disabled() ||
-    fields.name.getters.disabled() ||
-    fields.workflow.getters.disabled()
+    fields.bucket.getters.submitDisabled() ||
+    fields.files.getters.submitDisabled() ||
+    fields.message.getters.submitDisabled() ||
+    fields.meta.getters.submitDisabled() ||
+    fields.name.getters.submitDisabled() ||
+    fields.workflow.getters.submitDisabled()
   )
 }
 

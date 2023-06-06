@@ -23,7 +23,7 @@ export interface NameContext {
   state: NameState | typeof L
   getters: {
     formData: () => string
-    disabled: () => boolean
+    submitDisabled: () => boolean
   }
   actions: {
     onChange: (v: string) => void
@@ -122,7 +122,7 @@ export default function useName(
       state,
       getters: {
         formData: () => getFormData(state),
-        disabled: () => isDisabled(state),
+        submitDisabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,

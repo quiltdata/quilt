@@ -60,8 +60,8 @@ export interface FilesState {
 export interface FilesContext {
   state: FilesState | typeof L
   getters: {
-    disabled: () => boolean
     formData: (bucket: string, name: string) => Promise<NullablePackageEntry[]>
+    submitDisabled: () => boolean
   }
   actions: {
     onMapChange: (v: FS) => void
@@ -201,7 +201,7 @@ export default function useFiles(
       state,
       getters: {
         formData: (bucket: string, name: string) => getFormData(state, bucket, name),
-        disabled: () => isDisabled(state),
+        submitDisabled: () => isDisabled(state),
       },
       actions: {
         onMapChange: setValue,

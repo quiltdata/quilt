@@ -22,8 +22,8 @@ export interface MetaState {
 export interface MetaContext {
   state: MetaState | typeof L
   getters: {
-    disabled: () => boolean
     formData: () => Types.JsonRecord | null
+    submitDisabled: () => boolean
   }
   actions: {
     onChange: (v: Types.JsonRecord) => void
@@ -92,7 +92,7 @@ export default function useMeta(
       state,
       getters: {
         formData: () => getFormData(state),
-        disabled: () => isDisabled(state),
+        submitDisabled: () => isDisabled(state),
       },
       actions: {
         onChange: setValue,
