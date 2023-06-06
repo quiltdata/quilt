@@ -20,7 +20,6 @@ export interface Success {
 }
 
 interface MainState {
-  disabled: boolean
   status: Error[] | typeof L | Success | null
   submitted: boolean
 }
@@ -29,6 +28,7 @@ export interface MainContext {
   state: MainState
   getters: {
     success: () => Success | null
+    disabled: () => boolean
   }
   actions: {
     onSubmit: () => void
@@ -44,16 +44,14 @@ interface FormFields {
   workflow: WorkflowContext
 }
 
-function useDisabled(fields: FormFields) {
-  return React.useMemo(
-    () =>
-      fields.bucket.getters.disabled() ||
-      fields.files.getters.disabled() ||
-      fields.message.getters.disabled() ||
-      fields.meta.getters.disabled() ||
-      fields.name.getters.disabled() ||
-      fields.workflow.getters.disabled(),
-    [fields],
+function isDisabled(fields: FormFields) {
+  return (
+    fields.bucket.getters.disabled() ||
+    fields.files.getters.disabled() ||
+    fields.message.getters.disabled() ||
+    fields.meta.getters.disabled() ||
+    fields.name.getters.disabled() ||
+    fields.workflow.getters.disabled()
   )
 }
 
@@ -71,18 +69,16 @@ interface FormData {
   }
 }
 
-function useFormData(fields: FormFields): () => Promise<FormData> {
-  return React.useCallback(async () => {
-    const bucket = fields.bucket.getters.formData()
-    const message = fields.message.getters.formData()
-    const name = fields.name.getters.formData()
-    const userMeta = fields.meta.getters.formData()
-    const workflow = fields.workflow.getters.formData()
+async function getFormData(fields: FormFields): Promise<FormData> {
+  const bucket = fields.bucket.getters.formData()
+  const message = fields.message.getters.formData()
+  const name = fields.name.getters.formData()
+  const userMeta = fields.meta.getters.formData()
+  const workflow = fields.workflow.getters.formData()
 
-    const entries = await fields.files.getters.formData(bucket, name)
+  const entries = await fields.files.getters.formData(bucket, name)
 
-    return { params: { name, message, bucket, workflow, userMeta }, src: { entries } }
-  }, [fields])
+  return { params: { name, message, bucket, workflow, userMeta }, src: { entries } }
 }
 
 function getSuccess(state: MainState): Success | null {
@@ -106,16 +102,15 @@ export default function useMain(fields: FormFields): MainContext {
   const [status, setStatus] = React.useState<Error[] | typeof L | Success | null>(null)
   const [submitted, setSubmitted] = React.useState(false)
 
-  const disabled = useDisabled(fields)
-  const getFormData = useFormData(fields)
   const createPackage = useCreatePackage()
 
   const onSubmit = React.useCallback(async () => {
     setSubmitted(true)
+    const disabled = isDisabled(fields)
     if (disabled) return
     setStatus(L)
     try {
-      const formData = await getFormData()
+      const formData = await getFormData(fields)
       const r = await createPackage(formData)
       switch (r.__typename) {
         case 'PackagePushSuccess':
@@ -134,27 +129,27 @@ export default function useMain(fields: FormFields): MainContext {
     } catch (error) {
       setStatus([error as unknown as Error])
     }
-  }, [createPackage, disabled, getFormData])
+  }, [createPackage, fields])
 
   const state: MainState = React.useMemo(
     () => ({
-      disabled: submitted && disabled,
       submitted,
       status,
     }),
-    [disabled, submitted, status],
+    [submitted, status],
   )
 
   return React.useMemo(
     () => ({
       state,
       getters: {
+        disabled: () => state.submitted && isDisabled(fields),
         success: () => getSuccess(state),
       },
       actions: {
         onSubmit,
       },
     }),
-    [state, onSubmit],
+    [state, fields, onSubmit],
   )
 }

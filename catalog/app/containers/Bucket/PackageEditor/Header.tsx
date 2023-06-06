@@ -128,9 +128,10 @@ export default function HeaderContainer() {
     return main.state.status.map(({ message }) => message).join('; ')
   }, [main.state.status])
   const visibility = useVisibility()
+  const disabled = React.useMemo(() => main.getters.disabled(), [main.getters])
   return (
     <Header
-      disabled={main.state.disabled}
+      disabled={disabled}
       error={error}
       onSubmit={main.actions.onSubmit}
       visibility={visibility}
