@@ -15,14 +15,16 @@ import useSource, { Src } from './Source'
 import useWorkflow, { WorkflowContext } from './Workflow'
 
 interface ContextData {
-  bucket: BucketContext
-  files: FilesContext
+  fields: {
+    bucket: BucketContext
+    files: FilesContext
+    message: MessageContext
+    meta: MetaContext
+    name: NameContext
+    workflow: WorkflowContext
+  }
   main: MainContext
-  message: MessageContext
-  meta: MetaContext
-  name: NameContext
   src: Src
-  workflow: WorkflowContext
 }
 
 const Ctx = React.createContext<ContextData | null>(null)
@@ -54,19 +56,19 @@ function WithWorkflow({ bucket, children, manifest, src, workflow }: WithWorkflo
   const files = useFiles(workflow, manifest)
   const meta = useMeta(workflow, manifest)
 
-  const formFields = React.useMemo(
+  const fields = React.useMemo(
     () => ({ bucket, files, message, meta, name, workflow }),
     [bucket, files, message, meta, name, workflow],
   )
-  const main = useMain(formFields)
+  const main = useMain()
 
   const value = React.useMemo(
     () => ({
-      ...formFields,
+      fields,
       main,
       src,
     }),
-    [formFields, main, src],
+    [fields, main, src],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -16,11 +16,14 @@ interface InputFieldProps {
 }
 
 function PackageNameContainer({ disabled, showErrors }: InputFieldProps) {
-  const { name } = State.use()
+  const {
+    fields: { name },
+  } = State.use()
   if (name.state === L) return <InputSkeleton />
   return (
     <PackageName
-      {...name.state}
+      value={name.state.value}
+      warnings={name.state.warnings}
       disabled={disabled}
       errors={showErrors ? name.state.errors : undefined}
       onChange={name.actions.onChange}
@@ -29,7 +32,9 @@ function PackageNameContainer({ disabled, showErrors }: InputFieldProps) {
 }
 
 function CommitMessageContainer({ disabled, showErrors }: InputFieldProps) {
-  const { message } = State.use()
+  const {
+    fields: { message },
+  } = State.use()
   return (
     <CommitMessage
       {...message.state}
@@ -41,7 +46,9 @@ function CommitMessageContainer({ disabled, showErrors }: InputFieldProps) {
 }
 
 function DestinationBucketContainer({ disabled }: Omit<InputFieldProps, 'showErrors'>) {
-  const { bucket } = State.use()
+  const {
+    fields: { bucket },
+  } = State.use()
   return (
     <DestinationBucket
       {...bucket.state}
@@ -52,7 +59,9 @@ function DestinationBucketContainer({ disabled }: Omit<InputFieldProps, 'showErr
 }
 
 function WorkflowContainer({ disabled, showErrors }: InputFieldProps) {
-  const { workflow } = State.use()
+  const {
+    fields: { workflow },
+  } = State.use()
   if (workflow.state === L) return <InputSkeleton />
   return (
     <Workflow

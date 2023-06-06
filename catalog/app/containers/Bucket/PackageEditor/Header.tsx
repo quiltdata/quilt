@@ -122,18 +122,18 @@ function Header({ error, visibility, disabled, onSubmit }: HeaderProps) {
 }
 
 export default function HeaderContainer() {
-  const { main } = State.use()
+  const { fields, main } = State.use()
   const error = React.useMemo(() => {
     if (!Array.isArray(main.state.status)) return
     return main.state.status.map(({ message }) => message).join('; ')
   }, [main.state.status])
   const visibility = useVisibility()
-  const disabled = React.useMemo(() => main.getters.disabled(), [main.getters])
+  const disabled = React.useMemo(() => main.getters.disabled(fields), [main.getters])
   return (
     <Header
       disabled={disabled}
       error={error}
-      onSubmit={main.actions.onSubmit}
+      onSubmit={() => main.actions.onSubmit(fields)}
       visibility={visibility}
     />
   )

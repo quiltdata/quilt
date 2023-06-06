@@ -24,17 +24,6 @@ interface MainState {
   submitted: boolean
 }
 
-export interface MainContext {
-  state: MainState
-  getters: {
-    success: () => Success | null
-    disabled: () => boolean
-  }
-  actions: {
-    onSubmit: () => void
-  }
-}
-
 interface FormFields {
   bucket: BucketContext
   files: FilesContext
@@ -42,6 +31,17 @@ interface FormFields {
   meta: MetaContext
   name: NameContext
   workflow: WorkflowContext
+}
+
+export interface MainContext {
+  state: MainState
+  getters: {
+    success: () => Success | null
+    disabled: (fields: FormFields) => boolean
+  }
+  actions: {
+    onSubmit: (fields: FormFields) => Promise<void>
+  }
 }
 
 function isDisabled(fields: FormFields) {
@@ -98,38 +98,41 @@ function useCreatePackage() {
   )
 }
 
-export default function useMain(fields: FormFields): MainContext {
+export default function useMain(): MainContext {
   const [status, setStatus] = React.useState<Error[] | typeof L | Success | null>(null)
   const [submitted, setSubmitted] = React.useState(false)
 
   const createPackage = useCreatePackage()
 
-  const onSubmit = React.useCallback(async () => {
-    setSubmitted(true)
-    const disabled = isDisabled(fields)
-    if (disabled) return
-    setStatus(L)
-    try {
-      const formData = await getFormData(fields)
-      const r = await createPackage(formData)
-      switch (r.__typename) {
-        case 'PackagePushSuccess':
-          setStatus({ name: formData.params.name, hash: r.revision.hash })
-          break
-        case 'OperationError':
-          setStatus([new Error(r.message)])
-          break
-        case 'InvalidInput':
-          setStatus(r.errors.map(({ message }) => new Error(message)))
-          break
-        default:
-          setStatus([new Error((r as unknown as any).__typename)])
-          assertNever(r)
+  const onSubmit = React.useCallback(
+    async (fields: FormFields) => {
+      setSubmitted(true)
+      const disabled = isDisabled(fields)
+      if (disabled) return
+      setStatus(L)
+      try {
+        const formData = await getFormData(fields)
+        const r = await createPackage(formData)
+        switch (r.__typename) {
+          case 'PackagePushSuccess':
+            setStatus({ name: formData.params.name, hash: r.revision.hash })
+            break
+          case 'OperationError':
+            setStatus([new Error(r.message)])
+            break
+          case 'InvalidInput':
+            setStatus(r.errors.map(({ message }) => new Error(message)))
+            break
+          default:
+            setStatus([new Error((r as unknown as any).__typename)])
+            assertNever(r)
+        }
+      } catch (error) {
+        setStatus([error as unknown as Error])
       }
-    } catch (error) {
-      setStatus([error as unknown as Error])
-    }
-  }, [createPackage, fields])
+    },
+    [createPackage],
+  )
 
   const state: MainState = React.useMemo(
     () => ({
@@ -143,13 +146,13 @@ export default function useMain(fields: FormFields): MainContext {
     () => ({
       state,
       getters: {
-        disabled: () => state.submitted && isDisabled(fields),
+        disabled: (fields: FormFields) => state.submitted && isDisabled(fields),
         success: () => getSuccess(state),
       },
       actions: {
         onSubmit,
       },
     }),
-    [state, fields, onSubmit],
+    [state, onSubmit],
   )
 }

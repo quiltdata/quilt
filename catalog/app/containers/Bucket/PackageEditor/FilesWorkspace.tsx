@@ -75,7 +75,11 @@ function FilesWorkspace({
 }
 
 export default function FilesWorkspaceContainer() {
-  const { bucket, files, main, src } = State.use()
+  const {
+    fields: { bucket, files },
+    main,
+    src,
+  } = State.use()
   if (files.state === L || files.state.value === L || bucket.state.successors === L) {
     return <FilesInputSkeleton />
   }

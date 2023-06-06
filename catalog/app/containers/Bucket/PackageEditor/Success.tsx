@@ -34,7 +34,10 @@ function SuccessDialog({ bucket, success }: SuccessProps) {
 }
 
 export default function SuccessContainer() {
-  const { bucket, main } = State.use()
+  const {
+    fields: { bucket },
+    main,
+  } = State.use()
 
   if (!bucket.state.value || !bucket.state.value.name) return null
 

@@ -48,7 +48,10 @@ function Metadata({ errors, onChange, schema, submitting, value }: MetadataProps
 }
 
 export default function MetadataContainer() {
-  const { main, meta } = State.use()
+  const {
+    main,
+    fields: { meta },
+  } = State.use()
 
   if (meta.state === L || meta.state.schema === L || meta.state.value === L) {
     return <MetaInputSkeleton />
