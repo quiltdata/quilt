@@ -128,7 +128,10 @@ export default function HeaderContainer() {
     return main.state.status.map(({ message }) => message).join('; ')
   }, [main.state.status])
   const visibility = useVisibility()
-  const disabled = React.useMemo(() => main.getters.disabled(fields), [main.getters])
+  const disabled = React.useMemo(
+    () => main.getters.disabled(fields),
+    [fields, main.getters],
+  )
   return (
     <Header
       disabled={disabled}
