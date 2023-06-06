@@ -44,16 +44,16 @@ interface FormFields {
   workflow: WorkflowContext
 }
 
-function useDisabled(ctx: FormFields) {
+function useDisabled(fields: FormFields) {
   return React.useMemo(
     () =>
-      ctx.bucket.getters.disabled() ||
-      ctx.files.getters.disabled() ||
-      ctx.message.getters.disabled() ||
-      ctx.meta.getters.disabled() ||
-      ctx.name.getters.disabled() ||
-      ctx.workflow.getters.disabled(),
-    [ctx],
+      fields.bucket.getters.disabled() ||
+      fields.files.getters.disabled() ||
+      fields.message.getters.disabled() ||
+      fields.meta.getters.disabled() ||
+      fields.name.getters.disabled() ||
+      fields.workflow.getters.disabled(),
+    [fields],
   )
 }
 
@@ -71,18 +71,18 @@ interface FormData {
   }
 }
 
-function useFormData(ctx: FormFields): () => Promise<FormData> {
+function useFormData(fields: FormFields): () => Promise<FormData> {
   return React.useCallback(async () => {
-    const bucket = ctx.bucket.getters.formData()
-    const message = ctx.message.getters.formData()
-    const name = ctx.name.getters.formData()
-    const userMeta = ctx.meta.getters.formData()
-    const workflow = ctx.workflow.getters.formData()
+    const bucket = fields.bucket.getters.formData()
+    const message = fields.message.getters.formData()
+    const name = fields.name.getters.formData()
+    const userMeta = fields.meta.getters.formData()
+    const workflow = fields.workflow.getters.formData()
 
-    const entries = await ctx.files.getters.formData(bucket, name)
+    const entries = await fields.files.getters.formData(bucket, name)
 
     return { params: { name, message, bucket, workflow, userMeta }, src: { entries } }
-  }, [ctx])
+  }, [fields])
 }
 
 function getSuccess(state: MainState): Success | null {
@@ -102,12 +102,12 @@ function useCreatePackage() {
   )
 }
 
-export default function useMain(ctx: FormFields): MainContext {
+export default function useMain(fields: FormFields): MainContext {
   const [status, setStatus] = React.useState<Error[] | typeof L | Success | null>(null)
   const [submitted, setSubmitted] = React.useState(false)
 
-  const disabled = useDisabled(ctx)
-  const getFormData = useFormData(ctx)
+  const disabled = useDisabled(fields)
+  const getFormData = useFormData(fields)
   const createPackage = useCreatePackage()
 
   const onSubmit = React.useCallback(async () => {
