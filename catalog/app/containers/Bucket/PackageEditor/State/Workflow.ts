@@ -84,6 +84,7 @@ export default function useWorkflow(
 ): WorkflowContext {
   const [value, setValue] = React.useState<WorkflowStruct | null>(null)
 
+  React.useEffect(() => setValue(null), [bucket])
   const config = useWorkflowsConfig(bucket?.name || null)
 
   React.useEffect(() => {
