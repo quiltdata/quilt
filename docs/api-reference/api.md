@@ -13,7 +13,7 @@ To retrieve the current config, call directly, without arguments:
 To trigger autoconfiguration, call with just the navigator URL:
 
     import quilt3
-    quilt3.config(navigator_url='https://example.com')
+    quilt3.config('https://YOUR-CATALOG-URL.com')
 
 To set config values, call with one or more key=value pairs:
 
