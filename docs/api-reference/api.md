@@ -18,7 +18,7 @@ To trigger autoconfiguration, call with just the navigator URL:
 To set config values, call with one or more key=value pairs:
 
     import quilt3
-    quilt3.config(navigator_url='http://example.com', elastic_search_url='http://example.com/queries')
+    quilt3.config(navigator_url='http://example.com')
 
 Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
 
