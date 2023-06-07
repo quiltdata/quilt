@@ -679,7 +679,10 @@ export default function Users({ users }) {
 
   const [filter, setFilter] = React.useState('')
   const filtered = React.useMemo(
-    () => rows.filter(({ email, username }) => (email + username).includes(filter)),
+    () =>
+      filter
+        ? rows.filter(({ email, username }) => (email + username).includes(filter))
+        : rows,
     [filter, rows],
   )
   const ordering = Table.useOrdering({ rows: filtered, column: columns[0] })

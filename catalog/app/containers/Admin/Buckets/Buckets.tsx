@@ -1276,9 +1276,11 @@ function CRUD({ bucketName }: CRUDProps) {
   const [filter, setFilter] = React.useState('')
   const filtered = React.useMemo(
     () =>
-      rows.filter(({ name, title }) =>
-        (name + title).toLowerCase().includes(filter.toLowerCase()),
-      ),
+      filter
+        ? rows.filter(({ name, title }) =>
+            (name + title).toLowerCase().includes(filter.toLowerCase()),
+          )
+        : rows,
     [filter, rows],
   )
   const ordering = Table.useOrdering({ rows: filtered, column: columns[0] })
