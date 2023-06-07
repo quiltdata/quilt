@@ -29,6 +29,7 @@ import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 
+import Filter from '../Filter'
 import * as Form from '../Form'
 import * as Table from '../Table'
 
@@ -1272,7 +1273,15 @@ interface CRUDProps {
 
 function CRUD({ bucketName }: CRUDProps) {
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
-  const ordering = Table.useOrdering({ rows, column: columns[0] })
+  const [filter, setFilter] = React.useState('')
+  const filtered = React.useMemo(
+    () =>
+      rows.filter(({ name, title }) =>
+        (name + title).toLowerCase().includes(filter.toLowerCase()),
+      ),
+    [filter, rows],
+  )
+  const ordering = Table.useOrdering({ rows: filtered, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
     // @ts-expect-error
     getItemId: R.prop('name'),
@@ -1335,7 +1344,10 @@ function CRUD({ bucketName }: CRUDProps) {
         {editingBucket && <Edit bucket={editingBucket} close={onBucketClose} />}
       </M.Dialog>
 
-      <Table.Toolbar heading="Buckets" actions={toolbarActions} />
+      <Table.Toolbar heading="Buckets" actions={toolbarActions}>
+        {/* @ts-expect-error */}
+        <Filter value={filter} onChange={setFilter} />
+      </Table.Toolbar>
       <Table.Wrapper>
         <M.Table size="small">
           <Table.Head columns={columns} ordering={ordering} withInlineActions />
