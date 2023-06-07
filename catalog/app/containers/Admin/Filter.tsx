@@ -25,6 +25,7 @@ function ClearButton({ onClick }: ClearButtonProps) {
     </M.InputAdornment>
   )
 }
+
 const useFilterStyles = M.makeStyles({
   root: {
     animation: `$expand ${ANIMATION_DURATION}ms ease-out`,
