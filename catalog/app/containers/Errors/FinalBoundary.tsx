@@ -53,10 +53,15 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
     window.location.reload()
   }, [])
 
-  const [logoutAsLastResort, setLogoutAsLastResort] = React.useState(false)
+  const [reloadDidntHelp, setReloadDidntHelp] = React.useState(false)
   React.useEffect(() => {
     const lastReloadAttempt = storage.get('reloadAttempt')
-    setLogoutAsLastResort(Date.now() - lastReloadAttempt < RELOAD_ATTEMPT_LIFESPAN)
+    if (!lastReloadAttempt) return
+    if (Date.now() - lastReloadAttempt < RELOAD_ATTEMPT_LIFESPAN) {
+      setReloadDidntHelp(true)
+    } else {
+      storage.remove('reloadAttempt')
+    }
   }, [])
 
   const onLogout = React.useCallback((e: React.MouseEvent) => {
@@ -95,7 +100,7 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
         >
           Reload page
         </M.Button>
-        {logoutAsLastResort && (
+        {reloadDidntHelp && (
           <StyledTooltip
             title={
               <>
