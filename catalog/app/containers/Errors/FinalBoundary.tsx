@@ -6,6 +6,13 @@ import { createBoundary } from 'utils/ErrorBoundary'
 import { CredentialsError } from 'utils/AWS/Credentials'
 import StyledTooltip from 'utils/StyledTooltip'
 import logout from 'utils/logout'
+import mkStorage from 'utils/storage'
+
+const storage = mkStorage({
+  reloadAttempt: 'FAIL_RELOAD_ATTEMPT',
+})
+
+const RELOAD_ATTEMPT_LIFESPAN = 1000 * 60 * 5
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -41,9 +48,17 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
   const [disabled, setDisabled] = React.useState(false)
   const classes = useFinalBoundaryStyles()
   const reload = React.useCallback(() => {
+    storage.set('reloadAttempt', Date.now())
     setDisabled(true)
     window.location.reload()
   }, [])
+
+  const [logoutAsLastResort, setLogoutAsLastResort] = React.useState(false)
+  React.useEffect(() => {
+    const lastReloadAttempt = storage.get('reloadAttempt')
+    setLogoutAsLastResort(Date.now() - lastReloadAttempt < RELOAD_ATTEMPT_LIFESPAN)
+  }, [])
+
   const onLogout = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     setDisabled(true)
@@ -80,29 +95,31 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
         >
           Reload page
         </M.Button>
-        <StyledTooltip
-          title={
-            <>
-              <M.Typography>
-                By clicking "Restart session" you are signing out. You will be redirected
-                back to the current page after signing back in.
-              </M.Typography>
-              <M.Typography>
-                Signing in anew solves the credentials issue in most cases.
-              </M.Typography>
-            </>
-          }
-        >
-          <M.Button
-            className={classes.button}
-            disabled={disabled}
-            onClick={onLogout}
-            startIcon={<M.Icon>power_settings_new</M.Icon>}
-            variant="outlined"
+        {logoutAsLastResort && (
+          <StyledTooltip
+            title={
+              <>
+                <M.Typography>
+                  By clicking "Restart session" you are signing out. You will be
+                  redirected back to the current page after signing back in.
+                </M.Typography>
+                <M.Typography>
+                  Signing in anew solves the credentials issue in most cases.
+                </M.Typography>
+              </>
+            }
           >
-            Restart session
-          </M.Button>
-        </StyledTooltip>
+            <M.Button
+              className={classes.button}
+              disabled={disabled}
+              onClick={onLogout}
+              startIcon={<M.Icon>power_settings_new</M.Icon>}
+              variant="outlined"
+            >
+              Restart session
+            </M.Button>
+          </StyledTooltip>
+        )}
       </div>
     </M.Container>
   )
