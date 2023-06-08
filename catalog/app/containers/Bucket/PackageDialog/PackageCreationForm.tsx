@@ -5,6 +5,7 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -48,20 +49,38 @@ import { Manifest, EMPTY_MANIFEST_ENTRIES, useManifest } from './Manifest'
 const CANCEL = 'cancel'
 const README_PATH = 'README.md'
 
+const ERRORS_MAP = {
+  name: {
+    required: 'Enter a package name',
+    invalid: 'Invalid package name',
+    pattern: (w?: workflows.Workflow) =>
+      `Package name must match ${w?.packageNamePattern}`,
+  },
+  msg: {
+    required: 'Enter a commit message',
+  },
+  files: {
+    schema: 'Files should match the schema',
+    [FI.HASHING]: 'Please wait while we hash the files',
+    [FI.HASHING_ERROR]:
+      'Error hashing files, probably some of them are too large. Please try again or contact support.',
+  },
+}
+
 type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
 
 // TODO: use tree as the main data model / source of truth?
-export interface LocalEntry {
+interface LocalEntry {
   path: string
   file: FI.LocalFile
 }
 
-export interface S3Entry {
+interface S3Entry {
   path: string
   file: Model.S3File
 }
 
-export interface PackageCreationSuccess {
+interface PackageCreationSuccess {
   name: string
   hash?: string
 }
@@ -124,17 +143,18 @@ function ConfirmReadme({ close }: DialogsOpenProps) {
 
 interface FormErrorProps {
   submitting: boolean
-  error: React.ReactNode
+  error: React.ReactNode | ((w?: workflows.Workflow) => React.ReactNode)
+  workflow?: workflows.Workflow
 }
 
-function FormError({ submitting, error }: FormErrorProps) {
+function FormError({ submitting, error, workflow }: FormErrorProps) {
   if (submitting || !error || error === CANCEL) return null
   return (
     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
       <M.Icon color="error">error_outline</M.Icon>
       <M.Box pl={1} />
       <M.Typography variant="body2" color="error">
-        {error}
+        {typeof error === 'function' ? error(workflow) : error}
       </M.Typography>
     </M.Box>
   )
@@ -169,6 +189,7 @@ interface PackageCreationFormProps {
   initial?: {
     name?: string
     meta?: Types.JsonRecord
+    msg?: string
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
     path?: string
@@ -182,6 +203,7 @@ interface PackageCreationFormProps {
   workflowsConfig: workflows.WorkflowsConfig
   delayHashing: boolean
   disableStateDisplay: boolean
+  dropZoneOnly: boolean
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -207,6 +229,7 @@ function PackageCreationForm({
   workflowsConfig,
   delayHashing,
   disableStateDisplay,
+  dropZoneOnly,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const addToPackage = AddToPackage.use()
@@ -477,17 +500,38 @@ function PackageCreationForm({
     [delayHashing, validateEntries],
   )
 
+  const onFilesChange = React.useCallback(
+    (submit) =>
+      async ({ dirtyFields, hasValidationErrors }: FF.FormState<SubmitWebArgs>) => {
+        // NOTE:
+        // We show error while files are hashing
+        // then submit after hashing is ended because
+        // `hasValidationErrors` turns to false
+        // FIXME: hasValidationErrors == "wait for files hashing"
+        if (!dirtyFields.files || hasValidationErrors) return
+        await submit()
+      },
+    [],
+  )
+
   // HACK: FIXME: it triggers name validation with correct workflow
   const [hideMeta, setHideMeta] = React.useState(false)
 
   // TODO: move useLocalFolder to its own component shared by Download and Upload
   const [defaultLocalFolder] = Download.useLocalFolder()
 
+  const titlePrefix = React.useMemo(() => {
+    if (ui.title) return `${ui.title} in`
+    if (dropZoneOnly && R.isEmpty(existingEntries)) return 'Add files to package in'
+    return 'Create package in'
+  }, [ui.title, dropZoneOnly, existingEntries])
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
       subscription={{
         error: true,
+        errors: dropZoneOnly,
         hasValidationErrors: true,
         submitError: true,
         submitFailed: true,
@@ -497,6 +541,7 @@ function PackageCreationForm({
     >
       {({
         error,
+        errors,
         hasValidationErrors,
         submitError,
         submitFailed,
@@ -506,7 +551,7 @@ function PackageCreationForm({
         <>
           {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
           <M.DialogTitle>
-            {ui.title || 'Create package'} in{' '}
+            {titlePrefix}
             <Successors.Dropdown
               bucket={bucket || ''}
               successor={successor}
@@ -516,6 +561,13 @@ function PackageCreationForm({
           </M.DialogTitle>
           <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
+              {dropZoneOnly && (
+                <RF.FormSpy
+                  subscription={{ dirtyFields: true, hasValidationErrors: true }}
+                  onChange={onFilesChange(handleSubmit)}
+                />
+              )}
+
               <RF.FormSpy
                 subscription={{ dirtyFields: true, values: true }}
                 onChange={onFormChange}
@@ -537,7 +589,7 @@ function PackageCreationForm({
               />
 
               <Layout.Container>
-                <Layout.LeftColumn>
+                <Layout.LeftColumn hide={dropZoneOnly}>
                   <RF.Field
                     component={PD.WorkflowInput}
                     bucket={bucket}
@@ -562,9 +614,9 @@ function PackageCreationForm({
                     )}
                     validateFields={['name']}
                     errors={{
-                      required: 'Enter a package name',
-                      invalid: 'Invalid package name',
-                      pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
+                      required: ERRORS_MAP.name.required,
+                      invalid: ERRORS_MAP.name.invalid,
+                      pattern: ERRORS_MAP.name.pattern(selectedWorkflow),
                     }}
                     helperText={nameWarning}
                     validating={nameValidator.processing}
@@ -575,8 +627,9 @@ function PackageCreationForm({
                     name="msg"
                     validate={validators.required as FF.FieldValidator<string>}
                     validateFields={['msg']}
+                    initialValue={initial?.msg}
                     errors={{
-                      required: 'Enter a commit message',
+                      required: ERRORS_MAP.msg.required,
                     }}
                   />
 
@@ -599,7 +652,7 @@ function PackageCreationForm({
                   )}
                 </Layout.LeftColumn>
 
-                <Layout.RightColumn>
+                <Layout.RightColumn fullWidth={dropZoneOnly}>
                   {cfg.desktop ? (
                     <RF.Field
                       className={cx(classes.files, {
@@ -624,12 +677,7 @@ function PackageCreationForm({
                       name="files"
                       validate={validateFiles as FF.FieldValidator<$TSFixMe>}
                       validateFields={['files']}
-                      errors={{
-                        schema: 'Files should match schema',
-                        [FI.HASHING]: 'Please wait while we hash the files',
-                        [FI.HASHING_ERROR]:
-                          'Error hashing files, probably some of them are too large. Please try again or contact support.',
-                      }}
+                      errors={ERRORS_MAP.files}
                       totalProgress={uploads.progress}
                       title="Files"
                       onFilesAction={onFilesAction}
@@ -658,13 +706,25 @@ function PackageCreationForm({
             </form>
           </M.DialogContent>
           <M.DialogActions>
+            {!!errors &&
+              Object.entries(errors).map(([input, err]) => (
+                <FormError
+                  submitting={submitting}
+                  error={R.path([input, err], ERRORS_MAP)}
+                  workflow={selectedWorkflow}
+                />
+              ))}
             {submitting && (
               <SubmitSpinner value={uploads.progress.percent}>
                 {uploads.progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
               </SubmitSpinner>
             )}
 
-            <FormError submitting={submitting} error={error || submitError} />
+            <FormError
+              submitting={submitting}
+              error={error || submitError}
+              workflow={selectedWorkflow}
+            />
 
             <M.Button onClick={close} disabled={submitting}>
               Cancel
@@ -673,7 +733,9 @@ function PackageCreationForm({
               onClick={handleSubmit}
               variant="contained"
               color="primary"
-              disabled={submitting || (submitFailed && hasValidationErrors)}
+              disabled={
+                submitting || (submitFailed && hasValidationErrors) || dropZoneOnly
+              }
             >
               {ui.submit || 'Create'}
             </M.Button>
@@ -692,6 +754,50 @@ function prependSourceBucket(
     getDefault: () => bucket,
     list: R.prepend(bucket, buckets.list),
   }
+}
+
+function useInitialState(id?: string) {
+  const history = RRDom.useHistory()
+  const location = RRDom.useLocation()
+  const searchParams = React.useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  )
+  const msg = searchParams.get('msg') || undefined
+  const nameOverride = searchParams.get('name') || undefined
+  const workflowId = searchParams.get('workflow') || undefined
+  const dropZoneOnly = searchParams.has('dropZoneOnly')
+  const getInitial = React.useCallback(
+    (packageName?: string, path?: string, manifest?: Manifest) =>
+      R.mergeRight(manifest || {}, {
+        msg,
+        name: nameOverride || packageName,
+        path,
+        workflowId,
+      }),
+    [msg, nameOverride, workflowId],
+  )
+  const isOpen = id
+    ? searchParams.get('createPackage') === id
+    : searchParams.has('createPackage')
+  const setOpen = React.useCallback(
+    (shouldOpen: boolean) => {
+      if (shouldOpen) {
+        searchParams.set('createPackage', 'true')
+      } else {
+        searchParams.delete('msg')
+        searchParams.delete('name')
+        searchParams.delete('workflow')
+        searchParams.delete('dropZoneOnly')
+        searchParams.delete('createPackage')
+      }
+      history.push({
+        search: searchParams.toString(),
+      })
+    },
+    [searchParams, history],
+  )
+  return { dropZoneOnly, getInitial, isOpen, setOpen }
 }
 
 const DialogState = tagged.create(
@@ -714,7 +820,7 @@ type DialogState = tagged.InstanceOf<typeof DialogState>
 
 const EMPTY_MANIFEST_RESULT = AsyncResult.Ok()
 
-interface PackageCreationDialogUIOptions {
+export interface PackageCreationDialogUIOptions {
   resetFiles?: React.ReactNode
   submit?: React.ReactNode
   successBrowse?: React.ReactNode
@@ -723,59 +829,56 @@ interface PackageCreationDialogUIOptions {
   title?: React.ReactNode
 }
 
-interface UsePackageCreationDialogProps {
-  bucket: string
-  src?: {
-    name: string
-    hash?: string
+interface PackageCreationDialogProps {
+  id?: string
+  src: {
+    bucket: string
+    packageHandle?: {
+      name: string
+      hashOrTag?: string
+    }
+    s3Path?: string
   }
-  initialOpen?: boolean
+  successor: workflows.Successor // FIXME: successor -> dst
+  onSuccessor: (successor: workflows.Successor) => void
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  ui: PackageCreationDialogUIOptions
 }
 
-// TODO: package can be created from some `src`:
-//         * s3 directory
-//         * existing package
-//       and pushed to `dst` (or maybe just `successor`):
-//         * successor
-export function usePackageCreationDialog({
-  bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
+export function PackageCreationDialog({
+  id,
   src,
-  initialOpen,
+  successor,
+  onSuccessor,
   delayHashing = false,
   disableStateDisplay = false,
-}: UsePackageCreationDialogProps) {
-  const [isOpen, setOpen] = React.useState(initialOpen || false)
-  const [exited, setExited] = React.useState(!isOpen)
-  // TODO: put it to src as S3Handle
-  const [s3Path, setS3Path] = React.useState<string | undefined>()
+  ui = {},
+}: PackageCreationDialogProps) {
+  const { dropZoneOnly, isOpen, setOpen, getInitial } = useInitialState(id)
+
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
-  // TODO: move to props: { dst: { successor }, onSuccessorChange }
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-  } as workflows.Successor)
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
   const workflowsData = Data.use(
     requests.workflowsConfig,
     { s3, bucket: successor.slug },
-    { noAutoFetch: !bucket },
+    { noAutoFetch: !src.bucket },
   )
   const prefs = BucketPreferences.use()
 
   const manifestData = useManifest({
-    bucket,
+    bucket: src.bucket,
     // this only gets passed when src is defined, so it should be always non-null when the query gets executed
-    name: src?.name!,
-    hashOrTag: src?.hash,
-    pause: !(src && isOpen),
+    name: src.packageHandle?.name!,
+    hashOrTag: src.packageHandle?.hashOrTag,
+    pause: !(src.packageHandle && isOpen),
   })
 
-  const manifestResult = src ? manifestData.result : EMPTY_MANIFEST_RESULT
+  const manifestResult = src.packageHandle ? manifestData.result : EMPTY_MANIFEST_RESULT
 
   // AsyncResult<Model.PackageContentsFlatMap | undefined>
   const data = React.useMemo(
@@ -792,38 +895,22 @@ export function usePackageCreationDialog({
                         manifest,
                         workflowsConfig,
                         sourceBuckets:
-                          s3Path === undefined
+                          src.s3Path === undefined
                             ? sourceBuckets
-                            : prependSourceBucket(sourceBuckets, bucket),
+                            : prependSourceBucket(sourceBuckets, src.bucket),
                       }),
                     Pending: AsyncResult.Pending,
                     Init: AsyncResult.Init,
                   },
                   prefs,
                 ),
-
               _: R.identity,
             },
             manifestResult,
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, prefs],
-  )
-
-  const open = React.useCallback(
-    (initial?: { successor?: workflows.Successor; path?: string }) => {
-      if (initial?.successor) {
-        setSuccessor(initial?.successor)
-      }
-      if (initial?.path !== undefined) {
-        setS3Path(initial?.path)
-      }
-
-      setOpen(true)
-      setExited(false)
-    },
-    [setOpen, setExited],
+    [src.bucket, src.s3Path, workflowsData, manifestResult, prefs],
   )
 
   const close = React.useCallback(() => {
@@ -831,17 +918,13 @@ export function usePackageCreationDialog({
     setOpen(false)
     setWorkflow(undefined) // TODO: is this necessary?
     addToPackage?.clear()
-  }, [addToPackage, submitting, setOpen])
-
-  const handleExited = React.useCallback(() => {
-    setExited(true)
     setSuccess(false)
-  }, [setExited, setSuccess])
+  }, [addToPackage, submitting, setOpen])
 
   Intercom.usePauseVisibilityWhen(isOpen)
 
   const state = React.useMemo<DialogState>(() => {
-    if (exited) return DialogState.Closed()
+    if (!isOpen) return DialogState.Closed()
     if (success) return DialogState.Success(success)
     return AsyncResult.case(
       {
@@ -851,15 +934,13 @@ export function usePackageCreationDialog({
       },
       data,
     )
-  }, [exited, success, data])
+  }, [isOpen, success, data])
 
-  const render = (ui: PackageCreationDialogUIOptions = {}) => (
-    <PD.DialogWrapper
-      exited={exited}
+  return (
+    <M.Dialog
       fullWidth
       maxWidth={success ? 'sm' : 'lg'}
       onClose={close}
-      onExited={handleExited}
       open={isOpen}
       scroll="body"
     >
@@ -868,7 +949,7 @@ export function usePackageCreationDialog({
           Closed: () => null,
           Loading: () => (
             <DialogLoading
-              skeletonElement={<FormSkeleton />}
+              skeletonElement={<FormSkeleton dropZoneOnly={dropZoneOnly} />}
               title="Fetching package manifest. One moment…"
               submitText={ui.submit}
               onCancel={close}
@@ -876,7 +957,7 @@ export function usePackageCreationDialog({
           ),
           Error: (e) => (
             <DialogError
-              bucket={bucket}
+              bucket={src.bucket}
               error={e}
               skeletonElement={<FormSkeleton animate={false} />}
               title={ui.title || 'Create package'}
@@ -884,38 +965,42 @@ export function usePackageCreationDialog({
               onCancel={close}
             />
           ),
-          Form: ({ manifest, workflowsConfig, sourceBuckets }) => (
-            <PD.SchemaFetcher
-              initialWorkflowId={manifest?.workflowId}
-              workflowsConfig={workflowsConfig}
-              workflow={workflow}
-            >
-              {(schemaProps) => (
-                <PackageCreationForm
-                  {...schemaProps}
-                  {...{
-                    bucket,
-                    successor,
-                    close,
-                    setSubmitting,
-                    setSuccess,
-                    setWorkflow,
-                    workflowsConfig,
-                    sourceBuckets,
-                    initial: { name: src?.name, path: s3Path, ...manifest },
-                    delayHashing,
-                    disableStateDisplay,
-                    onSuccessor: setSuccessor,
-                    ui: {
-                      title: ui.title,
-                      submit: ui.submit,
-                      resetFiles: ui.resetFiles,
-                    },
-                  }}
-                />
-              )}
-            </PD.SchemaFetcher>
-          ),
+          Form: ({ manifest, workflowsConfig, sourceBuckets }) => {
+            const initial = getInitial(src.packageHandle?.name, src.s3Path, manifest)
+            return (
+              <PD.SchemaFetcher
+                initialWorkflowId={initial?.workflowId || manifest?.workflowId}
+                workflowsConfig={workflowsConfig}
+                workflow={workflow}
+              >
+                {(schemaProps) => (
+                  <PackageCreationForm
+                    {...schemaProps}
+                    {...{
+                      bucket: src.bucket,
+                      successor,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+                      sourceBuckets,
+                      initial,
+                      delayHashing,
+                      disableStateDisplay,
+                      dropZoneOnly,
+                      onSuccessor,
+                      ui: {
+                        title: ui.title,
+                        submit: ui.submit,
+                        resetFiles: ui.resetFiles,
+                      },
+                    }}
+                  />
+                )}
+              </PD.SchemaFetcher>
+            )
+          },
           Success: (props) => (
             <DialogSuccess
               {...props}
@@ -929,8 +1014,6 @@ export function usePackageCreationDialog({
         },
         state,
       )}
-    </PD.DialogWrapper>
+    </M.Dialog>
   )
-
-  return { open, close, render }
 }

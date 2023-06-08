@@ -29,7 +29,6 @@ import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
 import Code from '../Code'
@@ -184,7 +183,6 @@ function DirDisplay({
   crumbs,
   size,
 }: DirDisplayProps) {
-  const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
   const classes = useDirDisplayStyles()
@@ -201,24 +199,11 @@ function DirDisplay({
     [urls, bucket, name, hashOrTag],
   )
 
-  const [initialOpen] = React.useState(initialActions.includes('revisePackage'))
-
-  const updateDialog = PD.usePackageCreationDialog({
-    initialOpen,
-    bucket,
-    src: { name, hash },
-  })
-
   const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
   const onPackageCopyDialogExited = React.useCallback(() => {
     setSuccessor(null)
   }, [setSuccessor])
-
-  usePrevious({ bucket, name, hashOrTag }, (prev) => {
-    // close the dialog when navigating away
-    if (!R.equals({ bucket, name, hashOrTag }, prev)) updateDialog.close()
-  })
 
   const prefs = BucketPreferences.use()
 
@@ -306,17 +291,6 @@ function DirDisplay({
         onDelete={handlePackageDeletion}
       />
 
-      {updateDialog.render({
-        resetFiles: 'Undo changes',
-        submit: 'Push',
-        successBrowse: 'Browse',
-        successTitle: 'Push complete',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package revision {packageLink} successfully created</>
-        ),
-        title: 'Push package revision',
-      })}
-
       {GQL.fold(dirQuery, {
         // TODO: skeleton placeholder
         fetching: () => (
@@ -402,16 +376,17 @@ function DirDisplay({
                     Ok: ({ ui: { actions } }) => (
                       <>
                         {actions.revisePackage && (
-                          <M.Button
-                            className={classes.button}
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                            onClick={() => updateDialog.open()}
-                          >
-                            Revise package
-                          </M.Button>
+                          <PD.CreatePackageLink>
+                            <M.Button
+                              className={classes.button}
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                            >
+                              Revise package
+                            </M.Button>
+                          </PD.CreatePackageLink>
                         )}
                         {actions.copyPackage && (
                           <Successors.Button
@@ -987,6 +962,17 @@ function PackageTreeQueries({
   })
 }
 
+const REVISE_PACKAGE_UI = {
+  resetFiles: 'Undo changes',
+  submit: 'Push',
+  successBrowse: 'Browse',
+  successTitle: 'Push complete',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package revision {packageLink} successfully created</>
+  ),
+  title: 'Push package revision',
+}
+
 interface PackageTreeRouteParams {
   bucket: string
   name: string
@@ -1007,7 +993,11 @@ export default function PackageTreeWrapper({
     <>
       <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageTreeQueries {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }} />
+        <PD.Provider {...{ bucket, name, hashOrTag, ui: REVISE_PACKAGE_UI }}>
+          <PackageTreeQueries
+            {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }}
+          />
+        </PD.Provider>
       </WithPackagesSupport>
     </>
   )

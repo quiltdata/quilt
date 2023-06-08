@@ -20,8 +20,8 @@ export function Container({ children }: React.PropsWithChildren<{}>) {
 const GAP = 3
 
 const useColumnStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'flex',
+  root: ({ fullWidth, hide }: { fullWidth?: boolean; hide?: boolean }) => ({
+    display: hide ? 'none' : 'flex',
     flexBasis: '100%',
     flexDirection: 'column',
     flexGrow: 0,
@@ -29,19 +29,35 @@ const useColumnStyles = M.makeStyles((t) => ({
     [t.breakpoints.down('xs')]: {
       paddingBottom: t.spacing(3),
     },
-    [t.breakpoints.up('sm')]: {
-      height: '100%',
-      flexBasis: '50%',
-      maxWidth: `calc(50% - ${t.spacing(GAP / 2)}px)`,
-    },
-  },
+    ...(fullWidth
+      ? null
+      : {
+          [t.breakpoints.up('sm')]: {
+            height: '100%',
+            flexBasis: '50%',
+            maxWidth: `calc(50% - ${t.spacing(GAP / 2)}px)`,
+          },
+        }),
+  }),
 }))
+
+interface ColumnProps {
+  children: React.ReactNode
+  className?: string
+  fullWidth?: boolean
+  hide?: boolean
+}
 
 export function Column({
   children,
   className,
-}: React.PropsWithChildren<{ className?: string }>) {
-  const classes = useColumnStyles()
+  fullWidth = false,
+  hide = false,
+}: ColumnProps) {
+  const classes = useColumnStyles({
+    hide,
+    fullWidth,
+  })
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
@@ -55,7 +71,7 @@ const useLeftColumnStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function LeftColumn(props: React.PropsWithChildren<{}>) {
+export function LeftColumn(props: ColumnProps) {
   const classes = useLeftColumnStyles()
   return <Column className={classes.root} {...props} />
 }

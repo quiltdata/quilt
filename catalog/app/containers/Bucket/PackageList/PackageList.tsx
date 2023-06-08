@@ -616,26 +616,8 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
 
   const prefs = BucketPreferences.use()
 
-  const createDialog = PD.usePackageCreationDialog({
-    bucket,
-    delayHashing: true,
-    disableStateDisplay: true,
-  })
-  const openPackageCreationDialog = React.useCallback(
-    () => createDialog.open(),
-    [createDialog],
-  )
-
   return (
     <>
-      {createDialog.render({
-        successTitle: 'Package created',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package {packageLink} successfully created</>
-        ),
-        title: 'Create package',
-      })}
-
       {GQL.fold(totalCountQuery, {
         fetching: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -683,13 +665,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                     Ok: ({ ui: { actions } }) =>
                       actions.createPackage && (
                         <>
-                          <M.Button
-                            variant="contained"
-                            color="primary"
-                            onClick={openPackageCreationDialog}
-                          >
-                            Create package
-                          </M.Button>
+                          <PD.CreatePackageLink>
+                            <M.Button variant="contained" color="primary">
+                              Create package
+                            </M.Button>
+                          </PD.CreatePackageLink>
                           <M.Box pt={2} />
                           <M.Typography>
                             Or{' '}
@@ -745,15 +725,16 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                     Ok: ({ ui: { actions } }) =>
                       actions.createPackage && (
                         <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
-                          <M.Button
-                            variant="contained"
-                            size="large"
-                            color="primary"
-                            style={{ paddingTop: 7, paddingBottom: 7 }}
-                            onClick={openPackageCreationDialog}
-                          >
-                            Create package
-                          </M.Button>
+                          <PD.CreatePackageLink>
+                            <M.Button
+                              variant="contained"
+                              size="large"
+                              color="primary"
+                              style={{ paddingTop: 7, paddingBottom: 7 }}
+                            >
+                              Create package
+                            </M.Button>
+                          </PD.CreatePackageLink>
                         </M.Box>
                       ),
                     Pending: () => (
@@ -828,6 +809,13 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     </>
   )
 }
+const CREATE_PACKAGE_UI = {
+  successTitle: 'Package created',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package {packageLink} successfully created</>
+  ),
+  title: 'Create package',
+}
 
 export default function PackageListWrapper({
   match: {
@@ -841,7 +829,14 @@ export default function PackageListWrapper({
     <>
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageList {...{ bucket, sort, filter, page }} />
+        <PD.Provider
+          bucket={bucket}
+          ui={CREATE_PACKAGE_UI}
+          delayHashing
+          disableStateDisplay
+        >
+          <PackageList {...{ bucket, sort, filter, page }} />
+        </PD.Provider>
       </WithPackagesSupport>
     </>
   )

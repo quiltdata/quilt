@@ -410,6 +410,17 @@ function Revision({
   )
 }
 
+const REVISE_PACKAGE_UI = {
+  resetFiles: 'Undo changes',
+  submit: 'Push',
+  successBrowse: 'Browse',
+  successTitle: 'Push complete',
+  successRenderMessage: ({ packageLink }: { packageLink: React.ReactNode }) => (
+    <>Package revision {packageLink} successfully created</>
+  ),
+  title: 'Push package revision',
+}
+
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
 interface PackageRevisionsProps {
@@ -447,21 +458,8 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     perPage: PER_PAGE,
   })
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
-
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      {updateDialog.render({
-        resetFiles: 'Undo changes',
-        submit: 'Push',
-        successBrowse: 'Browse',
-        successTitle: 'Push complete',
-        successRenderMessage: ({ packageLink }) => (
-          <>Package revision {packageLink} successfully created</>
-        ),
-        title: 'Push package revision',
-      })}
-
       <M.Box
         pt={{ xs: 2, sm: 3 }}
         pb={{ xs: 2, sm: 1 }}
@@ -477,14 +475,15 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
           {
             Ok: ({ ui: { actions } }) =>
               actions.revisePackage && (
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  style={{ marginTop: -3, marginBottom: -3 }}
-                  onClick={() => updateDialog.open()}
-                >
-                  Revise package
-                </M.Button>
+                <PD.CreatePackageLink>
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    style={{ marginTop: -3, marginBottom: -3 }}
+                  >
+                    Revise package
+                  </M.Button>
+                </PD.CreatePackageLink>
               ),
             Pending: () => <Buttons.Skeleton />,
             Init: () => null,
@@ -545,7 +544,9 @@ export default function PackageRevisionsWrapper({
     <>
       <MetaTitle>{[name, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageRevisions {...{ bucket, name, page }} />
+        <PD.Provider bucket={bucket} name={name} ui={REVISE_PACKAGE_UI}>
+          <PackageRevisions {...{ bucket, name, page }} />
+        </PD.Provider>
       </WithPackagesSupport>
     </>
   )

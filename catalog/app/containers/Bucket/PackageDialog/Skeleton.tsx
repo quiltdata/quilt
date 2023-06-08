@@ -64,12 +64,16 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function FormSkeleton({ animate }: AnimateProp) {
+interface FormSkeletonProps extends AnimateProp {
+  dropZoneOnly?: boolean
+}
+
+export function FormSkeleton({ animate, dropZoneOnly }: FormSkeletonProps) {
   const classes = useFormSkeletonStyles()
 
   return (
     <Layout.Container>
-      <Layout.LeftColumn>
+      <Layout.LeftColumn hide={dropZoneOnly}>
         <TextFieldSkeleton animate={animate} />
         <TextFieldSkeleton animate={animate} />
 
@@ -78,7 +82,7 @@ export function FormSkeleton({ animate }: AnimateProp) {
         <WorkflowsInputSkeleton animate={animate} />
       </Layout.LeftColumn>
 
-      <Layout.RightColumn>
+      <Layout.RightColumn fullWidth={dropZoneOnly}>
         <FilesInputSkeleton className={classes.files} animate={animate} />
       </Layout.RightColumn>
     </Layout.Container>
