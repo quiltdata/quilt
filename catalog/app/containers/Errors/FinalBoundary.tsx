@@ -9,10 +9,12 @@ import logout from 'utils/logout'
 import mkStorage from 'utils/storage'
 
 const storage = mkStorage({
-  reloadAttempt: 'FAIL_RELOAD_ATTEMPT',
+  reloadAttempt: 'RELOAD_ATTEMPT',
 })
 
 const RELOAD_ATTEMPT_LIFESPAN = 1000 * 60 * 5
+
+const lastReloadAttempt = storage.get('reloadAttempt')
 
 const useFinalBoundaryStyles = M.makeStyles((t) => ({
   root: {
@@ -53,16 +55,14 @@ function FinalBoundaryLayout({ error }: FinalBoundaryLayoutProps) {
     window.location.reload()
   }, [])
 
-  const [reloadDidntHelp, setReloadDidntHelp] = React.useState(false)
+  const reloadDidntHelp = lastReloadAttempt
+    ? Date.now() - lastReloadAttempt < RELOAD_ATTEMPT_LIFESPAN
+    : false
+
   React.useEffect(() => {
-    const lastReloadAttempt = storage.get('reloadAttempt')
-    if (!lastReloadAttempt) return
-    if (Date.now() - lastReloadAttempt < RELOAD_ATTEMPT_LIFESPAN) {
-      setReloadDidntHelp(true)
-    } else {
-      storage.remove('reloadAttempt')
-    }
-  }, [])
+    if (!lastReloadAttempt || reloadDidntHelp) return
+    storage.remove('reloadAttempt')
+  }, [reloadDidntHelp])
 
   const onLogout = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
