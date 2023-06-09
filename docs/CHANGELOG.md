@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
+
 # 5.3.1 - 2023-05-02
 ## Python API
 * [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
