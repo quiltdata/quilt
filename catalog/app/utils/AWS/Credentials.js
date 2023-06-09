@@ -19,6 +19,8 @@ class OutdatedTokenError extends CredentialsError {}
 
 class InvalidTokenError extends CredentialsError {}
 
+class NewExpirationInThePastError extends CredentialsError {}
+
 class RegistryCredentials extends AWS.Credentials {
   constructor({ req, reqOpts }) {
     super()
@@ -30,7 +32,13 @@ class RegistryCredentials extends AWS.Credentials {
     if (!this.refreshing) {
       this.refreshing = this.req({ endpoint: '/auth/get_credentials', ...this.reqOpts })
         .then((data) => {
-          this.expireTime = data.Expiration ? new Date(data.Expiration) : null
+          const expireTime = data.Expiration ? new Date(data.Expiration) : null
+          if (expireTime?.getTime() < Date.now()) {
+            throw new NewExpirationInThePastError(
+              `We're getting credentials that are already expired. Check your computer's clock, please`,
+            )
+          }
+          this.expireTime = expireTime
           this.accessKeyId = data.AccessKeyId
           this.secretAccessKey = data.SecretAccessKey
           this.sessionToken = data.SessionToken
@@ -43,6 +51,8 @@ class RegistryCredentials extends AWS.Credentials {
             this.error = new OutdatedTokenError(e.message)
           } else if (/Token could not be deserialized/.test(e.message)) {
             this.error = new InvalidTokenError(e.message)
+          } else if (e instanceof NewExpirationInThePastError) {
+            this.error = e
           } else {
             this.error = new CredentialsError(
               `Unable to fetch AWS credentials: ${e.message}`,
