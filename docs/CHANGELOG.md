@@ -20,6 +20,7 @@ Entries inside each section should be ordered by type:
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] Fix getting custom styles and options for files listed in quilt_summarize.json ([#3485](https://github.com/quiltdata/quilt/pull/3485))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 
 # 5.3.1 - 2023-05-02
