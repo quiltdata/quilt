@@ -8,8 +8,14 @@ import sand from './sand.jpg'
 
 const Img = styled(M.Box)({
   backgroundImage: `url(${sand})`,
-  backgroundRepeat: 'no-repeat',
-  backgroundSize: 'cover',
+  backgroundRepeat: 'repeat',
+  height: 'calc(100vh - 254px)',
+  position: 'relative',
+  boxShadow: `
+    inset 0 0 10px #fff,
+    inset 0 0 20px #fff,
+    inset 0 0 50px #fff,
+    inset 0 0 100px #fff`,
 })
 
 interface ErrorProps {
