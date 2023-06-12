@@ -41,3 +41,33 @@ format (the default is README.md), enter your content, and click save.
 ![Choose name](../imgs/catalog-texteditor-name.png)
 
 ![Edit file](../imgs/catalog-texteditor-main.png)
+
+## Working with Amazon S3 Glacier storage classes
+
+Glacier storage classes are built for data archiving. Quilt is
+compatible with S3 bucket lifecycle rules that transition S3 objects to
+Glacier storage classes.
+
+There are currently three types of S3 object archive storage class that
+work differently with the Quilt Catalog, `quilt3` CLI and Python API.
+
+1. **S3 Glacier Instant Retrieval:** Objects in this storage class are
+available as normal in the Bucket and Packages tabs in the Quilt
+Catalog.
+1. **S3 Glacier Flexible Retrieval (formerly S3 Glacier):** Objects are
+not immediately available and appear "grayed out" in the Catalog.
+1. **S3 Glacier Deep Archive:** Objects are
+not immediately available and appear "grayed out" in the Catalog.
+
+![Glacier S3 objects list
+view](../imgs/catalog-filesbrowser-glacier-listview.png)
+
+Previewing a specific "glacierized" S3 object returns an "Object
+Archived: Preview not available" message. To successfully preview
+the S3 object, you need to restore it first.
+
+![Glacier S3 objects object
+view](../imgs/catalog-filesbrowser-glacier-objectview.png)
+
+> The AWS Glacier service is rapidly evolving and may impact the
+functionality of the Quilt Catalog and/or API.
