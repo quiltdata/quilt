@@ -30,13 +30,13 @@ packaging==23.1
 pandas==1.1.5
 pandocfilters==1.4.2
 psutil==5.7.0
-pyarrow==0.17.1
+pyarrow==7.0.0
 Pygments==2.7.4
 pyrsistent==0.15.2
 python-dateutil==2.8.2
 pytz==2019.1
 pyzmq==25.0.2
-requests==2.26.0
+requests==2.31.0
 six==1.12.0
 soupsieve==2.4.1
 testpath==0.4.2

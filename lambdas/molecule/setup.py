@@ -6,6 +6,6 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "requests==2.27.1",
+        "requests==2.31.0",
     ],
 )
