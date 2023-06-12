@@ -21,6 +21,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
+* [Fixed] Fix Header's orange flash on load ([#3487](https://github.com/quiltdata/quilt/pull/3487))
 
 # 5.3.1 - 2023-05-02
 ## Python API
