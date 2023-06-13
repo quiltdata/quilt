@@ -3,15 +3,17 @@
 
 ## Overview
 
-GxP is the [general abbreviation](https://en.wikipedia.org/wiki/GxP)
-for "Good x Practice", where the "x" represents the domain that the
-guidelines and regulations apply to. Together the regulations
-constitute a collection of quality guidelines for the bio/pharmaceutical
-industries.
+GxP environments for labs, manufacturing, documentation, and clinical practice
+require what we call a "data chain of custody" that enables Quilt users to understand
+where data came from, who produced it, when it was produced, and why it should
+be trusted.
 
-As a decentralized data platform for your organization, Quilt
-provides a series of operational quality metrics through a *status
-monitoring system*.
+The GxP module for Quilt includes the following key features:
+1. Strong cryptographic checksums for data at the object level and at the collection
+(or package) level
+1. Integrated IQ (installation qualification) and OQ (operational qualification)
+testing to help you automate tedious manual qualification cycles into tests run
+by machines and reported to you.
 
 ## Status monitoring
 
@@ -104,20 +106,19 @@ CloudFormation template parameter).
 
 ## Audit Trail
 
-GPT-BS intro (to be further edited):
+Audit trails enable you to track which users had which permissions at which time.
+While data access to S3 is logged via CloudTrail, certain "admin plane" events
+such as the following are logged to a managed S3 bucket and exposed
+via an Athena table:
+* A user logs into the catalog
+* A user role is changed
+* A user is added, deleted, or inactivated in the Catalog
 
-Audit trails in this system serve as integral components of the overall data governance strategy.
-They document critical operations spanning across various facets, including authentication,
-resource management, user administration, and interactions with key features like buckets.
-These trails, logging a chronological sequence of activities, ensure traceability and accountability.
-They facilitate a transparent system inspection, enhancing security, aiding in incident investigations,
-and meeting regulatory compliance under Good Practices (GxP) standards.
-By providing an immutable record of all significant events, the audit trail system
-forms a vital part of our commitment to operational excellence and integrity.
 
 ### Audit Events
 
-Audit events are stored as JSON records in JSONL files in a special audit trail bucket.
+Audit events are stored as JSON records in JSONL files in a managed audit trail
+S3 bucket.
 
 #### Event Structure
 
@@ -137,7 +138,7 @@ e.g. `since 1.0` means the event is available since version 1, revision 0.
 
 ##### `eventTime: datetime` (required, since 1.0)
 
-The date and time the action was completed, in coordinated universal time (UTC).
+When the action was executed in coordinated universal time (UTC).
 
 ##### `eventID: str` (required, since 1.0)
 
@@ -145,25 +146,21 @@ A unique ID (UUID) of the event.
 
 ##### `eventSource: "QuiltServer" | "QuiltScript"` (required, since 1.0)
 
-The service / part of the system this event originates from.
-This can be the one of the following values:
-
+The service or part of the system that this event originates from.
+Has one of the following values:
 - `QuiltServer`: Quilt API Server.
-
 - `QuiltScript`: A management script (this usually happens on stack bring-up / upgrade).
 
 ##### `eventType: "QuiltApiCall" | "QuiltScriptInvocation"` (required, since 1.0)
 
 The type of event that generated the event record.
-This can be the one of the following values:
-
+Has one of the following values:
 - `QuiltApiCall`: An API called (GraphQL query or HTTP endpoint).
-
 - `QuiltScriptInvocation`: A management script invoked (usually on stack bring-up / upgrade).
 
 ##### `eventName: str` (required, since 1.0)
 
-The name of action performed, in form of `${namespace}.${operationName}`, e.g. `Users.Create`.
+The name of action performed in the form `${namespace}.${operationName}`, e.g. `Users.Create`.
 See **Event Taxonomy** for details.
 
 ##### `userAgent: str` (optional, since 1.0)
@@ -213,30 +210,22 @@ Represents a Quilt User.
 Attributes:
 
 - `type: "QuiltUser"`
-
 - `id: str`
-
 - `userName: str`
-
 - `email: str`
-
 - `isAdmin: bool`
-
 - `isActive: bool`
-
 - `isSsoOnly: bool`
-
 - `isService: bool`
-
 - `lastLogin: datetime`
-
 - `dateJoined: datetime`
-
 - `roleId: str` (optional): An ID of the associated Quilt Role.
 
 ##### `Unidentified`
 
 Represents a user we were unable to identify.
+
+<!-- please explain when this might happen !-->
 
 Attributes:
 
