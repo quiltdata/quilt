@@ -138,7 +138,7 @@ S3 bucket.
 
 - `eventName: str` (required, since 1.0)
   The name of action performed in the form `${namespace}.${operationName}`,
-  e.g. `Users.Create`. See **Event Taxonomy** for details.
+  e.g. `Users.Create`. See [Event Taxonomy](#event-taxonomy) for details.
 
 - `userAgent: str` (optional, since 1.0)
   The agent through which the request was made, such as a web browser,
@@ -149,11 +149,11 @@ S3 bucket.
 
 - `userIdentity: UserIdentity` (required, since 1.0)
   Information about the identity that performed the action.
-  Refer to **UserIdentity** section below for details.
+  Refer to [UserIdentity](#user-identity) section below for details.
 
 - `requestParameters: object` (required, since 1.0)
   The parameters, if any, that were sent with the request.
-  These parameters are documented below in the **Event Taxonomy** section.
+  These parameters are documented under [Event Taxonomy](#event-taxonomy) section.
 
 - `responseElements: any` (optional, since 1.0)
   The response data, if any.
@@ -181,7 +181,7 @@ When an admin script is invoked (this usually happens on stack bring-up / upgrad
 Event records are versioned with `eventVersion` and `eventRevision`
 In the context of this document, these together are referenced as `${eventVersion}.${eventRevision}`,
 (similar to `MAJOR.MINOR` SemVer-like notation),
-e.g. `since 1.0` means an event is available since version 1, revision 0.
+e.g. `since 1.0` means the field is available since version 1, revision 0.
 
 `eventVersion` is incremented on backwards-incompatible changes to the schema,
 e.g. removing a JSON field that already exists, or changing how the contents of
