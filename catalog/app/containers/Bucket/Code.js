@@ -101,6 +101,25 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
     [selected.contents, push],
   )
 
+  const lines = React.useMemo(
+    () =>
+      selected.contents.split('\n').map((line, index) => {
+        if (!line.includes('[[') || !line.includes(']]')) {
+          return {
+            key: selected.label + index,
+            text: line,
+          }
+        }
+        const matched = line.match(/(.*) \[\[(.*)\]\]/)
+        return {
+          help: matched[2],
+          key: selected.label + index,
+          text: matched[1],
+        }
+      }),
+    [selected.contents],
+  )
+
   return (
     <Section
       icon="code"
@@ -130,18 +149,14 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       {...props}
     >
       <div className={classes.code}>
-        {selected.contents.map((content, index) =>
-          Array.isArray(content) ? (
-            <LineOfCode
-              help={content[1]}
-              key={selected.label + index}
-              lang={selected.hl}
-              text={content[0]}
-            />
-          ) : (
-            <LineOfCode key={selected.label + index} lang={selected.hl} text={content} />
-          ),
-        )}
+        {lines.map((line, index) => (
+          <LineOfCode
+            help={line.help}
+            key={selected.label + index}
+            lang={selected.hl}
+            text={line.text}
+          />
+        ))}
       </div>
     </Section>
   )

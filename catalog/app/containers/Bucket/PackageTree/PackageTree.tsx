@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -75,42 +76,33 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
     {
       label: 'Python',
       hl: 'python',
-      contents: [
-        'import quilt3 as q3',
-        ['# Browse', `${docs}/api-reference/package#package.browse`],
-        `p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")`,
-        [
-          '# make changes to package adding individual files',
-          `${docs}/api-reference/package#package.set`,
-        ],
-        `p.set("data.csv", "data.csv")`,
-        ['# or whole directories', `${docs}/api-reference/package#package.set_dir`],
-        `p.set_dir("subdir", "subdir")`,
-        ['# and push changes', `${docs}/api-reference/package#package.push`],
-        `p.push("${name}", registry="s3://${bucket}", message="Hello World")`,
-        '',
-        [
-          '# Download (be mindful of large packages)',
-          `${docs}/api-reference/package#package.push`,
-        ],
-        `q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")`,
-      ],
+      contents: dedent`
+        import quilt3 as q3
+        # Browse [[${docs}/api-reference/package#package.browse]]
+        p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
+        # make changes to package adding individual files [[${docs}/api-reference/package#package.set]]
+        p.set("data.csv", "data.csv")
+        '# or whole directories [[${docs}/api-reference/package#package.set_dir]]
+        p.set_dir("subdir", "subdir")
+        # and push changes [[${docs}/api-reference/package#package.push]]
+        p.push("${name}", registry="s3://${bucket}", message="Hello World")
+
+        # Download (be mindful of large packages) [[${docs}/api-reference/package#package.push]]
+        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")`,
     },
     {
       label: 'CLI',
       hl: 'bash',
-      contents: [
-        ['# Download package', `${docs}/api-reference/cli#install`],
-        `quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .`,
-        ...(!path
-          ? [
-              '',
-              ['# Upload package', `${docs}/api-reference/cli#push`],
-              'echo "Hello World" > README.md',
-              `quilt3 push "${name}" --registry s3://${bucket} --dir .`,
-            ]
-          : []),
-      ],
+      contents:
+        dedent`
+        # Download package [[${docs}/api-reference/cli#install]]
+        quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .` +
+        !path
+          ? dedent`\n
+              # Upload package [[${docs}/api-reference/cli#push]]
+              echo "Hello World" > README.md
+              quilt3 push "${name}" --registry s3://${bucket} --dir .`
+          : '',
     },
     { label: 'URI', contents: [PackageUri.stringify({ bucket, name, hash, path })] },
   ]
