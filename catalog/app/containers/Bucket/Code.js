@@ -35,11 +35,28 @@ const useStyles = M.makeStyles((t) => ({
     height: 32,
   },
   code: {
+    width: '100%',
+  },
+  loc: {
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     overflowX: 'auto',
     overflowY: 'hidden',
     whiteSpace: 'pre',
+    minHeight: t.typography.body2.fontSize,
+    display: 'flex',
+    alignItems: 'flex-end',
+    '&:hover $help': {
+      opacity: 1,
+    },
+  },
+  help: {
+    opacity: 0.3,
+    display: 'inline-flex',
+    marginLeft: t.spacing(0.5),
+  },
+  icon: {
+    fontSize: '18px',
   },
 }))
 
@@ -97,7 +114,22 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       )}
       {...props}
     >
-      <div className={classes.code}>{highlight(selected.hl, selected.contents)}</div>
+      <div className={classes.code}>
+        {selected.contents.map((content, index) => (
+          <div className={classes.loc} key={selected.label + index}>
+            {typeof content === 'string' ? (
+              highlight(selected.hl, content)
+            ) : (
+              <>
+                {highlight(selected.hl, content.text)}{' '}
+                <a href={content.help} className={classes.help} target="_blank">
+                  <M.Icon className={classes.icon}>help_outline</M.Icon>
+                </a>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
     </Section>
   )
 }

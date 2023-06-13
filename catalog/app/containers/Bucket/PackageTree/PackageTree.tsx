@@ -15,6 +15,7 @@ import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
+import { docs } from 'constants/urls'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -76,40 +77,59 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
     {
       label: 'Python',
       hl: 'python',
-      contents: dedent`
-        import quilt3 as q3
-        # Browse
-        p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # make changes to package adding individual files
-        p.set("data.csv", "data.csv")
-        # or whole directories
-        p.set_dir("subdir", "subdir")
-        # and push changes
-        p.push("${name}", registry="s3://${bucket}", message="Hello World")
-
-        # Download (be mindful of large packages)
-        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
-      `,
+      contents: [
+        {
+          text: 'import quilt3 as q3',
+          help: `${docs}/api-reference/api`,
+        },
+        '# Browse',
+        {
+          text: `p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")`,
+          help: `${docs}/api-reference/package#package.browse`,
+        },
+        '# make changes to package adding individual files',
+        {
+          text: `p.set("data.csv", "data.csv")`,
+          help: `${docs}/api-reference/package#package.set`,
+        },
+        '# or whole directories',
+        {
+          text: `p.set_dir("subdir", "subdir")`,
+          help: `${docs}/api-reference/package#package.set_dir`,
+        },
+        '# and push changes',
+        {
+          text: `p.push("${name}", registry="s3://${bucket}", message="Hello World")`,
+          help: `${docs}/api-reference/package#package.push`,
+        },
+        '',
+        '# Download (be mindful of large packages)',
+        {
+          text: `q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")`,
+          help: `${docs}/api-reference/package#package.push`,
+        },
+      ],
     },
     {
       label: 'CLI',
       hl: 'bash',
-      contents:
+      contents: [
         dedent`
           # Download package
           quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
         ` +
-        (!path
-          ? dedent`\n
+          (!path
+            ? dedent`\n
               # Upload package
               echo "Hello World" > README.md
               quilt3 push "${name}" --registry s3://${bucket} --dir .
             `
-          : ''),
+            : ''),
+      ],
     },
     {
       label: 'URI',
-      contents: PackageUri.stringify({ bucket, name, hash, path }),
+      contents: [PackageUri.stringify({ bucket, name, hash, path })],
     },
   ]
   return <Code>{code}</Code>
