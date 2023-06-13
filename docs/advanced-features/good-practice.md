@@ -190,6 +190,13 @@ a field are represented (for example, a date format).
 `eventRevision` is incremented on backwards-compatible changes, such as adding
 new fields to the event structure.
 
+#### GraphQL requests
+
+For GraphQL requests,
+query (mutation) parameters are recorded as `requestParameters`,
+and response data (respecting the selection set) are recorded as `responseElements`.
+Errors are inferred and recorded to `errorCode` / `errorMessage`.
+
 #### User Identity
 
 All `UserIdentity` variants are stored as JSON objects with a required `type` field.
