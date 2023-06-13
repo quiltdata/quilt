@@ -112,10 +112,7 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
           : []),
       ],
     },
-    {
-      label: 'URI',
-      contents: [PackageUri.stringify({ bucket, name, hash, path })],
-    },
+    { label: 'URI', contents: [PackageUri.stringify({ bucket, name, hash, path })] },
   ]
   return <Code>{code}</Code>
 }

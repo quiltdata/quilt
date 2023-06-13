@@ -24,21 +24,8 @@ function highlight(lang, str) {
   return str
 }
 
-const useStyles = M.makeStyles((t) => ({
-  container: {
-    alignItems: 'center',
-    display: 'flex',
-    marginBottom: t.spacing(-2),
-    marginLeft: t.spacing(3),
-    marginTop: t.spacing(-2),
-  },
-  btn: {
-    height: 32,
-  },
-  code: {
-    width: '100%',
-  },
-  loc: {
+const useLineOfCodeStyles = M.makeStyles((t) => ({
+  root: {
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     overflowX: 'auto',
@@ -56,8 +43,35 @@ const useStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(0.5),
     opacity: 0.3,
   },
-  icon: {
-    fontSize: '18px',
+}))
+
+function LineOfCode({ lang, text, help }) {
+  const classes = useLineOfCodeStyles()
+  return (
+    <div className={classes.root}>
+      {highlight(lang, text)}
+      {help && (
+        <StyledLink href={help} className={classes.help} target="_blank">
+          [?]
+        </StyledLink>
+      )}
+    </div>
+  )
+}
+
+const useStyles = M.makeStyles((t) => ({
+  container: {
+    alignItems: 'center',
+    display: 'flex',
+    marginBottom: t.spacing(-2),
+    marginLeft: t.spacing(3),
+    marginTop: t.spacing(-2),
+  },
+  btn: {
+    height: 32,
+  },
+  code: {
+    width: '100%',
   },
 }))
 
@@ -116,20 +130,18 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       {...props}
     >
       <div className={classes.code}>
-        {selected.contents.map((content, index) => (
-          <div className={classes.loc} key={selected.label + index}>
-            {Array.isArray(content) ? (
-              <>
-                {highlight(selected.hl, content[0])}{' '}
-                <StyledLink href={content[1]} className={classes.help} target="_blank">
-                  [?]
-                </StyledLink>
-              </>
-            ) : (
-              highlight(selected.hl, content)
-            )}
-          </div>
-        ))}
+        {selected.contents.map((content, index) =>
+          Array.isArray(content) ? (
+            <LineOfCode
+              help={content[1]}
+              key={selected.label + index}
+              lang={selected.hl}
+              text={content[0]}
+            />
+          ) : (
+            <LineOfCode key={selected.label + index} lang={selected.hl} text={content} />
+          ),
+        )}
       </div>
     </Section>
   )
