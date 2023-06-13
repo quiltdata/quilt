@@ -103,111 +103,103 @@ If enabled (see set-up instructions above), these events will be
 also sent as emails to the configured address (`CanaryNotificationsEmail`
 CloudFormation template parameter).
 
-
 ## Audit Trail
 
 Audit trails enable you to track which users had which permissions at which time.
 While data access to S3 is logged via CloudTrail, certain "admin plane" events
 such as the following are logged to a managed S3 bucket and exposed
 via an Athena table:
+
 * A user logs into the catalog
 * A user role is changed
 * A user is added, deleted, or inactivated in the Catalog
 
-
-### Audit Events
+### Audit events
 
 Audit events are stored as JSON records in JSONL files in a managed audit trail
 S3 bucket.
 
-#### Event Structure
+#### Event structure
 
-##### `eventVersion: int`, `eventRevision: int` (required, since 1.0)
+- `eventVersion: int`, `eventRevision: int` (required, since 1.0)
+  Version and revision of the event record.
 
-Version and revision of the event record.
+- `eventTime: datetime` (required, since 1.0)
+  When the action was **completed** (in UTC).
 
-We increment the version on backwards-incompatible changes to the schema,
+- `eventID: str` (required, since 1.0)
+  A unique ID (UUID) of the event.
+
+- `eventSource: "QuiltServer" | "QuiltScript"` (required, since 1.0)
+  The service or part of the system that this event originates from.
+
+- `eventType: "QuiltApiCall" | "QuiltScriptInvocation"` (required, since 1.0)
+  The type of event that generated the event record.
+
+- `eventName: str` (required, since 1.0)
+  The name of action performed in the form `${namespace}.${operationName}`,
+  e.g. `Users.Create`. See **Event Taxonomy** for details.
+
+- `userAgent: str` (optional, since 1.0)
+  The agent through which the request was made, such as a web browser,
+  a Quilt Stack or Quilt Python Client.
+
+- `sourceIPAddress: str` (optional, since 1.0)
+  The IP address that the request was made from.
+
+- `userIdentity: UserIdentity` (required, since 1.0)
+  Information about the identity that performed the action.
+  Refer to **UserIdentity** section below for details.
+
+- `requestParameters: object` (required, since 1.0)
+  The parameters, if any, that were sent with the request.
+  These parameters are documented below in the **Event Taxonomy** section.
+
+- `responseElements: any` (optional, since 1.0)
+  The response data, if any.
+
+- `errorCode: str` (optional, since 1.0)
+  Only present if an error occured while trying to perform an action,
+  `null` when the action succeeds.
+
+- `errorMessage: str` (optional, since 1.0)
+  Description of the error.
+
+- `additionalEventData: object` (optional, since 1.0)
+  Additional data about the event that was not part of the request or response.
+
+#### Event source and type
+
+When a Quilt Server API is called (GraphQL query or HTTP endpoint),
+`eventSource` is set to `QuiltServer` and `eventType` -- to `QuiltApiCall`.
+
+When an admin script is invoked (this usually happens on stack bring-up / upgrade),
+`eventSource` is set to `QuiltScript` and `eventType` -- to `QuiltScriptInvocation`.
+
+#### Event schema versioning
+
+Event records are versioned with `eventVersion` and `eventRevision`
+In the context of this document, these together are referenced as `${eventVersion}.${eventRevision}`,
+(similar to `MAJOR.MINOR` SemVer-like notation),
+e.g. `since 1.0` means an event is available since version 1, revision 0.
+
+`eventVersion` is incremented on backwards-incompatible changes to the schema,
 e.g. removing a JSON field that already exists, or changing how the contents of
 a field are represented (for example, a date format).
 
-We increment the revision on backwards-compatible changes, such as
-adding new fields to the event structure.
-
-In the context of this document, these together are referenced as `${eventVersion}.${eventRevision}`,
-e.g. `since 1.0` means the event is available since version 1, revision 0.
-
-##### `eventTime: datetime` (required, since 1.0)
-
-When the action was executed in coordinated universal time (UTC).
-
-##### `eventID: str` (required, since 1.0)
-
-A unique ID (UUID) of the event.
-
-##### `eventSource: "QuiltServer" | "QuiltScript"` (required, since 1.0)
-
-The service or part of the system that this event originates from.
-Has one of the following values:
-- `QuiltServer`: Quilt API Server.
-- `QuiltScript`: A management script (this usually happens on stack bring-up / upgrade).
-
-##### `eventType: "QuiltApiCall" | "QuiltScriptInvocation"` (required, since 1.0)
-
-The type of event that generated the event record.
-Has one of the following values:
-- `QuiltApiCall`: An API called (GraphQL query or HTTP endpoint).
-- `QuiltScriptInvocation`: A management script invoked (usually on stack bring-up / upgrade).
-
-##### `eventName: str` (required, since 1.0)
-
-The name of action performed in the form `${namespace}.${operationName}`, e.g. `Users.Create`.
-See **Event Taxonomy** for details.
-
-##### `userAgent: str` (optional, since 1.0)
-
-The agent through which the request was made, such as a web browser or Quilt Python Client.
-
-##### `sourceIPAddress: str` (optional, since 1.0)
-
-The IP address that the request was made from.
-
-##### `userIdentity: UserIdentity` (required, since 1.0)
-
-Information about the identity that performed the action.
-Refer to **UserIdentity** section below for details.
-
-##### `requestParameters: JSON object` (required, since 1.0)
-
-The parameters, if any, that were sent with the request.
-These parameters are documented below in the **Event Taxonomy** section.
-
-##### `responseElements: any` (optional, since 1.0)
-
-The response data, if any.
-
-##### `errorCode: str` (optional, since 1.0)
-
-Only present if an error occured while trying to perform an action,
-`null` when the action succeeds.
-
-##### `errorMessage: str` (optional, since 1.0)
-
-Description of the error.
-
-##### `additionalEventData: JSON object` (optional, since 1.0)
-
-Additional data about the event that was not part of the request or response.
+`eventRevision` is incremented on backwards-compatible changes, such as adding
+new fields to the event structure.
 
 #### User Identity
 
-All `UserIdentity` variants are stored as JSON objects and expose the `type` field.
+All `UserIdentity` variants are stored as JSON objects with a required `type` field.
 Other fields vary based on the type of the recorded user identity.
 
 ##### `QuiltUser`
 
-Represents a Quilt User.
+Represents an authenticated Quilt User.
 
-Attributes:
+**Attributes**:
 
 - `type: "QuiltUser"`
 - `id: str`
@@ -219,24 +211,28 @@ Attributes:
 - `isService: bool`
 - `lastLogin: datetime`
 - `dateJoined: datetime`
-- `roleId: str` (optional): An ID of the associated Quilt Role.
+- `roleId: str` (optional) An ID of the associated Quilt Role.
 
 ##### `Unidentified`
 
 Represents a user we were unable to identify.
 
-<!-- please explain when this might happen !-->
+In `QuiltApiCall` actions, this means an anonymous (unauthenticated) user,
+e.g. we can't identify a user trying to sign-in with a non-registered username.
 
-Attributes:
+In `QuiltScript` actions, this means the execution environment doesn't have
+AWS credentials available -- this shouldn't happen in our production installations.
+
+**Attributes**:
 
 - `type: "Unidentified"`
 
 ##### `IAMUser`
 
-Represents an AWS/IAM user (e.g. when ECS invokes a management script).
+Represents an AWS/IAM user (e.g. when ECS invokes an admin script).
 Records the data returned by [`sts:GetCallerIdentity`](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html).
 
-Attributes:
+**Attributes**:
 
 - `type: "IAMUser"`
 
@@ -247,6 +243,8 @@ Attributes:
 - `arn: str`: The AWS ARN associated with the calling entity.
 
 #### Examples
+
+TBD
 
 #### Event Taxonomy
 
@@ -364,7 +362,7 @@ A service user (Canary) logged in.
 
 ##### `Auth.Activate`
 
-A user activated.
+A user was activated.
 
 ##### `Auth.PasswordResetRequest`
 
@@ -502,31 +500,82 @@ User's role updated.
 
 - `requestParameters`
   - `username: str`
-  - `role: str` (Role name)
+  - `role: str` Role name
 
 #### `Script` namespace
 
-description and shared fields TBD
+Admin scripts. Usually invoked on stack bring-up / upgrade.
+
+All `Script.*` events contain the following data:
+
+- `additionalRequestData`
+  - `script_name: str` Script filename
+  - `script_args: str[]` List of arguments
+  - `script_command: str` The whole unparsed command string
+
+- `userIdentity: IAMUser` AWS identity of the user executing the script
+
+- `requestParameters: object` Parsed named script arguments
 
 ##### `Scripts.CreateAdmin`
 
-TBD
+Create an admin user account. Usually succeeds only once on stack bring-up,
+and fails on subsequent stack upgrades.
+
+- `requestParameters`
+  - `env: bool` Pass account info in environment variables
+  - `role_name: str` (optional) Name for Quilt T4 Role
+  - `email: str`
+  - `password: "***"` (optional)
+
+- `additionalEventData`
+  - `role_id: str` (optional)
+    ID of the Quilt Role, if found by the name `role_name` (when provided).
 
 ##### `Scripts.CreateRole`
 
-TBD
+Add a named role to the stack, or set the ARN of a role
+if a role with the specified name already exists.
+
+- `requestParameters`
+  - `name: str`
+  - `arn: str` (optional)
+    ARN for AWS Role that is associated with this Quilt Role
+  - `default: bool`
+    Set this role as default if default role is not already set
 
 ##### `Scripts.FixPackageEventsQueueSubscriptions`
 
-TBD
+- `requestParameters`
+  - `subscriber: str`
+  - `col_name: str`
+  - `subscription_attributes: object`
+  - `sqs_url: str`
+  - `sqs_arn: str`
+
+- `additionalEventData`
+  - `sqs_updated`
+    - `sqs_url: str`
+    - `sqs_arn: str`
+    - `sqs_policy: str`
+  - `subscriptions_created: object`
+    A mapping of bucket names to ARNs of subscriptions created for them
+  - `subscription_errors: object`
+    A mapping of bucket names to error messages revceived while trying to
+    subscribe to their notifications
 
 ##### `Scripts.SetupCanaries`
 
-TBD
+Create a canary user (`_canary <canary@quiltdata.io>`) and set up resources
+required for running continuous integration testing (OQ monitoring).
+
+- `requestParameters`
+  - `bucket_allowed: str`
+  - `bucket_restricted: str`
 
 ##### `Scripts.UpdateBucketPolicies`
 
-TBD
+Update Quilt-managed IAM policies allowing the stack to access the buckets.
 
 ### Querying With Athena
 
