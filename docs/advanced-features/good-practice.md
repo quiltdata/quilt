@@ -242,69 +242,13 @@ Records the data returned by [`sts:GetCallerIdentity`](https://docs.aws.amazon.c
 
 - `arn: str`: The AWS ARN associated with the calling entity.
 
-#### Examples
-
-TBD
-
 #### Event Taxonomy
 
 See the GraphQL schema for GraphQL type reference.
 
-#### `Buckets` namespace
-
-##### `Buckets.Add` (GraphQL: `Mutation.bucketAdd`)
-
-Bucket added to the stack.
-
-##### `Buckets.Update` (GraphQL: `Mutation.bucketUpdate`)
-
-Bucket settings updated.
-
-##### `Buckets.Remove` (GraphQL: `Mutation.bucketRemove`)
-
-Bucket removed from the stack.
-
-#### `Policies` namespace
-
-##### `Policies.Create` (GraphQL: `Mutation.policyCreateManaged` / `Mutation.policyCreateUnmanaged`)
-
-Quilt Policy created.
-
-`requestParameters.managed` is set accordingly.
-
-##### `Policies.Update` (GraphQL: `Mutation.policyUpdateManaged` / `Mutation.policyUpdateUnmanaged`)
-
-Quilt Policy updated.
-
-`requestParameters.managed` is set accordingly.
-
-##### `Policies.Delete` (GraphQL: `Mutation.policyDelete`)
-
-Quilt Policy deleted.
-
-#### `Roles` namespace
-
-##### `Roles.Create` (GraphQL: `Mutation.roleCreateManaged` / `Mutation.roleCreateUnmanaged`)
-
-Quilt Role created.
-
-`requestParameters.managed` is set accordingly.
-
-##### `Roles.Update` (GraphQL: `Mutation.roleUpdateManaged` / `Mutation.roleUpdateUnmanaged`)
-
-Quilt Role updated.
-
-`requestParameters.managed` is set accordingly.
-
-##### `Roles.Delete` (GraphQL: `Mutation.roleDelete`)
-
-Quilt Role deleted.
-
-##### `Roles.SetDefault` (GraphQL: `Mutation.roleSetDefault`)
-
-Quilt Role set as default.
-
 #### `Auth` namespace
+
+All the authentication-related operations.
 
 ##### `Auth.RefreshToken`
 
@@ -420,6 +364,7 @@ AWS credentials issued for a Quilt user.
 
 #### `Users` namespace
 
+User managment operations.
 Only accessible by the admin users.
 
 ##### `Users.List`
@@ -480,7 +425,7 @@ User is revoked admin rights.
 - `requestParameters`
   - `username: str`
 
-##### `Users.RevokeAdmin`
+##### `Users.Delete`
 
 User deleted.
 
@@ -502,11 +447,74 @@ User's role updated.
   - `username: str`
   - `role: str` Role name
 
-#### `Script` namespace
+#### `Buckets` namespace
 
-Admin scripts. Usually invoked on stack bring-up / upgrade.
+Bucket management operations.
+Only accessible by the admin users.
 
-All `Script.*` events contain the following data:
+##### `Buckets.Add` (GraphQL: `Mutation.bucketAdd`)
+
+Bucket added to the stack.
+
+##### `Buckets.Update` (GraphQL: `Mutation.bucketUpdate`)
+
+Bucket settings updated.
+
+##### `Buckets.Remove` (GraphQL: `Mutation.bucketRemove`)
+
+Bucket removed from the stack.
+
+#### `Policies` namespace
+
+Quilt Policy management operations.
+Only accessible by the admin users.
+
+##### `Policies.Create` (GraphQL: `Mutation.policyCreateManaged` / `Mutation.policyCreateUnmanaged`)
+
+Quilt Policy created.
+
+`requestParameters.managed` is set accordingly.
+
+##### `Policies.Update` (GraphQL: `Mutation.policyUpdateManaged` / `Mutation.policyUpdateUnmanaged`)
+
+Quilt Policy updated.
+
+`requestParameters.managed` is set accordingly.
+
+##### `Policies.Delete` (GraphQL: `Mutation.policyDelete`)
+
+Quilt Policy deleted.
+
+#### `Roles` namespace
+
+Quilt Role management operations.
+Only accessible by the admin users.
+
+##### `Roles.Create` (GraphQL: `Mutation.roleCreateManaged` / `Mutation.roleCreateUnmanaged`)
+
+Quilt Role created.
+
+`requestParameters.managed` is set accordingly.
+
+##### `Roles.Update` (GraphQL: `Mutation.roleUpdateManaged` / `Mutation.roleUpdateUnmanaged`)
+
+Quilt Role updated.
+
+`requestParameters.managed` is set accordingly.
+
+##### `Roles.Delete` (GraphQL: `Mutation.roleDelete`)
+
+Quilt Role deleted.
+
+##### `Roles.SetDefault` (GraphQL: `Mutation.roleSetDefault`)
+
+Quilt Role set as default.
+
+#### `Scripts` namespace
+
+Admin scripts. Usually invoked by CloudFormation on stack bring-up / upgrade.
+
+All `Scripts.*` events contain the following data:
 
 - `additionalRequestData`
   - `script_name: str` Script filename
@@ -519,8 +527,8 @@ All `Script.*` events contain the following data:
 
 ##### `Scripts.CreateAdmin`
 
-Create an admin user account. Usually succeeds only once on stack bring-up,
-and fails on subsequent stack upgrades.
+Create an admin user account.
+Succeeds once on stack bring-up, fails on subsequent stack upgrades.
 
 - `requestParameters`
   - `env: bool` Pass account info in environment variables
@@ -576,6 +584,121 @@ required for running continuous integration testing (OQ monitoring).
 ##### `Scripts.UpdateBucketPolicies`
 
 Update Quilt-managed IAM policies allowing the stack to access the buckets.
+
+#### Example event records
+
+Admin user creation (failed because the user was created earlier):
+
+```json
+{
+  "eventVersion": 1,
+  "eventRevision": 0,
+  "eventTime": "2023-06-08T13:55:27Z",
+  "eventID": "3d59b43a-3c31-48b1-bd5c-a039af87fdc5",
+  "eventSource": "QuiltScript",
+  "type": "QuiltScriptInvocation",
+  "eventName": "Scripts.CreateAdmin",
+  "userAgent": "quilt-stack quilt-registry (Linux 5.10.179-166.674.amzn2.x86_64) CPython/3.8.16",
+  "sourceIPAddress": null,
+  "userIdentity": {
+    "type": "IAMUser",
+    "id": "*REDACTED*",
+    "account": "*REDACTED*",
+    "arn": "arn:aws:sts::*REDACTED*:assumed-role/*REDACTED*"
+  },
+  "requestParameters": {
+    "env": true,
+    "role_name": "ReadWriteQuiltBucket",
+    "email": "example@quiltdata.io",
+    "password": null
+  },
+  "responseElements": null,
+  "errorCode": "Conflict",
+  "errorMessage": "Email already taken.",
+  "additionalEventData": {
+    "script_name": "./scripts/create_admin.py",
+    "script_args": ["-e", "-r", "ReadWriteQuiltBucket"],
+    "script_command": "./scripts/create_admin.py -e -r ReadWriteQuiltBucket",
+    "role_id": "*REDACTED*"
+  }
+}
+```
+
+A user with admin rights authenticated using password:
+
+```json
+{
+  "eventVersion": 1,
+  "eventRevision": 0,
+  "eventTime": "2023-06-08T13:59:36Z",
+  "eventID": "92e66ee3-42fd-4142-990d-9d54059c583b",
+  "eventSource": "QuiltServer",
+  "type": "QuiltApiCall",
+  "eventName": "Auth.Login",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0",
+  "sourceIPAddress": "*REDACTED*",
+  "userIdentity": {
+    "type": "QuiltUser",
+    "id": "*REDACTED*",
+    "userName": "example_user",
+    "email": "example_user@quiltdata.io",
+    "isAdmin": true,
+    "lastLogin": "2023-03-23T12:37:53Z",
+    "isActive": true,
+    "isSsoOnly": false,
+    "isService": false,
+    "dateJoined": "2020-11-16T03:32:01Z",
+    "roleId": "*REDACTED*"
+  },
+  "requestParameters": { "username": "example_user", "password": "***" },
+  "responseElements": {
+    "access_token": "***",
+    "refresh_token": "***",
+    "exp": "2023-09-06T13:59:36Z"
+  },
+  "errorCode": null,
+  "errorMessage": null,
+  "additionalEventData": { "method": "password" }
+}
+```
+
+A service user (Canary) authenticated:
+
+```json
+{
+  "eventVersion": 1,
+  "eventRevision": 0,
+  "eventTime": "2023-06-12T00:37:21Z",
+  "eventID": "10b0901a-74cd-4e62-8954-33f4fba6e8ad",
+  "eventSource": "QuiltServer",
+  "type": "QuiltApiCall",
+  "eventName": "Auth.ServiceLogin",
+  "userAgent": "",
+  "sourceIPAddress": "*REDACTED*",
+  "userIdentity": {
+    "type": "QuiltUser",
+    "id": "*REDACTED*",
+    "userName": "_canary",
+    "email": "canary@quiltdata.io",
+    "isAdmin": false,
+    "lastLogin": "2022-11-24T13:55:31Z",
+    "isActive": true,
+    "isSsoOnly": false,
+    "isService": true,
+    "dateJoined": "2022-11-24T13:55:31Z",
+    "roleId": "*REDACTED*"
+  },
+  "requestParameters": { "provider": "quilt-service-auth", "token": "***" },
+  "responseElements": {
+    "access_token": "***",
+    "refresh_token": "***",
+    "exp": "2023-09-10T00:37:21Z"
+  },
+  "errorCode": null,
+  "errorMessage": null,
+  "additionalEventData": { "account_id": "_canary" }
+}
+```
 
 ### Querying With Athena
 
