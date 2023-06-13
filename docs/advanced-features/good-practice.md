@@ -702,4 +702,62 @@ A service user (Canary) authenticated:
 
 ### Querying With Athena
 
+Audit events can be queried with [AWS Athena](https://aws.amazon.com/athena/).
+Quilt Stack provisions the following resources:
+
+- **Audit Trail Database**: a Glue database named `audittraildatabase-${random_string}`,
+  exposed as `AuditTrailDatabase` stack resource.
+
+- **Audit Trail Table**: a Glue table named `audit_trail` in **Audit Trail Database**.
+
+- **Audit Workgroup**: an Athena workgroup named `${AWS::StackName}-audit"`,
+  exposed as `AuditTrailWorkgroup` stack resource.
+
+- **"Repair Audit Trail table"** saved query in **Audit Workgroup**,
+  associated with the **Audit Trail Database**.
+
+- **Audit Trail Bucket**: an S3 bucket storing all the audit trail data and
+  Athena query results for **Audit Workgroup**.
+
+In order to query audit trail data via AWS Athena Console, you should:
+
+1. Select `AwsDataCatalog` from the "Data source" dropdown.
+
+2. Select **Audit Trail Database** from the "Database" dropdown.
+
+3. Select **Audit Workgroup** from the "Workgroup" dropdown.
+
+4. Run the **"Repair Audit Trail table"** saved query
+   before executing your actual queries
+   to tell Athena to pick up the newly created partitions.
+
+All the events are available in the `audit_trail` table,
+which has the following fields (schema version 1.0):
+
+- `eventversion: tinyint`
+- `eventrevision: tinyint`
+- `eventtime: timestamp`
+- `eventid: string`
+- `eventsource: string`
+- `eventtype: string`
+- `eventname: string`
+- `useragent: string`
+- `sourceipaddress: string`
+- `useridentity: string`
+- `requestparameters: string`
+- `responseelements: string`
+- `errorcode: string`
+- `errormessage: string`
+- `additionaleventdata: string`
+- `year: int` (partition)
+- `month: int` (partition)
+- `day: int` (partition)
+
+The data is partitioned by `year`, `month` and `day`.
+
+All the JSON objects from an event record are exposed to Athena as strings,
+so you can leverage athena JSON querying capabilities.
+
+#### Example queries
+
 TBD
