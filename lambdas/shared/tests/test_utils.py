@@ -13,11 +13,18 @@ from testfixtures import LogCapture
 
 from t4_lambda_shared.utils import (
     IncompleteResultException,
+    get_available_memory,
     get_default_origins,
     make_json_response,
     query_manifest_content,
     separated_env_to_iter,
 )
+
+
+def test_get_available_memory():
+    mem = get_available_memory()
+    assert isinstance(mem, int), "Expected an int"
+    assert mem > 1, "Expected some memory"
 
 
 class TestUtils(TestCase):
@@ -107,7 +114,13 @@ class TestUtils(TestCase):
             assert separated_env_to_iter('CONTENT_INDEX_EXTS') == {'.parquet', '.csv', '.tsv'}
         with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ''}):
             assert separated_env_to_iter('CONTENT_INDEX_EXTS') == set(), \
-                "Invalid sets should be empty and falsy"
+                "Empty string should yield empty set"
+        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': '     '}):
+            assert separated_env_to_iter('CONTENT_INDEX_EXTS') == set(), \
+                "All spaces should yield empty set"
+        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': '\t\n'}):
+            assert separated_env_to_iter('CONTENT_INDEX_EXTS') == set(), \
+                "Tab and newline should be empty and falsy"
 
     def test_origins(self):
         """
