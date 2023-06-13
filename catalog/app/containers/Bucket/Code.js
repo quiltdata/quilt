@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
+import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
 import Section from './Section'
@@ -51,9 +52,9 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   help: {
-    opacity: 0.3,
     display: 'inline-flex',
     marginLeft: t.spacing(0.5),
+    opacity: 0.3,
   },
   icon: {
     fontSize: '18px',
@@ -117,15 +118,15 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       <div className={classes.code}>
         {selected.contents.map((content, index) => (
           <div className={classes.loc} key={selected.label + index}>
-            {typeof content === 'string' ? (
-              highlight(selected.hl, content)
-            ) : (
+            {Array.isArray(content) ? (
               <>
-                {highlight(selected.hl, content.text)}{' '}
-                <a href={content.help} className={classes.help} target="_blank">
-                  <M.Icon className={classes.icon}>help_outline</M.Icon>
-                </a>
+                {highlight(selected.hl, content[0])}{' '}
+                <StyledLink href={content[1]} className={classes.help} target="_blank">
+                  [?]
+                </StyledLink>
               </>
+            ) : (
+              highlight(selected.hl, content)
             )}
           </div>
         ))}
