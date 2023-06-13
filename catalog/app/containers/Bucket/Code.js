@@ -104,20 +104,22 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
   const lines = React.useMemo(
     () =>
       selected.contents.split('\n').map((line, index) => {
-        if (!line.includes('[[') || !line.includes(']]')) {
+        // Find [[ URL ]] and render put it to help prop
+        const matched = line.match(/(.*) \[\[(.*)\]\]/)
+        const key = selected.label + index
+        if (!matched || !matched[1] || !matched[2]) {
           return {
-            key: selected.label + index,
+            key,
             text: line,
           }
         }
-        const matched = line.match(/(.*) \[\[(.*)\]\]/)
         return {
           help: matched[2],
-          key: selected.label + index,
+          key,
           text: matched[1],
         }
       }),
-    [selected.contents],
+    [selected.contents, selected.label],
   )
 
   return (

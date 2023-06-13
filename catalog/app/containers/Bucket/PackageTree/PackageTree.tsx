@@ -82,29 +82,35 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
         p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
         # make changes to package adding individual files [[${docs}/api-reference/package#package.set]]
         p.set("data.csv", "data.csv")
-        '# or whole directories [[${docs}/api-reference/package#package.set_dir]]
+        # or whole directories [[${docs}/api-reference/package#package.set_dir]]
         p.set_dir("subdir", "subdir")
         # and push changes [[${docs}/api-reference/package#package.push]]
         p.push("${name}", registry="s3://${bucket}", message="Hello World")
 
         # Download (be mindful of large packages) [[${docs}/api-reference/package#package.push]]
-        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")`,
+        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
+      `,
     },
     {
       label: 'CLI',
       hl: 'bash',
       contents:
         dedent`
-        # Download package [[${docs}/api-reference/cli#install]]
-        quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .` +
-        !path
+          # Download package [[${docs}/api-reference/cli#install]]
+          quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
+        ` +
+        (!path
           ? dedent`\n
               # Upload package [[${docs}/api-reference/cli#push]]
               echo "Hello World" > README.md
-              quilt3 push "${name}" --registry s3://${bucket} --dir .`
-          : '',
+              quilt3 push "${name}" --registry s3://${bucket} --dir .
+            `
+          : ''),
     },
-    { label: 'URI', contents: [PackageUri.stringify({ bucket, name, hash, path })] },
+    {
+      label: 'URI',
+      contents: PackageUri.stringify({ bucket, name, hash, path }),
+    },
   ]
   return <Code>{code}</Code>
 }
