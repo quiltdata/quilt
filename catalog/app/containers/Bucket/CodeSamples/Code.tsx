@@ -114,7 +114,7 @@ export default function Code({ defaultSelected = 0, children, ...props }: CodePr
   const lines = React.useMemo(
     () =>
       selected.contents.split('\n').map((line, index) => {
-        // Find [[ URL ]] and render put it to help prop
+        // Find [[ URL ]] and put it to help prop
         const matched = line.match(/(.*) \[\[(.*)\]\]/)
         const key = selected.label + index
         if (!matched || !matched[1] || !matched[2]) {
