@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import cfg from 'constants/config'
+import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
@@ -81,9 +82,9 @@ export default function Dir({
         contents: dedent`
           import quilt3 as q3
           b = q3.Bucket("s3://${bucket}")
-          # list files
+          # List files [[${docs}/api-reference/bucket#bucket.ls]]
           b.ls("${path}")
-          # download
+          # Download [[${docs}/api-reference/bucket#bucket.fetch]]
           b.fetch("${path}", "./${dest}")
         `,
       },
@@ -91,9 +92,9 @@ export default function Dir({
         label: 'CLI',
         hl: 'bash',
         contents: dedent`
-          # list files
+          # List files [[https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html]]
           aws s3 ls "s3://${bucket}/${path}"
-          # download
+          # Download [[https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html]]
           aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
         `,
       },
