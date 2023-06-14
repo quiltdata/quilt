@@ -1,6 +1,5 @@
 import { basename } from 'path'
 
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -15,7 +14,6 @@ import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
-import { docs } from 'constants/urls'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -25,14 +23,13 @@ import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
-import Code from '../Code'
+import PackageCodeSamples from '../CodeSamples/Package'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
@@ -57,63 +54,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-interface PkgCodeProps {
-  bucket: string
-  name: string
-  hash: string
-  hashOrTag: string
-  path: string
-}
-
-function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
-  const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
-  const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
-  const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
-  const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
-  const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
-  const code = [
-    {
-      label: 'Python',
-      hl: 'python',
-      contents: dedent`
-        import quilt3 as q3
-        # Browse [[${docs}/api-reference/package#package.browse]]
-        p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # make changes to package adding individual files [[${docs}/api-reference/package#package.set]]
-        p.set("data.csv", "data.csv")
-        # or whole directories [[${docs}/api-reference/package#package.set_dir]]
-        p.set_dir("subdir", "subdir")
-        # and push changes [[${docs}/api-reference/package#package.push]]
-        p.push("${name}", registry="s3://${bucket}", message="Hello World")
-
-        # Download (be mindful of large packages) [[${docs}/api-reference/package#package.push]]
-        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
-      `,
-    },
-    {
-      label: 'CLI',
-      hl: 'bash',
-      contents:
-        dedent`
-          # Download package [[${docs}/api-reference/cli#install]]
-          quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
-        ` +
-        (!path
-          ? dedent`\n
-              # Upload package [[${docs}/api-reference/cli#push]]
-              echo "Hello World" > README.md
-              quilt3 push "${name}" --registry s3://${bucket} --dir .
-            `
-          : ''),
-    },
-    {
-      label: 'URI',
-      contents: PackageUri.stringify({ bucket, name, hash, path }),
-    },
-  ]
-  return <Code>{code}</Code>
-}
 
 const useTopBarStyles = M.makeStyles((t) => ({
   topBar: {
@@ -454,7 +394,7 @@ function DirDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
                         <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
@@ -726,7 +666,7 @@ function FileDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
                         <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
