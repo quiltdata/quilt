@@ -161,10 +161,10 @@ export default function Code({ defaultSelected = 0, children, ...props }: CodePr
       {...props}
     >
       <div className={classes.code}>
-        {lines.map((line, index) => (
+        {lines.map((line) => (
           <LineOfCode
             help={line.help}
-            key={selected.label + index}
+            key={line.key}
             lang={selected.hl}
             text={line.text}
           />
