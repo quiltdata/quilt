@@ -11,7 +11,7 @@ import Code from '../Code'
 import type { SectionProps } from '../Section'
 
 const TEMPLATES = {
-  PY: (bucket: string, path: string, hashDisplay: string) => {
+  PY: (bucket: string, name: string, path: string, hashDisplay: string) => {
     const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
     const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
     return dedent`
@@ -29,7 +29,7 @@ const TEMPLATES = {
       q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
     `
   },
-  CLI_DOWNLOAD: (bucket: string, path: string, hashDisplay: string) => {
+  CLI_DOWNLOAD: (bucket: string, name: string, path: string, hashDisplay: string) => {
     const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
     const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
     return dedent`
@@ -67,17 +67,17 @@ export default function PackageCodeSamples({
       {
         label: 'Python',
         hl: 'python',
-        contents: TEMPLATES.PY(bucket, path, hashDisplay),
+        contents: TEMPLATES.PY(bucket, name, path, hashDisplay),
       },
       {
         label: 'CLI',
         hl: 'bash',
         contents: [
-          TEMPLATES.CLI_DOWNLOAD(bucket, path, hashDisplay),
+          TEMPLATES.CLI_DOWNLOAD(bucket, name, path, hashDisplay),
           !path ? TEMPLATES.CLI_UPLOAD(bucket, name) : '',
         ]
           .filter(Boolean)
-          .join('\n'),
+          .join('\n\n'),
       },
       {
         label: 'URI',
