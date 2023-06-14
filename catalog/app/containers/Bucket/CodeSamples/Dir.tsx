@@ -5,8 +5,9 @@ import * as React from 'react'
 
 import { docs } from 'constants/urls'
 
-import Code from './Code'
 import type { SectionProps } from '../Section'
+
+import Code from './Code'
 
 const TEMPLATES = {
   PY_INIT: (bucket: string) =>

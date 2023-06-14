@@ -7,8 +7,9 @@ import { docs } from 'constants/urls'
 import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
-import Code from './Code'
 import type { SectionProps } from '../Section'
+
+import Code from './Code'
 
 const TEMPLATES = {
   PY: (bucket: string, name: string, path: string, hashDisplay: string) => {
