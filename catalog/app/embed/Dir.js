@@ -134,7 +134,9 @@ export default function Dir({
         )}
       </M.Box>
 
-      {!ecfg.hideCode && <DirCodeSamples bucket={bucket} path={path} gutterBottom />}
+      {!ecfg.hideCode && (
+        <DirCodeSamples bucket={bucket} path={path} gutterBottom isDirectory />
+      )}
 
       {data.case({
         Err: displayError(),
