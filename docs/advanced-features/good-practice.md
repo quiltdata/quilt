@@ -767,4 +767,116 @@ so you can leverage athena JSON querying capabilities.
 
 #### Example queries
 
-TBD
+When did a user with the specified email last log in?
+
+```sql
+SELECT
+eventtime,
+useragent,
+sourceipaddress,
+useridentity,
+requestparameters,
+responseelements,
+additionaleventdata
+FROM audit_trail
+WHERE eventname = 'Auth.Login'
+AND errorcode IS NULL
+AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
+AND json_extract_scalar(useridentity, '$.email') = 'example@quiltdata.io'
+ORDER BY eventtime DESC
+LIMIT 1;
+```
+
+Example query result:
+
+|`eventtime`|`useragent`|`sourceipaddress`|`useridentity`|`requestparameters`|`responseelements`|`additionaleventdata`|
+|-----------|-----------|-----------------|--------------|-------------------|------------------|---------------------|
+|`2023-06-08 13:59:36.000`|`Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0`|*REDACTED*|`{"isssoonly":false,"isadmin":true,"lastlogin":"2023-03-23T12:37:53Z","roleid":"*REDACTED*","isactive":true,"isservice":false,"id":"*REDACTED*","type":"QuiltUser","datejoined":"2020-11-16T03:32:01Z","email":"example@quiltdata.io","username":"example"}`|`{"password":"***","username":"example"}`|`{"access_token":"***","refresh_token":"***","exp":"2023-09-06T13:59:36Z"}`|`{"method":"password"}`|
+
+What are all the actions performed by a user with the given email today
+and which IP did they come from?
+
+```sql
+SELECT
+eventtime,
+eventname,
+useragent,
+sourceipaddress,
+requestparameters,
+responseelements,
+additionaleventdata,
+errorcode
+FROM audit_trail
+WHERE year = year(CURRENT_DATE)
+AND month = month(CURRENT_DATE)
+AND day = day(CURRENT_DATE)
+AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
+AND json_extract_scalar(useridentity, '$.email') = 'example@quiltdata.io'
+ORDER BY eventtime
+```
+
+Example query result:
+
+|`eventtime`|`eventname`|`useragent`|`sourceipaddress`|`requestparameters`|`responseelements`|`additionaleventdata`|`errorcode`|
+|-----------|-----------|-----------|-----------------|-------------------|------------------|---------------------|-----------|
+|`2023-06-14 11:33:00.000`|`Auth.Login`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"password":"***","username":"nl0"}`|`{"access_token":"***","refresh_token":"***","exp":"2023-09-12T11:33:00Z"}`|`{"method":"password"}`||
+|`2023-06-14 11:33:02.000`|`Auth.GetAWSCredentials`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{}`|`{"secretkey":"***","sessiontoken":"***","accesskeyid":"ASIA2LR7MUT63B7CE5WE"}`|`{}`||
+|`2023-06-14 11:33:07.000`|`Users.List`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{}`|`{"results":[*REDACTED*]}`|`{}`||
+|`2023-06-14 11:33:16.000`|`Users.Disable`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"username":"*REDACTED*"}`||`{}`||
+|`2023-06-14 11:33:42.000`|`Users.GrantAdmin`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"username":"*REDACTED*"}`||`{}`||
+|`2023-06-14 11:34:16.000`|`Roles.Update`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{"input":{"name":"*REDACTED*","policies":[*REDACTED*]},"managed":true,"id":"*REDACTED"}`|`{"role":{*REDACTED*},"__typename":"RoleUpdateSuccess"}`|`{"graphql_path":"roleUpdate"}`||
+|`2023-06-14 11:34:26.000`|`Auth.Logout`|`Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0`|*REDACTED*|`{}`||`{}`||
+
+Which users were active this month and what actions they performed?
+
+```sql
+SELECT
+json_extract_scalar(useridentity, '$.id') as userid,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.username')) as usernames,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.email')) as emails,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.isadmin')) as isadmin_values,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.roleid')) as roles,
+array_agg(DISTINCT sourceipaddress) as ips,
+min(eventtime) as time_first,
+max(eventtime) as time_last,
+array_agg(DISTINCT eventname) as actions
+FROM audit_trail
+WHERE year = year(CURRENT_DATE)
+AND month = month(CURRENT_DATE)
+AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
+GROUP BY json_extract_scalar(useridentity, '$.id')
+```
+
+Example query result:
+
+|`userid`|`usernames`|`emails`|`isadmin_values`|`roles`|`ips`|`time_first`|`time_last`|`actions`|
+|--------|-----------|--------|----------------|-------|-----|------------|-----------|---------|
+|*REDACTED*|`[admin]`|`[admin@example.com]`|`[true]`|`[*REDACTED*]`|`[*REDACTED*]`|`2023-06-08 00:16:48.000`|`2023-06-14 11:34:26.000`|`[Users.Disable, Users.Enable, Users.GrantAdmin, Roles.Update, Auth.Logout, Users.RevokeAdmin, Auth.GetAWSCredentials, Auth.Login, Users.List]`|
+|*REDACTED*|`[user]`|`[user@example.com]`|`[true, false]`|`[*REDACTED*]`|`[*REDACTED*]`|`2023-06-08 00:16:26.000`|`2023-06-14 13:10:02.000`|`[Users.List, Auth.GetAWSCredentials]`|
+|*REDACTED*|`[_canary]`|`[canary@quiltdata.io]`|`[false]`|`[*REDACTED*]`|`[*REDACTED*]`|`2023-06-08 00:37:21.000`|`2023-06-14 12:38:20.000`|`[Auth.GetAWSCredentials, Auth.ServiceLogin]`|
+
+Which unique users logged in this month and which role did they have and were
+they an admin?
+
+```sql
+SELECT
+json_extract_scalar(useridentity, '$.id') as userid,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.username')) as usernames,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.email')) as emails,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.isadmin')) as isadmin_values,
+array_agg(DISTINCT json_extract_scalar(useridentity, '$.roleid')) as roles
+FROM audit_trail
+WHERE year = year(CURRENT_DATE)
+AND month = month(CURRENT_DATE)
+AND eventname = 'Auth.Login'
+AND errorcode IS NULL
+AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
+GROUP BY json_extract_scalar(useridentity, '$.id')
+```
+
+Example query result:
+
+|`userid`|`usernames`|`emails`|`isadmin_values`|`roles`|
+|--------|-----------|--------|----------------|-------|
+|*REDACTED*|`[admin]`|`[admin@example.com]`|`[true]`|`[*REDACTED*]`|
+|*REDACTED*|`[user]`|`[user@example.com]`|`[false]`|`[*REDACTED*]`|
