@@ -388,7 +388,9 @@ export default function Dir({
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { blocks } }) =>
-            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom isDirectory />,
+            blocks.code && (
+              <DirCodeSamples bucket={bucket} path={path} gutterBottom isDirectory />
+            ),
           Pending: () => null,
           Init: () => null,
         },

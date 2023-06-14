@@ -29,7 +29,7 @@ import parseSearch from 'utils/parseSearch'
 import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
-import FileCodeSamples from './CodeSamples/File'
+import DirCodeSamples from './CodeSamples/Dir'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
@@ -498,7 +498,7 @@ export default function File({
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
+                      {blocks.code && <DirCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
