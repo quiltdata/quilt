@@ -24,6 +24,7 @@ import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
+import GTMLoader from 'utils/gtm'
 import * as Auth from 'containers/Auth'
 import * as Errors from 'containers/Errors'
 import * as Notifications from 'containers/Notifications'
@@ -97,6 +98,7 @@ const render = () => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
+      GTMLoader,
       [
         Intercom.Provider,
         {
