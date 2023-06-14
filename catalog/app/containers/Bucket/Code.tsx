@@ -8,9 +8,9 @@ import * as Notifications from 'containers/Notifications'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import Section from './Section'
+import Section, { SectionProps } from './Section'
 
-function highlight(lang, str) {
+function highlight(str: string, lang?: string) {
   if (lang && hljs.getLanguage(lang)) {
     try {
       const { value } = hljs.highlight(str, { language: lang })
@@ -45,11 +45,16 @@ const useLineOfCodeStyles = M.makeStyles((t) => ({
   },
 }))
 
-function LineOfCode({ lang, text, help }) {
+interface LineOfCodeProps {
+  lang?: string
+  text: string
+  help?: string
+}
+function LineOfCode({ lang, text, help }: LineOfCodeProps) {
   const classes = useLineOfCodeStyles()
   return (
     <div className={classes.root}>
-      {highlight(lang, text)}
+      {highlight(text, lang)}
       {help && (
         <StyledLink href={help} className={classes.help} target="_blank">
           [?]
@@ -75,8 +80,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface CodeProps extends Partial<SectionProps> {
+  children: { label: string; contents: string; hl?: string }[]
+  defaultSelected?: number
+}
+
 // children: [{ label: str, contents: str, hl: lang }]
-export default function Code({ defaultSelected = 0, children, ...props }) {
+export default function Code({ defaultSelected = 0, children, ...props }: CodeProps) {
   const classes = useStyles()
   const { push } = Notifications.use()
 
