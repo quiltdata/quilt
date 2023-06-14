@@ -1,6 +1,5 @@
 import { basename } from 'path'
 
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
@@ -8,7 +7,6 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import cfg from 'constants/config'
-import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
@@ -16,7 +14,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
-import Code from 'containers/Bucket/Code'
+import DirCodeSamples from 'containers/Bucket/CodeSamples/Dir'
 import * as FileView from 'containers/Bucket/FileView'
 import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
@@ -72,35 +70,6 @@ export default function Dir({
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
-  const dest = path ? basename(path) : bucket
-
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3 as q3
-          b = q3.Bucket("s3://${bucket}")
-          # List files [[${docs}/api-reference/bucket#bucket.ls]]
-          b.ls("${path}")
-          # Download [[${docs}/api-reference/bucket#bucket.fetch]]
-          b.fetch("${path}", "./${dest}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          # List files [[https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html]]
-          aws s3 ls "s3://${bucket}/${path}"
-          # Download [[https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html]]
-          aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
-        `,
-      },
-    ],
-    [bucket, path, dest],
-  )
 
   const [prev, setPrev] = React.useState(null)
 
@@ -165,7 +134,7 @@ export default function Dir({
         )}
       </M.Box>
 
-      {!ecfg.hideCode && <Code gutterBottom>{code}</Code>}
+      {!ecfg.hideCode && <DirCodeSamples bucket={bucket} path={path} gutterBottom />}
 
       {data.case({
         Err: displayError(),

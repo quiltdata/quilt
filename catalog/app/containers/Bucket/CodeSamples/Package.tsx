@@ -8,8 +8,9 @@ import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
 import Code from '../Code'
+import type { SectionProps } from '../Section'
 
-interface PackageCodeSamplesProps {
+interface PackageCodeSamplesProps extends Partial<SectionProps> {
   bucket: string
   name: string
   hash: string
@@ -23,6 +24,7 @@ export default function PackageCodeSamples({
   hash,
   hashOrTag,
   path,
+  ...props
 }: PackageCodeSamplesProps) {
   const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
   const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
@@ -69,5 +71,5 @@ export default function PackageCodeSamples({
       contents: PackageUri.stringify({ bucket, name, hash, path }),
     },
   ]
-  return <Code>{code}</Code>
+  return <Code {...props}>{code}</Code>
 }
