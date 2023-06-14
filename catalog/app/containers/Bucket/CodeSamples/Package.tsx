@@ -84,7 +84,7 @@ export default function PackageCodeSamples({
         contents: PackageUri.stringify({ bucket, name, hash, path }),
       },
     ],
-    [bucket, name, hashDisplay],
+    [bucket, name, hashDisplay, hash, path],
   )
   return <Code {...props}>{code}</Code>
 }

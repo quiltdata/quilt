@@ -14,11 +14,13 @@ const TEMPLATES = {
       import quilt3 as q3
       b = q3.Bucket("s3://${bucket}")
     `,
-  PY_DOWNLOAD: (path: string, dest: string) =>
-    dedent`
+  PY_DOWNLOAD: (path: string, dest: string) => {
+    const pyDest = dest || basename(path)
+    return dedent`
       # Download [[${docs}/api-reference/bucket#bucket.fetch]]
-      b.fetch("${path}", "./${dest}")
-    `,
+      b.fetch("${path}", "./${pyDest}")
+    `
+  },
   PY_LIST: (path: string) =>
     dedent`
       # List files [[${docs}/api-reference/bucket#bucket.ls]]
@@ -29,11 +31,13 @@ const TEMPLATES = {
       # List files [[https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html]]
       aws s3 ls "s3://${bucket}/${path}"
     `,
-  CLI_DOWNLOAD: (bucket: string, path: string, dest: string) =>
-    dedent`
+  CLI_DOWNLOAD: (bucket: string, path: string, dest: string) => {
+    const cliDest = dest ? `"./${dest}"` : '.'
+    return dedent`
       # Download [[https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html]]
-      aws s3 cp --recursive "s3://${bucket}/${path}" ${dest}
-    `,
+      aws s3 cp --recursive "s3://${bucket}/${path}" ${cliDest}
+    `
+  },
 }
 
 interface DirCodeSamplesProps extends Partial<SectionProps> {
@@ -48,9 +52,7 @@ export default function DirCodeSamples({
   isDirectory,
   ...props
 }: DirCodeSamplesProps) {
-  const dest = isDirectory ? (path ? basename(path) : bucket) : ''
-  const pyDest = isDirectory ? dest : basename(path)
-  const cliDest = isDirectory ? `"./${dest}"` : '.'
+  const dest = path ? basename(path) : bucket
   const code = React.useMemo(
     () => [
       {
@@ -59,7 +61,7 @@ export default function DirCodeSamples({
         contents: [
           TEMPLATES.PY_INIT(bucket),
           isDirectory ? TEMPLATES.PY_LIST(path) : '',
-          TEMPLATES.PY_DOWNLOAD(path, pyDest),
+          TEMPLATES.PY_DOWNLOAD(path, isDirectory ? dest : ''),
         ]
           .filter(Boolean)
           .join('\n'),
@@ -69,13 +71,13 @@ export default function DirCodeSamples({
         hl: 'bash',
         contents: [
           isDirectory ? TEMPLATES.CLI_LIST(bucket, path) : '',
-          TEMPLATES.CLI_DOWNLOAD(bucket, path, cliDest),
+          TEMPLATES.CLI_DOWNLOAD(bucket, path, isDirectory ? dest : ''),
         ]
           .filter(Boolean)
           .join('\n'),
       },
     ],
-    [isDirectory, bucket, path, pyDest, cliDest],
+    [isDirectory, bucket, path, dest],
   )
   return <Code {...props}>{code}</Code>
 }
