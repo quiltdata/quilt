@@ -8,7 +8,7 @@ import * as Notifications from 'containers/Notifications'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import Section, { SectionProps } from './Section'
+import Section, { SectionProps } from '../Section'
 
 function highlight(str: string, lang?: string) {
   if (lang && hljs.getLanguage(lang)) {

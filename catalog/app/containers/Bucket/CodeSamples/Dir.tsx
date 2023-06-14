@@ -5,7 +5,7 @@ import * as React from 'react'
 
 import { docs } from 'constants/urls'
 
-import Code from '../Code'
+import Code from './Code'
 import type { SectionProps } from '../Section'
 
 const TEMPLATES = {

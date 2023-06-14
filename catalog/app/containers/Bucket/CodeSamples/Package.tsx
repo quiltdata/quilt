@@ -7,7 +7,7 @@ import { docs } from 'constants/urls'
 import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
-import Code from '../Code'
+import Code from './Code'
 import type { SectionProps } from '../Section'
 
 const TEMPLATES = {
