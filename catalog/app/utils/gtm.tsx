@@ -1,8 +1,6 @@
 import invariant from 'invariant'
 import * as React from 'react'
 
-import cfg from 'constants/config'
-
 interface SupportedAttrs {
   async?: boolean
   innerText: string
@@ -25,16 +23,19 @@ function addScript({ async, innerText, src }: Partial<SupportedAttrs>) {
     s.src = src
   }
   const x = window.document.getElementsByTagName('script')[0]
-  invariant(x?.parentNode, 'No SCRIPT or HEAD element was found, is it the DOM environment?')
+  invariant(
+    x?.parentNode,
+    'No SCRIPT or HEAD element was found, is it the DOM environment?',
+  )
   x.parentNode.insertBefore(s, x)
 }
 
 interface GTMLoaderProps {
   children: React.ReactNode
+  gtmId: string
 }
 
-export default function GTMLoader({ children }: GTMLoaderProps) {
-  const gtmId = cfg.gtmId
+export default function GTMLoader({ children, gtmId }: GTMLoaderProps) {
   React.useEffect(() => {
     if (!gtmId) return
     addScript({
