@@ -7,8 +7,8 @@ interface SupportedAttrs {
   src: string
 }
 
-function addScript(props: Pick<SupportedAttrs, 'innerText'>): void
-function addScript(props: Pick<SupportedAttrs, 'async' | 'src'>): void
+function addScript(props: Pick<SupportedAttrs, 'innerText'>): HTMLScriptElement
+function addScript(props: Pick<SupportedAttrs, 'async' | 'src'>): HTMLScriptElement
 function addScript({ async, innerText, src }: Partial<SupportedAttrs>) {
   const s = window.document.createElement('script')
   s.type = 'text/javascript'
@@ -28,6 +28,15 @@ function addScript({ async, innerText, src }: Partial<SupportedAttrs>) {
     'No SCRIPT or HEAD element was found, is it the DOM environment?',
   )
   x.parentNode.insertBefore(s, x)
+  return s
+}
+
+function removeScript(script: HTMLScriptElement) {
+  invariant(
+    script.parentNode,
+    'No SCRIPT or HEAD element was found, is it the DOM environment?',
+  )
+  script.parentNode.removeChild(script)
 }
 
 interface GTMLoaderProps {
@@ -38,11 +47,11 @@ interface GTMLoaderProps {
 export default function GTMLoader({ children, gtmId }: GTMLoaderProps) {
   React.useEffect(() => {
     if (!gtmId) return
-    addScript({
+    const gtmMain = addScript({
       async: true,
       src: `https://www.googletagmanager.com/gtag/js?id=${gtmId}`,
     })
-    addScript({
+    const gtmInit = addScript({
       innerText: `
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
@@ -50,6 +59,10 @@ export default function GTMLoader({ children, gtmId }: GTMLoaderProps) {
         gtag('config', '${gtmId}');
       `.replace(/\n/g, ' '),
     })
+    return () => {
+      removeScript(gtmMain)
+      removeScript(gtmInit)
+    }
   }, [gtmId])
   return <>{children}</>
 }
