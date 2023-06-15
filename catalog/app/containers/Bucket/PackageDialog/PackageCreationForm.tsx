@@ -7,6 +7,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import type * as DG from 'components/DataGrid'
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import cfg from 'constants/config'
@@ -65,6 +66,8 @@ export interface PackageCreationSuccess {
   name: string
   hash?: string
 }
+
+const EMPTY_ARRAY: unknown[] = []
 
 // Convert FilesState to entries consumed by Schema validation
 function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
@@ -172,6 +175,7 @@ interface PackageCreationFormProps {
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
     path?: string
+    selection?: DG.GridRowId[]
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -642,7 +646,12 @@ function PackageCreationForm({
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
-                      validationErrors={submitFailed ? entriesError : []}
+                      initialS3Selection={
+                        initial?.selection || (EMPTY_ARRAY as DG.GridRowId[])
+                      }
+                      validationErrors={
+                        submitFailed ? entriesError : (EMPTY_ARRAY as Error[])
+                      }
                       disabled={filesDisabled}
                     />
                   )}
@@ -750,6 +759,7 @@ export function usePackageCreationDialog({
   const [exited, setExited] = React.useState(!isOpen)
   // TODO: put it to src as S3Handle
   const [s3Path, setS3Path] = React.useState<string | undefined>()
+  const [s3Selection, setS3Selection] = React.useState<DG.GridRowId[]>([])
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
@@ -812,12 +822,19 @@ export function usePackageCreationDialog({
   )
 
   const open = React.useCallback(
-    (initial?: { successor?: workflows.Successor; path?: string }) => {
+    (initial?: {
+      successor?: workflows.Successor
+      path?: string
+      selection?: DG.GridRowId[]
+    }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)
       }
       if (initial?.path !== undefined) {
         setS3Path(initial?.path)
+      }
+      if (initial?.selection) {
+        setS3Selection(initial?.selection)
       }
 
       setOpen(true)
@@ -902,7 +919,12 @@ export function usePackageCreationDialog({
                     setWorkflow,
                     workflowsConfig,
                     sourceBuckets,
-                    initial: { name: src?.name, path: s3Path, ...manifest },
+                    initial: {
+                      name: src?.name,
+                      path: s3Path,
+                      selection: s3Selection,
+                      ...manifest,
+                    },
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

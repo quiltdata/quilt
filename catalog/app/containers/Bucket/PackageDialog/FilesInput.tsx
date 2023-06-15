@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
+import type * as DG from 'components/DataGrid'
 import * as urls from 'constants/urls'
 import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
@@ -1347,6 +1348,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 
 interface FilesInputProps {
   initialS3Path?: string
+  initialS3Selection?: DG.GridRowId[]
   input: {
     value: FilesState
     onChange: (value: FilesState) => void
@@ -1393,6 +1395,7 @@ export function FilesInput({
   disableStateDisplay = false,
   ui = {},
   initialS3Path,
+  initialS3Selection,
   validationErrors,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
@@ -1525,6 +1528,7 @@ export function FilesInput({
           open={s3FilePickerOpen}
           onClose={closeS3FilePicker}
           initialPath={initialS3Path}
+          initialSelection={initialS3Selection}
         />
       )}
       <Header>

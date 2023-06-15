@@ -107,6 +107,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DialogProps {
   initialPath?: string
+  initialSelection?: DG.GridRowId[]
   bucket: string
   buckets?: string[]
   selectBucket?: (bucket: string) => void
@@ -121,6 +122,7 @@ export function Dialog({
   open,
   onClose,
   initialPath,
+  initialSelection,
 }: DialogProps) {
   const classes = useStyles()
 
@@ -129,7 +131,7 @@ export function Dialog({
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const [selection, setSelection] = React.useState<DG.GridRowId[]>([])
+  const [selection, setSelection] = React.useState<DG.GridRowId[]>(initialSelection || [])
 
   const [locked, setLocked] = React.useState(false)
 
@@ -154,12 +156,24 @@ export function Dialog({
     setPrev(null)
   }, [bucket, path, prefix])
 
-  React.useLayoutEffect(() => {
-    // reset state when bucket changes
-    setPath('')
-    setPrefix('')
+  const handleBucketChange = React.useCallback(
+    (b) => {
+      if (!selectBucket) return
+      setPath('')
+      setPrefix('')
+      setSelection([])
+      selectBucket(b)
+    },
+    [selectBucket],
+  )
+  const handlePathChange = React.useCallback((p) => {
     setSelection([])
-  }, [bucket])
+    setPath(p)
+  }, [])
+  const handlePrefixChange = React.useCallback((p) => {
+    setSelection([])
+    setPrefix(p)
+  }, [])
 
   React.useLayoutEffect(() => {
     if (!initialPath) return
@@ -242,7 +256,11 @@ export function Dialog({
         <M.Typography component="h2" variant="h6">
           Add files from s3://
           {!!buckets && buckets.length > 1 && !!selectBucket ? (
-            <BucketSelect bucket={bucket} buckets={buckets} selectBucket={selectBucket} />
+            <BucketSelect
+              bucket={bucket}
+              buckets={buckets}
+              selectBucket={handleBucketChange}
+            />
           ) : (
             bucket
           )}
@@ -261,8 +279,8 @@ export function Dialog({
             <DirContents
               response={res}
               locked={!AsyncResult.Ok.is(x)}
-              setPath={setPath}
-              setPrefix={setPrefix}
+              setPath={handlePathChange}
+              setPrefix={handlePrefixChange}
               loadMore={loadMore}
               selection={selection}
               onSelectionChange={setSelection}
@@ -357,11 +375,6 @@ function DirContents({
   const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
   const { bucket, path, prefix, truncated } = response
-
-  React.useLayoutEffect(() => {
-    // reset selection when bucket, path and / or prefix change
-    onSelectionChange([])
-  }, [onSelectionChange, bucket, path, prefix])
 
   const CellComponent = React.useMemo(
     () =>

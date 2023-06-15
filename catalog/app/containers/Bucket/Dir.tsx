@@ -195,10 +195,20 @@ interface DirContentsProps {
   locked: boolean
   bucket: string
   path: string
+  selection: DG.GridRowId[]
   loadMore?: () => void
+  onSelection: (ids: DG.GridRowId[]) => void
 }
 
-function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
+function DirContents({
+  response,
+  locked,
+  bucket,
+  path,
+  selection,
+  loadMore,
+  onSelection,
+}: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
 
@@ -211,10 +221,6 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
 
   const items = useFormattedListing(response)
 
-  const [selection, setSelection] = React.useState([])
-  const handleSelectionModelChange = React.useCallback((ids) => setSelection(ids), [])
-  React.useEffect(() => setSelection([]), [bucket, path])
-
   // TODO: should prefix filtering affect summary?
   return (
     <>
@@ -224,7 +230,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
-        onSelectionChange={handleSelectionModelChange}
+        onSelectionChange={onSelection}
         selection={selection}
         toolbarContents={
           <>
@@ -236,7 +242,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
             <AddToBookmarks
               bucket={bucket}
               items={items}
-              onClearSelection={() => setSelection([])}
+              onClearSelection={() => onSelection([])}
               path={path}
               selection={selection}
             />
@@ -347,6 +353,9 @@ export default function Dir({
     )
   }, [data.result])
 
+  const [selection, setSelection] = React.useState<DG.GridRowId[]>([])
+  React.useEffect(() => setSelection([]), [bucket, path])
+
   const packageDirectoryDialog = PD.usePackageCreationDialog({
     bucket,
     delayHashing: true,
@@ -358,9 +367,10 @@ export default function Dir({
       packageDirectoryDialog.open({
         path,
         successor,
+        selection,
       })
     },
-    [packageDirectoryDialog, path],
+    [packageDirectoryDialog, path, selection],
   )
 
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -396,7 +406,9 @@ export default function Dir({
                     className={classes.button}
                     onChange={openPackageCreationDialog}
                   >
-                    Create package from directory
+                    {`Create package from ${
+                      selection.length ? 'selected entries' : 'directory'
+                    }`}
                   </Successors.Button>
                 ),
               Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
@@ -435,7 +447,9 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
+              selection={selection}
               loadMore={loadMore}
+              onSelection={setSelection}
             />
           ) : (
             <M.CircularProgress />
