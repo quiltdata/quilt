@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as React from 'react'
 
 import cfg from 'constants/config'
@@ -24,7 +25,8 @@ function addScript({ async, innerText, src }: Partial<SupportedAttrs>) {
     s.src = src
   }
   const x = window.document.getElementsByTagName('script')[0]
-  x.parentNode?.insertBefore(s, x)
+  invariant(x?.parentNode, 'No SCRIPT or HEAD element was found, is it the DOM environment?')
+  x.parentNode.insertBefore(s, x)
 }
 
 interface GTMLoaderProps {
