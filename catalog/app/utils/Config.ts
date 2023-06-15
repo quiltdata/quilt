@@ -22,6 +22,7 @@ export interface ConfigJson {
   registryUrl: string
   s3Proxy: string
 
+  gtmId?: string
   intercomAppId?: string
   mixpanelToken: string
   sentryDSN?: string
