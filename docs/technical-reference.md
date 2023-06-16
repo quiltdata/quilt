@@ -1,6 +1,8 @@
 <!-- markdownlint-disable -->
 # Run Quilt in Your AWS Account
-Quilt is a Data Hub for AWS.
+Quilt is a data mesh that verifies the integrity of your data so that teams can
+find, understand, and file discoveries based on data of any size or in any format.
+
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
 ## Help and Advice
@@ -19,26 +21,47 @@ connect with other users
 * [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
-Each instance consists of a password-protected web catalog on your domain,
-backend services, a secure server to manage user identities, and a Python API.
+Each instance consists of a CloudFormation stack that is privately hosted in your 
+AWS account. The stack includes backend services for the catalog, S3 proxy,
+SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
 
 ![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
 
 ### Network
 ![](imgs/aws-diagram-network.png)
+> The above diagram is for _general guidance only_. See below for details.
 
-- Amazon ECS services run in two subnets in two Availability Zones (AZ).
-If your Quilt stack is configured to use private subnets you must also provide a
-public NAT gateway.
-- An Amazon RDS instance (Postgres) stores stack configuration,
-user login information, and bucket metadata.
-- AWS Lambda Services can optionally be configured to use private IPs in your VPC.
-- Security groups and NACLs throughout restrict access to the greatest degree possible.
+You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
+create its own subnets. In both cases Quilt uses subnets and security groups
+to isolate network services. You may optionally provide your own VPC CIDR block
+with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
+peered VPC services.
 
-See [Private endpoints](advanced-features/private-endpoint-access.md) for more details
-on private IPs and Quilt services.
+Below are the subnet configurations and sizes for Quilt version 2.0 networks,
+new as of June 2023. The configuration is similar to the
+[AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
 
-> For cost-sensitive deployments, Quilt ECS services can be configured to use a single AZ.
+- 2 public subnets for NAT gateways and an internet-facing application load balancer
+(1/4 the VPC CIDR)
+- 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
+application load balancer
+(1/8 of the VPC CIDR)
+- 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
+OpenSearch domain
+(1/2 of the VPC CIDR)
+- (1/8 of the VPC CIDR is free)
+
+> Your Quilt instance contains _exactly one_ application load balancer that is
+> either inward or internet-facing.
+
+> If you provide the private subnets they are expected to route outbound
+> requests to AWS services via a NAT Gateway.
+
+> For cost-sensitive deployments, Quilt ECS services can be configured to use
+> a single AZ.
+
+For further details on private IPs and Quilt see
+[Private endpoints](advanced-features/private-endpoint-access.md).
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.

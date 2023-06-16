@@ -12,6 +12,7 @@ or if the bucket is under rapid modification, wait a few minutes and try again.
 
 1. Click the gear icon (upper right), or navigate to Users and buckets > Buckets
 and open the bucket in question
+
     ![](imgs/admin-bucket.png)
 
 1. Under "Indexing and notifications", click "Re-index and Repair". Optional:
@@ -159,6 +160,7 @@ Quilt support:
         - Google Chrome: **Ctrl + Click** anywhere on the grid of
         network requests and select **Save all as HAR with content**.
     1. Save the HAR-formatted file to your localhost.
+
         ![Save browser Network error logs as HAR content](imgs/troubleshooting-logs-browser.png)
 1. Select the **Console** tab.
     1. Perform the action that triggers the error (e.g. clicking the `Download package` button).
@@ -177,11 +179,11 @@ stacks (in your default region, which is listed in your
     aws cloudformation list-stacks
     ```
 1. Run the `aws logs` command to filter all Quilt ECS containers log entries for
-the last 30 minutes (assumes Mac BSD `date` command syntax):
+the last 30 minutes:
     <!--pytest.mark.skip-->
     ```bash
     aws logs filter-log-events \
-        --log-group-name YOUR_QUILT_STACK_NAME
-        --start-time "$(( $(date -u -v-30M +%s) * 1000 ))" \
-        --end-time "$(( $(date -u +%s) * 1000 ))" > log-quilt-ecs-events.json
+        --log-group-name YOUR_QUILT_STACK_NAME \
+        --start-time "$(( ($(date +%s) - 1800) * 1000 ))" \
+        --end-time "$(( $(date +%s) * 1000 ))" > log-quilt-ecs-events.json
     ```

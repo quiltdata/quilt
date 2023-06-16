@@ -259,7 +259,7 @@ self
 
 ## Package.delete(self, logical\_key)  {#Package.delete}
 
-Returns the package with logical_key removed.
+Returns self with logical_key removed.
 
 __Returns__
 
