@@ -21,19 +21,19 @@ check "Repair S3 notifications".
 
 1. Wait a few minutes while bucket statistics and packages repopulate
 
-### Inspect ElasticSearch domain
+### Inspect Elasticsearch domain
 
 1. Go to CloudFormation > Stacks > YourQuiltStack > Resources
 1. Search for "domain"
 1. Click on the link for "Search" under "Physical ID"
-1. You are now under ElasticSearch > Dashboards
+1. You are now under Elasticsearch > Dashboards
 1. Set the time range to include the period before and after when you noticed
 any issues
 1. Screenshot the dashboard stats for your domain
 1. Click into your domain and then navigate to "Cluster health"
 1. Screenshot Summary, Overall Health, and Key Performance Indicator sections
 1. Send screenshots to [Quilt support](mailto:support@quiltdata.io).
-1. It is not recommended that you adjust ElasticSearch via Edit domain, as these
+1. It is not recommended that you adjust Elasticsearch via Edit domain, as these
 changes will be lost the next time that you update Quilt
 
 ## Missing metadata when working with Quilt packages via the API
@@ -175,12 +175,12 @@ Quilt support:
 stacks (in your default region, which is listed in your
 `~/.aws/config` file):
     <!--pytest.mark.skip-->
-    ```bash
+    ```sh
     aws cloudformation list-stacks
     ```
 1. Capture Quilt log events for the last 30 minutesas follows:
     <!--pytest.mark.skip-->
-    ```bash
+    ```sh
     STACK_NAME="YOUR_QUILT_STACK"
     aws logs filter-log-events \
         --log-group-name "$STACK_NAME" \
@@ -190,7 +190,7 @@ stacks (in your default region, which is listed in your
 
 ### IAM permissions
 
-Determine which principal your machine is using as follows:
+Determine which principal you're using as follows:
 <!--pytest.mark.skip-->
 ```bash
 aws sts get-caller-identity
@@ -209,7 +209,7 @@ aws s3api get-object-tagging --bucket "$BUCKET"  --key "$PREFIX"
 
 ### Event source mapping
 
-The event source mapping is a Lambda resources that reads from SQS.
+The event source mapping is a Lambda resource that reads from SQS.
 <!--pytest.mark.skip-->
 ```sh
 STACK_NAME="YOUR_QUILT_STACK"
@@ -222,7 +222,6 @@ aws lambda get-event-source-mapping --uuid \
 
 If for some reason the event source mapping is disabled, it can be enabled as
 follows.
-> This is a sensitive and rare operation. Proceed with caution.
 <!--pytest.mark.skip-->
 ```sh
 STACK_NAME="YOUR_QUILT_STACK"
