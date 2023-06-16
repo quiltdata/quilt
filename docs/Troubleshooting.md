@@ -192,7 +192,7 @@ stacks (in your default region, which is listed in your
 
 Determine which principal you're using as follows:
 <!--pytest.mark.skip-->
-```bash
+```sh
 aws sts get-caller-identity
 ```
 
