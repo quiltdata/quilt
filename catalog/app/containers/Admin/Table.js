@@ -75,7 +75,13 @@ const useToolbarStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Toolbar({ heading, selected = 0, actions = [], selectedActions = [] }) {
+export function Toolbar({
+  heading,
+  selected = 0,
+  actions = [],
+  selectedActions = [],
+  children = null,
+}) {
   const classes = useToolbarStyles()
   return (
     <M.Toolbar className={cx(classes.root, { [classes.highlight]: selected > 0 })}>
@@ -89,6 +95,7 @@ export function Toolbar({ heading, selected = 0, actions = [], selectedActions =
         )}
       </div>
       <div className={classes.spacer} />
+      {children}
       <div className={classes.actions}>
         {(selected > 0 ? selectedActions : actions).map(renderAction)}
       </div>

@@ -13,6 +13,14 @@ import Column from './Column'
 import State, { StateRenderProps } from './State'
 import { JsonValue, RowData, ValidationErrors } from './constants'
 
+const useEmptyStateCaseStyles = M.makeStyles((t) => ({
+  icon: {
+    position: 'absolute',
+    right: t.spacing(2),
+    top: t.spacing(2),
+  },
+}))
+
 interface EmptyStateCaseProps {
   children: React.ReactNode
   className: string
@@ -21,6 +29,8 @@ interface EmptyStateCaseProps {
 }
 
 function EmptyStateCase({ children, className, title, video }: EmptyStateCaseProps) {
+  const classes = useEmptyStateCaseStyles()
+  const [expanded, setExpanded] = React.useState(false)
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
   const togglePlayback = React.useCallback(() => {
     const el = videoRef?.current
@@ -30,21 +40,29 @@ function EmptyStateCase({ children, className, title, video }: EmptyStateCasePro
       el?.pause()
     }
   }, [videoRef])
+  const toggle = React.useCallback(() => setExpanded((x) => !x), [])
   return (
-    <M.Card className={className}>
-      <M.CardContent>
-        <M.Typography variant="h5">{title}</M.Typography>
-        <M.Typography variant="body1">{children}</M.Typography>
-        <video
-          ref={videoRef}
-          src={video}
-          width="100%"
-          autoPlay
-          loop
-          onClick={togglePlayback}
-        />
-      </M.CardContent>
-    </M.Card>
+    <div className={className}>
+      <M.Grow in={expanded}>
+        <M.Card>
+          <M.CardContent>
+            <M.Typography variant="h5">{title}</M.Typography>
+            <M.Typography variant="body1">{children}</M.Typography>
+            <video
+              ref={videoRef}
+              src={video}
+              width="100%"
+              autoPlay
+              loop
+              onClick={togglePlayback}
+            />
+          </M.CardContent>
+        </M.Card>
+      </M.Grow>
+      <M.IconButton onClick={toggle} size="small" className={classes.icon}>
+        <M.Icon fontSize="small">{expanded ? 'close' : 'help_outline'}</M.Icon>
+      </M.IconButton>
+    </div>
   )
 }
 

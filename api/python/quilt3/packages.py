@@ -1255,7 +1255,7 @@ class Package:
 
     def delete(self, logical_key):
         """
-        Returns the package with logical_key removed.
+        Returns self with logical_key removed.
 
         Returns:
             self
