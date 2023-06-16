@@ -23,6 +23,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Fixed file preview header layout ([#3454](https://github.com/quiltdata/quilt/pull/3454))
 * [Fixed] Fix getting custom styles and options for files listed in quilt_summarize.json ([#3485](https://github.com/quiltdata/quilt/pull/3485))
 * [Fixed] Fix Header's orange flash on load ([#3487](https://github.com/quiltdata/quilt/pull/3487))
+* [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
 
