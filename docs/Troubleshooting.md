@@ -84,33 +84,13 @@ after clicking the `RELOAD` button in the Quilt Catalog.
 1. Your Quilt user Role has been corrupted. You will need a Quilt Admin
 user to reset your Quilt user Role to a default (**and valid**) Role.
 
-If you accidentally broke the Role for your _only_ Quilt Admin user,
-then you (or your AWS Cloud Administrator) need to:
+If you need to change the admin or have accidentally broken your admin user, try
+the following:
+1. Change the value of the `AdminEmail` CloudFormation parameter.
+    > If you are using SSO, `AdminEmail` must match the admin's SSO email address.
 
-1. Log in to your AWS account Console.
-1. Go to the CloudFormation service and select your Quilt stack.
-1. Click the `Update` button (top-right) to access the "Update stack" page
-1. In "Prerequisite - Prepare template" select "Use current template". Click "Next".
-1. In the "Specify stack details > Parameters > Administrator web credentials" section:
-    1. Change the `AdminUsername` field to a new value **that has never been used before**.
-    1. Change the `AdminEmail` field to a new email address **that
-    has never been used before**. It may be helpful to use the `+`
-    sign in the new email address, followed by any text - it will
-    successfully deliver to your inbox. For example, `sarah+admin@...`
-    will still be sent to `sarah@...`.
-    1. Click "Next".
-1. **(Optional & preferred)** In the "Configure stack options > Stack
-failure options" section, specify `Roll back all stack resources`.
-Click "Next".
-1. In the "Review <stack-name> > Change set preview" section, verify
-that any changes are not disruptive. For each resource the "Action"
-field value will be `Modify` and the "Logical ID" field value will
-be `Migration` for approximately four resources. Click the "Submit"
-button.
-
-After the deployment update is successfully completed, login to the
-Catalog with the new administrator credentials. Create other Admin
-users as needed.
+1. Once the update is successful, the admin can log in, set roles,
+and nominate other admins as needed.
 
 ### Additional support
 To have your Quilt stack changeset reviewed by a Quilt support agent, or
