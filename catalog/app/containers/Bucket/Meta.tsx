@@ -142,25 +142,20 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
 }
 
 export function PackageMeta({ data, ...props }: WrapperProps) {
-  const { result } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return AsyncResult.case(
     {
       Ok: (meta?: MetaData) => {
         if (!meta || R.isEmpty(meta)) return null
-        return AsyncResult.case(
+        return BucketPreferences.Result.match(
           {
-            Ok: (preferences: BucketPreferences.BucketPreferences) =>
-              !!preferences.ui.blocks.meta && (
-                <PackageMetaSection
-                  meta={meta}
-                  preferences={preferences.ui.blocks.meta}
-                  {...props}
-                />
+            Ok: ({ ui: { blocks } }) =>
+              blocks.meta && (
+                <PackageMetaSection meta={meta} preferences={blocks.meta} {...props} />
               ),
-            Err: errorHandler,
             _: noop,
           },
-          result,
+          prefs,
         )
       },
       Err: errorHandler,

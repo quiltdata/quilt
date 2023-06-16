@@ -6,16 +6,17 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import ButtonIconized from 'components/ButtonIconized'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import type { Type as SummaryFileTypes } from 'components/Preview/loaders/summarize'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import cfg from 'constants/config'
 import { docs } from 'constants/urls'
 import type * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import { useData } from 'utils/Data'
+import AsyncResult from 'utils/AsyncResult'
+import Data, { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
@@ -39,13 +40,31 @@ interface SummarizeFile {
   expand?: boolean
 }
 
-type MakeURL = (h: Model.S3.S3ObjectLocation) => LocationDescriptor
+export type MakeURL = (h: Model.S3.S3ObjectLocation) => LocationDescriptor
 
-enum FileThemes {
+interface HandleResolverProps {
+  handle: LogicalKeyResolver.S3SummarizeHandle
+  children: (r: $TSFixMe) => React.ReactNode
+}
+
+export function HandleResolver({ handle, children }: HandleResolverProps) {
+  const resolve = LogicalKeyResolver.use()
+  if (resolve && handle.logicalKey && !handle.key) {
+    return (
+      // @ts-expect-error
+      <Data fetch={resolve} params={handle.logicalKey}>
+        {children}
+      </Data>
+    )
+  }
+  return children(AsyncResult.Ok(handle))
+}
+
+export enum FileThemes {
   Overview = 'overview',
   Nested = 'nested',
 }
-const FileThemeContext = React.createContext(FileThemes.Overview)
+export const FileThemeContext = React.createContext(FileThemes.Overview)
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
@@ -58,48 +77,57 @@ const useSectionStyles = M.makeStyles((t) => ({
     },
   },
   [FileThemes.Overview]: {
-    [t.breakpoints.down('xs')]: {
-      padding: t.spacing(2),
-      paddingTop: t.spacing(3),
+    '& $content': {
+      [t.breakpoints.down('xs')]: {
+        padding: t.spacing(2),
+        paddingTop: t.spacing(3),
+      },
+      [t.breakpoints.up('sm')]: {
+        padding: t.spacing(4),
+      },
     },
-    [t.breakpoints.up('sm')]: {
-      padding: t.spacing(4),
+    '& $footer': {
+      [t.breakpoints.down('xs')]: {
+        padding: t.spacing(0, 2, 2),
+      },
+      [t.breakpoints.up('sm')]: {
+        padding: t.spacing(0, 4, 4),
+      },
     },
   },
   [FileThemes.Nested]: {
-    [t.breakpoints.down('xs')]: {
-      padding: t.spacing(1),
-      paddingTop: t.spacing(2),
+    '& $content': {
+      [t.breakpoints.down('xs')]: {
+        padding: t.spacing(1),
+        paddingTop: t.spacing(2),
+      },
+      [t.breakpoints.up('sm')]: {
+        padding: t.spacing(2),
+      },
     },
-    [t.breakpoints.up('sm')]: {
-      padding: t.spacing(2),
+    '& $footer': {
+      borderTop: `1px solid ${t.palette.divider}`,
+      [t.breakpoints.down('xs')]: {
+        padding: t.spacing(0.25, 1),
+      },
+      [t.breakpoints.up('sm')]: {
+        padding: t.spacing(0.25, 2),
+      },
     },
+  },
+  content: {},
+  footer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
   },
   description: {
     ...t.typography.body2,
   },
   heading: {
-    ...t.typography.h6,
-    display: 'flex',
-    lineHeight: 1.75,
     marginBottom: t.spacing(1),
     [t.breakpoints.up('sm')]: {
       marginBottom: t.spacing(2),
     },
-    [t.breakpoints.up('md')]: {
-      ...t.typography.h5,
-    },
-  },
-  headingText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  menu: {
-    display: 'flex',
-    marginLeft: t.spacing(1),
-  },
-  toggle: {
-    marginLeft: 'auto',
   },
 }))
 
@@ -107,6 +135,7 @@ interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
   handle?: Model.S3.S3ObjectLocation
   heading?: React.ReactNode
+  footer?: React.ReactNode
   expanded?: boolean
   onToggle?: () => void
 }
@@ -114,6 +143,7 @@ interface SectionProps extends M.PaperProps {
 export function Section({
   handle,
   heading,
+  footer,
   description,
   children,
   expanded,
@@ -124,23 +154,22 @@ export function Section({
   const classes = useSectionStyles()
   return (
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
-      {!!heading && (
-        <div className={classes.heading}>
-          <div className={classes.headingText}>{heading}</div>
-          {onToggle && (
-            <ButtonIconized
-              className={classes.toggle}
-              label={expanded ? 'Collapse' : 'Expand'}
-              icon={expanded ? 'unfold_less' : 'unfold_more'}
-              rotate={expanded}
-              onClick={onToggle}
-            />
-          )}
-          {handle && <Preview.Menu className={classes.menu} handle={handle} />}
-        </div>
-      )}
-      {!!description && <div className={classes.description}>{description}</div>}
-      {children}
+      <div className={classes.content}>
+        {!!heading && (
+          <Preview.Header
+            className={classes.heading}
+            downloadable={!cfg.noDownload}
+            expanded={expanded}
+            handle={handle}
+            onToggle={onToggle}
+          >
+            {heading}
+          </Preview.Header>
+        )}
+        {!!description && <div className={classes.description}>{description}</div>}
+        {children}
+      </div>
+      {footer && <div className={classes.footer}>{footer}</div>}
     </M.Paper>
   )
 }
@@ -614,21 +643,17 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
-  return (
-    <FileThemeContext.Provider value={FileThemes.Nested}>
-      {data.case({
-        Err: (e: Error) => <SummaryFailed error={e} />,
-        Ok: (entries: SummarizeFile[]) => (
-          <SummaryEntries
-            entries={entries}
-            s3={s3}
-            mkUrl={mkUrl}
-            packageHandle={packageHandle}
-          />
-        ),
-        Pending: () => <FilePreviewSkel />,
-        _: () => null,
-      })}
-    </FileThemeContext.Provider>
-  )
+  return data.case({
+    Err: (e: Error) => <SummaryFailed error={e} />,
+    Ok: (entries: SummarizeFile[]) => (
+      <SummaryEntries
+        entries={entries}
+        s3={s3}
+        mkUrl={mkUrl}
+        packageHandle={packageHandle}
+      />
+    ),
+    Pending: () => <FilePreviewSkel />,
+    _: () => null,
+  })
 }

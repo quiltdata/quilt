@@ -1,6 +1,8 @@
 <!-- markdownlint-disable -->
 # Run Quilt in Your AWS Account
-Quilt is a Data Hub for AWS.
+Quilt is a data mesh that verifies the integrity of your data so that teams can
+find, understand, and file discoveries based on data of any size or in any format.
+
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
 ## Help and Advice
@@ -19,26 +21,47 @@ connect with other users
 * [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
-Each instance consists of a password-protected web catalog on your domain,
-backend services, a secure server to manage user identities, and a Python API.
+Each instance consists of a CloudFormation stack that is privately hosted in your 
+AWS account. The stack includes backend services for the catalog, S3 proxy,
+SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
 
 ![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
 
 ### Network
 ![](imgs/aws-diagram-network.png)
+> The above diagram is for _general guidance only_. See below for details.
 
-- Amazon ECS services run in two subnets in two Availability Zones (AZ).
-If your Quilt stack is configured to use private subnets you must also provide a
-public NAT gateway.
-- An Amazon RDS instance (Postgres) stores stack configuration,
-user login information, and bucket metadata.
-- AWS Lambda Services can optionally be configured to use private IPs in your VPC.
-- Security groups and NACLs throughout restrict access to the greatest degree possible.
+You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
+create its own subnets. In both cases Quilt uses subnets and security groups
+to isolate network services. You may optionally provide your own VPC CIDR block
+with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
+peered VPC services.
 
-See [Private endpoints](advanced-features/private-endpoint-access.md) for more details
-on private IPs and Quilt services.
+Below are the subnet configurations and sizes for Quilt version 2.0 networks,
+new as of June 2023. The configuration is similar to the
+[AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
 
-> For cost-sensitive deployments, Quilt ECS services can be configured to use a single AZ.
+- 2 public subnets for NAT gateways and an internet-facing application load balancer
+(1/4 the VPC CIDR)
+- 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
+application load balancer
+(1/8 of the VPC CIDR)
+- 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
+OpenSearch domain
+(1/2 of the VPC CIDR)
+- (1/8 of the VPC CIDR is free)
+
+> Your Quilt instance contains _exactly one_ application load balancer that is
+> either inward or internet-facing.
+
+> If you provide the private subnets they are expected to route outbound
+> requests to AWS services via a NAT Gateway.
+
+> For cost-sensitive deployments, Quilt ECS services can be configured to use
+> a single AZ.
+
+For further details on private IPs and Quilt see
+[Private endpoints](advanced-features/private-endpoint-access.md).
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
@@ -209,9 +232,9 @@ corresponding stack Outputs.
 
 | CNAME | Value |
 | ------ | ------- |
-| _QuiltWebHost Key_  | _LoadBalancerDNSName_ | 
-| _RegistryHostName Key_  | _LoadBalancerDNSName_ |
-| _S3ProxyHost Key_  | _LoadBalancerDNSName_ | 
+| `<QuiltWebHost>` Key  | `LoadBalancerDNSName` | 
+| `<RegistryHostName>` Key  | `LoadBalancerDNSName` |
+| `<S3ProxyHost>` Key  | `LoadBalancerDNSName` | 
 
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
@@ -266,7 +289,7 @@ to Google's OAuth 2.0 server.
 ![](./imgs/google_console.png)
 
 Copy the `Client ID` and `Client secret` to a safe place.
-Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
+Add `<QuiltWebHost>/oauth-callback` to *authorized redirect URIs*.
 
 ### Active Directory
 
@@ -274,7 +297,7 @@ Add `YOUR_QUILT_CATALOG_URL/oauth-callback` to *authorized redirect URIs*.
 1. Click "New Registration".
 1. Name the app, select the Supported account types.
 1. Click "Add a platform", "Web", and enter the `Redirect URIs` value
-`YOUR_QUILT_CATALOG_URL/oauth-callback`. Click "Save" at the bottom.
+`<QuiltWebHost>/oauth-callback`. Click "Save" at the bottom.
 1. Once the application has been created you will need both its `Application
 (client) ID` and `Directory (tenant) ID`.
 
@@ -317,17 +340,12 @@ for further details.
 1. Add the [Quilt logo](https://user-images.githubusercontent.com/1322715/198700580-da72bd8d-b460-4125-ba31-a246965e3de8.png) for user recognition.
 1. Configure the new web app integration as follows:
     1. For `Grant type` check the following: `Authorization Code`, `Refresh Token`, and `Implicit (hybrid)`.
-    1. To the `Sign-in redirect URIs` add `YOUR_QUILT_CATALOG_URL/oauth-callback` URL. 
-    Do not allow wildcard `*` in the login URI redirect. This will be something like the following:
-
-        ```
-        https://quilt.<MY_COMPANY>.com/
-        ```
-
+    1. To the `Sign-in redirect URIs` add `<QuiltWebHost>/oauth-callback` URL. 
+    1. Leave the `Allow wildcard * in the login URI redirect` checkbox **unchecked**.
     1. Optionally add to the `Sign-out redirect URIs` (if desired by your organization).
     1. For the `Assignments > Controlled Access` selection, choose the option desired by your organization.
 1. Once you click the `Save` button you will have a new application integration to review.
-    1. If it's undefined, update the `Initiate login URI` to you `<YourQuiltWebHost>` URL.
+    1. If it's undefined, update the `Initiate login URI` to your `<QuiltWebHost>` URL.
     1. Copy the `Client ID`, `Secret`, and `Base URL` to a safe place
 1. Go to **Okta > Security > API > Authorization servers**
     1. You should see a `default` entry with the `Audience` value set
@@ -335,7 +353,7 @@ for further details.
     following:
 
         ```
-        https://<MY_COMPANY>.okta.com/oauth2/default
+        <MY_COMPANY>.okta.com/oauth2/default
         ```
 
     1. See [Okta authorization servers](https://developer.okta.com/docs/concepts/auth-servers/#which-authorization-server-should-you-use) for more.
@@ -347,7 +365,7 @@ for further details.
 1. Click `New Connector`
     1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
-    1. Set `Login URL` to `YOUR_QUILT_CATALOG_URL/oauth-callback`
+    1. Set `Login URL` to `<QuiltWebHost>/oauth-callback`
     1. Click "Save"
 1. Go back to Applications > Custom Connectors
 1. Click `Add App to Connector`

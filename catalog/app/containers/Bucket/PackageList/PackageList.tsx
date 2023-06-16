@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
+import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
@@ -224,29 +225,38 @@ interface RevisionMetaProps {
 
 function RevisionMeta({ revision }: RevisionMetaProps) {
   const classes = useRevisionMetaStyles()
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   return (
     <div className={classes.root}>
       {!!revision.message && <div className={classes.section}>{revision.message}</div>}
       {!!revision.userMeta && (
         <div className={classes.section}>
-          {preferences?.ui.packageDescription.userMetaMultiline ? (
-            Object.entries(revision.userMeta).map(([name, value]) => (
-              // @ts-expect-error
-              <JsonDisplay
-                className={cx({ [classes.sectionWithToggle]: typeof value === 'object' })}
-                key={`user-meta-section-${name}`}
-                name={name}
-                value={value}
-              />
-            ))
-          ) : (
-            // @ts-expect-error
-            <JsonDisplay
-              className={classes.sectionWithToggle}
-              name="User metadata"
-              value={revision.userMeta}
-            />
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { packageDescription } }) =>
+                packageDescription.userMetaMultiline ? (
+                  Object.entries(revision.userMeta!).map(([name, value]) => (
+                    // @ts-expect-error
+                    <JsonDisplay
+                      className={cx({
+                        [classes.sectionWithToggle]: typeof value === 'object',
+                      })}
+                      key={`user-meta-section-${name}`}
+                      name={name}
+                      value={value}
+                    />
+                  ))
+                ) : (
+                  // @ts-expect-error
+                  <JsonDisplay
+                    className={classes.sectionWithToggle}
+                    name="User metadata"
+                    value={revision.userMeta}
+                  />
+                ),
+              _: () => null,
+            },
+            prefs,
           )}
         </div>
       )}
@@ -267,15 +277,25 @@ function filterObjectByJsonPaths(obj: JsonRecord, jsonPaths: readonly string[]) 
 function usePackageDescription(
   name: string,
 ): BucketPreferences.PackagePreferences | null {
-  const { preferences } = BucketPreferences.use()
-  return React.useMemo(() => {
-    if (!preferences?.ui.packageDescription.packages) return null
-    return (
-      Object.entries(preferences?.ui.packageDescription.packages)
-        .reverse() // The last found config wins
-        .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
-    )
-  }, [name, preferences])
+  const prefs = BucketPreferences.use()
+  return React.useMemo(
+    () =>
+      BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { packageDescription } }) => {
+            if (!packageDescription.packages) return null
+            return (
+              Object.entries(packageDescription.packages)
+                .reverse() // The last found config wins
+                .find(([nameRegex]) => new RegExp(nameRegex).test(name))?.[1] || {}
+            )
+          },
+          _: () => null,
+        },
+        prefs,
+      ),
+    [name, prefs],
+  )
 }
 
 interface SelectiveMeta {
@@ -594,7 +614,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     }
   })
 
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,
@@ -658,24 +678,32 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
-                {preferences?.ui?.actions?.createPackage && (
-                  <>
-                    <M.Button
-                      variant="contained"
-                      color="primary"
-                      onClick={openPackageCreationDialog}
-                    >
-                      Create package
-                    </M.Button>
-                    <M.Box pt={2} />
-                    <M.Typography>
-                      Or{' '}
-                      <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
-                        push a package
-                      </StyledLink>{' '}
-                      with the Quilt Python API.
-                    </M.Typography>
-                  </>
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      actions.createPackage && (
+                        <>
+                          <M.Button
+                            variant="contained"
+                            color="primary"
+                            onClick={openPackageCreationDialog}
+                          >
+                            Create package
+                          </M.Button>
+                          <M.Box pt={2} />
+                          <M.Typography>
+                            Or{' '}
+                            <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
+                              push a package
+                            </StyledLink>{' '}
+                            with the Quilt Python API.
+                          </M.Typography>
+                        </>
+                      ),
+                    Pending: () => <Buttons.Skeleton />,
+                    Init: () => null,
+                  },
+                  prefs,
                 )}
               </M.Box>
             )
@@ -712,18 +740,30 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                   />
                 </M.Box>
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
-                {preferences?.ui?.actions?.createPackage && (
-                  <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
-                    <M.Button
-                      variant="contained"
-                      size="large"
-                      color="primary"
-                      style={{ paddingTop: 7, paddingBottom: 7 }}
-                      onClick={openPackageCreationDialog}
-                    >
-                      Create package
-                    </M.Button>
-                  </M.Box>
+                {BucketPreferences.Result.match(
+                  {
+                    Ok: ({ ui: { actions } }) =>
+                      actions.createPackage && (
+                        <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                          <M.Button
+                            variant="contained"
+                            size="large"
+                            color="primary"
+                            style={{ paddingTop: 7, paddingBottom: 7 }}
+                            onClick={openPackageCreationDialog}
+                          >
+                            Create package
+                          </M.Button>
+                        </M.Box>
+                      ),
+                    Pending: () => (
+                      <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                        <Buttons.Skeleton size="large" />
+                      </M.Box>
+                    ),
+                    Init: () => null,
+                  },
+                  prefs,
                 )}
                 <M.Box component={M.Paper} className={classes.paper}>
                   <SortDropdown

@@ -88,6 +88,10 @@
     "build_version": {
       "type": "string",
       "description": "Optional"
+    },
+    "gtmId": {
+      "type": "string",
+      "description": "ID for Google TagManager/Analytics service"
     }
   },
   "required": [

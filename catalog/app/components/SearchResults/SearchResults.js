@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import ButtonIconized from 'components/ButtonIconized'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
@@ -78,20 +77,14 @@ function HeaderIcon(props) {
 
 function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
   return (
-    <Heading display="flex" alignItems="center" mb="0 !important">
+    <Preview.Header
+      downloadable={downloadable}
+      expanded={expanded}
+      handle={handle}
+      onToggle={onToggle}
+    >
       <ObjectCrumbs {...{ handle, showBucket }} />
-      <M.Box flexGrow={1} />
-      <ButtonIconized
-        label={expanded ? 'Collapse' : 'Expand'}
-        icon={expanded ? 'unfold_less' : 'unfold_more'}
-        rotate={expanded}
-        onClick={onToggle}
-        mr={1}
-      />
-      {!!downloadable && (
-        <Preview.Menu handle={handle} expanded={expanded} onToggle={onToggle} />
-      )}
-    </Heading>
+    </Preview.Header>
   )
 }
 

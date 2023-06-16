@@ -428,7 +428,7 @@ const AppBar = React.forwardRef<HTMLDivElement, AppBarProps>(function AppBar(
   )
 })
 
-const useContainerStyles = M.makeStyles((t) => ({
+const useHeaderStyles = M.makeStyles((t) => ({
   container: {
     display: 'flex',
     alignItems: 'center',
@@ -444,31 +444,41 @@ const useContainerStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface HeaderProps {
+  children?: React.ReactNode
+}
+
+export function Header({ children }: HeaderProps) {
+  const trigger = M.useScrollTrigger()
+  const settings = CatalogSettings.use()
+  const classes = useHeaderStyles({
+    customBg: !!settings?.theme?.palette?.primary?.main,
+  })
+  return (
+    <M.Box>
+      <M.Toolbar />
+      <M.Slide appear={false} direction="down" in={!trigger}>
+        <AppBar>
+          <M.Toolbar disableGutters>
+            <M.Container className={classes.container} maxWidth="lg">
+              <LogoLink />
+              <div className={classes.main}>{children}</div>
+            </M.Container>
+          </M.Toolbar>
+        </AppBar>
+      </M.Slide>
+    </M.Box>
+  )
+}
+
 interface ContainerProps {
   children?: React.ReactNode
 }
 
 export function Container({ children }: ContainerProps) {
-  const trigger = M.useScrollTrigger()
-  const settings = CatalogSettings.use()
-  const classes = useContainerStyles({
-    customBg: !!settings?.theme?.palette?.primary?.main,
-  })
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
-      <M.Box>
-        <M.Toolbar />
-        <M.Slide appear={false} direction="down" in={!trigger}>
-          <AppBar>
-            <M.Toolbar disableGutters>
-              <M.Container className={classes.container} maxWidth="lg">
-                <LogoLink />
-                <div className={classes.main}>{children}</div>
-              </M.Container>
-            </M.Toolbar>
-          </AppBar>
-        </M.Slide>
-      </M.Box>
+      <Header>{children}</Header>
     </M.MuiThemeProvider>
   )
 }

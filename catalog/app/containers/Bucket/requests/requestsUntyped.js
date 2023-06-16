@@ -349,8 +349,11 @@ export const ensureObjectIsPresent = (...args) =>
     }),
   )
 
+export const ensureQuiltSummarizeIsPresent = ({ s3, bucket }) =>
+  ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
+
 export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
-  const handle = await ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
+  const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
   if (handle) {
     try {
       return await summarize({ s3, handle })
@@ -560,6 +563,8 @@ export const objectVersions = ({ s3, bucket, path }) =>
       ),
     )
 
+// TODO: handle archive, delete markers
+//       make re-useable head request with such handlers
 export const objectMeta = ({ s3, bucket, path, version }) =>
   s3
     .headObject({

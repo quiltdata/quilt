@@ -14,13 +14,26 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased
+# unreleased - YYYY-MM-DD
 ## Python API
 
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] Fixed file preview header layout ([#3454](https://github.com/quiltdata/quilt/pull/3454))
+* [Fixed] Fix getting custom styles and options for files listed in quilt_summarize.json ([#3485](https://github.com/quiltdata/quilt/pull/3485))
+* [Fixed] Fix Header's orange flash on load ([#3487](https://github.com/quiltdata/quilt/pull/3487))
+* [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
+* [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
+* [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
+
+# 5.3.1 - 2023-05-02
+## Python API
+* [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
+
+## Catalog, Lambdas
 * [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
+* [Changed] Increased available file size to render Markdown preview to 3MiB ([#3427](https://github.com/quiltdata/quilt/pull/3427))
 
 # 5.3.0 - 2023-04-11
 ## Python API
@@ -30,6 +43,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 * [Fixed] Fix package push failing for unrelated reason ([#3390](https://github.com/quiltdata/quilt/pull/3390))
 * [Fixed] Fix package page flash when there is Jupyter Notebook ([#3408](https://github.com/quiltdata/quilt/pull/3408))
+* [Added] Add `gallery` field for configuring galleries visibility ([#3421](https://github.com/quiltdata/quilt/pull/3421))
 
 # 5.2.1 - 2023-04-05
 ## Python API

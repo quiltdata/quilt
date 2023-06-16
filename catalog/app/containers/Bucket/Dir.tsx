@@ -7,6 +7,7 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as Buttons from 'components/Buttons'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
@@ -285,7 +286,7 @@ export default function Dir({
 }: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
-  const { preferences } = BucketPreferences.use()
+  const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -386,14 +387,22 @@ export default function Dir({
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          {preferences?.ui?.actions?.createPackage && (
-            <Successors.Button
-              bucket={bucket}
-              className={classes.button}
-              onChange={openPackageCreationDialog}
-            >
-              Create package from directory
-            </Successors.Button>
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) =>
+                actions.createPackage && (
+                  <Successors.Button
+                    bucket={bucket}
+                    className={classes.button}
+                    onChange={openPackageCreationDialog}
+                  >
+                    Create package from directory
+                  </Successors.Button>
+                ),
+              Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
+              Init: () => null,
+            },
+            prefs,
           )}
           {!cfg.noDownload && !cfg.desktop && (
             <FileView.ZipDownloadForm
@@ -406,7 +415,14 @@ export default function Dir({
         </div>
       </div>
 
-      {preferences?.ui?.blocks?.code && <Code gutterBottom>{code}</Code>}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => blocks.code && <Code gutterBottom>{code}</Code>,
+          Pending: () => null,
+          Init: () => null,
+        },
+        prefs,
+      )}
 
       {data.case({
         Err: displayError(),
