@@ -178,7 +178,7 @@ stacks (in your default region, which is listed in your
     ```sh
     aws cloudformation list-stacks
     ```
-1. Capture Quilt log events for the last 30 minutesas follows:
+1. Capture Quilt log events for the last 30 minutes as follows:
     <!--pytest.mark.skip-->
     ```sh
     STACK_NAME="YOUR_QUILT_STACK"
