@@ -204,7 +204,7 @@ Inspect problematic objects with the following commands:
 BUCKET="YOUR_BUCKET"
 PREFIX="YOUR_PREFIX"
 aws s3api list-object-versions --bucket "$BUCKET" --prefix "$PREFIX"
-aws s3api get-object-tagging --bucket "$BUCKET"  --key "$PREFIX"
+aws s3api get-object-tagging --bucket "$BUCKET" --key "$PREFIX"
 ```
 
 ### Event source mapping
