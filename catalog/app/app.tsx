@@ -98,7 +98,7 @@ const render = () => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
-      [GTMLoader, { gtmId: cfg.gtmId }],
+      [GTMLoader, { gtmId: cfg.mode === 'MARKETING' ? cfg.gtmId : '' }],
       [
         Intercom.Provider,
         {
