@@ -87,6 +87,8 @@ user to reset your Quilt user Role to a default (**and valid**) Role.
 If you need to change the admin or have accidentally broken your admin user, try
 the following:
 1. Change the value of the `AdminEmail` CloudFormation parameter.
+> Only _net new_ email addresses that have never logged in before will create new admins.
+
     > If you are using SSO, `AdminEmail` must match the admin's SSO email address.
     
     > If an admin (or any user) is created with just-in-time provisioning through SSO then
