@@ -135,7 +135,7 @@ export default function Dir({
       </M.Box>
 
       {!ecfg.hideCode && (
-        <DirCodeSamples bucket={bucket} path={path} gutterBottom isDirectory />
+        <DirCodeSamples bucket={bucket} path={path} gutterBottom />
       )}
 
       {data.case({

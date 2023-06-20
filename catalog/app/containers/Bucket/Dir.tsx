@@ -389,7 +389,7 @@ export default function Dir({
         {
           Ok: ({ ui: { blocks } }) =>
             blocks.code && (
-              <DirCodeSamples bucket={bucket} path={path} gutterBottom isDirectory />
+              <DirCodeSamples bucket={bucket} path={path} gutterBottom />
             ),
           Pending: () => null,
           Init: () => null,

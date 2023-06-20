@@ -24,7 +24,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
-import DirCodeSamples from 'containers/Bucket/CodeSamples/Dir'
+import FileCodeSamples from 'containers/Bucket/CodeSamples/File'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
@@ -460,7 +460,7 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              {!ecfg.hideCode && <DirCodeSamples {...{ bucket, path }} />}
+              {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
                 <Analytics {...{ bucket, path }} />
               )}

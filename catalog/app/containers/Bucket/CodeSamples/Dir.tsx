@@ -15,13 +15,11 @@ const TEMPLATES = {
       import quilt3 as q3
       b = q3.Bucket("s3://${bucket}")
     `,
-  PY_DOWNLOAD: (path: string, dest: string) => {
-    const pyDest = dest || basename(path)
-    return dedent`
+  PY_DOWNLOAD: (path: string, dest: string) =>
+    dedent`
       # Download [[${docs}/api-reference/bucket#bucket.fetch]]
-      b.fetch("${path}", "./${pyDest}")
-    `
-  },
+      b.fetch("${path}", "./${dest}")
+    `,
   PY_LIST: (path: string) =>
     dedent`
       # List files [[${docs}/api-reference/bucket#bucket.ls]]
@@ -32,28 +30,19 @@ const TEMPLATES = {
       # List files [[https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html]]
       aws s3 ls "s3://${bucket}/${path}"
     `,
-  CLI_DOWNLOAD: (bucket: string, path: string, dest: string) => {
-    const cliDest = dest ? `"./${dest}"` : '.'
-    const recursiveFlag = dest ? ` --recursive` : ''
-    return dedent`
+  CLI_DOWNLOAD: (bucket: string, path: string, dest: string) =>
+    dedent`
       # Download [[https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html]]
-      aws s3 cp${recursiveFlag} "s3://${bucket}/${path}" ${cliDest}
-    `
-  },
+      aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
+    `,
 }
 
 interface DirCodeSamplesProps extends Partial<SectionProps> {
   bucket: string
   path: string
-  isDirectory: boolean
 }
 
-export default function DirCodeSamples({
-  bucket,
-  path,
-  isDirectory,
-  ...props
-}: DirCodeSamplesProps) {
+export default function DirCodeSamples({ bucket, path, ...props }: DirCodeSamplesProps) {
   const dest = path ? basename(path) : bucket
   const code = React.useMemo(
     () => [
@@ -62,8 +51,8 @@ export default function DirCodeSamples({
         hl: 'python',
         contents: [
           TEMPLATES.PY_INIT(bucket),
-          isDirectory ? TEMPLATES.PY_LIST(path) : '',
-          TEMPLATES.PY_DOWNLOAD(path, isDirectory ? dest : ''),
+          TEMPLATES.PY_LIST(path),
+          TEMPLATES.PY_DOWNLOAD(path, dest),
         ]
           .filter(Boolean)
           .join('\n'),
@@ -72,14 +61,14 @@ export default function DirCodeSamples({
         label: 'CLI',
         hl: 'bash',
         contents: [
-          isDirectory ? TEMPLATES.CLI_LIST(bucket, path) : '',
-          TEMPLATES.CLI_DOWNLOAD(bucket, path, isDirectory ? dest : ''),
+          TEMPLATES.CLI_LIST(bucket, path),
+          TEMPLATES.CLI_DOWNLOAD(bucket, path, dest),
         ]
           .filter(Boolean)
           .join('\n'),
       },
     ],
-    [isDirectory, bucket, path, dest],
+    [bucket, path, dest],
   )
   return <Code {...props}>{code}</Code>
 }
