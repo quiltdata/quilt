@@ -84,19 +84,25 @@ after clicking the `RELOAD` button in the Quilt Catalog.
 1. Your Quilt user Role has been corrupted. You will need a Quilt Admin
 user to reset your Quilt user Role to a default (**and valid**) Role.
 
-If you need to change the admin or have accidentally broken your admin user, try
-the following:
-1. Change the value of the `AdminEmail` CloudFormation parameter.
-    > Only _net new_ email addresses that have never logged in before will create new admins.
 
-    > If you are using SSO, `AdminEmail` must match the admin's SSO email address.
-    
-    > If an admin (or any user) is created with just-in-time provisioning through SSO then
-    > _setting the admin password has no effect_ and _password login will never work_ for that user.
-    > Said another way, users created through SSO can only log in through SSO.
+## User creation and log in
+Users can either be invited directly or are _just-in-time provisioned (JIP)_ when
+they sign in via SSO and receive the "default role."
+
+### Important conditions and pre-requisites
+* If an admin (or any user) is created with JIP SSO provisioning then
+setting the password for that user has no effect and _password login will never succeed_ 
+for that user. Said another way, users created through SSO can only log in through SSO.
+* You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an admin
+using a password (as opposed to SSO).
+
+### Changing the admin via CloudFormation
+If you need to change the admin (e.g. you have accidentally broken your admin user)
+try the following:
+1. Change the value of the `AdminEmail` CloudFormation parameter.
 1. Apply the change as a stack _Update_.
-1. Once the update is successful, the new admin can log in, set roles,
-and nominate other admins as needed.
+1. Once the update is successful, the new admin can log in, set roles, and nominate
+other admins as needed.
 
 ### Additional support
 To have your Quilt stack changeset reviewed by a Quilt support agent, or
