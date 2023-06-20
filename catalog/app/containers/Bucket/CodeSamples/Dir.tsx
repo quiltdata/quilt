@@ -10,28 +10,19 @@ import type { SectionProps } from '../Section'
 import Code from './Code'
 
 const TEMPLATES = {
-  PY_INIT: (bucket: string) =>
+  PY: (bucket: string, path: string, dest: string) =>
     dedent`
       import quilt3 as q3
       b = q3.Bucket("s3://${bucket}")
-    `,
-  PY_DOWNLOAD: (path: string, dest: string) =>
-    dedent`
+      # List files [[${docs}/api-reference/bucket#bucket.ls]]
+      b.ls("${path}")
       # Download [[${docs}/api-reference/bucket#bucket.fetch]]
       b.fetch("${path}", "./${dest}")
     `,
-  PY_LIST: (path: string) =>
-    dedent`
-      # List files [[${docs}/api-reference/bucket#bucket.ls]]
-      b.ls("${path}")
-    `,
-  CLI_LIST: (bucket: string, path: string) =>
+  CLI: (bucket: string, path: string, dest: string) =>
     dedent`
       # List files [[https://docs.aws.amazon.com/cli/latest/reference/s3/ls.html]]
       aws s3 ls "s3://${bucket}/${path}"
-    `,
-  CLI_DOWNLOAD: (bucket: string, path: string, dest: string) =>
-    dedent`
       # Download [[https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html]]
       aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
     `,
@@ -49,23 +40,12 @@ export default function DirCodeSamples({ bucket, path, ...props }: DirCodeSample
       {
         label: 'Python',
         hl: 'python',
-        contents: [
-          TEMPLATES.PY_INIT(bucket),
-          TEMPLATES.PY_LIST(path),
-          TEMPLATES.PY_DOWNLOAD(path, dest),
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        contents: TEMPLATES.PY(bucket, path, dest),
       },
       {
         label: 'CLI',
         hl: 'bash',
-        contents: [
-          TEMPLATES.CLI_LIST(bucket, path),
-          TEMPLATES.CLI_DOWNLOAD(bucket, path, dest),
-        ]
-          .filter(Boolean)
-          .join('\n'),
+        contents: TEMPLATES.CLI(bucket, path, dest),
       },
     ],
     [bucket, path, dest],
