@@ -104,14 +104,7 @@ try the following:
 1. Once the update is successful, the new admin can log in, set roles, and nominate
 other admins as needed.
 
-### Additional support
-To have your Quilt stack changeset reviewed by a Quilt support agent, or
-if you have further questions, please email support@quiltdata.io
-with the subject line "Quilt Admin user Role issue" and the body
-containing screenshots of the proposed changeset.
-
 ## General stack update failure steps
-
 On rare occasions, Quilt stack deployment updates might fail. This can happen for several
 reasons. To expedite resolution of stack deployment issues, it's helpful to 
 have the following data and output from the following [AWS CLI](https://aws.amazon.com/cli/) 
