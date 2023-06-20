@@ -34,9 +34,10 @@ const TEMPLATES = {
     `,
   CLI_DOWNLOAD: (bucket: string, path: string, dest: string) => {
     const cliDest = dest ? `"./${dest}"` : '.'
+    const recursiveFlag = dest ? ` --recursive` : ''
     return dedent`
       # Download [[https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html]]
-      aws s3 cp --recursive "s3://${bucket}/${path}" ${cliDest}
+      aws s3 cp${recursiveFlag} "s3://${bucket}/${path}" ${cliDest}
     `
   },
 }
