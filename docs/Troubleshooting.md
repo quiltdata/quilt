@@ -88,6 +88,10 @@ If you need to change the admin or have accidentally broken your admin user, try
 the following:
 1. Change the value of the `AdminEmail` CloudFormation parameter.
     > If you are using SSO, `AdminEmail` must match the admin's SSO email address.
+    
+    > If an admin (or any user) is created with just-in-time provisioning through SSO then
+    > _setting the admin password has no effect_ and _password login will never work_ for that user.
+    > Said another way, users created through SSO can only log in through SSO.
 1. Apply the change as a stack _Update_.
 1. Once the update is successful, the new admin can log in, set roles,
 and nominate other admins as needed.
