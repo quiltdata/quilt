@@ -253,11 +253,11 @@ Records the data returned by [`sts:GetCallerIdentity`](https://docs.aws.amazon.c
 
 See the GraphQL schema for GraphQL type reference.
 
-#### `Auth` namespace
+##### `Auth` namespace
 
 All the authentication-related operations.
 
-##### `Auth.RefreshToken`
+###### `Auth.RefreshToken`
 
 Authentication token refreshed.
 
@@ -272,7 +272,7 @@ Authentication token refreshed.
 - `additionalEventData`:
   - `method: "code" | "refresh"`
 
-##### `Auth.Login`
+###### `Auth.Login`
 
 User logged in.
 
@@ -295,7 +295,7 @@ User logged in.
   - `exp: datetime`
 
 
-##### `Auth.ServiceLogin`
+###### `Auth.ServiceLogin`
 
 A service user (Canary) logged in.
 
@@ -311,18 +311,18 @@ A service user (Canary) logged in.
   - `refresh_token: "***"`
   - `exp: datetime`
 
-##### `Auth.Activate`
+###### `Auth.Activate`
 
 A user was activated.
 
-##### `Auth.PasswordResetRequest`
+###### `Auth.PasswordResetRequest`
 
 Password reset requested.
 
 - `requestParameters`
   - `email: str`
 
-##### `Auth.PasswordChange`
+###### `Auth.PasswordChange`
 
 User password changed.
 
@@ -330,7 +330,7 @@ User password changed.
   - `password: "***"`
   - `link: "***"`
 
-##### `Auth.Register`
+###### `Auth.Register`
 
 User signed up.
 
@@ -342,11 +342,11 @@ User signed up.
 - `additionalEventData`
   - `default_role_id: str`
 
-##### `Auth.Logout`
+###### `Auth.Logout`
 
 User signed out.
 
-##### `Auth.IssueCode`
+###### `Auth.IssueCode`
 
 OAuth code issued (??).
 
@@ -360,7 +360,7 @@ OAuth code issued (??).
     - `sso_refresh_token: "***"`
     - `sso_expires: datetime`
 
-##### `Auth.GetAWSCredentials`
+###### `Auth.GetAWSCredentials`
 
 AWS credentials issued for a Quilt user.
 
@@ -369,12 +369,12 @@ AWS credentials issued for a Quilt user.
   - `SecretKey: "***"`
   - `SessionToken: "***"`
 
-#### `Users` namespace
+##### `Users` namespace
 
 User managment operations.
 Only accessible by the admin users.
 
-##### `Users.List`
+###### `Users.List`
 
 List users.
 
@@ -388,7 +388,7 @@ List users.
     - `is_active: bool`
     - `role_id: str`
 
-##### `Users.Create`
+###### `Users.Create`
 
 User created.
 
@@ -396,21 +396,21 @@ User created.
   - `username: str`
   - `email: str`
 
-##### `Users.Disable`
+###### `Users.Disable`
 
 User disabled.
 
 - `requestParameters`
   - `username: str`
 
-##### `Users.Enable`
+###### `Users.Enable`
 
 User enabled.
 
 - `requestParameters`
   - `username: str`
 
-##### `Users.EditEmail`
+###### `Users.EditEmail`
 
 User's email changed.
 
@@ -418,35 +418,35 @@ User's email changed.
   - `username: str`
   - `email: str`
 
-##### `Users.GrantAdmin`
+###### `Users.GrantAdmin`
 
 User is granted with admin rights.
 
 - `requestParameters`
   - `username: str`
 
-##### `Users.RevokeAdmin`
+###### `Users.RevokeAdmin`
 
 User is revoked admin rights.
 
 - `requestParameters`
   - `username: str`
 
-##### `Users.Delete`
+###### `Users.Delete`
 
 User deleted.
 
 - `requestParameters`
   - `username: str`
 
-##### `Users.ResetPassword`
+###### `Users.ResetPassword`
 
 User's password reset.
 
 - `requestParameters`
   - `username: str`
 
-##### `Users.SetRole`
+###### `Users.SetRole`
 
 User's role updated.
 
@@ -454,70 +454,70 @@ User's role updated.
   - `username: str`
   - `role: str` Role name
 
-#### `Buckets` namespace
+##### `Buckets` namespace
 
 Bucket management operations.
 Only accessible by the admin users.
 
-##### `Buckets.Add` (GraphQL: `Mutation.bucketAdd`)
+###### `Buckets.Add` (GraphQL: `Mutation.bucketAdd`)
 
 Bucket added to the stack.
 
-##### `Buckets.Update` (GraphQL: `Mutation.bucketUpdate`)
+###### `Buckets.Update` (GraphQL: `Mutation.bucketUpdate`)
 
 Bucket settings updated.
 
-##### `Buckets.Remove` (GraphQL: `Mutation.bucketRemove`)
+###### `Buckets.Remove` (GraphQL: `Mutation.bucketRemove`)
 
 Bucket removed from the stack.
 
-#### `Policies` namespace
+##### `Policies` namespace
 
 Quilt Policy management operations.
 Only accessible by the admin users.
 
-##### `Policies.Create` (GraphQL: `Mutation.policyCreateManaged` / `Mutation.policyCreateUnmanaged`)
+###### `Policies.Create` (GraphQL: `Mutation.policyCreateManaged` / `Mutation.policyCreateUnmanaged`)
 
 Quilt Policy created.
 
 `requestParameters.managed` is set accordingly.
 
-##### `Policies.Update` (GraphQL: `Mutation.policyUpdateManaged` / `Mutation.policyUpdateUnmanaged`)
+###### `Policies.Update` (GraphQL: `Mutation.policyUpdateManaged` / `Mutation.policyUpdateUnmanaged`)
 
 Quilt Policy updated.
 
 `requestParameters.managed` is set accordingly.
 
-##### `Policies.Delete` (GraphQL: `Mutation.policyDelete`)
+###### `Policies.Delete` (GraphQL: `Mutation.policyDelete`)
 
 Quilt Policy deleted.
 
-#### `Roles` namespace
+##### `Roles` namespace
 
 Quilt Role management operations.
 Only accessible by the admin users.
 
-##### `Roles.Create` (GraphQL: `Mutation.roleCreateManaged` / `Mutation.roleCreateUnmanaged`)
+###### `Roles.Create` (GraphQL: `Mutation.roleCreateManaged` / `Mutation.roleCreateUnmanaged`)
 
 Quilt Role created.
 
 `requestParameters.managed` is set accordingly.
 
-##### `Roles.Update` (GraphQL: `Mutation.roleUpdateManaged` / `Mutation.roleUpdateUnmanaged`)
+###### `Roles.Update` (GraphQL: `Mutation.roleUpdateManaged` / `Mutation.roleUpdateUnmanaged`)
 
 Quilt Role updated.
 
 `requestParameters.managed` is set accordingly.
 
-##### `Roles.Delete` (GraphQL: `Mutation.roleDelete`)
+###### `Roles.Delete` (GraphQL: `Mutation.roleDelete`)
 
 Quilt Role deleted.
 
-##### `Roles.SetDefault` (GraphQL: `Mutation.roleSetDefault`)
+###### `Roles.SetDefault` (GraphQL: `Mutation.roleSetDefault`)
 
 Quilt Role set as default.
 
-#### `Scripts` namespace
+##### `Scripts` namespace
 
 Admin scripts. Usually invoked by CloudFormation on stack bring-up / upgrade.
 
@@ -532,7 +532,7 @@ All `Scripts.*` events contain the following data:
 
 - `requestParameters: object` Parsed named script arguments
 
-##### `Scripts.CreateAdmin`
+###### `Scripts.CreateAdmin`
 
 Create an admin user account.
 Succeeds once on stack bring-up, fails on subsequent stack upgrades.
@@ -547,7 +547,7 @@ Succeeds once on stack bring-up, fails on subsequent stack upgrades.
   - `role_id: str` (optional)
     ID of the Quilt Role, if found by the name `role_name` (when provided).
 
-##### `Scripts.CreateRole`
+###### `Scripts.CreateRole`
 
 Add a named role to the stack, or set the ARN of a role
 if a role with the specified name already exists.
@@ -559,7 +559,7 @@ if a role with the specified name already exists.
   - `default: bool`
     Set this role as default if default role is not already set
 
-##### `Scripts.FixPackageEventsQueueSubscriptions`
+###### `Scripts.FixPackageEventsQueueSubscriptions`
 
 - `requestParameters`
   - `subscriber: str`
@@ -579,7 +579,7 @@ if a role with the specified name already exists.
     A mapping of bucket names to error messages revceived while trying to
     subscribe to their notifications
 
-##### `Scripts.SetupCanaries`
+###### `Scripts.SetupCanaries`
 
 Create a canary user (`_canary <canary@quiltdata.io>`) and set up resources
 required for running continuous integration testing (OQ monitoring).
@@ -588,7 +588,7 @@ required for running continuous integration testing (OQ monitoring).
   - `bucket_allowed: str`
   - `bucket_restricted: str`
 
-##### `Scripts.UpdateBucketPolicies`
+###### `Scripts.UpdateBucketPolicies`
 
 Update Quilt-managed IAM policies allowing the stack to access the buckets.
 
