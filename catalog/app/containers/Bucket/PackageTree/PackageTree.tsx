@@ -85,7 +85,7 @@ function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
         # or whole directories
         p.set_dir("subdir", "subdir")
         # and push changes
-        q3.Package.push("${name}", registry="s3://${bucket}", message="Hello World")
+        p.push("${name}", registry="s3://${bucket}", message="Hello World")
 
         # Download (be mindful of large packages)
         q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
