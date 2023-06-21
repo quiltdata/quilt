@@ -720,9 +720,6 @@ Quilt Stack provisions the following resources:
 - **Audit Workgroup**: an Athena workgroup named `${AWS::StackName}-audit"`,
   exposed as `AuditTrailWorkgroup` stack resource.
 
-- **"Repair Audit Trail table"** saved query in **Audit Workgroup**,
-  associated with the **Audit Trail Database**.
-
 - **Audit Trail Bucket**: an S3 bucket storing all the audit trail data and
   Athena query results for **Audit Workgroup**.
 
@@ -733,10 +730,6 @@ In order to query audit trail data via AWS Athena Console, you should:
 2. Select **Audit Trail Database** from the "Database" dropdown.
 
 3. Select **Audit Workgroup** from the "Workgroup" dropdown.
-
-4. Run the **"Repair Audit Trail table"** saved query
-   before executing your actual queries
-   to tell Athena to pick up the newly created partitions.
 
 All the events are available in the `audit_trail` table,
 which has the following fields (schema version 1.0):
@@ -756,11 +749,9 @@ which has the following fields (schema version 1.0):
 - `errorcode: string`
 - `errormessage: string`
 - `additionaleventdata: string`
-- `year: int` (partition)
-- `month: int` (partition)
-- `day: int` (partition)
+- `date: string` (partition)
 
-The data is partitioned by `year`, `month` and `day`.
+The data is partitioned by `date`, which has `YYYY/mm/dd` format.
 
 All the JSON objects from an event record are exposed to Athena as strings,
 so you can leverage athena JSON querying capabilities.
@@ -807,9 +798,7 @@ responseelements,
 additionaleventdata,
 errorcode
 FROM audit_trail
-WHERE year = year(CURRENT_DATE)
-AND month = month(CURRENT_DATE)
-AND day = day(CURRENT_DATE)
+WHERE date = date_format(current_date, '%Y/%m/%d')
 AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
 AND json_extract_scalar(useridentity, '$.email') = 'example@quiltdata.io'
 ORDER BY eventtime
@@ -841,8 +830,7 @@ min(eventtime) as time_first,
 max(eventtime) as time_last,
 array_agg(DISTINCT eventname) as actions
 FROM audit_trail
-WHERE year = year(CURRENT_DATE)
-AND month = month(CURRENT_DATE)
+WHERE date BETWEEN date_format(current_date, '%Y/%m/01') AND date_format(current_date, '%Y/%m/31')
 AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
 GROUP BY json_extract_scalar(useridentity, '$.id')
 ```
@@ -866,8 +854,7 @@ array_agg(DISTINCT json_extract_scalar(useridentity, '$.email')) as emails,
 array_agg(DISTINCT json_extract_scalar(useridentity, '$.isadmin')) as isadmin_values,
 array_agg(DISTINCT json_extract_scalar(useridentity, '$.roleid')) as roles
 FROM audit_trail
-WHERE year = year(CURRENT_DATE)
-AND month = month(CURRENT_DATE)
+WHERE date BETWEEN date_format(current_date, '%Y/%m/01') AND date_format(current_date, '%Y/%m/31')
 AND eventname = 'Auth.Login'
 AND errorcode IS NULL
 AND json_extract_scalar(useridentity, '$.type') = 'QuiltUser'
