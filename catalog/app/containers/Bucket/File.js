@@ -1,7 +1,6 @@
 import { basename } from 'path'
 
 import * as dateFns from 'date-fns'
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link, useHistory } from 'react-router-dom'
@@ -30,7 +29,7 @@ import parseSearch from 'utils/parseSearch'
 import { up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
-import Code from './Code'
+import FileCodeSamples from './CodeSamples/File'
 import FileProperties from './FileProperties'
 import * as FileView from './FileView'
 import Section from './Section'
@@ -336,28 +335,6 @@ export default function File({
 
   const path = decode(encodedPath)
 
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3 as q3
-          b = q3.Bucket("s3://${bucket}")
-          b.fetch("${path}", "./${basename(path)}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          aws s3 cp "s3://${bucket}/${path}" .
-        `,
-      },
-    ],
-    [bucket, path],
-  )
-
   const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
@@ -521,7 +498,7 @@ export default function File({
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <Code>{code}</Code>}
+                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics {...{ bucket, path }} />
                       )}
