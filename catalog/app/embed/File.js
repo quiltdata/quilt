@@ -1,7 +1,6 @@
 import { basename } from 'path'
 
 import * as dateFns from 'date-fns'
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
@@ -25,7 +24,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
-import Code from 'containers/Bucket/Code'
+import FileCodeSamples from 'containers/Bucket/CodeSamples/File'
 import FileProperties from 'containers/Bucket/FileProperties'
 import * as FileView from 'containers/Bucket/FileView'
 import Section from 'containers/Bucket/Section'
@@ -363,28 +362,6 @@ export default function File({
 
   const path = s3paths.decode(encodedPath)
 
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3 as q3
-          b = q3.Bucket("s3://${bucket}")
-          b.fetch("${path}", "./${basename(path)}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          aws s3 cp "s3://${bucket}/${path}" .
-        `,
-      },
-    ],
-    [bucket, path],
-  )
-
   const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
@@ -483,7 +460,7 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              {!ecfg.hideCode && <Code>{code}</Code>}
+              {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
                 <Analytics {...{ bucket, path }} />
               )}
