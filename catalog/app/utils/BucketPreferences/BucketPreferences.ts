@@ -13,7 +13,7 @@ export type ActionPreferences = Record<
   boolean
 >
 
-export interface MetaBlockPreferencesInput {
+interface MetaBlockPreferencesInput {
   user_meta?: {
     expanded: boolean | number
   }
@@ -31,10 +31,7 @@ export interface MetaBlockPreferences {
   }
 }
 
-export type GalleryPreferences = Record<
-  'files' | 'packages' | 'overview' | 'summarize',
-  boolean
->
+type GalleryPreferences = Record<'files' | 'packages' | 'overview' | 'summarize', boolean>
 
 interface BlocksPreferencesInput {
   analytics?: boolean
@@ -72,7 +69,7 @@ type DefaultSourceBucketInput = string
 type PackageDescriptionMultiline = boolean
 type SourceBucketsInput = Record<string, null>
 
-export interface AthenaPreferencesInput {
+interface AthenaPreferencesInput {
   defaultWorkflow?: string // @deprecated, was used by mistake
   defaultWorkgroup?: string
 }

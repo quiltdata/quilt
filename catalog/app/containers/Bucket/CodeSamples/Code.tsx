@@ -5,11 +5,12 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
+import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
-import Section from './Section'
+import Section, { SectionProps } from '../Section'
 
-function highlight(lang, str) {
+function highlight(str: string, lang?: string) {
   if (lang && hljs.getLanguage(lang)) {
     try {
       const { value } = hljs.highlight(str, { language: lang })
@@ -21,6 +22,46 @@ function highlight(lang, str) {
     }
   }
   return str
+}
+
+const useLineOfCodeStyles = M.makeStyles((t) => ({
+  root: {
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.body2.fontSize,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    whiteSpace: 'pre',
+    minHeight: t.typography.body2.fontSize,
+    display: 'flex',
+    alignItems: 'flex-end',
+    '&:hover $help': {
+      opacity: 1,
+    },
+  },
+  help: {
+    display: 'inline-flex',
+    marginLeft: t.spacing(0.5),
+    opacity: 0.3,
+  },
+}))
+
+interface LineOfCodeProps {
+  lang?: string
+  text: string
+  help?: string
+}
+function LineOfCode({ lang, text, help }: LineOfCodeProps) {
+  const classes = useLineOfCodeStyles()
+  return (
+    <div className={classes.root}>
+      {highlight(text, lang)}
+      {help && (
+        <StyledLink href={help} className={classes.help} target="_blank">
+          [?]
+        </StyledLink>
+      )}
+    </div>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -35,16 +76,17 @@ const useStyles = M.makeStyles((t) => ({
     height: 32,
   },
   code: {
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: t.typography.body2.fontSize,
-    overflowX: 'auto',
-    overflowY: 'hidden',
-    whiteSpace: 'pre',
+    width: '100%',
   },
 }))
 
+interface CodeProps extends Partial<SectionProps> {
+  children: { label: string; contents: string; hl?: string }[]
+  defaultSelected?: number
+}
+
 // children: [{ label: str, contents: str, hl: lang }]
-export default function Code({ defaultSelected = 0, children, ...props }) {
+export default function Code({ defaultSelected = 0, children, ...props }: CodeProps) {
   const classes = useStyles()
   const { push } = Notifications.use()
 
@@ -67,6 +109,27 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       push('Code has been copied to clipboard')
     },
     [selected.contents, push],
+  )
+
+  const lines = React.useMemo(
+    () =>
+      selected.contents.split('\n').map((line, index) => {
+        // Find [[ URL ]] and put it to help prop
+        const matched = line.match(/(.*) \[\[(.*)\]\]/)
+        const key = selected.label + index
+        if (!matched || !matched[1] || !matched[2]) {
+          return {
+            key,
+            text: line,
+          }
+        }
+        return {
+          help: matched[2],
+          key,
+          text: matched[1],
+        }
+      }),
+    [selected.contents, selected.label],
   )
 
   return (
@@ -97,7 +160,16 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       )}
       {...props}
     >
-      <div className={classes.code}>{highlight(selected.hl, selected.contents)}</div>
+      <div className={classes.code}>
+        {lines.map((line) => (
+          <LineOfCode
+            help={line.help}
+            key={line.key}
+            lang={selected.hl}
+            text={line.text}
+          />
+        ))}
+      </div>
     </Section>
   )
 }
