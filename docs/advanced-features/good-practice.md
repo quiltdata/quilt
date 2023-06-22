@@ -110,7 +110,7 @@ While data access to S3 is logged via CloudTrail, certain "admin plane" events
 such as the following are logged to a managed S3 bucket and exposed
 via an Athena table:
 
-* A user logs into the catalog
+* A user logs into the Catalog
 * A user role is changed
 * A user is added, deleted, or inactivated in the Catalog
 
@@ -126,47 +126,65 @@ S3 bucket.
   Version and revision of the event record.
 
 - `eventTime: datetime` (required, since 1.0)
+
   When the action was **completed** (in UTC).
 
 - `eventID: str` (required, since 1.0)
+
   A unique ID (UUID) of the event.
 
 - `eventSource: "QuiltServer" | "QuiltScript"` (required, since 1.0)
+
   The service or part of the system that this event originates from.
 
 - `eventType: "QuiltApiCall" | "QuiltScriptInvocation"` (required, since 1.0)
+
   The type of event that generated the event record.
 
 - `eventName: str` (required, since 1.0)
+
   The name of action performed in the form `${namespace}.${operationName}`,
   e.g. `Users.Create`. See [Event Taxonomy](#event-taxonomy) for details.
 
 - `userAgent: str` (optional, since 1.0)
+
   The agent through which the request was made, such as a web browser,
   a Quilt Stack or Quilt Python Client.
 
 - `sourceIPAddress: str` (optional, since 1.0)
+
   The IP address that the request was made from.
 
 - `userIdentity: UserIdentity` (required, since 1.0)
+
   Information about the identity that performed the action.
   Refer to [UserIdentity](#user-identity) section below for details.
 
+- `requestID: str` (optional, since 1.0)
+
+  Request ID based on 
+  [AWS ALB request tracing capabilities](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html).
+
 - `requestParameters: object` (required, since 1.0)
+
   The parameters, if any, that were sent with the request.
   These parameters are documented under [Event Taxonomy](#event-taxonomy) section.
 
 - `responseElements: any` (optional, since 1.0)
+
   The response data, if any.
 
 - `errorCode: str` (optional, since 1.0)
-  Only present if an error occured while trying to perform an action,
+
+  Only present if an error occurred while trying to perform an action,
   `null` when the action succeeds.
 
 - `errorMessage: str` (optional, since 1.0)
+
   Description of the error.
 
 - `additionalEventData: object` (optional, since 1.0)
+
   Additional data about the event that was not part of the request or response.
 
 #### Event source and type
@@ -349,7 +367,7 @@ User signed out.
 
 ###### `Auth.IssueCode`
 
-OAuth code issued (??).
+OAuth code issued.
 
 - `responseElements`
   - `code`
@@ -372,7 +390,7 @@ AWS credentials issued for a Quilt user.
 
 ##### `Users` namespace
 
-User managment operations.
+User management operations.
 Only accessible by the admin users.
 
 ###### `Users.List`
@@ -577,7 +595,7 @@ if a role with the specified name already exists.
   - `subscriptions_created: object`
     A mapping of bucket names to ARNs of subscriptions created for them
   - `subscription_errors: object`
-    A mapping of bucket names to error messages revceived while trying to
+    A mapping of bucket names to error messages received while trying to
     subscribe to their notifications
 
 ###### `Scripts.SetupCanaries`
@@ -753,6 +771,9 @@ which has the following fields (schema version 1.0):
 - `date: string` (partition)
 
 The data is partitioned by `date`, which has `YYYY/mm/dd` format.
+[Partitioning](https://docs.aws.amazon.com/athena/latest/ug/ctas-partitioning-and-bucketing.html#ctas-partitioning-and-bucketing-what-is-partitioning)
+helps to make the queries faster and cheaper by reducing the amount of data scanned,
+so it's adviced to always filter by the partition key when possible.
 
 All the JSON objects from an event record are exposed to Athena as strings,
 so you can leverage athena JSON querying capabilities.
