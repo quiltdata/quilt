@@ -742,13 +742,19 @@ Quilt Stack provisions the following resources:
 - **Audit Trail Bucket**: an S3 bucket storing all the audit trail data and
   Athena query results for **Audit Workgroup**.
 
+- **Audit Trail Query Policy**: a managed IAM policy allowing to query
+  audit trail data via Athena, exposed as `AuditTrailAthenaQueryPolicy` stack resource.
+
 In order to query audit trail data via AWS Athena Console, you should:
+
+1. Ensure you have adequate permissions to query the data
+   (e.g. use the Quilt-managed **Audit Trail Query Policy**).
 
 1. Select `AwsDataCatalog` from the "Data source" dropdown.
 
-2. Select **Audit Trail Database** from the "Database" dropdown.
+1. Select **Audit Trail Database** from the "Database" dropdown.
 
-3. Select **Audit Workgroup** from the "Workgroup" dropdown.
+1. Select **Audit Workgroup** from the "Workgroup" dropdown.
 
 All the events are available in the `audit_trail` table,
 which has the following fields (schema version 1.0):
@@ -768,6 +774,7 @@ which has the following fields (schema version 1.0):
 - `errorcode: string`
 - `errormessage: string`
 - `additionaleventdata: string`
+- `requestid: string`
 - `date: string` (partition)
 
 The data is partitioned by `date`, which has `YYYY/mm/dd` format.
