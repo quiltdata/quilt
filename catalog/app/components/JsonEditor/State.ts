@@ -128,8 +128,7 @@ export function iterateSchema(
 const assocObjValue: (p: JSONPointer.Path, v: any, jsonObject: JsonRecord) => JsonRecord =
   R.assocPath
 
-export const getObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord =
-  R.path
+const getObjValue: (p: JSONPointer.Path, jsonObject: JsonRecord) => JsonRecord = R.path
 
 export const getJsonDictValue = (objPath: JSONPointer.Path, jsonDict: JsonDict) =>
   R.prop(JSONPointer.stringify(objPath), jsonDict)

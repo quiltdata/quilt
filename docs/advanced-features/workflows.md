@@ -309,7 +309,7 @@ With this Schema you can create strictly ordered lists, such as `["Any string", 
 An incorrect order will return an error `[123, "Any string"] // invalid`.
 
 > Remember that you should define `"minItems"` and `"maxItems"` or
-`"minItems"` and `"additonalItems": false`, because "tuples" must have
+`"minItems"` and `"additionalItems": false`, because "tuples" must have
 a fixed size.
 
 Instead of letting users set any metadata value, you can define list of

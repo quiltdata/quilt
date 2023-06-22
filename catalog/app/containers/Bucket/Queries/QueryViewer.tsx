@@ -31,19 +31,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function parseJSON(str: string) {
-  try {
-    return JSON.parse(str)
-  } catch (e) {
-    return str
-  }
-}
-
-export const stringifyJSON = (obj: object | string) => {
-  if (typeof obj === 'string') return obj
-  return JSON.stringify(obj, null, 2)
-}
-
 interface QueryViewerProps {
   className: string
   onChange: (value: requests.ElasticSearchQuery) => void
