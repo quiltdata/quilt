@@ -122,6 +122,7 @@ S3 bucket.
 #### Event structure
 
 - `eventVersion: int`, `eventRevision: int` (required, since 1.0)
+
   Version and revision of the event record.
 
 - `eventTime: datetime` (required, since 1.0)
