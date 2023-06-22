@@ -121,9 +121,9 @@ S3 bucket.
 
 #### Event structure
 
-- `eventVersion: int`, `eventRevision: int` (required, since 1.0)
+- `eventVersion: str`, (required, since 1.0)
 
-  Version and revision of the event record.
+  Version of the event record.
 
 - `eventTime: datetime` (required, since 1.0)
 
@@ -197,16 +197,13 @@ When an admin script is invoked (this usually happens on stack bring-up / upgrad
 
 #### Event schema versioning
 
-Event records are versioned with `eventVersion` and `eventRevision`
-In the context of this document, these together are referenced as `${eventVersion}.${eventRevision}`,
-(similar to `MAJOR.MINOR` SemVer-like notation),
-e.g. `since 1.0` means the field is available since version 1, revision 0.
+Event records are versioned using SemVer-like versioning scheme (`MAJOR.MINOR`).
 
-`eventVersion` is incremented on backwards-incompatible changes to the schema,
+`MAJOR` version is incremented on backwards-incompatible changes to the schema,
 e.g. removing a JSON field that already exists, or changing how the contents of
 a field are represented (for example, a date format).
 
-`eventRevision` is incremented on backwards-compatible changes, such as adding
+`MINOR` version is incremented on backwards-compatible changes, such as adding
 new fields to the event structure.
 
 #### GraphQL requests
@@ -617,8 +614,7 @@ Admin user creation (failed because the user was created earlier):
 
 ```json
 {
-  "eventVersion": 1,
-  "eventRevision": 0,
+  "eventVersion": "1.0",
   "eventTime": "2023-06-08T13:55:27Z",
   "eventID": "3d59b43a-3c31-48b1-bd5c-a039af87fdc5",
   "eventSource": "QuiltScript",
@@ -654,8 +650,7 @@ A user with admin rights authenticated using password:
 
 ```json
 {
-  "eventVersion": 1,
-  "eventRevision": 0,
+  "eventVersion": "1.0",
   "eventTime": "2023-06-08T13:59:36Z",
   "eventID": "92e66ee3-42fd-4142-990d-9d54059c583b",
   "eventSource": "QuiltServer",
@@ -692,8 +687,7 @@ A service user (Canary) authenticated:
 
 ```json
 {
-  "eventVersion": 1,
-  "eventRevision": 0,
+  "eventVersion": "1.0",
   "eventTime": "2023-06-12T00:37:21Z",
   "eventID": "10b0901a-74cd-4e62-8954-33f4fba6e8ad",
   "eventSource": "QuiltServer",
@@ -759,8 +753,7 @@ In order to query audit trail data via AWS Athena Console, you should:
 All the events are available in the `audit_trail` table,
 which has the following fields (schema version 1.0):
 
-- `eventversion: tinyint`
-- `eventrevision: tinyint`
+- `eventversion: string`
 - `eventtime: timestamp`
 - `eventid: string`
 - `eventsource: string`
