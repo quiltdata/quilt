@@ -29,12 +29,12 @@ results (Operational Qualification) and Quilt instance Cloud Formation
 parameters and outputs (Infrastructure Qualification).
   1. Operational Qualification report: all canary test results and
   status (historical and current)
-  2. Infrastructue Qualification report: all CloudFormation parameters
+  2. Infrastructure Qualification report: all CloudFormation parameters
   and status
 3. *Administrative User Interface:* An HTML page in the Quilt catalog
 that displays the current operational status of a Quilt instance
 and provides access to current and historical status reports.
-4. *Amazon SNS topic:* Users can subscribe to the topic and recieve
+4. *Amazon SNS topic:* Users can subscribe to the topic and receive
 canary error notifications (available as `CanaryNotificationsTopic`
 stack output).
 
