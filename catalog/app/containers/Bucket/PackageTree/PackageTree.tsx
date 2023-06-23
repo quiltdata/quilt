@@ -284,6 +284,7 @@ function DirDisplay({
               </>
             )
           }
+          console.log('DIR CHILDREN', dir.children)
 
           const items: ListingItem[] = dir.children.map((c) => {
             switch (c.__typename) {

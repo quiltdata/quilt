@@ -696,9 +696,12 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
         {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
         {readableBytes(stats.size, truncated ? '+' : '')}
       </div>
-      <div className={classes.cellLast}>
-        {modified && `${truncated ? '~' : ''}${modified.toLocaleString()}`}
-      </div>
+      {modified && (
+        <div className={classes.cellLast}>
+          {truncated ? '~' : ''}
+          {modified.toLocaleString()}
+        </div>
+      )}
       {locked && <div className={classes.lock} />}
     </div>
   )
@@ -943,8 +946,8 @@ export function Listing({
   })
 
   // NOTE: after dependencies change fourth empty column appears
-  const columns: DG.GridColumns = React.useMemo(
-    () => [
+  const columns: DG.GridColumns = React.useMemo(() => {
+    const auxCoolumns: DG.GridColumns = [
       {
         field: 'name',
         headerName: 'Name',
@@ -985,16 +988,9 @@ export function Listing({
           )
         },
       },
-      // TODO: uncomment this after implementing custom filter operators
-      // {
-      //   field: 'type',
-      //   headerName: 'Type',
-      //   type: 'string',
-      //   hide: true,
-      //   // TODO: custom filter operators
-      //   // filterOperators: GridFilterOperator[]
-      // },
-      {
+    ]
+    if (items.some(({ size }) => !!size)) {
+      auxCoolumns.push({
         field: 'size',
         headerName: 'Size',
         type: 'number',
@@ -1011,8 +1007,10 @@ export function Listing({
             </CellComponent>
           )
         },
-      },
-      {
+      })
+    }
+    if (items.some(({ modified }) => !!modified)) {
+      auxCoolumns.push({
         field: 'modified',
         headerName: 'Last modified',
         type: 'dateTime',
@@ -1034,10 +1032,10 @@ export function Listing({
             </CellComponent>
           )
         },
-      },
-    ],
-    [classes, CellComponent, sm],
-  )
+      })
+    }
+    return auxCoolumns
+  }, [classes, CellComponent, prefixFilter, sm])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
