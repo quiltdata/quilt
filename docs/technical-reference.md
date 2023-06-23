@@ -108,6 +108,14 @@ Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.ama
 You will need the following:
 
 1. **An AWS account**.
+    1. **The service-linked role for Elasticsearch**
+    > This role is not created automatically when you use Cloudformation or other
+    > APIs
+
+    You can create the role as follows:
+        ```
+        aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+        ```
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
     1. We recommend that you use a
@@ -148,7 +156,6 @@ following Bucket characteristics:
     bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
     of `ObjectRemoved:DeleteMarkerCreated`.
 
-1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 1. A license key or an active subscription to Quilt Business on AWS Marketplace. 
