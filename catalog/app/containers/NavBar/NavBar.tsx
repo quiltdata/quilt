@@ -635,5 +635,3 @@ export function NavBar() {
     </Container>
   )
 }
-
-export default NavBar

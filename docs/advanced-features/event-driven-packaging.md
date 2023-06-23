@@ -112,7 +112,7 @@ specified duration or event count, a `package-objects-ready` event
 is generated and sent to EventBridge.
 1. A custom SNS topic is created for monitoring data package creation
 that Lab and Computational scientists subscribe to (`SNS_TOPIC_ARN`).
-1. A custom lambda fuction triggered by the `package-objects-ready`
+1. A custom lambda function triggered by the `package-objects-ready`
 event processes the experiment files and generates a data package.
 Additional processing includes (but is not limited to):
     - Enhance the package with documentation, charts, and metadata, such as the following:

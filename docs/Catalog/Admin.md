@@ -94,4 +94,4 @@ in the navbar, custom logo and default search mode.
 ![](../imgs/admin-settings.png)
 
 ## Further settings
-See [Prefences](Preferences.md) for further control over the catalog user interface.
+See [Preferences](Preferences.md) for further control over the catalog user interface.

@@ -406,8 +406,8 @@ All filters and columns will be restored:
       {
         "name": "perspective",
         "config": {
-          "columns": ["name", "value"],
-          "group_by": ["value"],
+          "columns": ["YOUR_COLUMN_0", "YOUR_COLUMN_1"],
+          "group_by": ["YOUR_COLUMN_1"],
           "settings": true,
           "theme": "Material Light Mono"
         }
