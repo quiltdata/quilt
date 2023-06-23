@@ -19,7 +19,6 @@ export interface IgvProps extends React.HTMLProps<HTMLDivElement> {
   options: igv.IgvBrowserOptions
 }
 
-// XXX: consider using components/EChartsChart (may require some adjustments)
 function Igv({ options, ...props }: IgvProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const classes = useStyles()

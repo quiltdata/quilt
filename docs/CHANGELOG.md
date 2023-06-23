@@ -23,7 +23,9 @@ Entries inside each section should be ordered by type:
 * [Fixed] Fixed file preview header layout ([#3454](https://github.com/quiltdata/quilt/pull/3454))
 * [Fixed] Fix getting custom styles and options for files listed in quilt_summarize.json ([#3485](https://github.com/quiltdata/quilt/pull/3485))
 * [Fixed] Fix Header's orange flash on load ([#3487](https://github.com/quiltdata/quilt/pull/3487))
+* [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
+* [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
 
 # 5.3.1 - 2023-05-02
@@ -76,7 +78,7 @@ Entries inside each section should be ordered by type:
 * [Added] Add link to package revisions from package list ([#3256](https://github.com/quiltdata/quilt/pull/3256))
 * [Added] WebP support in thumbnail lambda ([#3275](https://github.com/quiltdata/quilt/pull/3275))
 * [Added] Set default search mode in Admin Settings ([#3270](https://github.com/quiltdata/quilt/pull/3270))
-* [Added] Togggle buttons for file previews ([#3290](https://github.com/quiltdata/quilt/pull/3290))
+* [Added] Toggle buttons for file previews ([#3290](https://github.com/quiltdata/quilt/pull/3290))
 * [Fixed] Fix performance issue (missing memoization) in search results ([#3257](https://github.com/quiltdata/quilt/pull/3257))
 * [Fixed] Fix fetching and writing settings in Admin/Settings section ([#3276](https://github.com/quiltdata/quilt/pull/3276))
 * [Fixed] Fix iframe preview width ([#3279](https://github.com/quiltdata/quilt/pull/3279))
@@ -84,7 +86,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Show collapsed values in JSON viewer ([#3249](https://github.com/quiltdata/quilt/pull/3249))
 * [Changed] Rename "Metadata" to "User metadata" ([#3255](https://github.com/quiltdata/quilt/pull/3255))
 * [Changed] Show selective metadata for packages as JSON ([#3259](https://github.com/quiltdata/quilt/pull/3259))
-* [Changed] Show selective metadata on one line and optionaly on multiple lines ([#3284](https://github.com/quiltdata/quilt/pull/3284))
+* [Changed] Show selective metadata on one line and optionally on multiple lines ([#3284](https://github.com/quiltdata/quilt/pull/3284))
 
 # 5.1.0 - 2022-12-09
 ## Python API
@@ -125,7 +127,7 @@ Entries inside each section should be ordered by type:
 * [Added] Add extended value for `ui.blocks.meta` in `.quilt/catalog/config.yaml` ([#3175](https://github.com/quiltdata/quilt/pull/3175))
 * [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
 * [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
-* [Fixed] Fix pre-popullation of default dates when using "dateformat" + {"format": "date"} ([#3082](https://github.com/quiltdata/quilt/pull/3082))
+* [Fixed] Fix pre-population of default dates when using "dateformat" + {"format": "date"} ([#3082](https://github.com/quiltdata/quilt/pull/3082))
 * [Fixed] Fix editing nested files in packages, fix editing files added from the different location to package ([#3117](https://github.com/quiltdata/quilt/pull/3117))
 * [Fixed] Fix enum detection in `anyOf`, `allOf`, `oneOf`, `not` fields and in arrays in JsonEditor ([#3169](https://github.com/quiltdata/quilt/pull/3169))
 * [Fixed] Fix adding new elements in JsonEditor ([#3169](https://github.com/quiltdata/quilt/pull/3169))
@@ -143,7 +145,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Allow to save only latest revisions of files ([#3124](https://github.com/quiltdata/quilt/pull/3124))
 * [Changed] Render HTML files in LOCAL mode ([#3139](https://github.com/quiltdata/quilt/pull/3139))
 * [Changed] Support dots in bucket names while using S3 proxy ([#3147](https://github.com/quiltdata/quilt/pull/3147))
-* [Changed] Support `additonalProperties` and `items` in JsonEditor ([#3144](https://github.com/quiltdata/quilt/pull/3144))
+* [Changed] Support `additionalProperties` and `items` in JsonEditor ([#3144](https://github.com/quiltdata/quilt/pull/3144))
 * [Changed] Initialize Catalog configuration synchronously from `QUILT_CATALOG_CONFIG` global var ([#3166](https://github.com/quiltdata/quilt/pull/3166))
 * [Changed] Handle rendering multiple molecules in one .sdf file ([#3179](https://github.com/quiltdata/quilt/pull/3179))
 * [Changed] Refactor Sentry set-up, add more integrations / instrumentation ([#3164](https://github.com/quiltdata/quilt/pull/3164))
@@ -211,7 +213,7 @@ Entries inside each section should be ordered by type:
 * [Added] `--workflow` argument to `push` command ([#2279](https://github.com/quiltdata/quilt/pull/2279))
 
 ## Catalog, Lambdas
-* [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
+* [Added] Pre-populate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
 * [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
 * [Added] File listing: "load more" button to fetch more entries from S3 ([#2150](https://github.com/quiltdata/quilt/pull/2150))
 * [Added] Voila Notebooks format support ([#2163](https://github.com/quiltdata/quilt/pull/2163))
@@ -670,7 +672,7 @@ Quilt now caches build intermediates. So if you wish to update the README of a m
 ## Group-level build parameters
 You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quiltdata.com/buildyml.html).
 
-## quilt.yml is like requirments.txt but for data
+## quilt.yml is like requirements.txt but for data
 You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quiltdata.com/cli.html#installing-via-requirements-file).
 
 ## Experimental: build a package from a GitHub repo

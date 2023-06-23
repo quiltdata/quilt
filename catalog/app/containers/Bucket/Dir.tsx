@@ -1,6 +1,5 @@
-import { basename, join } from 'path'
+import { join } from 'path'
 
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -23,7 +22,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
-import Code from './Code'
+import DirCodeSamples from './CodeSamples/Dir'
 import * as FileView from './FileView'
 import { Item, Listing, PrefixFilter } from './Listing'
 import Menu from './Menu'
@@ -295,35 +294,6 @@ export default function Dir({
   const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
-  const dest = path ? basename(path) : bucket
-
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3 as q3
-          b = q3.Bucket("s3://${bucket}")
-          # list files
-          b.ls("${path}")
-          # download
-          b.fetch("${path}", "./${dest}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          # list files
-          aws s3 ls "s3://${bucket}/${path}"
-          # download
-          aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
-        `,
-      },
-    ],
-    [bucket, path, dest],
-  )
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
@@ -429,7 +399,8 @@ export default function Dir({
 
       {BucketPreferences.Result.match(
         {
-          Ok: ({ ui: { blocks } }) => blocks.code && <Code gutterBottom>{code}</Code>,
+          Ok: ({ ui: { blocks } }) =>
+            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom />,
           Pending: () => null,
           Init: () => null,
         },
