@@ -154,6 +154,7 @@ Quilt support:
         network requests and select **Save as...**.
     1. Save the log file to your localhost.
 
+
 ### Elastic Container Service (ECS)
 
 1. Find the name of your Quilt stack from querying all deployed
@@ -203,6 +204,24 @@ aws lambda get-event-source-mapping --uuid \
         --stack-name "$STACK_NAME" \
         --logical-resource-id LambdaFunctionEventSourceMapping \
         --query StackResourceDetail.PhysicalResourceId --output text)
+```
+
+### Specific logical resources
+
+Sometimes you may wish to find an ID or other information from a logical resource
+in a Quilt stack.
+
+```sh
+STACK_NAME="YOUR_QUILT_STACK"
+RESOURCE_ID="YOUR_LOGICAL_ID"
+SG_ID=$(
+  aws cloudformation describe-stack-resource \
+    --stack-name "${YOUR_QUILT_STACK}" \
+    --logical-resource-id "${YOUR_LOGICAL_ID}" \
+    --query 'StackResourceDetail.PhysicalResourceId' \
+    --output text
+)
+aws ec2 describe-security-groups --group-ids "${SG_ID}"
 ```
 
 ## Remediation
