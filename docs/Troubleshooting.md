@@ -154,7 +154,6 @@ Quilt support:
         network requests and select **Save as...**.
     1. Save the log file to your localhost.
 
-
 ### Elastic Container Service (ECS)
 
 1. Find the name of your Quilt stack from querying all deployed
