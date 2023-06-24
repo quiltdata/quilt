@@ -223,7 +223,7 @@ Create.
     ![](./imgs/finish.png)
 
 1. CloudFormation may take bewteen 30 and 90 minutes to create your stack.
-You can monitor progress under Events.  On completion will see `CREATE_COMPLETE`.
+You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
 
     ![](./imgs/events.png)
 
