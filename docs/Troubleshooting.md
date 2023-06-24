@@ -90,9 +90,10 @@ Users can either be invited directly or are _just-in-time provisioned (JIP)_ whe
 they sign in via SSO and receive the "default role."
 
 ### Important conditions and pre-requisites
-* If an admin (or any user) is created with JIP SSO provisioning then
-setting the password for that user has no effect and _password login will never succeed_ 
-for that user. Said another way, users created through SSO can only log in through SSO.
+* If an admin (or any user) is created by JIP, or created through CloudFormation
+with an SSO Provider set to anything other than Disabled, then setting the password
+for that user has no effect and _password login will never succeed_ for that user.
+Said another way, users created through SSO can only log in through SSO.
 * You _must disable SSO_ and enable `PasswordAuth` if you wish to log in as an admin
 using a password (as opposed to SSO).
 
