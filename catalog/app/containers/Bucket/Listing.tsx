@@ -15,6 +15,8 @@ import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
 
+export const EMPTY_SELECTION: DG.GridRowId[] = []
+
 const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28

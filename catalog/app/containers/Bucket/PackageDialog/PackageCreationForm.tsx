@@ -28,6 +28,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
+import { EMPTY_SELECTION } from '../Listing'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
@@ -646,9 +647,7 @@ function PackageCreationForm({
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
-                      initialS3Selection={
-                        initial?.selection || (EMPTY_ARRAY as DG.GridRowId[])
-                      }
+                      initialS3Selection={initial?.selection || EMPTY_SELECTION}
                       validationErrors={
                         submitFailed ? entriesError : (EMPTY_ARRAY as Error[])
                       }

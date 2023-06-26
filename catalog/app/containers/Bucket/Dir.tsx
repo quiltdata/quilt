@@ -24,7 +24,7 @@ import type * as workflows from 'utils/workflows'
 
 import DirCodeSamples from './CodeSamples/Dir'
 import * as FileView from './FileView'
-import { Item, Listing, PrefixFilter } from './Listing'
+import { EMPTY_SELECTION, Item, Listing, PrefixFilter } from './Listing'
 import Menu from './Menu'
 import * as PD from './PackageDialog'
 import * as Successors from './Successors'
@@ -323,7 +323,7 @@ export default function Dir({
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<DG.GridRowId[]>([])
+  const [selection, setSelection] = React.useState(EMPTY_SELECTION)
   React.useEffect(() => setSelection([]), [bucket, path])
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
