@@ -987,7 +987,7 @@ export function Listing({
         },
       },
     ]
-    if (items.some(({ size }) => !!size)) {
+    if (items.some(({ size }) => size != null)) {
       columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
