@@ -947,7 +947,7 @@ export function Listing({
 
   // NOTE: after dependencies change fourth empty column appears
   const columns: DG.GridColumns = React.useMemo(() => {
-    const auxCoolumns: DG.GridColumns = [
+    const columnsWithValues: DG.GridColumns = [
       {
         field: 'name',
         headerName: 'Name',
@@ -990,7 +990,7 @@ export function Listing({
       },
     ]
     if (items.some(({ size }) => !!size)) {
-      auxCoolumns.push({
+      columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
         type: 'number',
@@ -1010,7 +1010,7 @@ export function Listing({
       })
     }
     if (items.some(({ modified }) => !!modified)) {
-      auxCoolumns.push({
+      columnsWithValues.push({
         field: 'modified',
         headerName: 'Last modified',
         type: 'dateTime',
@@ -1034,8 +1034,8 @@ export function Listing({
         },
       })
     }
-    return auxCoolumns
-  }, [classes, CellComponent, prefixFilter, sm])
+    return columnsWithValues
+  }, [classes, CellComponent, items, sm])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
