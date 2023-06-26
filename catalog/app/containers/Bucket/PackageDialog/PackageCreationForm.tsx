@@ -68,8 +68,6 @@ export interface PackageCreationSuccess {
   hash?: string
 }
 
-const EMPTY_ARRAY: unknown[] = []
-
 // Convert FilesState to entries consumed by Schema validation
 function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
   return FP.function.pipe(
@@ -649,7 +647,7 @@ function PackageCreationForm({
                       initialS3Path={initial?.path}
                       initialS3Selection={initial?.selection || EMPTY_SELECTION}
                       validationErrors={
-                        submitFailed ? entriesError : (EMPTY_ARRAY as Error[])
+                        submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
                       }
                       disabled={filesDisabled}
                     />
