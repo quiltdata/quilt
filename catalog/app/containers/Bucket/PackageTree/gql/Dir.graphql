@@ -10,7 +10,6 @@ query ($bucket: String!, $name: String!, $hash: String!, $path: String!) {
         children {
           __typename
           ... on PackageFile {
-            modifiedDate
             path
             size
             physicalKey
