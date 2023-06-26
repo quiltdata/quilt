@@ -822,12 +822,13 @@ const useStyles = M.makeStyles((t) => ({
       '& .MuiDataGrid-columnSeparator': {
         pointerEvents: 'none',
       },
-      // "Size" column
-      '&:nth-child(3)': {
+      // "Size" column in Bucket view
+      '&:nth-last-child(2):not(:first-child)': {
         justifyContent: 'flex-end',
       },
-      // "Last modified" column
-      '&:nth-child(4)': {
+      // "Last modified" column in Bucket view
+      // or "Size" column in Packages view
+      '&:nth-last-child(1)': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
