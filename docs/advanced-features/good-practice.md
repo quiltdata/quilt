@@ -234,7 +234,7 @@ Represents an authenticated Quilt User.
 - `isService: bool`
 - `lastLogin: datetime`
 - `dateJoined: datetime`
-- `roleId: str` (optional) An ID of the associated Quilt Role.
+- `roleId: str` (optional) - An ID of the associated Quilt Role.
 
 ##### `Unidentified`
 
