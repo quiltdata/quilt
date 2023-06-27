@@ -110,9 +110,9 @@ While data access to S3 is logged via CloudTrail, certain "admin plane" events
 such as the following are logged to a managed S3 bucket and exposed
 via an Athena table:
 
-* A user logs into the Catalog
-* A user role is changed
-* A user is added, deleted, or inactivated in the Catalog
+- A user logs into the Catalog
+- A user role is changed
+- A user is added, deleted, or inactivated in the Catalog
 
 ### Audit events
 
@@ -162,7 +162,7 @@ S3 bucket.
 
 - `requestID: str` (optional, since 1.0)
 
-  Request ID based on 
+  Request ID based on
   [AWS ALB request tracing capabilities](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-request-tracing.html).
 
 - `requestParameters: object` (required, since 1.0)
@@ -258,11 +258,8 @@ Records the data returned by [`sts:GetCallerIdentity`](https://docs.aws.amazon.c
 **Attributes**:
 
 - `type: "IAMUser"`
-
 - `account: str`: The AWS account ID number of the account that owns or contains the calling entity.
-
 - `id: str`: The unique identifier of the calling entity.
-
 - `arn: str`: The AWS ARN associated with the calling entity.
 
 #### Event Taxonomy
@@ -309,8 +306,6 @@ User logged in.
   - `access_token: "***"`
   - `refresh_token: "***"`
   - `exp: datetime`
-
-
 ###### `Auth.ServiceLogin`
 
 A service user (Canary) logged in.
