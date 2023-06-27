@@ -258,9 +258,9 @@ Records the data returned by [`sts:GetCallerIdentity`](https://docs.aws.amazon.c
 **Attributes**:
 
 - `type: "IAMUser"`
-- `account: str`: The AWS account ID number of the account that owns or contains the calling entity.
-- `id: str`: The unique identifier of the calling entity.
-- `arn: str`: The AWS ARN associated with the calling entity.
+- `account: str` - The AWS account ID number of the account that owns or contains the calling entity.
+- `id: str` - The unique identifier of the calling entity.
+- `arn: str` - The AWS ARN associated with the calling entity.
 
 #### Event Taxonomy
 
@@ -274,15 +274,15 @@ All the authentication-related operations.
 
 Authentication token refreshed.
 
-- `request_parameters`:
+- `request_parameters`
   - `refresh_token: "***"`
 
-- `responseElements`:
+- `responseElements`
   - `access_token: "***"`
   - `refresh_token: "***"`
   - `expires_at: datetime`
 
-- `additionalEventData`:
+- `additionalEventData`
   - `method: "code" | "refresh"`
 
 ###### `Auth.Login`
@@ -291,7 +291,7 @@ User logged in.
 
 - `requestParameters`
   - `provider: str` (when `method` is `oauth`)
-  - `code: str` (when `method` is `oauth`)
+  - `code: "***"` (when `method` is `oauth`)
   - `username: str` (when `method` is `password`)
   - `password: "***"` (when `method` is `password`)
 
@@ -306,6 +306,7 @@ User logged in.
   - `access_token: "***"`
   - `refresh_token: "***"`
   - `exp: datetime`
+
 ###### `Auth.ServiceLogin`
 
 A service user (Canary) logged in.
@@ -388,16 +389,7 @@ Only accessible by the admin users.
 ###### `Users.List`
 
 List users.
-
-- `responseElements`
-  - a list of
-    - `username: str`
-    - `email: str`
-    - `date_joined: datetime`
-    - `last_login: datetime`
-    - `is_superuser: bool`
-    - `is_active: bool`
-    - `role_id: str`
+Response data is not logged.
 
 ###### `Users.Create`
 
@@ -463,7 +455,7 @@ User's role updated.
 
 - `requestParameters`
   - `username: str`
-  - `role: str` Role name
+  - `role: str` - Role name
 
 ##### `Buckets` namespace
 
@@ -535,13 +527,13 @@ Admin scripts. Usually invoked by CloudFormation on stack bring-up / upgrade.
 All `Scripts.*` events contain the following data:
 
 - `additionalRequestData`
-  - `script_name: str` Script filename
-  - `script_args: str[]` List of arguments
-  - `script_command: str` The whole unparsed command string
+  - `script_name: str` - Script filename
+  - `script_args: str[]` - List of arguments
+  - `script_command: str` - The whole unparsed command string
 
-- `userIdentity: IAMUser` AWS identity of the user executing the script
+- `userIdentity: IAMUser` - AWS identity of the user executing the script
 
-- `requestParameters: object` Parsed named script arguments
+- `requestParameters: object` - Parsed named script arguments
 
 ###### `Scripts.CreateAdmin`
 
@@ -549,13 +541,13 @@ Create an admin user account.
 Succeeds once on stack bring-up, fails on subsequent stack upgrades.
 
 - `requestParameters`
-  - `env: bool` Pass account info in environment variables
-  - `role_name: str` (optional) Name for Quilt T4 Role
+  - `env: bool` - Pass account info in environment variables
+  - `role_name: str` (optional) - Name for Quilt T4 Role
   - `email: str`
   - `password: "***"` (optional)
 
 - `additionalEventData`
-  - `role_id: str` (optional)
+  - `role_id: str` (optional) -
     ID of the Quilt Role, if found by the name `role_name` (when provided).
 
 ###### `Scripts.CreateRole`
@@ -565,9 +557,9 @@ if a role with the specified name already exists.
 
 - `requestParameters`
   - `name: str`
-  - `arn: str` (optional)
+  - `arn: str` (optional) -
     ARN for AWS Role that is associated with this Quilt Role
-  - `default: bool`
+  - `default: bool` -
     Set this role as default if default role is not already set
 
 ###### `Scripts.FixPackageEventsQueueSubscriptions`
@@ -584,9 +576,9 @@ if a role with the specified name already exists.
     - `sqs_url: str`
     - `sqs_arn: str`
     - `sqs_policy: str`
-  - `subscriptions_created: object`
+  - `subscriptions_created: object` -
     A mapping of bucket names to ARNs of subscriptions created for them
-  - `subscription_errors: object`
+  - `subscription_errors: object` -
     A mapping of bucket names to error messages received while trying to
     subscribe to their notifications
 
