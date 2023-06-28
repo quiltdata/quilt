@@ -668,9 +668,7 @@ function FileDisplay({
                       {blocks.code && (
                         <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
-                      {blocks.meta && (
-                        <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
-                      )}
+                      {blocks.meta && <FileView.ObjectMeta meta={file.metadata} />}
                     </>
                   ),
                   _: () => null,

@@ -7,7 +7,7 @@ import * as Lab from '@material-ui/lab'
 import JsonDisplay from 'components/JsonDisplay'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { JsonRecord } from 'utils/types'
+import type { JsonRecord } from 'utils/types'
 
 import Section, { SectionProps } from './Section'
 
@@ -166,28 +166,23 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
 }
 
 interface ObjectMetaProps extends Partial<SectionProps> {
-  meta: JsonRecord
+  meta?: JsonRecord
+  tags?: Record<string, string>[] | null
 }
 
-function ObjectMetaSection({ meta, ...props }: ObjectMetaProps) {
+export function ObjectMeta({ meta, tags }: ObjectMetaProps) {
+  const render = React.useCallback((name, obj) => {
+    if (!obj) return null
+    if (obj instanceof Error) return errorHandler(obj)
+    /* @ts-expect-error */
+    return <JsonDisplay name={name} value={obj} />
+  }, [])
   return (
-    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-      {/* @ts-expect-error */}
-      <JsonDisplay value={meta} defaultExpanded={1} />
+    <Section icon="list" heading="Metadata and tags" defaultExpanded>
+      <div style={{ width: '100%' }}>
+        {render('Metadata', meta)}
+        {render('Tags', tags)}
+      </div>
     </Section>
-  )
-}
-
-export function ObjectMeta({ data, ...props }: WrapperProps) {
-  return AsyncResult.case(
-    {
-      Ok: (meta?: JsonRecord) => {
-        if (!meta || R.isEmpty(meta)) return null
-        return <ObjectMetaSection meta={meta} {...props} />
-      },
-      Err: errorHandler,
-      _: noop,
-    },
-    data,
   )
 }

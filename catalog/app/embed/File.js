@@ -231,7 +231,7 @@ function VersionInfo({ bucket, path, version }) {
 
 function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, bucket, path, version })
+  const data = useData(requests.objectMeta, { s3, handle: { bucket, path, version } })
   return <FileView.ObjectMeta data={data.result} />
 }
 
