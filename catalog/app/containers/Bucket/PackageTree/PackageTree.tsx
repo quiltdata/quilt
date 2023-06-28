@@ -397,7 +397,7 @@ function DirDisplay({
                         <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
-                        <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
+                        <FileView.PackageMeta data={dir.metadata} />
                       )}
                       <M.Box mt={2}>
                         {blocks.browser && <Listing items={items} key={hash} />}

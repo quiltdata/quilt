@@ -78,16 +78,16 @@ interface WrapperProps extends Partial<SectionProps> {
   data: $TSFixMe
 }
 
-interface PackageMetaProps extends Partial<SectionProps> {
+interface PackageMetaSectionProps {
   meta: MetaData
   preferences: BucketPreferences.MetaBlockPreferences
 }
 
-function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
+function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
   const classes = usePackageMetaStyles()
   const { message, user_meta: userMeta, workflow } = meta
   return (
-    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+    <Section icon="list" heading="Metadata" defaultExpanded>
       <M.Table className={classes.table} size="small" data-testid="package-meta">
         <M.TableBody>
           {message && (
@@ -142,27 +142,20 @@ function PackageMetaSection({ meta, preferences, ...props }: PackageMetaProps) {
   )
 }
 
-export function PackageMeta({ data, ...props }: WrapperProps) {
+interface PackageMetaProps {
+  data: MetaData | null
+}
+
+export function PackageMeta({ data }: PackageMetaProps) {
   const prefs = BucketPreferences.use()
-  return AsyncResult.case(
+  if (!data || R.isEmpty(data)) return null
+  return BucketPreferences.Result.match(
     {
-      Ok: (meta?: MetaData) => {
-        if (!meta || R.isEmpty(meta)) return null
-        return BucketPreferences.Result.match(
-          {
-            Ok: ({ ui: { blocks } }) =>
-              blocks.meta && (
-                <PackageMetaSection meta={meta} preferences={blocks.meta} {...props} />
-              ),
-            _: noop,
-          },
-          prefs,
-        )
-      },
-      Err: errorHandler,
+      Ok: ({ ui: { blocks } }) =>
+        blocks.meta ? <PackageMetaSection meta={data} preferences={blocks.meta} /> : null,
       _: noop,
     },
-    data,
+    prefs,
   )
 }
 
