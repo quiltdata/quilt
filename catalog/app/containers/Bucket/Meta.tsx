@@ -9,7 +9,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import type { JsonRecord } from 'utils/types'
 
-import type { ObjectMetaAndTags } from './requests'
+import type * as requests from './requests'
 import Section, { SectionProps } from './Section'
 
 interface MetaData {
@@ -166,19 +166,56 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
   )
 }
 
-export function ObjectMeta({ meta, tags }: ObjectMetaAndTags) {
-  const render = React.useCallback((name, obj) => {
-    if (!obj) return null
-    if (obj instanceof Error) return errorHandler(obj)
-    /* @ts-expect-error */
-    return <JsonDisplay name={name} value={obj} />
-  }, [])
+interface ObjectMetaProps extends Partial<SectionProps> {
+  meta: JsonRecord
+}
+
+function ObjectMetaSection({ meta, ...props }: ObjectMetaProps) {
   return (
-    <Section icon="list" heading="Metadata and tags" defaultExpanded>
-      <div style={{ width: '100%' }}>
-        {render('Metadata', meta)}
-        {render('Tags', tags)}
-      </div>
+    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+      {/* @ts-expect-error */}
+      <JsonDisplay value={meta} defaultExpanded={1} />
     </Section>
+  )
+}
+
+export function ObjectMeta({ data, ...props }: WrapperProps) {
+  return AsyncResult.case(
+    {
+      Ok: (meta?: JsonRecord) => {
+        if (!meta || R.isEmpty(meta)) return null
+        return <ObjectMetaSection meta={meta} {...props} />
+      },
+      Err: errorHandler,
+      _: noop,
+    },
+    data,
+  )
+}
+
+interface ObjectTagsProps extends Partial<SectionProps> {
+  tags: requests.ObjectTags
+}
+
+function ObjectTagsSection({ tags, ...props }: ObjectTagsProps) {
+  return (
+    <Section icon="list" heading="S3 Object Tags" defaultExpanded {...props}>
+      {/* @ts-expect-error */}
+      <JsonDisplay value={tags} defaultExpanded={1} />
+    </Section>
+  )
+}
+
+export function ObjectTags({ data, ...props }: WrapperProps) {
+  return AsyncResult.case(
+    {
+      Ok: (tags?: requests.ObjectTags) => {
+        if (!tags) return null
+        return <ObjectTagsSection tags={tags} {...props} />
+      },
+      Err: errorHandler,
+      _: noop,
+    },
+    data,
   )
 }

@@ -12,9 +12,9 @@ interface ObjectTagsArgs {
   handle: Model.S3.S3ObjectLocation
 }
 
-type ObjectTags = Record<string, string>[]
+export type ObjectTags = Record<string, string>[]
 
-const objectTags = ({
+export const objectTags = ({
   s3,
   handle: { bucket, key, version },
 }: ObjectTagsArgs): Promise<ObjectTags | undefined> =>
@@ -33,7 +33,7 @@ interface ObjectMetaArgs {
   handle: Model.S3.S3ObjectLocation
 }
 
-const objectMeta = ({
+export const objectMeta = ({
   s3,
   handle: { bucket, key, version },
 }: ObjectMetaArgs): Promise<JsonRecord> =>

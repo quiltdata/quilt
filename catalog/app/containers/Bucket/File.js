@@ -201,11 +201,23 @@ function VersionInfo({ bucket, path, version }) {
 }
 
 function Meta({ bucket, path, version }) {
-  const { meta, tags } = requests.useObjectMetaAndTags({ bucket, key: path, version })
+  const s3 = AWS.S3.use()
+  const handle = { bucket, key: path, version }
+  const meta = useData(requests.objectMeta, {
+    s3,
+    handle,
+  })
+  const tags = useData(requests.objectTags, {
+    s3,
+    handle,
+  })
 
-  if (!meta && !tags) return null
-
-  return <FileView.ObjectMeta meta={meta} tags={tags} />
+  return (
+    <>
+      <FileView.ObjectMeta data={meta.result} />
+      <FileView.ObjectTags data={tags.result} />
+    </>
+  )
 }
 
 function Analytics({ bucket, path }) {
