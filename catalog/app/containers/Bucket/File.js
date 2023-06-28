@@ -200,43 +200,8 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function useTags({ bucket, path, version }) {
-  const s3 = AWS.S3.use()
-  const tagsData = useData(requests.objectTags, {
-    s3,
-    handle: { bucket, key: path, version },
-  })
-  return React.useCallback(
-    (meta) =>
-      tagsData.case({
-        Ok: (tags) => ({
-          meta,
-          tags: R.isEmpty(tags) ? null : tags,
-        }),
-        Err: (err) => ({
-          meta,
-          tags: err,
-        }),
-        _: () => ({
-          meta,
-        }),
-      }),
-    [tagsData],
-  )
-}
-
 function Meta({ bucket, path, version }) {
-  const s3 = AWS.S3.use()
-  const metaData = useData(requests.objectMeta, {
-    s3,
-    handle: { bucket, key: path, version },
-  })
-  const tagsCases = useTags({ bucket, path, version })
-  const { meta, tags } = metaData.case({
-    Ok: (metadata) => tagsCases(R.isEmpty(metadata) ? null : metadata),
-    Err: (err) => tagsCases(err),
-    _: () => tagsCases(),
-  })
+  const { meta, tags } = requests.useObjectMetaAndTags({ bucket, key: path, version })
 
   if (!meta && !tags) return null
 

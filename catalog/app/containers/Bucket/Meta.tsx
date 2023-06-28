@@ -9,6 +9,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import type { JsonRecord } from 'utils/types'
 
+import type { ObjectMetaAndTags } from './requests'
 import Section, { SectionProps } from './Section'
 
 interface MetaData {
@@ -165,12 +166,7 @@ export function PackageMeta({ data, ...props }: WrapperProps) {
   )
 }
 
-interface ObjectMetaProps extends Partial<SectionProps> {
-  meta?: JsonRecord
-  tags?: Record<string, string>[] | null
-}
-
-export function ObjectMeta({ meta, tags }: ObjectMetaProps) {
+export function ObjectMeta({ meta, tags }: ObjectMetaAndTags) {
   const render = React.useCallback((name, obj) => {
     if (!obj) return null
     if (obj instanceof Error) return errorHandler(obj)
