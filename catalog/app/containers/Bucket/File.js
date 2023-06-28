@@ -200,24 +200,6 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Meta({ bucket, path, version }) {
-  const s3 = AWS.S3.use()
-  const handle = React.useMemo(
-    () => ({ bucket, key: path, version }),
-    [bucket, path, version],
-  )
-  const meta = useData(requests.objectMeta, {
-    s3,
-    handle,
-  })
-  return (
-    <>
-      <FileView.ObjectMeta data={meta.result} />
-      <FileView.ObjectTags handle={handle} />
-    </>
-  )
-}
-
 function Analytics({ bucket, path }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
@@ -515,7 +497,10 @@ export default function File({
                         <Analytics {...{ bucket, path }} />
                       )}
                       {blocks.meta && (
-                        <Meta bucket={bucket} path={path} version={version} />
+                        <>
+                          <FileView.ObjectMeta handle={handle} />
+                          <FileView.ObjectTags handle={handle} />
+                        </>
                       )}
                     </>
                   ),

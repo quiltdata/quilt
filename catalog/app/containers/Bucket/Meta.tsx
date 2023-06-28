@@ -7,13 +7,12 @@ import * as Lab from '@material-ui/lab'
 import JsonDisplay from 'components/JsonDisplay'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import type { JsonRecord } from 'utils/types'
 
 import * as requests from './requests'
-import Section, { SectionProps } from './Section'
+import Section from './Section'
 
 interface MetaData {
   message?: string
@@ -76,10 +75,6 @@ const usePackageMetaStyles = M.makeStyles({
     width: '100%',
   },
 })
-
-interface WrapperProps extends Partial<SectionProps> {
-  data: $TSFixMe
-}
 
 interface PackageMetaSectionProps {
   meta: MetaData
@@ -162,31 +157,35 @@ export function PackageMeta({ data }: PackageMetaProps) {
   )
 }
 
-interface ObjectMetaProps extends Partial<SectionProps> {
-  meta: JsonRecord
+interface ObjectMetaSectionProps {
+  meta?: JsonRecord
 }
 
-function ObjectMetaSection({ meta, ...props }: ObjectMetaProps) {
+export function ObjectMetaSection({ meta }: ObjectMetaSectionProps) {
+  if (!meta || R.isEmpty(meta)) return null
   return (
-    <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+    <Section icon="list" heading="Metadata" defaultExpanded>
       {/* @ts-expect-error */}
       <JsonDisplay value={meta} defaultExpanded={1} />
     </Section>
   )
 }
 
-export function ObjectMeta({ data, ...props }: WrapperProps) {
-  return AsyncResult.case(
-    {
-      Ok: (meta?: JsonRecord) => {
-        if (!meta || R.isEmpty(meta)) return null
-        return <ObjectMetaSection meta={meta} {...props} />
-      },
-      Err: errorHandler,
-      _: noop,
-    },
-    data,
-  )
+interface ObjectMetaProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+export function ObjectMeta({ handle }: ObjectMetaProps) {
+  const s3 = AWS.S3.use()
+  const metaData = useData(requests.objectMeta, {
+    s3,
+    handle,
+  })
+  return metaData.case({
+    Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} />,
+    Err: errorHandler,
+    _: noop,
+  })
 }
 
 interface ObjectTagsSectionProps {

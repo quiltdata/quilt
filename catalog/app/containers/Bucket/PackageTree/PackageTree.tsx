@@ -668,7 +668,7 @@ function FileDisplay({
                       )}
                       {blocks.meta && (
                         <>
-                          <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
+                          <FileView.ObjectMetaSection meta={file.metadata} />
                           <FileView.ObjectTags handle={handle} />
                         </>
                       )}
