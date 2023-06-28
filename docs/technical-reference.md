@@ -459,7 +459,7 @@ In order for Quilt to access and index buckets encrypted with SSE-KMS, you must 
 
 1. Add KMS Key Usage to Quilt Permission Boundary
 2. Add Quilt Principals to KMS Key Policy
-3. Add KMS Key Access to a Scoure=Quilt Role
+3. Add KMS Key Access to a Source=Quilt Role
 
 NOTE: This will not work with the default Source=Custom Roles.
 
