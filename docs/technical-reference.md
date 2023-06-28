@@ -110,7 +110,7 @@ You will need the following:
 1. **An AWS account**.
     1. **The service-linked role for Elasticsearch**
     > This role is not created automatically when you use Cloudformation or other
-    > APIs
+    > APIs.
 
     You can create the role as follows:
         ```
