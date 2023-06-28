@@ -192,6 +192,25 @@ aws s3api list-object-versions --bucket "$BUCKET" --prefix "$PREFIX"
 aws s3api get-object-tagging --bucket "$BUCKET" --key "$PREFIX"
 ```
 
+### Specific logical resources
+
+Sometimes you may wish to find an ID or other information from a logical resource
+in a Quilt stack.
+
+<!--pytest.mark.skip-->
+```sh
+STACK_NAME="YOUR_QUILT_STACK"
+RESOURCE_ID="YOUR_LOGICAL_ID"
+SG_ID=$(
+  aws cloudformation describe-stack-resource \
+    --stack-name "${YOUR_QUILT_STACK}" \
+    --logical-resource-id "${YOUR_LOGICAL_ID}" \
+    --query 'StackResourceDetail.PhysicalResourceId' \
+    --output text
+)
+aws ec2 describe-security-groups --group-ids "${SG_ID}"
+```
+
 ### Event source mapping
 
 The event source mapping is a Lambda resource that reads from SQS.
@@ -205,23 +224,6 @@ aws lambda get-event-source-mapping --uuid \
         --query StackResourceDetail.PhysicalResourceId --output text)
 ```
 
-### Specific logical resources
-
-Sometimes you may wish to find an ID or other information from a logical resource
-in a Quilt stack.
-
-```sh
-STACK_NAME="YOUR_QUILT_STACK"
-RESOURCE_ID="YOUR_LOGICAL_ID"
-SG_ID=$(
-  aws cloudformation describe-stack-resource \
-    --stack-name "${YOUR_QUILT_STACK}" \
-    --logical-resource-id "${YOUR_LOGICAL_ID}" \
-    --query 'StackResourceDetail.PhysicalResourceId' \
-    --output text
-)
-aws ec2 describe-security-groups --group-ids "${SG_ID}"
-```
 
 ## Remediation
 
