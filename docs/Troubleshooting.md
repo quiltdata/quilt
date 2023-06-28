@@ -224,7 +224,6 @@ aws lambda get-event-source-mapping --uuid \
         --query StackResourceDetail.PhysicalResourceId --output text)
 ```
 
-
 ## Remediation
 
 ### Event source mapping
