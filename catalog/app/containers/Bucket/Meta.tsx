@@ -5,11 +5,14 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
+import * as Model from 'model'
+import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import { useData } from 'utils/Data'
 import type { JsonRecord } from 'utils/types'
 
-import type * as requests from './requests'
+import * as requests from './requests'
 import Section, { SectionProps } from './Section'
 
 interface MetaData {
@@ -186,29 +189,36 @@ export function ObjectMeta({ data, ...props }: WrapperProps) {
   )
 }
 
-interface ObjectTagsProps extends Partial<SectionProps> {
+interface ObjectTagsSectionProps {
   tags: requests.ObjectTags
 }
 
-function ObjectTagsSection({ tags, ...props }: ObjectTagsProps) {
+function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
   return (
-    <Section icon="list" heading="S3 Object Tags" defaultExpanded {...props}>
+    <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
       {/* @ts-expect-error */}
       <JsonDisplay value={tags} defaultExpanded={1} />
     </Section>
   )
 }
 
-export function ObjectTags({ data, ...props }: WrapperProps) {
-  return AsyncResult.case(
-    {
-      Ok: (tags?: requests.ObjectTags) => {
-        if (!tags) return null
-        return <ObjectTagsSection tags={tags} {...props} />
-      },
-      Err: errorHandler,
-      _: noop,
+interface ObjectTagsProps {
+  handle: Model.S3.S3ObjectLocation
+}
+
+export function ObjectTags({ handle }: ObjectTagsProps) {
+  const s3 = AWS.S3.use()
+  const tagsData = useData(requests.objectTags, {
+    s3,
+    handle,
+  })
+
+  return tagsData.case({
+    Ok: (tags?: requests.ObjectTags) => {
+      if (!tags) return null
+      return <ObjectTagsSection tags={tags} />
     },
-    data,
-  )
+    Err: errorHandler,
+    _: noop,
+  })
 }

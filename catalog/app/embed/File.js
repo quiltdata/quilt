@@ -231,20 +231,18 @@ function VersionInfo({ bucket, path, version }) {
 
 function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
-  const handle = { bucket, key: path, version }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version }),
+    [bucket, path, version],
+  )
   const meta = useData(requests.objectMeta, {
     s3,
     handle,
   })
-  const tags = useData(requests.objectTags, {
-    s3,
-    handle,
-  })
-
   return (
     <>
       <FileView.ObjectMeta data={meta.result} />
-      <FileView.ObjectTags data={tags.result} />
+      <FileView.ObjectTags handle={handle} />
     </>
   )
 }
