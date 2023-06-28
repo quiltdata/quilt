@@ -5,9 +5,9 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
-import * as Model from 'model'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
-import * as BucketPreferences from 'utils/BucketPreferences'
+import type { MetaBlockPreferences } from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import type { JsonRecord } from 'utils/types'
 
@@ -77,12 +77,13 @@ const usePackageMetaStyles = M.makeStyles({
 })
 
 interface PackageMetaSectionProps {
-  meta: MetaData
-  preferences: BucketPreferences.MetaBlockPreferences
+  meta: MetaData | null
+  preferences: MetaBlockPreferences
 }
 
-function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
+export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
   const classes = usePackageMetaStyles()
+  if (!meta || R.isEmpty(meta)) return null
   const { message, user_meta: userMeta, workflow } = meta
   return (
     <Section icon="list" heading="Metadata" defaultExpanded>
@@ -140,23 +141,6 @@ function PackageMetaSection({ meta, preferences }: PackageMetaSectionProps) {
   )
 }
 
-interface PackageMetaProps {
-  data: MetaData | null
-}
-
-export function PackageMeta({ data }: PackageMetaProps) {
-  const prefs = BucketPreferences.use()
-  if (!data || R.isEmpty(data)) return null
-  return BucketPreferences.Result.match(
-    {
-      Ok: ({ ui: { blocks } }) =>
-        blocks.meta ? <PackageMetaSection meta={data} preferences={blocks.meta} /> : null,
-      _: noop,
-    },
-    prefs,
-  )
-}
-
 interface ObjectMetaSectionProps {
   meta?: JsonRecord
 }
@@ -189,23 +173,26 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
 }
 
 interface ObjectTagsSectionProps {
-  tags: requests.ObjectTags
+  tags?: requests.ObjectTags
+  preferences: MetaBlockPreferences
 }
 
-function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
+function ObjectTagsSection({ preferences, tags }: ObjectTagsSectionProps) {
+  if (!tags) return null
   return (
     <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
       {/* @ts-expect-error */}
-      <JsonDisplay value={tags} defaultExpanded={1} />
+      <JsonDisplay value={tags} defaultExpanded={preferences.tags.expanded} />
     </Section>
   )
 }
 
 interface ObjectTagsProps {
   handle: Model.S3.S3ObjectLocation
+  preferences: MetaBlockPreferences
 }
 
-export function ObjectTags({ handle }: ObjectTagsProps) {
+export function ObjectTags({ handle, preferences }: ObjectTagsProps) {
   const s3 = AWS.S3.use()
   const tagsData = useData(requests.objectTags, {
     s3,
@@ -213,10 +200,9 @@ export function ObjectTags({ handle }: ObjectTagsProps) {
   })
 
   return tagsData.case({
-    Ok: (tags?: requests.ObjectTags) => {
-      if (!tags) return null
-      return <ObjectTagsSection tags={tags} />
-    },
+    Ok: (tags?: requests.ObjectTags) => (
+      <ObjectTagsSection tags={tags} preferences={preferences} />
+    ),
     Err: errorHandler,
     _: noop,
   })

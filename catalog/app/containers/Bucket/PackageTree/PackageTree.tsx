@@ -396,7 +396,12 @@ function DirDisplay({
                       {blocks.code && (
                         <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
-                      {blocks.meta && <FileView.PackageMeta data={dir.metadata} />}
+                      {blocks.meta && (
+                        <FileView.PackageMetaSection
+                          meta={dir.metadata}
+                          preferences={blocks.meta}
+                        />
+                      )}
                       <M.Box mt={2}>
                         {blocks.browser && <Listing items={items} key={hash} />}
                         <Summary
@@ -669,7 +674,10 @@ function FileDisplay({
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMetaSection meta={file.metadata} />
-                          <FileView.ObjectTags handle={handle} />
+                          <FileView.ObjectTags
+                            handle={handle}
+                            preferences={blocks.meta}
+                          />
                         </>
                       )}
                     </>

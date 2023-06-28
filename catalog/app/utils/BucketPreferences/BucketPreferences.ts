@@ -14,6 +14,9 @@ export type ActionPreferences = Record<
 >
 
 interface MetaBlockPreferencesInput {
+  tags?: {
+    expanded: boolean | number
+  }
   user_meta?: {
     expanded: boolean | number
   }
@@ -23,6 +26,9 @@ interface MetaBlockPreferencesInput {
 }
 
 export interface MetaBlockPreferences {
+  tags: {
+    expanded: boolean | number
+  }
   userMeta: {
     expanded: boolean | number
   }
@@ -112,6 +118,9 @@ interface BucketPreferences {
 }
 
 const defaultBlockMeta: MetaBlockPreferences = {
+  tags: {
+    expanded: false,
+  },
   userMeta: {
     expanded: false,
   },
@@ -206,6 +215,7 @@ function parseMetaBlock(
   if (meta === false) return false
   if (meta === true || meta === undefined) return defaultBlockMeta
   return {
+    tags: meta.tags || defaultBlockMeta.tags,
     userMeta: meta.user_meta || defaultBlockMeta.userMeta,
     workflows: meta.workflows || defaultBlockMeta.workflows,
   }
