@@ -26,6 +26,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
+* [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
 * [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
 
 # 5.3.1 - 2023-05-02
