@@ -487,7 +487,7 @@ Go to CloudFormation > Your Quilt Stack -> Update -> Parameters
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
 at the bottom of the page:
 
-![](../imgs/ManagedUserRoleExtraPolicies.png)
+![](imgs/ManagedUserRoleExtraPolicies.png)
 
 If other policies are already in that field, 
 you will need to add a comma before appending the ARN.
