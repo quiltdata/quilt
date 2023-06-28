@@ -198,7 +198,6 @@ export function ObjectTags({ handle, preferences }: ObjectTagsProps) {
     s3,
     handle,
   })
-
   return tagsData.case({
     Ok: (tags?: requests.ObjectTags) => (
       <ObjectTagsSection tags={tags} preferences={preferences} />
