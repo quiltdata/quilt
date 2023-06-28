@@ -12,12 +12,12 @@ interface ObjectTagsArgs {
   handle: Model.S3.S3ObjectLocation
 }
 
-type ObjectTags = Record<string, string>[] | null
+type ObjectTags = Record<string, string>[]
 
-export const objectTags = ({
+const objectTags = ({
   s3,
   handle: { bucket, key, version },
-}: ObjectTagsArgs): Promise<ObjectTags> =>
+}: ObjectTagsArgs): Promise<ObjectTags | undefined> =>
   s3
     .getObjectTagging({
       Bucket: bucket,
@@ -26,16 +26,14 @@ export const objectTags = ({
     })
     .promise()
     .then(({ TagSet }) => TagSet.map(({ Key, Value }) => ({ [Key]: Value })))
-    .then((tags) => (tags.length ? tags : null))
+    .then((tags) => (tags.length ? tags : undefined))
 
 interface ObjectMetaArgs {
   s3: S3
   handle: Model.S3.S3ObjectLocation
 }
 
-// TODO: handle archive, delete markers
-//       make re-useable head request with such handlers
-export const objectMeta = ({
+const objectMeta = ({
   s3,
   handle: { bucket, key, version },
 }: ObjectMetaArgs): Promise<JsonRecord> =>
@@ -61,9 +59,9 @@ export function useObjectMetaAndTags(
   const metaData = useData(objectMeta, { s3, handle })
   const tagsData = useData(objectTags, { s3, handle })
   const tagsCases = React.useCallback(
-    (meta?: JsonRecord | null | Error) =>
+    (meta?: JsonRecord | Error) =>
       tagsData.case({
-        Ok: (tags: ObjectTags) => ({
+        Ok: (tags?: ObjectTags) => ({
           meta,
           tags,
         }),
@@ -78,7 +76,7 @@ export function useObjectMetaAndTags(
     [tagsData],
   )
   return metaData.case({
-    Ok: (metadata: JsonRecord) => tagsCases(R.isEmpty(metadata) ? null : metadata),
+    Ok: (metadata: JsonRecord) => tagsCases(R.isEmpty(metadata) ? undefined : metadata),
     Err: (err: Error) => tagsCases(err),
     _: () => tagsCases(),
   })
