@@ -173,7 +173,7 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
 }
 
 interface ObjectTagsSectionProps {
-  tags?: requests.ObjectTags
+  tags?: Record<string, string>
 }
 
 function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
@@ -197,7 +197,7 @@ export function ObjectTags({ handle }: ObjectTagsProps) {
     handle,
   })
   return tagsData.case({
-    Ok: (tags?: requests.ObjectTags) => <ObjectTagsSection tags={tags} />,
+    Ok: (tags?: Record<string, string>) => <ObjectTagsSection tags={tags} />,
     Err: errorHandler,
     _: noop,
   })

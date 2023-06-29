@@ -9,12 +9,10 @@ interface ObjectTagsArgs {
   handle: Model.S3.S3ObjectLocation
 }
 
-export type ObjectTags = Record<string, string>
-
 export const objectTags = ({
   s3,
   handle: { bucket, key, version },
-}: ObjectTagsArgs): Promise<ObjectTags | undefined> =>
+}: ObjectTagsArgs): Promise<Record<string, string> | undefined> =>
   s3
     .getObjectTagging({
       Bucket: bucket,
