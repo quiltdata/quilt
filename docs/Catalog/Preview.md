@@ -75,7 +75,7 @@ the iframe gets the following origin:
 - Inside a bucket view with permissive rendering **enabled**:
   the origin is the AWS S3 bucket endpoint.
 
-- With permissive rendering **disabled** (regardless of package vs bucket context):
+- With permissive rendering **disabled** (irrespective of package or bucket view):
   the resource is treated as being from a special origin that always fails the
   same-origin policy
   ([`allow-same-origin` iframe sandbox token](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#sandbox)
@@ -95,22 +95,22 @@ the iframe gets the following origin:
    format:
     * `./img.jpg` is resolved to `/temporary-session-id/img.jpg`
     * `script.js` is resolved to `/temporary-session-id/script.js`
-5. `allow-same-origin` iframe sandbox token enabled,
+5. The `allow-same-origin` iframe sandbox token is enabled,
    the origin is the **Quilt Package File Server**,
-   LocalStorage API is available.
+   the LocalStorage API is available.
 
 ### Bucket view example with permissive rendering enabled
 
 1. `report.html` is a file in a bucket `example-bucket` that includes a publicly
    available JS library and custom embedded script.
-2. When opening `report.html` in a bucket view, it is served directly by S3
+2. When opening `report.html` in bucket view, it is served directly by S3
    via a signed HTTPS URL, e.g.
    `https://example-bucket.s3.region.amazonaws.com/report.html?versionId=...&X-Amz-...`.
 3. All relative media and scripts are rendered in the same iframe relative-path
    format:
     * `./img.jpg` is resolved to `/img.jpg`
     * `script.js` is resolved to `/script.js`
-4. `allow-same-origin` iframe sandbox token enabled,
+4. The `allow-same-origin` iframe sandbox token enabled,
    the origin is the **S3 bucket endpoint**
    (e.g. `https://example-bucket.s3.region.amazonaws.com`),
    LocalStorage API is available.
@@ -119,14 +119,14 @@ the iframe gets the following origin:
 
 1. `report.html` is a file in a bucket `example-bucket` that includes a publicly
    available JS library and custom embedded script.
-2. When opening `report.html` in any view, it is served directly by S3 via a
+2. When opening `report.html` in any view it is served directly by S3 via a
    signed HTTPS URL, e.g.
    `https://example-bucket.s3.region.amazonaws.com/report.html?versionId=...&X-Amz-...`.
 3. All relative media and scripts are rendered in the same iframe relative-path
    format:
     * `./img.jpg` is resolved to `/img.jpg`
     * `script.js` is resolved to `/script.js`
-4. `allow-same-origin` iframe sandbox token disabled,
+4. The `allow-same-origin` iframe sandbox token is disabled,
    a virtual unique origin is used,
    LocalStorage API is unavailable.
 
