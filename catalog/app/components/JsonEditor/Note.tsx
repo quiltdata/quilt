@@ -30,9 +30,9 @@ function getExamples(examples: JsonValue[]) {
   const title = `Example${examples.length ? 's' : ''}:`
   return [
     title,
-    ...examples.map((example) => {
+    ...examples.map((example, i) => {
       const str = printObject(example)
-      return <Code key={str}>{str}</Code>
+      return <Code key={str + i}>{str}</Code>
     }),
   ]
 }
