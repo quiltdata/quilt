@@ -146,7 +146,7 @@ interface ObjectMetaSectionProps {
 }
 
 export function ObjectMetaSection({ meta }: ObjectMetaSectionProps) {
-  if (!meta) return null
+  if (!meta || R.isEmpty(meta)) return null
   return (
     <Section icon="list" heading="Metadata" defaultExpanded>
       {/* @ts-expect-error */}
@@ -173,11 +173,11 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
 }
 
 interface ObjectTagsSectionProps {
-  tags?: Record<string, string>
+  tags: Record<string, string>
 }
 
 function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
-  if (!tags) return null
+  if (!tags || R.isEmpty(tags)) return null
   return (
     <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
       {/* @ts-expect-error */}
@@ -197,7 +197,7 @@ export function ObjectTags({ handle }: ObjectTagsProps) {
     handle,
   })
   return tagsData.case({
-    Ok: (tags?: Record<string, string>) => <ObjectTagsSection tags={tags} />,
+    Ok: (tags: Record<string, string>) => <ObjectTagsSection tags={tags} />,
     Err: errorHandler,
     _: noop,
   })

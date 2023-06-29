@@ -12,7 +12,7 @@ interface ObjectTagsArgs {
 export const objectTags = ({
   s3,
   handle: { bucket, key, version },
-}: ObjectTagsArgs): Promise<Record<string, string> | undefined> =>
+}: ObjectTagsArgs): Promise<Record<string, string>> =>
   s3
     .getObjectTagging({
       Bucket: bucket,
@@ -23,7 +23,6 @@ export const objectTags = ({
     .then(({ TagSet }) =>
       TagSet.reduce((memo, { Key, Value }) => ({ ...memo, [Key]: Value }), {}),
     )
-    .then((tags) => (R.isEmpty(tags) ? undefined : tags))
 
 interface ObjectMetaArgs {
   s3: S3
@@ -43,4 +42,3 @@ export const objectMeta = ({
     .promise()
     // @ts-expect-error
     .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
-    .then((meta) => (!meta || R.isEmpty(meta) ? undefined : meta))
