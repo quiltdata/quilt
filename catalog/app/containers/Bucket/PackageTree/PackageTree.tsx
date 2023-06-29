@@ -15,6 +15,7 @@ import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
+import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -543,7 +544,7 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
 }))
 
 interface FileDisplayProps extends FileDisplayQueryProps {
-  file: $TSFixMe
+  file: Model.GQLTypes.PackageFile
 }
 
 function FileDisplay({

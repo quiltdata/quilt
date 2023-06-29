@@ -142,7 +142,7 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
 }
 
 interface ObjectMetaSectionProps {
-  meta?: JsonRecord
+  meta?: JsonRecord | null
 }
 
 export function ObjectMetaSection({ meta }: ObjectMetaSectionProps) {
