@@ -14,7 +14,6 @@ import cfg from 'constants/config'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { defaultBlockMeta } from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -471,7 +470,7 @@ export default function File({
                 </div>
               </Section>
               <FileView.ObjectMeta handle={handle} />
-              <FileView.ObjectTags handle={handle} preferences={defaultBlockMeta} />
+              <FileView.ObjectTags handle={handle} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,

@@ -174,34 +174,30 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
 
 interface ObjectTagsSectionProps {
   tags?: requests.ObjectTags
-  preferences: MetaBlockPreferences
 }
 
-function ObjectTagsSection({ preferences, tags }: ObjectTagsSectionProps) {
+function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
   if (!tags) return null
   return (
     <Section icon="label_outlined" heading="S3 Object Tags" defaultExpanded>
       {/* @ts-expect-error */}
-      <JsonDisplay value={tags} defaultExpanded={preferences.tags.expanded} />
+      <JsonDisplay value={tags} defaultExpanded={1} />
     </Section>
   )
 }
 
 interface ObjectTagsProps {
   handle: Model.S3.S3ObjectLocation
-  preferences: MetaBlockPreferences
 }
 
-export function ObjectTags({ handle, preferences }: ObjectTagsProps) {
+export function ObjectTags({ handle }: ObjectTagsProps) {
   const s3 = AWS.S3.use()
   const tagsData = useData(requests.objectTags, {
     s3,
     handle,
   })
   return tagsData.case({
-    Ok: (tags?: requests.ObjectTags) => (
-      <ObjectTagsSection tags={tags} preferences={preferences} />
-    ),
+    Ok: (tags?: requests.ObjectTags) => <ObjectTagsSection tags={tags} />,
     Err: errorHandler,
     _: noop,
   })

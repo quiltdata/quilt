@@ -499,12 +499,7 @@ export default function File({
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMeta handle={handle} />
-                          {blocks.meta.tags && (
-                            <FileView.ObjectTags
-                              handle={handle}
-                              preferences={blocks.meta}
-                            />
-                          )}
+                          <FileView.ObjectTags handle={handle} />
                         </>
                       )}
                     </>

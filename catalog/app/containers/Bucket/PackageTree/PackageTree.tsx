@@ -674,10 +674,7 @@ function FileDisplay({
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMetaSection meta={file.metadata} />
-                          <FileView.ObjectTags
-                            handle={handle}
-                            preferences={blocks.meta}
-                          />
+                          <FileView.ObjectTags handle={handle} />
                         </>
                       )}
                     </>
