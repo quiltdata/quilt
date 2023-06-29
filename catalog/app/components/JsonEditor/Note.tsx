@@ -30,9 +30,13 @@ function getExamples(examples: JsonValue[]) {
   if (examples.length > 1)
     return [
       'Examples:',
-      ...examples.map((example) => <Code>{printObject(example)}</Code>),
+      ...examples.map((example) => {
+        const str = printObject(example)
+        return <Code key={str}>{str}</Code>
+      }),
     ]
-  return ['Example:', <Code>{printObject(examples[0])}</Code>]
+  const singleExample = printObject(examples[0])
+  return ['Example:', <Code key={singleExample}>{singleExample}</Code>]
 }
 
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {

@@ -63,7 +63,9 @@ function Select({ data, label, onChange, onLoadMore }: SelectProps) {
       <M.InputLabel>{label}</M.InputLabel>
       <M.Select onChange={handleChange}>
         {data.list.map((value) => (
-          <M.MenuItem value={value}>{value}</M.MenuItem>
+          <M.MenuItem key={value} value={value}>
+            {value}
+          </M.MenuItem>
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
       </M.Select>

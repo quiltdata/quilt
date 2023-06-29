@@ -55,6 +55,7 @@ export default function Row({
       {cells.map((cell) => (
         <M.TableCell
           {...cell.getCellProps()}
+          key={cell.row.original.reactId}
           className={cx(classes.cell, {
             [classes.error]: cell.row.original.errors.length,
             [classes.key]: cell.column.id === COLUMN_IDS.KEY,
