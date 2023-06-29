@@ -27,16 +27,14 @@ interface TypeHelpArgs {
 }
 
 function getExamples(examples: JsonValue[]) {
-  if (examples.length > 1)
-    return [
-      'Examples:',
-      ...examples.map((example) => {
-        const str = printObject(example)
-        return <Code key={str}>{str}</Code>
-      }),
-    ]
-  const singleExample = printObject(examples[0])
-  return ['Example:', <Code key={singleExample}>{singleExample}</Code>]
+  const title = `Example${examples.length ? 's' : ''}:`
+  return [
+    title,
+    ...examples.map((example) => {
+      const str = printObject(example)
+      return <Code key={str}>{str}</Code>
+    }),
+  ]
 }
 
 function getTypeHelps({ errors, humanReadableSchema, mismatch, schema }: TypeHelpArgs) {
