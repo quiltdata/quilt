@@ -146,7 +146,7 @@ interface ObjectMetaSectionProps {
 }
 
 export function ObjectMetaSection({ meta }: ObjectMetaSectionProps) {
-  if (!meta || R.isEmpty(meta)) return null
+  if (!meta) return null
   return (
     <Section icon="list" heading="Metadata" defaultExpanded>
       {/* @ts-expect-error */}
