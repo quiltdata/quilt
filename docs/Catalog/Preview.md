@@ -69,13 +69,13 @@ such as data storage/cookies, you must opt in to
 Depending on the context where the HTML file is rendered (package vs bucket view),
 the iframe gets the following origin:
 
-- Inside a package view with permissive rendering **enabled**:
+* Inside a package view with permissive rendering **enabled**:
   the origin is the **Quilt Package File Server**.
 
-- Inside a bucket view with permissive rendering **enabled**:
+* Inside a bucket view with permissive rendering **enabled**:
   the origin is the AWS S3 bucket endpoint.
 
-- With permissive rendering **disabled** (irrespective of package or bucket view):
+* With permissive rendering **disabled** (irrespective of package or bucket view):
   the resource is treated as being from a special origin that always fails the
   same-origin policy
   ([`allow-same-origin` iframe sandbox token](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#sandbox)
