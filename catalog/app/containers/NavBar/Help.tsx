@@ -198,8 +198,10 @@ interface ExamplePartProps {
 
 function Example({ syntax, example }: ExamplePartProps) {
   const classes = useExamplePartStyles()
-  const syntaxParts = (Array.isArray(syntax) ? syntax : [syntax]).map((part) => (
-    <span className={classes.syntax}>{part}</span>
+  const syntaxParts = (Array.isArray(syntax) ? syntax : [syntax]).map((part, i) => (
+    <span key={`${part}_${i}`} className={classes.syntax}>
+      {part}
+    </span>
   ))
   return <span className={classes.root}>{example(...syntaxParts)}</span>
 }

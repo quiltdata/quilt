@@ -60,6 +60,7 @@ module.exports = {
     // TODO: rm after migrating to ts
     'react/jsx-filename-extension': 0,
     'react/jsx-first-prop-new-line': [2, 'multiline'],
+    'react/jsx-key': 2,
     'react/jsx-props-no-spreading': 0,
     'react/jsx-uses-vars': 2,
     // TODO: rm after migrating to ts
