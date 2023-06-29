@@ -97,7 +97,7 @@ the iframe gets the following origin:
     * `script.js` is resolved to `/temporary-session-id/script.js`
 5. The `allow-same-origin` iframe sandbox token is enabled,
    the origin is the **Quilt Package File Server**,
-   the LocalStorage API is available.
+   the LocalStorage API is **available**.
 
 ### Bucket view example with permissive rendering enabled
 
@@ -110,10 +110,10 @@ the iframe gets the following origin:
    format:
     * `./img.jpg` is resolved to `/img.jpg`
     * `script.js` is resolved to `/script.js`
-4. The `allow-same-origin` iframe sandbox token enabled,
+4. The `allow-same-origin` iframe sandbox token is **enabled**,
    the origin is the **S3 bucket endpoint**
    (e.g. `https://example-bucket.s3.region.amazonaws.com`),
-   LocalStorage API is available.
+   the LocalStorage API is **available**.
 
 ### Example with permissive rendering disabled
 
@@ -126,9 +126,9 @@ the iframe gets the following origin:
    format:
     * `./img.jpg` is resolved to `/img.jpg`
     * `script.js` is resolved to `/script.js`
-4. The `allow-same-origin` iframe sandbox token is disabled,
-   a virtual unique origin is used,
-   LocalStorage API is unavailable.
+4. The `allow-same-origin` iframe sandbox token is **disabled**,
+   a virtual unique origin is used (always failing the same-origin policy),
+   the LocalStorage API is **unavailable**.
 
 ### Live packages
 
