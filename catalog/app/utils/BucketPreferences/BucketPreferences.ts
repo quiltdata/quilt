@@ -111,7 +111,7 @@ interface BucketPreferences {
   ui: UiPreferences
 }
 
-export const defaultBlockMeta: MetaBlockPreferences = {
+const defaultBlockMeta: MetaBlockPreferences = {
   userMeta: {
     expanded: false,
   },
