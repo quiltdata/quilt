@@ -1,4 +1,3 @@
-<!-- markdownlint-disable -->
 # Good-practice (GxP) and Quilt
 
 ## Overview
@@ -562,16 +561,16 @@ if a role with the specified name already exists.
   - `default: bool` -
     Set this role as default if default role is not already set
 
-###### `Scripts.FixPackageEventsQueueSubscriptions`
+###### `Scripts.UpdateBucketResources`
 
-- `requestParameters`
-  - `subscriber: str`
-  - `col_name: str`
-  - `subscription_attributes: object`
-  - `sqs_url: str`
-  - `sqs_arn: str`
+Update all bucket-related resources: policies, indexes, SNS, cloudtrail, ...
 
 - `additionalEventData`
+  - `sns_subscriber`
+    - `col_name: str`
+    - `subscription_attributes: object`
+    - `url: str`
+    - `arn: str`
   - `sqs_updated`
     - `sqs_url: str`
     - `sqs_arn: str`
@@ -590,10 +589,6 @@ required for running continuous integration testing (OQ monitoring).
 - `requestParameters`
   - `bucket_allowed: str`
   - `bucket_restricted: str`
-
-###### `Scripts.UpdateBucketPolicies`
-
-Update Quilt-managed IAM policies allowing the stack to access the buckets.
 
 #### Example event records
 
