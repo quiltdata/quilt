@@ -8,6 +8,7 @@ where data came from, who produced it, when it was produced, and why it should
 be trusted.
 
 The GxP module for Quilt includes the following key features:
+
 1. Strong cryptographic checksums for data at the object level and at the collection
 (or package) level
 1. Integrated IQ (installation qualification) and OQ (operational qualification)
@@ -28,10 +29,10 @@ by an AWS Lambda function (`status_reports`) and stored in a dedicated
 Amazon S3 bucket. The HTML files contain the most recent canary run
 results (Operational Qualification) and Quilt instance Cloud Formation
 parameters and outputs (Infrastructure Qualification).
-  1. Operational Qualification report: all canary test results and
-  status (historical and current)
-  2. Infrastructure Qualification report: all CloudFormation parameters
-  and status
+   1. Operational Qualification report: all canary test results and
+   status (historical and current)
+   2. Infrastructure Qualification report: all CloudFormation parameters
+   and status
 3. *Administrative User Interface:* An HTML page in the Quilt catalog
 that displays the current operational status of a Quilt instance
 and provides access to current and historical status reports.
@@ -39,7 +40,7 @@ and provides access to current and historical status reports.
 canary error notifications (available as `CanaryNotificationsTopic`
 stack output).
 
-![](../imgs/catalog-status-example-status-report.png)
+![Example status report](../imgs/catalog-status-example-status-report.png)
 
 ### Setting up status monitoring for a Quilt instance
 
@@ -83,7 +84,7 @@ as the chart with historic data for the last month) and the reports
 table (which can be sorted / filtered) where you can preview or
 download stored reports (HTML files).
 
-![](../imgs/catalog-status-overview.png)
+![Status overview](../imgs/catalog-status-overview.png)
 
 ### Getting notifications about canary failures
 
@@ -257,7 +258,9 @@ Records the data returned by [`sts:GetCallerIdentity`](https://docs.aws.amazon.c
 **Attributes**:
 
 - `type: "IAMUser"`
-- `account: str` - The AWS account ID number of the account that owns or contains the calling entity.
+- `account: str` -
+  The AWS account ID number of the account that owns or contains the calling
+  entity.
 - `id: str` - The unique identifier of the calling entity.
 - `arn: str` - The AWS ARN associated with the calling entity.
 
@@ -299,7 +302,8 @@ User logged in.
   - `account_id: str` (when `method` is `oauth`)
   - `email: str` (when `method` is `oauth`)
   - `user_created: true` (when `method` is `oauth` and new user was created)
-  - `account_linked: true` (when `method` is `oauth` and existing user was linked with a new OAuth identity)
+  - `account_linked: true` (when `method` is `oauth` and existing user was
+    linked with a new OAuth identity)
 
 - `responseElements`
   - `access_token: "***"`
@@ -710,7 +714,8 @@ Quilt Stack provisions the following resources:
 - **Audit Trail Database**: a Glue database named `audittraildatabase-${random_string}`,
   exposed as `AuditTrailDatabase` stack resource.
 
-- **Audit Trail Table**: a Glue table named `audit_trail` in **Audit Trail Database**.
+- **Audit Trail Table**: a Glue table named `audit_trail` in
+  **Audit Trail Database**.
 
 - **Audit Workgroup**: an Athena workgroup named `${AWS::StackName}-audit"`,
   exposed as `AuditTrailWorkgroup` stack resource.
@@ -719,7 +724,8 @@ Quilt Stack provisions the following resources:
   Athena query results for **Audit Workgroup**.
 
 - **Audit Trail Query Policy**: a managed IAM policy allowing to query
-  audit trail data via Athena, exposed as `AuditTrailAthenaQueryPolicy` stack resource.
+  audit trail data via Athena, exposed as `AuditTrailAthenaQueryPolicy` stack
+  resource.
 
 In order to query audit trail data via AWS Athena Console, you should:
 
