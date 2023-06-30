@@ -234,14 +234,9 @@ export default function Column({
                 onContextMenu,
                 onExpand,
                 onRemove,
-                key: '',
               }
 
-              if (row.original.reactId) {
-                props.key = row.original.reactId
-              }
-
-              return <Row {...row.getRowProps()} {...props} />
+              return <Row {...row.getRowProps()} {...props} key={row.original.reactId} />
             })}
 
             {!rows.length && <EmptyColumn columnType={columnType} />}
