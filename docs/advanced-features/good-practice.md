@@ -571,20 +571,15 @@ if a role with the specified name already exists.
 Update all bucket-related resources: policies, indexes, SNS, cloudtrail, ...
 
 - `additionalEventData`
-  - `sns_subscriber`
-    - `col_name: str`
-    - `subscription_attributes: object`
-    - `url: str`
-    - `arn: str`
-  - `sqs_updated`
-    - `sqs_url: str`
-    - `sqs_arn: str`
-    - `sqs_policy: str`
-  - `subscriptions_created: object` -
-    A mapping of bucket names to ARNs of subscriptions created for them
-  - `subscription_errors: object` -
-    A mapping of bucket names to error messages received while trying to
-    subscribe to their notifications
+  - `subscriptions_created: list` -
+    A mapping (list of tuples) of bucket names to ARNs of associated
+    subscriptions created by the script
+  - `subscriptions_deleted: list` -
+    A mapping (list of tuples) of bucket names to ARNs of associated
+    subscriptions deleted by the script
+  - `subscription_errors: list` -
+    A mapping (list of tuples) of bucket names to error messages received while
+    trying to create or delete associated subscriptions
 
 ###### `Scripts.SetupCanaries`
 
