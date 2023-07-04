@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../../../model/graphql/types.generated'
+import * as Types from '../../../../../model/graphql/types.generated'
 
-export type components_Preview_loaders_IFrame_DisposeBrowsingSessionMutationVariables =
+export type components_Preview_loaders_Html_gql_DisposeBrowsingSessionMutationVariables =
   Types.Exact<{
     id: Types.Scalars['ID']
   }>
 
-export type components_Preview_loaders_IFrame_DisposeBrowsingSessionMutation = {
+export type components_Preview_loaders_Html_gql_DisposeBrowsingSessionMutation = {
   readonly __typename: 'Mutation'
 } & {
   readonly browsingSessionDispose:
@@ -18,7 +18,7 @@ export type components_Preview_loaders_IFrame_DisposeBrowsingSessionMutation = {
       >)
 }
 
-export const components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument = {
+export const components_Preview_loaders_Html_gql_DisposeBrowsingSessionDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -26,7 +26,7 @@ export const components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument = 
       operation: 'mutation',
       name: {
         kind: 'Name',
-        value: 'components_Preview_loaders_IFrame_DisposeBrowsingSession',
+        value: 'components_Preview_loaders_Html_gql_DisposeBrowsingSession',
       },
       variableDefinitions: [
         {
@@ -77,8 +77,8 @@ export const components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument = 
     },
   ],
 } as unknown as DocumentNode<
-  components_Preview_loaders_IFrame_DisposeBrowsingSessionMutation,
-  components_Preview_loaders_IFrame_DisposeBrowsingSessionMutationVariables
+  components_Preview_loaders_Html_gql_DisposeBrowsingSessionMutation,
+  components_Preview_loaders_Html_gql_DisposeBrowsingSessionMutationVariables
 >
 
-export { components_Preview_loaders_IFrame_DisposeBrowsingSessionDocument as default }
+export { components_Preview_loaders_Html_gql_DisposeBrowsingSessionDocument as default }

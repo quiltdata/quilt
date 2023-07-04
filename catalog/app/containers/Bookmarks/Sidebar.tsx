@@ -194,7 +194,11 @@ function Drawer({
           {handles.length ? (
             <M.List dense>
               {handles.map((handle) => (
-                <BookmarkItem handle={handle} onRemove={() => onRemove(handle)} />
+                <BookmarkItem
+                  handle={handle}
+                  onRemove={() => onRemove(handle)}
+                  key={handle.bucket + handle.key}
+                />
               ))}
             </M.List>
           ) : (
