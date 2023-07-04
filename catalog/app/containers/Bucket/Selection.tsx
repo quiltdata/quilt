@@ -6,7 +6,9 @@ import * as M from '@material-ui/core'
 
 import type * as DG from 'components/DataGrid'
 import type * as Model from 'model'
-// import * as s3paths from 'utils/s3paths'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
+import * as s3paths from 'utils/s3paths'
 
 import Section from './Section'
 // import { useFilesListing } from './requests'
@@ -18,6 +20,43 @@ export interface SelectedItem {
 
 export interface Selection {
   [prefixUrl: string]: DG.GridRowId[]
+}
+
+interface ListItemProps {
+  prefixUrl: string
+  basename: string
+  className: string
+  onClear: () => void
+}
+
+function ListItem({ className, prefixUrl, basename, onClear }: ListItemProps) {
+  const isDir = s3paths.isDir(basename)
+  const { urls } = NamedRoutes.use()
+  const parentHandle = s3paths.parseS3Url(prefixUrl)
+  const path = join(parentHandle.key, basename.toString())
+  const url = isDir
+    ? urls.bucketDir(parentHandle.bucket, path)
+    : urls.bucketFile(parentHandle.bucket, path)
+  return (
+    <M.ListItem className={className}>
+      <M.ListItemIcon>
+        <M.IconButton size="small">
+          <M.Icon fontSize="small">favorite_outlined</M.Icon>
+        </M.IconButton>
+      </M.ListItemIcon>
+      <M.ListItemText
+        primary={basename}
+        secondary={
+          <StyledLink to={url}>{join(prefixUrl, basename.toString())}</StyledLink>
+        }
+      />
+      <M.ListItemSecondaryAction>
+        <M.IconButton size="small" onClick={onClear}>
+          <M.Icon fontSize="small">clear</M.Icon>
+        </M.IconButton>
+      </M.ListItemSecondaryAction>
+    </M.ListItem>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -82,30 +121,15 @@ export function SelectionSection({ selection, onSelection }: SelectionSectionPro
                 <M.ListSubheader>{prefixUrl}</M.ListSubheader>
                 <M.List dense disablePadding className={classes.nested}>
                   {keys.map((key, index) => (
-                    <M.ListItem
+                    <ListItem
                       key={join(prefixUrl, key.toString())}
+                      basename={key.toString()}
+                      prefixUrl={prefixUrl}
                       className={classes.item}
-                    >
-                      <M.ListItemIcon>
-                        <M.IconButton size="small">
-                          <M.Icon fontSize="small">favorite_outlined</M.Icon>
-                        </M.IconButton>
-                      </M.ListItemIcon>
-                      <M.ListItemText
-                        primary={key}
-                        secondary={join(prefixUrl, key.toString())}
-                      />
-                      <M.ListItemSecondaryAction>
-                        <M.IconButton
-                          size="small"
-                          onClick={() =>
-                            onSelection(R.dissocPath([prefixUrl, index], selection))
-                          }
-                        >
-                          <M.Icon fontSize="small">clear</M.Icon>
-                        </M.IconButton>
-                      </M.ListItemSecondaryAction>
-                    </M.ListItem>
+                      onClear={() =>
+                        onSelection(R.dissocPath([prefixUrl, index], selection))
+                      }
+                    />
                   ))}
                 </M.List>
               </ul>
