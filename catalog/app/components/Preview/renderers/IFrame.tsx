@@ -11,9 +11,7 @@ const useStyles = M.makeStyles({
 
 function IFrame(props: React.HTMLProps<HTMLIFrameElement>) {
   const classes = useStyles()
-  return (
-    <iframe className={classes.root} title="Preview" sandbox="allow-scripts" {...props} />
-  )
+  return <iframe className={classes.root} title="Preview" {...props} />
 }
 
 export default (
