@@ -1,25 +1,25 @@
+import { join } from 'path'
+
 import cx from 'classnames'
-import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as DG from '@material-ui/data-grid'
 
+import type * as DG from 'components/DataGrid'
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
-import { ensureNoSlash, withoutPrefix } from 'utils/s3paths'
+import { ensureNoSlash, parseS3Url, withoutPrefix } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
+import { SelectionSection, Selection } from '../Selection'
 import { displayError } from '../errors'
 import * as requests from '../requests'
 
 import SubmitSpinner from './SubmitSpinner'
-
-const limit = pLimit(5)
 
 export const isS3File = (f: any): f is Model.S3File =>
   !!f &&
@@ -107,7 +107,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DialogProps {
   initialPath?: string
-  initialSelection?: DG.GridRowId[]
+  initialSelection?: Selection
   bucket: string
   buckets?: string[]
   selectBucket?: (bucket: string) => void
@@ -131,7 +131,15 @@ export function Dialog({
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const [selection, setSelection] = React.useState<DG.GridRowId[]>(initialSelection || [])
+  const [selection, setSelection] = React.useState<Selection>(initialSelection || {}) // FIXME: use EMPTY_SELECTION
+  const handleSelection = React.useCallback(
+    (ids) =>
+      setSelection((x) => ({
+        ...x,
+        [`s3://${bucket}/${path}`]: ids,
+      })),
+    [bucket, path],
+  )
 
   const [locked, setLocked] = React.useState(false)
 
@@ -161,17 +169,17 @@ export function Dialog({
       if (!selectBucket) return
       setPath('')
       setPrefix('')
-      setSelection([])
+      // setSelection([])
       selectBucket(b)
     },
     [selectBucket],
   )
   const handlePathChange = React.useCallback((p) => {
-    setSelection([])
+    // setSelection([])
     setPath(p)
   }, [])
   const handlePrefixChange = React.useCallback((p) => {
-    setSelection([])
+    // setSelection([])
     setPrefix(p)
   }, [])
 
@@ -195,52 +203,32 @@ export function Dialog({
     )
   }, [data.result])
 
-  const add = React.useCallback(() => {
-    data.case({
-      Ok: async (r: requests.BucketListingResult) => {
-        try {
-          setLocked(true)
-          const dirsByBasename = R.fromPairs(
-            r.dirs.map((name) => [ensureNoSlash(withoutPrefix(r.path, name)), name]),
-          )
-          const filesByBasename = R.fromPairs(
-            r.files.map((f) => [withoutPrefix(r.path, f.key), f]),
-          )
-          const { dirs, files } = selection.reduce(
-            (acc, id) => {
-              const dir = dirsByBasename[id]
-              if (dir) return { ...acc, dirs: [...acc.dirs, dir] }
-              const file = filesByBasename[id]
-              if (file) return { ...acc, files: [...acc.files, file] }
-              return acc // shouldnt happen
-            },
-            { files: [] as requests.BucketListingFile[], dirs: [] as string[] },
-          )
-
-          const dirsPromises = dirs.map((dir) =>
-            limit(bucketListing, { bucket, path: dir, delimiter: false, drain: true }),
-          )
-
-          const dirsChildren = await Promise.all(dirsPromises)
-          const allChildren = dirsChildren.reduce(
-            (acc, res) => acc.concat(res.files),
-            [] as requests.BucketListingFile[],
-          )
-
-          onClose({ files: files.concat(allChildren), path })
-        } finally {
-          setLocked(false)
-        }
-      },
-      _: () => {},
-    })
-  }, [onClose, selection, data, bucket, path, bucketListing])
+  const getFiles = requests.useFilesListing()
+  const add = React.useCallback(async () => {
+    try {
+      setLocked(true)
+      const handles = Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
+        const parentHandle = parseS3Url(prefixUrl)
+        return [
+          ...memo,
+          ...keys.map((key) => ({
+            bucket: parentHandle.bucket,
+            key: join(parentHandle.key, key.toString()),
+          })),
+        ]
+      }, [] as Model.S3.S3ObjectLocation[])
+      const filesMap = await getFiles(handles)
+      onClose({ files: Object.values(filesMap), path })
+    } finally {
+      setLocked(false)
+    }
+  }, [getFiles, onClose, selection, path])
 
   const handleExited = React.useCallback(() => {
     setPath('')
     setPrefix('')
     setPrev(null)
-    setSelection([])
+    // setSelection([])
   }, [])
 
   return (
@@ -276,15 +264,18 @@ export function Dialog({
         _: (x: $TSFixMe) => {
           const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
           return res ? (
-            <DirContents
-              response={res}
-              locked={!AsyncResult.Ok.is(x)}
-              setPath={handlePathChange}
-              setPrefix={handlePrefixChange}
-              loadMore={loadMore}
-              selection={selection}
-              onSelectionChange={setSelection}
-            />
+            <>
+              <DirContents
+                response={res}
+                locked={!AsyncResult.Ok.is(x)}
+                setPath={handlePathChange}
+                setPrefix={handlePrefixChange}
+                loadMore={loadMore}
+                selection={selection[`s3://${bucket}/${path}`] || []}
+                onSelectionChange={handleSelection}
+              />
+              <SelectionSection selection={selection} onSelection={setSelection} />
+            </>
           ) : (
             // TODO: skeleton
             <M.Box px={3} pt={2} flexGrow={1}>
@@ -295,21 +286,13 @@ export function Dialog({
       })}
       {locked && <Lock className={classes.lock} />}
       <M.DialogActions>
-        {locked ? (
-          <SubmitSpinner>Adding files</SubmitSpinner>
-        ) : (
-          <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-            <M.Typography variant="body2" color="textSecondary">
-              {selection.length} item{selection.length === 1 ? '' : 's'} selected
-            </M.Typography>
-          </M.Box>
-        )}
+        {locked && <SubmitSpinner>Adding files</SubmitSpinner>}
         <M.Button onClick={cancel}>Cancel</M.Button>
         <M.Button
           onClick={add}
           variant="contained"
           color="primary"
-          disabled={locked || !selection.length}
+          disabled={locked || R.isEmpty(selection)}
         >
           Add files
         </M.Button>
@@ -360,7 +343,7 @@ interface DirContentsProps {
   setPrefix: (prefix: string) => void
   loadMore: () => void
   selection: DG.GridRowId[]
-  onSelectionChange: (newSelection: DG.GridRowId[]) => void
+  onSelectionChange: (ids: DG.GridRowId[]) => void
 }
 
 function DirContents({
@@ -405,8 +388,8 @@ function DirContents({
       loadMore={loadMore}
       truncated={truncated}
       prefixFilter={prefix}
-      selection={selection}
-      onSelectionChange={onSelectionChange}
+      selection={locked ? undefined : selection}
+      onSelectionChange={locked ? undefined : onSelectionChange}
       CellComponent={CellComponent}
       RootComponent="div"
       className={classes.root}

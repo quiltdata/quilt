@@ -10,12 +10,11 @@ import { fade } from '@material-ui/core/styles'
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Model from 'model'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
-
-export const EMPTY_SELECTION: DG.GridRowId[] = []
 
 const TIP_DELAY = 1000
 
@@ -1050,9 +1049,24 @@ export function Listing({
 
   const handleSelectionModelChange = React.useCallback(
     (newSelection: DG.GridSelectionModelChangeParams) => {
-      if (onSelectionChange) onSelectionChange(newSelection.selectionModel)
+      if (!onSelectionChange) return
+      const names: DG.GridRowId[] = []
+      items.some(({ name, type }) => {
+        if (!newSelection.selectionModel.length) return true
+        if (newSelection.selectionModel.includes(name)) {
+          names.push(type === 'dir' ? s3paths.ensureSlash(name) : name)
+        }
+        if (names.length === newSelection.selectionModel.length) return true
+      })
+      onSelectionChange(names)
     },
-    [onSelectionChange],
+    [items, onSelectionChange],
+  )
+
+  const selectionModel = React.useMemo(
+    () =>
+      selection ? selection.map((id) => s3paths.ensureNoSlash(id.toString())) : selection,
+    [selection],
   )
 
   // TODO: control page, pageSize, filtering and sorting via props
@@ -1087,7 +1101,7 @@ export function Listing({
         localeText={{ noRowsLabel, ...localeText }}
         // selection-related props
         checkboxSelection={!!onSelectionChange}
-        selectionModel={selection}
+        selectionModel={selectionModel}
         onSelectionModelChange={handleSelectionModelChange}
         {...dataGridProps}
       />

@@ -8,7 +8,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
-import type * as DG from 'components/DataGrid'
 import * as urls from 'constants/urls'
 import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
@@ -20,6 +19,8 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 import * as Types from 'utils/types'
+
+import type { Selection } from '../Selection'
 
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
@@ -1348,7 +1349,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 
 interface FilesInputProps {
   initialS3Path?: string
-  initialS3Selection?: DG.GridRowId[]
+  initialS3Selection?: Selection
   input: {
     value: FilesState
     onChange: (value: FilesState) => void

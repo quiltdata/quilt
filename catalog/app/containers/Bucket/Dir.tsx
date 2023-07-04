@@ -1,5 +1,3 @@
-import { join } from 'path'
-
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -10,8 +8,6 @@ import * as Buttons from 'components/Buttons'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
-import * as Bookmarks from 'containers/Bookmarks'
-import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -22,15 +18,49 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
+import { SelectionSection } from './Selection'
 import DirCodeSamples from './CodeSamples/Dir'
 import * as FileView from './FileView'
-import { EMPTY_SELECTION, Item, Listing, PrefixFilter } from './Listing'
+import { Listing, PrefixFilter } from './Listing'
 import Menu from './Menu'
 import * as PD from './PackageDialog'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+const updateDirectorySelection = (bucket: string, path: string, ids: DG.GridRowId[]) =>
+  R.assoc(`s3://${bucket}/${path}`, ids)
+
+const mergeWithPrefixed =
+  (prefix: string, prefixedIds: DG.GridRowId[]) => (allIds: DG.GridRowId[]) => {
+    if (!allIds || !allIds.length) return prefixedIds
+    const selectionOutsidePrefixFilter = allIds.filter(
+      (id) => !id.toString().startsWith(prefix),
+    )
+    const newIds = [...selectionOutsidePrefixFilter, ...prefixedIds]
+    return R.equals(newIds, allIds) ? allIds : newIds // avoid cyclic update
+  }
+
+const updateWithPrefixSelection = (
+  bucket: string,
+  path: string,
+  prefix: string,
+  ids: DG.GridRowId[],
+) => {
+  const lens = R.lensProp<Record<string, DG.GridRowId[]>>(`s3://${bucket}/${path}`)
+  return R.over(lens, mergeWithPrefixed(prefix, ids))
+}
+
+const updateSelection = (
+  bucket: string,
+  path: string,
+  ids: DG.GridRowId[],
+  prefix?: string,
+) =>
+  prefix
+    ? updateWithPrefixSelection(bucket, path, prefix, ids)
+    : updateDirectorySelection(bucket, path, ids)
 
 interface DirectoryMenuProps {
   bucket: string
@@ -55,80 +85,6 @@ function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
       {prompt.render()}
       <Menu className={className} items={menuItems} />
     </>
-  )
-}
-
-const useAddToBookmarksStyles = M.makeStyles((t) => ({
-  root: {
-    alignItems: 'baseline',
-    display: 'flex',
-    marginLeft: t.spacing(2),
-  },
-  button: {
-    fontSize: 11,
-    lineHeight: '22px',
-    margin: t.spacing(0, 1),
-  },
-}))
-
-interface AddToBookmarksProps {
-  bucket: string
-  items: Item[]
-  onClearSelection: () => void
-  path: string
-  selection?: DG.GridRowId[]
-}
-
-// TODO: rather then select and add list of selected entries to bookmarks
-//       add bookmark button to each entry
-function AddToBookmarks({
-  bucket,
-  items,
-  onClearSelection,
-  path,
-  selection,
-}: AddToBookmarksProps) {
-  const classes = useAddToBookmarksStyles()
-  const bookmarks = Bookmarks.use()
-  const bookmarkItems: Model.S3.S3ObjectLocation[] = React.useMemo(() => {
-    const handles: Model.S3.S3ObjectLocation[] = []
-    if (selection?.includes('..')) {
-      handles.push({
-        bucket,
-        key: s3paths.ensureSlash(join(path, '..')),
-      })
-    }
-    items.some(({ name, handle, type }) => {
-      if (!selection?.length) return true
-      if (selection?.includes(name) && handle) {
-        handles.push({
-          ...handle,
-          key: type === 'dir' ? s3paths.ensureSlash(handle.key) : handle.key,
-        })
-      }
-      if (handles.length === selection?.length) return true
-      return false
-    })
-    return handles
-  }, [bucket, path, items, selection])
-  const handleClick = React.useCallback(() => {
-    bookmarks?.append('main', bookmarkItems)
-    onClearSelection()
-  }, [bookmarks, bookmarkItems, onClearSelection])
-  return (
-    <M.Slide direction="down" in={!!selection?.length}>
-      <div className={classes.root}>
-        <M.Button
-          className={classes.button}
-          color="primary"
-          size="small"
-          variant="outlined"
-          onClick={handleClick}
-        >
-          Add selected items to bookmarks
-        </M.Button>
-      </div>
-    </M.Slide>
   )
 }
 
@@ -204,8 +160,8 @@ function DirContents({
   locked,
   bucket,
   path,
-  selection,
   loadMore,
+  selection,
   onSelection,
 }: DirContentsProps) {
   const history = RRDom.useHistory()
@@ -229,21 +185,14 @@ function DirContents({
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
-        onSelectionChange={onSelection}
-        selection={selection}
+        onSelectionChange={locked ? undefined : onSelection}
+        selection={locked ? undefined : selection}
         toolbarContents={
           <>
             <PrefixFilter
               key={`${response.bucket}/${response.path}`}
               prefix={response.prefix}
               setPrefix={setPrefix}
-            />
-            <AddToBookmarks
-              bucket={bucket}
-              items={items}
-              onClearSelection={() => onSelection([])}
-              path={path}
-              selection={selection}
             />
           </>
         }
@@ -292,7 +241,7 @@ export default function Dir({
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
-  const { prefix } = parseSearch(l.search)
+  const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
@@ -323,8 +272,13 @@ export default function Dir({
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState(EMPTY_SELECTION)
-  React.useEffect(() => setSelection([]), [bucket, path])
+  const [selection, setSelection] = React.useState<Record<string, DG.GridRowId[]>>({})
+  const handleSelection = React.useCallback(
+    (ids) => {
+      setSelection(updateSelection(bucket, path, ids, prefix))
+    },
+    [bucket, path, prefix],
+  )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
     bucket,
@@ -377,7 +331,7 @@ export default function Dir({
                     onChange={openPackageCreationDialog}
                   >
                     {`Create package from ${
-                      selection.length ? 'selected entries' : 'directory'
+                      R.isEmpty(selection) ? 'selected entries' : 'directory'
                     }`}
                   </Successors.Button>
                 ),
@@ -407,6 +361,8 @@ export default function Dir({
         prefs,
       )}
 
+      <SelectionSection selection={selection} onSelection={setSelection} />
+
       {data.case({
         Err: displayError(),
         Init: () => null,
@@ -418,9 +374,9 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              selection={selection}
+              selection={selection[`s3://${bucket}/${path}`] || []}
               loadMore={loadMore}
-              onSelection={setSelection}
+              onSelection={handleSelection}
             />
           ) : (
             <M.CircularProgress />

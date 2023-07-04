@@ -7,7 +7,6 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-import type * as DG from 'components/DataGrid'
 import * as Intercom from 'components/Intercom'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import cfg from 'constants/config'
@@ -28,7 +27,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
-import { EMPTY_SELECTION } from '../Listing'
+import type { Selection } from '../Selection'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
@@ -174,7 +173,7 @@ interface PackageCreationFormProps {
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
     path?: string
-    selection?: DG.GridRowId[]
+    selection?: Selection
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -645,7 +644,7 @@ function PackageCreationForm({
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
                       initialS3Path={initial?.path}
-                      initialS3Selection={initial?.selection || EMPTY_SELECTION}
+                      initialS3Selection={initial?.selection || {}}
                       validationErrors={
                         submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
                       }
@@ -756,7 +755,7 @@ export function usePackageCreationDialog({
   const [exited, setExited] = React.useState(!isOpen)
   // TODO: put it to src as S3Handle
   const [s3Path, setS3Path] = React.useState<string | undefined>()
-  const [s3Selection, setS3Selection] = React.useState<DG.GridRowId[]>([])
+  const [s3Selection, setS3Selection] = React.useState<Selection>({})
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
@@ -822,7 +821,7 @@ export function usePackageCreationDialog({
     (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: DG.GridRowId[]
+      selection?: Selection
     }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)
