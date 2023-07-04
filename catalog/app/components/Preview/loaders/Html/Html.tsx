@@ -4,21 +4,31 @@ import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import type * as Model from 'model'
+import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { useMutation } from 'utils/GraphQL'
+import { useIsInStack } from 'utils/BucketConfig'
+import * as GQL from 'utils/GraphQL'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import assertNever from 'utils/assertNever'
 import type { PackageHandle } from 'utils/packageHandle'
 
 import { PreviewError, PreviewData } from '../../types'
 
+import * as Text from '../Text'
 import FileType from '../fileType'
+import * as utils from '../utils'
 
-import CREATE_BROWSING_SESSION from './CreateBrowsingSession.generated'
-import DISPOSE_BROWSING_SESSION from './DisposeBrowsingSession.generated'
-import REFRESH_BROWSING_SESSION from './RefreshBrowsingSession.generated'
+import BUCKET_CONFIG_QUERY from './gql/BrowsableBucketConfig.generated'
+import CREATE_BROWSING_SESSION from './gql/CreateBrowsingSession.generated'
+import DISPOSE_BROWSING_SESSION from './gql/DisposeBrowsingSession.generated'
+import REFRESH_BROWSING_SESSION from './gql/RefreshBrowsingSession.generated'
+
+export const detect = utils.extIn(['.htm', '.html'])
+
+export const FILE_TYPE = FileType.Html
 
 const SESSION_TTL = 60 * 3
 const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
@@ -46,7 +56,7 @@ function mapPreviewError(retry: () => void, e?: ErrorLike) {
 }
 
 function useCreateSession() {
-  const createSession = useMutation(CREATE_BROWSING_SESSION)
+  const createSession = GQL.useMutation(CREATE_BROWSING_SESSION)
   return React.useCallback(
     async (scope: string, ttl) => {
       const { browsingSessionCreate: r } = await createSession({ scope, ttl })
@@ -70,7 +80,7 @@ function useCreateSession() {
 }
 
 function useRefreshSession() {
-  const refreshSession = useMutation(REFRESH_BROWSING_SESSION)
+  const refreshSession = GQL.useMutation(REFRESH_BROWSING_SESSION)
   return React.useCallback(
     async (id: string, ttl: number) => {
       const { browsingSessionRefresh: r } = await refreshSession({ id, ttl })
@@ -94,7 +104,7 @@ function useRefreshSession() {
 }
 
 function useDisposeSession() {
-  const disposeSession = useMutation(DISPOSE_BROWSING_SESSION)
+  const disposeSession = GQL.useMutation(DISPOSE_BROWSING_SESSION)
   return React.useCallback(
     (id?: string) => (id ? disposeSession({ id }) : null),
     [disposeSession],
@@ -103,11 +113,6 @@ function useDisposeSession() {
 
 interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
   packageHandle: PackageHandle
-}
-
-interface BrowsableLoaderProps {
-  children: (result: $TSFixMe) => React.ReactNode
-  handle: FileHandle
 }
 
 function useSession(handle: FileHandle) {
@@ -169,7 +174,12 @@ function useSession(handle: FileHandle) {
   return result
 }
 
-export default function BrowsableLoader({ handle, children }: BrowsableLoaderProps) {
+interface IFrameLoaderBrowsableProps {
+  children: (result: $TSFixMe) => JSX.Element
+  handle: FileHandle
+}
+
+function IFrameLoaderBrowsable({ handle, children }: IFrameLoaderBrowsableProps) {
   const sessionData = useSession(handle)
   return children(
     AsyncResult.mapCase(
@@ -183,5 +193,76 @@ export default function BrowsableLoader({ handle, children }: BrowsableLoaderPro
       },
       sessionData,
     ),
+  )
+}
+
+interface IFrameLoaderSignedProps {
+  children: (result: $TSFixMe) => JSX.Element
+  handle: Model.S3.S3ObjectLocation
+  browsable: boolean
+}
+
+function IFrameLoaderSigned({ handle, browsable, children }: IFrameLoaderSignedProps) {
+  const sign = AWS.Signer.useS3Signer()
+  const src = React.useMemo(
+    () => sign(handle, { ResponseContentType: 'text/html' }),
+    [handle, sign],
+  )
+  // TODO: issue a head request to ensure existence and get storage class
+  return children(
+    AsyncResult.Ok(
+      PreviewData.IFrame({
+        src,
+        modes: [FileType.Html, FileType.Text],
+        sandbox: browsable ? 'allow-scripts allow-same-origin' : 'allow-scripts',
+      }),
+    ),
+  )
+}
+
+interface IFrameLoaderProps {
+  children: (result: $TSFixMe) => JSX.Element
+  handle: FileHandle
+}
+
+function IFrameLoader({ handle, children }: IFrameLoaderProps) {
+  const bucketData = GQL.useQuery(BUCKET_CONFIG_QUERY, { bucket: handle.bucket })
+  const inPackage = !!handle.packageHandle
+  return GQL.fold(bucketData, {
+    fetching: () => children(AsyncResult.Pending()),
+    error: (e) => children(AsyncResult.Err(e)),
+    data: ({ bucketConfig }) =>
+      bucketConfig?.browsable && inPackage ? (
+        <IFrameLoaderBrowsable {...{ handle, children }} />
+      ) : (
+        <IFrameLoaderSigned
+          {...{ handle, children }}
+          browsable={!!bucketConfig?.browsable}
+        />
+      ),
+  })
+}
+
+// It's unsafe to render HTML in these conditions
+function useHtmlAsText(handle: Model.S3.S3ObjectLocation) {
+  const isInStack = useIsInStack()
+  const statusReportsBucket = useStatusReportsBucket()
+  return (
+    cfg.mode !== 'LOCAL' &&
+    !isInStack(handle.bucket) &&
+    handle.bucket !== statusReportsBucket
+  )
+}
+
+interface LoaderProps {
+  children: (result: $TSFixMe) => JSX.Element
+  handle: FileHandle
+}
+
+export const Loader = function HtmlLoader({ handle, children }: LoaderProps) {
+  return useHtmlAsText(handle) ? (
+    <Text.Loader {...{ handle, children }} />
+  ) : (
+    <IFrameLoader {...{ handle, children }} />
   )
 }

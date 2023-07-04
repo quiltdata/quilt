@@ -459,7 +459,7 @@ In order for Quilt to access and index buckets encrypted with SSE-KMS, you must 
 
 1. Add KMS Key Usage to Quilt Permission Boundary
 2. Add Quilt Principals to KMS Key Policy
-3. Add KMS Key Access to a Scoure=Quilt Role
+3. Add KMS Key Access to a Source=Quilt Role
 
 NOTE: This will not work with the default Source=Custom Roles.
 
@@ -487,7 +487,7 @@ Go to CloudFormation > Your Quilt Stack -> Update -> Parameters
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
 at the bottom of the page:
 
-![](../imgs/ManagedUserRoleExtraPolicies.png)
+![](imgs/ManagedUserRoleExtraPolicies.png)
 
 If other policies are already in that field, 
 you will need to add a comma before appending the ARN.
