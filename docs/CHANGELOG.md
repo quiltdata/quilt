@@ -28,6 +28,7 @@ Entries inside each section should be ordered by type:
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
 * [Changed] Hide columns without values in files listings ([#3512](https://github.com/quiltdata/quilt/pull/3512))
+* [Changed] Enable `allow-same-origin` for iframes in browsable buckets ([#3516](https://github.com/quiltdata/quilt/pull/3516))
 
 # 5.3.1 - 2023-05-02
 ## Python API
