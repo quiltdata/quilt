@@ -195,7 +195,8 @@ aws s3api get-object-tagging --bucket "$BUCKET" --key "$PREFIX"
 ### Specific logical resources
 
 Sometimes you may wish to find an ID or other information from a logical resource
-in a Quilt stack.
+in a Quilt stack. The following example is for security groups. Modify the commands as needed
+for other resource types.
 
 <!--pytest.mark.skip-->
 ```sh
