@@ -696,9 +696,12 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
         {filteredStats && <>{readableBytes(filteredStats.size)} / </>}
         {readableBytes(stats.size, truncated ? '+' : '')}
       </div>
-      <div className={classes.cellLast}>
-        {modified && `${truncated ? '~' : ''}${modified.toLocaleString()}`}
-      </div>
+      {modified && (
+        <div className={classes.cellLast}>
+          {truncated ? '~' : ''}
+          {modified.toLocaleString()}
+        </div>
+      )}
       {locked && <div className={classes.lock} />}
     </div>
   )
@@ -819,12 +822,10 @@ const useStyles = M.makeStyles((t) => ({
       '& .MuiDataGrid-columnSeparator': {
         pointerEvents: 'none',
       },
-      // "Size" column
-      '&:nth-child(3)': {
+      '&[data-field="size"]': {
         justifyContent: 'flex-end',
       },
-      // "Last modified" column
-      '&:nth-child(4)': {
+      '&[data-field="modified"]': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -943,8 +944,8 @@ export function Listing({
   })
 
   // NOTE: after dependencies change fourth empty column appears
-  const columns: DG.GridColumns = React.useMemo(
-    () => [
+  const columns: DG.GridColumns = React.useMemo(() => {
+    const columnsWithValues: DG.GridColumns = [
       {
         field: 'name',
         headerName: 'Name',
@@ -985,16 +986,9 @@ export function Listing({
           )
         },
       },
-      // TODO: uncomment this after implementing custom filter operators
-      // {
-      //   field: 'type',
-      //   headerName: 'Type',
-      //   type: 'string',
-      //   hide: true,
-      //   // TODO: custom filter operators
-      //   // filterOperators: GridFilterOperator[]
-      // },
-      {
+    ]
+    if (items.some(({ size }) => size != null)) {
+      columnsWithValues.push({
         field: 'size',
         headerName: 'Size',
         type: 'number',
@@ -1011,8 +1005,10 @@ export function Listing({
             </CellComponent>
           )
         },
-      },
-      {
+      })
+    }
+    if (items.some(({ modified }) => !!modified)) {
+      columnsWithValues.push({
         field: 'modified',
         headerName: 'Last modified',
         type: 'dateTime',
@@ -1034,10 +1030,10 @@ export function Listing({
             </CellComponent>
           )
         },
-      },
-    ],
-    [classes, CellComponent, sm],
-  )
+      })
+    }
+    return columnsWithValues
+  }, [classes, CellComponent, items, sm])
 
   const noRowsLabel = `No files / directories${
     prefixFilter ? ` starting with "${prefixFilter}"` : ''
