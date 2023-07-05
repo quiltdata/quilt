@@ -574,12 +574,9 @@ Update all bucket-related resources: policies, indexes, SNS, cloudtrail, ...
   - `subscriptions_created: list` -
     A mapping (list of tuples) of bucket names to ARNs of associated
     subscriptions created by the script
-  - `subscriptions_deleted: list` -
-    A mapping (list of tuples) of bucket names to ARNs of associated
-    subscriptions deleted by the script
   - `subscription_errors: list` -
     A mapping (list of tuples) of bucket names to error messages received while
-    trying to create or delete associated subscriptions
+    trying to create associated subscriptions
 
 ###### `Scripts.SetupCanaries`
 
