@@ -199,6 +199,13 @@ you see in Service Catalog.
 
 ### CloudFormation
 
+You can perform stack update and creation with the AWS Console, AWS CLI,
+Terraform, or other means.
+
+In all cases it is **highly recommended** that you set the `--on-failure` policy
+to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
+In the AWS Console this option appears under the phrase "Stack failure options."
+
 1. Specify stack details in the form of a stack _name_ and CloudFormation
 _parameters_. Refer to the descriptions displayed above each
 text box for further details. Service Catalog users require a license key. See
@@ -222,10 +229,8 @@ Create.
 
     ![](./imgs/finish.png)
 
-1. CloudFormation takes about 30 minutes to create the resources
-for your stack. You may monitor progress under Events.
-Once the stack is complete, you will see `CREATE_COMPLETE` as the Status for
-your CloudFormation stack.
+1. CloudFormation may take bewteen 30 and 90 minutes to create your stack.
+You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
 
     ![](./imgs/events.png)
 
