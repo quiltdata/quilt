@@ -5,6 +5,7 @@ on:
     tags:
       - "*"
   pull_request:
+  merge_group:
 jobs:
   test-catalog:
     runs-on: ubuntu-latest
