@@ -1395,7 +1395,6 @@ export function FilesInput({
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
-  initialS3Path,
   initialS3Selection,
   validationErrors,
 }: FilesInputProps) {
@@ -1501,7 +1500,7 @@ export function FilesInput({
     count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
   }
 
-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(initialS3Path != null)
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
 
   const closeS3FilePicker = React.useCallback(
     (reason: S3FilePicker.CloseReason) => {
@@ -1528,7 +1527,6 @@ export function FilesInput({
           selectBucket={selectBucket}
           open={s3FilePickerOpen}
           onClose={closeS3FilePicker}
-          initialPath={initialS3Path}
           initialSelection={initialS3Selection}
         />
       )}

@@ -1,3 +1,5 @@
+import { join } from 'path'
+
 import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as FF from 'final-form'
@@ -643,7 +645,6 @@ function PackageCreationForm({
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
-                      initialS3Path={initial?.path}
                       initialS3Selection={initial?.selection || {}}
                       validationErrors={
                         submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
@@ -687,16 +688,6 @@ function PackageCreationForm({
       )}
     </RF.Form>
   )
-}
-
-function prependSourceBucket(
-  buckets: BucketPreferences.SourceBuckets,
-  bucket: string,
-): BucketPreferences.SourceBuckets {
-  return {
-    getDefault: () => bucket,
-    list: R.prepend(bucket, buckets.list),
-  }
 }
 
 const DialogState = tagged.create(
@@ -753,8 +744,6 @@ export function usePackageCreationDialog({
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
-  // TODO: put it to src as S3Handle
-  const [s3Path, setS3Path] = React.useState<string | undefined>()
   const [s3Selection, setS3Selection] = React.useState<Selection>({})
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
@@ -797,10 +786,7 @@ export function usePackageCreationDialog({
                       AsyncResult.Ok({
                         manifest,
                         workflowsConfig,
-                        sourceBuckets:
-                          s3Path === undefined
-                            ? sourceBuckets
-                            : prependSourceBucket(sourceBuckets, bucket),
+                        sourceBuckets,
                       }),
                     Pending: AsyncResult.Pending,
                     Init: AsyncResult.Init,
@@ -814,11 +800,14 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [bucket, s3Path, workflowsData, manifestResult, prefs],
+    [workflowsData, manifestResult, prefs],
   )
 
+  const [loading, setLoading] = React.useState(false)
+  const getFiles = requests.useFilesListing()
+
   const open = React.useCallback(
-    (initial?: {
+    async (initial?: {
       successor?: workflows.Successor
       path?: string
       selection?: Selection
@@ -826,17 +815,33 @@ export function usePackageCreationDialog({
       if (initial?.successor) {
         setSuccessor(initial?.successor)
       }
-      if (initial?.path !== undefined) {
-        setS3Path(initial?.path)
-      }
-      if (initial?.selection) {
-        setS3Selection(initial?.selection)
-      }
 
+      setLoading(true)
       setOpen(true)
       setExited(false)
+
+      if (!initial?.selection) {
+        setLoading(false)
+        return
+      }
+      const handles = Object.entries(initial?.selection).reduce(
+        (memo, [prefixUrl, keys]) => {
+          const parentHandle = s3paths.parseS3Url(prefixUrl)
+          return [
+            ...memo,
+            ...keys.map((key) => ({
+              bucket: parentHandle.bucket,
+              key: join(parentHandle.key, key.toString()),
+            })),
+          ]
+        },
+        [] as Model.S3.S3ObjectLocation[],
+      )
+      const filesMap = await getFiles(handles)
+      addToPackage?.merge(filesMap)
+      setLoading(false)
     },
-    [setOpen, setExited],
+    [addToPackage, getFiles],
   )
 
   const close = React.useCallback(() => {
@@ -856,6 +861,7 @@ export function usePackageCreationDialog({
   const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
+    if (loading) return DialogState.Loading()
     return AsyncResult.case(
       {
         Ok: DialogState.Form,
@@ -864,7 +870,7 @@ export function usePackageCreationDialog({
       },
       data,
     )
-  }, [exited, success, data])
+  }, [loading, exited, success, data])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <PD.DialogWrapper
@@ -917,7 +923,6 @@ export function usePackageCreationDialog({
                     sourceBuckets,
                     initial: {
                       name: src?.name,
-                      path: s3Path,
                       selection: s3Selection,
                       ...manifest,
                     },
