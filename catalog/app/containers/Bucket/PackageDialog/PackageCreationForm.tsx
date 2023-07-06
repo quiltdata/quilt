@@ -174,8 +174,6 @@ interface PackageCreationFormProps {
     meta?: Types.JsonRecord
     workflowId?: string
     entries?: Model.PackageContentsFlatMap
-    path?: string
-    selection?: Selection
   }
   successor: workflows.Successor
   onSuccessor: (successor: workflows.Successor) => void
@@ -645,7 +643,6 @@ function PackageCreationForm({
                       delayHashing={delayHashing}
                       disableStateDisplay={disableStateDisplay}
                       ui={{ reset: ui.resetFiles }}
-                      initialS3Selection={initial?.selection || {}}
                       validationErrors={
                         submitFailed ? entriesError : PD.EMPTY_ENTRIES_ERRORS
                       }
@@ -744,7 +741,6 @@ export function usePackageCreationDialog({
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
-  const [s3Selection, setS3Selection] = React.useState<Selection>({})
   const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
@@ -923,7 +919,6 @@ export function usePackageCreationDialog({
                     sourceBuckets,
                     initial: {
                       name: src?.name,
-                      selection: s3Selection,
                       ...manifest,
                     },
                     delayHashing,

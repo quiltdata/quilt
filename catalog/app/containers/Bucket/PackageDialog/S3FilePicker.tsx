@@ -106,7 +106,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DialogProps {
-  initialSelection?: Selection
   bucket: string
   buckets?: string[]
   selectBucket?: (bucket: string) => void
@@ -114,14 +113,7 @@ interface DialogProps {
   onClose: (reason: CloseReason) => void
 }
 
-export function Dialog({
-  bucket,
-  buckets,
-  selectBucket,
-  open,
-  onClose,
-  initialSelection,
-}: DialogProps) {
+export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogProps) {
   const classes = useStyles()
 
   const bucketListing = requests.useBucketListing()
@@ -129,7 +121,7 @@ export function Dialog({
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const [selection, setSelection] = React.useState<Selection>(initialSelection || {}) // FIXME: use EMPTY_SELECTION
+  const [selection, setSelection] = React.useState<Selection>({}) // FIXME: use EMPTY_SELECTION
   const handleSelection = React.useCallback(
     (ids) =>
       setSelection((x) => ({

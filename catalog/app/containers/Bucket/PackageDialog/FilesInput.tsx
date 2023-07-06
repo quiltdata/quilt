@@ -20,8 +20,6 @@ import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 import * as Types from 'utils/types'
 
-import type { Selection } from '../Selection'
-
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
@@ -1348,8 +1346,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 }))
 
 interface FilesInputProps {
-  initialS3Path?: string
-  initialS3Selection?: Selection
   input: {
     value: FilesState
     onChange: (value: FilesState) => void
@@ -1395,7 +1391,6 @@ export function FilesInput({
   delayHashing = false,
   disableStateDisplay = false,
   ui = {},
-  initialS3Selection,
   validationErrors,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
@@ -1527,7 +1522,6 @@ export function FilesInput({
           selectBucket={selectBucket}
           open={s3FilePickerOpen}
           onClose={closeS3FilePicker}
-          initialSelection={initialS3Selection}
         />
       )}
       <Header>
