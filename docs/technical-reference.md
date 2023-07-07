@@ -266,6 +266,32 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 
 Your previous settings should carry over.
 
+## Create a new stack with an existing configuration
+
+You can create a new Quilt stack with the same configuration as an existing
+stack.
+> _Configuration_ here refers to the Quilt stack buckets, roles, policies,
+and other administrative settings, all of which are stored in an RDS instance.
+
+Perform the following steps.
+
+1. Contact your Quilt account manager for a template that supports an existing
+database (`existing_db: True`).
+
+1. Take an additional snapshot of the current Quilt database instance. For an existing Quilt
+stack this resource has the logical ID "DB".
+    > It is important that you take an _additional_ snapshot and not rely on automatic
+    snapshots as these will be deleted if and when the parent stack is deleted.
+
+1. If the additional snapshot is not encrypted, create an encrypted copy of the
+snapshot. Note down the id of the encrypted snapshot.
+
+1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac/tree/main/terraform/modules/quilt)
+to your new template and provide the snapshot id to the variable `db_snapshot_identifier`.
+
+1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
+Verify that the new stack is working as desired. Delete the old stack.
+
 ## Security
 
 All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (show in red in the diagram below). No other services in the Quilt stack store customer data.
