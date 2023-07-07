@@ -8,6 +8,8 @@ import * as Buttons from 'components/Buttons'
 import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
+import * as Bookmarks from 'containers/Bookmarks'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -304,6 +306,14 @@ export default function Dir({
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
+  const bookmarks = Bookmarks.use()
+  const onBookmarks = React.useCallback(
+    (handles: Model.S3.S3ObjectLocation[]) => {
+      bookmarks?.append('main', handles)
+    },
+    [bookmarks],
+  )
+
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
@@ -361,7 +371,13 @@ export default function Dir({
         prefs,
       )}
 
-      <SelectionSection selection={selection} onSelection={setSelection} />
+      <SelectionSection
+        bucket={bucket}
+        onPackage={openPackageCreationDialog}
+        selection={selection}
+        onSelection={setSelection}
+        onBookmarks={onBookmarks}
+      />
 
       {data.case({
         Err: displayError(),

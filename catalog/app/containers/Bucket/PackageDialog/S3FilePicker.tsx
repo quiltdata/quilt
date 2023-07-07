@@ -259,7 +259,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 selection={selection[`s3://${bucket}/${path}`] || []}
                 onSelectionChange={handleSelection}
               />
-              <SelectionSection selection={selection} onSelection={setSelection} />
+              <SelectionSection
+                bucket={bucket}
+                selection={selection}
+                onSelection={setSelection}
+              />
             </>
           ) : (
             // TODO: skeleton

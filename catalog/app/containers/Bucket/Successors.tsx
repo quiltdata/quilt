@@ -218,14 +218,14 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   )
 }
 
-interface ButtonProps {
+interface ButtonProps extends Omit<M.IconButtonProps, 'onChange'> {
   bucket: string
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
 }
 
-export function Button({ bucket, className, children, onChange }: ButtonProps) {
+export function Button({ bucket, className, children, onChange, ...props }: ButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -251,6 +251,7 @@ export function Button({ bucket, className, children, onChange }: ButtonProps) {
         icon="exit_to_app"
         label={children}
         onClick={onButtonClick}
+        {...props}
       />
 
       <SuccessorsSelect
@@ -263,3 +264,5 @@ export function Button({ bucket, className, children, onChange }: ButtonProps) {
     </>
   )
 }
+
+export const Select = SuccessorsSelect
