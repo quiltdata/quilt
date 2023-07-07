@@ -1053,6 +1053,7 @@ export function Listing({
         {} as Record<DG.GridRowId, number>,
       )
       items.some(({ name, type }) => {
+        if (name === '..') return false
         if (!newSelection.selectionModel.length) return true
         if (newSelection.selectionModel.includes(name)) {
           names.push(type === 'dir' ? s3paths.ensureSlash(name) : name)

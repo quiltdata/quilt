@@ -289,13 +289,12 @@ export default function Dir({
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor: workflows.Successor) => {
+    (successor?: workflows.Successor) =>
       packageDirectoryDialog.open({
         path,
         successor,
         selection,
-      })
-    },
+      }),
     [packageDirectoryDialog, path, selection],
   )
 
@@ -372,7 +371,6 @@ export default function Dir({
       )}
 
       <SelectionSection
-        bucket={bucket}
         onPackage={openPackageCreationDialog}
         selection={selection}
         onSelection={setSelection}

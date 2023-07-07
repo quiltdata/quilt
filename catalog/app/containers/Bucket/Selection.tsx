@@ -9,9 +9,7 @@ import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
-import type * as workflows from 'utils/workflows'
 
-import * as Successors from './Successors'
 import Section from './Section'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
@@ -26,38 +24,6 @@ function EmptyState() {
     <M.Typography className={classes.root} variant="h5">
       Nothing selected
     </M.Typography>
-  )
-}
-
-interface CreateButtonProps {
-  className: string
-  bucket: string
-  disabled: boolean
-  onSubmit: (s: workflows.Successor) => void
-}
-
-function CreateButton({ bucket, className, onSubmit, disabled }: CreateButtonProps) {
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState<HTMLElement | null>(null)
-  return (
-    <>
-      <M.Button
-        className={className}
-        size="small"
-        color="primary"
-        variant="contained"
-        disabled={disabled}
-        onClick={(e) => setMenuAnchorEl(e.currentTarget)}
-      >
-        Create package
-      </M.Button>
-      <Successors.Select
-        open={!!menuAnchorEl}
-        anchorEl={menuAnchorEl}
-        bucket={bucket}
-        onChange={onSubmit}
-        onClose={() => setMenuAnchorEl(null)}
-      />
-    </>
   )
 }
 
@@ -84,36 +50,6 @@ function useSelectionHandles(selection: Selection): SelectionHandles {
         }
       }, EMPTY_SELECTION_HANDLES),
     [selection],
-  )
-}
-
-interface FavoriteButtonProps {
-  className: string
-  selection: Selection
-  disabled: boolean
-  onSubmit: (handles: Model.S3.S3ObjectLocation[]) => void
-}
-
-function FavoriteButton({
-  className,
-  selection,
-  disabled,
-  onSubmit,
-}: FavoriteButtonProps) {
-  const lists = useSelectionHandles(selection)
-  const handles = Object.values(lists).reduce((memo, hs) => [...memo, ...hs], [])
-
-  return (
-    <M.Button
-      className={className}
-      size="small"
-      color="primary"
-      variant="outlined"
-      disabled={disabled}
-      onClick={() => onSubmit(handles)}
-    >
-      Add to bookmarks
-    </M.Button>
   )
 }
 
@@ -163,7 +99,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   button: {
     '& + &': {
-      marginLeft: t.spacing(2),
+      marginLeft: t.spacing(1),
     },
   },
   list: {
@@ -187,44 +123,67 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SelectionSectionProps {
-  bucket: string
   selection: Selection
   onSelection: (changed: Selection) => void
-  onPackage?: (s: workflows.Successor) => void
+  onPackage?: () => void
   onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
 }
 
 export function SelectionSection({
-  bucket,
   selection,
   onPackage,
   onSelection,
   onBookmarks,
 }: SelectionSectionProps) {
   const classes = useStyles()
+
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
   const lists = useSelectionHandles(selection)
+
+  const handleBookmarks = React.useCallback(() => {
+    if (!onBookmarks) return
+    const handles = Object.values(lists).reduce((memo, hs) => [...memo, ...hs], [])
+    onBookmarks(handles)
+  }, [lists, onBookmarks])
 
   return (
     <Section gutterBottom heading={`${count} items selected`} icon="list">
       <div className={classes.wrapper}>
         <>
           {onPackage && (
-            <CreateButton
+            <M.Button
               className={classes.button}
-              bucket={bucket}
-              onSubmit={onPackage}
+              size="small"
+              color="primary"
+              variant="contained"
               disabled={!count}
-            />
+              onClick={() => onPackage()}
+            >
+              Create package
+            </M.Button>
           )}
           {onBookmarks && (
-            <FavoriteButton
+            <M.Button
               className={classes.button}
-              selection={selection}
+              color="primary"
               disabled={!count}
-              onSubmit={onBookmarks}
-            />
+              onClick={handleBookmarks}
+              size="small"
+              variant="outlined"
+            >
+              Add to bookmarks
+            </M.Button>
           )}
+          <M.Button
+            className={classes.button}
+            color="primary"
+            disabled={!count}
+            onClick={() => onSelection({})}
+            size="small"
+            variant="outlined"
+          >
+            Clear
+          </M.Button>
           <M.Divider style={{ marginTop: '16px' }} />
         </>
         {count ? (
