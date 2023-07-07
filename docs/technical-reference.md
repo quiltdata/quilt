@@ -45,10 +45,10 @@ new as of June 2023. The configuration is similar to the
 (1/4 the VPC CIDR)
 - 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
 application load balancer
-(1/8 of the VPC CIDR)
+(1/2 of the VPC CIDR)
 - 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
 OpenSearch domain
-(1/2 of the VPC CIDR)
+(1/8 of the VPC CIDR)
 - (1/8 of the VPC CIDR is free)
 
 > Your Quilt instance contains _exactly one_ application load balancer that is
