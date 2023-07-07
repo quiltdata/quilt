@@ -159,17 +159,14 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       if (!selectBucket) return
       setPath('')
       setPrefix('')
-      // setSelection([])
       selectBucket(b)
     },
     [selectBucket],
   )
   const handlePathChange = React.useCallback((p) => {
-    // setSelection([])
     setPath(p)
   }, [])
   const handlePrefixChange = React.useCallback((p) => {
-    // setSelection([])
     setPrefix(p)
   }, [])
 
@@ -213,7 +210,6 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPath('')
     setPrefix('')
     setPrev(null)
-    // setSelection([])
   }, [])
 
   return (
@@ -259,7 +255,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 selection={selection[`s3://${bucket}/${path}`] || []}
                 onSelectionChange={handleSelection}
               />
-              <SelectionSection selection={selection} onSelection={setSelection} />
+              <SelectionSection onSelection={setSelection} selection={selection} />
             </>
           ) : (
             // TODO: skeleton

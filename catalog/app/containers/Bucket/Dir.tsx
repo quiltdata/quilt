@@ -371,10 +371,10 @@ export default function Dir({
       )}
 
       <SelectionSection
-        onPackage={openPackageCreationDialog}
-        selection={selection}
-        onSelection={setSelection}
         onBookmarks={onBookmarks}
+        onPackage={openPackageCreationDialog}
+        onSelection={setSelection}
+        selection={selection}
       />
 
       {data.case({
