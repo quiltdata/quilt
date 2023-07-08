@@ -98,6 +98,7 @@ const useStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
     paddingLeft: t.spacing(3),
     paddingRight: t.spacing(3),
+    display: 'flex',
   },
   lock: {
     bottom: 52,
@@ -212,6 +213,9 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrev(null)
   }, [])
 
+  const [selectionOpened, setSelectionOpened] = React.useState(false)
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+
   return (
     <M.Dialog
       open={open}
@@ -237,6 +241,12 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       </M.DialogTitle>
       <div className={classes.crumbs}>
         {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
+        <M.Badge style={{ marginLeft: 'auto' }} color="primary" badgeContent={count}>
+          <M.Button>Selected items</M.Button>
+        </M.Badge>
+        <M.Grow in={selectionOpened} style={{ position: 'relative' }}>
+          <M.Paper>It works</M.Paper>
+        </M.Grow>
       </div>
       {data.case({
         // TODO: customized error display?
