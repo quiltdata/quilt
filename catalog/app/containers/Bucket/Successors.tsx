@@ -218,11 +218,12 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   )
 }
 
-interface ButtonProps extends Omit<M.IconButtonProps, 'onChange'> {
+interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
+  variant?: 'text' | 'outlined' | 'contained'
 }
 
 export function Button({ bucket, className, children, onChange, ...props }: ButtonProps) {

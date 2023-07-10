@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -20,7 +21,7 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
-import { SelectionSection } from './Selection'
+import { SelectionDashboard } from './Selection'
 import DirCodeSamples from './CodeSamples/Dir'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
@@ -215,10 +216,16 @@ const useStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(1),
   },
+  selectionButton: {
+    marginRight: t.spacing(1),
+  },
   topbar: {
     display: 'flex',
     alignItems: 'flex-start',
     marginBottom: t.spacing(2),
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
   },
   actions: {
     display: 'flex',
@@ -281,6 +288,7 @@ export default function Dir({
     },
     [bucket, path, prefix],
   )
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
     bucket,
@@ -312,6 +320,7 @@ export default function Dir({
     },
     [bookmarks],
   )
+  const [selectionOpened, setSelectionOpened] = React.useState(false)
 
   return (
     <M.Box pt={2} pb={4}>
@@ -330,6 +339,33 @@ export default function Dir({
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
+          <M.Badge
+            badgeContent={count}
+            className={cx(classes.button, classes.selectionButton)}
+            color="primary"
+            max={999}
+            showZero
+          >
+            <M.Button onClick={() => setSelectionOpened(true)} size="small">
+              Selected items
+            </M.Button>
+          </M.Badge>
+          <M.Dialog
+            open={selectionOpened}
+            onClose={() => setSelectionOpened(false)}
+            fullWidth
+            maxWidth="md"
+          >
+            <M.DialogTitle>{count} items selected</M.DialogTitle>
+            <M.DialogContent>
+              <SelectionDashboard
+                count={count}
+                onSelection={setSelection}
+                selection={selection}
+                onBookmarks={onBookmarks}
+              />
+            </M.DialogContent>
+          </M.Dialog>
           {BucketPreferences.Result.match(
             {
               Ok: ({ ui: { actions } }) =>
@@ -338,10 +374,10 @@ export default function Dir({
                     bucket={bucket}
                     className={classes.button}
                     onChange={openPackageCreationDialog}
+                    variant={count ? 'contained' : 'outlined'}
+                    color="primary"
                   >
-                    {`Create package from ${
-                      R.isEmpty(selection) ? 'selected entries' : 'directory'
-                    }`}
+                    Create package
                   </Successors.Button>
                 ),
               Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
@@ -370,12 +406,14 @@ export default function Dir({
         prefs,
       )}
 
+      {/*
       <SelectionSection
         onBookmarks={onBookmarks}
         onPackage={openPackageCreationDialog}
         onSelection={setSelection}
         selection={selection}
       />
+      */}
 
       {data.case({
         Err: displayError(),
