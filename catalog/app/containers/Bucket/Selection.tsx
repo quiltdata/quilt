@@ -77,6 +77,9 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
   return (
     <M.ListItem className={className}>
+      <M.ListItemIcon>
+        <M.Icon>{isDir ? 'folder_outlined' : 'insert_drive_file_outlined'}</M.Icon>
+      </M.ListItemIcon>
       <M.ListItemText
         primary={name}
         secondary={<StyledLink to={url}>{s3paths.handleToS3Url(handle)}</StyledLink>}

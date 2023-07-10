@@ -52,11 +52,20 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
   const classes = useSelectionWidgetStyles()
   const [selectionOpened, setSelectionOpened] = React.useState(false)
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+  const open = React.useCallback(() => setSelectionOpened(true), [])
   const close = React.useCallback(() => setSelectionOpened(false), [])
   return (
     <>
-      <M.Badge className={className} color="primary" badgeContent={count}>
-        <M.Button onClick={() => setSelectionOpened(true)}>Selected items</M.Button>
+      <M.Badge
+        badgeContent={count}
+        className={className}
+        color="primary"
+        max={999}
+        showZero
+      >
+        <M.Button onClick={open} size="small">
+          Selected items
+        </M.Button>
       </M.Badge>
       <M.Backdrop open={selectionOpened} onClick={close} className={classes.backdrop}>
         <M.Grow in={selectionOpened}>
@@ -151,8 +160,7 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: -t.spacing(1),
     maxWidth: '100%',
     overflowWrap: 'break-word',
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(3),
+    padding: t.spacing(0, 2, 0, 3),
     display: 'flex',
   },
   lock: {
