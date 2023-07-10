@@ -15,11 +15,66 @@ import { ensureNoSlash, parseS3Url, withoutPrefix } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
-import { SelectionSection, Selection } from '../Selection'
+import { SelectionDashboard, Selection } from '../Selection'
 import { displayError } from '../errors'
 import * as requests from '../requests'
 
 import SubmitSpinner from './SubmitSpinner'
+
+const useSelectionWidgetStyles = M.makeStyles((t) => ({
+  backdrop: {
+    position: 'absolute',
+    zIndex: 2,
+  },
+  popup: {
+    minHeight: t.spacing(40),
+    position: 'absolute',
+    right: `${t.spacing(2) - 2}px`,
+    top: `${t.spacing(6) - 2}px`,
+    width: '60%',
+    zIndex: 10,
+    padding: t.spacing(2),
+  },
+  close: {
+    position: 'absolute',
+    right: t.spacing(2),
+    top: t.spacing(2),
+  },
+}))
+
+interface SelectionWidgetProps {
+  className: string
+  selection: Selection
+  onSelection: (changed: Selection) => void
+}
+
+function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+  const classes = useSelectionWidgetStyles()
+  const [selectionOpened, setSelectionOpened] = React.useState(false)
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+  const close = React.useCallback(() => setSelectionOpened(false), [])
+  return (
+    <>
+      <M.Badge className={className} color="primary" badgeContent={count}>
+        <M.Button onClick={() => setSelectionOpened(true)}>Selected items</M.Button>
+      </M.Badge>
+      <M.Backdrop open={selectionOpened} onClick={close} className={classes.backdrop}>
+        <M.Grow in={selectionOpened}>
+          <M.Paper className={classes.popup}>
+            <M.IconButton className={classes.close} onClick={close}>
+              <M.Icon>close</M.Icon>
+            </M.IconButton>
+            <SelectionDashboard
+              count={count}
+              onSelection={onSelection}
+              selection={selection}
+            />
+          </M.Paper>
+        </M.Grow>
+      </M.Backdrop>
+    </>
+  )
+}
 
 export const isS3File = (f: any): f is Model.S3File =>
   !!f &&
@@ -103,6 +158,9 @@ const useStyles = M.makeStyles((t) => ({
   lock: {
     bottom: 52,
     top: 56,
+  },
+  selectionButton: {
+    marginLeft: 'auto',
   },
 }))
 
@@ -213,9 +271,6 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrev(null)
   }, [])
 
-  const [selectionOpened, setSelectionOpened] = React.useState(false)
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-
   return (
     <M.Dialog
       open={open}
@@ -241,12 +296,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       </M.DialogTitle>
       <div className={classes.crumbs}>
         {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
-        <M.Badge style={{ marginLeft: 'auto' }} color="primary" badgeContent={count}>
-          <M.Button>Selected items</M.Button>
-        </M.Badge>
-        <M.Grow in={selectionOpened} style={{ position: 'relative' }}>
-          <M.Paper>It works</M.Paper>
-        </M.Grow>
+        <SelectionWidget
+          className={classes.selectionButton}
+          selection={selection}
+          onSelection={setSelection}
+        />
       </div>
       {data.case({
         // TODO: customized error display?
@@ -265,7 +319,6 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 selection={selection[`s3://${bucket}/${path}`] || []}
                 onSelectionChange={handleSelection}
               />
-              <SelectionSection onSelection={setSelection} selection={selection} />
             </>
           ) : (
             // TODO: skeleton

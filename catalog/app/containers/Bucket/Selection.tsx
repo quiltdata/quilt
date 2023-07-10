@@ -91,7 +91,7 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  wrapper: {
+  root: {
     background: t.palette.background.paper,
     flexGrow: 1,
     maxHeight: '50vh',
@@ -122,22 +122,18 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface SelectionSectionProps {
-  selection: Selection
-  onSelection: (changed: Selection) => void
-  onPackage?: () => void
-  onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
+interface SelectionDashboardProps extends SelectionSectionProps {
+  count: number
 }
 
-export function SelectionSection({
-  selection,
+export function SelectionDashboard({
+  count,
+  onBookmarks,
   onPackage,
   onSelection,
-  onBookmarks,
-}: SelectionSectionProps) {
+  selection,
+}: SelectionDashboardProps) {
   const classes = useStyles()
-
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
   const lists = useSelectionHandles(selection)
 
   const handleBookmarks = React.useCallback(() => {
@@ -147,73 +143,99 @@ export function SelectionSection({
   }, [lists, onBookmarks])
 
   return (
-    <Section gutterBottom heading={`${count} items selected`} icon="list">
-      <div className={classes.wrapper}>
-        <>
-          {onPackage && (
-            <M.Button
-              className={classes.button}
-              size="small"
-              color="primary"
-              variant="contained"
-              disabled={!count}
-              onClick={() => onPackage()}
-            >
-              Create package
-            </M.Button>
-          )}
-          {onBookmarks && (
-            <M.Button
-              className={classes.button}
-              color="primary"
-              disabled={!count}
-              onClick={handleBookmarks}
-              size="small"
-              variant="outlined"
-            >
-              Add to bookmarks
-            </M.Button>
-          )}
+    <div className={classes.root}>
+      <>
+        {onPackage && (
+          <M.Button
+            className={classes.button}
+            size="small"
+            color="primary"
+            variant="contained"
+            disabled={!count}
+            onClick={() => onPackage()}
+          >
+            Create package
+          </M.Button>
+        )}
+        {onBookmarks && (
           <M.Button
             className={classes.button}
             color="primary"
             disabled={!count}
-            onClick={() => onSelection({})}
+            onClick={handleBookmarks}
             size="small"
             variant="outlined"
           >
-            Clear
+            Add to bookmarks
           </M.Button>
-          <M.Divider style={{ marginTop: '16px' }} />
-        </>
-        {count ? (
-          <M.List dense disablePadding className={classes.list}>
-            {Object.entries(lists).map(([prefixUrl, handles]) =>
-              handles.length ? (
-                <li className={classes.listSection} key={prefixUrl}>
-                  <ul className={classes.auxList}>
-                    <M.ListSubheader>{prefixUrl}</M.ListSubheader>
-                    <M.List dense disablePadding>
-                      {handles.map((handle, index) => (
-                        <ListItem
-                          key={handle.key}
-                          handle={handle}
-                          className={classes.item}
-                          onClear={() =>
-                            onSelection(R.dissocPath([prefixUrl, index], selection))
-                          }
-                        />
-                      ))}
-                    </M.List>
-                  </ul>
-                </li>
-              ) : null,
-            )}
-          </M.List>
-        ) : (
-          <EmptyState />
         )}
-      </div>
+        <M.Button
+          className={classes.button}
+          color="primary"
+          disabled={!count}
+          onClick={() => onSelection({})}
+          size="small"
+          variant="outlined"
+        >
+          Clear
+        </M.Button>
+        <M.Divider style={{ marginTop: '16px' }} />
+      </>
+      {count ? (
+        <M.List dense disablePadding className={classes.list}>
+          {Object.entries(lists).map(([prefixUrl, handles]) =>
+            handles.length ? (
+              <li className={classes.listSection} key={prefixUrl}>
+                <ul className={classes.auxList}>
+                  <M.ListSubheader>{prefixUrl}</M.ListSubheader>
+                  <M.List dense disablePadding>
+                    {handles.map((handle, index) => (
+                      <ListItem
+                        key={handle.key}
+                        handle={handle}
+                        className={classes.item}
+                        onClear={() =>
+                          onSelection(R.dissocPath([prefixUrl, index], selection))
+                        }
+                      />
+                    ))}
+                  </M.List>
+                </ul>
+              </li>
+            ) : null,
+          )}
+        </M.List>
+      ) : (
+        <EmptyState />
+      )}
+    </div>
+  )
+}
+
+interface SelectionSectionProps {
+  onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
+  onPackage?: () => void
+  onSelection: (changed: Selection) => void
+  selection: Selection
+}
+
+export function SelectionSection({
+  onBookmarks,
+  onPackage,
+  onSelection,
+  selection,
+}: SelectionSectionProps) {
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+
+  return (
+    <Section gutterBottom heading={`${count} items selected`} icon="list">
+      <SelectionDashboard
+        onBookmarks={onBookmarks}
+        count={count}
+        onPackage={onPackage}
+        onSelection={onSelection}
+        selection={selection}
+      />
     </Section>
   )
 }
