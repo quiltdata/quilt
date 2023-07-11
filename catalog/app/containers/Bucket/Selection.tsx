@@ -10,8 +10,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 
-import Section from './Section'
-
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(3, 0, 2),
@@ -127,14 +125,12 @@ const useStyles = M.makeStyles((t) => ({
 
 interface SelectionDashboardProps {
   onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
-  onPackage?: () => void
   onSelection: (changed: Selection) => void
   selection: Selection
 }
 
 export function SelectionDashboard({
   onBookmarks,
-  onPackage,
   onSelection,
   selection,
 }: SelectionDashboardProps) {
@@ -151,18 +147,6 @@ export function SelectionDashboard({
   return (
     <div className={classes.root}>
       <>
-        {onPackage && (
-          <M.Button
-            className={classes.button}
-            size="small"
-            color="primary"
-            variant="contained"
-            disabled={!hasSelection}
-            onClick={() => onPackage()}
-          >
-            Create package
-          </M.Button>
-        )}
         {onBookmarks && (
           <M.Button
             className={classes.button}
