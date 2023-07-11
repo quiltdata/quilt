@@ -372,6 +372,30 @@ function FilterToolbarButton() {
   )
 }
 
+function formatSelection(ids: DG.GridRowId[], items: Item[]): DG.GridRowId[] {
+  if (!ids.length) return ids
+
+  const names: DG.GridRowId[] = []
+  // keep the sort order the same as in the newSelection.selectionModel
+  const sortOrder = ids.reduce(
+    (memo, id, index) => ({ ...memo, [id]: index + 1 }),
+    {} as Record<DG.GridRowId, number>,
+  )
+  items.some(({ name, type }) => {
+    if (name === '..') return false
+    if (ids.includes(name)) {
+      names.push(type === 'dir' ? s3paths.ensureSlash(name) : name)
+    }
+    if (names.length === ids.length) return true
+  })
+  names.sort((a, b) => {
+    const aPos = sortOrder[a] || sortOrder[s3paths.ensureNoSlash(a.toString())]
+    const bPos = sortOrder[b] || sortOrder[s3paths.ensureNoSlash(b.toString())]
+    return aPos - bPos
+  })
+  return names
+}
+
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
@@ -1046,26 +1070,7 @@ export function Listing({
   const handleSelectionModelChange = React.useCallback(
     (newSelection: DG.GridSelectionModelChangeParams) => {
       if (!onSelectionChange) return
-      const names: DG.GridRowId[] = []
-      // keep the sort order the same as in the newSelection.selectionModel
-      const sortOrder = newSelection.selectionModel.reduce(
-        (memo, id, index) => ({ ...memo, [id]: index + 1 }),
-        {} as Record<DG.GridRowId, number>,
-      )
-      items.some(({ name, type }) => {
-        if (name === '..') return false
-        if (!newSelection.selectionModel.length) return true
-        if (newSelection.selectionModel.includes(name)) {
-          names.push(type === 'dir' ? s3paths.ensureSlash(name) : name)
-        }
-        if (names.length === newSelection.selectionModel.length) return true
-      })
-      names.sort((a, b) => {
-        const aPos = sortOrder[a] || sortOrder[s3paths.ensureNoSlash(a.toString())]
-        const bPos = sortOrder[b] || sortOrder[s3paths.ensureNoSlash(b.toString())]
-        return aPos - bPos
-      })
-      onSelectionChange(names)
+      onSelectionChange(formatSelection(newSelection.selectionModel, items))
     },
     [items, onSelectionChange],
   )
