@@ -1,5 +1,3 @@
-import { join } from 'path'
-
 import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as FF from 'final-form'
@@ -29,7 +27,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
-import type { PrefixedKeysMap } from '../Selection'
+import * as Selection from '../Selection'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
@@ -806,7 +804,7 @@ export function usePackageCreationDialog({
     async (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: PrefixedKeysMap
+      selection?: Selection.PrefixedKeysMap
     }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)
@@ -820,19 +818,7 @@ export function usePackageCreationDialog({
         setLoading(false)
         return
       }
-      const handles = Object.entries(initial?.selection).reduce(
-        (memo, [prefixUrl, keys]) => {
-          const parentHandle = s3paths.parseS3Url(prefixUrl)
-          return [
-            ...memo,
-            ...keys.map((key) => ({
-              bucket: parentHandle.bucket,
-              key: join(parentHandle.key, key.toString()),
-            })),
-          ]
-        },
-        [] as Model.S3.S3ObjectLocation[],
-      )
+      const handles = Selection.toHandlesList(initial?.selection)
       const filesMap = await getFiles(handles)
       addToPackage?.merge(filesMap)
       setLoading(false)

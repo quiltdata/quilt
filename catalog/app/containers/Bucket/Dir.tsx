@@ -32,39 +32,6 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const updateDirectorySelection = (bucket: string, path: string, ids: DG.GridRowId[]) =>
-  R.assoc(`s3://${bucket}/${path}`, ids)
-
-const mergeWithPrefixed =
-  (prefix: string, prefixedIds: DG.GridRowId[]) => (allIds: DG.GridRowId[]) => {
-    if (!allIds || !allIds.length) return prefixedIds
-    const selectionOutsidePrefixFilter = allIds.filter(
-      (id) => !id.toString().startsWith(prefix),
-    )
-    const newIds = [...selectionOutsidePrefixFilter, ...prefixedIds]
-    return R.equals(newIds, allIds) ? allIds : newIds // avoid cyclic update
-  }
-
-const updateWithPrefixSelection = (
-  bucket: string,
-  path: string,
-  prefix: string,
-  ids: DG.GridRowId[],
-) => {
-  const lens = R.lensProp<Record<string, DG.GridRowId[]>>(`s3://${bucket}/${path}`)
-  return R.over(lens, mergeWithPrefixed(prefix, ids))
-}
-
-const updateSelection = (
-  bucket: string,
-  path: string,
-  ids: DG.GridRowId[],
-  prefix?: string,
-) =>
-  prefix
-    ? updateWithPrefixSelection(bucket, path, prefix, ids)
-    : updateDirectorySelection(bucket, path, ids)
-
 interface DirectoryMenuProps {
   bucket: string
   className?: string
@@ -286,9 +253,7 @@ export default function Dir({
     Selection.EmptyMap,
   )
   const handleSelection = React.useCallback(
-    (ids) => {
-      setSelection(updateSelection(bucket, path, ids, prefix))
-    },
+    (ids) => setSelection(Selection.updateSelection(bucket, path, ids, prefix)),
     [bucket, path, prefix],
   )
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
@@ -419,7 +384,7 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              selection={selection[`s3://${bucket}/${path}`] || Selection.EmptyKeys}
+              selection={Selection.getDirectorySelection(selection, bucket, path)}
               loadMore={loadMore}
               onSelection={handleSelection}
             />

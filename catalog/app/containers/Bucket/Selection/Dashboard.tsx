@@ -9,7 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 
-import { PrefixedKeysMap, convertIdsToHandles } from './utils'
+import { PrefixedKeysMap, toHandlesMap } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -101,7 +101,7 @@ export default function Dashboard({
   selection,
 }: DashboardProps) {
   const classes = useStyles()
-  const lists = React.useMemo(() => convertIdsToHandles(selection), [selection])
+  const lists = React.useMemo(() => toHandlesMap(selection), [selection])
   const hasSelection = Object.values(selection).some((ids) => !!ids.length, 0)
 
   const handleBookmarks = React.useCallback(() => {

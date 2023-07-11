@@ -1,5 +1,3 @@
-import { join } from 'path'
-
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -11,7 +9,7 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
-import { ensureNoSlash, parseS3Url, withoutPrefix } from 'utils/s3paths'
+import { ensureNoSlash, withoutPrefix } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
@@ -188,12 +186,8 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     Selection.EmptyMap,
   )
   const handleSelection = React.useCallback(
-    (ids) =>
-      setSelection((x) => ({
-        ...x,
-        [`s3://${bucket}/${path}`]: ids,
-      })),
-    [bucket, path],
+    (ids) => setSelection(Selection.updateSelection(bucket, path, ids, prefix)),
+    [bucket, path, prefix],
   )
 
   const [locked, setLocked] = React.useState(false)
@@ -259,16 +253,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const add = React.useCallback(async () => {
     try {
       setLocked(true)
-      const handles = Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
-        const parentHandle = parseS3Url(prefixUrl)
-        return [
-          ...memo,
-          ...keys.map((key) => ({
-            bucket: parentHandle.bucket,
-            key: join(parentHandle.key, key.toString()),
-          })),
-        ]
-      }, [] as Model.S3.S3ObjectLocation[])
+      const handles = Selection.toHandlesList(selection)
       const filesMap = await getFiles(handles)
       onClose({ files: Object.values(filesMap), path })
     } finally {
@@ -327,7 +312,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 setPath={handlePathChange}
                 setPrefix={handlePrefixChange}
                 loadMore={loadMore}
-                selection={selection[`s3://${bucket}/${path}`] || Selection.EmptyKeys}
+                selection={Selection.getDirectorySelection(selection, bucket, path)}
                 onSelectionChange={handleSelection}
               />
             </>
