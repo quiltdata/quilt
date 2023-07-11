@@ -120,8 +120,8 @@ interface DirContentsProps {
   locked: boolean
   bucket: string
   path: string
-  selection: DG.GridRowId[]
   loadMore?: () => void
+  selection: DG.GridRowId[]
   onSelection: (ids: DG.GridRowId[]) => void
 }
 
@@ -327,7 +327,7 @@ export default function Dir({
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor?: workflows.Successor) =>
+    (successor: workflows.Successor) =>
       packageDirectoryDialog.open({
         path,
         successor,
@@ -418,8 +418,8 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              selection={Selection.getDirectorySelection(selection, bucket, path)}
               loadMore={loadMore}
+              selection={Selection.getDirectorySelection(selection, bucket, path)}
               onSelection={handleSelection}
             />
           ) : (
