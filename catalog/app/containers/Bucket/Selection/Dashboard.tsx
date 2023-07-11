@@ -9,7 +9,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 
-import { PrefixedKeysMap, toHandlesMap } from './utils'
+import { EMPTY_MAP, PrefixedKeysMap, toHandlesMap } from './utils'
 
 const useEmptyStateStyles = M.makeStyles((t) => ({
   root: {
@@ -91,24 +91,42 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DashboardProps {
   onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
+  onDone: () => void
   onSelection: (changed: PrefixedKeysMap) => void
   selection: PrefixedKeysMap
 }
 
 export default function Dashboard({
   onBookmarks,
+  onDone,
   onSelection,
   selection,
 }: DashboardProps) {
   const classes = useStyles()
   const lists = React.useMemo(() => toHandlesMap(selection), [selection])
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length, 0)
+  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
 
   const handleBookmarks = React.useCallback(() => {
     if (!onBookmarks) return
     const handles = Object.values(lists).reduce((memo, hs) => [...memo, ...hs], [])
     onBookmarks(handles)
   }, [lists, onBookmarks])
+
+  const handleClear = React.useCallback(() => {
+    onSelection(EMPTY_MAP)
+    onDone()
+  }, [onSelection, onDone])
+
+  const handleRemove = React.useCallback(
+    (prefixUrl: string, index: number) => {
+      const newSelection = R.dissocPath<PrefixedKeysMap>([prefixUrl, index], selection)
+      onSelection(newSelection)
+      if (!Object.values(newSelection).some((ids) => !!ids.length)) {
+        onDone()
+      }
+    },
+    [onDone, onSelection, selection],
+  )
 
   return (
     <div className={classes.root}>
@@ -129,7 +147,7 @@ export default function Dashboard({
           className={classes.button}
           color="primary"
           disabled={!hasSelection}
-          onClick={() => onSelection({})}
+          onClick={handleClear}
           size="small"
           variant="outlined"
         >
@@ -148,11 +166,9 @@ export default function Dashboard({
                     {handles.map((handle, index) => (
                       <ListItem
                         key={handle.key}
-                        handle={handle}
                         className={classes.item}
-                        onClear={() =>
-                          onSelection(R.dissocPath([prefixUrl, index], selection))
-                        }
+                        handle={handle}
+                        onClear={() => handleRemove(prefixUrl, index)}
                       />
                     ))}
                   </M.List>

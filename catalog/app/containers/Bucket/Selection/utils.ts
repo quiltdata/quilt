@@ -54,7 +54,8 @@ const mergeWithFiltered =
   }
 
 export function merge(ids: string[], bucket: string, path: string, filter?: string) {
-  const lens = R.lensProp<Record<string, string[]>>(`s3://${bucket}/${path}`)
+  const prefixUrl = `s3://${bucket}/${path}`
+  const lens = R.lensProp<Record<string, string[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, ids)) : R.set(lens, ids)
 }
 

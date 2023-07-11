@@ -228,6 +228,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
           <Selection.Dashboard
             onBookmarks={onBookmarks}
             onSelection={onSelection}
+            onDone={close}
             selection={selection}
           />
         </M.DialogContent>
@@ -343,7 +344,7 @@ export default function Dir({
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
-  const hasSelection = Object.values(selection).some((ids) => !!ids.length, 0)
+  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
 
   return (
     <M.Box pt={2} pb={4}>

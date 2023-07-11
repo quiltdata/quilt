@@ -70,7 +70,11 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
             <M.IconButton className={classes.close} onClick={close}>
               <M.Icon>close</M.Icon>
             </M.IconButton>
-            <Selection.Dashboard onSelection={onSelection} selection={selection} />
+            <Selection.Dashboard
+              onSelection={onSelection}
+              onDone={close}
+              selection={selection}
+            />
           </M.Paper>
         </M.Grow>
       </M.Backdrop>
