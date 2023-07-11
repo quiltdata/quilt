@@ -372,11 +372,12 @@ function FilterToolbarButton() {
   )
 }
 
+// Iterate over `items`, and add slash if selection item is directory
+// Iterate over `items` only once, but keep the sort order as in original selection
 function formatSelection(ids: DG.GridRowId[], items: Item[]): string[] {
   if (!ids.length) return ids as string[]
 
   const names: string[] = []
-  // keep the sort order the same as in the newSelection.selectionModel
   const sortOrder = ids.reduce(
     (memo, id, index) => ({ ...memo, [id]: index + 1 }),
     {} as Record<DG.GridRowId, number>,
@@ -907,7 +908,7 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  selection?: DG.GridRowId[]
+  selection?: string[]
   onSelectionChange?: (newSelection: string[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
@@ -1076,8 +1077,7 @@ export function Listing({
   )
 
   const selectionModel = React.useMemo(
-    () =>
-      selection ? selection.map((id) => s3paths.ensureNoSlash(id.toString())) : selection,
+    () => (selection?.length ? selection.map(s3paths.ensureNoSlash) : selection),
     [selection],
   )
 

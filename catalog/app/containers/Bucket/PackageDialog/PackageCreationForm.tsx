@@ -689,7 +689,7 @@ const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
     Closed: () => {},
-    Loading: (opts: { waitListing?: boolean }) => opts,
+    Loading: (opts?: { waitListing?: boolean }) => opts,
     Error: (e: Error) => e,
     Form: (v: {
       manifest?: Manifest
@@ -797,7 +797,7 @@ export function usePackageCreationDialog({
     [workflowsData, manifestResult, prefs],
   )
 
-  const [loading, setLoading] = React.useState(false)
+  const [waitingListing, setWaitingListing] = React.useState(false)
   const getFiles = requests.useFilesListing()
 
   const open = React.useCallback(
@@ -810,18 +810,18 @@ export function usePackageCreationDialog({
         setSuccessor(initial?.successor)
       }
 
-      setLoading(true)
+      setWaitingListing(true)
       setOpen(true)
       setExited(false)
 
       if (!initial?.selection) {
-        setLoading(false)
+        setWaitingListing(false)
         return
       }
       const handles = Selection.toHandlesList(initial?.selection)
       const filesMap = await getFiles(handles)
       addToPackage?.merge(filesMap)
-      setLoading(false)
+      setWaitingListing(false)
     },
     [addToPackage, getFiles],
   )
@@ -843,10 +843,11 @@ export function usePackageCreationDialog({
   const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
-    if (loading)
+    if (waitingListing) {
       return DialogState.Loading({
         waitListing: true,
       })
+    }
     return AsyncResult.case(
       {
         Ok: DialogState.Form,
@@ -855,7 +856,7 @@ export function usePackageCreationDialog({
       },
       data,
     )
-  }, [loading, exited, success, data])
+  }, [waitingListing, exited, success, data])
 
   const render = (ui: PackageCreationDialogUIOptions = {}) => (
     <PD.DialogWrapper
@@ -870,11 +871,11 @@ export function usePackageCreationDialog({
       {DialogState.match(
         {
           Closed: () => null,
-          Loading: ({ waitListing }) => (
+          Loading: (opts) => (
             <DialogLoading
               skeletonElement={<FormSkeleton />}
               title={
-                waitListing
+                opts?.waitListing
                   ? 'Fetching list of files inside selected directories. It can take a while…'
                   : 'Fetching package manifest. One moment…'
               }
