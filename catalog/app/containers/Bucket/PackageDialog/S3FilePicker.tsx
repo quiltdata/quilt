@@ -217,6 +217,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrev(null)
   }, [bucket, path, prefix])
 
+  React.useEffect(() => {
+    if (open) return
+    setSelection({})
+  }, [open])
+
   const handleBucketChange = React.useCallback(
     (b) => {
       if (!selectBucket) return
