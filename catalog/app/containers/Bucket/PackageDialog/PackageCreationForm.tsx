@@ -689,7 +689,7 @@ const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
     Closed: () => {},
-    Loading: () => {},
+    Loading: (opts: { waitListing?: boolean }) => opts,
     Error: (e: Error) => e,
     Form: (v: {
       manifest?: Manifest
@@ -843,7 +843,10 @@ export function usePackageCreationDialog({
   const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
-    if (loading) return DialogState.Loading()
+    if (loading)
+      return DialogState.Loading({
+        waitListing: true,
+      })
     return AsyncResult.case(
       {
         Ok: DialogState.Form,
@@ -867,10 +870,14 @@ export function usePackageCreationDialog({
       {DialogState.match(
         {
           Closed: () => null,
-          Loading: () => (
+          Loading: ({ waitListing }) => (
             <DialogLoading
               skeletonElement={<FormSkeleton />}
-              title="Fetching package manifest. One moment…"
+              title={
+                waitListing
+                  ? 'Fetching list of files inside selected directories. It can take a while…'
+                  : 'Fetching package manifest. One moment…'
+              }
               submitText={ui.submit}
               onCancel={close}
             />

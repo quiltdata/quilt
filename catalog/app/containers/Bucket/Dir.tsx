@@ -174,6 +174,69 @@ function DirContents({
   )
 }
 
+const useSelectionWidgetStyles = M.makeStyles({
+  close: {
+    marginLeft: 'auto',
+  },
+  title: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+})
+
+interface SelectionWidgetProps {
+  className: string
+  selection: Selection.PrefixedKeysMap
+  onSelection: (changed: Selection.PrefixedKeysMap) => void
+}
+
+function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+  const classes = useSelectionWidgetStyles()
+  const bookmarks = Bookmarks.use()
+  const onBookmarks = React.useCallback(
+    (handles: Model.S3.S3ObjectLocation[]) => {
+      bookmarks?.append('main', handles)
+    },
+    [bookmarks],
+  )
+  const [opened, setOpened] = React.useState(false)
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
+  return (
+    <>
+      <M.Badge
+        badgeContent={count}
+        className={className}
+        color="primary"
+        max={999}
+        showZero
+      >
+        <M.Button onClick={open} size="small">
+          Selected items
+        </M.Button>
+      </M.Badge>
+      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
+        <M.DialogTitle>
+          <div className={classes.title}>
+            {count} items selected
+            <M.IconButton className={classes.close} onClick={close}>
+              <M.Icon>close</M.Icon>
+            </M.IconButton>
+          </div>
+        </M.DialogTitle>
+        <M.DialogContent>
+          <Selection.Dashboard
+            onBookmarks={onBookmarks}
+            onSelection={onSelection}
+            selection={selection}
+          />
+        </M.DialogContent>
+      </M.Dialog>
+    </>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   crumbs: {
     ...t.typography.body1,
@@ -256,7 +319,6 @@ export default function Dir({
     (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
     [bucket, path, prefix],
   )
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
     bucket,
@@ -281,14 +343,7 @@ export default function Dir({
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
-  const bookmarks = Bookmarks.use()
-  const onBookmarks = React.useCallback(
-    (handles: Model.S3.S3ObjectLocation[]) => {
-      bookmarks?.append('main', handles)
-    },
-    [bookmarks],
-  )
-  const [selectionOpened, setSelectionOpened] = React.useState(false)
+  const hasSelection = Object.values(selection).some((ids) => !!ids.length, 0)
 
   return (
     <M.Box pt={2} pb={4}>
@@ -307,32 +362,11 @@ export default function Dir({
           {BreadCrumbs.render(crumbs)}
         </div>
         <div className={classes.actions}>
-          <M.Badge
-            badgeContent={count}
+          <SelectionWidget
             className={cx(classes.button, classes.selectionButton)}
-            color="primary"
-            max={999}
-            showZero
-          >
-            <M.Button onClick={() => setSelectionOpened(true)} size="small">
-              Selected items
-            </M.Button>
-          </M.Badge>
-          <M.Dialog
-            open={selectionOpened}
-            onClose={() => setSelectionOpened(false)}
-            fullWidth
-            maxWidth="md"
-          >
-            <M.DialogTitle>{count} items selected</M.DialogTitle>
-            <M.DialogContent>
-              <Selection.Dashboard
-                onBookmarks={onBookmarks}
-                onSelection={setSelection}
-                selection={selection}
-              />
-            </M.DialogContent>
-          </M.Dialog>
+            selection={selection}
+            onSelection={setSelection}
+          />
           {BucketPreferences.Result.match(
             {
               Ok: ({ ui: { actions } }) =>
@@ -341,8 +375,8 @@ export default function Dir({
                     bucket={bucket}
                     className={classes.button}
                     onChange={openPackageCreationDialog}
-                    variant={count ? 'contained' : 'outlined'}
-                    color="primary"
+                    variant={hasSelection ? 'contained' : 'outlined'}
+                    color={hasSelection ? 'primary' : 'default'}
                   >
                     Create package
                   </Successors.Button>

@@ -305,17 +305,15 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
         _: (x: $TSFixMe) => {
           const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
           return res ? (
-            <>
-              <DirContents
-                response={res}
-                locked={!AsyncResult.Ok.is(x)}
-                setPath={handlePathChange}
-                setPrefix={handlePrefixChange}
-                loadMore={loadMore}
-                selection={Selection.getDirectorySelection(selection, bucket, path)}
-                onSelectionChange={handleSelection}
-              />
-            </>
+            <DirContents
+              response={res}
+              locked={!AsyncResult.Ok.is(x)}
+              setPath={handlePathChange}
+              setPrefix={handlePrefixChange}
+              loadMore={loadMore}
+              selection={Selection.getDirectorySelection(selection, bucket, path)}
+              onSelectionChange={handleSelection}
+            />
           ) : (
             // TODO: skeleton
             <M.Box px={3} pt={2} flexGrow={1}>

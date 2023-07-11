@@ -188,7 +188,6 @@ function useHandlesToS3Files(
             })
           : limit(headFile, handle),
       )
-      // FIXME: add pLimit
       const responses = await Promise.all(requests)
       return responses.reduce(
         (memo, response) =>

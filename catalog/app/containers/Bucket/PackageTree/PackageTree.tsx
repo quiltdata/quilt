@@ -355,8 +355,8 @@ function DirDisplay({
                         )}
                         {actions.copyPackage && (
                           <Successors.Button
-                            bucket={bucket}
                             className={classes.button}
+                            bucket={bucket}
                             icon="exit_to_app"
                             onChange={setSuccessor}
                           >
