@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
-import type * as DG from 'components/DataGrid'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
 import * as Bookmarks from 'containers/Bookmarks'
@@ -121,8 +120,8 @@ interface DirContentsProps {
   bucket: string
   path: string
   loadMore?: () => void
-  selection: DG.GridRowId[]
-  onSelection: (ids: DG.GridRowId[]) => void
+  selection: string[]
+  onSelection: (ids: string[]) => void
 }
 
 function DirContents({
@@ -312,7 +311,7 @@ export default function Dir({
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<Record<string, DG.GridRowId[]>>(
+  const [selection, setSelection] = React.useState<Record<string, string[]>>(
     Selection.EmptyMap,
   )
   const handleSelection = React.useCallback(

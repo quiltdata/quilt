@@ -3,7 +3,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import type * as DG from 'components/DataGrid'
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
@@ -380,8 +379,8 @@ interface DirContentsProps {
   setPath: (path: string) => void
   setPrefix: (prefix: string) => void
   loadMore: () => void
-  selection: DG.GridRowId[]
-  onSelectionChange: (ids: DG.GridRowId[]) => void
+  selection: string[]
+  onSelectionChange: (ids: string[]) => void
 }
 
 function DirContents({

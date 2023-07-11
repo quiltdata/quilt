@@ -372,10 +372,10 @@ function FilterToolbarButton() {
   )
 }
 
-function formatSelection(ids: DG.GridRowId[], items: Item[]): DG.GridRowId[] {
-  if (!ids.length) return ids
+function formatSelection(ids: DG.GridRowId[], items: Item[]): string[] {
+  if (!ids.length) return ids as string[]
 
-  const names: DG.GridRowId[] = []
+  const names: string[] = []
   // keep the sort order the same as in the newSelection.selectionModel
   const sortOrder = ids.reduce(
     (memo, id, index) => ({ ...memo, [id]: index + 1 }),
@@ -908,7 +908,7 @@ interface ListingProps {
   toolbarContents?: React.ReactNode
   loadMore?: () => void
   selection?: DG.GridRowId[]
-  onSelectionChange?: (newSelection: DG.GridRowId[]) => void
+  onSelectionChange?: (newSelection: string[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string

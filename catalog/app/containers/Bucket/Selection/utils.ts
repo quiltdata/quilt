@@ -2,12 +2,11 @@ import { join } from 'path'
 
 import * as R from 'ramda'
 
-import type * as DG from 'components/DataGrid'
 import type * as Model from 'model'
 import * as s3paths from 'utils/s3paths'
 
 export interface PrefixedKeysMap {
-  [prefixUrl: string]: DG.GridRowId[]
+  [prefixUrl: string]: string[]
 }
 
 export const EmptyMap: PrefixedKeysMap = {}
@@ -47,7 +46,7 @@ export function toHandlesList(selection: PrefixedKeysMap): Model.S3.S3ObjectLoca
 }
 
 const mergeWithFiltered =
-  (prefix: string, filteredIds: DG.GridRowId[]) => (allIds: DG.GridRowId[]) => {
+  (prefix: string, filteredIds: string[]) => (allIds: string[]) => {
     if (!allIds || !allIds.length) return filteredIds
     const selectionOutsideFilter = allIds.filter(
       (id) => !id.toString().startsWith(prefix),
@@ -56,17 +55,12 @@ const mergeWithFiltered =
     return R.equals(newIds, allIds) ? allIds : newIds // avoids cyclic update
   }
 
-export function merge(
-  ids: DG.GridRowId[],
-  bucket: string,
-  path: string,
-  filter?: string,
-) {
-  const lens = R.lensProp<Record<string, DG.GridRowId[]>>(`s3://${bucket}/${path}`)
+export function merge(ids: string[], bucket: string, path: string, filter?: string) {
+  const lens = R.lensProp<Record<string, string[]>>(`s3://${bucket}/${path}`)
   return filter ? R.over(lens, mergeWithFiltered(filter, ids)) : R.set(lens, ids)
 }
 
-const EmptyKeys: DG.GridRowId[] = []
+const EmptyKeys: string[] = []
 
 export function getDirectorySelection(
   selection: PrefixedKeysMap,
