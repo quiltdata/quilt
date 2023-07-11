@@ -332,7 +332,7 @@ export default function Dir({
         successRenderMessage: ({ packageLink }) => (
           <>Package {packageLink} successfully created</>
         ),
-        title: 'Create package from directory',
+        title: 'Create package',
       })}
 
       <div className={classes.topbar}>
