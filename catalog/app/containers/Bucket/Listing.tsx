@@ -149,7 +149,7 @@ export function PrefixFilter({ prefix = '', setPrefix }: PrefixFilterProps) {
           <M.Button
             className={classes.btn}
             size="small"
-            variant="contained"
+            variant="outlined"
             color="primary"
             onClick={apply}
           >
