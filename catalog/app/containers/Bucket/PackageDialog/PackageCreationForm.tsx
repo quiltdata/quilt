@@ -29,7 +29,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as Download from '../Download'
-import type { Selection } from '../Selection'
+import type { PrefixedKeysMap } from '../Selection'
 import * as Successors from '../Successors'
 import * as Upload from '../Upload'
 import * as requests from '../requests'
@@ -806,7 +806,7 @@ export function usePackageCreationDialog({
     async (initial?: {
       successor?: workflows.Successor
       path?: string
-      selection?: Selection
+      selection?: PrefixedKeysMap
     }) => {
       if (initial?.successor) {
         setSuccessor(initial?.successor)

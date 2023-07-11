@@ -25,13 +25,21 @@ function EmptyState() {
   )
 }
 
-export interface SelectionHandles {
+export interface PrefixedKeysMap {
+  [prefixUrl: string]: DG.GridRowId[]
+}
+
+export const EmptyMap: PrefixedKeysMap = {}
+
+export const EmptyKeys: DG.GridRowId[] = []
+
+interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
 }
 
 const EMPTY_SELECTION_HANDLES: SelectionHandles = {}
 
-function useSelectionHandles(selection: Selection): SelectionHandles {
+function useSelectionHandles(selection: PrefixedKeysMap): SelectionHandles {
   return React.useMemo(
     () =>
       Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
@@ -49,15 +57,6 @@ function useSelectionHandles(selection: Selection): SelectionHandles {
       }, EMPTY_SELECTION_HANDLES),
     [selection],
   )
-}
-
-export interface SelectedItem {
-  handle: Model.S3.S3ObjectLocation
-  prefix: string
-}
-
-export interface Selection {
-  [prefixUrl: string]: DG.GridRowId[]
 }
 
 interface ListItemProps {
@@ -123,17 +122,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface SelectionDashboardProps {
+interface DashboardProps {
   onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
-  onSelection: (changed: Selection) => void
-  selection: Selection
+  onSelection: (changed: PrefixedKeysMap) => void
+  selection: PrefixedKeysMap
 }
 
-export function SelectionDashboard({
-  onBookmarks,
-  onSelection,
-  selection,
-}: SelectionDashboardProps) {
+export function Dashboard({ onBookmarks, onSelection, selection }: DashboardProps) {
   const classes = useStyles()
   const lists = useSelectionHandles(selection)
   const hasSelection = Object.values(selection).some((ids) => !!ids.length, 0)

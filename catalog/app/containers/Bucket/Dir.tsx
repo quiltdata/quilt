@@ -21,12 +21,12 @@ import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
-import { SelectionDashboard } from './Selection'
 import DirCodeSamples from './CodeSamples/Dir'
 import * as FileView from './FileView'
 import { Listing, PrefixFilter } from './Listing'
 import Menu from './Menu'
 import * as PD from './PackageDialog'
+import * as Selection from './Selection'
 import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -282,7 +282,9 @@ export default function Dir({
     )
   }, [data.result])
 
-  const [selection, setSelection] = React.useState<Record<string, DG.GridRowId[]>>({})
+  const [selection, setSelection] = React.useState<Record<string, DG.GridRowId[]>>(
+    Selection.EmptyMap,
+  )
   const handleSelection = React.useCallback(
     (ids) => {
       setSelection(updateSelection(bucket, path, ids, prefix))
@@ -359,7 +361,7 @@ export default function Dir({
           >
             <M.DialogTitle>{count} items selected</M.DialogTitle>
             <M.DialogContent>
-              <SelectionDashboard
+              <Selection.Dashboard
                 onBookmarks={onBookmarks}
                 onSelection={setSelection}
                 selection={selection}
@@ -417,7 +419,7 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              selection={selection[`s3://${bucket}/${path}`] || []}
+              selection={selection[`s3://${bucket}/${path}`] || Selection.EmptyKeys}
               loadMore={loadMore}
               onSelection={handleSelection}
             />

@@ -15,7 +15,7 @@ import { ensureNoSlash, parseS3Url, withoutPrefix } from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
-import { SelectionDashboard, Selection } from '../Selection'
+import * as Selection from '../Selection'
 import { displayError } from '../errors'
 import * as requests from '../requests'
 
@@ -44,8 +44,8 @@ const useSelectionWidgetStyles = M.makeStyles((t) => ({
 
 interface SelectionWidgetProps {
   className: string
-  selection: Selection
-  onSelection: (changed: Selection) => void
+  selection: Selection.PrefixedKeysMap
+  onSelection: (changed: Selection.PrefixedKeysMap) => void
 }
 
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
@@ -73,7 +73,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
             <M.IconButton className={classes.close} onClick={close}>
               <M.Icon>close</M.Icon>
             </M.IconButton>
-            <SelectionDashboard onSelection={onSelection} selection={selection} />
+            <Selection.Dashboard onSelection={onSelection} selection={selection} />
           </M.Paper>
         </M.Grow>
       </M.Backdrop>
@@ -184,7 +184,9 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
-  const [selection, setSelection] = React.useState<Selection>({}) // FIXME: use EMPTY_SELECTION
+  const [selection, setSelection] = React.useState<Selection.PrefixedKeysMap>(
+    Selection.EmptyMap,
+  )
   const handleSelection = React.useCallback(
     (ids) =>
       setSelection((x) => ({
@@ -219,7 +221,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
   React.useEffect(() => {
     if (open) return
-    setSelection({})
+    setSelection(Selection.EmptyMap)
   }, [open])
 
   const handleBucketChange = React.useCallback(
@@ -325,7 +327,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
                 setPath={handlePathChange}
                 setPrefix={handlePrefixChange}
                 loadMore={loadMore}
-                selection={selection[`s3://${bucket}/${path}`] || []}
+                selection={selection[`s3://${bucket}/${path}`] || Selection.EmptyKeys}
                 onSelectionChange={handleSelection}
               />
             </>
