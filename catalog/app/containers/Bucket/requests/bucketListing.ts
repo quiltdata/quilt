@@ -1,6 +1,7 @@
 import { join, relative, basename } from 'path'
 
 import type { S3 } from 'aws-sdk'
+import pLimit from 'p-limit'
 import * as React from 'react'
 import * as R from 'ramda'
 
@@ -169,6 +170,8 @@ function useHeadFile() {
   )
 }
 
+const limit = pLimit(5)
+
 function useHandlesToS3Files(
   requestbucketListing: (r: $TSFixMe) => Promise<BucketListingResult>,
   headFile: (h: Model.S3.S3ObjectLocation) => Promise<Model.S3File>,
@@ -177,13 +180,13 @@ function useHandlesToS3Files(
     async (handles: Model.S3.S3ObjectLocation[]) => {
       const requests = handles.map((handle) =>
         s3paths.isDir(handle.key)
-          ? requestbucketListing({
+          ? limit(requestbucketListing, {
               bucket: handle.bucket,
               path: s3paths.ensureNoSlash(handle.key),
               delimiter: false,
               drain: true,
             })
-          : headFile(handle),
+          : limit(headFile, handle),
       )
       // FIXME: add pLimit
       const responses = await Promise.all(requests)
