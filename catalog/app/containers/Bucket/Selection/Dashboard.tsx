@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Bookmarks from 'containers/Bookmarks/Provider'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -26,6 +27,12 @@ function EmptyState() {
   )
 }
 
+const useListItemStyles = M.makeStyles((t) => ({
+  icon: {
+    minWidth: t.spacing(5),
+  },
+}))
+
 interface ListItemProps {
   handle: Model.S3.S3ObjectLocation
   className: string
@@ -33,6 +40,9 @@ interface ListItemProps {
 }
 
 function ListItem({ className, handle, onClear }: ListItemProps) {
+  const classes = useListItemStyles()
+  const bookmarks = Bookmarks.use()
+  const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const isDir = s3paths.isDir(handle.key)
   const { urls } = NamedRoutes.use()
   const url = isDir
@@ -41,13 +51,13 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
   return (
     <M.ListItem className={className}>
-      <M.ListItemIcon>
-        <M.Icon>{isDir ? 'folder_outlined' : 'insert_drive_file_outlined'}</M.Icon>
+      <M.ListItemIcon className={classes.icon}>
+        <M.Icon fontSize="small">{isBookmarked ? 'turned_in' : 'turned_in_not'}</M.Icon>
       </M.ListItemIcon>
-      <M.ListItemText
-        primary={name}
-        secondary={<StyledLink to={url}>{s3paths.handleToS3Url(handle)}</StyledLink>}
-      />
+      <M.ListItemIcon className={classes.icon}>
+        <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
+      </M.ListItemIcon>
+      <StyledLink to={url}>{name}</StyledLink>
       <M.ListItemSecondaryAction>
         <M.IconButton size="small" onClick={onClear}>
           <M.Icon fontSize="small">clear</M.Icon>
