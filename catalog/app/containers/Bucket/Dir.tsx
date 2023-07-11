@@ -359,10 +359,9 @@ export default function Dir({
             <M.DialogTitle>{count} items selected</M.DialogTitle>
             <M.DialogContent>
               <SelectionDashboard
-                count={count}
+                onBookmarks={onBookmarks}
                 onSelection={setSelection}
                 selection={selection}
-                onBookmarks={onBookmarks}
               />
             </M.DialogContent>
           </M.Dialog>
@@ -405,15 +404,6 @@ export default function Dir({
         },
         prefs,
       )}
-
-      {/*
-      <SelectionSection
-        onBookmarks={onBookmarks}
-        onPackage={openPackageCreationDialog}
-        onSelection={setSelection}
-        selection={selection}
-      />
-      */}
 
       {data.case({
         Err: displayError(),

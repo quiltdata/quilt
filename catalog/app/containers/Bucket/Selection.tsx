@@ -125,12 +125,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface SelectionDashboardProps extends SelectionSectionProps {
-  count: number
+interface SelectionDashboardProps {
+  onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
+  onPackage?: () => void
+  onSelection: (changed: Selection) => void
+  selection: Selection
 }
 
 export function SelectionDashboard({
-  count,
   onBookmarks,
   onPackage,
   onSelection,
@@ -138,6 +140,7 @@ export function SelectionDashboard({
 }: SelectionDashboardProps) {
   const classes = useStyles()
   const lists = useSelectionHandles(selection)
+  const hasSelection = Object.values(selection).some((ids) => !!ids.length, 0)
 
   const handleBookmarks = React.useCallback(() => {
     if (!onBookmarks) return
@@ -154,7 +157,7 @@ export function SelectionDashboard({
             size="small"
             color="primary"
             variant="contained"
-            disabled={!count}
+            disabled={!hasSelection}
             onClick={() => onPackage()}
           >
             Create package
@@ -164,7 +167,7 @@ export function SelectionDashboard({
           <M.Button
             className={classes.button}
             color="primary"
-            disabled={!count}
+            disabled={!hasSelection}
             onClick={handleBookmarks}
             size="small"
             variant="outlined"
@@ -175,7 +178,7 @@ export function SelectionDashboard({
         <M.Button
           className={classes.button}
           color="primary"
-          disabled={!count}
+          disabled={!hasSelection}
           onClick={() => onSelection({})}
           size="small"
           variant="outlined"
@@ -184,7 +187,7 @@ export function SelectionDashboard({
         </M.Button>
         <M.Divider style={{ marginTop: '16px' }} />
       </>
-      {count ? (
+      {hasSelection ? (
         <M.List dense disablePadding className={classes.list}>
           {Object.entries(lists).map(([prefixUrl, handles]) =>
             handles.length ? (
@@ -212,33 +215,5 @@ export function SelectionDashboard({
         <EmptyState />
       )}
     </div>
-  )
-}
-
-interface SelectionSectionProps {
-  onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
-  onPackage?: () => void
-  onSelection: (changed: Selection) => void
-  selection: Selection
-}
-
-export function SelectionSection({
-  onBookmarks,
-  onPackage,
-  onSelection,
-  selection,
-}: SelectionSectionProps) {
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-
-  return (
-    <Section gutterBottom heading={`${count} items selected`} icon="list">
-      <SelectionDashboard
-        onBookmarks={onBookmarks}
-        count={count}
-        onPackage={onPackage}
-        onSelection={onSelection}
-        selection={selection}
-      />
-    </Section>
   )
 }
