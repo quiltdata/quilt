@@ -205,6 +205,7 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
   return (
     <SelectDropdown
       ButtonProps={ButtonProps}
+      adaptive={false}
       className={className}
       disabled={!onChange || (Array.isArray(successors) && !successors?.length)}
       emptySlot={emptySlot}
@@ -220,13 +221,21 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
 
 interface ButtonProps extends Omit<M.IconButtonProps, 'onChange' | 'variant'> {
   bucket: string
+  icon?: string
   className: string
   children: string
   onChange: (s: workflows.Successor) => void
   variant?: 'text' | 'outlined' | 'contained'
 }
 
-export function Button({ bucket, className, children, onChange, ...props }: ButtonProps) {
+export function Button({
+  bucket,
+  className,
+  children,
+  icon,
+  onChange,
+  ...props
+}: ButtonProps) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -246,14 +255,19 @@ export function Button({ bucket, className, children, onChange, ...props }: Butt
 
   return (
     <>
-      <Buttons.Iconized
-        aria-haspopup
-        className={className}
-        icon="exit_to_app"
-        label={children}
-        onClick={onButtonClick}
-        {...props}
-      />
+      {icon ? (
+        <Buttons.Iconized
+          className={className}
+          icon={icon}
+          label={children}
+          onClick={onButtonClick}
+          {...props}
+        />
+      ) : (
+        <M.Button className={className} onClick={onButtonClick} size="small" {...props}>
+          {children}
+        </M.Button>
+      )}
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}

@@ -230,9 +230,10 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     display: 'flex',
     flexShrink: 0,
-    marginBottom: '-3px',
-    marginLeft: 'auto',
-    marginTop: '-3px',
+    margin: '-3px 0 -3px auto',
+    [t.breakpoints.down('sm')]: {
+      marginTop: t.spacing(0.5),
+    },
   },
 }))
 
