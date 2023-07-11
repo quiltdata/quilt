@@ -182,7 +182,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const [selection, setSelection] = React.useState<Selection.PrefixedKeysMap>(
-    Selection.EmptyMap,
+    Selection.EMPTY_MAP,
   )
   const handleSelection = React.useCallback(
     (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
@@ -214,7 +214,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
   React.useEffect(() => {
     if (open) return
-    setSelection(Selection.EmptyMap)
+    setSelection(Selection.EMPTY_MAP)
   }, [open])
 
   const handleBucketChange = React.useCallback(

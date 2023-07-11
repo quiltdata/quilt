@@ -191,6 +191,7 @@ interface SelectionWidgetProps {
 
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
   const bookmarks = Bookmarks.use()
   const onBookmarks = React.useCallback(
     (handles: Model.S3.S3ObjectLocation[]) => {
@@ -199,7 +200,6 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
     [bookmarks],
   )
   const [opened, setOpened] = React.useState(false)
-  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
   return (
@@ -312,7 +312,7 @@ export default function Dir({
   }, [data.result])
 
   const [selection, setSelection] = React.useState<Record<string, string[]>>(
-    Selection.EmptyMap,
+    Selection.EMPTY_MAP,
   )
   const handleSelection = React.useCallback(
     (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
@@ -326,12 +326,13 @@ export default function Dir({
   })
 
   const openPackageCreationDialog = React.useCallback(
-    (successor: workflows.Successor) =>
+    (successor: workflows.Successor) => {
       packageDirectoryDialog.open({
         path,
         successor,
         selection,
-      }),
+      })
+    },
     [packageDirectoryDialog, path, selection],
   )
 

@@ -9,13 +9,11 @@ export interface PrefixedKeysMap {
   [prefixUrl: string]: string[]
 }
 
-export const EmptyMap: PrefixedKeysMap = {}
+export const EMPTY_MAP: PrefixedKeysMap = {}
 
 interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
 }
-
-const EMPTY_SELECTION_HANDLES: SelectionHandles = {}
 
 function convertIdToHandle(
   id: string | number,
@@ -35,7 +33,7 @@ export function toHandlesMap(selection: PrefixedKeysMap): SelectionHandles {
       ...memo,
       [prefixUrl]: keys.map((id) => convertIdToHandle(id, parentHandle)),
     }
-  }, EMPTY_SELECTION_HANDLES)
+  }, {} as SelectionHandles)
 }
 
 export function toHandlesList(selection: PrefixedKeysMap): Model.S3.S3ObjectLocation[] {
