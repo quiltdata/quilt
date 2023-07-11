@@ -253,7 +253,7 @@ export default function Dir({
     Selection.EmptyMap,
   )
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.updateSelection(bucket, path, ids, prefix)),
+    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
     [bucket, path, prefix],
   )
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)

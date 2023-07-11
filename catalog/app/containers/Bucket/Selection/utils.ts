@@ -46,38 +46,25 @@ export function toHandlesList(selection: PrefixedKeysMap): Model.S3.S3ObjectLoca
   }, [] as Model.S3.S3ObjectLocation[])
 }
 
-const updateDirectorySelection = (bucket: string, path: string, ids: DG.GridRowId[]) =>
-  R.assoc(`s3://${bucket}/${path}`, ids)
-
-const mergeWithPrefixed =
-  (prefix: string, prefixedIds: DG.GridRowId[]) => (allIds: DG.GridRowId[]) => {
-    if (!allIds || !allIds.length) return prefixedIds
-    const selectionOutsidePrefixFilter = allIds.filter(
+const mergeWithFiltered =
+  (prefix: string, filteredIds: DG.GridRowId[]) => (allIds: DG.GridRowId[]) => {
+    if (!allIds || !allIds.length) return filteredIds
+    const selectionOutsideFilter = allIds.filter(
       (id) => !id.toString().startsWith(prefix),
     )
-    const newIds = [...selectionOutsidePrefixFilter, ...prefixedIds]
+    const newIds = [...selectionOutsideFilter, ...filteredIds]
     return R.equals(newIds, allIds) ? allIds : newIds // avoids cyclic update
   }
 
-const updateWithPrefixSelection = (
+export function merge(
+  ids: DG.GridRowId[],
   bucket: string,
   path: string,
-  prefix: string,
-  ids: DG.GridRowId[],
-) => {
+  filter?: string,
+) {
   const lens = R.lensProp<Record<string, DG.GridRowId[]>>(`s3://${bucket}/${path}`)
-  return R.over(lens, mergeWithPrefixed(prefix, ids))
+  return filter ? R.over(lens, mergeWithFiltered(filter, ids)) : R.set(lens, ids)
 }
-
-export const updateSelection = (
-  bucket: string,
-  path: string,
-  ids: DG.GridRowId[],
-  prefix?: string, // FIXME: rename to filter
-) =>
-  prefix
-    ? updateWithPrefixSelection(bucket, path, prefix, ids)
-    : updateDirectorySelection(bucket, path, ids)
 
 const EmptyKeys: DG.GridRowId[] = []
 

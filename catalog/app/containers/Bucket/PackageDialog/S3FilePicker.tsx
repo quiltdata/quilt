@@ -186,7 +186,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     Selection.EmptyMap,
   )
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.updateSelection(bucket, path, ids, prefix)),
+    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
     [bucket, path, prefix],
   )
 
