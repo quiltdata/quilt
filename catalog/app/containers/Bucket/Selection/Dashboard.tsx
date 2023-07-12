@@ -41,18 +41,22 @@ interface ListItemProps {
 
 function ListItem({ className, handle, onClear }: ListItemProps) {
   const classes = useListItemStyles()
-  const bookmarks = Bookmarks.use()
-  const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const isDir = s3paths.isDir(handle.key)
   const { urls } = NamedRoutes.use()
   const url = isDir
     ? urls.bucketDir(handle.bucket, handle.key)
     : urls.bucketFile(handle.bucket, handle.key)
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
+
+  const bookmarks = Bookmarks.use()
+  const isBookmarked = bookmarks?.isBookmarked('main', handle)
+  const toggleBookmark = () => bookmarks?.toggle('main', handle)
   return (
     <M.ListItem className={className}>
       <M.ListItemIcon className={classes.icon}>
-        <M.Icon fontSize="small">{isBookmarked ? 'turned_in' : 'turned_in_not'}</M.Icon>
+        <M.IconButton size="small" onClick={toggleBookmark}>
+          <M.Icon fontSize="small">{isBookmarked ? 'turned_in' : 'turned_in_not'}</M.Icon>
+        </M.IconButton>
       </M.ListItemIcon>
       <M.ListItemIcon className={classes.icon}>
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
