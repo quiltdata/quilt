@@ -45,10 +45,10 @@ new as of June 2023. The configuration is similar to the
 (1/4 the VPC CIDR)
 - 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
 application load balancer
-(1/8 of the VPC CIDR)
+(1/2 of the VPC CIDR)
 - 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
 OpenSearch domain
-(1/2 of the VPC CIDR)
+(1/8 of the VPC CIDR)
 - (1/8 of the VPC CIDR is free)
 
 > Your Quilt instance contains _exactly one_ application load balancer that is
@@ -108,6 +108,14 @@ Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.ama
 You will need the following:
 
 1. **An AWS account**.
+    1. **The service-linked role for Elasticsearch**
+    > This role is not created automatically when you use Cloudformation or other
+    > APIs.
+
+    You can create the role as follows:
+        ```
+        aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+        ```
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
     1. We recommend that you use a
@@ -148,7 +156,6 @@ following Bucket characteristics:
     bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
     of `ObjectRemoved:DeleteMarkerCreated`.
 
-1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 1. A license key or an active subscription to Quilt Business on AWS Marketplace. 
@@ -192,6 +199,13 @@ you see in Service Catalog.
 
 ### CloudFormation
 
+You can perform stack update and creation with the AWS Console, AWS CLI,
+Terraform, or other means.
+
+In all cases it is **highly recommended** that you set the `--on-failure` policy
+to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
+In the AWS Console this option appears under the phrase "Stack failure options."
+
 1. Specify stack details in the form of a stack _name_ and CloudFormation
 _parameters_. Refer to the descriptions displayed above each
 text box for further details. Service Catalog users require a license key. See
@@ -215,10 +229,8 @@ Create.
 
     ![](./imgs/finish.png)
 
-1. CloudFormation takes about 30 minutes to create the resources
-for your stack. You may monitor progress under Events.
-Once the stack is complete, you will see `CREATE_COMPLETE` as the Status for
-your CloudFormation stack.
+1. CloudFormation may take bewteen 30 and 90 minutes to create your stack.
+You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
 
     ![](./imgs/events.png)
 
@@ -253,6 +265,29 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 1. Click Next (several times) and proceed to apply the update
 
 Your previous settings should carry over.
+
+## Create a new stack with an existing configuration
+
+You can create a new Quilt stack with the same configuration as an existing
+stack.
+> _Configuration_ here refers to the Quilt stack buckets, roles, policies,
+and other administrative settings, all of which are stored in an RDS instance.
+
+Perform the following steps.
+
+1. Contact your Quilt account manager for a template that supports the "existing
+database" option.
+
+1. Take an additional snapshot of the current Quilt database instance. For an existing Quilt
+stack this resource has the logical ID "DB". Make a note of the snapshot id.
+    > It is important that you take an _additional_ snapshot and not rely on automatic
+    snapshots as these will be deleted if and when the parent stack is deleted.
+
+1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac/tree/main/terraform/modules/quilt)
+to your new template and provide the snapshot id to the variable `db_snapshot_identifier`.
+
+1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
+Verify that the new stack is working as desired. Delete the old stack.
 
 ## Security
 

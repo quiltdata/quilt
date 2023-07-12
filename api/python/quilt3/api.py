@@ -71,7 +71,7 @@ def list_packages(registry=None):
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
-    Returns an iterable of (version, hash) of a package in a registry.
+    Returns an iterable of (latest_or_unix_ts, hash) of package revisions.
     If the registry is None, default to the local registry.
 
     Args:
