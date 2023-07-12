@@ -98,6 +98,7 @@ export function Provider({ children }: ProviderProps) {
       const newGroups = updater(groups)
       setGroups(newGroups)
       storage.set(STORAGE_KEYS.BOOKMARKS, newGroups)
+      return newGroups
     },
     [groups],
   )
@@ -116,10 +117,9 @@ export function Provider({ children }: ProviderProps) {
       groupName: GroupName,
       handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
     ) => {
-      const isLastBookmark =
-        R.pipe(R.path([groupName, 'entries']), R.keys, R.length)(groups) === 1
-      updateGroups(createRemoveUpdater(groupName, handle))
-      if (isLastBookmark) {
+      const newGroups = updateGroups(createRemoveUpdater(groupName, handle))
+      const isEmpty = R.pipe(R.path([groupName, 'entries']), R.isEmpty)(newGroups)
+      if (isEmpty) {
         setUpdates(false)
       } else if (!isOpened) {
         setUpdates(true)
