@@ -31,7 +31,10 @@ const Ctx = React.createContext<{
   hide: () => void
   isBookmarked: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => boolean
   isOpened: boolean
-  remove: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => void
+  remove: (
+    groupName: GroupName,
+    handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+  ) => void
   show: () => void
   toggle: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => void
 } | null>(null)
@@ -65,8 +68,12 @@ function createAppendUpdater(
 
 function createRemoveUpdater(
   groupName: GroupName,
-  handle: Model.S3.S3ObjectLocation,
+  handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
 ): StateUpdaterFunction {
+  if (Array.isArray(handle)) {
+    const keys = handle.map(keyResolver)
+    return R.over(R.lensPath([groupName, 'entries']), R.omit(keys))
+  }
   return R.over(R.lensPath([groupName, 'entries']), R.dissoc(keyResolver(handle)))
 }
 
@@ -105,7 +112,10 @@ export function Provider({ children }: ProviderProps) {
     [isOpened, updateGroups],
   )
   const remove = React.useCallback(
-    (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => {
+    (
+      groupName: GroupName,
+      handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+    ) => {
       const isLastBookmark =
         R.pipe(R.path([groupName, 'entries']), R.keys, R.length)(groups) === 1
       updateGroups(createRemoveUpdater(groupName, handle))

@@ -104,27 +104,32 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DashboardProps {
-  onBookmarks?: (handles: Model.S3.S3ObjectLocation[]) => void
   onDone: () => void
   onSelection: (changed: PrefixedKeysMap) => void
   selection: PrefixedKeysMap
 }
 
-export default function Dashboard({
-  onBookmarks,
-  onDone,
-  onSelection,
-  selection,
-}: DashboardProps) {
+export default function Dashboard({ onDone, onSelection, selection }: DashboardProps) {
   const classes = useStyles()
   const lists = React.useMemo(() => toHandlesMap(selection), [selection])
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
 
+  const bookmarks = Bookmarks.use()
+  const hasSomethingToBookmark = React.useMemo(
+    () =>
+      Object.values(lists).some((hs) =>
+        hs.some((h) => !bookmarks?.isBookmarked('main', h)),
+      ),
+    [bookmarks, lists],
+  )
   const handleBookmarks = React.useCallback(() => {
-    if (!onBookmarks) return
     const handles = Object.values(lists).reduce((memo, hs) => [...memo, ...hs], [])
-    onBookmarks(handles)
-  }, [lists, onBookmarks])
+    if (hasSomethingToBookmark) {
+      bookmarks?.append('main', handles)
+    } else {
+      bookmarks?.remove('main', handles)
+    }
+  }, [hasSomethingToBookmark, lists, bookmarks])
 
   const handleClear = React.useCallback(() => {
     onSelection(EMPTY_MAP)
@@ -145,18 +150,16 @@ export default function Dashboard({
   return (
     <div className={classes.root}>
       <>
-        {onBookmarks && (
-          <M.Button
-            className={classes.button}
-            color="primary"
-            disabled={!hasSelection}
-            onClick={handleBookmarks}
-            size="small"
-            variant="outlined"
-          >
-            Add to bookmarks
-          </M.Button>
-        )}
+        <M.Button
+          className={classes.button}
+          color="primary"
+          disabled={!hasSelection}
+          onClick={handleBookmarks}
+          size="small"
+          variant="outlined"
+        >
+          {hasSomethingToBookmark ? 'Add to bookmarks' : 'Remove from bookmarks'}
+        </M.Button>
         <M.Button
           className={classes.button}
           color="primary"

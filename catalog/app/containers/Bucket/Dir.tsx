@@ -8,8 +8,6 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
-import * as Bookmarks from 'containers/Bookmarks'
-import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -192,13 +190,6 @@ interface SelectionWidgetProps {
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
-  const bookmarks = Bookmarks.use()
-  const onBookmarks = React.useCallback(
-    (handles: Model.S3.S3ObjectLocation[]) => {
-      bookmarks?.append('main', handles)
-    },
-    [bookmarks],
-  )
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
@@ -226,7 +217,6 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
         </M.DialogTitle>
         <M.DialogContent>
           <Selection.Dashboard
-            onBookmarks={onBookmarks}
             onSelection={onSelection}
             onDone={close}
             selection={selection}
