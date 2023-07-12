@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -28,6 +29,15 @@ function EmptyState() {
 }
 
 const useListItemStyles = M.makeStyles((t) => ({
+  root: {
+    '&:hover $link': {
+      display: 'inline',
+    },
+  },
+  link: {
+    marginLeft: t.spacing(1),
+    display: 'none',
+  },
   icon: {
     minWidth: t.spacing(5),
   },
@@ -52,7 +62,7 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const toggleBookmark = () => bookmarks?.toggle('main', handle)
   return (
-    <M.ListItem className={className} disableGutters>
+    <M.ListItem className={cx(classes.root, className)} disableGutters>
       <M.ListItemIcon className={classes.icon}>
         <M.IconButton size="small" onClick={toggleBookmark}>
           <M.Icon fontSize="small">{isBookmarked ? 'turned_in' : 'turned_in_not'}</M.Icon>
@@ -61,7 +71,10 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
       <M.ListItemIcon className={classes.icon}>
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
       </M.ListItemIcon>
-      <StyledLink to={url}>{name}</StyledLink>
+      {name}
+      <span className={classes.link}>
+        (<StyledLink to={url}>{s3paths.handleToS3Url(handle)}</StyledLink>)
+      </span>
       <M.ListItemSecondaryAction>
         <M.IconButton size="small" onClick={onClear}>
           <M.Icon fontSize="small">clear</M.Icon>
@@ -74,9 +87,6 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.background.paper,
-    flexGrow: 1,
-    maxHeight: '50vh',
-    overflowY: 'auto',
   },
   button: {
     '& + &': {
@@ -85,7 +95,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   list: {
     background: t.palette.background.paper,
-    flexGrow: 1,
     maxHeight: '50vh',
     overflowY: 'auto',
   },
