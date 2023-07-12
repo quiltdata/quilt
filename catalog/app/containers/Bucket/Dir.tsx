@@ -194,7 +194,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
-  React.useEffect(() => close(), [location])
+  React.useEffect(() => close(), [close, location])
   return (
     <>
       <M.Badge
