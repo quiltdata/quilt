@@ -182,7 +182,7 @@ function useHandlesToS3Files(
         s3paths.isDir(handle.key)
           ? limit(requestbucketListing, {
               bucket: handle.bucket,
-              path: s3paths.ensureNoSlash(handle.key),
+              path: handle.key,
               delimiter: false,
               drain: true,
             })
