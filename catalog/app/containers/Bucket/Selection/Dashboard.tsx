@@ -52,7 +52,7 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const isBookmarked = bookmarks?.isBookmarked('main', handle)
   const toggleBookmark = () => bookmarks?.toggle('main', handle)
   return (
-    <M.ListItem className={className}>
+    <M.ListItem className={className} disableGutters>
       <M.ListItemIcon className={classes.icon}>
         <M.IconButton size="small" onClick={toggleBookmark}>
           <M.Icon fontSize="small">{isBookmarked ? 'turned_in' : 'turned_in_not'}</M.Icon>
@@ -168,7 +168,7 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
           size="small"
           variant="outlined"
         >
-          Clear
+          Clear selection
         </M.Button>
         <M.Divider style={{ marginTop: '16px' }} />
       </>
@@ -178,7 +178,7 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
             handles.length ? (
               <li className={classes.listSection} key={prefixUrl}>
                 <ul className={classes.auxList}>
-                  <M.ListSubheader>{prefixUrl}</M.ListSubheader>
+                  <M.ListSubheader disableGutters>{prefixUrl}</M.ListSubheader>
                   <M.List dense disablePadding>
                     {handles.map((handle, index) => (
                       <ListItem
