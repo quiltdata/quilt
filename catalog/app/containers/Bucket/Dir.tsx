@@ -189,10 +189,12 @@ interface SelectionWidgetProps {
 
 function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
   const classes = useSelectionWidgetStyles()
+  const location = RRDom.useLocation()
   const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
+  React.useEffect(() => close(), [location])
   return (
     <>
       <M.Badge
