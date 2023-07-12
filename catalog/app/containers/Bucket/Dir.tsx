@@ -224,6 +224,11 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
             selection={selection}
           />
         </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={close} variant="contained" color="primary" size="small">
+            {count ? 'Continue' : 'Close'}
+          </M.Button>
+        </M.DialogActions>
       </M.Dialog>
     </>
   )
