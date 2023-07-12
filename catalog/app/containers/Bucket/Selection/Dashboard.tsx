@@ -59,8 +59,8 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
 
   const bookmarks = Bookmarks.use()
-  const isBookmarked = bookmarks?.isBookmarked('main', handle)
-  const toggleBookmark = () => bookmarks?.toggle('main', handle)
+  const isBookmarked = bookmarks.isBookmarked('main', handle)
+  const toggleBookmark = () => bookmarks.toggle('main', handle)
   return (
     <M.ListItem className={cx(classes.root, className)} disableGutters>
       <M.ListItemIcon className={classes.icon}>
@@ -127,16 +127,16 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
   const hasSomethingToBookmark = React.useMemo(
     () =>
       Object.values(lists).some((hs) =>
-        hs.some((h) => !bookmarks?.isBookmarked('main', h)),
+        hs.some((h) => !bookmarks.isBookmarked('main', h)),
       ),
     [bookmarks, lists],
   )
   const handleBookmarks = React.useCallback(() => {
     const handles = Object.values(lists).reduce((memo, hs) => [...memo, ...hs], [])
     if (hasSomethingToBookmark) {
-      bookmarks?.append('main', handles)
+      bookmarks.append('main', handles)
     } else {
-      bookmarks?.remove('main', handles)
+      bookmarks.remove('main', handles)
     }
   }, [hasSomethingToBookmark, lists, bookmarks])
 
