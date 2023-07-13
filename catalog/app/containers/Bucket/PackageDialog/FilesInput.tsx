@@ -530,7 +530,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number
   action?: React.ReactNode
   meta?: Model.EntryMeta
-  metaDisabled?: boolean
+  editDisabled?: boolean
   onMeta: (value?: Model.EntryMeta) => void
   onRename: (value: string) => void
   interactive?: boolean
@@ -546,7 +546,7 @@ function File({
   action,
   meta,
   path,
-  metaDisabled,
+  editDisabled,
   onMeta,
   onRename,
   interactive = false,
@@ -582,15 +582,13 @@ function File({
       </div>
       <div className={classes.actions}>
         <EditFileName
-          disabled={metaDisabled}
-          key={metaKey}
-          path={path}
+          disabled={editDisabled}
           onChange={onRename}
           state={stateDisplay}
-          value={meta}
+          value={path}
         />
         <EditFileMeta
-          disabled={metaDisabled}
+          disabled={editDisabled}
           key={metaKey}
           name={name}
           onChange={onMeta}
@@ -1197,7 +1195,7 @@ function FileUpload({
       size={size}
       meta={meta}
       path={path}
-      metaDisabled={state === 'deleted'}
+      editDisabled={state === 'deleted'}
       onMeta={onMeta}
       onRename={onRename}
       action={

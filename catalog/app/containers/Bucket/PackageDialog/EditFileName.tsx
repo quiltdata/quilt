@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
-import type * as Model from 'model'
 
 interface IconProps {
   color: M.PropTypes.Color | 'disabled'
@@ -20,24 +19,22 @@ function validateFileName(value: string) {
   if (!value) return new Error('File name is required')
 }
 
-interface EditNameProps {
+interface EditFileNameProps {
   disabled?: boolean
-  path: string
   onChange: (value: string) => void
-  value?: Model.EntryMeta
+  value?: string
   state?: string
 }
 
 export default function EditFileName({
   disabled,
-  path,
   state,
   value,
   onChange,
-}: EditNameProps) {
+}: EditFileNameProps) {
   const prompt = Dialog.usePrompt({
     onSubmit: onChange,
-    initialValue: path,
+    initialValue: value,
     title: 'Enter file name',
     validate: validateFileName,
   })
