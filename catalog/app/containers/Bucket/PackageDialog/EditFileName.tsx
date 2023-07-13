@@ -46,8 +46,6 @@ export default function EditFileName({
     [state, value],
   )
 
-  if (!onChange) return null
-
   if (disabled) {
     return (
       <M.IconButton size="small" disabled>
