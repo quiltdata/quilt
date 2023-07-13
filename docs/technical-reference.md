@@ -278,13 +278,18 @@ Perform the following steps.
 1. Contact your Quilt account manager for a template that supports the "existing
 database" option.
 
-1. Take an additional snapshot of the current Quilt database instance. For an existing Quilt
-stack this resource has the logical ID "DB". Make a note of the snapshot id.
-    > It is important that you take an _additional_ snapshot and not rely on automatic
-    snapshots as these will be deleted if and when the parent stack is deleted.
+1. Take a manual snapshot of the current Quilt database instance. For an existing Quilt
+stack this resource has the logical ID "DB". Make a note of the "Snapshot name"
+(`DBSnapshotIdentifier` in the following CLI command).
+    > Take a _manual_ snapshot and do not rely on automatic snapshots, which are
+    > deleted when the parent stack is deleted.
+    <!--pytest.mark.skip-->
+    ```sh
+    aws rds describe-db-snapshots
+    ```
 
 1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac/tree/main/terraform/modules/quilt)
-to your new template and provide the snapshot id to the variable `db_snapshot_identifier`.
+to your new template and provide the snapshot name to the variable `db_snapshot_identifier`.
 
 1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
 Verify that the new stack is working as desired. Delete the old stack.
