@@ -20,6 +20,7 @@ import useMemoEq from 'utils/useMemoEq'
 import * as Types from 'utils/types'
 
 import EditFileMeta from './EditFileMeta'
+import EditFileName from './EditFileName'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
@@ -76,6 +77,7 @@ export const FilesAction = tagged.create(
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
+    Rename: (v: { oldPath: string; newPath: string }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -176,6 +178,20 @@ const handleFilesAction = FilesAction.match<
     return R.evolve({
       added: mkSetMeta<LocalFile | Model.S3File>(),
       existing: mkSetMeta<Model.PackageEntry>(),
+    })
+  },
+  Rename: ({ oldPath, newPath }) => {
+    const mkRename =
+      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      (filesDict: Record<string, T>) => {
+        const file = filesDict[oldPath]
+        if (!file) return filesDict
+        return R.pipe(R.dissoc(oldPath), R.assoc(newPath, file))(filesDict)
+      }
+    return R.evolve({
+      added: mkRename<LocalFile | Model.S3File>(),
+      existing: mkRename<Model.PackageEntry>(),
+      deleted: R.dissoc(newPath),
     })
   },
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
@@ -508,13 +524,15 @@ const useFileStyles = M.makeStyles((t) => ({
 
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
+  path: string
   state?: FilesEntryState
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
   meta?: Model.EntryMeta
   metaDisabled?: boolean
-  onMeta?: (value?: Model.EntryMeta) => void
+  onMeta: (value?: Model.EntryMeta) => void
+  onRename: (value: string) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -527,8 +545,10 @@ function File({
   size,
   action,
   meta,
+  path,
   metaDisabled,
   onMeta,
+  onRename,
   interactive = false,
   faint = false,
   className,
@@ -561,6 +581,14 @@ function File({
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
       <div className={classes.actions}>
+        <EditFileName
+          disabled={metaDisabled}
+          key={metaKey}
+          path={path}
+          onChange={onRename}
+          state={stateDisplay}
+          value={meta}
+        />
         <EditFileMeta
           disabled={metaDisabled}
           key={metaKey}
@@ -1149,6 +1177,13 @@ function FileUpload({
     [dispatch, path],
   )
 
+  const onRename = React.useCallback(
+    (p: string) => {
+      dispatch(FilesAction.Rename({ oldPath: path, newPath: p }))
+    },
+    [dispatch, path],
+  )
+
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <File
@@ -1161,8 +1196,10 @@ function FileUpload({
       name={name}
       size={size}
       meta={meta}
+      path={path}
       metaDisabled={state === 'deleted'}
       onMeta={onMeta}
+      onRename={onRename}
       action={
         <M.IconButton
           color="inherit"
