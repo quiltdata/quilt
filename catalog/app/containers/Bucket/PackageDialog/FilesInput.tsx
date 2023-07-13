@@ -89,19 +89,32 @@ export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
 export type LocalFile = FileWithPath & FileWithHash
 
+interface ChangedDict {
+  // TODO: queue/array
+  logicalKey?: string
+  meta?: Types.JsonRecord
+}
+
+type AddedFile = (LocalFile | Model.S3File) & {
+  changed?: ChangedDict
+}
+
+type ExistingFile = Model.PackageEntry & {
+  changed?: ChangedDict
+}
+
+type AnyFile = ExistingFile | AddedFile
+
 export interface FilesState {
-  added: Record<string, LocalFile | Model.S3File>
+  added: Record<string, AddedFile>
   deleted: Record<string, true>
-  existing: Record<string, Model.PackageEntry>
+  existing: Record<string, ExistingFile>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
 }
 
-const addMetaToFile = (
-  file: Model.PackageEntry | LocalFile | Model.S3File,
-  meta?: Model.EntryMeta,
-) => {
+const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
       type: (file as File).type,
@@ -112,9 +125,12 @@ const addMetaToFile = (
     Object.defineProperty(fileCopy, 'hash', {
       value: (file as FileWithHash).hash,
     })
+    Object.defineProperty(fileCopy, 'changed', {
+      value: { meta: (file as FileWithHash).meta },
+    })
     return fileCopy
   }
-  return R.assoc('meta', meta, file)
+  return R.assoc('changed', { meta: file.meta }, R.assoc('meta', meta, file))
 }
 
 const handleFilesAction = FilesAction.match<
@@ -169,32 +185,48 @@ const handleFilesAction = FilesAction.match<
     }),
   Meta: ({ path, meta }) => {
     const mkSetMeta =
-      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      <T extends AnyFile>() =>
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
         return R.assoc(path, addMetaToFile(file, meta), filesDict)
       }
     return R.evolve({
-      added: mkSetMeta<LocalFile | Model.S3File>(),
-      existing: mkSetMeta<Model.PackageEntry>(),
+      added: mkSetMeta<AddedFile>(),
+      existing: mkSetMeta<ExistingFile>(),
     })
   },
   Rename: ({ oldPath, newPath }) => {
     const mkRename =
-      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      <T extends AnyFile>() =>
       (filesDict: Record<string, T>) => {
         const file = filesDict[oldPath]
         if (!file) return filesDict
-        return R.pipe(R.dissoc(oldPath), R.assoc(newPath, file))(filesDict)
+        return R.pipe(
+          R.dissoc(oldPath),
+          R.assoc(newPath, R.assoc('changed', { logicalKey: oldPath }, file)),
+        )(filesDict)
       }
     return R.evolve({
-      added: mkRename<LocalFile | Model.S3File>(),
-      existing: mkRename<Model.PackageEntry>(),
+      added: mkRename<AddedFile>(),
+      existing: mkRename<ExistingFile>(),
       deleted: R.dissoc(newPath),
     })
   },
-  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
+  Revert: (path) =>
+    R.evolve({
+      added: R.dissoc(path),
+      deleted: R.dissoc(path),
+      existing: (filesDict: Record<string, ExistingFile>) => {
+        const oldPath: string | undefined = filesDict[path]?.changed?.logicalKey
+        if (!oldPath) return filesDict
+        const file = filesDict[path]
+        return R.pipe(
+          R.dissoc(path),
+          R.assoc(oldPath, R.dissoc('changed', file)),
+        )(filesDict)
+      },
+    }),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
     R.evolve({
@@ -302,7 +334,7 @@ const computeEntries = ({
   errors: PD.EntriesValidationErrors | null
 }) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
-    ([path, { size, hash, meta }]) => {
+    ([path, { changed, size, hash, meta }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
@@ -327,7 +359,13 @@ const computeEntries = ({
         }
         return { state, type, path, size: a.size, meta }
       }
-      return { state: 'unchanged' as const, type: 'local' as const, path, size, meta }
+      return {
+        state: changed ? 'modified' : ('unchanged' as const),
+        type: 'local' as const,
+        path,
+        size,
+        meta,
+      }
     },
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
