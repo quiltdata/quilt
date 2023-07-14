@@ -34,7 +34,7 @@ module.exports = (options) => ({
     rules: [
       {
         test: /\.(txt|md)$/,
-type: 'asset/source',
+        type: 'asset/source',
       },
       {
         test: /\.[jt]sx?$/,
@@ -70,7 +70,7 @@ type: 'asset/source',
       },
       {
         test: /\.(eot|otf|ttf|woff|woff2)$/,
-type: 'asset/resource',
+        type: 'asset/resource',
       },
       {
         test: /\.svg$/,
@@ -92,8 +92,8 @@ type: 'asset/resource',
           dataUrlCondition: {
             // Inline files smaller than 10 kB
             maxSize: 10 * 1024,
-}
-},
+          },
+        },
       },
       {
         test: /\.html$/,
@@ -105,8 +105,8 @@ type: 'asset/resource',
         parser: {
           dataUrlCondition: {
             maxSize: 10000,
-}
-},
+          },
+        },
       },
     ],
   },
