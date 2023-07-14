@@ -125,7 +125,7 @@ export function Provider({ children }: ProviderProps) {
         setUpdates(true)
       }
     },
-    [groups, isOpened, updateGroups],
+    [isOpened, updateGroups],
   )
   const clear = React.useCallback(
     (groupName: GroupName) => {
