@@ -1,10 +1,12 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
@@ -341,14 +343,21 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     </M.Dialog>
   )
 }
+//
+// TODO: move to app/constants/manifests
+const QUILT_DIR = '.quilt'
 
-function useFormattedListing(r: requests.BucketListingResult) {
+function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
+  // TODO: move to app/utils/user
+  const isAdmin = redux.useSelector(AuthSelectors.isAdmin)
   return React.useMemo(() => {
-    const dirs = r.dirs.map((name) => ({
-      type: 'dir' as const,
-      name: ensureNoSlash(withoutPrefix(r.path, name)),
-      to: name,
-    }))
+    const dirs = r.dirs
+      .map((name) => ({
+        type: 'dir' as const,
+        name: ensureNoSlash(withoutPrefix(r.path, name)),
+        to: name,
+      }))
+      .filter(({ name }) => isAdmin || name !== QUILT_DIR)
     const files = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
       name: withoutPrefix(r.path, key),
@@ -360,7 +369,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
     const items = [...dirs, ...files]
     // filter-out files with same name as one of dirs
     return R.uniqBy(R.prop('name'), items)
-  }, [r])
+  }, [isAdmin, r])
 }
 
 const useDirContentsStyles = M.makeStyles((t) => ({
