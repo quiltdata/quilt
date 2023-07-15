@@ -21,7 +21,7 @@ flag_management:
     - name: 'auto-lambda'  # specific rule for auto-lambda
     statuses:
       - type: project
-        threshold: 5  # always pass
+        threshold: 5
     # Looks like these are left from testing codecov flags,
     # but it's not clear why they are still appear, ignore them.
     - name: 'msys'
