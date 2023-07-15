@@ -18,6 +18,10 @@ flag_management:
       - name_prefix: 'auto-'
         type: patch
   individual_flags:
+    - name: 'auto-lambda'  # specific rule for auto-lambda
+    statuses:
+      - type: project
+        threshold: 5  # always pass
     # Looks like these are left from testing codecov flags,
     # but it's not clear why they are still appear, ignore them.
     - name: 'msys'
