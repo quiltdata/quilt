@@ -18,7 +18,7 @@ flag_management:
       - name_prefix: 'auto-'
         type: patch
   individual_flags:
-    - name: 'auto-lambda'  # specific rule for auto-lambda
+    - name: 'auto-lambda'
     statuses:
       - type: project
         threshold: 5
