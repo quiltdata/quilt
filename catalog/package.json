@@ -214,7 +214,7 @@
     "jsdom": "^21.1.1",
     "lint-staged": "^12.5.0",
     "minimist": "^1.2.8",
-    "prettier": "^2.8.4",
+    "prettier": "^2.8.8",
     "react-test-renderer": "^17.0.2",
     "redux-logger": "^3.0.6",
     "rimraf": "^3.0.2",
