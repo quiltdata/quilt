@@ -103,7 +103,7 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
   }
 }
 
-export const COPY_DATA_DEFAULT = true
+const COPY_DATA_DEFAULT = true
 
 export const emptyConfig: WorkflowsConfig = {
   isWorkflowRequired: false,
@@ -151,6 +151,13 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   name: successor.title,
   slug: s3paths.parseS3Url(url).bucket || '',
   url,
+})
+
+export const bucketToSuccessor = (bucket: string) => ({
+  copyData: COPY_DATA_DEFAULT,
+  name: bucket,
+  slug: bucket,
+  url: `s3://${bucket}`,
 })
 
 function validateConfigVersion(

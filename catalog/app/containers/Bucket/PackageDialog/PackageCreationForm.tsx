@@ -755,11 +755,7 @@ export function usePackageCreationDialog({
   const [submitting, setSubmitting] = React.useState(false)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
-  // TODO: make the current bucket a `Successor` structure inside workflows
-  const [successor, setSuccessor] = React.useState({
-    slug: bucket,
-    copyData: workflows.COPY_DATA_DEFAULT,
-  } as workflows.Successor)
+  const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()

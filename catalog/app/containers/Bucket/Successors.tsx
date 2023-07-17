@@ -132,13 +132,8 @@ function SuccessorsSelect({
     ) {
       return
     }
-    // TODO: make the current bucket a `Successor` structure inside workflows
-    const successor = data.result.value.successors[0] || {
-      url: `s3://${bucket}`,
-      name: bucket,
-      slug: bucket,
-      copyData: workflows.COPY_DATA_DEFAULT,
-    }
+    const successor =
+      data.result.value.successors[0] || workflows.bucketToSuccessor(bucket)
     onChange(successor)
   }, [open, bucket, data.result, onChange])
 
