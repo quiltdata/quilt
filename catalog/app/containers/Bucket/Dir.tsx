@@ -235,7 +235,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
         </M.DialogContent>
         <M.DialogActions>
           <M.Button onClick={close} variant="contained" color="primary" size="small">
-            {count ? 'Continue' : 'Close'}
+            Close
           </M.Button>
         </M.DialogActions>
       </M.Dialog>
