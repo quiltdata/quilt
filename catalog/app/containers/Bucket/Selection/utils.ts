@@ -15,33 +15,28 @@ interface SelectionHandles {
   [prefixUrl: string]: Model.S3.S3ObjectLocation[]
 }
 
-function convertIdToHandle(
+const convertIdToHandle = (
   id: string | number,
   parentHandle: Model.S3.S3ObjectLocation,
-): Model.S3.S3ObjectLocation {
-  const key = join(parentHandle.key, id.toString())
-  return {
-    bucket: parentHandle.bucket,
-    key,
-  }
-}
+): Model.S3.S3ObjectLocation => ({
+  bucket: parentHandle.bucket,
+  key: join(parentHandle.key, id.toString()),
+})
 
-export function toHandlesMap(selection: PrefixedKeysMap): SelectionHandles {
-  return Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
-    const parentHandle = s3paths.parseS3Url(prefixUrl)
-    return {
+export const toHandlesMap = (selection: PrefixedKeysMap): SelectionHandles =>
+  Object.entries(selection).reduce(
+    (memo, [prefixUrl, keys]) => ({
       ...memo,
-      [prefixUrl]: keys.map((id) => convertIdToHandle(id, parentHandle)),
-    }
-  }, {} as SelectionHandles)
-}
+      [prefixUrl]: keys.map((id) => convertIdToHandle(id, s3paths.parseS3Url(prefixUrl))),
+    }),
+    {} as SelectionHandles,
+  )
 
-export function toHandlesList(selection: PrefixedKeysMap): Model.S3.S3ObjectLocation[] {
-  return Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
+export const toHandlesList = (selection: PrefixedKeysMap): Model.S3.S3ObjectLocation[] =>
+  Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
     const parentHandle = s3paths.parseS3Url(prefixUrl)
     return [...memo, ...keys.map((key) => convertIdToHandle(key, parentHandle))]
   }, [] as Model.S3.S3ObjectLocation[])
-}
 
 const mergeWithFiltered =
   (prefix: string, filteredIds: string[]) => (allIds: string[]) => {
@@ -61,10 +56,8 @@ export function merge(ids: string[], bucket: string, path: string, filter?: stri
 
 const EmptyKeys: string[] = []
 
-export function getDirectorySelection(
+export const getDirectorySelection = (
   selection: PrefixedKeysMap,
   bucket: string,
   path: string,
-) {
-  return selection[`s3://${bucket}/${path}`] || EmptyKeys
-}
+) => selection[`s3://${bucket}/${path}`] || EmptyKeys
