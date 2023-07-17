@@ -216,11 +216,6 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPrev(null)
   }, [bucket, path, prefix])
 
-  React.useEffect(() => {
-    if (open) return
-    setSelection(Selection.EMPTY_MAP)
-  }, [open])
-
   const handleBucketChange = React.useCallback(
     (b) => {
       if (!selectBucket) return
@@ -262,6 +257,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     setPath('')
     setPrefix('')
     setPrev(null)
+    setSelection(Selection.EMPTY_MAP)
   }, [])
 
   return (
