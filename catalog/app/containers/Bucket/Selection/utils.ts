@@ -33,10 +33,13 @@ export const toHandlesMap = (selection: PrefixedKeysMap): SelectionHandles =>
   )
 
 export const toHandlesList = (selection: PrefixedKeysMap): Model.S3.S3ObjectLocation[] =>
-  Object.entries(selection).reduce((memo, [prefixUrl, keys]) => {
-    const parentHandle = s3paths.parseS3Url(prefixUrl)
-    return [...memo, ...keys.map((key) => convertIdToHandle(key, parentHandle))]
-  }, [] as Model.S3.S3ObjectLocation[])
+  Object.entries(selection).reduce(
+    (memo, [prefixUrl, keys]) => [
+      ...memo,
+      ...keys.map((key) => convertIdToHandle(key, s3paths.parseS3Url(prefixUrl))),
+    ],
+    [] as Model.S3.S3ObjectLocation[],
+  )
 
 const mergeWithFiltered =
   (prefix: string, filteredIds: string[]) => (allIds: string[]) => {
