@@ -125,15 +125,21 @@ function SuccessorsSelect({
   const data = useData(requests.workflowsConfig, { s3, bucket })
 
   React.useEffect(() => {
-    if (!open) return
-    if (!AsyncResult.Ok.is(data.result)) return
-    if (data.result.value.successors.length) return
-    onChange({
+    if (
+      !open ||
+      !AsyncResult.Ok.is(data.result) ||
+      data.result.value.successors.length > 1
+    ) {
+      return
+    }
+    // TODO: make the current bucket a `Successor` structure inside workflows
+    const successor = data.result.value.successors[0] || {
       url: `s3://${bucket}`,
       name: bucket,
       slug: bucket,
       copyData: workflows.COPY_DATA_DEFAULT,
-    })
+    }
+    onChange(successor)
   }, [open, bucket, data.result, onChange])
 
   return (
