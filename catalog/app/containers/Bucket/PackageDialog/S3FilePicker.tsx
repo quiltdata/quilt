@@ -230,12 +230,6 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
     },
     [selectBucket],
   )
-  const handlePathChange = React.useCallback((p) => {
-    setPath(p)
-  }, [])
-  const handlePrefixChange = React.useCallback((p) => {
-    setPrefix(p)
-  }, [])
 
   const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
 
@@ -311,8 +305,8 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
             <DirContents
               response={res}
               locked={!AsyncResult.Ok.is(x)}
-              setPath={handlePathChange}
-              setPrefix={handlePrefixChange}
+              setPath={setPath}
+              setPrefix={setPrefix}
               loadMore={loadMore}
               selection={Selection.getDirectorySelection(selection, bucket, path)}
               onSelectionChange={handleSelection}
