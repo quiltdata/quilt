@@ -6,9 +6,10 @@ import * as Buttons from 'components/Buttons'
 import SelectDropdown from 'components/SelectDropdown'
 import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import StyledLink from 'utils/StyledLink'
-import type * as workflows from 'utils/workflows'
+import * as workflows from 'utils/workflows'
 
 import WorkflowsConfigLink from './WorkflowsConfigLink'
 import * as ERRORS from './errors'
@@ -122,6 +123,18 @@ function SuccessorsSelect({
 }: SuccessorsSelectProps) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsConfig, { s3, bucket })
+
+  React.useEffect(() => {
+    if (!open) return
+    if (!AsyncResult.Ok.is(data.result)) return
+    if (data.result.value.successors.length) return
+    onChange({
+      url: `s3://${bucket}`,
+      name: bucket,
+      slug: bucket,
+      copyData: workflows.COPY_DATA_DEFAULT,
+    })
+  }, [open, bucket, data.result, onChange])
 
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>

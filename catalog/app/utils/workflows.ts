@@ -103,7 +103,7 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
   }
 }
 
-const COPY_DATA_DEFAULT = true
+export const COPY_DATA_DEFAULT = true
 
 export const emptyConfig: WorkflowsConfig = {
   isWorkflowRequired: false,
