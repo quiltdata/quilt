@@ -115,10 +115,8 @@ commands when contacting support@quiltdata.io.
     <!--pytest.mark.skip-->
     ```sh
     STACK_NAME="YOUR_QUILT_STACK"
-    AWS_REGION="YOUR_REGION"
     aws cloudformation describe-stacks \
         --stack-name "$STACK_NAME" \
-        --region "$AWS_REGION" \
         --query 'Stacks[].Outputs'
     ```
 
@@ -126,16 +124,14 @@ commands when contacting support@quiltdata.io.
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation describe-stack-resource-drifts \
-        --stack-name "$STACK_NAME" \
-        --region "$AWS_REGION"
+        --stack-name "$STACK_NAME"
     ```
 
 3. Quilt stack events:
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation describe-stack-events \
-        --stack-name "$STACK_NAME" \
-        --region "$AWS_REGION"
+        --stack-name "$STACK_NAME"
     ```
 
 ## Collect logs to diagnose
@@ -170,9 +166,7 @@ Quilt support:
 
 ### Elastic Container Service (ECS)
 
-1. Find the name of your Quilt stack from querying all deployed
-stacks (in your default region, which is listed in your
-`~/.aws/config` file):
+1. Find the name of your Quilt stack:
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation list-stacks
