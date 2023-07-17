@@ -206,7 +206,7 @@
     "express": "^4.18.2",
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "html-loader": "^2.1.2",
-    "html-webpack-plugin": "^5.5.0",
+    "html-webpack-plugin": "^5.5.3",
     "husky": "^4.3.8",
     "ip": "^1.1.8",
     "jest": "^27.5.1",
