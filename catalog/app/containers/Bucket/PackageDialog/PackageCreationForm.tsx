@@ -685,6 +685,16 @@ function PackageCreationForm({
   )
 }
 
+function prependSourceBucket(
+  buckets: BucketPreferences.SourceBuckets,
+  bucket: string,
+): BucketPreferences.SourceBuckets {
+  return {
+    getDefault: () => bucket,
+    list: R.prepend(bucket, buckets.list),
+  }
+}
+
 const DialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
@@ -720,6 +730,7 @@ interface UsePackageCreationDialogProps {
     name: string
     hash?: string
   }
+  s3Path?: string
   initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
@@ -734,6 +745,7 @@ export function usePackageCreationDialog({
   bucket, // TODO: put it to dst; and to src if needed (as PackageHandle)
   src,
   initialOpen,
+  s3Path,
   delayHashing = false,
   disableStateDisplay = false,
 }: UsePackageCreationDialogProps) {
@@ -780,7 +792,10 @@ export function usePackageCreationDialog({
                       AsyncResult.Ok({
                         manifest,
                         workflowsConfig,
-                        sourceBuckets,
+                        sourceBuckets:
+                          s3Path === undefined
+                            ? sourceBuckets
+                            : prependSourceBucket(sourceBuckets, bucket),
                       }),
                     Pending: AsyncResult.Pending,
                     Init: AsyncResult.Init,
@@ -794,7 +809,7 @@ export function usePackageCreationDialog({
           ),
         _: R.identity,
       }),
-    [workflowsData, manifestResult, prefs],
+    [bucket, s3Path, workflowsData, manifestResult, prefs],
   )
 
   const [waitingListing, setWaitingListing] = React.useState(false)

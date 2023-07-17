@@ -327,6 +327,7 @@ export default function Dir({
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
+    s3Path: path,
     bucket,
     delayHashing: true,
     disableStateDisplay: true,
