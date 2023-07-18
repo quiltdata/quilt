@@ -221,7 +221,7 @@
     "shelljs": "^0.8.5",
     "source-map-loader": "^3.0.2",
     "style-loader": "^3.3.3",
-    "svg-url-loader": "^7.1.1",
+    "svg-url-loader": "^8.0.0",
     "terser-webpack-plugin": "^5.3.9",
     "ts-jest": "^27.1.5",
     "ts-loader": "^9.4.4",
