@@ -28,7 +28,7 @@ import * as S3FilePicker from './S3FilePicker'
 
 function resolveNameConflictRudely(name: string, attempt: number) {
   const ext = extname(name)
-  const base = basename(name, ext)
+  const base = name.split(ext)[0]
   return `${base} (conflict ${attempt})${ext}`
 }
 
