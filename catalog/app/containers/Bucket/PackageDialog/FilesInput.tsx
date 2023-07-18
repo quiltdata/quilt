@@ -138,17 +138,16 @@ export interface FilesState {
   counter?: number
 }
 
-const setConflict = (path: string, file: AnyFile, conflitingFile: AnyFile) => {
-  const conflictId: string = conflitingFile?.conflict || path
+function setKeyValue<T, F extends AnyFile>(key: string, value: T, file: F): F {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
       type: (file as File).type,
     })
-    Object.defineProperty(fileCopy, 'conflict', {
-      value: conflictId,
+    Object.defineProperty(fileCopy, key, {
+      value,
     })
   }
-  return R.assoc('conflict', conflictId, file)
+  return R.assoc(key, value, file)
 }
 
 const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
@@ -170,6 +169,31 @@ const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
   return R.assoc('changed', { meta: file.meta }, R.assoc('meta', meta, file))
 }
 
+function mkAddFile(path: string, file: AddedFile) {
+  return (obj: Record<string, AddedFile>) => {
+    return {
+      ...obj,
+      [resolveName(path, obj)]: obj[path]
+        ? setKeyValue<string, AddedFile>('conflict', path, file)
+        : file,
+    } as Record<string, AddedFile>
+  }
+}
+
+function mkRename<T extends AnyFile>(oldPath: string, newPath: string) {
+  return (filesDict: Record<string, T>) => {
+    const file = filesDict[oldPath]
+    if (!file) return filesDict
+    return R.pipe(
+      R.dissoc(oldPath),
+      R.assoc(
+        newPath,
+        setKeyValue<{ logicalKey: string }, T>('changed', { logicalKey: oldPath }, file),
+      ),
+    )(filesDict)
+  }
+}
+
 const handleFilesAction = FilesAction.match<
   (state: FilesState) => FilesState,
   [{ initial: FilesState }]
@@ -183,11 +207,7 @@ const handleFilesAction = FilesAction.match<
         const alreadyAddedFile = acc.added[path]
         return R.evolve(
           {
-            added: R.ifElse(
-              () => !!alreadyAddedFile,
-              R.assoc(name, setConflict(path, file, alreadyAddedFile)),
-              R.assoc(path, file),
-            ),
+            added: mkAddFile(path, file),
             deleted: R.dissoc(path),
           },
           acc,
@@ -240,19 +260,9 @@ const handleFilesAction = FilesAction.match<
     })
   },
   Rename: ({ oldPath, newPath }) => {
-    const mkRename =
-      <T extends AnyFile>() =>
-      (filesDict: Record<string, T>) => {
-        const file = filesDict[oldPath]
-        if (!file) return filesDict
-        return R.pipe(
-          R.dissoc(oldPath),
-          R.assoc(newPath, R.assoc('changed', { logicalKey: oldPath }, file)),
-        )(filesDict)
-      }
     return R.evolve({
-      added: mkRename<AddedFile>(),
-      existing: mkRename<ExistingFile>(),
+      added: mkRename<AddedFile>(oldPath, newPath),
+      existing: mkRename<ExistingFile>(oldPath, newPath),
       deleted: R.dissoc(newPath),
     })
   },
