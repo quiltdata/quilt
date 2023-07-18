@@ -138,12 +138,31 @@ export interface FilesState {
   counter?: number
 }
 
+function cloneDomFile<F extends AnyFile>(file: F) {
+  const fileCopy = new window.File([file as File], (file as File).name, {
+    type: (file as File).type,
+  })
+  Object.defineProperty(fileCopy, 'conflict', {
+    value: file.conflict,
+    configurable: true,
+  })
+  Object.defineProperty(fileCopy, 'meta', {
+    value: file.meta,
+  })
+  Object.defineProperty(fileCopy, 'changed', {
+    value: file.changed,
+  })
+  Object.defineProperty(fileCopy, 'hash', {
+    value: (file as FileWithHash).hash,
+  })
+  return fileCopy
+}
+
 function setKeyValue<T, F extends AnyFile>(key: string, value: T, file: F): F {
   if (file instanceof window.File) {
-    const fileCopy = new window.File([file as File], (file as File).name, {
-      type: (file as File).type,
-    })
+    const fileCopy = cloneDomFile(file)
     Object.defineProperty(fileCopy, key, {
+      configurable: true,
       value,
     })
   }
@@ -169,24 +188,27 @@ const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
   return R.assoc('changed', { meta: file.meta }, R.assoc('meta', meta, file))
 }
 
-function mkAddFile(path: string, file: AddedFile) {
-  return (obj: Record<string, AddedFile>) => {
-    return {
+function mkAddFile<T extends AnyFile>(
+  path: string,
+  file: T,
+): (x: Record<string, T>) => Record<string, T> {
+  return (obj: Record<string, T>) =>
+    ({
       ...obj,
       [resolveName(path, obj)]: obj[path]
-        ? setKeyValue<string, AddedFile>('conflict', path, file)
-        : file,
-    } as Record<string, AddedFile>
-  }
+        ? setKeyValue<string, T>('conflict', path, file)
+        : setKeyValue<string, T>('conflict', '', file),
+    } as Record<string, T>)
 }
 
 function mkRename<T extends AnyFile>(oldPath: string, newPath: string) {
   return (filesDict: Record<string, T>) => {
     const file = filesDict[oldPath]
     if (!file) return filesDict
-    return R.pipe(
+    type AuxType = Record<string, T>
+    return R.pipe<AuxType, AuxType, AuxType>(
       R.dissoc(oldPath),
-      R.assoc(
+      mkAddFile<T>(
         newPath,
         setKeyValue<{ logicalKey: string }, T>('changed', { logicalKey: oldPath }, file),
       ),
@@ -203,11 +225,9 @@ const handleFilesAction = FilesAction.match<
     (state) =>
       files.reduce((acc, file) => {
         const path = (prefix || '') + PD.getNormalizedPath(file)
-        const name = resolveName(path, acc.added)
-        const alreadyAddedFile = acc.added[path]
         return R.evolve(
           {
-            added: mkAddFile(path, file),
+            added: mkAddFile<AddedFile>(path, file),
             deleted: R.dissoc(path),
           },
           acc,
@@ -220,7 +240,7 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
         return R.evolve(
           {
-            added: R.assoc(path, file),
+            added: mkAddFile<AddedFile>(path, file),
             deleted: R.dissoc(path),
           },
           acc,
@@ -259,13 +279,12 @@ const handleFilesAction = FilesAction.match<
       existing: mkSetMeta<ExistingFile>(),
     })
   },
-  Rename: ({ oldPath, newPath }) => {
-    return R.evolve({
+  Rename: ({ oldPath, newPath }) =>
+    R.evolve({
       added: mkRename<AddedFile>(oldPath, newPath),
       existing: mkRename<ExistingFile>(oldPath, newPath),
       deleted: R.dissoc(newPath),
-    })
-  },
+    }),
   Revert: (path) =>
     R.evolve({
       added: R.dissoc(path),
