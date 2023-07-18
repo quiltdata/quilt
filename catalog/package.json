@@ -76,7 +76,7 @@
     "cross-env": "^7.0.3",
     "date-fns": "^2.29.3",
     "dedent": "^0.7.0",
-    "dompurify": "^2.4.5",
+    "dompurify": "^2.4.7",
     "echarts": "^5.4.2",
     "final-form": "^4.20.7",
     "fontfaceobserver": "^2.3.0",
