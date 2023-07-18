@@ -120,14 +120,21 @@ commands when contacting support@quiltdata.io.
         --query 'Stacks[].Outputs'
     ```
 
-2. Quilt stack drift status:
+1. Initiate drift detection: 
+    <!--pytest.mark.skip-->
+    ```sh
+    aws cloudformation detect-stack-drift \
+        --stack-name "$STACK_NAME"
+    ```
+
+1. _After drift deteciton is complete_:
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation describe-stack-resource-drifts \
         --stack-name "$STACK_NAME"
     ```
 
-3. Quilt stack events:
+1. Quilt stack events:
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation describe-stack-events \
