@@ -127,7 +127,7 @@ commands when contacting support@quiltdata.io.
         --stack-name "$STACK_NAME"
     ```
 
-1. _After drift deteciton is complete_:
+1. _After drift detection is complete_:
     <!--pytest.mark.skip-->
     ```sh
     aws cloudformation describe-stack-resource-drifts \
