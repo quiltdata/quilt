@@ -73,6 +73,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.omit(Object.keys(files.deleted)),
     Object.entries,
     R.map(([path, file]) => ({
+      conflict: file.conflict,
       logical_key: path,
       meta: file.meta?.user_meta || {},
       size: file.size,

@@ -1,9 +1,12 @@
+import { basename, extname } from 'path'
+
 import cx from 'classnames'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as RF from 'react-final-form'
+import * as uuid from 'uuid'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -23,6 +26,12 @@ import EditFileMeta from './EditFileMeta'
 import EditFileName from './EditFileName'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
+
+function resolveNameConflictRudely(name: string) {
+  const ext = extname(name)
+  const base = basename(name, ext)
+  return `${base} (1)${ext}`
+}
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -97,10 +106,13 @@ interface ChangedDict {
 
 type AddedFile = (LocalFile | Model.S3File) & {
   changed?: ChangedDict
+  conflict?: string
+  invalid?: boolean
 }
 
 type ExistingFile = Model.PackageEntry & {
   changed?: ChangedDict
+  conflict?: string
 }
 
 type AnyFile = ExistingFile | AddedFile
@@ -112,6 +124,19 @@ export interface FilesState {
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
+}
+
+const setConflict = (path: string, file: AnyFile, conflitingFile: AnyFile) => {
+  const conflictId: string = conflitingFile?.conflict || path
+  if (file instanceof window.File) {
+    const fileCopy = new window.File([file as File], (file as File).name, {
+      type: (file as File).type,
+    })
+    Object.defineProperty(fileCopy, 'conflict', {
+      value: conflictId,
+    })
+  }
+  return R.assoc('conflict', conflictId, file)
 }
 
 const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
@@ -142,9 +167,17 @@ const handleFilesAction = FilesAction.match<
     (state) =>
       files.reduce((acc, file) => {
         const path = (prefix || '') + PD.getNormalizedPath(file)
+        const alreadyAddedFile = acc.added[path]
         return R.evolve(
           {
-            added: R.assoc(path, file),
+            added: R.ifElse(
+              () => !!alreadyAddedFile,
+              R.assoc(
+                resolveNameConflictRudely(path),
+                setConflict(path, file, alreadyAddedFile),
+              ),
+              R.assoc(path, file),
+            ),
             deleted: R.dissoc(path),
           },
           acc,
@@ -380,7 +413,13 @@ const computeEntries = ({
       })
     }
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
-    return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
+    return acc.concat({
+      state: f.invalid ? 'invalid' : 'added',
+      type,
+      path,
+      size: f.size,
+      meta: f.meta,
+    })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {

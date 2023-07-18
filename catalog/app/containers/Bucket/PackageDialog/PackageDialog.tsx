@@ -575,6 +575,7 @@ function useFetchEntriesSchema(workflow?: workflows.Workflow) {
 }
 
 export interface ValidationEntry {
+  conflict?: string
   logical_key: string
   size: number
   meta?: JsonRecord
@@ -612,12 +613,20 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
 
   return React.useCallback(
     async (entries: ValidationEntry[]) => {
+      const conflictsErrors = entries
+        .filter((e) => !!e.conflict)
+        .map((e) => {
+          const error = new Error(`This file is conflicting with ${e.conflict}`)
+          error.data = e
+          return error
+        })
+      console.log(conflictsErrors)
       const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
-      if (!entriesSchema) return undefined
+      if (!entriesSchema) return conflictsErrors
 
       const errors = makeSchemaValidator(entriesSchema)(entries)
-      return injectEntryIntoErrors(errors, entries)
+      return [...injectEntryIntoErrors(errors, entries), ...conflictsErrors]
     },
     [entriesSchemaAsync],
   )
