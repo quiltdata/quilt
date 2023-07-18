@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
@@ -221,9 +220,8 @@ function PackageCreationForm({
 
   const dialogs = Dialogs.use()
 
-  const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
-    null,
-  )
+  const [entriesError, setEntriesError] =
+    React.useState<PD.EntriesValidationErrors | null>(null)
 
   const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
 

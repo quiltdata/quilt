@@ -581,11 +581,15 @@ export interface ValidationEntry {
   meta?: JsonRecord
 }
 
+interface EntryNameError extends Error {
+  data: ValidationEntry
+}
+
 interface EntryValidationError extends ErrorObject {
   data: ValidationEntry
 }
 
-export type EntriesValidationErrors = (Error | EntryValidationError)[]
+export type EntriesValidationErrors = (Error | EntryValidationError | EntryNameError)[]
 
 function injectEntryIntoErrors(
   errors: (Error | ErrorObject)[],
@@ -615,7 +619,13 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
     async (entries: ValidationEntry[]) => {
       const conflictsErrors = entries
         .filter((e) => !!e.conflict)
-        .map((e) => new Error(`"${e.logical_key}" is conflicting with "${e.conflict}"`))
+        .map((e) => {
+          const error = new Error(
+            `"${e.logical_key}" is conflicting with "${e.conflict}". Please, rename it or delete`,
+          )
+          ;(error as EntryNameError).data = e
+          return error
+        })
       const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
       if (!entriesSchema) return conflictsErrors

@@ -26,10 +26,23 @@ import EditFileName from './EditFileName'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
-function resolveNameConflictRudely(name: string) {
+function resolveNameConflictRudely(name: string, attempt: number) {
   const ext = extname(name)
   const base = basename(name, ext)
-  return `${base} (1)${ext}`
+  return `${base} (conflict ${attempt})${ext}`
+}
+
+function resolveName(
+  name: string,
+  obj: Record<string, any>,
+  attempt: number = 1,
+): string {
+  if (!obj[name]) return name
+
+  const newName = resolveNameConflictRudely(name, attempt)
+  if (!obj[newName]) return newName
+
+  return resolveName(name, obj, attempt + 1)
 }
 
 const COLORS = {
@@ -166,15 +179,13 @@ const handleFilesAction = FilesAction.match<
     (state) =>
       files.reduce((acc, file) => {
         const path = (prefix || '') + PD.getNormalizedPath(file)
+        const name = resolveName(path, acc.added)
         const alreadyAddedFile = acc.added[path]
         return R.evolve(
           {
             added: R.ifElse(
               () => !!alreadyAddedFile,
-              R.assoc(
-                resolveNameConflictRudely(path),
-                setConflict(path, file, alreadyAddedFile),
-              ),
+              R.assoc(name, setConflict(path, file, alreadyAddedFile)),
               R.assoc(path, file),
             ),
             deleted: R.dissoc(path),
