@@ -615,12 +615,7 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
     async (entries: ValidationEntry[]) => {
       const conflictsErrors = entries
         .filter((e) => !!e.conflict)
-        .map((e) => {
-          const error = new Error(`This file is conflicting with ${e.conflict}`)
-          error.data = e
-          return error
-        })
-      console.log(conflictsErrors)
+        .map((e) => new Error(`"${e.logical_key}" is conflicting with "${e.conflict}"`))
       const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
       if (!entriesSchema) return conflictsErrors

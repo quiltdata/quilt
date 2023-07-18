@@ -6,7 +6,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as RF from 'react-final-form'
-import * as uuid from 'uuid'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
