@@ -93,7 +93,7 @@
     "js-yaml": "^4.1.0",
     "jsoneditor-react": "^3.1.2",
     "jsonpath": "^1.1.1",
-    "katex": "^0.16.2",
+    "katex": "^0.16.8",
     "lodash": "^4.17.21",
     "loglevel": "^1.8.1",
     "match-sorter": "^6.3.1",
