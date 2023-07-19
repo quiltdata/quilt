@@ -1,4 +1,4 @@
-import { basename, extname } from 'path'
+import { extname } from 'path'
 
 import cx from 'classnames'
 import pLimit from 'p-limit'
