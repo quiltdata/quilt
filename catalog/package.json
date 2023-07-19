@@ -80,7 +80,7 @@
     "echarts": "^5.4.3",
     "final-form": "^4.20.9",
     "fontfaceobserver": "^2.3.0",
-    "fp-ts": "^2.12.3",
+    "fp-ts": "^2.16.0",
     "graphql": "^15.8.0",
     "highlight.js": "^11.6.0",
     "history": "^4.10.1",
