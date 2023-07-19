@@ -110,7 +110,7 @@
     "prop-types": "^15.8.1",
     "ramda": "^0.27.1",
     "react": "^17.0.2",
-    "react-ace": "^9.5.0",
+    "react-ace": "^10.1.0",
     "react-dom": "^17.0.2",
     "react-dropzone": "^11.7.1",
     "react-final-form": "^6.5.9",
