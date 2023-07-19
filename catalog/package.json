@@ -89,7 +89,7 @@
     "invariant": "^2.2.4",
     "io-ts": "^2.2.18",
     "io-ts-reporters": "^1.2.2",
-    "io-ts-types": "^0.5.16",
+    "io-ts-types": "^0.5.19",
     "js-yaml": "^4.1.0",
     "jsoneditor-react": "^3.1.2",
     "jsonpath": "^1.1.1",
