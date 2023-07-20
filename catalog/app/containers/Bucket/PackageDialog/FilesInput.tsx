@@ -227,20 +227,22 @@ function renameFile(
   p2: string,
   e: ExistingItems,
   a: AddedItems,
+  reverted?: boolean,
 ): ExistingItems
 function renameFile(
   oldPath: string,
   newPath: string,
   mainItems: Record<string, AnyFile>,
   itemsToCheck: Record<string, AnyFile>,
+  reverted = false,
 ) {
   const file = mainItems[oldPath]
   if (!file) return mainItems
   const itemsWithOldNameRemoved = R.dissoc(oldPath, mainItems)
   const changedFile = setKeyValue<{ logicalKey: string }>(
     'changed',
-    { logicalKey: oldPath },
     // @ts-expect-error
+    reverted ? null : { logicalKey: oldPath },
     file,
   )
   // @ts-expect-error
@@ -329,7 +331,7 @@ const handleFilesAction = FilesAction.match<
         existing: (existingFiles) => {
           const oldPath: string | undefined = existingFiles[path]?.changed?.logicalKey
           if (!oldPath) return existingFiles
-          return renameFile(path, oldPath, existingFiles, state.added)
+          return renameFile(path, oldPath, existingFiles, state.added, true)
         },
       },
       state,
