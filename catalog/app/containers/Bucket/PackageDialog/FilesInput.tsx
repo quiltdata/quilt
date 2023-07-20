@@ -193,14 +193,14 @@ const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
   return R.assoc('changed', { meta: file.meta }, R.assoc('meta', meta, file))
 }
 
-function mkAddFile(p: string, f: AddedFile, a: AddedItems, e?: ExistingItems): AddedItems
-function mkAddFile(
+function addFile(p: string, f: AddedFile, a: AddedItems, e?: ExistingItems): AddedItems
+function addFile(
   p: string,
   f: ExistingFile,
   e: ExistingItems,
   a?: AddedItems,
 ): ExistingItems
-function mkAddFile(
+function addFile(
   path: string,
   file: AnyFile,
   mainItems: Record<string, AnyFile>,
@@ -221,9 +221,14 @@ function mkAddFile(
   }
 }
 
-function mkRename(p1: string, p2: string, a: AddedItems, e: ExistingItems): AddedItems
-function mkRename(p1: string, p2: string, e: ExistingItems, a: AddedItems): ExistingItems
-function mkRename(
+function renameFile(p1: string, p2: string, a: AddedItems, e: ExistingItems): AddedItems
+function renameFile(
+  p1: string,
+  p2: string,
+  e: ExistingItems,
+  a: AddedItems,
+): ExistingItems
+function renameFile(
   oldPath: string,
   newPath: string,
   mainItems: Record<string, AnyFile>,
@@ -239,7 +244,7 @@ function mkRename(
     file,
   )
   // @ts-expect-error
-  return mkAddFile(newPath, changedFile, itemsWithOldNameRemoved, itemsToCheck)
+  return addFile(newPath, changedFile, itemsWithOldNameRemoved, itemsToCheck)
 }
 
 const handleFilesAction = FilesAction.match<
@@ -251,10 +256,13 @@ const handleFilesAction = FilesAction.match<
     (state) =>
       files.reduce((acc, file) => {
         const path = (prefix || '') + PD.getNormalizedPath(file)
-        return R.evolve({
-          added: () => mkAddFile(path, file, acc.added),
-          deleted: R.dissoc(path),
-        }, acc)
+        return R.evolve(
+          {
+            added: () => addFile(path, file, acc.added),
+            deleted: R.dissoc(path),
+          },
+          acc,
+        )
       }, state),
   AddFromS3:
     ({ files, basePrefix, prefix }) =>
@@ -263,7 +271,7 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
         return R.evolve(
           {
-            added: () => mkAddFile(path, file, acc.added),
+            added: () => addFile(path, file, acc.added),
             deleted: R.dissoc(path),
           },
           acc,
@@ -307,8 +315,8 @@ const handleFilesAction = FilesAction.match<
     (state) =>
       R.evolve(
         {
-          added: () => mkRename(oldPath, newPath, state.added, state.existing),
-          existing: () => mkRename(oldPath, newPath, state.existing, state.added),
+          added: () => renameFile(oldPath, newPath, state.added, state.existing),
+          existing: () => renameFile(oldPath, newPath, state.existing, state.added),
           deleted: R.dissoc(newPath),
         },
         state,
@@ -321,7 +329,7 @@ const handleFilesAction = FilesAction.match<
         existing: (existingFiles) => {
           const oldPath: string | undefined = existingFiles[path]?.changed?.logicalKey
           if (!oldPath) return existingFiles
-          return mkRename(path, oldPath, existingFiles, state.added)
+          return renameFile(path, oldPath, existingFiles, state.added)
         },
       },
       state,
