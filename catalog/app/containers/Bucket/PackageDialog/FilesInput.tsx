@@ -381,6 +381,7 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
     .map(FilesEntry.match({ Dir: R.prop('state'), File: R.prop('state') }))
     .reduce((acc, entryState) => {
       if (entryState === 'hashing' || acc === 'hashing') return 'hashing'
+      if (entryState === 'invalid' || acc === 'invalid') return 'invalid'
       if (acc === entryState) return acc
       return 'modified'
     })
@@ -873,7 +874,7 @@ export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   ref,
 ) {
   const classes = useDirStyles()
-  const stateDisplay = disableStateDisplay ? 'unchanged' : state
+  const stateDisplay = disableStateDisplay && state !== 'invalid' ? 'unchanged' : state
 
   return (
     <div
