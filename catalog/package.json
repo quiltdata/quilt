@@ -136,7 +136,7 @@
     "tslib": "^2.4.0",
     "urql": "^2.2.3",
     "urql-custom-scalars-exchange": "^0.1.6",
-    "use-debounce": "^7.0.1",
+    "use-debounce": "^9.0.4",
     "use-resize-observer": "^9.0.2",
     "uuid": "^8.3.2",
     "vega": "^5.23.0",
