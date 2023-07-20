@@ -119,7 +119,6 @@ interface ChangedDict {
 type AddedFile = (LocalFile | Model.S3File) & {
   changed?: ChangedDict
   conflict?: string
-  invalid?: boolean
 }
 
 type ExistingFile = Model.PackageEntry & {
@@ -129,10 +128,14 @@ type ExistingFile = Model.PackageEntry & {
 
 type AnyFile = ExistingFile | AddedFile
 
+type AddedItems = Record<string, AddedFile>
+
+type ExistingItems = Record<string, ExistingFile>
+
 export interface FilesState {
-  added: Record<string, AddedFile>
+  added: AddedItems
   deleted: Record<string, true>
-  existing: Record<string, ExistingFile>
+  existing: ExistingItems
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
@@ -158,7 +161,9 @@ function cloneDomFile<F extends AnyFile>(file: F) {
   return fileCopy
 }
 
-function setKeyValue<T, F extends AnyFile>(key: string, value: T, file: F): F {
+function setKeyValue<T>(key: string, value: T, file: AddedFile): AddedFile
+function setKeyValue<T>(key: string, value: T, file: ExistingFile): ExistingFile
+function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   if (file instanceof window.File) {
     const fileCopy = cloneDomFile(file)
     Object.defineProperty(fileCopy, key, {
@@ -188,32 +193,50 @@ const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
   return R.assoc('changed', { meta: file.meta }, R.assoc('meta', meta, file))
 }
 
-function mkAddFile<T extends AnyFile>(
+function mkAddFile(p: string, f: AddedFile, a: AddedItems, e: ExistingItems): AddedItems
+function mkAddFile(
+  p: string,
+  f: ExistingFile,
+  e: ExistingItems,
+  a: AddedItems,
+): ExistingItems
+function mkAddFile(
   path: string,
-  file: T,
-): (x: Record<string, T>) => Record<string, T> {
-  return (obj: Record<string, T>) =>
-    ({
-      ...obj,
-      [resolveName(path, obj)]: obj[path]
-        ? setKeyValue<string, T>('conflict', path, file)
-        : setKeyValue<string, T>('conflict', '', file),
-    } as Record<string, T>)
+  file: AnyFile,
+  mainItems: Record<string, AnyFile>,
+  itemsToCheck: Record<string, AnyFile>,
+) {
+  const resolvedName = resolveName(path, { ...mainItems, ...itemsToCheck })
+  return {
+    ...mainItems,
+    [resolvedName]:
+      resolvedName === path
+        ? // @ts-expect-error
+          setKeyValue<string>('conflict', '', file)
+        : // @ts-expect-error
+          setKeyValue<string>('conflict', path, file),
+  }
 }
 
-function mkRename<T extends AnyFile>(oldPath: string, newPath: string) {
-  return (filesDict: Record<string, T>) => {
-    const file = filesDict[oldPath]
-    if (!file) return filesDict
-    type AuxType = Record<string, T>
-    return R.pipe<AuxType, AuxType, AuxType>(
-      R.dissoc(oldPath),
-      mkAddFile<T>(
-        newPath,
-        setKeyValue<{ logicalKey: string }, T>('changed', { logicalKey: oldPath }, file),
-      ),
-    )(filesDict)
-  }
+function mkRename(p1: string, p2: string, a: AddedItems, e: ExistingItems): AddedItems
+function mkRename(p1: string, p2: string, e: ExistingItems, a: AddedItems): ExistingItems
+function mkRename(
+  oldPath: string,
+  newPath: string,
+  mainItems: Record<string, AnyFile>,
+  itemsToCheck: Record<string, AnyFile>,
+) {
+  const file = mainItems[oldPath]
+  if (!file) return mainItems
+  const oldNameRemoved = R.dissoc(oldPath, mainItems)
+  const changedFile = setKeyValue<{ logicalKey: string }>(
+    'changed',
+    { logicalKey: oldPath },
+    // @ts-expect-error
+    file,
+  )
+  // @ts-expect-error
+  return mkAddFile(newPath, changedFile, oldNameRemoved, itemsToCheck)
 }
 
 const handleFilesAction = FilesAction.match<
@@ -227,7 +250,7 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + PD.getNormalizedPath(file)
         return R.evolve(
           {
-            added: mkAddFile<AddedFile>(path, file),
+            added: () => mkAddFile(path, file, acc.added, acc.existing),
             deleted: R.dissoc(path),
           },
           acc,
@@ -240,7 +263,7 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
         return R.evolve(
           {
-            added: mkAddFile<AddedFile>(path, file),
+            added: () => mkAddFile(path, file, acc.added, acc.existing),
             deleted: R.dissoc(path),
           },
           acc,
@@ -279,12 +302,17 @@ const handleFilesAction = FilesAction.match<
       existing: mkSetMeta<ExistingFile>(),
     })
   },
-  Rename: ({ oldPath, newPath }) =>
-    R.evolve({
-      added: mkRename<AddedFile>(oldPath, newPath),
-      existing: mkRename<ExistingFile>(oldPath, newPath),
-      deleted: R.dissoc(newPath),
-    }),
+  Rename:
+    ({ oldPath, newPath }) =>
+    (state) =>
+      R.evolve(
+        {
+          added: () => mkRename(oldPath, newPath, state.added, state.existing),
+          existing: () => mkRename(oldPath, newPath, state.existing, state.added),
+          deleted: R.dissoc(newPath),
+        },
+        state,
+      ),
   Revert: (path) =>
     R.evolve({
       added: R.dissoc(path),
@@ -453,7 +481,7 @@ const computeEntries = ({
     }
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
     return acc.concat({
-      state: f.invalid ? 'invalid' : 'added',
+      state: 'added',
       type,
       path,
       size: f.size,
