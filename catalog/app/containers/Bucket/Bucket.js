@@ -28,7 +28,6 @@ const PackageRevisions = RT.mkLazy(
 )
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
-const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 
 const match = (cases) => (pathname) => {
   // eslint-disable-next-line no-restricted-syntax
@@ -50,7 +49,6 @@ const sections = {
     { path: 'bucketDir', exact: true },
   ],
   queries: { path: 'bucketQueries' },
-  search: { path: 'bucketSearch', exact: true },
 }
 
 const getBucketSection = (paths) =>
@@ -107,7 +105,6 @@ export default function Bucket({
             <Route path={paths.bucketFile} component={File} exact strict />
             <Route path={paths.bucketDir} component={Dir} exact />
             <Route path={paths.bucketOverview} component={Overview} exact />
-            <Route path={paths.bucketSearch} component={Search} exact />
             <Route path={paths.bucketPackageList} component={PackageList} exact />
             <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
             <Route path={paths.bucketPackageTree} component={PackageTree} exact />
