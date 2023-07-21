@@ -97,7 +97,6 @@ const render = () => {
       Bookmarks.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
-      // TODO: check on location change
       [Auth.Provider, { storage }],
       [GTMLoader, { gtmId: cfg.gtmId }],
       [
