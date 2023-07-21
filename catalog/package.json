@@ -51,10 +51,10 @@
   },
   "dependencies": {
     "@braintree/sanitize-url": "^6.0.2",
-    "@finos/perspective": "^1.4.0",
-    "@finos/perspective-viewer": "^1.4.0",
-    "@finos/perspective-viewer-d3fc": "^1.4.0",
-    "@finos/perspective-viewer-datagrid": "^1.4.0",
+    "@finos/perspective": "^1.5.1",
+    "@finos/perspective-viewer": "^1.5.1",
+    "@finos/perspective-viewer-d3fc": "^1.5.1",
+    "@finos/perspective-viewer-datagrid": "^1.5.1",
     "@material-ui/core": "^4.11.4",
     "@material-ui/data-grid": "^4.0.0-alpha.27",
     "@material-ui/lab": "^4.0.0-alpha.58",
@@ -148,7 +148,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@finos/perspective-webpack-plugin": "^1.4.0",
+    "@finos/perspective-webpack-plugin": "^1.5.1",
     "@graphql-codegen/cli": "^1.21.8",
     "@graphql-codegen/near-operation-file-preset": "^1.18.6",
     "@graphql-codegen/typed-document-node": "^1.18.10",

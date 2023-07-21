@@ -152,6 +152,7 @@ module.exports = (options) => ({
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
     fallback: {
+      fs: false,
       path: require.resolve('path-browserify'),
     },
   },
