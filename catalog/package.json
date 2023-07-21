@@ -117,7 +117,7 @@
     "react-github-btn": "^1.4.0",
     "react-helmet": "^6.1.0",
     "react-input-autosize": "^3.0.0",
-    "react-multi-carousel": "^2.6.5",
+    "react-multi-carousel": "^2.8.4",
     "react-redux": "^7.2.9",
     "react-router-dom": "^5.3.4",
     "react-router-hash-link": "^1.2.2",
