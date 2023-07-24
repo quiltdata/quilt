@@ -147,7 +147,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@finos/perspective-webpack-plugin": "^1.4.0",
+    "@finos/perspective-webpack-plugin": "^1.9.4",
     "@graphql-codegen/cli": "^1.21.8",
     "@graphql-codegen/near-operation-file-preset": "^1.18.6",
     "@graphql-codegen/typed-document-node": "^1.18.10",
