@@ -1,7 +1,6 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -9,7 +8,6 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
-import * as AuthSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -72,25 +70,18 @@ interface RouteMap {
   ]
 }
 
-// TODO: move to app/constants/manifests
-const QUILT_DIR = '.quilt'
-
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   const { urls } = NamedRoutes.use<RouteMap>()
-  // TODO: move to app/utils/user
-  const isAdmin = redux.useSelector(AuthSelectors.isAdmin)
   return React.useMemo(() => {
-    const dirs = r.dirs
-      .map((name) => ({
-        type: 'dir' as const,
-        name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-        to: urls.bucketDir(r.bucket, name),
-        handle: {
-          bucket: r.bucket,
-          key: name,
-        },
-      }))
-      .filter(({ name }) => isAdmin || name !== QUILT_DIR)
+    const dirs = r.dirs.map((name) => ({
+      type: 'dir' as const,
+      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
+      to: urls.bucketDir(r.bucket, name),
+      handle: {
+        bucket: r.bucket,
+        key: name,
+      },
+    }))
     const files = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
       name: s3paths.withoutPrefix(r.path, key),
@@ -118,7 +109,7 @@ function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
     ]
     // filter-out files with same name as one of dirs
     return R.uniqBy(R.prop('name'), items)
-  }, [isAdmin, r, urls])
+  }, [r, urls])
 }
 
 interface DirContentsProps {

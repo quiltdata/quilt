@@ -865,8 +865,8 @@ const useStyles = M.makeStyles((t) => ({
       },
     },
     '& [data-id=".."] .MuiDataGrid-checkboxInput': {
-      opacity: 0.3,
       cursor: 'default',
+      opacity: 0.3,
     },
   },
   locked: {
