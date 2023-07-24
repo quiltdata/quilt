@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { matchPath } from 'react-router-dom'
+import { matchPath, useLocation } from 'react-router-dom'
 
 import { useExperiments } from 'components/Experiments'
 import cfg from 'constants/config'
@@ -63,11 +63,11 @@ const withTimeout = (p, timeout) =>
     p.then(settle(resolve), settle(reject))
   })
 
-export function TrackingProvider({ locationSelector, userSelector, children }) {
+export function TrackingProvider({ userSelector, children }) {
   const tracker = React.useMemo(loadMixpanel, [])
   const { getSelectedVariants } = useExperiments()
   const mkLocation = useMkLocation()
-  const location = mkLocation(redux.useSelector(locationSelector))
+  const location = mkLocation(useLocation())
   const user = redux.useSelector(userSelector)
 
   const commonOpts = React.useMemo(

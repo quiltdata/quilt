@@ -1,8 +1,6 @@
 import cx from 'classnames'
-// TODO: use history instead
-import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
-import * as redux from 'react-redux'
+import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as Lab from '@material-ui/lab'
@@ -14,7 +12,6 @@ import * as CatalogSettings from 'utils/CatalogSettings'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
-import { useRoute } from 'utils/router'
 
 import SearchHelp from './Help'
 
@@ -185,7 +182,7 @@ function SearchBox({
 }
 
 function State({ query, makeUrl, children, onFocus, onBlur }) {
-  const dispatch = redux.useDispatch()
+  const history = useHistory()
 
   const [value, change] = React.useState(null)
   const [expanded, setExpanded] = React.useState(false)
@@ -243,7 +240,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
           /* suppress onSubmit (didn't actually find this to be a problem tho) */
           evt.preventDefault()
           if (query !== value) {
-            dispatch(push(makeUrl(value)))
+            history.push(makeUrl(value))
           }
           handleCollapse()
           evt.target.blur()
@@ -258,7 +255,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
           break
       }
     },
-    [dispatch, makeUrl, value, query, handleCollapse, handleHelpOpen],
+    [history, makeUrl, value, query, handleCollapse, handleHelpOpen],
   )
 
   return children({
@@ -280,7 +277,8 @@ function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
   const isInStack = BucketConfig.useIsInStack()
   const settings = CatalogSettings.use()
   const { paths, urls } = NamedRoutes.use()
-  const { location: l, match } = useRoute(paths.bucketSearch)
+  const l = useLocation()
+  const match = useRouteMatch(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
   const makeUrl = React.useCallback(
     (q) => urls.bucketSearch(bucket, { q, mode: settings?.search?.mode }),
@@ -298,7 +296,8 @@ function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
 function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
   const settings = CatalogSettings.use()
   const { paths, urls } = NamedRoutes.use()
-  const { location: l, match } = useRoute(paths.search)
+  const l = useLocation()
+  const match = useRouteMatch(paths.search)
   const { q: query = '', buckets } = match ? parse(l.search) : {}
   const makeUrl = React.useCallback(
     (q) => urls.search({ q, buckets, mode: settings?.search?.mode }),

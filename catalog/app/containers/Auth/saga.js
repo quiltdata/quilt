@@ -543,7 +543,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
- * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
  * @param {function} options.storeUser
@@ -552,7 +551,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  */
 export default function* Saga({
   latency,
-  checkOn,
   storeTokens,
   forgetTokens,
   storeUser,
@@ -576,10 +574,4 @@ export default function* Saga({
   yield takeEvery(actions.resetPassword.type, handleResetPassword)
   yield takeEvery(actions.changePassword.type, handleChangePassword)
   yield takeEvery(actions.getCode.type, handleGetCode)
-
-  if (checkOn) {
-    yield takeEvery(checkOn, function* checkAuth() {
-      yield put(actions.check())
-    })
-  }
 }

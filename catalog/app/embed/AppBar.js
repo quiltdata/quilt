@@ -1,13 +1,12 @@
 import { basename } from 'path'
 
 import * as React from 'react'
-import { useHistory, useRouteMatch, Link } from 'react-router-dom'
+import { useHistory, useLocation, useRouteMatch, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
-import { useRoute } from 'utils/router'
 
 import * as EmbedConfig from './EmbedConfig'
 
@@ -48,8 +47,9 @@ function SearchBox({ bucket }) {
   const history = useHistory()
   const { paths, urls } = NamedRoutes.use()
 
-  const { location: l, match } = useRoute(paths.bucketSearch)
-  const query = (match && parse(l.search).q) || ''
+  const l = useLocation()
+  const match = useRouteMatch(paths.bucketSearch)
+  const query = (match && parse(l.search, true).q) || ''
 
   const makeUrl = React.useCallback(
     (q) => urls.bucketSearch(bucket, { q }),
