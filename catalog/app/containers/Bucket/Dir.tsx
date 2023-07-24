@@ -77,10 +77,6 @@ function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
       type: 'dir' as const,
       name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
       to: urls.bucketDir(r.bucket, name),
-      handle: {
-        bucket: r.bucket,
-        key: name,
-      },
     }))
     const files = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
@@ -89,10 +85,6 @@ function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
       size,
       modified,
       archived,
-      handle: {
-        bucket: r.bucket,
-        key,
-      },
     }))
     const items = [
       ...(r.path !== '' && !r.prefix
