@@ -172,10 +172,9 @@ function useHeadFile() {
 
 const limit = pLimit(5)
 
-function useHandlesToS3Files(
-  requestbucketListing: (r: $TSFixMe) => Promise<BucketListingResult>,
-  headFile: (h: Model.S3.S3ObjectLocation) => Promise<Model.S3File>,
-) {
+export function useFilesListing() {
+  const requestbucketListing = useBucketListing()
+  const headFile = useHeadFile()
   return React.useCallback(
     async (handles: Model.S3.S3ObjectLocation[]) => {
       const requests = handles.map((handle) =>
@@ -209,10 +208,4 @@ function useHandlesToS3Files(
     },
     [requestbucketListing, headFile],
   )
-}
-
-export function useFilesListing() {
-  const requestbucketListing = useBucketListing()
-  const headFile = useHeadFile()
-  return useHandlesToS3Files(requestbucketListing, headFile)
 }
