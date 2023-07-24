@@ -1,4 +1,4 @@
-import type { PerspectiveViewerConfig } from '@finos/perspective-viewer'
+import type { ViewConfig } from '@finos/perspective'
 
 import FileType from './fileType'
 
@@ -19,7 +19,7 @@ export interface StyleOptions {
 }
 
 export interface PerspectiveOptions {
-  config?: PerspectiveViewerConfig
+  config?: ViewConfig
 }
 
 interface TypeExtendedEssentials {

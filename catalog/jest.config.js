@@ -31,8 +31,5 @@ module.exports = {
   setupFiles: ['jest-localstorage-mock', './setup-jest.ts'],
   testRegex: '.*\\.(test|spec)\\.[jt]sx?$',
   testURL: 'https://quilt-test',
-  transformIgnorePatterns: [
-    'node_modules/(?!(redux-form/es|connected-react-router/esm)/)',
-  ],
   snapshotSerializers: [],
 }

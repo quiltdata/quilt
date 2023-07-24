@@ -1,4 +1,5 @@
 #!/bin/bash
+set -exo pipefail
 
 if [ -z "$REGISTRY_HOST" ]
 then
