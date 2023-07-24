@@ -161,8 +161,8 @@ function DirContents({
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
-        onSelectionChange={locked ? undefined : onSelection}
-        selection={locked ? undefined : selection}
+        onSelectionChange={onSelection}
+        selection={selection}
         toolbarContents={
           <>
             <Listing.PrefixFilter
@@ -427,7 +427,7 @@ export default function Dir({
               bucket={bucket}
               path={path}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, bucket, path)}
+              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
               onSelection={handleSelection}
             />
           ) : (
