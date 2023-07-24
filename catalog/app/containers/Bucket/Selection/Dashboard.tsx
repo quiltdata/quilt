@@ -35,6 +35,11 @@ const useListItemStyles = M.makeStyles((t) => ({
       display: 'inline',
     },
   },
+  name: {
+    flexGrow: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   link: {
     display: 'none',
     marginLeft: t.spacing(1),
@@ -74,7 +79,7 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
       <M.ListItemIcon className={classes.icon}>
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
       </M.ListItemIcon>
-      {name}
+      <span className={classes.name}>{name}</span>
       <StyledLink className={classes.link} to={url}>
         {decodeURIComponent(s3paths.handleToS3Url(handle))}
       </StyledLink>
