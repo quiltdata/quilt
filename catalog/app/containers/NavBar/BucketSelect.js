@@ -1,10 +1,9 @@
-import { push } from 'connected-react-router/esm/immutable'
 import deburr from 'lodash/deburr'
 import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
-import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
@@ -120,7 +119,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
   // XXX: consider using graphql directly
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const dispatch = redux.useDispatch()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
 
   const [inputValue, setInputValue] = React.useState('')
@@ -149,7 +148,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
               const to =
                 typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
               if (to && currentBucket !== to) {
-                dispatch(push(urls.bucketRoot(to)))
+                history.push(urls.bucketRoot(to))
               }
             }
           }}
