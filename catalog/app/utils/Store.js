@@ -1,4 +1,3 @@
-import { routerMiddleware } from 'connected-react-router/esm/immutable'
 import { fromJS, Iterable } from 'immutable'
 import * as React from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
@@ -45,14 +44,10 @@ const sentryfyReducer = (originalReducer) => {
 
 const createReducer = compose(sentryfyReducer, combineReducers)
 
-export const Provider = function StoreProvider({ initialState = {}, history, children }) {
+export const Provider = function StoreProvider({ initialState = {}, children }) {
   // Create the store with asynchronously loaded reducers
   const [store] = React.useState(() => {
     const middlewares = []
-    if (history) {
-      // routerMiddleware: Syncs the location/URL path to the state
-      middlewares.push(routerMiddleware(history))
-    }
     // log redux state in development
     if (
       process.env.NODE_ENV === 'development' &&

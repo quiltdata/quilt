@@ -1,12 +1,12 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { useRouteMatch } from 'react-router-dom'
 
 import cfg from 'constants/config'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { useRoute } from 'utils/router'
 
 import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
 
@@ -47,8 +47,7 @@ export const useRelevantBucketConfigs = () => {
 
 export const useCurrentBucket = () => {
   const { paths } = NamedRoutes.use()
-  const { match } = useRoute(paths.bucketRoot)
-  return match && match.params.bucket
+  return useRouteMatch<{ bucket: string }>(paths.bucketRoot)?.params.bucket
 }
 
 export function useIsInStack() {
