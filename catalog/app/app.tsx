@@ -4,6 +4,7 @@
 import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import { Router } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -42,7 +43,6 @@ import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
 import { nest } from 'utils/reactTools'
-import RouterProvider, { LOCATION_CHANGE, selectLocation } from 'utils/router'
 import mkStorage from 'utils/storage'
 import * as Tracking from 'utils/tracking'
 // Load the icons
@@ -85,11 +85,11 @@ const render = () => {
       WithGlobalStyles,
       Errors.FinalBoundary,
       // @ts-expect-error
-      [Store.Provider, { history }],
+      Store.Provider,
       Sentry.UserTracker,
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
-      [RouterProvider, { history }],
+      [Router, { history }],
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,
@@ -97,7 +97,7 @@ const render = () => {
       Bookmarks.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
-      [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
+      [Auth.Provider, { storage }],
       [GTMLoader, { gtmId: cfg.gtmId }],
       [
         Intercom.Provider,
@@ -110,13 +110,7 @@ const render = () => {
         },
       ],
       ExperimentsProvider,
-      [
-        Tracking.Provider,
-        {
-          locationSelector: selectLocation,
-          userSelector: Auth.selectors.username,
-        },
-      ],
+      [Tracking.Provider, { userSelector: Auth.selectors.username }],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,

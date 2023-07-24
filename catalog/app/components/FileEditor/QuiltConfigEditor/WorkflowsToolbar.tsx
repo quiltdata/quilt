@@ -3,6 +3,7 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
@@ -10,7 +11,6 @@ import * as Form from 'components/Form'
 import type { ToolbarProps as ToolbarWrapperProps } from 'components/JsonEditor/Toolbar'
 import * as JSONPointer from 'utils/JSONPointer'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { useRoute } from 'utils/router'
 import type { JsonRecord } from 'utils/types'
 import * as validators from 'utils/validators'
 import type { WorkflowYaml } from 'utils/workflows'
@@ -290,7 +290,7 @@ function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
 
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const { paths } = NamedRoutes.use()
-  const { match } = useRoute(paths.bucketFile, { exact: true })
+  const match = useRouteMatch<{ bucket: string }>({ path: paths.bucketFile, exact: true })
   const bucket = match?.params?.bucket
 
   const handleChange = React.useCallback(

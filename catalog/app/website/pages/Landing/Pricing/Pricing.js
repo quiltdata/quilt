@@ -241,7 +241,7 @@ export default function Pricing() {
         <div className={classes.plans}>
           {PLANS.map((p) => (
             <div
-              key={p.name}
+              key={p.name + p.price}
               className={cx(
                 classes.plan,
                 classes[p.variant],

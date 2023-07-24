@@ -39,7 +39,6 @@ import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import RouterProvider from 'utils/router'
 import * as s3paths from 'utils/s3paths'
 import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
@@ -341,7 +340,6 @@ function App({ init }) {
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
     [Store.Provider, { history }],
-    [RouterProvider, { history }],
     Cache.Provider,
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
