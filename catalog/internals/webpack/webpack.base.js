@@ -13,6 +13,12 @@ const { execSync } = require('child_process')
 
 const revisionHash = execSync('git rev-parse HEAD').toString()
 
+class RevertPathOverwriteByPerspective {
+  apply(compiler) {
+    compiler.options.resolve.fallback.path = require.resolve('path-browserify')
+  }
+}
+
 // TODO: use webpack-merge, it's already in node_modules
 module.exports = (options) => ({
   mode: options.mode,
@@ -146,13 +152,16 @@ module.exports = (options) => ({
     }),
 
     new PerspectivePlugin(),
+
+    new RevertPathOverwriteByPerspective(),
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
     fallback: {
-      path: require.resolve('path-browserify'),
+      // See RevertPathOverwriteByPerspective and source of the PerspectivePlugin for details
+      // path: require.resolve('path-browserify'),
     },
   },
   devtool: options.devtool,
