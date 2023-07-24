@@ -30,13 +30,16 @@ function EmptyState() {
 
 const useListItemStyles = M.makeStyles((t) => ({
   root: {
+    whiteSpace: 'nowrap',
     '&:hover $link': {
       display: 'inline',
     },
   },
   link: {
-    marginLeft: t.spacing(1),
     display: 'none',
+    marginLeft: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   icon: {
     minWidth: t.spacing(5),
@@ -72,9 +75,9 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
       </M.ListItemIcon>
       {name}
-      <span className={classes.link}>
-        (<StyledLink to={url}>{s3paths.handleToS3Url(handle)}</StyledLink>)
-      </span>
+      <StyledLink className={classes.link} to={url}>
+        {decodeURIComponent(s3paths.handleToS3Url(handle))}
+      </StyledLink>
       <M.ListItemSecondaryAction>
         <M.IconButton size="small" onClick={onClear}>
           <M.Icon fontSize="small">clear</M.Icon>
