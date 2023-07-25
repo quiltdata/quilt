@@ -129,7 +129,7 @@ const columns: DG.GridColumns = [
     flex: 1,
     renderCell: (params: DG.GridCellParams) => {
       const c = params.row as Canary
-      const url = `https://${c.region}.console.aws.amazon.com/synthetics/cw?region=${c.region}#canary/detail/${c.name}`
+      const url = `https://${c.region}.console.aws.amazon.com/cloudwatch/home?region=${c.region}#synthetics:canary/detail/${c.name}`
       return (
         <M.Tooltip
           arrow
