@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -8,6 +7,7 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
+import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -56,51 +56,16 @@ function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
 }
 
 interface RouteMap {
-  bucketDir: [bucket: string, path?: string, prefix?: string]
-  bucketFile: [
-    bucket: string,
-    path: string,
-    options?: {
-      add?: boolean
-      edit?: boolean
-      mode?: string
-      next?: string
-      version?: string
-    },
-  ]
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
 }
 
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
-    const dirs = r.dirs.map((name) => ({
-      type: 'dir' as const,
-      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-      to: urls.bucketDir(r.bucket, name),
-    }))
-    const files = r.files.map(({ key, size, modified, archived }) => ({
-      type: 'file' as const,
-      name: s3paths.withoutPrefix(r.path, key),
-      to: urls.bucketFile(r.bucket, key),
-      size,
-      modified,
-      archived,
-    }))
-    const items = [
-      ...(r.path !== '' && !r.prefix
-        ? [
-            {
-              type: 'dir' as const,
-              name: '..',
-              to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
-            },
-          ]
-        : []),
-      ...dirs,
-      ...files,
-    ]
-    // filter-out files with same name as one of dirs
-    return R.uniqBy(R.prop('name'), items)
+    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const f = r.files.map(Listing.Entry.File)
+    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, urls })
   }, [r, urls])
 }
 

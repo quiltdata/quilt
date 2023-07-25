@@ -9,8 +9,12 @@ import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
+import type * as Routes from 'constants/routes'
+import type { Urls } from 'utils/NamedRoutes'
+import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
+import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -19,13 +23,102 @@ const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28
 
+// TODO: use Item = ItemFile | ItemDir
 export interface Item {
   type: 'dir' | 'file'
   name: string
   to: string
   size?: number
-  modified?: Date
-  archived?: boolean
+  modified?: Date // TODO: doesn't exist for dir
+  archived?: boolean // TODO: doesn't exist for dir
+}
+
+export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
+  File: (f: { key: string; size?: number; archived?: boolean; modified?: Date }) => f,
+  Dir: (d: { key: string; size?: number }) => d,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Entry = tagged.InstanceOf<typeof Entry>
+
+interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
+  bucketPackageTree: Routes.BucketPackageTreeArgs
+}
+
+type PackageUrls = Urls<RouteMap>
+
+type BucketUrls = Urls<Omit<RouteMap, 'bucketPackageTree'>>
+
+interface FormatListingOptions {
+  bucket: string
+  packageHandle?: PackageHandleWithHashesOrTag
+  prefix: string
+  urls?: BucketUrls | PackageUrls
+}
+
+export function format(
+  entries: Entry[],
+  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
+) {
+  const toDir = (path: string) => {
+    if (!urls) return path
+    if (!packageHandle) return urls.bucketDir(bucket, path)
+    return (
+      (urls as PackageUrls).bucketPackageTree?.(
+        bucket,
+        packageHandle.name,
+        packageHandle.hashOrTag,
+        s3paths.ensureSlash(path),
+      ) || path
+    )
+  }
+  const toFile = (path: string) => {
+    if (!urls) return path
+    if (!packageHandle) return urls.bucketFile(bucket, path)
+    return (
+      (urls as PackageUrls).bucketPackageTree?.(
+        bucket,
+        packageHandle.name,
+        packageHandle.hashOrTag,
+        path,
+      ) || path
+    )
+  }
+
+  const head = prefix
+    ? [
+        {
+          type: 'dir' as const,
+          name: '..',
+          to: toDir(s3paths.up(prefix)),
+        },
+      ]
+    : []
+  const items = [
+    ...head,
+    ...entries.map(
+      Entry.match<Item>({
+        Dir: ({ key, size }) => ({
+          type: 'dir' as const,
+          name: s3paths.ensureNoSlash(s3paths.withoutPrefix(prefix, key)),
+          to: toDir(key),
+          size,
+        }),
+        File: ({ key, size, archived, modified }) => ({
+          type: 'file' as const,
+          name: s3paths.withoutPrefix(prefix, key),
+          to: toFile(key),
+          size,
+          modified,
+          archived,
+        }),
+      }),
+    ),
+  ]
+  // filter-out files with same name as one of dirs
+  return R.uniqBy(R.prop('name'), items)
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {

@@ -8,7 +8,6 @@ import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
-import * as s3paths from 'utils/s3paths'
 import type * as Model from 'model'
 
 import * as Listing from '../Listing'
@@ -332,34 +331,9 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   return React.useMemo(() => {
-    const dirs = r.dirs.map((name) => ({
-      type: 'dir' as const,
-      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-      to: name,
-    }))
-    const files = r.files.map(({ key, size, modified, archived }) => ({
-      type: 'file' as const,
-      name: s3paths.withoutPrefix(r.path, key),
-      to: key,
-      size,
-      modified,
-      archived,
-    }))
-    const items = [
-      ...(r.path !== '' && !r.prefix
-        ? [
-            {
-              type: 'dir' as const,
-              name: '..',
-              to: s3paths.up(r.path),
-            },
-          ]
-        : []),
-      ...dirs,
-      ...files,
-    ]
-    // filter-out files with same name as one of dirs
-    return R.uniqBy(R.prop('name'), items)
+    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const f = r.files.map(Listing.Entry.File)
+    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
   }, [r])
 }
 
