@@ -151,13 +151,16 @@ const useStyles = M.makeStyles((t) => ({
   paper: {
     height: '100vh',
   },
-  crumbs: {
-    ...t.typography.body1,
+  header: {
+    alignItems: 'center',
+    display: 'flex',
     marginTop: -t.spacing(1),
     maxWidth: '100%',
-    overflowWrap: 'break-word',
     padding: t.spacing(0, 2, 0, 3),
-    display: 'flex',
+  },
+  crumbs: {
+    ...t.typography.body1,
+    overflowWrap: 'break-word',
   },
   lock: {
     bottom: 52,
@@ -280,8 +283,10 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           )}
         </M.Typography>
       </M.DialogTitle>
-      <div className={classes.crumbs}>
-        {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
+      <div className={classes.header}>
+        <div className={classes.crumbs}>
+          {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
+        </div>
         <SelectionWidget
           className={classes.selectionButton}
           selection={selection}
