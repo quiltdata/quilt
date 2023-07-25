@@ -1,7 +1,7 @@
 attrs==19.1.0
 beautifulsoup4==4.12.2
 bleach==3.3.0
-certifi==2022.12.7
+certifi==2023.7.22
 chardet==3.0.4
 charset-normalizer==2.0.12
 decorator==4.4.0
