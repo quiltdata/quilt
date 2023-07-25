@@ -3,6 +3,9 @@ const path = require('path')
 module.exports = {
   preset: 'ts-jest/presets/js-with-ts',
   testEnvironment: 'jsdom',
+  testEnvironmentOptions: {
+    url: 'https://quilt-test'
+  },
   collectCoverageFrom: [
     'app/**/*.{j,t}s{,x}',
     '!app/**/*.test.{j,t}s{,x}',
@@ -30,9 +33,5 @@ module.exports = {
   },
   setupFiles: ['jest-localstorage-mock', './setup-jest.ts'],
   testRegex: '.*\\.(test|spec)\\.[jt]sx?$',
-  testURL: 'https://quilt-test',
-  transformIgnorePatterns: [
-    'node_modules/(?!(redux-form/es|connected-react-router/esm)/)',
-  ],
   snapshotSerializers: [],
 }

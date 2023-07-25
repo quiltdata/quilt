@@ -2,7 +2,7 @@ import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Redirect } from 'react-router-dom'
+import { Redirect, useLocation } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
@@ -10,7 +10,6 @@ import Error from 'components/Error'
 import Layout from 'components/Layout'
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { selectLocation } from 'utils/router'
 
 import { check } from './actions'
 import { InvalidToken } from './errors'
@@ -75,10 +74,10 @@ export default function requireAuth<Props = {}>({ authorizedSelector = R.T } = {
     authorized: authorizedSelector,
     error: selectors.error,
     waiting: selectors.waiting,
-    location: selectLocation,
   })
   return memoize((Component) => (props: Props) => {
     const state = redux.useSelector(select)
+    const location = useLocation()
     const { urls } = NamedRoutes.use()
 
     if (state.error && !(state.error instanceof InvalidToken)) {
@@ -91,8 +90,7 @@ export default function requireAuth<Props = {}>({ authorizedSelector = R.T } = {
     }
 
     if (!state.authenticated) {
-      const l = state.location
-      return <Redirect to={urls.signIn(l.pathname + l.search)} />
+      return <Redirect to={urls.signIn(location.pathname + location.search)} />
     }
 
     if (!state.authorized) {

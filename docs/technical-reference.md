@@ -271,12 +271,12 @@ Your previous settings should carry over.
 You can create a new Quilt stack with the same configuration as an existing
 stack.
 > _Configuration_ here refers to the Quilt stack buckets, roles, policies,
-and other administrative settings, all of which are stored in an RDS instance.
+> and other administrative settings, all of which are stored in an RDS instance.
 
 Perform the following steps.
 
 1. Contact your Quilt account manager for a template that supports the "existing
-database" option.
+database", "existing search", and "existing vpc" options.
 
 1. Take a manual snapshot of the current Quilt database instance. For an existing
 Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
@@ -290,8 +290,14 @@ AWS CLI command):
 
     > Be sure to take a _manual_ snapshot. Do not rely on automatic snapshots,
     > which are deleted when the parent stack is deleted.
-1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac/tree/main/terraform/modules/quilt)
-to your new template and provide the snapshot identifier to the variable `db_snapshot_identifier`.
+
+1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac)
+to your new template and provide the snapshot identifier to the
+`db_snapshot_identifier=` argument.
+
+    > You must use a Quilt CloudFormation template that supports an existing database,
+    > existing search domain, and existing vpc in order for the terraform modules to
+    > function properly.
 
 1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
 Verify that the new stack is working as desired. Delete the old stack.
