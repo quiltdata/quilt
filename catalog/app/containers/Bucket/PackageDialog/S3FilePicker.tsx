@@ -301,7 +301,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPath={setPath}
               setPrefix={setPrefix}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, bucket, path)}
+              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
               onSelectionChange={handleSelection}
             />
           ) : (
@@ -403,8 +403,8 @@ function DirContents({
       loadMore={loadMore}
       truncated={truncated}
       prefixFilter={prefix}
-      selection={locked ? undefined : selection}
-      onSelectionChange={locked ? undefined : onSelectionChange}
+      selection={selection}
+      onSelectionChange={onSelectionChange}
       CellComponent={CellComponent}
       RootComponent="div"
       className={classes.root}
