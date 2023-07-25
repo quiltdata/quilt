@@ -52,30 +52,24 @@ type StateUpdaterFunction = (input: BookmarksGroups) => BookmarksGroups
 
 function createAppendUpdater(
   groupName: GroupName,
-  handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+  handles: Model.S3.S3ObjectLocation[],
 ): StateUpdaterFunction {
-  if (Array.isArray(handle)) {
-    const entries = handle.reduce(
-      (memo, entry) => ({
-        ...memo,
-        [keyResolver(entry)]: entry,
-      }),
-      {},
-    )
-    return R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries))
-  }
-  return R.set(R.lensPath([groupName, 'entries', keyResolver(handle)]), handle)
+  const entries = handles.reduce(
+    (memo, entry) => ({
+      ...memo,
+      [keyResolver(entry)]: entry,
+    }),
+    {},
+  )
+  return R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries))
 }
 
 function createRemoveUpdater(
   groupName: GroupName,
-  handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+  handles: Model.S3.S3ObjectLocation[],
 ): StateUpdaterFunction {
-  if (Array.isArray(handle)) {
-    const keys = handle.map(keyResolver)
-    return R.over(R.lensPath([groupName, 'entries']), R.omit(keys))
-  }
-  return R.over(R.lensPath([groupName, 'entries']), R.dissoc(keyResolver(handle)))
+  const keys = handles.map(keyResolver)
+  return R.over(R.lensPath([groupName, 'entries']), R.omit(keys))
 }
 
 function createClearUpdater(groupName: GroupName): StateUpdaterFunction {
@@ -108,7 +102,9 @@ export function Provider({ children }: ProviderProps) {
       groupName: GroupName,
       handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
     ) => {
-      updateGroups(createAppendUpdater(groupName, handle))
+      updateGroups(
+        createAppendUpdater(groupName, Array.isArray(handle) ? handle : [handle]),
+      )
       if (!isOpened) setUpdates(true)
     },
     [isOpened, updateGroups],
@@ -118,7 +114,9 @@ export function Provider({ children }: ProviderProps) {
       groupName: GroupName,
       handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
     ) => {
-      const newGroups = updateGroups(createRemoveUpdater(groupName, handle))
+      const newGroups = updateGroups(
+        createRemoveUpdater(groupName, Array.isArray(handle) ? handle : [handle]),
+      )
       const isEmpty = R.pipe(R.path([groupName, 'entries']), R.isEmpty)(newGroups)
       if (isEmpty) {
         setUpdates(false)
