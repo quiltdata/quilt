@@ -214,7 +214,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   }, [bucket, path, prefix])
 
   const handleBucketChange = React.useCallback(
-    (b) => {
+    (b: string) => {
       if (!selectBucket) return
       setPath('')
       setPrefix('')
