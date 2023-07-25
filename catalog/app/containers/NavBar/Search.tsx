@@ -156,7 +156,7 @@ function SearchInput({
   )
 }
 
-function useSearchUrlState(bucket: string | undefined) {
+function useSearchUrlState(bucket?: string) {
   const { paths, urls } = NamedRoutes.use()
   const location = useLocation()
   const match = useRouteMatch(paths.search)
@@ -225,8 +225,8 @@ function useSearchState({ bucket, onFocus, onBlur, ...props }: SearchProps): Sea
   const handleHelpClose = React.useCallback(() => setHelpOpen(false), [])
 
   const onQuery = React.useCallback(
-    (strPart: string) => change(`${value} ${strPart}`),
-    [value],
+    (strPart: string) => change((v) => (v ? `${v} ${strPart}` : strPart)),
+    [],
   )
 
   const onHelpToggle = React.useCallback(() => {
