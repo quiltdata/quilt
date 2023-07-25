@@ -44,9 +44,7 @@ export const toHandlesList = (selection: PrefixedKeysMap): Model.S3.S3ObjectLoca
 const mergeWithFiltered =
   (prefix: string, filteredIds: string[]) => (allIds: string[]) => {
     if (!allIds || !allIds.length) return filteredIds
-    const selectionOutsideFilter = allIds.filter(
-      (id) => !id.startsWith(prefix),
-    )
+    const selectionOutsideFilter = allIds.filter((id) => !id.startsWith(prefix))
     const newIds = [...selectionOutsideFilter, ...filteredIds]
     return R.equals(newIds, allIds) ? allIds : newIds // avoids cyclic update
   }
