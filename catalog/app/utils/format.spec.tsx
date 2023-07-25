@@ -53,8 +53,7 @@ describe('utils/format', () => {
 
   describe('relativify', () => {
     beforeEach(() => {
-      jest.useFakeTimers('modern')
-      jest.setSystemTime(new Date(2020, 0, 30, 0, 0, 0, 0))
+      jest.useFakeTimers({ now: new Date(2020, 0, 30, 0, 0, 0, 0) })
     })
 
     afterEach(() => {
