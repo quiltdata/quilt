@@ -341,18 +341,31 @@ function DirDisplay({
                   {
                     Ok: ({ ui: { actions } }) => (
                       <>
-                        {actions.revisePackage && (
-                          <M.Button
-                            className={classes.button}
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                            style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-                            onClick={() => updateDialog.open()}
-                          >
-                            Revise package
-                          </M.Button>
-                        )}
+                        {actions.revisePackage &&
+                          (actions.editPackage ? (
+                            <RRDom.Link to={urls.bucketPackageEditor(bucket, name, hash)}>
+                              <M.Button
+                                className={classes.button}
+                                variant="contained"
+                                color="primary"
+                                size="small"
+                                style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                              >
+                                Revise package
+                              </M.Button>
+                            </RRDom.Link>
+                          ) : (
+                            <M.Button
+                              className={classes.button}
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                              onClick={() => updateDialog.open()}
+                            >
+                              Revise package
+                            </M.Button>
+                          ))}
                         {actions.copyPackage && (
                           <Successors.Button
                             className={classes.button}

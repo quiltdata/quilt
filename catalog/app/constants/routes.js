@@ -130,6 +130,10 @@ export const bucketPackageTree = {
         )}${mkSearch({ mode })}`
       : bucketPackageDetail.url(bucket, name),
 }
+export const bucketPackageEditor = {
+  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/edit/:revision?`,
+  url: (bucket, name, revision) => `/b/${bucket}/packages/${name}/edit/${revision}`,
+}
 export const bucketPackageRevisions = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
   url: (bucket, name, { p } = {}) =>

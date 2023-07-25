@@ -9,7 +9,12 @@ import * as tagged from 'utils/taggedV2'
 import * as YAML from 'utils/yaml'
 
 export type ActionPreferences = Record<
-  'copyPackage' | 'createPackage' | 'deleteRevision' | 'openInDesktop' | 'revisePackage',
+  | 'copyPackage'
+  | 'createPackage'
+  | 'deleteRevision'
+  | 'openInDesktop'
+  | 'revisePackage'
+  | 'editPackage',
   boolean
 >
 
@@ -107,7 +112,7 @@ interface UiPreferences {
   sourceBuckets: SourceBuckets
 }
 
-interface BucketPreferences {
+export interface BucketPreferences {
   ui: UiPreferences
 }
 
@@ -133,6 +138,7 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
+      editPackage: false,
       openInDesktop: false,
       revisePackage: true,
     },
