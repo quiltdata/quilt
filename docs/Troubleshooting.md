@@ -39,7 +39,7 @@ or `aws opensearch list-domain-names`. Note the domain name (hereafter `QUILT_DO
 1. Send the JSON output file and screenshots to [Quilt support](mailto:support@quiltdata.io).
 
 > As a rule you should not reconfigure your Elasticsearch domain directly as this will
-result in drift that will be lost the next time you update your Quilt instance.
+> result in stack drift that will be lost the next time you update your Quilt instance.
 
 ## Missing metadata when working with Quilt packages via the API
 
