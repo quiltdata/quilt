@@ -5,7 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Switch, useLocation } from 'react-router-dom'
+import { Route, Router, Switch, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -339,8 +339,9 @@ function App({ init }) {
     [Overrides.Provider, { value: init.overrides }],
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
-    [Store.Provider, { history }],
+    Store.Provider,
     Cache.Provider,
+    [Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
     Notifications.Provider,
@@ -364,6 +365,6 @@ export default function Embed() {
     Layout.Root,
     ErrorBoundary,
     [NamedRoutes.Provider, { routes }],
-    [Init],
+    Init,
   )
 }
