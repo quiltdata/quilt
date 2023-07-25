@@ -4,37 +4,42 @@
 ## Catalog packages or stats are missing or are not updating
 
 If you recently added the bucket or upgraded the stack, if search volume is high,
-or if the bucket is under rapid modification, wait a few minutes and try again.
+or if read/write volume is high, wait a few minutes and try again.
 
 ### Re-index the bucket
 
-1. Open the bucket in the Quilt catalog
+1. Open the bucket overview in the Quilt catalog and click the gear icon (upper right),
+or navigate to Admin settings > Buckets and inspect the settings of the bucket in question.
 
-1. Click the gear icon (upper right), or navigate to Users and buckets > Buckets
-and open the bucket in question
+1. Under "Indexing and notifications", click "Re-index and Repair".
 
-    ![](imgs/admin-bucket.png)
+> Optionally: **if and only if** bucket notifications are not working and you are
+> certain that there are no other subscribers to the S3 Events of the bucket in
+> question, check "Repair S3 notifications".
 
-1. Under "Indexing and notifications", click "Re-index and Repair". Optional:
-if and only if bucket notifications were deleted or are not working,
-check "Repair S3 notifications".
+Bucket packages, stats, and the search index will repopulate in the next few minutes.
+Buckets with more than one million objects will take longer.
 
-1. Wait a few minutes while bucket statistics and packages repopulate
+### Inspect the Elasticsearch domain
 
-### Inspect Elasticsearch domain
+1. Determine your Quilt instance's ElasticSearch domain from Amazon Console > OpenSearch
+or `aws opensearch list-domain-names`. Note the domain name (hereafter `QUILT_DOMAIN`).
 
-1. Go to CloudFormation > Stacks > YourQuiltStack > Resources
-1. Search for "domain"
-1. Click on the link for "Search" under "Physical ID"
-1. You are now under Elasticsearch > Dashboards
-1. Set the time range to include the period before and after when you noticed
-any issues
-1. Screenshot the dashboard stats for your domain
-1. Click into your domain and then navigate to "Cluster health"
-1. Screenshot Summary, Overall Health, and Key Performance Indicator sections
-1. Send screenshots to [Quilt support](mailto:support@quiltdata.io).
-1. It is not recommended that you adjust Elasticsearch via Edit domain, as these
-changes will be lost the next time that you update Quilt
+1. Run the following command and save the output file:
+    ```sh
+    aws es describe-elasticsearch-domain --domain-name "$QUILT_DOMAIN" > quilt-es-domain.json
+    ```
+
+1. Visit Amazon Console > OpenSearch > `QUILT_DOMAIN` > Cluster health.
+
+1. Set the time range as long as possible to fully overlap with your observed issues.
+
+1. Screenshot the Summary, Overall Health, and Key Performance Indicator sections
+
+1. Send the JSON output file and screenshots to [Quilt support](mailto:support@quiltdata.io).
+
+> As a rule you should not reconfigure your Elasticsearch domain directly as this will
+result in drift that will be lost the next time you update your Quilt instance.
 
 ## Missing metadata when working with Quilt packages via the API
 
@@ -219,8 +224,8 @@ STACK_NAME="YOUR_QUILT_STACK"
 RESOURCE_ID="YOUR_LOGICAL_ID"
 SG_ID=$(
   aws cloudformation describe-stack-resource \
-    --stack-name "${YOUR_QUILT_STACK}" \
-    --logical-resource-id "${YOUR_LOGICAL_ID}" \
+    --stack-name "${STACK_NAME}" \
+    --logical-resource-id "${RESOURCE_ID}" \
     --query 'StackResourceDetail.PhysicalResourceId' \
     --output text
 )
