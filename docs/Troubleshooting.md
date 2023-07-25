@@ -26,6 +26,7 @@ Buckets with more than one million objects will take longer.
 or `aws opensearch list-domain-names`. Note the domain name (hereafter `QUILT_DOMAIN`).
 
 1. Run the following command and save the output file:
+    <!--pytest.mark.skip-->
     ```sh
     aws es describe-elasticsearch-domain --domain-name "$QUILT_DOMAIN" > quilt-es-domain.json
     ```
