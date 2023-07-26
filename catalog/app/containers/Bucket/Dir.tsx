@@ -136,6 +136,9 @@ const useSelectionWidgetStyles = M.makeStyles({
     alignItems: 'center',
     display: 'flex',
   },
+  badge: {
+    right: '4px',
+  },
 })
 
 interface SelectionWidgetProps {
@@ -152,10 +155,12 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
   React.useEffect(() => close(), [close, location])
+  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
   return (
     <>
       <M.Badge
         badgeContent={count}
+        classes={badgeClasses}
         className={className}
         color="primary"
         max={999}
@@ -200,9 +205,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   button: {
     marginLeft: t.spacing(1),
-  },
-  selectionButton: {
-    marginRight: t.spacing(1),
   },
   topbar: {
     display: 'flex',
@@ -320,7 +322,7 @@ export default function Dir({
         </div>
         <div className={classes.actions}>
           <SelectionWidget
-            className={cx(classes.button, classes.selectionButton)}
+            className={cx(classes.button)}
             selection={selection}
             onSelection={setSelection}
           />
