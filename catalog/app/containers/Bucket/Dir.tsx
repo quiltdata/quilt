@@ -295,7 +295,7 @@ export default function Dir({
     [packageDirectoryDialog, path, selection],
   )
 
-  const { urls } = NamedRoutes.use<RouteMap>()
+  const { paths, urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
     (segPath: string) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
@@ -303,10 +303,28 @@ export default function Dir({
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
+  const guardNavigation = React.useCallback(
+    (location) => {
+      if (
+        !RRDom.matchPath(location.pathname, {
+          path: paths.bucketDir,
+          exact: true,
+          strict: true,
+        })
+      ) {
+        // FIXME: improve message
+        return 'Selection will be lost. Do you confirm navigation?'
+      }
+      return true
+    },
+    [paths],
+  )
 
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
+      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
