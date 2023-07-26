@@ -14,7 +14,6 @@ import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import dissocBy from 'utils/dissocBy'
 import useDragging from 'utils/dragging'
-import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
@@ -73,7 +72,7 @@ export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
     Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
-    AddFromS3: (v: { files: Model.S3File[]; basePrefix: string; prefix?: string }) => v,
+    AddFromS3: (filesMap: Record<string, Model.S3File>) => filesMap,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
@@ -133,19 +132,11 @@ const handleFilesAction = FilesAction.match<
           acc,
         )
       }, state),
-  AddFromS3:
-    ({ files, basePrefix, prefix }) =>
-    (state) =>
-      files.reduce((acc, file) => {
-        const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
-        return R.evolve(
-          {
-            added: R.assoc(path, file),
-            deleted: R.dissoc(path),
-          },
-          acc,
-        )
-      }, state),
+  AddFromS3: (filesMap) =>
+    R.evolve({
+      added: R.mergeLeft(filesMap),
+      deleted: R.omit(Object.keys(filesMap)),
+    }),
   Delete: (path) =>
     R.evolve({
       added: R.dissoc(path),
@@ -453,6 +444,7 @@ const useFileStyles = M.makeStyles((t) => ({
   interactive: {},
   invalid: {},
   actions: {
+    flexShrink: 0,
     '$invalid &': {
       color: t.palette.primary.contrastText,
     },
@@ -1500,7 +1492,7 @@ export function FilesInput({
   const closeS3FilePicker = React.useCallback(
     (reason: S3FilePicker.CloseReason) => {
       if (!!reason && typeof reason === 'object') {
-        dispatch(FilesAction.AddFromS3({ files: reason.files, basePrefix: reason.path }))
+        dispatch(FilesAction.AddFromS3(reason.filesMap))
       }
       setS3FilePickerOpen(false)
     },

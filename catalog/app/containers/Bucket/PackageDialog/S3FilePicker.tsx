@@ -145,7 +145,7 @@ type MuiCloseReason = 'backdropClick' | 'escapeKeyDown'
 export type CloseReason =
   | MuiCloseReason
   | 'cancel'
-  | { path: string; files: Model.S3File[] }
+  | { filesMap: Record<string, Model.S3File> }
 
 const useStyles = M.makeStyles((t) => ({
   paper: {
@@ -247,11 +247,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
       setLocked(true)
       const handles = Selection.toHandlesList(selection)
       const filesMap = await getFiles(handles)
-      onClose({ files: Object.values(filesMap), path })
+      onClose({ filesMap })
     } finally {
       setLocked(false)
     }
-  }, [getFiles, onClose, selection, path])
+  }, [getFiles, onClose, selection])
 
   const handleExited = React.useCallback(() => {
     setPath('')
