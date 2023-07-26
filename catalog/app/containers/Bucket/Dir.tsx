@@ -313,7 +313,7 @@ export default function Dir({
         })
       ) {
         // FIXME: improve message
-        return 'Selection will be lost. Do you confirm navigation?'
+        return 'Selection will be lost. Clear selection and confirm navigation?'
       }
       return true
     },
