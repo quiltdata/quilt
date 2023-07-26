@@ -165,14 +165,15 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
           Selected items
         </M.Button>
       </M.Badge>
+
       <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
-        <M.DialogTitle>
-          <div className={classes.title}>
+        <M.DialogTitle disableTypography>
+          <M.Typography className={classes.title} variant="h6">
             {count} items selected
-            <M.IconButton className={classes.close} onClick={close}>
+            <M.IconButton size="small" className={classes.close} onClick={close}>
               <M.Icon>close</M.Icon>
             </M.IconButton>
-          </div>
+          </M.Typography>
         </M.DialogTitle>
         <M.DialogContent>
           <Selection.Dashboard
