@@ -66,7 +66,7 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
       <M.Backdrop open={selectionOpened} onClick={close} className={classes.backdrop}>
         <M.Grow in={selectionOpened}>
           <M.Paper className={classes.popup}>
-            <M.IconButton className={classes.close} onClick={close}>
+            <M.IconButton className={classes.close} onClick={close} size="small">
               <M.Icon>close</M.Icon>
             </M.IconButton>
             <Selection.Dashboard
