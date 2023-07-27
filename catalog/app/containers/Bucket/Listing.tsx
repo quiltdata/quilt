@@ -23,14 +23,13 @@ const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28
 
-// TODO: use Item = ItemFile | ItemDir
 export interface Item {
   type: 'dir' | 'file'
   name: string
   to: string
   size?: number
-  modified?: Date // TODO: doesn't exist for dir
-  archived?: boolean // TODO: doesn't exist for dir
+  modified?: Date
+  archived?: boolean
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
