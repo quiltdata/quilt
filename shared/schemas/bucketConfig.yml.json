@@ -81,10 +81,10 @@
               "oneOf": [
                 { "type": "boolean" },
                 {
+                  "type": "object",
                   "properties": {
                     "hidden": {
                       "description": "Show/hide .quilt directory in files listing",
-                      "default": true,
                       "type": "boolean"
                     }
                   }
