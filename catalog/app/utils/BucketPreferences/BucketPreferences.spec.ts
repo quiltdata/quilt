@@ -12,7 +12,9 @@ const expectedDefaults = {
     },
     blocks: {
       analytics: true,
-      browser: true,
+      browser: {
+        hidden: true,
+      },
       code: true,
       meta: {
         userMeta: {
