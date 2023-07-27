@@ -53,7 +53,7 @@ export default function EditFileName({
 
   return (
     <>
-      <M.IconButton color="inherit" onClick={prompt.open} title="Edit meta" size="small">
+      <M.IconButton color="inherit" onClick={prompt.open} title="Edit file name" size="small">
         <Icon color={color} />
       </M.IconButton>
 
