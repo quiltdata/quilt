@@ -409,11 +409,7 @@ export default function Dir({
 
       {BucketPreferences.Result.match(
         {
-          Ok: ({
-            ui: {
-              blocks: { browser },
-            },
-          }) =>
+          Ok: ({ ui: { blocks } }) =>
             data.case({
               Err: displayError(),
               Init: () => null,
@@ -427,14 +423,16 @@ export default function Dir({
                     bucket={bucket}
                     path={path}
                     loadMore={loadMore}
-                    prefs={browser || ({} as BucketPreferences.BrowserBlockPreferences)}
+                    prefs={
+                      // FIXME
+                      blocks.browser || ({} as BucketPreferences.BrowserBlockPreferences)
+                    }
                   />
                 ) : (
                   <M.CircularProgress />
                 )
               },
             }),
-
           Pending: () => <M.CircularProgress />,
           Init: () => null,
         },

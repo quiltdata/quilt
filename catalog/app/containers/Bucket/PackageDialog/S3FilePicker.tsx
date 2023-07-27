@@ -8,6 +8,7 @@ import * as DG from '@material-ui/data-grid'
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import { ensureNoSlash, withoutPrefix } from 'utils/s3paths'
@@ -126,6 +127,7 @@ export function Dialog({
 
   const bucketListing = requests.useBucketListing()
 
+  const prefs = BucketPreferences.use()
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
@@ -251,30 +253,44 @@ export function Dialog({
       <div className={classes.crumbs}>
         {BreadCrumbs.render(crumbs, { getLinkProps: getCrumbLinkProps })}
       </div>
-      {data.case({
-        // TODO: customized error display?
-        Err: displayError(),
-        Init: () => null,
-        _: (x: $TSFixMe) => {
-          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
-          return res ? (
-            <DirContents
-              response={res}
-              locked={!AsyncResult.Ok.is(x)}
-              setPath={setPath}
-              setPrefix={setPrefix}
-              loadMore={loadMore}
-              selection={selection}
-              onSelectionChange={setSelection}
-            />
-          ) : (
-            // TODO: skeleton
-            <M.Box px={3} pt={2} flexGrow={1}>
-              <M.CircularProgress />
-            </M.Box>
-          )
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) =>
+            data.case({
+              // TODO: customized error display?
+              Err: displayError(),
+              Init: () => null,
+              _: (x: $TSFixMe) => {
+                const res: requests.BucketListingResult | null =
+                  AsyncResult.getPrevResult(x)
+                return res ? (
+                  <DirContents
+                    response={res}
+                    locked={!AsyncResult.Ok.is(x)}
+                    setPath={setPath}
+                    setPrefix={setPrefix}
+                    loadMore={loadMore}
+                    selection={selection}
+                    onSelectionChange={setSelection}
+                    prefs={
+                      // FIXME
+                      blocks.browser || ({} as BucketPreferences.BrowserBlockPreferences)
+                    }
+                  />
+                ) : (
+                  // TODO: skeleton
+                  <M.Box px={3} pt={2} flexGrow={1}>
+                    <M.CircularProgress />
+                  </M.Box>
+                )
+              },
+            }),
+          Pending: () => <M.CircularProgress />,
+          Init: () => null,
         },
-      })}
+        prefs,
+      )}
+
       {locked && <Lock className={classes.lock} />}
       <M.DialogActions>
         {locked ? (
@@ -300,14 +316,17 @@ export function Dialog({
   )
 }
 
-function useFormattedListing(r: requests.BucketListingResult) {
+function useFormattedListing(
+  r: requests.BucketListingResult,
+  prefs: BucketPreferences.BrowserBlockPreferences,
+) {
   return React.useMemo(() => {
-    const dirs = r.dirs.map((name) => ({
+    const dirs: Listing.Item[] = r.dirs.map((name) => ({
       type: 'dir' as const,
       name: ensureNoSlash(withoutPrefix(r.path, name)),
       to: name,
     }))
-    const files = r.files.map(({ key, size, modified, archived }) => ({
+    const files: Listing.Item[] = r.files.map(({ key, size, modified, archived }) => ({
       type: 'file' as const,
       name: withoutPrefix(r.path, key),
       to: key,
@@ -316,9 +335,10 @@ function useFormattedListing(r: requests.BucketListingResult) {
       archived,
     }))
     const items = [...dirs, ...files]
+    const filtered = prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
     // filter-out files with same name as one of dirs
-    return R.uniqBy(R.prop('name'), items)
-  }, [r])
+    return R.uniqBy(R.prop('name'), filtered)
+  }, [prefs.hidden, r])
 }
 
 const useDirContentsStyles = M.makeStyles((t) => ({
@@ -343,6 +363,7 @@ interface DirContentsProps {
   loadMore: () => void
   selection: DG.GridRowId[]
   onSelectionChange: (newSelection: DG.GridRowId[]) => void
+  prefs: BucketPreferences.BrowserBlockPreferences
 }
 
 function DirContents({
@@ -353,9 +374,10 @@ function DirContents({
   loadMore,
   selection,
   onSelectionChange,
+  prefs,
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
-  const items = useFormattedListing(response)
+  const items = useFormattedListing(response, prefs)
   const { bucket, path, prefix, truncated } = response
 
   React.useLayoutEffect(() => {
