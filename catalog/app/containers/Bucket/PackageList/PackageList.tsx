@@ -1,9 +1,11 @@
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
+import invariant from 'invariant'
 import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
@@ -829,12 +831,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   )
 }
 
-export default function PackageListWrapper({
-  match: {
-    params: { bucket },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string }>) {
+export default function PackageListWrapper() {
+  const { bucket } = RRDomCompat.useParams<{ bucket: string }>()
+  const location = RRDomCompat.useLocation()
+  invariant(!!bucket, `bucket must be defined`)
+
   const { sort, filter, p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

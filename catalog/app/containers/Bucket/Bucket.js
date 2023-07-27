@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Route, Switch, matchPath } from 'react-router-dom'
+import { Switch, matchPath } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -91,12 +92,10 @@ function BucketLayout({ bucket, section = false, children }) {
   )
 }
 
-export default function Bucket({
-  location,
-  match: {
-    params: { bucket },
-  },
-}) {
+export default function Bucket() {
+  const { bucket } = RRDomCompat.useParams()
+  const location = RRDomCompat.useLocation()
+
   const { paths } = NamedRoutes.use()
   return (
     <BucketPreferences.Provider bucket={bucket}>
@@ -104,20 +103,41 @@ export default function Bucket({
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Switch>
-            <Route path={paths.bucketFile} component={File} exact strict />
-            <Route path={paths.bucketDir} component={Dir} exact />
-            <Route path={paths.bucketOverview} component={Overview} exact />
-            <Route path={paths.bucketSearch} component={Search} exact />
-            <Route path={paths.bucketPackageList} component={PackageList} exact />
-            <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-            <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-            <Route
+            <RRDomCompat.CompatRoute
+              path={paths.bucketFile}
+              component={File}
+              exact
+              strict
+            />
+            <RRDomCompat.CompatRoute path={paths.bucketDir} component={Dir} exact />
+            <RRDomCompat.CompatRoute
+              path={paths.bucketOverview}
+              component={Overview}
+              exact
+            />
+            <RRDomCompat.CompatRoute path={paths.bucketSearch} component={Search} exact />
+            <RRDomCompat.CompatRoute
+              path={paths.bucketPackageList}
+              component={PackageList}
+              exact
+            />
+            <RRDomCompat.CompatRoute
+              path={paths.bucketPackageDetail}
+              component={PackageTree}
+              exact
+            />
+            <RRDomCompat.CompatRoute
+              path={paths.bucketPackageTree}
+              component={PackageTree}
+              exact
+            />
+            <RRDomCompat.CompatRoute
               path={paths.bucketPackageRevisions}
               component={PackageRevisions}
               exact
             />
-            <Route path={paths.bucketQueries} component={Queries} />
-            <Route component={ThrowNotFound} />
+            <RRDomCompat.CompatRoute path={paths.bucketQueries} component={Queries} />
+            <RRDomCompat.CompatRoute component={ThrowNotFound} />
           </Switch>
         </CatchNotFound>
       </BucketLayout>

@@ -1,7 +1,8 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { useLocation } from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
@@ -100,19 +101,16 @@ const whenAuth = (cases: WhenAuthCases) => () => <WhenAuth cases={cases} />
 
 function SignIn() {
   const { urls } = NamedRoutes.use()
+  const location = useLocation()
   return (
-    <Route>
-      {({ location: l }) => (
-        <M.Button
-          component={Link}
-          to={urls.signIn(l.pathname + l.search + l.hash)}
-          variant="contained"
-          color="primary"
-        >
-          Sign In
-        </M.Button>
-      )}
-    </Route>
+    <M.Button
+      component={Link}
+      to={urls.signIn(location.pathname + location.search + location.hash)}
+      variant="contained"
+      color="primary"
+    >
+      Sign In
+    </M.Button>
   )
 }
 

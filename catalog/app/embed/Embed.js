@@ -5,7 +5,8 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Router, Switch, useLocation } from 'react-router-dom'
+import { Router, Switch } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -98,32 +99,30 @@ const ErrorBoundary = createBoundary(() => (error) => (
 const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
 
 function Root() {
-  const l = useLocation()
+  const l = RRDomCompat.useLocation()
   const { paths } = NamedRoutes.use()
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route path={paths.bucketRoot} component={Bucket} />
-        <Route component={ThrowNotFound} />
+        <RRDomCompat.CompatRoute path={paths.bucketRoot} component={Bucket} />
+        <RRDomCompat.CompatRoute component={ThrowNotFound} />
       </Switch>
     </CatchNotFound>
   )
 }
 
-function Bucket({
-  match: {
-    params: { bucket },
-  },
-}) {
+function Bucket() {
+  const { bucket } = RRDomCompat.useParams()
+
   const { paths } = NamedRoutes.use()
 
   return (
     <BucketLayout bucket={bucket}>
       <Switch>
-        <Route path={paths.bucketFile} component={File} exact strict />
-        <Route path={paths.bucketDir} component={Dir} exact />
-        <Route path={paths.bucketSearch} component={Search} exact />
-        <Route component={ThrowNotFound} />
+        <RRDomCompat.CompatRoute path={paths.bucketFile} component={File} exact strict />
+        <RRDomCompat.CompatRoute path={paths.bucketDir} component={Dir} exact />
+        <RRDomCompat.CompatRoute path={paths.bucketSearch} component={Search} exact />
+        <RRDomCompat.CompatRoute component={ThrowNotFound} />
       </Switch>
     </BucketLayout>
   )

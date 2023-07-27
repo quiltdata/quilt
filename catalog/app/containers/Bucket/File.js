@@ -4,6 +4,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link, useHistory } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -320,12 +321,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function File({
-  match: {
-    params: { bucket, path: encodedPath },
-  },
-  location,
-}) {
+export default function File() {
+  const location = RRDomCompat.useLocation()
+  const { bucket, path: encodedPath } = RRDomCompat.useParams()
+
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

@@ -6,6 +6,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -1384,7 +1385,8 @@ function CRUD({ bucketName }: CRUDProps) {
   )
 }
 
-export default function Buckets({ location }: RRDom.RouteComponentProps) {
+export default function Buckets() {
+  const location = RRDomCompat.useLocation()
   const { bucket } = parseSearch(location.search)
   const bucketName = Array.isArray(bucket) ? bucket[0] : bucket
   return (

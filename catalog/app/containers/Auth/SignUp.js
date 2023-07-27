@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import Placeholder from 'components/Placeholder'
@@ -230,7 +231,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   )
 }
 
-export default ({ location: { search } }) => {
+export default () => {
+  const { search } = RRDomCompat.useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
 

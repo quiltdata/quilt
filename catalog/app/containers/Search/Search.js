@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -325,7 +326,8 @@ const useSearchStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Search({ location: l }) {
+export default function Search() {
+  const l = RRDomCompat.useLocation()
   const classes = useSearchStyles()
 
   const { q, p, mode, ...params } = parseSearch(l.search)

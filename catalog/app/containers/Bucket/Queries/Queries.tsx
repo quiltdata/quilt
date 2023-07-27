@@ -1,6 +1,8 @@
+import invariant from 'invariant'
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router'
-import { Redirect, Route, Switch } from 'react-router-dom'
+import { Redirect, Switch } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
+import { CompatRoute } from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
@@ -15,11 +17,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Queries({
-  match: {
-    params: { bucket },
-  },
-}: RouteComponentProps<{ bucket: string }>) {
+export default function Queries() {
+  const { bucket } = RRDomCompat.useParams<{ bucket: string }>()
+  invariant(!!bucket, `bucket must be defined`)
+
   const classes = useStyles()
   const { paths, urls } = NamedRoutes.use()
   return (
@@ -27,13 +28,13 @@ export default function Queries({
       <MetaTitle>{['Queries', bucket]}</MetaTitle>
 
       <Switch>
-        <Route path={paths.bucketESQueries} component={ElasticSearch} exact />
-        <Route path={paths.bucketAthena} component={Athena} exact />
-        <Route path={paths.bucketAthenaWorkgroup} component={Athena} exact />
-        <Route path={paths.bucketAthenaExecution} component={Athena} exact />
-        <Route>
+        <CompatRoute path={paths.bucketESQueries} component={ElasticSearch} exact />
+        <CompatRoute path={paths.bucketAthena} component={Athena} exact />
+        <CompatRoute path={paths.bucketAthenaWorkgroup} component={Athena} exact />
+        <CompatRoute path={paths.bucketAthenaExecution} component={Athena} exact />
+        <CompatRoute>
           <Redirect to={urls.bucketAthena(bucket)} />
-        </Route>
+        </CompatRoute>
       </Switch>
     </div>
   )

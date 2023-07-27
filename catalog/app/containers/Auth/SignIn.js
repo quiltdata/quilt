@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
@@ -118,7 +119,8 @@ function PasswordSignIn({ mutex }) {
   )
 }
 
-export default ({ location: { search } }) => {
+export default () => {
+  const { search } = RRDomCompat.useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
   const { urls } = NamedRoutes.use()

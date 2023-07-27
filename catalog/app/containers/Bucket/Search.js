@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useHistory, Link } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import * as SearchResults from 'components/SearchResults'
@@ -331,12 +332,10 @@ function Search({ bucket, query, page, mode, retry }) {
   )
 }
 
-export default function BucketSearch({
-  match: {
-    params: { bucket },
-  },
-  location: l,
-}) {
+export default function BucketSearch() {
+  const { bucket } = RRDomCompat.useParams()
+  const l = RRDomCompat.useLocation()
+
   const isInStack = BucketConfig.useIsInStack()
   const { q: query = '', p, mode, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)

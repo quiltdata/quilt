@@ -1,8 +1,10 @@
 import { join } from 'path'
 
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -272,17 +274,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DirParams {
+type DirParams = {
   bucket: string
   path?: string
 }
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}: RRDom.RouteComponentProps<DirParams>) {
+export default function Dir() {
+  const { bucket, path: encodedPath = '' } = RRDomCompat.useParams<DirParams>()
+  const l = RRDomCompat.useLocation()
+  invariant(!!bucket, `bucket must be defined`)
+
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()

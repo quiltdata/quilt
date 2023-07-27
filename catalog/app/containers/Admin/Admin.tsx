@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as RR from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -77,38 +78,37 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
   )
 }
 
-export default function Admin({ location }: RR.RouteComponentProps) {
+export default function Admin() {
+  const location = RRDomCompat.useLocation()
   const { paths } = NamedRoutes.use()
 
-  const sections = {
-    users: { path: paths.adminUsers, exact: true },
-    buckets: { path: paths.adminBuckets, exact: true },
-    sync: { path: paths.adminSync, exact: true },
-    settings: { path: paths.adminSettings, exact: true },
-    status: { path: paths.adminStatus, exact: true },
-  }
+  // FIXME: fix section highlighting on load
+  const section = React.useMemo(() => {
+    const sections = [
+      { section: 'users', path: paths.adminUsers, end: true },
+      { section: 'buckets', path: paths.adminBuckets, end: true },
+      { section: 'sync', path: paths.adminSync, end: true },
+      { section: 'settings', path: paths.adminSettings, end: true },
+      { section: 'status', path: paths.adminStatus, end: true },
+    ]
+    const found = sections.find(({ path }) =>
+      RRDomCompat.matchPath(path, location.pathname),
+    )
+    return found?.section
+  }, [location.pathname, paths])
 
-  const getSection = (pathname: string) => {
-    for (const [section, maybeVariants] of Object.entries(sections)) {
-      const variants = ([] as RR.RouteProps[]).concat(maybeVariants)
-      for (const opts of variants) {
-        if (RR.matchPath(pathname, opts)) return section
-      }
-    }
-    return false
-  }
-
+  // FIXME: route paths constants
   return (
-    <AdminLayout section={getSection(location.pathname)}>
+    <AdminLayout section={section} key={section}>
       <ErrorBoundary key={JSON.stringify(location)}>
-        <RR.Switch>
-          <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
-          <RR.Route path={paths.adminBuckets} component={Buckets} exact />
-          {cfg.desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
-          <RR.Route path={paths.adminSettings} component={Settings} exact />
-          <RR.Route path={paths.adminStatus} component={Status} exact />
-          <RR.Route component={ThrowNotFound} />
-        </RR.Switch>
+        <RRDomCompat.Routes>
+          <RRDomCompat.Route path={'/'} element={<UsersAndRoles />} />
+          <RRDomCompat.Route path={'buckets'} element={<Buckets />} />
+          {cfg.desktop && <RRDomCompat.Route path={'sync'} element={<Sync />} />}
+          <RRDomCompat.Route path={'settings'} element={<Settings />} />
+          <RRDomCompat.Route path={'status'} element={<Status />} />
+          <RRDomCompat.Route element={<ThrowNotFound />} />
+        </RRDomCompat.Routes>
       </ErrorBoundary>
     </AdminLayout>
   )

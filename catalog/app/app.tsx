@@ -5,6 +5,7 @@ import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { Router } from 'react-router-dom'
+import { CompatRouter } from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -90,6 +91,7 @@ const render = () => {
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
       [Router, { history }],
+      CompatRouter,
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,

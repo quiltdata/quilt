@@ -1,6 +1,7 @@
+import invariant from 'invariant'
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router'
 import { useHistory, Redirect } from 'react-router-dom'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -23,12 +24,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function UriResolver({ match }: RouteComponentProps<{ uri: string }>) {
+export default function UriResolver() {
+  const params = RRDomCompat.useParams<{ uri: string }>()
+  invariant(!!params.uri, `uri must be defined`)
+
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const classes = useStyles()
 
-  const uri = decodeURIComponent(match.params.uri || '')
+  const uri = decodeURIComponent(params.uri || '')
   const [parsed, error] = React.useMemo(() => {
     try {
       return [uri ? PackageUri.parse(uri) : null]

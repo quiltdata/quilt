@@ -1,7 +1,8 @@
 import cx from 'classnames'
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
-import type { RouteComponentProps } from 'react-router'
+import * as RRDomCompat from 'react-router-dom-v5-compat'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -399,18 +400,14 @@ function AthenaExecution({ bucket, workgroup, queryExecutionId }: AthenaExecutio
   )
 }
 
-interface AthenaContainerProps
-  extends RouteComponentProps<{
+export default function AthenaContainer() {
+  const { bucket, queryExecutionId, workgroup } = RRDomCompat.useParams<{
     bucket: string
     queryExecutionId?: string
     workgroup?: string
-  }> {}
+  }>()
+  invariant(!!bucket, `bucket must be defined`)
 
-export default function AthenaContainer({
-  match: {
-    params: { bucket, queryExecutionId, workgroup },
-  },
-}: AthenaContainerProps) {
   const classes = useStyles()
   return (
     <>
