@@ -272,10 +272,7 @@ export function Dialog({
                     loadMore={loadMore}
                     selection={selection}
                     onSelectionChange={setSelection}
-                    prefs={
-                      // FIXME
-                      blocks.browser || ({} as BucketPreferences.BrowserBlockPreferences)
-                    }
+                    prefs={blocks.browser}
                   />
                 ) : (
                   // TODO: skeleton
@@ -318,7 +315,7 @@ export function Dialog({
 
 function useFormattedListing(
   r: requests.BucketListingResult,
-  prefs: BucketPreferences.BrowserBlockPreferences,
+  prefs: false | BucketPreferences.BrowserBlockPreferences,
 ) {
   return React.useMemo(() => {
     const dirs: Listing.Item[] = r.dirs.map((name) => ({
@@ -335,10 +332,11 @@ function useFormattedListing(
       archived,
     }))
     const items = [...dirs, ...files]
-    const filtered = prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
+    const filtered =
+      prefs && prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
     // filter-out files with same name as one of dirs
     return R.uniqBy(R.prop('name'), filtered)
-  }, [prefs.hidden, r])
+  }, [prefs, r])
 }
 
 const useDirContentsStyles = M.makeStyles((t) => ({
@@ -363,7 +361,7 @@ interface DirContentsProps {
   loadMore: () => void
   selection: DG.GridRowId[]
   onSelectionChange: (newSelection: DG.GridRowId[]) => void
-  prefs: BucketPreferences.BrowserBlockPreferences
+  prefs: false | BucketPreferences.BrowserBlockPreferences
 }
 
 function DirContents({

@@ -149,7 +149,7 @@ interface RouteMap {
 
 function useFormattedListing(
   r: requests.BucketListingResult,
-  prefs: BucketPreferences.BrowserBlockPreferences,
+  prefs: false | BucketPreferences.BrowserBlockPreferences,
 ) {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
@@ -187,10 +187,11 @@ function useFormattedListing(
       ...dirs,
       ...files,
     ]
-    const filtered = prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
+    const filtered =
+      prefs && prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
     // filter-out files with same name as one of dirs
     return R.uniqBy(R.prop('name'), filtered)
-  }, [prefs.hidden, r, urls])
+  }, [prefs, r, urls])
 }
 
 interface DirContentsProps {
@@ -199,7 +200,7 @@ interface DirContentsProps {
   bucket: string
   path: string
   loadMore?: () => void
-  prefs: BucketPreferences.BrowserBlockPreferences
+  prefs: false | BucketPreferences.BrowserBlockPreferences
 }
 
 function DirContents({
@@ -423,10 +424,7 @@ export default function Dir({
                     bucket={bucket}
                     path={path}
                     loadMore={loadMore}
-                    prefs={
-                      // FIXME
-                      blocks.browser || ({} as BucketPreferences.BrowserBlockPreferences)
-                    }
+                    prefs={blocks.browser}
                   />
                 ) : (
                   <M.CircularProgress />
