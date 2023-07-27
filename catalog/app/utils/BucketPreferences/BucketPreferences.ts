@@ -23,7 +23,7 @@ interface MetaBlockPreferencesInput {
 }
 
 export interface BrowserBlockPreferences {
-  hidden: true
+  hidden: boolean
 }
 
 export interface MetaBlockPreferences {

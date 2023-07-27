@@ -147,7 +147,10 @@ interface RouteMap {
   ]
 }
 
-function useFormattedListing(r: requests.BucketListingResult) {
+function useFormattedListing(
+  r: requests.BucketListingResult,
+  prefs: BucketPreferences.BrowserBlockPreferences,
+) {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
     const dirs = r.dirs.map((name) => ({
@@ -184,9 +187,10 @@ function useFormattedListing(r: requests.BucketListingResult) {
       ...dirs,
       ...files,
     ]
+    const filtered = prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
     // filter-out files with same name as one of dirs
-    return R.uniqBy(R.prop('name'), items)
-  }, [r, urls])
+    return R.uniqBy(R.prop('name'), filtered)
+  }, [prefs.hidden, r, urls])
 }
 
 interface DirContentsProps {
@@ -195,9 +199,17 @@ interface DirContentsProps {
   bucket: string
   path: string
   loadMore?: () => void
+  prefs: BucketPreferences.BrowserBlockPreferences
 }
 
-function DirContents({ response, locked, bucket, path, loadMore }: DirContentsProps) {
+function DirContents({
+  response,
+  locked,
+  bucket,
+  path,
+  loadMore,
+  prefs,
+}: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
 
@@ -208,7 +220,7 @@ function DirContents({ response, locked, bucket, path, loadMore }: DirContentsPr
     [history, urls, bucket, path],
   )
 
-  const items = useFormattedListing(response)
+  const items = useFormattedListing(response, prefs)
 
   const [selection, setSelection] = React.useState([])
   const handleSelectionModelChange = React.useCallback((ids) => setSelection(ids), [])
@@ -395,24 +407,39 @@ export default function Dir({
         prefs,
       )}
 
-      {data.case({
-        Err: displayError(),
-        Init: () => null,
-        _: (x: $TSFixMe) => {
-          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
-          return res ? (
-            <DirContents
-              response={res}
-              locked={!AsyncResult.Ok.is(x)}
-              bucket={bucket}
-              path={path}
-              loadMore={loadMore}
-            />
-          ) : (
-            <M.CircularProgress />
-          )
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({
+            ui: {
+              blocks: { browser },
+            },
+          }) =>
+            data.case({
+              Err: displayError(),
+              Init: () => null,
+              _: (x: $TSFixMe) => {
+                const res: requests.BucketListingResult | null =
+                  AsyncResult.getPrevResult(x)
+                return res ? (
+                  <DirContents
+                    response={res}
+                    locked={!AsyncResult.Ok.is(x)}
+                    bucket={bucket}
+                    path={path}
+                    loadMore={loadMore}
+                    prefs={browser || ({} as BucketPreferences.BrowserBlockPreferences)}
+                  />
+                ) : (
+                  <M.CircularProgress />
+                )
+              },
+            }),
+
+          Pending: () => <M.CircularProgress />,
+          Init: () => null,
         },
-      })}
+        prefs,
+      )}
     </M.Box>
   )
 }
