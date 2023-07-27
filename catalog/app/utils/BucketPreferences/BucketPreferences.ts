@@ -22,6 +22,10 @@ interface MetaBlockPreferencesInput {
   }
 }
 
+export interface BrowserBlockPreferences {
+  hidden: true
+}
+
 export interface MetaBlockPreferences {
   userMeta: {
     expanded: boolean | number
@@ -35,7 +39,7 @@ type GalleryPreferences = Record<'files' | 'packages' | 'overview' | 'summarize'
 
 interface BlocksPreferencesInput {
   analytics?: boolean
-  browser?: boolean
+  browser?: boolean | BrowserBlockPreferences
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
   gallery?: boolean | GalleryPreferences
@@ -43,7 +47,7 @@ interface BlocksPreferencesInput {
 
 interface BlocksPreferences {
   analytics: boolean
-  browser: boolean
+  browser: false | BrowserBlockPreferences
   code: boolean
   meta: false | MetaBlockPreferences
   gallery: false | GalleryPreferences
@@ -111,6 +115,10 @@ interface BucketPreferences {
   ui: UiPreferences
 }
 
+const defaultBrowser: BrowserBlockPreferences = {
+  hidden: true,
+}
+
 const defaultBlockMeta: MetaBlockPreferences = {
   userMeta: {
     expanded: false,
@@ -139,7 +147,7 @@ const defaultPreferences: BucketPreferences = {
     athena: {},
     blocks: {
       analytics: true,
-      browser: true,
+      browser: defaultBrowser,
       code: true,
       meta: defaultBlockMeta,
       gallery: defaultGallery,
@@ -192,12 +200,15 @@ function parseGalleryBlock(
 ): false | GalleryPreferences {
   if (gallery === false) return false
   if (gallery === true || gallery === undefined) return defaultGallery
-  return {
-    files: gallery.files ?? defaultGallery.files,
-    packages: gallery.packages ?? defaultGallery.packages,
-    overview: gallery.overview ?? defaultGallery.overview,
-    summarize: gallery.summarize ?? defaultGallery.summarize,
-  }
+  return R.mergeRight(defaultGallery, gallery)
+}
+
+function parseBrowserBlock(
+  browser?: boolean | BrowserBlockPreferences,
+): false | BrowserBlockPreferences {
+  if (browser === false) return false
+  if (browser === true || browser === undefined) return defaultBrowser
+  return R.mergeRight(defaultBrowser, browser)
 }
 
 function parseMetaBlock(
@@ -215,8 +226,9 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
   return {
     ...defaultPreferences.ui.blocks,
     ...blocks,
-    meta: parseMetaBlock(blocks?.meta),
+    browser: parseBrowserBlock(blocks?.browser),
     gallery: parseGalleryBlock(blocks?.gallery),
+    meta: parseMetaBlock(blocks?.meta),
   }
 }
 

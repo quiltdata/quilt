@@ -78,8 +78,19 @@
             "browser": {
               "default": true,
               "description": "Show/hide file browser block",
-              "type": "boolean",
-              "examples": [true, false]
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "properties": {
+                    "hidden": {
+                      "description": "Show/hide .quilt directory in files listing",
+                      "default": true,
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ],
+              "examples": [true, false, { "hidden": false }]
             },
             "code": {
               "default": true,
