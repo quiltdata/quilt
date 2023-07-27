@@ -119,7 +119,7 @@
     "react-multi-carousel": "^2.8.4",
     "react-redux": "^7.2.9",
     "react-router-dom": "^5.3.4",
-    "react-router-hash-link": "^1.2.2",
+    "react-router-hash-link": "^2.4.3",
     "react-swipeable-views": "^0.14.0",
     "react-swipeable-views-core": "^0.14.0",
     "react-swipeable-views-utils": "^0.14.0",
