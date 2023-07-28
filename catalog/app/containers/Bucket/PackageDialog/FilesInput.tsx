@@ -110,10 +110,10 @@ export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
 export type LocalFile = FileWithPath & FileWithHash
 
+// TODO: queue/array
 interface ChangedDict {
-  // TODO: queue/array
   logicalKey?: string
-  meta?: Types.JsonRecord
+  // TODO: meta?: Types.JsonRecord
 }
 
 type AddedFile = (LocalFile | Model.S3File) & {
@@ -141,22 +141,15 @@ export interface FilesState {
   counter?: number
 }
 
-function cloneDomFile<F extends AnyFile>(file: F) {
+function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string) {
   const fileCopy = new window.File([file as File], (file as File).name, {
     type: (file as File).type,
   })
-  Object.defineProperty(fileCopy, 'conflict', {
-    value: file.conflict,
-    configurable: true,
-  })
-  Object.defineProperty(fileCopy, 'meta', {
-    value: file.meta,
-  })
-  Object.defineProperty(fileCopy, 'changed', {
-    value: file.changed,
-  })
-  Object.defineProperty(fileCopy, 'hash', {
-    value: (file as FileWithHash).hash,
+  const properties = ['conflict', 'meta', 'changed', 'hash']
+  properties.forEach((prop) => {
+    const property = Object.getOwnPropertyDescriptor(file, prop)
+    if (property?.value !== undefined && omitProperty !== property)
+      Object.defineProperty(fileCopy, prop, property)
   })
   return fileCopy
 }
@@ -165,9 +158,8 @@ function setKeyValue<T>(key: string, value: T, file: AddedFile): AddedFile
 function setKeyValue<T>(key: string, value: T, file: ExistingFile): ExistingFile
 function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   if (file instanceof window.File) {
-    const fileCopy = cloneDomFile(file)
+    const fileCopy = cloneDomFile(file, key)
     Object.defineProperty(fileCopy, key, {
-      configurable: true,
       value,
     })
   }
@@ -185,12 +177,9 @@ const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
     Object.defineProperty(fileCopy, 'hash', {
       value: (file as FileWithHash).hash,
     })
-    Object.defineProperty(fileCopy, 'changed', {
-      value: { meta: (file as FileWithHash).meta },
-    })
     return fileCopy
   }
-  return R.assoc('changed', { meta: file.meta }, R.assoc('meta', meta, file))
+  return R.assoc('meta', meta, file)
 }
 
 function addFile(p: string, f: AddedFile, a: AddedItems, e?: ExistingItems): AddedItems
