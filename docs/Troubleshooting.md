@@ -225,8 +225,8 @@ STACK_NAME="YOUR_QUILT_STACK"
 RESOURCE_ID="YOUR_LOGICAL_ID"
 SG_ID=$(
   aws cloudformation describe-stack-resource \
-    --stack-name "${STACK_NAME}" \
-    --logical-resource-id "${RESOURCE_ID}" \
+    --stack-name "$STACK_NAME" \
+    --logical-resource-id "$RESOURCE_ID" \
     --query 'StackResourceDetail.PhysicalResourceId' \
     --output text
 )
