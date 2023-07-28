@@ -154,8 +154,6 @@ function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string) {
   return fileCopy
 }
 
-function setKeyValue<T>(key: string, value: T, file: AddedFile): AddedFile
-function setKeyValue<T>(key: string, value: T, file: ExistingFile): ExistingFile
 function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   if (file instanceof window.File) {
     const fileCopy = cloneDomFile(file, key)
@@ -203,10 +201,8 @@ function addFile(
     ...mainItems,
     [resolvedName]:
       resolvedName === path
-        ? // @ts-expect-error
-          setKeyValue<string>('conflict', '', file)
-        : // @ts-expect-error
-          setKeyValue<string>('conflict', path, file),
+        ? setKeyValue<string>('conflict', '', file)
+        : setKeyValue<string>('conflict', path, file),
   }
 }
 
@@ -230,7 +226,6 @@ function renameFile(
   const itemsWithOldNameRemoved = R.dissoc(oldPath, mainItems)
   const changedFile = setKeyValue<{ logicalKey: string }>(
     'changed',
-    // @ts-expect-error
     reverted ? null : { logicalKey: oldPath },
     file,
   )
