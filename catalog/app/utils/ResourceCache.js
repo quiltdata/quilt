@@ -1,20 +1,15 @@
 import * as I from 'immutable'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as redux from 'react-redux'
-import * as effects from 'redux-saga/effects'
+import * as redux from 'redux'
 import * as uuid from 'uuid'
 
 import AsyncResult from 'utils/AsyncResult'
-import { useReducer } from 'utils/ReducerInjector'
-import { useSaga } from 'utils/SagaInjector'
 import defer from 'utils/defer'
 import * as reduxTools from 'utils/reduxTools'
-import * as sagaTools from 'utils/sagaTools'
 import tagged from 'utils/tagged'
+import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
-
-const REDUX_KEY = 'app/ResourceCache'
 
 const Ctx = React.createContext()
 
@@ -132,35 +127,6 @@ const reducer = reduxTools.withInitialState(
   }),
 )
 
-const selectEntry = (resource, input) => (s) =>
-  s.getIn([REDUX_KEY, ...keyFor(resource, input)])
-
-function* handleInit({ resource, input, resolver }) {
-  yield effects.put(Action.Request({ resource, input }))
-  try {
-    const res = yield effects.call(resource.fetch, input)
-    yield effects.put(Action.Response({ resource, input, result: AsyncResult.Ok(res) }))
-    resolver.resolve(res)
-  } catch (e) {
-    yield effects.put(Action.Response({ resource, input, result: AsyncResult.Err(e) }))
-    resolver.reject(e)
-  }
-}
-
-function* cleanup() {
-  // TODO: refactor cleanup logic, so that the cleanup action is only dispatched
-  // when there's anything to cleanup (to avoid re-renders every 5 sec)
-  while (true) {
-    yield effects.delay(RELEASE_TIME)
-    yield effects.put(Action.CleanUp({ time: new Date() }))
-  }
-}
-
-function* saga() {
-  yield sagaTools.takeEveryTagged(Action.Init, handleInit)
-  yield effects.fork(cleanup)
-}
-
 export const suspend = ({ promise, result }) =>
   AsyncResult.case(
     {
@@ -179,27 +145,47 @@ export const suspend = ({ promise, result }) =>
   )
 
 export const Provider = function ResourceCacheProvider({ children }) {
-  useSaga(saga)
-  useReducer(REDUX_KEY, reducer)
-  const store = redux.useStore()
-  const accessResult = React.useCallback(
-    (resource, input) => {
-      const getEntry = () => selectEntry(resource, input)(store.getState())
-      const entry = getEntry()
-      if (entry) return entry
-      store.dispatch(Action.Init({ resource, input, ...defer() }))
-      return getEntry()
-    },
-    [store],
+  const { dispatch, subscribe, getState } = useConstant(() => redux.createStore(reducer))
+
+  const getEntry = React.useCallback(
+    (resource, input) => getState().getIn(keyFor(resource, input)),
+    [getState],
   )
 
-  const get = React.useMemo(() => R.pipe(accessResult, suspend), [accessResult])
+  const init = React.useCallback(
+    (resource, input) => {
+      const { resolver, promise } = defer()
+      dispatch(Action.Init({ resource, input, resolver, promise }))
+      setTimeout(() => {
+        dispatch(Action.Request({ resource, input }))
+        resource.fetch(input).then(
+          (res) => {
+            dispatch(Action.Response({ resource, input, result: AsyncResult.Ok(res) }))
+            resolver.resolve(res)
+          },
+          (e) => {
+            dispatch(Action.Response({ resource, input, result: AsyncResult.Err(e) }))
+            resolver.reject(e)
+          },
+        )
+      }, 0)
+      return getEntry(resource, input)
+    },
+    [dispatch, getEntry],
+  )
+
+  const access = React.useCallback(
+    (resource, input) => getEntry(resource, input) ?? init(resource, input),
+    [getEntry, init],
+  )
+
+  const get = React.useMemo(() => R.pipe(access, suspend), [access])
 
   const patch = React.useCallback(
     (resource, input, update, silent) => {
-      store.dispatch(Action.Patch({ resource, input, update, silent }))
+      dispatch(Action.Patch({ resource, input, update, silent }))
     },
-    [store],
+    [dispatch],
   )
 
   const patchOk = React.useCallback(
@@ -221,23 +207,33 @@ export const Provider = function ResourceCacheProvider({ children }) {
 
   const claim = React.useCallback(
     (resource, input) => {
-      store.dispatch(Action.Claim({ resource, input }))
+      dispatch(Action.Claim({ resource, input }))
     },
-    [store],
+    [dispatch],
   )
 
   const release = React.useCallback(
     (resource, input) => {
       const releasedAt = new Date()
-      store.dispatch(Action.Release({ resource, input, releasedAt }))
+      dispatch(Action.Release({ resource, input, releasedAt }))
     },
-    [store],
+    [dispatch],
   )
 
   const inst = React.useMemo(
-    () => ({ access: accessResult, get, patch, patchOk, claim, release }),
-    [accessResult, get, patch, patchOk, claim, release],
+    () => ({ access, get, patch, patchOk, claim, release, subscribe }),
+    [access, get, patch, patchOk, claim, release, subscribe],
   )
+
+  const cleanup = React.useCallback(
+    () => dispatch(Action.CleanUp({ time: new Date() })),
+    [dispatch],
+  )
+
+  React.useEffect(() => {
+    const timer = setInterval(cleanup, RELEASE_TIME)
+    return () => clearInterval(timer)
+  }, [cleanup])
 
   return <Ctx.Provider value={inst}>{children}</Ctx.Provider>
 }
@@ -248,16 +244,18 @@ export function useResourceCache() {
 
 export const use = useResourceCache
 
+/**
+ * @deprecated Use @tanstack/react-query
+ */
 export function useData(resource, input, opts = {}) {
-  const cache = use()
+  const { access, claim, release, subscribe } = use()
   const inputMemo = useMemoEq(input, R.identity)
-  const [entry, setEntry] = React.useState(() => cache.access(resource, input))
-  const store = redux.useStore()
+  const [entry, setEntry] = React.useState(() => access(resource, input))
   React.useEffect(() => {
-    let prevEntry = cache.access(resource, inputMemo)
-    cache.claim(resource, inputMemo)
-    const unsubscribe = store.subscribe(() => {
-      const newEntry = cache.access(resource, inputMemo)
+    let prevEntry = access(resource, inputMemo)
+    claim(resource, inputMemo)
+    const unsubscribe = subscribe(() => {
+      const newEntry = access(resource, inputMemo)
       if (!R.equals(newEntry, prevEntry)) {
         setEntry(newEntry)
         prevEntry = newEntry
@@ -265,9 +263,9 @@ export function useData(resource, input, opts = {}) {
     })
     return () => {
       unsubscribe()
-      cache.release(resource, inputMemo)
+      release(resource, inputMemo)
     }
-  }, [store, cache, resource, inputMemo])
+  }, [resource, inputMemo, access, claim, release, subscribe])
 
   return opts.suspend ? suspend(entry) : entry
 }
