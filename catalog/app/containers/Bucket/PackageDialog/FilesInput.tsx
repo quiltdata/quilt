@@ -224,7 +224,7 @@ function renameFile(
   const file = mainItems[oldPath]
   if (!file) return mainItems
   const itemsWithOldNameRemoved = R.dissoc(oldPath, mainItems)
-  const changedFile = setKeyValue<{ logicalKey: string }>(
+  const changedFile = setKeyValue<{ logicalKey: string } | null>(
     'changed',
     reverted ? null : { logicalKey: oldPath },
     file,
