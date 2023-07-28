@@ -85,18 +85,6 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
   )
 }
 
-interface MetadataIconProps {
-  color?: M.PropTypes.Color
-}
-
-function MetadataIcon({ color }: MetadataIconProps) {
-  return (
-    <M.Icon fontSize="inherit" color={color}>
-      list
-    </M.Icon>
-  )
-}
-
 interface EditMetaProps {
   disabled?: boolean
   name: string
@@ -117,16 +105,16 @@ export default function EditFileMeta({
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
   // TODO: simplify R.isEmpty when meta will be normalized to null
-  const color = React.useMemo(
-    () =>
-      state === 'invalid' || R.isEmpty(value) || R.isNil(value) ? 'inherit' : 'primary',
-    [state, value],
-  )
+  const color = React.useMemo(() => {
+    if (!disabled && state !== 'invalid' && !R.isNil(value) && !R.isEmpty(value)) {
+      return 'primary'
+    }
+  }, [disabled, state, value])
 
   if (disabled) {
     return (
       <M.IconButton size="small" disabled>
-        <MetadataIcon />
+        <M.Icon fontSize="inherit">list</M.Icon>
       </M.IconButton>
     )
   }
@@ -134,7 +122,9 @@ export default function EditFileMeta({
   return (
     <>
       <M.IconButton color="inherit" onClick={openEditor} title="Edit meta" size="small">
-        <MetadataIcon color={color} />
+        <M.Icon fontSize="inherit" color={color}>
+          list
+        </M.Icon>
       </M.IconButton>
 
       <Dialog
