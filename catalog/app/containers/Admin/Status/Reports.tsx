@@ -33,20 +33,18 @@ function ActualDownloadLink({ loc }: ReportLinkProps) {
     contentType: 'text/html',
   })
   return (
-    <M.IconButton component="a" href={url} rel="noreferrer" target="_blank" edge="end">
-      <M.Icon>save_alt</M.Icon>
-    </M.IconButton>
+    <M.Tooltip title="Download report">
+      <M.IconButton component="a" href={url} rel="noreferrer" target="_blank" edge="end">
+        <M.Icon>save_alt</M.Icon>
+      </M.IconButton>
+    </M.Tooltip>
   )
 }
 
 function DownloadLink({ loc }: ReportLinkProps) {
   // populate bucket region cache to get working signed urls
   return useBucketExistence(loc.bucket).case({
-    Ok: () => (
-      <M.Tooltip title="Download report">
-        <ActualDownloadLink loc={loc} />
-      </M.Tooltip>
-    ),
+    Ok: () => <ActualDownloadLink loc={loc} />,
     Err: (e: Error | undefined) => (
       <M.Tooltip title={`Couldn't get download link: ${e?.message || 'unknown error'}`}>
         <M.IconButton edge="end">
