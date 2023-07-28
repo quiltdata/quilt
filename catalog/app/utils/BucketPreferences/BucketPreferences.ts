@@ -200,7 +200,12 @@ function parseGalleryBlock(
 ): false | GalleryPreferences {
   if (gallery === false) return false
   if (gallery === true || gallery === undefined) return defaultGallery
-  return R.mergeRight(defaultGallery, gallery)
+  return {
+    files: gallery.files ?? defaultGallery.files,
+    packages: gallery.packages ?? defaultGallery.packages,
+    overview: gallery.overview ?? defaultGallery.overview,
+    summarize: gallery.summarize ?? defaultGallery.summarize,
+  }
 }
 
 function parseBrowserBlock(
