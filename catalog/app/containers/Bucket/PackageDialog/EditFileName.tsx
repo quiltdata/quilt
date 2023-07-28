@@ -21,7 +21,7 @@ export default function EditFileName({ disabled, value, onChange }: EditFileName
     validate: validateFileName,
   })
 
-  if (!disabled) {
+  if (disabled) {
     return (
       <M.IconButton size="small" disabled>
         <M.Icon fontSize="inherit">edit_outlined</M.Icon>

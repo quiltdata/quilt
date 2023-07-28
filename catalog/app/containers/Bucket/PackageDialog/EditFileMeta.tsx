@@ -118,11 +118,12 @@ export default function EditFileMeta({
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
   // TODO: simplify R.isEmpty when meta will be normalized to null
   const color = React.useMemo(
-    () => (state === 'invalid' || R.isEmpty(value) ? 'inherit' : 'primary'),
+    () =>
+      state === 'invalid' || R.isEmpty(value) || R.isNil(value) ? 'inherit' : 'primary',
     [state, value],
   )
 
-  if (!disabled) {
+  if (disabled) {
     return (
       <M.IconButton size="small" disabled>
         <MetadataIcon />
