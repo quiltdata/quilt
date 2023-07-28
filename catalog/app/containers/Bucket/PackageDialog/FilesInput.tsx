@@ -164,22 +164,6 @@ function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   return R.assoc(key, value, file)
 }
 
-const addMetaToFile = (file: AnyFile, meta?: Model.EntryMeta) => {
-  if (file instanceof window.File) {
-    const fileCopy = new window.File([file as File], (file as File).name, {
-      type: (file as File).type,
-    })
-    Object.defineProperty(fileCopy, 'meta', {
-      value: meta,
-    })
-    Object.defineProperty(fileCopy, 'hash', {
-      value: (file as FileWithHash).hash,
-    })
-    return fileCopy
-  }
-  return R.assoc('meta', meta, file)
-}
-
 function addFile(p: string, f: AddedFile, a: AddedItems, e?: ExistingItems): AddedItems
 function addFile(
   p: string,
@@ -289,7 +273,11 @@ const handleFilesAction = FilesAction.match<
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
-        return R.assoc(path, addMetaToFile(file, meta), filesDict)
+        return R.assoc(
+          path,
+          setKeyValue<Types.JsonRecord | null | undefined>('meta', meta, file),
+          filesDict,
+        )
       }
     return R.evolve({
       added: mkSetMeta<AddedFile>(),
