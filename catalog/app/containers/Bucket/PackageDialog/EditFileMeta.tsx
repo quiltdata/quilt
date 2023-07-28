@@ -86,7 +86,7 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
 }
 
 interface MetadataIconProps {
-  color: M.PropTypes.Color | 'disabled'
+  color?: M.PropTypes.Color
 }
 
 function MetadataIcon({ color }: MetadataIconProps) {
@@ -122,10 +122,10 @@ export default function EditFileMeta({
     [state, value],
   )
 
-  if (disabled) {
+  if (!disabled) {
     return (
       <M.IconButton size="small" disabled>
-        <MetadataIcon color="disabled" />
+        <MetadataIcon />
       </M.IconButton>
     )
   }

@@ -3,18 +3,6 @@ import * as M from '@material-ui/core'
 
 import * as Dialog from 'components/Dialog'
 
-interface IconProps {
-  color: M.PropTypes.Color | 'disabled'
-}
-
-function Icon({ color }: IconProps) {
-  return (
-    <M.Icon fontSize="inherit" color={color}>
-      edit_outlined
-    </M.Icon>
-  )
-}
-
 function validateFileName(value: string) {
   if (!value) return new Error('File name is required')
 }
@@ -23,30 +11,20 @@ interface EditFileNameProps {
   disabled?: boolean
   onChange: (value: string) => void
   value?: string
-  state?: string
 }
 
-export default function EditFileName({
-  disabled,
-  state,
-  value,
-  onChange,
-}: EditFileNameProps) {
+export default function EditFileName({ disabled, value, onChange }: EditFileNameProps) {
   const prompt = Dialog.usePrompt({
     onSubmit: onChange,
     initialValue: value,
     title: 'Enter file name',
     validate: validateFileName,
   })
-  const color = React.useMemo(
-    () => (state === 'invalid' || !value ? 'inherit' : 'primary'),
-    [state, value],
-  )
 
-  if (disabled) {
+  if (!disabled) {
     return (
       <M.IconButton size="small" disabled>
-        <Icon color="disabled" />
+        <M.Icon fontSize="inherit">edit_outlined</M.Icon>
       </M.IconButton>
     )
   }
@@ -59,7 +37,7 @@ export default function EditFileName({
         title="Edit file name"
         size="small"
       >
-        <Icon color={color} />
+        <M.Icon fontSize="inherit">edit_outlined</M.Icon>
       </M.IconButton>
 
       {prompt.render()}

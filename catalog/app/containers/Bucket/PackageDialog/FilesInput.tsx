@@ -735,12 +735,7 @@ function File({
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
       <div className={classes.actions}>
-        <EditFileName
-          disabled={editDisabled}
-          onChange={onRename}
-          state={stateDisplay}
-          value={path}
-        />
+        <EditFileName disabled={editDisabled} onChange={onRename} value={path} />
         <EditFileMeta
           disabled={editDisabled}
           key={metaKey}
