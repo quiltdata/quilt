@@ -168,7 +168,7 @@ export default function App() {
         )}
         {!cfg.disableNavigator && (
           <RRDom.Route path="/login" exact>
-            <RedirectTo to={urls.signIn()} />
+            <RedirectTo path={urls.signIn()} />
           </RRDom.Route>
         )}
         {!cfg.disableNavigator && (
