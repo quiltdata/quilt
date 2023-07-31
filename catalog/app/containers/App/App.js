@@ -172,7 +172,7 @@ export default function App() {
           </RRDom.Route>
         )}
         {!cfg.disableNavigator && (
-          <RRDom.Route exact>
+          <RRDom.Route path="/login" exact>
             <RedirectToLogin />
           </RRDom.Route>
         )}

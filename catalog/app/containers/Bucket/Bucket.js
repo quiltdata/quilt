@@ -89,12 +89,9 @@ function BucketLayout({ bucket, section = false, children }) {
   )
 }
 
-export default function Bucket({
-  location,
-  match: {
-    params: { bucket },
-  },
-}) {
+export default function Bucket() {
+  const location = RRDom.useLocation()
+  const { bucket } = RRDom.useParams()
   const { paths } = NamedRoutes.use()
   return (
     <BucketPreferences.Provider bucket={bucket}>

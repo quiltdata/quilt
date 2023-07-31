@@ -103,8 +103,12 @@ function Root() {
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <RRDom.Switch>
-        <RRDom.Route path={paths.bucketRoot} component={Bucket} />
-        <RRDom.Route component={ThrowNotFound} />
+        <RRDom.Route path={paths.bucketRoot}>
+          <Bucket />
+        </RRDom.Route>
+        <RRDom.Route>
+          <ThrowNotFound />
+        </RRDom.Route>
       </RRDom.Switch>
     </CatchNotFound>
   )
@@ -120,10 +124,18 @@ function Bucket({
   return (
     <BucketLayout bucket={bucket}>
       <RRDom.Switch>
-        <RRDom.Route path={paths.bucketFile} component={File} exact strict />
-        <RRDom.Route path={paths.bucketDir} component={Dir} exact />
-        <RRDom.Route path={paths.bucketSearch} component={Search} exact />
-        <RRDom.Route component={ThrowNotFound} />
+        <RRDom.Route path={paths.bucketFile} exact strict>
+          <File />
+        </RRDom.Route>
+        <RRDom.Route path={paths.bucketDir} exact>
+          <Dir />
+        </RRDom.Route>
+        <RRDom.Route path={paths.bucketSearch} exact>
+          <Search />
+        </RRDom.Route>
+        <RRDom.Route>
+          <ThrowNotFound />
+        </RRDom.Route>
       </RRDom.Switch>
     </BucketLayout>
   )

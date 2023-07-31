@@ -373,7 +373,9 @@ export default function Search() {
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      history.push(urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }))
+      history.push(
+        urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }),
+      )
     },
     [history, urls, buckets, q],
   )
