@@ -16,9 +16,7 @@ const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 const ProtectedThrowNotFound = protect(ThrowNotFound)
 
-const RedirectToLogin = () => {
-  const { urls } = NamedRoutes.use()
-  const path = urls.signIn()
+function RedirectTo({ path }) {
   const { search } = RRDom.useLocation()
   return <RRDom.Redirect to={`${path}${search}`} />
 }
@@ -87,7 +85,7 @@ const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
-  const { paths } = NamedRoutes.use()
+  const { paths, urls } = NamedRoutes.use()
   const l = RRDom.useLocation()
 
   return (
@@ -170,7 +168,7 @@ export default function App() {
         )}
         {!cfg.disableNavigator && (
           <RRDom.Route path="/login" exact>
-            <RedirectToLogin />
+            <RedirectTo to={urls.signIn()} />
           </RRDom.Route>
         )}
         {!cfg.disableNavigator && (
