@@ -833,7 +833,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
 export default function PackageListWrapper() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
   const location = RRDom.useLocation()
-  invariant(!!bucket, `bucket must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
 
   const { sort, filter, p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined

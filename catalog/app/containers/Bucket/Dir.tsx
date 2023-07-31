@@ -281,7 +281,7 @@ interface DirParams {
 export default function Dir() {
   const { bucket, path: encodedPath = '' } = RRDom.useParams<DirParams>()
   const l = RRDom.useLocation()
-  invariant(!!bucket, `bucket must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
 
   const classes = useStyles()
   const s3 = AWS.S3.use()

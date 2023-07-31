@@ -405,7 +405,7 @@ export default function AthenaContainer() {
     queryExecutionId?: string
     workgroup?: string
   }>()
-  invariant(!!bucket, `bucket must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
 
   const classes = useStyles()
   return (

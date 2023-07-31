@@ -943,8 +943,8 @@ export default function PackageTreeWrapper() {
     path: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
   const location = RRDom.useLocation()
-  invariant(!!bucket, `bucket must be defined`)
-  invariant(!!name, `name must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
+  invariant(!!name, '`name` must be defined')
 
   const path = s3paths.decode(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json

@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Queries() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  invariant(!!bucket, `bucket must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
 
   const classes = useStyles()
   const { paths, urls } = NamedRoutes.use()

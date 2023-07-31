@@ -537,8 +537,8 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 export default function PackageRevisionsWrapper() {
   const { bucket, name } = RRDom.useParams<{ bucket: string; name: string }>()
   const location = RRDom.useLocation()
-  invariant(!!bucket, `bucket must be defined`)
-  invariant(!!name, `name must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
+  invariant(!!name, '`name` must be defined')
 
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined

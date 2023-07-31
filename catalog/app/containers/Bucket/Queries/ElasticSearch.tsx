@@ -190,7 +190,7 @@ const isButtonDisabled = (
 
 export default function ElastiSearch() {
   const { bucket } = RRDom.useParams<{ bucket: string }>()
-  invariant(!!bucket, `bucket must be defined`)
+  invariant(!!bucket, '`bucket` must be defined')
 
   const classes = useStyles()
 

@@ -168,7 +168,7 @@ const LINK_PLACEHOLDER = '_'
 
 export default function PassChange() {
   const { link } = RRDom.useParams<{ link: string }>()
-  invariant(!!link, `link must be defined`)
+  invariant(!!link, '`link` must be defined')
 
   const { urls } = NamedRoutes.use()
 
