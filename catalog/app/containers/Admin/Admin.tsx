@@ -103,12 +103,26 @@ export default function Admin() {
     <AdminLayout section={getSection(location.pathname)}>
       <ErrorBoundary key={JSON.stringify(location)}>
         <RRDom.Switch>
-          <RRDom.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
-          <RRDom.Route path={paths.adminBuckets} component={Buckets} exact />
-          {cfg.desktop && <RRDom.Route path={paths.adminSync} component={Sync} exact />}
-          <RRDom.Route path={paths.adminSettings} component={Settings} exact />
-          <RRDom.Route path={paths.adminStatus} component={Status} exact />
-          <RRDom.Route component={ThrowNotFound} />
+          <RRDom.Route path={paths.adminUsers} exact strict>
+            <UsersAndRoles />
+          </RRDom.Route>
+          <RRDom.Route path={paths.adminBuckets} exact>
+            <Buckets />
+          </RRDom.Route>
+          {cfg.desktop && (
+            <RRDom.Route path={paths.adminSync} exact>
+              <Sync />
+            </RRDom.Route>
+          )}
+          <RRDom.Route path={paths.adminSettings} exact>
+            <Settings />
+          </RRDom.Route>
+          <RRDom.Route path={paths.adminStatus} exact>
+            <Status />
+          </RRDom.Route>
+          <RRDom.Route>
+            <ThrowNotFound />
+          </RRDom.Route>
         </RRDom.Switch>
       </ErrorBoundary>
     </AdminLayout>
