@@ -1,4 +1,3 @@
-import invariant from 'invariant'
 import * as React from 'react'
 import * as RRDom from 'react-router'
 import * as M from '@material-ui/core'
@@ -24,8 +23,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function UriResolver() {
-  const params = RRDom.useParams<{ uri: string }>()
-  invariant(!!params.uri, `uri must be defined`)
+  const params = RRDom.useParams<{ uri?: string }>()
 
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
