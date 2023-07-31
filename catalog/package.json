@@ -178,7 +178,7 @@
     "@types/react-swipeable-views": "^0.13.2",
     "@types/react-swipeable-views-core": "^0.13.0",
     "@types/react-swipeable-views-utils": "^0.13.4",
-    "@types/react-table": "^7.7.12",
+    "@types/react-table": "^7.7.14",
     "@types/react-test-renderer": "^17.0.2",
     "@types/remarkable": "^2.0.3",
     "@types/semver": "^7.5.0",
