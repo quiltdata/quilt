@@ -114,11 +114,8 @@ function Root() {
   )
 }
 
-function Bucket({
-  match: {
-    params: { bucket },
-  },
-}) {
+function Bucket() {
+  const { bucket } = RRDom.useParams()
   const { paths } = NamedRoutes.use()
 
   return (

@@ -57,12 +57,9 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}) {
+export default function Dir() {
+  const { bucket, path: encodedPath = '' } = RRDom.useParams()
+  const l = RRDom.useLocation()
   const ecfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

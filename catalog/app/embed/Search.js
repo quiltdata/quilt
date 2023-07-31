@@ -25,12 +25,9 @@ function Results({ bucket, query, page, makePageUrl, retry, retryUrl, scrollRef 
   })
 }
 
-export default function Search({
-  match: {
-    params: { bucket },
-  },
-  location: l,
-}) {
+export default function Search() {
+  const { bucket } = RRDom.useParams()
+  const l = RRDom.useLocation()
   const { urls } = NamedRoutes.use()
   const { q: query = '', p, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)

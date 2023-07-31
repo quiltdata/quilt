@@ -348,12 +348,9 @@ const useStyles = M.makeStyles((t) => ({
 
 const previewOptions = { context: Preview.CONTEXT.FILE }
 
-export default function File({
-  match: {
-    params: { bucket, path: encodedPath },
-  },
-  location,
-}) {
+export default function File() {
+  const { bucket, path: encodedPath } = RRDom.useParams()
+  const location = RRDom.useLocation()
   const ecfg = EmbedConfig.use()
   const { version } = parseSearch(location.search)
   const classes = useStyles()

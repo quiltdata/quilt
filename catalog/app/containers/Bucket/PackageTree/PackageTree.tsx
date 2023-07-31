@@ -936,7 +936,6 @@ type PackageTreeRouteParams = {
 }
 
 export default function PackageTreeWrapper() {
-console.log('PACKAGETREE called!!!!!')
   const {
     bucket,
     name,

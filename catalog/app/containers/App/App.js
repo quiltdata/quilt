@@ -35,12 +35,9 @@ const LegacyPackages = () => {
   return <AbsRedirect url={urls.legacyPackages(cfg.legacyPackagesRedirect, l)} />
 }
 
-function BucketSearchRedirect({
-  location: { search },
-  match: {
-    params: { bucket },
-  },
-}) {
+function BucketSearchRedirect() {
+  const { search } = RRDom.useLocation()
+  const { bucket } = RRDom.useParams()
   const { urls } = NamedRoutes.use()
   const params = parseSearch(search, true)
   const url = urls.search({ buckets: bucket, ...params })
