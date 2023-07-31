@@ -164,19 +164,11 @@ function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   return R.assoc(key, value, file)
 }
 
-function addFile(p: string, f: AddedFile, a: AddedItems, e?: ExistingItems): AddedItems
-function addFile(
-  p: string,
-  f: ExistingFile,
-  e: ExistingItems,
-  a?: AddedItems,
-): ExistingItems
-function addFile(
-  path: string,
-  file: AnyFile,
-  mainItems: Record<string, AnyFile>,
-  itemsToCheck?: Record<string, AnyFile>,
-) {
+function addFile<
+  T extends AnyFile,
+  M extends Record<string, AnyFile>,
+  I = Record<string, AnyFile>,
+>(path: string, file: T, mainItems: M, itemsToCheck?: I) {
   const resolvedName = resolveName(
     path,
     itemsToCheck ? { ...mainItems, ...itemsToCheck } : mainItems,
@@ -213,7 +205,6 @@ function renameFile(
     reverted ? null : { logicalKey: oldPath },
     file,
   )
-  // @ts-expect-error
   return addFile(newPath, changedFile, itemsWithOldNameRemoved, itemsToCheck)
 }
 
@@ -228,7 +219,7 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + PD.getNormalizedPath(file)
         return R.evolve(
           {
-            added: () => addFile(path, file, acc.added),
+            added: () => addFile<AddedFile, AddedItems>(path, file, acc.added),
             deleted: R.dissoc(path),
           },
           acc,
@@ -241,7 +232,7 @@ const handleFilesAction = FilesAction.match<
         const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
         return R.evolve(
           {
-            added: () => addFile(path, file, acc.added),
+            added: () => addFile<AddedFile, AddedItems>(path, file, acc.added),
             deleted: R.dissoc(path),
           },
           acc,
