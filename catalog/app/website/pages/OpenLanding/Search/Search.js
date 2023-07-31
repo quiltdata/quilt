@@ -3,12 +3,12 @@ import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import SearchHelp from 'components/SearchHelp'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
-import SearchHelp from 'containers/NavBar/Help'
 import Dots from 'website/components/Backgrounds/Dots'
 
 import bg from './search-bg.png'
@@ -204,13 +204,11 @@ export default function Search() {
                 placeholder="Search"
               />
 
-              <M.MuiThemeProvider theme={style.appTheme}>
-                <M.Fade in={helpOpened}>
-                  <M.Paper className={classes.helpWrapper}>
-                    <SearchHelp className={classes.help} onQuery={onQuery} />
-                  </M.Paper>
-                </M.Fade>
-              </M.MuiThemeProvider>
+              <SearchHelp
+                classes={{ contents: classes.help, paper: classes.helpWrapper }}
+                onQuery={onQuery}
+                open={helpOpened}
+              />
             </div>
           </M.ClickAwayListener>
 

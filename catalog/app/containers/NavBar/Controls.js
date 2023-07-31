@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import cfg from 'constants/config'
+import * as BucketConfig from 'utils/BucketConfig'
 
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
@@ -59,7 +60,7 @@ const Container = (props) => (
   />
 )
 
-function GlobalControls({ iconized, disableSearch }) {
+function GlobalControls({ iconized }) {
   const [state, setState] = React.useState(null)
   const search = React.useCallback(() => {
     setState('search')
@@ -71,17 +72,12 @@ function GlobalControls({ iconized, disableSearch }) {
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
       <BucketSelect display={state === 'search' ? 'none' : undefined} />
-      <Search
-        onFocus={search}
-        onBlur={cancel}
-        iconized={iconized}
-        disabled={disableSearch}
-      />
+      <Search onFocus={search} onBlur={cancel} iconized={iconized} />
     </Container>
   )
 }
 
-function BucketControls({ bucket, iconized, disableSearch }) {
+function BucketControls({ bucket, iconized }) {
   const [state, setState] = React.useState(null)
   const select = React.useCallback(() => {
     setState('select')
@@ -110,7 +106,6 @@ function BucketControls({ bucket, iconized, disableSearch }) {
         onBlur={cancel}
         hidden={state === 'select'}
         iconized={iconized}
-        disabled={disableSearch}
       />
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
@@ -119,12 +114,13 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   )
 }
 
-export default function Controls({ bucket, disableSearch }) {
+export default function Controls() {
+  const bucket = BucketConfig.useCurrentBucket()
   const t = M.useTheme()
   const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
   return bucket ? (
-    <BucketControls {...{ bucket, iconized, disableSearch }} />
+    <BucketControls {...{ bucket, iconized }} />
   ) : (
-    <GlobalControls {...{ iconized, disableSearch }} />
+    <GlobalControls {...{ iconized }} />
   )
 }
