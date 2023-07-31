@@ -1,4 +1,5 @@
 import { FORM_ERROR } from 'final-form'
+import invariant from 'invariant'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'

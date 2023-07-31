@@ -342,7 +342,7 @@ const useSearchStyles = M.makeStyles((t) => ({
 export default function Search() {
   const l = RRDom.useLocation()
   const { urls } = NamedRoutes.use()
-  const navigate = RRDom.useNavigate()
+  const history = RRDom.useHistory()
   const classes = useSearchStyles()
 
   const scrollRef = React.useRef(null)
@@ -357,25 +357,25 @@ export default function Search() {
 
   const handleQueryChange = React.useCallback(
     (newQuery) => {
-      navigate(
+      history.push(
         urls.search({ q: newQuery, buckets: buckets.join(',') || undefined, mode }),
       )
     },
-    [navigate, urls, buckets, mode],
+    [history, urls, buckets, mode],
   )
 
   const handleBucketsChange = React.useCallback(
     (newBuckets) => {
-      navigate(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode }))
+      history.push(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode }))
     },
-    [navigate, urls, q, mode],
+    [history, urls, q, mode],
   )
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      navigate(urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }))
+      history.push(urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }))
     },
-    [navigate, urls, buckets, q],
+    [history, urls, buckets, q],
   )
 
   const retryUrl = urls.search({
