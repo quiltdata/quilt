@@ -26,10 +26,18 @@ export default function Queries() {
       <MetaTitle>{['Queries', bucket]}</MetaTitle>
 
       <RRDom.Switch>
-        <RRDom.Route path={paths.bucketESQueries} component={ElasticSearch} exact />
-        <RRDom.Route path={paths.bucketAthena} component={Athena} exact />
-        <RRDom.Route path={paths.bucketAthenaWorkgroup} component={Athena} exact />
-        <RRDom.Route path={paths.bucketAthenaExecution} component={Athena} exact />
+        <RRDom.Route path={paths.bucketESQueries} exact>
+          <ElasticSearch />
+        </RRDom.Route>
+        <RRDom.Route path={paths.bucketAthena} exact>
+          <Athena />
+        </RRDom.Route>
+        <RRDom.Route path={paths.bucketAthenaWorkgroup} exact>
+          <Athena />
+        </RRDom.Route>
+        <RRDom.Route path={paths.bucketAthenaExecution} exact>
+          <Athena />
+        </RRDom.Route>
         <RRDom.Route>
           <RRDom.Redirect to={urls.bucketAthena(bucket)} />
         </RRDom.Route>

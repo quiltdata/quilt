@@ -102,19 +102,33 @@ export default function Bucket({
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <RRDom.Switch>
-            <RRDom.Route path={paths.bucketFile} component={File} exact strict />
-            <RRDom.Route path={paths.bucketDir} component={Dir} exact />
-            <RRDom.Route path={paths.bucketOverview} component={Overview} exact />
-            <RRDom.Route path={paths.bucketPackageList} component={PackageList} exact />
-            <RRDom.Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-            <RRDom.Route path={paths.bucketPackageTree} component={PackageTree} exact />
-            <RRDom.Route
-              path={paths.bucketPackageRevisions}
-              component={PackageRevisions}
-              exact
-            />
-            <RRDom.Route path={paths.bucketQueries} component={Queries} />
-            <RRDom.Route component={ThrowNotFound} />
+            <RRDom.Route path={paths.bucketFile} exact strict>
+              <File />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketDir} exact>
+              <Dir />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketOverview} exact>
+              <Overview />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketPackageList} exact>
+              <PackageList />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketPackageDetail} exact>
+              <PackageTree />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketPackageTree} exact>
+              <PackageTree />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketPackageRevisions} exact>
+              <PackageRevisions />
+            </RRDom.Route>
+            <RRDom.Route path={paths.bucketQueries}>
+              <Queries />
+            </RRDom.Route>
+            <RRDom.Route>
+              <ThrowNotFound />
+            </RRDom.Route>
           </RRDom.Switch>
         </CatchNotFound>
       </BucketLayout>
