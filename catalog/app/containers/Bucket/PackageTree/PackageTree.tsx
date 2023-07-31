@@ -928,7 +928,7 @@ function PackageTreeQueries({
   })
 }
 
-type PackageTreeRouteParams = {
+interface PackageTreeRouteParams {
   bucket: string
   name: string
   revision?: string

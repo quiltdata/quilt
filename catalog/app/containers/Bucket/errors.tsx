@@ -100,11 +100,11 @@ const whenAuth = (cases: WhenAuthCases) => () => <WhenAuth cases={cases} />
 
 function SignIn() {
   const { urls } = NamedRoutes.use()
-  const location = RRDom.useLocation()
+  const l = RRDom.useLocation()
   return (
     <M.Button
       component={RRDom.Link}
-      to={urls.signIn(location.pathname + location.search + location.hash)}
+      to={urls.signIn(l.pathname + l.search + l.hash)}
       variant="contained"
       color="primary"
     >
