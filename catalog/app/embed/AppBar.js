@@ -1,7 +1,7 @@
 import { basename } from 'path'
 
 import * as React from 'react'
-import { useHistory, useLocation, useRouteMatch, Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
@@ -44,11 +44,11 @@ const useSearchBoxStyles = M.makeStyles((t) => ({
 }))
 
 function SearchBox({ bucket }) {
-  const history = useHistory()
+  const history = RRDom.useHistory()
   const { paths, urls } = NamedRoutes.use()
 
-  const l = useLocation()
-  const match = useRouteMatch(paths.bucketSearch)
+  const l = RRDom.useLocation()
+  const match = RRDom.useRouteMatch(paths.bucketSearch)
   const query = (match && parse(l.search, true).q) || ''
 
   const makeUrl = React.useCallback(
@@ -136,7 +136,7 @@ export default function AppBar({ bucket }) {
   const trigger = M.useScrollTrigger()
   const classes = useStyles()
   const { urls, paths } = NamedRoutes.use()
-  const isSearch = !!useRouteMatch(paths.bucketSearch)
+  const isSearch = !!RRDom.useRouteMatch(paths.bucketSearch)
   const rootUrl = urls.bucketDir(bucket, cfg.scope)
   const showRootLink = !cfg.hideRootLink || isSearch
   return (
@@ -149,7 +149,7 @@ export default function AppBar({ bucket }) {
               {showRootLink && (
                 <M.Button
                   to={rootUrl}
-                  component={Link}
+                  component={RRDom.Link}
                   variant="contained"
                   className={classes.btn}
                 >

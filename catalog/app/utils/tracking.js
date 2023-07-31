@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { matchPath, useLocation } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 
 import { useExperiments } from 'components/Experiments'
 import cfg from 'constants/config'
@@ -32,7 +32,7 @@ function useMkLocation() {
   } = NamedRoutes.use()
   return React.useCallback(
     (l) => {
-      const pathname = matchPath(l.pathname, { path: passChangePath, exact: true })
+      const pathname = RRDom.matchPath(l.pathname, { path: passChangePath, exact: true })
         ? passChangeUrl('REDACTED')
         : l.pathname
 
@@ -67,7 +67,7 @@ export function TrackingProvider({ userSelector, children }) {
   const tracker = React.useMemo(loadMixpanel, [])
   const { getSelectedVariants } = useExperiments()
   const mkLocation = useMkLocation()
-  const location = mkLocation(useLocation())
+  const location = mkLocation(RRDom.useLocation())
   const user = redux.useSelector(userSelector)
 
   const commonOpts = React.useMemo(

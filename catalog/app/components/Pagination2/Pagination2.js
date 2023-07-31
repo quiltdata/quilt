@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 const Gap = Symbol('gap')
@@ -78,7 +78,7 @@ export default React.forwardRef(function Pagination2(
   const renderPage = (p) => {
     const ps = {}
     if (makePageUrl) {
-      ps.component = Link
+      ps.component = RRDom.Link
       ps.to = makePageUrl(p)
     }
     if (onChange) {

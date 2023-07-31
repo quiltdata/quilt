@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory, Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -71,7 +71,7 @@ export default function Buckets({ query: filter } = { query: '' }) {
   // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const history = RRDom.useHistory()
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
@@ -179,7 +179,7 @@ export default function Buckets({ query: filter } = { query: '' }) {
                 <M.Button
                   variant="contained"
                   color="primary"
-                  component={Link}
+                  component={RRDom.Link}
                   to={urls.adminBuckets()}
                 >
                   Add Bucket

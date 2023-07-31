@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useLocation } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 
 import Error from 'components/Error'
 import Layout from 'components/Layout'
@@ -13,7 +13,7 @@ interface ErrorBoundaryPlaceholderProps {
 }
 
 function ErrorBoundaryPlaceholder({ error, info, reset }: ErrorBoundaryPlaceholderProps) {
-  const location = useLocation()
+  const location = RRDom.useLocation()
   const errorShown = React.useRef(false)
   React.useEffect(() => {
     if (!errorShown.current) {

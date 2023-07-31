@@ -4,7 +4,7 @@
 import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { Router } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -89,7 +89,7 @@ const render = () => {
       Sentry.UserTracker,
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
-      [Router, { history }],
+      [RRDom.Router, { history }],
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,

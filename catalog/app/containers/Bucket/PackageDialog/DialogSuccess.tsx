@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -70,7 +70,7 @@ export default function DialogSuccess({
         <M.Button onClick={onClose}>Close</M.Button>
         <M.Button
           onClick={onClose}
-          component={Link}
+          component={RRDom.Link}
           to={packageUrl}
           variant="contained"
           color="primary"

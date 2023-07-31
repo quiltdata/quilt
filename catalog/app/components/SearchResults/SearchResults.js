@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -626,7 +626,12 @@ export const handleErr = (retryUrl) => (e) =>
       )}
       {!!retryUrl && (
         <M.Box pt={2}>
-          <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
+          <M.Button
+            component={RRDom.Link}
+            to={retryUrl}
+            color="primary"
+            variant="contained"
+          >
             Retry simplified query
           </M.Button>
         </M.Box>

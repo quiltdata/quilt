@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
 import type { AutosizeInputProps } from 'react-input-autosize'
-import { Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -724,7 +724,7 @@ export type CellProps = React.PropsWithChildren<{
 }>
 
 function Cell({ item, ...props }: CellProps) {
-  return <Link to={item.to} {...props} />
+  return <RRDom.Link to={item.to} {...props} />
 }
 
 function compareBy<T, V extends R.Ord>(a: T, b: T, getValue: (arg: T) => V) {

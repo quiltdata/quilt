@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -63,7 +63,7 @@ export default function Dir() {
   const ecfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)

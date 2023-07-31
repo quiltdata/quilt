@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RR from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -38,9 +38,9 @@ const useTabStyles = M.makeStyles((t) => ({
   },
 }))
 
-function NavTab(props: M.TabProps & RR.LinkProps) {
+function NavTab(props: M.TabProps & RRDom.LinkProps) {
   const classes = useTabStyles()
-  return <M.Tab classes={classes} component={RR.Link} {...props} />
+  return <M.Tab classes={classes} component={RRDom.Link} {...props} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -91,9 +91,9 @@ export default function Admin() {
 
   const getSection = (pathname: string) => {
     for (const [section, maybeVariants] of Object.entries(sections)) {
-      const variants = ([] as RR.RouteProps[]).concat(maybeVariants)
+      const variants = ([] as RRDom.RouteProps[]).concat(maybeVariants)
       for (const opts of variants) {
-        if (RR.matchPath(pathname, opts)) return section
+        if (RRDom.matchPath(pathname, opts)) return section
       }
     }
     return false
@@ -102,14 +102,14 @@ export default function Admin() {
   return (
     <AdminLayout section={getSection(location.pathname)}>
       <ErrorBoundary key={JSON.stringify(location)}>
-        <RR.Switch>
-          <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
-          <RR.Route path={paths.adminBuckets} component={Buckets} exact />
-          {cfg.desktop && <RR.Route path={paths.adminSync} component={Sync} exact />}
-          <RR.Route path={paths.adminSettings} component={Settings} exact />
-          <RR.Route path={paths.adminStatus} component={Status} exact />
-          <RR.Route component={ThrowNotFound} />
-        </RR.Switch>
+        <RRDom.Switch>
+          <RRDom.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
+          <RRDom.Route path={paths.adminBuckets} component={Buckets} exact />
+          {cfg.desktop && <RRDom.Route path={paths.adminSync} component={Sync} exact />}
+          <RRDom.Route path={paths.adminSettings} component={Settings} exact />
+          <RRDom.Route path={paths.adminStatus} component={Status} exact />
+          <RRDom.Route component={ThrowNotFound} />
+        </RRDom.Switch>
       </ErrorBoundary>
     </AdminLayout>
   )

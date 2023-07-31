@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Link, LinkProps } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import Layout from 'components/Layout'
 import Spinner from 'components/Spinner'
@@ -64,9 +64,9 @@ const useFieldErrorLinkStyles = M.makeStyles({
   },
 })
 
-export function FieldErrorLink(props: LinkProps) {
+export function FieldErrorLink(props: RRDom.LinkProps) {
   const classes = useFieldErrorLinkStyles()
-  return <Link className={classes.root} {...props} />
+  return <RRDom.Link className={classes.root} {...props} />
 }
 
 const useErrorStyles = M.makeStyles((t) => ({

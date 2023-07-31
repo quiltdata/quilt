@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as Lab from '@material-ui/lab'
@@ -158,8 +158,8 @@ function SearchInput({
 
 function useSearchUrlState(bucket?: string) {
   const { paths, urls } = NamedRoutes.use()
-  const location = useLocation()
-  const match = useRouteMatch(paths.search)
+  const location = RRDom.useLocation()
+  const match = RRDom.useRouteMatch(paths.search)
   const isInStack = BucketConfig.useIsInStack()
   const settings = CatalogSettings.use()
 
@@ -194,7 +194,7 @@ interface SearchProps extends SearchInputExternalProps {
 }
 
 function useSearchState({ bucket, onFocus, onBlur, ...props }: SearchProps): SearchState {
-  const history = useHistory()
+  const history = RRDom.useHistory()
 
   const { query, makeUrl, buckets } = useSearchUrlState(bucket)
 

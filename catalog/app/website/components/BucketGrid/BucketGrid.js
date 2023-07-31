@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -90,13 +90,13 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
             <Collaborators bucket={bucket.name} collaborators={bucket.collaborators} />
           </div>
         )}
-        <Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
+        <RRDom.Link className={classes.title} to={urls.bucketRoot(bucket.name)}>
           {bucket.title}
-        </Link>
+        </RRDom.Link>
       </div>
-      <Link className={classes.name} to={urls.bucketRoot(bucket.name)}>
+      <RRDom.Link className={classes.name} to={urls.bucketRoot(bucket.name)}>
         s3://{bucket.name}
-      </Link>
+      </RRDom.Link>
       {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
       <M.Box flexGrow={1} />
       {!!bucket.tags && !!bucket.tags.length && (
@@ -172,9 +172,9 @@ export default React.forwardRef(function BucketGrid(
         />
       ))}
       {showAddLink && (
-        <Link className={classes.add} to={urls.adminBuckets()}>
+        <RRDom.Link className={classes.add} to={urls.adminBuckets()}>
           <M.Icon>add</M.Icon>
-        </Link>
+        </RRDom.Link>
       )}
     </div>
   )
