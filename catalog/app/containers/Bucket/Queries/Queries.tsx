@@ -1,6 +1,6 @@
+import invariant from 'invariant'
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router'
-import { Redirect, Route, Switch } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
@@ -15,26 +15,25 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Queries({
-  match: {
-    params: { bucket },
-  },
-}: RouteComponentProps<{ bucket: string }>) {
+export default function Queries() {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  invariant(!!bucket, `bucket must be defined`)
+
   const classes = useStyles()
   const { paths, urls } = NamedRoutes.use()
   return (
     <div className={classes.root}>
       <MetaTitle>{['Queries', bucket]}</MetaTitle>
 
-      <Switch>
+      <RRDom.Switch>
         <Route path={paths.bucketESQueries} component={ElasticSearch} exact />
         <Route path={paths.bucketAthena} component={Athena} exact />
         <Route path={paths.bucketAthenaWorkgroup} component={Athena} exact />
         <Route path={paths.bucketAthenaExecution} component={Athena} exact />
         <Route>
-          <Redirect to={urls.bucketAthena(bucket)} />
+          <RRDom.Redirect to={urls.bucketAthena(bucket)} />
         </Route>
-      </Switch>
+      </RRDom.Switch>
     </div>
   )
 }

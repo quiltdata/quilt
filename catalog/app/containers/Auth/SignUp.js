@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { Redirect } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Placeholder from 'components/Placeholder'
@@ -230,7 +230,8 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
   )
 }
 
-export default ({ location: { search } }) => {
+export default () => {
+  const { search } = RRDom.useLocation()
   const authenticated = redux.useSelector(selectors.authenticated)
   const mutex = useMutex()
 
@@ -244,7 +245,7 @@ export default ({ location: { search } }) => {
   const { next } = parseSearch(search)
 
   if (authenticated) {
-    return <Redirect to={next || '/'} />
+    return <RRDom.Redirect to={next || '/'} />
   }
 
   if (done)

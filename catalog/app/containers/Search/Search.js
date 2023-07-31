@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -18,7 +18,7 @@ function BrowseBucket({ bucket }) {
   return (
     <>
       <br />
-      <M.Button component={Link} to={urls.bucketRoot(bucket)} variant="outlined">
+      <M.Button component={RRDom.Link} to={urls.bucketRoot(bucket)} variant="outlined">
         Browse the bucket
       </M.Button>
     </>
@@ -339,9 +339,10 @@ const useSearchStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Search({ location: l }) {
+export default function Search() {
+  const l = RRDom.useLocation()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const navigate = RRDom.useNavigate()
   const classes = useSearchStyles()
 
   const scrollRef = React.useRef(null)
@@ -356,27 +357,25 @@ export default function Search({ location: l }) {
 
   const handleQueryChange = React.useCallback(
     (newQuery) => {
-      history.push(
+      navigate(
         urls.search({ q: newQuery, buckets: buckets.join(',') || undefined, mode }),
       )
     },
-    [history, urls, buckets, mode],
+    [navigate, urls, buckets, mode],
   )
 
   const handleBucketsChange = React.useCallback(
     (newBuckets) => {
-      history.push(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode }))
+      navigate(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode }))
     },
-    [history, urls, q, mode],
+    [navigate, urls, q, mode],
   )
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      history.push(
-        urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }),
-      )
+      navigate(urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }))
     },
-    [history, urls, buckets, q],
+    [navigate, urls, buckets, q],
   )
 
   const retryUrl = urls.search({

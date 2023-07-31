@@ -320,12 +320,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function File({
-  match: {
-    params: { bucket, path: encodedPath },
-  },
-  location,
-}) {
+export default function File() {
+  const location = RRDom.useLocation()
+  const { bucket, path: encodedPath } = RRDom.useParams()
+
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

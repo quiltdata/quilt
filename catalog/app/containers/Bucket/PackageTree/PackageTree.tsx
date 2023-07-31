@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -927,19 +928,24 @@ function PackageTreeQueries({
   })
 }
 
-interface PackageTreeRouteParams {
+type PackageTreeRouteParams = {
   bucket: string
   name: string
   revision?: string
   path?: string
 }
 
-export default function PackageTreeWrapper({
-  match: {
-    params: { bucket, name, revision: hashOrTag = 'latest', path: encodedPath = '' },
-  },
-  location,
-}: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
+export default function PackageTreeWrapper() {
+  const {
+    bucket,
+    name,
+    revision: hashOrTag = 'latest',
+    path: encodedPath = '',
+  } = RRDom.useParams<PackageTreeRouteParams>()
+  const location = RRDom.useLocation()
+  invariant(!!bucket, `bucket must be defined`)
+  invariant(!!name, `name must be defined`)
+
   const path = s3paths.decode(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)

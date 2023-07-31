@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Switch, Route, Redirect, useLocation } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
@@ -16,21 +16,19 @@ const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
 const ProtectedThrowNotFound = protect(ThrowNotFound)
 
-const redirectTo =
-  (path) =>
-  ({ location: { search } }) =>
-    <Redirect to={`${path}${search}`} />
+const redirectTo = (path) => () => {
+  const { search } = RRDom.useLocation()
+  return <RRDom.Redirect to={`${path}${search}`} />
+}
 
-const Activate = ({
-  match: {
-    params: { token },
-  },
-}) => {
+const Activate = () => {
+  const { token } = RRDom.useParams()
   const { urls } = NamedRoutes.use()
   return <AbsRedirect url={urls.activate({ registryUrl: cfg.registryUrl, token })} />
 }
 
-const LegacyPackages = ({ location: l }) => {
+const LegacyPackages = () => {
+  const l = RRDom.useLocation()
   const { urls } = NamedRoutes.use()
   return <AbsRedirect url={urls.legacyPackages(cfg.legacyPackagesRedirect, l)} />
 }
@@ -44,7 +42,7 @@ function BucketSearchRedirect({
   const { urls } = NamedRoutes.use()
   const params = parseSearch(search, true)
   const url = urls.search({ buckets: bucket, ...params })
-  return <Redirect to={url} />
+  return <RRDom.Redirect to={url} />
 }
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
@@ -91,89 +89,101 @@ const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
   const { paths, urls } = NamedRoutes.use()
-  const l = useLocation()
+  const l = RRDom.useLocation()
 
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Switch>
-        <Route path={paths.home} component={Home} exact />
+      <RRDom.Switch>
+        <RRDom.Route path={paths.home} component={Home} exact />
 
         {process.env.NODE_ENV === 'development' && (
-          <Route path={paths.example} component={Example} />
+          <RRDom.Route path={paths.example} component={Example} />
         )}
 
         {(cfg.mode === 'MARKETING' || cfg.mode === 'PRODUCT') && (
-          <Route path={paths.install} component={Install} exact />
+          <RRDom.Route path={paths.install} component={Install} exact />
         )}
 
         {!!cfg.legacyPackagesRedirect && (
-          <Route path={paths.legacyPackages} component={LegacyPackages} />
+          <RRDom.Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
 
-        {!cfg.disableNavigator && <Route path={paths.search} component={Search} exact />}
+        {!cfg.disableNavigator && (
+          <RRDom.Route path={paths.search} component={Search} exact />
+        )}
 
         {cfg.mode === 'MARKETING' && (
-          <Route path={paths.about} component={MAbout} exact />
+          <RRDom.Route path={paths.about} component={MAbout} exact />
         )}
         {cfg.enableMarketingPages && (
-          <Route path={paths.personas} component={MPersonas} exact />
+          <RRDom.Route path={paths.personas} component={MPersonas} exact />
         )}
         {cfg.enableMarketingPages && (
-          <Route path={paths.product} component={MProduct} exact />
+          <RRDom.Route path={paths.product} component={MProduct} exact />
         )}
-        {cfg.mode === 'MARKETING' && <Route path="/bioit" component={BioIT} exact />}
         {cfg.mode === 'MARKETING' && (
-          <Route path="/nextflow" component={NextFlow} exact />
+          <RRDom.Route path="/bioit" component={BioIT} exact />
         )}
-        {cfg.mode === 'MARKETING' && <Route path="/aws" component={BioIT} exact />}
         {cfg.mode === 'MARKETING' && (
-          <Route path="/aws-marketplace" component={AwsMarketplace} exact />
+          <RRDom.Route path="/nextflow" component={NextFlow} exact />
+        )}
+        {cfg.mode === 'MARKETING' && <RRDom.Route path="/aws" component={BioIT} exact />}
+        {cfg.mode === 'MARKETING' && (
+          <RRDom.Route path="/aws-marketplace" component={AwsMarketplace} exact />
         )}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.activate} component={Activate} exact />
+          <RRDom.Route path={paths.activate} component={Activate} exact />
         )}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.signIn} component={AuthSignIn} exact />
+          <RRDom.Route path={paths.signIn} component={AuthSignIn} exact />
         )}
         {!cfg.disableNavigator && (
-          <Route path="/login" component={redirectTo(urls.signIn())} exact />
+          <RRDom.Route path="/login" component={redirectTo(urls.signIn())} exact />
         )}
         {!cfg.disableNavigator && (
-          <Route path={paths.signOut} component={AuthSignOut} exact />
+          <RRDom.Route path={paths.signOut} component={AuthSignOut} exact />
         )}
         {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-          <Route path={paths.signUp} component={AuthSignUp} exact />
+          <RRDom.Route path={paths.signUp} component={AuthSignUp} exact />
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
-          <Route path={paths.passReset} component={AuthPassReset} exact />
+          <RRDom.Route path={paths.passReset} component={AuthPassReset} exact />
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
-          <Route path={paths.passChange} component={AuthPassChange} exact />
+          <RRDom.Route path={paths.passChange} component={AuthPassChange} exact />
         )}
-        {!cfg.disableNavigator && <Route path={paths.code} component={AuthCode} exact />}
         {!cfg.disableNavigator && (
-          <Route path={paths.activationError} component={AuthActivationError} exact />
+          <RRDom.Route path={paths.code} component={AuthCode} exact />
+        )}
+        {!cfg.disableNavigator && (
+          <RRDom.Route
+            path={paths.activationError}
+            component={AuthActivationError}
+            exact
+          />
         )}
 
         {cfg.mode === 'OPEN' && (
-          <Route path={paths.profile} component={OpenProfile} exact />
+          <RRDom.Route path={paths.profile} component={OpenProfile} exact />
         )}
 
-        {!cfg.disableNavigator && <Route path={paths.admin} component={Admin} />}
+        {!cfg.disableNavigator && <RRDom.Route path={paths.admin} component={Admin} />}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.uriResolver} component={UriResolver} />
+          <RRDom.Route path={paths.uriResolver} component={UriResolver} />
         )}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.bucketSearch} component={BucketSearchRedirect} exact />
+          <RRDom.Route path={paths.bucketSearch} component={BucketSearchRedirect} exact />
         )}
-        {!cfg.disableNavigator && <Route path={paths.bucketRoot} component={Bucket} />}
+        {!cfg.disableNavigator && (
+          <RRDom.Route path={paths.bucketRoot} component={Bucket} />
+        )}
 
-        <Route component={ProtectedThrowNotFound} />
-      </Switch>
+        <RRDom.Route component={ProtectedThrowNotFound} />
+      </RRDom.Switch>
     </CatchNotFound>
   )
 }

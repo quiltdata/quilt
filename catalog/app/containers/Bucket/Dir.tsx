@@ -1,5 +1,6 @@
 import { join } from 'path'
 
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -272,17 +273,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DirParams {
+type DirParams = {
   bucket: string
   path?: string
 }
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}: RRDom.RouteComponentProps<DirParams>) {
+export default function Dir() {
+  const { bucket, path: encodedPath = '' } = RRDom.useParams<DirParams>()
+  const l = RRDom.useLocation()
+  invariant(!!bucket, `bucket must be defined`)
+
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
