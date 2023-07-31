@@ -164,11 +164,12 @@ function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   return R.assoc(key, value, file)
 }
 
-function addFile<
-  T extends AnyFile,
-  M extends Record<string, AnyFile>,
-  I = Record<string, AnyFile>,
->(path: string, file: T, mainItems: M, itemsToCheck?: I) {
+function addFile<T extends AnyFile, M extends Record<string, AnyFile>>(
+  path: string,
+  file: T,
+  mainItems: M,
+  itemsToCheck?: Record<string, AnyFile>,
+) {
   const resolvedName = resolveName(
     path,
     itemsToCheck ? { ...mainItems, ...itemsToCheck } : mainItems,
