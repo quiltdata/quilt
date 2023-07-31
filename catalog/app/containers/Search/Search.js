@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -12,6 +12,18 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import useSearch from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
+
+function BrowseBucket({ bucket }) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <>
+      <br />
+      <M.Button component={Link} to={urls.bucketRoot(bucket)} variant="outlined">
+        Browse the bucket
+      </M.Button>
+    </>
+  )
+}
 
 function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl }) {
   return data.case({
@@ -25,7 +37,9 @@ function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl 
       total ? (
         <SearchResults.Hits {...{ hits, page, scrollRef, makePageUrl }} showBucket />
       ) : (
-        <SearchResults.NothingFound />
+        <SearchResults.NothingFound>
+          {buckets.length === 1 && <BrowseBucket bucket={buckets[0]} />}
+        </SearchResults.NothingFound>
       ),
   })
 }
@@ -326,7 +340,11 @@ const useSearchStyles = M.makeStyles((t) => ({
 }))
 
 export default function Search({ location: l }) {
+  const { urls } = NamedRoutes.use()
+  const history = useHistory()
   const classes = useSearchStyles()
+
+  const scrollRef = React.useRef(null)
 
   const { q, p, mode, ...params } = parseSearch(l.search)
   const buckets = React.useMemo(
@@ -335,11 +353,6 @@ export default function Search({ location: l }) {
   )
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
   const page = p && parseInt(p, 10)
-
-  const scrollRef = React.useRef(null)
-
-  const { urls } = NamedRoutes.use()
-  const history = useHistory()
 
   const handleQueryChange = React.useCallback(
     (newQuery) => {

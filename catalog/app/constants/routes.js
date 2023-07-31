@@ -94,6 +94,7 @@ export const bucketRoot = {
   url: (bucket) => `/b/${bucket}`,
 }
 export const bucketOverview = bucketRoot
+// redirects to global search
 export const bucketSearch = {
   path: '/b/:bucket/search',
   url: (bucket, { q, p, mode, retry } = {}) =>
