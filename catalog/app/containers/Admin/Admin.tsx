@@ -77,7 +77,8 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
   )
 }
 
-export default function Admin({ location }: RR.RouteComponentProps) {
+export default function Admin() {
+  const location = RRDom.useLocation()
   const { paths } = NamedRoutes.use()
 
   const sections = {
