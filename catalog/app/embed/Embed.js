@@ -5,7 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Router, Switch, useLocation } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -98,14 +98,14 @@ const ErrorBoundary = createBoundary(() => (error) => (
 const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
 
 function Root() {
-  const l = useLocation()
+  const l = RRDom.useLocation()
   const { paths } = NamedRoutes.use()
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Switch>
-        <Route path={paths.bucketRoot} component={Bucket} />
-        <Route component={ThrowNotFound} />
-      </Switch>
+      <RRDom.Switch>
+        <RRDom.Route path={paths.bucketRoot} component={Bucket} />
+        <RRDom.Route component={ThrowNotFound} />
+      </RRDom.Switch>
     </CatchNotFound>
   )
 }
@@ -119,12 +119,12 @@ function Bucket({
 
   return (
     <BucketLayout bucket={bucket}>
-      <Switch>
-        <Route path={paths.bucketFile} component={File} exact strict />
-        <Route path={paths.bucketDir} component={Dir} exact />
-        <Route path={paths.bucketSearch} component={Search} exact />
-        <Route component={ThrowNotFound} />
-      </Switch>
+      <RRDom.Switch>
+        <RRDom.Route path={paths.bucketFile} component={File} exact strict />
+        <RRDom.Route path={paths.bucketDir} component={Dir} exact />
+        <RRDom.Route path={paths.bucketSearch} component={Search} exact />
+        <RRDom.Route component={ThrowNotFound} />
+      </RRDom.Switch>
     </BucketLayout>
   )
 }
@@ -341,7 +341,7 @@ function App({ init }) {
     [CustomThemeProvider, { theme: init.theme }],
     Store.Provider,
     Cache.Provider,
-    [Router, { history }],
+    [RRDom.Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
     Notifications.Provider,

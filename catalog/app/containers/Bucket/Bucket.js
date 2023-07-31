@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Route, Switch, matchPath } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -34,7 +34,7 @@ const match = (cases) => (pathname) => {
   for (const [section, variants] of Object.entries(cases)) {
     // eslint-disable-next-line no-restricted-syntax
     for (const opts of variants) {
-      if (matchPath(pathname, opts)) return section
+      if (RRDom.matchPath(pathname, opts)) return section
     }
   }
   return false
@@ -101,21 +101,21 @@ export default function Bucket({
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
-          <Switch>
-            <Route path={paths.bucketFile} component={File} exact strict />
-            <Route path={paths.bucketDir} component={Dir} exact />
-            <Route path={paths.bucketOverview} component={Overview} exact />
-            <Route path={paths.bucketPackageList} component={PackageList} exact />
-            <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-            <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-            <Route
+          <RRDom.Switch>
+            <RRDom.Route path={paths.bucketFile} component={File} exact strict />
+            <RRDom.Route path={paths.bucketDir} component={Dir} exact />
+            <RRDom.Route path={paths.bucketOverview} component={Overview} exact />
+            <RRDom.Route path={paths.bucketPackageList} component={PackageList} exact />
+            <RRDom.Route path={paths.bucketPackageDetail} component={PackageTree} exact />
+            <RRDom.Route path={paths.bucketPackageTree} component={PackageTree} exact />
+            <RRDom.Route
               path={paths.bucketPackageRevisions}
               component={PackageRevisions}
               exact
             />
-            <Route path={paths.bucketQueries} component={Queries} />
-            <Route component={ThrowNotFound} />
-          </Switch>
+            <RRDom.Route path={paths.bucketQueries} component={Queries} />
+            <RRDom.Route component={ThrowNotFound} />
+          </RRDom.Switch>
         </CatchNotFound>
       </BucketLayout>
     </BucketPreferences.Provider>
