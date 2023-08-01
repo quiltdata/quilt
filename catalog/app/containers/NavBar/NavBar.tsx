@@ -179,13 +179,13 @@ function UserDropdown() {
   }, [setAnchor])
 
   const showBookmarks = React.useCallback(() => {
-    bookmarks?.show()
+    bookmarks.show()
     close()
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks?.hasUpdates !== visible) setVisible(!!bookmarks?.hasUpdates)
-  }, [bookmarks?.hasUpdates, visible])
+    if (bookmarks.hasUpdates !== visible) setVisible(!!bookmarks.hasUpdates)
+  }, [bookmarks.hasUpdates, visible])
 
   return (
     <>

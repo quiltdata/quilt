@@ -29,8 +29,10 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
   },
   selectBtn: {
-    minWidth: t.spacing(27),
     textAlign: 'left',
+    [t.breakpoints.up('sm')]: {
+      minWidth: t.spacing(27),
+    },
   },
   error: {
     margin: t.spacing(1, 0, 0),
@@ -85,6 +87,7 @@ export default function SearchSettings() {
     <div className={classes.root}>
       <div className={classes.actions}>
         <SelectDropdown
+          adaptive={false}
           value={value}
           options={searchModes}
           ButtonProps={{ className: classes.selectBtn }}
