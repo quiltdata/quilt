@@ -586,6 +586,8 @@ interface EntryValidationError extends ErrorObject {
 
 export type EntriesValidationErrors = (Error | EntryValidationError)[]
 
+export const EMPTY_ENTRIES_ERRORS: EntriesValidationErrors = []
+
 function injectEntryIntoErrors(
   errors: (Error | ErrorObject)[],
   entries: ValidationEntry[],
