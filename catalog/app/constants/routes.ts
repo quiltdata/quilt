@@ -7,7 +7,9 @@ const PACKAGE_PATTERN = '[^/]+/[^/]+'
 //       main catalog and embed,
 //       so catalog routes aren't called in embed
 
-type Route<Args extends any[]> = {
+export type NoArgs = []
+
+type Route<Args extends any[] = NoArgs> = {
   path: string
   url: (...args: Args) => string
 }
@@ -19,26 +21,24 @@ export const home: Route<HomeArgs> = {
   url: ({ q } = {}) => `/${mkSearch({ q })}`,
 }
 
-export type NoArgs = []
-
-export const install: Route<NoArgs> = {
+export const install: Route = {
   path: '/install',
   url: () => '/install',
 }
 
 // Marketing
 
-export const about: Route<NoArgs> = {
+export const about: Route = {
   path: '/about',
   url: () => '/about',
 }
 
-export const personas: Route<NoArgs> = {
+export const personas: Route = {
   path: '/personas',
   url: () => '/personas',
 }
 
-export const product: Route<NoArgs> = {
+export const product: Route = {
   path: '/product',
   url: () => '/product',
 }
@@ -50,7 +50,7 @@ export const activate: Route<ActivateArgs> = {
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
 }
 
-export const example: Route<NoArgs> = {
+export const example: Route = {
   path: '/__example',
   url: () => '/__example',
 }
@@ -64,7 +64,7 @@ export const signIn: Route<SignInArgs> = {
   url: (next) => `/signin${mkSearch({ next })}`,
 }
 
-export const signOut: Route<NoArgs> = {
+export const signOut: Route = {
   path: '/signout',
   url: () => '/signout',
 }
@@ -76,7 +76,7 @@ export const signUp: Route<SignOutArgs> = {
   url: (next) => `/signup${mkSearch({ next })}`,
 }
 
-export const passReset: Route<NoArgs> = {
+export const passReset: Route = {
   path: '/reset_password',
   url: () => '/reset_password',
 }
@@ -88,19 +88,19 @@ export const passChange: Route<PassChangeArgs> = {
   url: (link) => `/reset_password/${link}`,
 }
 
-export const code: Route<NoArgs> = {
+export const code: Route = {
   path: '/code',
   url: () => '/code',
 }
 
-export const activationError: Route<NoArgs> = {
+export const activationError: Route = {
   path: '/activation_error',
   url: () => '/activation_error',
 }
 
 // Profile
 
-export const profile: Route<NoArgs> = {
+export const profile: Route = {
   path: '/profile',
   url: () => '/profile',
 }
@@ -276,7 +276,7 @@ export const legacyPackages: Route<LegacyPackagesArgs> = {
 
 // Admin
 
-export const admin: Route<NoArgs> = {
+export const admin: Route = {
   path: '/admin',
   url: () => '/admin',
 }
@@ -290,17 +290,17 @@ export const adminBuckets: Route<AdminBucketsArgs> = {
   url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
 }
 
-export const adminSettings: Route<NoArgs> = {
+export const adminSettings: Route = {
   path: '/admin/settings',
   url: () => '/admin/settings',
 }
 
-export const adminSync: Route<NoArgs> = {
+export const adminSync: Route = {
   path: '/admin/sync',
   url: () => '/admin/sync',
 }
 
-export const adminStatus: Route<NoArgs> = {
+export const adminStatus: Route = {
   path: '/admin/status',
   url: () => '/admin/status',
 }
