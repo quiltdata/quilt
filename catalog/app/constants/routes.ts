@@ -141,7 +141,7 @@ export type BucketSearchArgs = [
 ]
 
 export const bucketOverview = bucketRoot
-
+// redirects to global search
 export const bucketSearch: Route<BucketSearchArgs> = {
   path: '/b/:bucket/search',
   url: (bucket, { q, p, mode, retry } = {}) =>

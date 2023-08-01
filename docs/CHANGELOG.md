@@ -31,6 +31,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Hide columns without values in files listings ([#3512](https://github.com/quiltdata/quilt/pull/3512))
 * [Changed] Enable `allow-same-origin` for iframes in browsable buckets ([#3516](https://github.com/quiltdata/quilt/pull/3516))
 * [Changed] Preserve selection in Bucket tab when navigate or filter ([#3527](https://github.com/quiltdata/quilt/pull/3527))
+* [Changed] Unify per-bucket and global search ([#3613](https://github.com/quiltdata/quilt/pull/3613))
 
 # 5.3.1 - 2023-05-02
 ## Python API
