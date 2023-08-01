@@ -438,20 +438,20 @@ export function SchemaFetcher({
             schemaLoading: false,
             selectedWorkflow,
             validate: mkMetaValidator(schema),
-          } as SchemaFetcherRenderPropsSuccess),
+          }) as SchemaFetcherRenderPropsSuccess,
         Err: (responseError: Error) =>
           ({
             responseError,
             schemaLoading: false,
             selectedWorkflow,
             validate: mkMetaValidator(),
-          } as SchemaFetcherRenderPropsError),
+          }) as SchemaFetcherRenderPropsError,
         _: () =>
           ({
             schemaLoading: true,
             selectedWorkflow,
             validate: noopValidator,
-          } as SchemaFetcherRenderPropsLoading),
+          }) as SchemaFetcherRenderPropsLoading,
       }),
     [data, selectedWorkflow],
   )

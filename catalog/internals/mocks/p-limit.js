@@ -1,1 +1,4 @@
-module.exports = () => (func, ...args) => func(...args)
+module.exports =
+  () =>
+  (func, ...args) =>
+    func(...args)

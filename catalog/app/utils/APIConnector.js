@@ -156,7 +156,7 @@ function* errorMiddleware(opts, next) {
   return resp
 }
 
-const isInstance = (cls) => (b) => cls ? b instanceof cls : false
+const isInstance = (cls) => (b) => (cls ? b instanceof cls : false)
 
 const validBodyTests = [
   isNil,

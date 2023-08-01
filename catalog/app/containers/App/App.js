@@ -18,8 +18,7 @@ const ProtectedThrowNotFound = protect(ThrowNotFound)
 
 const redirectTo =
   (path) =>
-  ({ location: { search } }) =>
-    <Redirect to={`${path}${search}`} />
+  ({ location: { search } }) => <Redirect to={`${path}${search}`} />
 
 const Activate = ({
   match: {
