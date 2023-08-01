@@ -309,10 +309,8 @@ export default function Dir({
         !RRDom.matchPath(location.pathname, {
           path: paths.bucketDir,
           exact: true,
-          strict: true,
         })
       ) {
-        // FIXME: improve message
         return 'Selection will be lost. Clear selection and confirm navigation?'
       }
       return true
