@@ -199,7 +199,7 @@ export function Dropdown({ bucket, className, onChange, successor }: InputProps)
       ({
         className: buttonClasses.root,
         variant: 'text',
-      } as M.ButtonProps),
+      }) as M.ButtonProps,
     [buttonClasses],
   )
   return (
