@@ -29,7 +29,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
 * [Changed] Hide columns without values in files listings ([#3512](https://github.com/quiltdata/quilt/pull/3512))
 * [Changed] Enable `allow-same-origin` for iframes in browsable buckets ([#3516](https://github.com/quiltdata/quilt/pull/3516))
-* [Changed] Preserve selection in Bucket tab when navigate or filter ([#3527](https://github.com/quiltdata/quilt/pull/3527))
+* [Changed] Allow users select files and directories and keep selection whenever they navigate to multiple directories or use filter ([#3527](https://github.com/quiltdata/quilt/pull/3527))
 * [Changed] Unify per-bucket and global search ([#3613](https://github.com/quiltdata/quilt/pull/3613))
 
 # 5.3.1 - 2023-05-02
