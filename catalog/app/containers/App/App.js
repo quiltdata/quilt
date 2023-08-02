@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Switch, Route, Redirect } from 'react-router-dom'
+import { Switch, Route, Redirect, useLocation } from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
@@ -9,8 +9,8 @@ import { isAdmin } from 'containers/Auth/selectors'
 import requireAuth from 'containers/Auth/wrapper'
 import { CatchNotFound, ThrowNotFound } from 'containers/NotFoundPage'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
-import { useLocation } from 'utils/router'
 
 const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 
@@ -18,8 +18,7 @@ const ProtectedThrowNotFound = protect(ThrowNotFound)
 
 const redirectTo =
   (path) =>
-  ({ location: { search } }) =>
-    <Redirect to={`${path}${search}`} />
+  ({ location: { search } }) => <Redirect to={`${path}${search}`} />
 
 const Activate = ({
   match: {
@@ -33,6 +32,18 @@ const Activate = ({
 const LegacyPackages = ({ location: l }) => {
   const { urls } = NamedRoutes.use()
   return <AbsRedirect url={urls.legacyPackages(cfg.legacyPackagesRedirect, l)} />
+}
+
+function BucketSearchRedirect({
+  location: { search },
+  match: {
+    params: { bucket },
+  },
+}) {
+  const { urls } = NamedRoutes.use()
+  const params = parseSearch(search, true)
+  const url = urls.search({ buckets: bucket, ...params })
+  return <Redirect to={url} />
 }
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
@@ -155,6 +166,9 @@ export default function App() {
           <Route path={paths.uriResolver} component={UriResolver} />
         )}
 
+        {!cfg.disableNavigator && (
+          <Route path={paths.bucketSearch} component={BucketSearchRedirect} exact />
+        )}
         {!cfg.disableNavigator && <Route path={paths.bucketRoot} component={Bucket} />}
 
         <Route component={ProtectedThrowNotFound} />

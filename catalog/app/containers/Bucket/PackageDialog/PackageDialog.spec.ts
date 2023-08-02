@@ -42,7 +42,6 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
     })
 
     test('should return error when metadata is not an object', () => {
-      // TODO: remove this test when all references will be in typescript
       // @ts-expect-error
       expect(PD.mkMetaValidator()(123)).toMatchObject({
         message: 'Metadata must be a valid JSON object',

@@ -1,6 +1,8 @@
 <!-- markdownlint-disable -->
 # Run Quilt in Your AWS Account
-Quilt is a Data Hub for AWS.
+Quilt is a data mesh that verifies the integrity of your data so that teams can
+find, understand, and file discoveries based on data of any size or in any format.
+
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 
 ## Help and Advice
@@ -19,26 +21,47 @@ connect with other users
 * [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
-Each instance consists of a password-protected web catalog on your domain,
-backend services, a secure server to manage user identities, and a Python API.
+Each instance consists of a CloudFormation stack that is privately hosted in your 
+AWS account. The stack includes backend services for the catalog, S3 proxy,
+SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
 
 ![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
 
 ### Network
 ![](imgs/aws-diagram-network.png)
+> The above diagram is for _general guidance only_. See below for details.
 
-- Amazon ECS services run in two subnets in two Availability Zones (AZ).
-If your Quilt stack is configured to use private subnets you must also provide a
-public NAT gateway.
-- An Amazon RDS instance (Postgres) stores stack configuration,
-user login information, and bucket metadata.
-- AWS Lambda Services can optionally be configured to use private IPs in your VPC.
-- Security groups and NACLs throughout restrict access to the greatest degree possible.
+You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
+create its own subnets. In both cases Quilt uses subnets and security groups
+to isolate network services. You may optionally provide your own VPC CIDR block
+with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
+peered VPC services.
 
-See [Private endpoints](advanced-features/private-endpoint-access.md) for more details
-on private IPs and Quilt services.
+Below are the subnet configurations and sizes for Quilt version 2.0 networks,
+new as of June 2023. The configuration is similar to the
+[AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
 
-> For cost-sensitive deployments, Quilt ECS services can be configured to use a single AZ.
+- 2 public subnets for NAT gateways and an internet-facing application load balancer
+(1/4 the VPC CIDR)
+- 2 private subnets for Quilt services in ECS or Lambda, and an inward facing
+application load balancer
+(1/2 of the VPC CIDR)
+- 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
+OpenSearch domain
+(1/8 of the VPC CIDR)
+- (1/8 of the VPC CIDR is free)
+
+> Your Quilt instance contains _exactly one_ application load balancer that is
+> either inward or internet-facing.
+
+> If you provide the private subnets they are expected to route outbound
+> requests to AWS services via a NAT Gateway.
+
+> For cost-sensitive deployments, Quilt ECS services can be configured to use
+> a single AZ.
+
+For further details on private IPs and Quilt see
+[Private endpoints](advanced-features/private-endpoint-access.md).
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
@@ -85,6 +108,14 @@ Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.ama
 You will need the following:
 
 1. **An AWS account**.
+    1. **The service-linked role for Elasticsearch**
+    > This role is not created automatically when you use Cloudformation or other
+    > APIs.
+
+    You can create the role as follows:
+        ```
+        aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+        ```
 1. **IAM Permissions** to create the CloudFormation stack (or Add products in
 Service Catalog).
     1. We recommend that you use a
@@ -125,7 +156,6 @@ following Bucket characteristics:
     bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
     of `ObjectRemoved:DeleteMarkerCreated`.
 
-1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 1. A license key or an active subscription to Quilt Business on AWS Marketplace. 
@@ -169,6 +199,13 @@ you see in Service Catalog.
 
 ### CloudFormation
 
+You can perform stack update and creation with the AWS Console, AWS CLI,
+Terraform, or other means.
+
+In all cases it is **highly recommended** that you set the `--on-failure` policy
+to `ROLLBACK` so as to avoid incomplete rollback and problematic stack states.
+In the AWS Console this option appears under the phrase "Stack failure options."
+
 1. Specify stack details in the form of a stack _name_ and CloudFormation
 _parameters_. Refer to the descriptions displayed above each
 text box for further details. Service Catalog users require a license key. See
@@ -192,10 +229,8 @@ Create.
 
     ![](./imgs/finish.png)
 
-1. CloudFormation takes about 30 minutes to create the resources
-for your stack. You may monitor progress under Events.
-Once the stack is complete, you will see `CREATE_COMPLETE` as the Status for
-your CloudFormation stack.
+1. CloudFormation may take bewteen 30 and 90 minutes to create your stack.
+You can monitor progress under Events. On completion you will see `CREATE_COMPLETE`.
 
     ![](./imgs/events.png)
 
@@ -230,6 +265,42 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 1. Click Next (several times) and proceed to apply the update
 
 Your previous settings should carry over.
+
+## Create a new stack with an existing configuration
+
+You can create a new Quilt stack with the same configuration as an existing
+stack.
+> _Configuration_ here refers to the Quilt stack buckets, roles, policies,
+> and other administrative settings, all of which are stored in an RDS instance.
+
+Perform the following steps.
+
+1. Contact your Quilt account manager for a template that supports the "existing
+database", "existing search", and "existing vpc" options.
+
+1. Take a manual snapshot of the current Quilt database instance. For an existing
+Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
+("Snapshot name" in the AWS Console, `DBSnapshotIdentifier` in the following
+AWS CLI command):
+
+    <!--pytest.mark.skip-->
+    ```sh
+    aws rds describe-db-snapshots
+    ```
+
+    > Be sure to take a _manual_ snapshot. Do not rely on automatic snapshots,
+    > which are deleted when the parent stack is deleted.
+
+1. Apply the [quilt Terraform module](https://github.com/quiltdata/iac)
+to your new template and provide the snapshot identifier to the
+`db_snapshot_identifier=` argument.
+
+    > You must use a Quilt CloudFormation template that supports an existing database,
+    > existing search domain, and existing vpc in order for the terraform modules to
+    > function properly.
+
+1. You now have a new Quilt stack with a configuration equivalent to your prior stack.
+Verify that the new stack is working as desired. Delete the old stack.
 
 ## Security
 
@@ -436,7 +507,7 @@ In order for Quilt to access and index buckets encrypted with SSE-KMS, you must 
 
 1. Add KMS Key Usage to Quilt Permission Boundary
 2. Add Quilt Principals to KMS Key Policy
-3. Add KMS Key Access to a Scoure=Quilt Role
+3. Add KMS Key Access to a Source=Quilt Role
 
 NOTE: This will not work with the default Source=Custom Roles.
 
@@ -464,7 +535,7 @@ Go to CloudFormation > Your Quilt Stack -> Update -> Parameters
 and add the ARN of that IAM policy to  `ManagedUserRoleExtraPolicies` 
 at the bottom of the page:
 
-![](../imgs/ManagedUserRoleExtraPolicies.png)
+![](imgs/ManagedUserRoleExtraPolicies.png)
 
 If other policies are already in that field, 
 you will need to add a comma before appending the ARN.

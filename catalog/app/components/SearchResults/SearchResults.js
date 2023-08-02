@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
-import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
@@ -78,20 +77,14 @@ function HeaderIcon(props) {
 
 function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
   return (
-    <Heading display="flex" alignItems="center" mb="0 !important">
+    <Preview.Header
+      downloadable={downloadable}
+      expanded={expanded}
+      handle={handle}
+      onToggle={onToggle}
+    >
       <ObjectCrumbs {...{ handle, showBucket }} />
-      <M.Box flexGrow={1} />
-      <Buttons.Iconized
-        label={expanded ? 'Collapse' : 'Expand'}
-        icon={expanded ? 'unfold_less' : 'unfold_more'}
-        rotate={expanded}
-        onClick={onToggle}
-        mr={1}
-      />
-      {!!downloadable && (
-        <Preview.Menu handle={handle} expanded={expanded} onToggle={onToggle} />
-      )}
-    </Heading>
+    </Preview.Header>
   )
 }
 
@@ -585,61 +578,60 @@ export function Progress({ children }) {
   )
 }
 
-export const handleErr = (retryUrl) => (e) =>
-  (
-    <Alt>
-      <M.Typography variant="h5" gutterBottom>
-        {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
-          <>Search syntax error</>
-        ) : e.message === 'Timeout' ? (
-          <>Query timed out</>
-        ) : (
-          <>Search error</>
+export const handleErr = (retryUrl) => (e) => (
+  <Alt>
+    <M.Typography variant="h5" gutterBottom>
+      {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
+        <>Search syntax error</>
+      ) : e.message === 'Timeout' ? (
+        <>Query timed out</>
+      ) : (
+        <>Search error</>
+      )}
+    </M.Typography>
+    {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
+      <M.Typography gutterBottom>
+        Oops, couldn&apos;t parse that search. Try quoting your query or read about{' '}
+        <StyledLink href={ES_REF_SYNTAX} target="_blank">
+          supported query syntax
+        </StyledLink>
+        .
+        {!!retryUrl && (
+          <> You can also click RETRY to try a simplified version of your query.</>
         )}
       </M.Typography>
-      {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
-        <M.Typography gutterBottom>
-          Oops, couldn&apos;t parse that search. Try quoting your query or read about{' '}
-          <StyledLink href={ES_REF_SYNTAX} target="_blank">
-            supported query syntax
-          </StyledLink>
-          .
-          {!!retryUrl && (
-            <> You can also click RETRY to try a simplified version of your query.</>
-          )}
-        </M.Typography>
-      ) : e.message === 'Timeout' ? (
-        <M.Typography gutterBottom>
-          That made ElasticSearch sweat. Try{' '}
-          <StyledLink href={ES_REF_WILDCARDS} target="_blank">
-            avoiding wildcards
-          </StyledLink>{' '}
-          or ask Quilt about scaling your cluster.
-        </M.Typography>
-      ) : (
-        <M.Typography gutterBottom>
-          ElasticSearch had trouble with that query. The cluster may be busy indexing new
-          documents. Try again later
-          {!!retryUrl && <> or click RETRY to try a simplified version of your query</>}.
-        </M.Typography>
-      )}
-      {!!e.status && <M.Typography>Status: {e.status}</M.Typography>}
-      {!!e.code && <M.Typography>Code: {e.code}</M.Typography>}
-      {!!e.details && (
-        <>
-          <M.Typography>Error details:</M.Typography>
-          <M.Typography style={{ whiteSpace: 'pre' }}>{e.details}</M.Typography>
-        </>
-      )}
-      {!!retryUrl && (
-        <M.Box pt={2}>
-          <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
-            Retry simplified query
-          </M.Button>
-        </M.Box>
-      )}
-    </Alt>
-  )
+    ) : e.message === 'Timeout' ? (
+      <M.Typography gutterBottom>
+        That made ElasticSearch sweat. Try{' '}
+        <StyledLink href={ES_REF_WILDCARDS} target="_blank">
+          avoiding wildcards
+        </StyledLink>{' '}
+        or ask Quilt about scaling your cluster.
+      </M.Typography>
+    ) : (
+      <M.Typography gutterBottom>
+        ElasticSearch had trouble with that query. The cluster may be busy indexing new
+        documents. Try again later
+        {!!retryUrl && <> or click RETRY to try a simplified version of your query</>}.
+      </M.Typography>
+    )}
+    {!!e.status && <M.Typography>Status: {e.status}</M.Typography>}
+    {!!e.code && <M.Typography>Code: {e.code}</M.Typography>}
+    {!!e.details && (
+      <>
+        <M.Typography>Error details:</M.Typography>
+        <M.Typography style={{ whiteSpace: 'pre' }}>{e.details}</M.Typography>
+      </>
+    )}
+    {!!retryUrl && (
+      <M.Box pt={2}>
+        <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
+          Retry simplified query
+        </M.Button>
+      </M.Box>
+    )}
+  </Alt>
+)
 
 export function NothingFound({ children }) {
   return (

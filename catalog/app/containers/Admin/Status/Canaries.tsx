@@ -129,7 +129,7 @@ const columns: DG.GridColumns = [
     flex: 1,
     renderCell: (params: DG.GridCellParams) => {
       const c = params.row as Canary
-      const url = `https://${c.region}.console.aws.amazon.com/synthetics/cw?region=${c.region}#canary/detail/${c.name}`
+      const url = `https://${c.region}.console.aws.amazon.com/cloudwatch/home?region=${c.region}#synthetics:canary/detail/${c.name}`
       return (
         <M.Tooltip
           arrow
@@ -221,7 +221,7 @@ export default function Canaries({ canaries }: CanariesProps) {
     () =>
       R.sortWith(
         [
-          R.ascend((c) => ({ true: 2, false: 1, null: 0 }[`${c.ok}`])),
+          R.ascend((c) => ({ true: 2, false: 1, null: 0 })[`${c.ok}`]),
           R.ascend(R.prop('title')),
         ],
         canaries,

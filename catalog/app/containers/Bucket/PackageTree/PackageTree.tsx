@@ -1,6 +1,3 @@
-import { basename } from 'path'
-
-import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -15,28 +12,27 @@ import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
+import type * as Routes from 'constants/routes'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import Data from 'utils/Data'
 import * as GQL from 'utils/GraphQL'
-// import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as PackageUri from 'utils/PackageUri'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 import * as workflows from 'utils/workflows'
 
-import Code from '../Code'
+import PackageCodeSamples from '../CodeSamples/Package'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
-import Listing, { Item as ListingItem } from '../Listing'
+import * as Listing from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
@@ -57,63 +53,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-interface PkgCodeProps {
-  bucket: string
-  name: string
-  hash: string
-  hashOrTag: string
-  path: string
-}
-
-function PkgCode({ bucket, name, hash, hashOrTag, path }: PkgCodeProps) {
-  const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
-  const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
-  const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
-  const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
-  const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
-  const code = [
-    {
-      label: 'Python',
-      hl: 'python',
-      contents: dedent`
-        import quilt3 as q3
-        # Browse
-        p = q3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-        # make changes to package adding individual files
-        p.set("data.csv", "data.csv")
-        # or whole directories
-        p.set_dir("subdir", "subdir")
-        # and push changes
-        q3.Package.push("${name}", registry="s3://${bucket}", message="Hello World")
-
-        # Download (be mindful of large packages)
-        q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
-      `,
-    },
-    {
-      label: 'CLI',
-      hl: 'bash',
-      contents:
-        dedent`
-          # Download package
-          quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
-        ` +
-        (!path
-          ? dedent`\n
-              # Upload package
-              echo "Hello World" > README.md
-              quilt3 push "${name}" --registry s3://${bucket} --dir .
-            `
-          : ''),
-    },
-    {
-      label: 'URI',
-      contents: PackageUri.stringify({ bucket, name, hash, path }),
-    },
-  ]
-  return <Code>{code}</Code>
-}
 
 const useTopBarStyles = M.makeStyles((t) => ({
   topBar: {
@@ -186,7 +125,7 @@ function DirDisplay({
 }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
 
   const dirQuery = GQL.useQuery(DIR_QUERY, {
@@ -345,38 +284,24 @@ function DirDisplay({
             )
           }
 
-          const items: ListingItem[] = dir.children.map((c) => {
-            switch (c.__typename) {
-              case 'PackageFile':
-                return {
-                  type: 'file' as const,
-                  name: basename(c.path),
-                  to: urls.bucketPackageTree(bucket, name, hashOrTag, c.path),
-                  size: c.size,
-                }
-              case 'PackageDir':
-                return {
-                  type: 'dir' as const,
-                  name: basename(c.path),
-                  to: urls.bucketPackageTree(
-                    bucket,
-                    name,
-                    hashOrTag,
-                    s3paths.ensureSlash(c.path),
-                  ),
-                  size: c.size,
-                }
-              default:
-                return assertNever(c)
-            }
-          })
-          if (path) {
-            items.unshift({
-              type: 'dir' as const,
-              name: '..',
-              to: urls.bucketPackageTree(bucket, name, hashOrTag, s3paths.up(path)),
-            })
-          }
+          const items: Listing.Item[] = Listing.format(
+            dir.children.map((c) => {
+              switch (c.__typename) {
+                case 'PackageFile':
+                  return Listing.Entry.File({ key: c.path, size: c.size })
+                case 'PackageDir':
+                  return Listing.Entry.Dir({ key: c.path, size: c.size })
+                default:
+                  return assertNever(c)
+              }
+            }),
+            {
+              urls,
+              bucket,
+              packageHandle: { bucket, name, hashOrTag },
+              prefix: path,
+            },
+          )
 
           const summaryHandles = dir.children
             .map((c) =>
@@ -417,6 +342,7 @@ function DirDisplay({
                           <Successors.Button
                             className={classes.button}
                             bucket={bucket}
+                            icon="exit_to_app"
                             onChange={setSuccessor}
                           >
                             Push to bucket
@@ -454,13 +380,13 @@ function DirDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
                         <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
                       )}
                       <M.Box mt={2}>
-                        {blocks.browser && <Listing items={items} key={hash} />}
+                        {blocks.browser && <Listing.Listing items={items} key={hash} />}
                         <Summary
                           path={path}
                           files={summaryHandles}
@@ -587,6 +513,14 @@ function FileDisplayQuery({
   })
 }
 
+interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
+  bucketPackageTree: Routes.BucketPackageTreeArgs
+  bucketPackageDetail: Routes.BucketPackageDetailArgs
+  bucketPackageList: Routes.BucketPackageListArgs
+}
+
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(1),
@@ -615,7 +549,7 @@ function FileDisplay({
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
   const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useFileDisplayStyles()
   const prefs = BucketPreferences.use()
 
@@ -726,7 +660,7 @@ function FileDisplay({
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PkgCode {...{ ...packageHandle, hashOrTag, path }} />
+                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
                         <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />

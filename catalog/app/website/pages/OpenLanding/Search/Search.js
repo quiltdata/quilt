@@ -1,15 +1,14 @@
-import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
-import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import SearchHelp from 'components/SearchHelp'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
-import SearchHelp from 'containers/NavBar/Help'
 import Dots from 'website/components/Backgrounds/Dots'
 
 import bg from './search-bg.png'
@@ -136,7 +135,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Search() {
   const classes = useStyles()
 
-  const dispatch = redux.useDispatch()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
 
   // XXX: consider using graphql directly
@@ -161,14 +160,14 @@ export default function Search() {
       // eslint-disable-next-line default-case
       switch (evt.key) {
         case 'Enter':
-          dispatch(push(urls.search({ q: value })))
+          history.push(urls.search({ q: value }))
           break
         case 'Escape':
           evt.target.blur()
           break
       }
     },
-    [dispatch, urls, value],
+    [history, urls, value],
   )
 
   return (
@@ -205,13 +204,11 @@ export default function Search() {
                 placeholder="Search"
               />
 
-              <M.MuiThemeProvider theme={style.appTheme}>
-                <M.Fade in={helpOpened}>
-                  <M.Paper className={classes.helpWrapper}>
-                    <SearchHelp className={classes.help} onQuery={onQuery} />
-                  </M.Paper>
-                </M.Fade>
-              </M.MuiThemeProvider>
+              <SearchHelp
+                classes={{ contents: classes.help, paper: classes.helpWrapper }}
+                onQuery={onQuery}
+                open={helpOpened}
+              />
             </div>
           </M.ClickAwayListener>
 

@@ -1,5 +1,6 @@
 import type { S3 } from 'aws-sdk'
 import * as React from 'react'
+import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
@@ -39,10 +40,14 @@ async function fetchSettings({ s3 }: { s3: S3 }) {
     const text = res.Body!.toString('utf-8')
     return JSON.parse(text) as CatalogSettings
   } catch (e) {
+    const { code } = e as any
+    // assuming this is caused by missing settings file, which is expected
+    if (code === 'AccessDenied' || code === 'NoSuchKey') return null
     // eslint-disable-next-line no-console
     console.warn(`Error fetching catalog settings from "${location}":`)
     // eslint-disable-next-line no-console
     console.error(e)
+    Sentry.captureException(e, { extra: { location } })
     return null
   }
 }

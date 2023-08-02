@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Link } from 'react-router-dom'
+import { Link, useRouteMatch } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import { sanitizeUrl } from '@braintree/sanitize-url'
 import * as M from '@material-ui/core'
@@ -13,11 +13,9 @@ import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
-import * as BucketConfig from 'utils/BucketConfig'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { useRoute } from 'utils/router'
 
 import bg from './bg.png'
 
@@ -163,8 +161,8 @@ function UserDropdown() {
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const bookmarks = Bookmarks.use()
-  const isProfile = !!useRoute(paths.profile, { exact: true }).match
-  const isAdmin = !!useRoute(paths.admin).match
+  const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
+  const isAdmin = !!useRouteMatch(paths.admin)
   const [anchor, setAnchor] = React.useState(null)
   const [visible, setVisible] = React.useState(true)
 
@@ -181,13 +179,13 @@ function UserDropdown() {
   }, [setAnchor])
 
   const showBookmarks = React.useCallback(() => {
-    bookmarks?.show()
+    bookmarks.show()
     close()
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks?.hasUpdates !== visible) setVisible(!!bookmarks?.hasUpdates)
-  }, [bookmarks?.hasUpdates, visible])
+    if (bookmarks.hasUpdates !== visible) setVisible(!!bookmarks.hasUpdates)
+  }, [bookmarks.hasUpdates, visible])
 
   return (
     <>
@@ -274,8 +272,8 @@ interface AuthHamburgerProps {
 function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
-  const isProfile = !!useRoute(paths.profile, { exact: true }).match
-  const isAdmin = !!useRoute(paths.admin).match
+  const isProfile = !!useRouteMatch({ path: paths.profile, exact: true })
+  const isAdmin = !!useRouteMatch(paths.admin)
   const ham = useHam()
   const links = useLinks()
   return ham.render([
@@ -491,7 +489,7 @@ interface NavLinkOwnProps {
 type NavLinkProps = NavLinkOwnProps & M.BoxProps
 
 const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) => {
-  const isActive = !!useRoute(props.path, { exact: true }).match
+  const isActive = !!useRouteMatch({ path: props.path, exact: true })
   return (
     <M.Box
       component={props.to ? HashLink : 'a'}
@@ -581,9 +579,8 @@ const useNavBarStyles = M.makeStyles((t) => ({
 
 export function NavBar() {
   const settings = CatalogSettings.use()
-  const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
-  const isSignIn = !!useRoute(paths.signIn, { exact: true }).match
+  const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
   const { error, waiting, authenticated } = redux.useSelector(selector)
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -595,7 +592,7 @@ export function NavBar() {
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <div className={classes.spacer} />
       ) : (
-        <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
+        <Controls />
       )}
 
       {!useHamburger && (
@@ -635,5 +632,3 @@ export function NavBar() {
     </Container>
   )
 }
-
-export default NavBar

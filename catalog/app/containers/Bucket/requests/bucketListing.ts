@@ -1,8 +1,13 @@
+import { join, relative, basename } from 'path'
+
 import type { S3 } from 'aws-sdk'
+import pLimit from 'p-limit'
 import * as React from 'react'
 import * as R from 'ramda'
 
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
+import * as s3paths from 'utils/s3paths'
 
 import * as errors from '../errors'
 
@@ -138,5 +143,69 @@ export function useBucketListing() {
   return React.useCallback(
     (params: BucketListingParams) => bucketListing({ s3, ...params }),
     [s3],
+  )
+}
+
+function isBucketListingResult(
+  r: BucketListingResult | Model.S3File,
+): r is BucketListingResult {
+  return !!(r as BucketListingResult).files
+}
+
+// TODO: add entry with size from <Listing /> but try to re-use existing types
+function useHeadFile() {
+  const s3: S3 = AWS.S3.use()
+  return React.useCallback(
+    async ({
+      bucket,
+      key,
+      version,
+    }: Model.S3.S3ObjectLocation): Promise<Model.S3File> => {
+      const { ContentLength: size } = await s3
+        .headObject({ Bucket: bucket, Key: key, VersionId: version })
+        .promise()
+      return { bucket, key, size: size || 0, version }
+    },
+    [s3],
+  )
+}
+
+const limit = pLimit(5)
+
+export function useFilesListing() {
+  const requestbucketListing = useBucketListing()
+  const headFile = useHeadFile()
+  return React.useCallback(
+    async (handles: Model.S3.S3ObjectLocation[]) => {
+      const requests = handles.map((handle) =>
+        s3paths.isDir(handle.key)
+          ? limit(requestbucketListing, {
+              bucket: handle.bucket,
+              path: handle.key,
+              delimiter: false,
+              drain: true,
+            })
+          : limit(headFile, handle),
+      )
+      const responses = await Promise.all(requests)
+      return responses.reduce(
+        (memo, response) =>
+          isBucketListingResult(response)
+            ? response.files.reduce(
+                (acc, file) => ({
+                  ...acc,
+                  [relative(join(response.path, '..'), file.key)]: file,
+                }),
+                memo,
+              )
+            : {
+                ...memo,
+                // TODO: handle the same key from another bucket
+                [basename(response.key)]: response,
+              },
+        {} as Record<string, Model.S3File>,
+      )
+    },
+    [requestbucketListing, headFile],
   )
 }

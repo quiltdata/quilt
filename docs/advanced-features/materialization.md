@@ -16,7 +16,7 @@ which point solely to files located in an Amazon S3 bucket.
 There are advanced use cases where automatically copying (potentially
 large) files is not the behavior you want.
 
-To push an _umaterialized_ file to a remote registry, use `build`
+To push an _unmaterialized_ file to a remote registry, use `build`
 with a `registry`. For example:
 
 ```python

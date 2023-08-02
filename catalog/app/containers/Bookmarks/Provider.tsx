@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -31,7 +32,10 @@ const Ctx = React.createContext<{
   hide: () => void
   isBookmarked: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => boolean
   isOpened: boolean
-  remove: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => void
+  remove: (
+    groupName: GroupName,
+    handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+  ) => void
   show: () => void
   toggle: (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => void
 } | null>(null)
@@ -48,26 +52,24 @@ type StateUpdaterFunction = (input: BookmarksGroups) => BookmarksGroups
 
 function createAppendUpdater(
   groupName: GroupName,
-  handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+  handles: Model.S3.S3ObjectLocation[],
 ): StateUpdaterFunction {
-  if (Array.isArray(handle)) {
-    const entries = handle.reduce(
-      (memo, entry) => ({
-        ...memo,
-        [keyResolver(entry)]: entry,
-      }),
-      {},
-    )
-    return R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries))
-  }
-  return R.set(R.lensPath([groupName, 'entries', keyResolver(handle)]), handle)
+  const entries = handles.reduce(
+    (memo, entry) => ({
+      ...memo,
+      [keyResolver(entry)]: entry,
+    }),
+    {},
+  )
+  return R.over(R.lensPath([groupName, 'entries']), R.mergeLeft(entries))
 }
 
 function createRemoveUpdater(
   groupName: GroupName,
-  handle: Model.S3.S3ObjectLocation,
+  handles: Model.S3.S3ObjectLocation[],
 ): StateUpdaterFunction {
-  return R.over(R.lensPath([groupName, 'entries']), R.dissoc(keyResolver(handle)))
+  const keys = handles.map(keyResolver)
+  return R.over(R.lensPath([groupName, 'entries']), R.omit(keys))
 }
 
 function createClearUpdater(groupName: GroupName): StateUpdaterFunction {
@@ -91,6 +93,7 @@ export function Provider({ children }: ProviderProps) {
       const newGroups = updater(groups)
       setGroups(newGroups)
       storage.set(STORAGE_KEYS.BOOKMARKS, newGroups)
+      return newGroups
     },
     [groups],
   )
@@ -99,23 +102,29 @@ export function Provider({ children }: ProviderProps) {
       groupName: GroupName,
       handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
     ) => {
-      updateGroups(createAppendUpdater(groupName, handle))
+      updateGroups(
+        createAppendUpdater(groupName, Array.isArray(handle) ? handle : [handle]),
+      )
       if (!isOpened) setUpdates(true)
     },
     [isOpened, updateGroups],
   )
   const remove = React.useCallback(
-    (groupName: GroupName, handle: Model.S3.S3ObjectLocation) => {
-      const isLastBookmark =
-        R.pipe(R.path([groupName, 'entries']), R.keys, R.length)(groups) === 1
-      updateGroups(createRemoveUpdater(groupName, handle))
-      if (isLastBookmark) {
+    (
+      groupName: GroupName,
+      handle: Model.S3.S3ObjectLocation | Model.S3.S3ObjectLocation[],
+    ) => {
+      const newGroups = updateGroups(
+        createRemoveUpdater(groupName, Array.isArray(handle) ? handle : [handle]),
+      )
+      const isEmpty = R.pipe(R.path([groupName, 'entries']), R.isEmpty)(newGroups)
+      if (isEmpty) {
         setUpdates(false)
       } else if (!isOpened) {
         setUpdates(true)
       }
     },
-    [groups, isOpened, updateGroups],
+    [isOpened, updateGroups],
   )
   const clear = React.useCallback(
     (groupName: GroupName) => {
@@ -160,6 +169,10 @@ export function Provider({ children }: ProviderProps) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export const useBookmarks = () => React.useContext(Ctx)
+export const useBookmarks = () => {
+  const bookmarks = React.useContext(Ctx)
+  invariant(bookmarks, `Bookmarks context wasn't initialized`)
+  return bookmarks
+}
 
 export const use = useBookmarks
