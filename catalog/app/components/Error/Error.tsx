@@ -3,7 +3,7 @@ import * as M from '@material-ui/core'
 
 import { printObject } from 'utils/string'
 
-import sand from './sand.jpg'
+import sand from './sand.webp'
 
 const useStyles = M.makeStyles((t) => ({
   image: {
