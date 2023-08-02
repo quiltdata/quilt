@@ -623,7 +623,7 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
         .filter((e) => !!e.conflict)
         .map((e) => {
           const error = new Error(
-            `"${e.logical_key}" is conflicting with "${e.conflict}". Please, rename it or delete`,
+            `"${e.logical_key}" is conflicting with "${e.conflict}". Rename or remove it please.`,
           )
           ;(error as EntryNameError).data = e
           return error
