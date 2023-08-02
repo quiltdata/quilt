@@ -153,6 +153,13 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   url,
 })
 
+export const bucketToSuccessor = (bucket: string) => ({
+  copyData: COPY_DATA_DEFAULT,
+  name: bucket,
+  slug: bucket,
+  url: `s3://${bucket}`,
+})
+
 function validateConfigVersion(
   objectVersion: string,
   schemaVersion: string,

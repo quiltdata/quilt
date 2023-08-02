@@ -221,7 +221,7 @@ export default function Canaries({ canaries }: CanariesProps) {
     () =>
       R.sortWith(
         [
-          R.ascend((c) => ({ true: 2, false: 1, null: 0 }[`${c.ok}`])),
+          R.ascend((c) => ({ true: 2, false: 1, null: 0 })[`${c.ok}`]),
           R.ascend(R.prop('title')),
         ],
         canaries,

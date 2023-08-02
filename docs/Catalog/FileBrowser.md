@@ -12,10 +12,12 @@ To create a package that includes multiple files from different
 directories in a single S3 bucket, or even across different S3
 buckets attached to Quilt, you can browse and create a "bookmark"
 of chosen files. Select files by checking the box and clicking "Add
-selected items to bookmarks". You can also navigate to a specific
-file and bookmark an individual file by clicking "Add to bookmarks".
+to bookmarks". You can also navigate to a specific file and bookmark
+an individual file by clicking "Add to bookmarks".
 
-![Select and add to bookmarks](../imgs/catalog-filesbrowser-addtobookmarks.png)
+![Select files](../imgs/catalog-filesbrowser-select.png)
+
+![Add selected files to bookmarks](../imgs/catalog-filesbrowser-addtobookmarks.png)
 
 Open the Bookmarks pane (listed in the User account menu) and
 optionally create a new package from the bookmarked files.
