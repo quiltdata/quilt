@@ -98,10 +98,9 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
 
 interface ListingContentsProps {
   bucket: string
-  name: string
   hashOrTag: string
+  name: string
   path: string
-  prefs: BucketPreferences.BrowserBlockPreferences
   entries: readonly (
     | Pick<Model.GQLTypes.PackageFile, '__typename' | 'path' | 'size'>
     | Pick<Model.GQLTypes.PackageDir, '__typename' | 'path' | 'size'>
@@ -113,7 +112,6 @@ function ListingContents({
   name,
   hashOrTag,
   path,
-  prefs,
   entries,
 }: ListingContentsProps) {
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -133,7 +131,6 @@ function ListingContents({
       bucket,
       packageHandle: { bucket, name, hashOrTag },
       prefix: path,
-      prefs,
     },
   )
   return <Listing.Listing items={items} />
@@ -418,7 +415,6 @@ function DirDisplay({
                             hashOrTag={hashOrTag}
                             name={name}
                             path={path}
-                            prefs={blocks.browser}
                           />
                         )}
                         <Summary
