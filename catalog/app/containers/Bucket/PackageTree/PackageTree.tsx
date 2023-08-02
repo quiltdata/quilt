@@ -101,10 +101,10 @@ interface ListingContentsProps {
   hashOrTag: string
   name: string
   path: string
-  entries: readonly (
-    | Pick<Model.GQLTypes.PackageFile, '__typename' | 'path' | 'size'>
-    | Pick<Model.GQLTypes.PackageDir, '__typename' | 'path' | 'size'>
-  )[]
+  entries: readonly Pick<
+    Model.GQLTypes.PackageFile | Model.GQLTypes.PackageDir,
+    '__typename' | 'path' | 'size'
+  >[]
 }
 
 function ListingContents({
@@ -122,8 +122,7 @@ function ListingContents({
           return Listing.Entry.File({ key: c.path, size: c.size })
         case 'PackageDir':
           return Listing.Entry.Dir({ key: c.path, size: c.size })
-        default:
-          return assertNever(c)
+        // no-default
       }
     }),
     {
