@@ -9,8 +9,12 @@ import { fade } from '@material-ui/core/styles'
 
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
-import type * as Model from 'model'
+import type * as Routes from 'constants/routes'
+import type { Urls } from 'utils/NamedRoutes'
+import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
+import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
@@ -26,7 +30,97 @@ export interface Item {
   size?: number
   modified?: Date
   archived?: boolean
-  handle?: Model.S3.S3ObjectLocation
+}
+
+export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
+  File: (f: { key: string; size?: number; archived?: boolean; modified?: Date }) => f,
+  Dir: (d: { key: string; size?: number }) => d,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Entry = tagged.InstanceOf<typeof Entry>
+
+interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
+  bucketPackageTree: Routes.BucketPackageTreeArgs
+}
+
+type PackageUrls = Urls<RouteMap>
+
+type BucketUrls = Urls<Omit<RouteMap, 'bucketPackageTree'>>
+
+interface FormatListingOptions {
+  bucket: string
+  packageHandle?: PackageHandleWithHashesOrTag
+  prefix: string
+  urls?: BucketUrls | PackageUrls
+}
+
+export function format(
+  entries: Entry[],
+  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
+  prefs: false | BucketPreferences.BrowserBlockPreferences,
+) {
+  const toDir = (path: string) => {
+    if (!urls) return path
+    if (!packageHandle) return urls.bucketDir(bucket, path)
+    return (
+      (urls as PackageUrls).bucketPackageTree?.(
+        bucket,
+        packageHandle.name,
+        packageHandle.hashOrTag,
+        s3paths.ensureSlash(path),
+      ) || path
+    )
+  }
+  const toFile = (path: string) => {
+    if (!urls) return path
+    if (!packageHandle) return urls.bucketFile(bucket, path)
+    return (
+      (urls as PackageUrls).bucketPackageTree?.(
+        bucket,
+        packageHandle.name,
+        packageHandle.hashOrTag,
+        path,
+      ) || path
+    )
+  }
+
+  const head = prefix
+    ? [
+        {
+          type: 'dir' as const,
+          name: '..',
+          to: toDir(s3paths.up(prefix)),
+        },
+      ]
+    : []
+  const items = [
+    ...head,
+    ...entries.map(
+      Entry.match<Item>({
+        Dir: ({ key, size }) => ({
+          type: 'dir' as const,
+          name: s3paths.ensureNoSlash(s3paths.withoutPrefix(prefix, key)),
+          to: toDir(key),
+          size,
+        }),
+        File: ({ key, size, archived, modified }) => ({
+          type: 'file' as const,
+          name: s3paths.withoutPrefix(prefix, key),
+          to: toFile(key),
+          size,
+          modified,
+          archived,
+        }),
+      }),
+    ),
+  ]
+  const filtered =
+    prefs && prefs.hidden ? items : items.filter(({ name }) => name !== '.quilt')
+  // filter-out files with same name as one of dirs
+  return R.uniqBy(R.prop('name'), filtered)
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
@@ -148,7 +242,7 @@ export function PrefixFilter({ prefix = '', setPrefix }: PrefixFilterProps) {
           <M.Button
             className={classes.btn}
             size="small"
-            variant="contained"
+            variant="outlined"
             color="primary"
             onClick={apply}
           >
@@ -369,6 +463,31 @@ function FilterToolbarButton() {
       </M.IconButton>
     </M.Tooltip>
   )
+}
+
+// Iterate over `items`, and add slash if selection item is directory
+// Iterate over `items` only once, but keep the sort order as in original selection
+function formatSelection(ids: DG.GridRowId[], items: Item[]): string[] {
+  if (!ids.length) return ids as string[]
+
+  const names: string[] = []
+  const sortOrder = ids.reduce(
+    (memo, id, index) => ({ ...memo, [id]: index + 1 }),
+    {} as Record<DG.GridRowId, number>,
+  )
+  items.some(({ name, type }) => {
+    if (name === '..') return false
+    if (ids.includes(name)) {
+      names.push(type === 'dir' ? s3paths.ensureSlash(name) : name)
+    }
+    if (names.length === ids.length) return true
+  })
+  names.sort((a, b) => {
+    const aPos = sortOrder[a] || sortOrder[s3paths.ensureNoSlash(a.toString())]
+    const bPos = sortOrder[b] || sortOrder[s3paths.ensureNoSlash(b.toString())]
+    return aPos - bPos
+  })
+  return names
 }
 
 const useToolbarStyles = M.makeStyles((t) => ({
@@ -838,6 +957,10 @@ const useStyles = M.makeStyles((t) => ({
         },
       },
     },
+    '& [data-id=".."] .MuiDataGrid-checkboxInput': {
+      cursor: 'default',
+      opacity: 0.3,
+    },
   },
   locked: {
     '& .MuiDataGrid-columnsContainer': {
@@ -882,8 +1005,8 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  selection?: DG.GridRowId[]
-  onSelectionChange?: (newSelection: DG.GridRowId[]) => void
+  selection?: string[]
+  onSelectionChange?: (newSelection: string[]) => void
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
@@ -1044,9 +1167,15 @@ export function Listing({
 
   const handleSelectionModelChange = React.useCallback(
     (newSelection: DG.GridSelectionModelChangeParams) => {
-      if (onSelectionChange) onSelectionChange(newSelection.selectionModel)
+      if (!onSelectionChange) return
+      onSelectionChange(formatSelection(newSelection.selectionModel, items))
     },
-    [onSelectionChange],
+    [items, onSelectionChange],
+  )
+
+  const selectionModel = React.useMemo(
+    () => (selection?.length ? selection.map(s3paths.ensureNoSlash) : selection),
+    [selection],
   )
 
   // TODO: control page, pageSize, filtering and sorting via props
@@ -1081,7 +1210,7 @@ export function Listing({
         localeText={{ noRowsLabel, ...localeText }}
         // selection-related props
         checkboxSelection={!!onSelectionChange}
-        selectionModel={selection}
+        selectionModel={selectionModel}
         onSelectionModelChange={handleSelectionModelChange}
         {...dataGridProps}
       />

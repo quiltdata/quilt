@@ -3,8 +3,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import StyledLink from 'utils/StyledLink'
 import Code from 'components/Code'
+import * as style from 'constants/style'
+import StyledLink from 'utils/StyledLink'
 
 const ES_V = '6.7'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
@@ -292,55 +293,69 @@ const normalizeSyntaxItem = (s: string | string[]) =>
     (s2: string) => s2.replace(/\s/g, ''),
   )
 
-type HelpProps = Partial<React.HTMLAttributes<HTMLDivElement>> & {
-  className: string
+interface SearchHelpProps {
+  classes?: {
+    paper?: string
+    contents?: string
+  }
   onQuery: (query: string) => void
+  open: boolean
 }
 
-export default function Help({ className, onQuery, ...props }: HelpProps) {
+export default function SearchHelp({
+  classes: overrides,
+  onQuery,
+  open,
+}: SearchHelpProps) {
   const classes = useStyles()
 
   return (
-    <div className={className} {...props}>
-      <Lab.TreeView
-        defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
-        defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
-        defaultExpanded={syntaxHelpRows.map(({ namespace }) => namespace)}
-        disableSelection
-        className={classes.list}
-      >
-        {syntaxHelpRows.map(({ namespace, rows }) => (
-          <Lab.TreeItem
-            className={classes.group}
-            label={<M.Typography variant="subtitle2">{namespace}</M.Typography>}
-            nodeId={namespace}
-            key={namespace}
-            classes={{
-              label: classes.headerLabel,
-            }}
-          >
-            <M.List className={classes.subList}>
-              <ItemsHeader />
+    <M.MuiThemeProvider theme={style.appTheme}>
+      <M.Fade in={open}>
+        <M.Paper className={overrides?.paper}>
+          <div className={overrides?.contents}>
+            <Lab.TreeView
+              defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
+              defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
+              defaultExpanded={syntaxHelpRows.map(({ namespace }) => namespace)}
+              disableSelection
+              className={classes.list}
+            >
+              {syntaxHelpRows.map(({ namespace, rows }) => (
+                <Lab.TreeItem
+                  className={classes.group}
+                  label={<M.Typography variant="subtitle2">{namespace}</M.Typography>}
+                  nodeId={namespace}
+                  key={namespace}
+                  classes={{
+                    label: classes.headerLabel,
+                  }}
+                >
+                  <M.List className={classes.subList}>
+                    <ItemsHeader />
 
-              {rows.map((item) => {
-                const syntax = normalizeSyntaxItem(item.syntax)
-                return (
-                  <M.ListItem
-                    key={syntax}
-                    className={classes.item}
-                    button
-                    onClick={() => onQuery(syntax)}
-                  >
-                    <Item item={item} />
-                  </M.ListItem>
-                )
-              })}
-            </M.List>
-          </Lab.TreeItem>
-        ))}
-      </Lab.TreeView>
+                    {rows.map((item) => {
+                      const syntax = normalizeSyntaxItem(item.syntax)
+                      return (
+                        <M.ListItem
+                          key={syntax}
+                          className={classes.item}
+                          button
+                          onClick={() => onQuery(syntax)}
+                        >
+                          <Item item={item} />
+                        </M.ListItem>
+                      )
+                    })}
+                  </M.List>
+                </Lab.TreeItem>
+              ))}
+            </Lab.TreeView>
 
-      <DocsExternalLink />
-    </div>
+            <DocsExternalLink />
+          </div>
+        </M.Paper>
+      </M.Fade>
+    </M.MuiThemeProvider>
   )
 }

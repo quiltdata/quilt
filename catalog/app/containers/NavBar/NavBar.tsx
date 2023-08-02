@@ -13,7 +13,6 @@ import cfg from 'constants/config'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
-import * as BucketConfig from 'utils/BucketConfig'
 import * as CatalogSettings from 'utils/CatalogSettings'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -180,13 +179,13 @@ function UserDropdown() {
   }, [setAnchor])
 
   const showBookmarks = React.useCallback(() => {
-    bookmarks?.show()
+    bookmarks.show()
     close()
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks?.hasUpdates !== visible) setVisible(!!bookmarks?.hasUpdates)
-  }, [bookmarks?.hasUpdates, visible])
+    if (bookmarks.hasUpdates !== visible) setVisible(!!bookmarks.hasUpdates)
+  }, [bookmarks.hasUpdates, visible])
 
   return (
     <>
@@ -580,7 +579,6 @@ const useNavBarStyles = M.makeStyles((t) => ({
 
 export function NavBar() {
   const settings = CatalogSettings.use()
-  const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
   const { error, waiting, authenticated } = redux.useSelector(selector)
@@ -594,7 +592,7 @@ export function NavBar() {
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <div className={classes.spacer} />
       ) : (
-        <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
+        <Controls />
       )}
 
       {!useHamburger && (
