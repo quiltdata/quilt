@@ -10,6 +10,7 @@ import { fade } from '@material-ui/core/styles'
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import type { Urls } from 'utils/NamedRoutes'
 import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
@@ -54,13 +55,13 @@ interface FormatListingOptions {
   bucket: string
   packageHandle?: PackageHandleWithHashesOrTag
   prefix: string
+  prefs: false | BucketPreferences.BrowserBlockPreferences
   urls?: BucketUrls | PackageUrls
 }
 
 export function format(
   entries: Entry[],
-  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
-  prefs: false | BucketPreferences.BrowserBlockPreferences,
+  { bucket, packageHandle, prefix, prefs, urls }: FormatListingOptions,
 ) {
   const toDir = (path: string) => {
     if (!urls) return path

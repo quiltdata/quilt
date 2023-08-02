@@ -14,6 +14,7 @@ import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
+import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -93,6 +94,49 @@ function TopBar({ crumbs, children }: React.PropsWithChildren<TopBarProps>) {
       <div className={classes.content}>{children}</div>
     </div>
   )
+}
+
+interface ListingContentsProps {
+  bucket: string
+  name: string
+  hashOrTag: string
+  path: string
+  prefs: BucketPreferences.BrowserBlockPreferences
+  entries: readonly (
+    | Pick<Model.GQLTypes.PackageFile, '__typename' | 'path' | 'size'>
+    | Pick<Model.GQLTypes.PackageDir, '__typename' | 'path' | 'size'>
+  )[]
+}
+
+function ListingContents({
+  bucket,
+  name,
+  hashOrTag,
+  path,
+  prefs,
+  entries,
+}: ListingContentsProps) {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const items: Listing.Item[] = Listing.format(
+    entries.map((c) => {
+      switch (c.__typename) {
+        case 'PackageFile':
+          return Listing.Entry.File({ key: c.path, size: c.size })
+        case 'PackageDir':
+          return Listing.Entry.Dir({ key: c.path, size: c.size })
+        default:
+          return assertNever(c)
+      }
+    }),
+    {
+      urls,
+      bucket,
+      packageHandle: { bucket, name, hashOrTag },
+      prefix: path,
+      prefs,
+    },
+  )
+  return <Listing.Listing items={items} />
 }
 
 const useDirDisplayStyles = M.makeStyles((t) => ({
@@ -284,25 +328,6 @@ function DirDisplay({
             )
           }
 
-          const items: Listing.Item[] = Listing.format(
-            dir.children.map((c) => {
-              switch (c.__typename) {
-                case 'PackageFile':
-                  return Listing.Entry.File({ key: c.path, size: c.size })
-                case 'PackageDir':
-                  return Listing.Entry.Dir({ key: c.path, size: c.size })
-                default:
-                  return assertNever(c)
-              }
-            }),
-            {
-              urls,
-              bucket,
-              packageHandle: { bucket, name, hashOrTag },
-              prefix: path,
-            },
-          )
-
           const summaryHandles = dir.children
             .map((c) =>
               c.__typename === 'PackageFile'
@@ -386,7 +411,16 @@ function DirDisplay({
                         <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
                       )}
                       <M.Box mt={2}>
-                        {blocks.browser && <Listing.Listing items={items} key={hash} />}
+                        {blocks.browser && (
+                          <ListingContents
+                            bucket={bucket}
+                            entries={dir.children}
+                            hashOrTag={hashOrTag}
+                            name={name}
+                            path={path}
+                            prefs={blocks.browser}
+                          />
+                        )}
                         <Summary
                           path={path}
                           files={summaryHandles}

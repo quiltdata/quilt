@@ -10,10 +10,10 @@ import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
@@ -68,7 +68,7 @@ function useFormattedListing(
   return React.useMemo(() => {
     const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, urls }, prefs)
+    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, prefs, urls })
   }, [prefs, r, urls])
 }
 
