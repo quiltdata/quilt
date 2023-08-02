@@ -433,7 +433,7 @@ const computeEntries = ({
         return { state, type, path, size: a.size, meta }
       }
       return {
-        state: changed ? 'modified' : ('unchanged' as const),
+        state: changed ? ('modified' as const) : ('unchanged' as const),
         type: 'local' as const,
         path,
         size,
