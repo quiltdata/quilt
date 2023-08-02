@@ -147,8 +147,9 @@ function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string): F {
   const properties = ['conflict', 'meta', 'changed', 'hash']
   properties.forEach((prop) => {
     const property = Object.getOwnPropertyDescriptor(file, prop)
-    if (property?.value !== undefined && omitProperty !== property)
+    if (property?.value !== undefined && omitProperty !== prop) {
       Object.defineProperty(fileCopy, prop, property)
+    }
   })
   return fileCopy as F
 }
