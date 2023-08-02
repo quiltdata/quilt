@@ -140,7 +140,7 @@ export interface FilesState {
   counter?: number
 }
 
-function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string) {
+function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string): F {
   const fileCopy = new window.File([file as File], (file as File).name, {
     type: (file as File).type,
   })
@@ -150,7 +150,7 @@ function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string) {
     if (property?.value !== undefined && omitProperty !== property)
       Object.defineProperty(fileCopy, prop, property)
   })
-  return fileCopy
+  return fileCopy as F
 }
 
 function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
@@ -159,6 +159,7 @@ function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
     Object.defineProperty(fileCopy, key, {
       value,
     })
+    return fileCopy
   }
   return R.assoc(key, value, file)
 }
