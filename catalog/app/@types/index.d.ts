@@ -18,6 +18,11 @@ declare module '*.webm' {
   export default value
 }
 
+declare module '*.webp' {
+  const value: string
+  export default value
+}
+
 declare module 'intl/locale-data/jsonp/*'
 
 type $TSFixMe = any
