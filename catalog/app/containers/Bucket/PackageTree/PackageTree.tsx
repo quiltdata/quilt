@@ -1,5 +1,3 @@
-import { basename } from 'path'
-
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -15,6 +13,7 @@ import Message from 'components/Message'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
+import type * as Routes from 'constants/routes'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -34,7 +33,7 @@ import PackageCodeSamples from '../CodeSamples/Package'
 import * as Download from '../Download'
 import { FileProperties } from '../FileProperties'
 import * as FileView from '../FileView'
-import Listing, { Item as ListingItem } from '../Listing'
+import * as Listing from '../Listing'
 import PackageCopyDialog from '../PackageCopyDialog'
 import * as PD from '../PackageDialog'
 import Section from '../Section'
@@ -127,7 +126,7 @@ function DirDisplay({
 }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
   const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
 
   const dirQuery = GQL.useQuery(DIR_QUERY, {
@@ -286,38 +285,24 @@ function DirDisplay({
             )
           }
 
-          const items: ListingItem[] = dir.children.map((c) => {
-            switch (c.__typename) {
-              case 'PackageFile':
-                return {
-                  type: 'file' as const,
-                  name: basename(c.path),
-                  to: urls.bucketPackageTree(bucket, name, hashOrTag, c.path),
-                  size: c.size,
-                }
-              case 'PackageDir':
-                return {
-                  type: 'dir' as const,
-                  name: basename(c.path),
-                  to: urls.bucketPackageTree(
-                    bucket,
-                    name,
-                    hashOrTag,
-                    s3paths.ensureSlash(c.path),
-                  ),
-                  size: c.size,
-                }
-              default:
-                return assertNever(c)
-            }
-          })
-          if (path) {
-            items.unshift({
-              type: 'dir' as const,
-              name: '..',
-              to: urls.bucketPackageTree(bucket, name, hashOrTag, s3paths.up(path)),
-            })
-          }
+          const items: Listing.Item[] = Listing.format(
+            dir.children.map((c) => {
+              switch (c.__typename) {
+                case 'PackageFile':
+                  return Listing.Entry.File({ key: c.path, size: c.size })
+                case 'PackageDir':
+                  return Listing.Entry.Dir({ key: c.path, size: c.size })
+                default:
+                  return assertNever(c)
+              }
+            }),
+            {
+              urls,
+              bucket,
+              packageHandle: { bucket, name, hashOrTag },
+              prefix: path,
+            },
+          )
 
           const summaryHandles = dir.children
             .map((c) =>
@@ -358,6 +343,7 @@ function DirDisplay({
                           <Successors.Button
                             className={classes.button}
                             bucket={bucket}
+                            icon="exit_to_app"
                             onChange={setSuccessor}
                           >
                             Push to bucket
@@ -401,7 +387,7 @@ function DirDisplay({
                         <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
                       )}
                       <M.Box mt={2}>
-                        {blocks.browser && <Listing items={items} key={hash} />}
+                        {blocks.browser && <Listing.Listing items={items} key={hash} />}
                         <Summary
                           path={path}
                           files={summaryHandles}
@@ -528,6 +514,14 @@ function FileDisplayQuery({
   })
 }
 
+interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
+  bucketPackageTree: Routes.BucketPackageTreeArgs
+  bucketPackageDetail: Routes.BucketPackageDetailArgs
+  bucketPackageList: Routes.BucketPackageListArgs
+}
+
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(1),
@@ -556,7 +550,7 @@ function FileDisplay({
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
   const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useFileDisplayStyles()
   const prefs = BucketPreferences.use()
 

@@ -244,7 +244,7 @@ interface SidebarProps {
 export default function Sidebar({ bucket = '' }: SidebarProps) {
   const bookmarks = useBookmarks()
   const addToPackage = AddToPackage.use()
-  const entries = bookmarks?.groups.main.entries
+  const entries = bookmarks.groups.main.entries
   const handles: Model.S3.S3ObjectLocation[] = React.useMemo(
     () => (entries ? Object.values(entries) : []),
     [entries],
@@ -262,14 +262,14 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
   const handleRemove = React.useCallback(
     (handle: Model.S3.S3ObjectLocation) => {
       const isLastBookmark = handles.length === 1
-      bookmarks?.remove('main', handle)
-      if (isLastBookmark) bookmarks?.hide()
+      bookmarks.remove('main', handle)
+      if (isLastBookmark) bookmarks.hide()
     },
     [bookmarks, handles],
   )
   const handleClear = React.useCallback(() => {
-    bookmarks?.clear('main')
-    bookmarks?.hide()
+    bookmarks.clear('main')
+    bookmarks.hide()
   }, [bookmarks])
   const handleSubmit = React.useCallback(async () => {
     if (!addToPackage) throw new Error('Add to Package is not ready')
@@ -279,7 +279,7 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
       addToPackage?.merge(files)
       setTraversing(false)
       createDialog.open()
-      bookmarks?.hide()
+      bookmarks.hide()
     } catch (e) {
       if (e instanceof Error) {
         setTraversing(false)
@@ -295,11 +295,11 @@ export default function Sidebar({ bucket = '' }: SidebarProps) {
         error={error}
         handles={handles}
         loading={traversing}
-        onClose={bookmarks?.hide}
+        onClose={bookmarks.hide}
         onPackage={bucket ? handleSubmit : undefined}
         onRemove={handleRemove}
         onClear={handleClear}
-        open={bookmarks?.isOpened}
+        open={bookmarks.isOpened}
       />
       {createDialog.render({
         successTitle: 'Package created',

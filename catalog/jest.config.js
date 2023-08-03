@@ -4,7 +4,7 @@ module.exports = {
   preset: 'ts-jest/presets/js-with-ts',
   testEnvironment: 'jsdom',
   testEnvironmentOptions: {
-    url: 'https://quilt-test'
+    url: 'https://quilt-test',
   },
   collectCoverageFrom: [
     'app/**/*.{j,t}s{,x}',
@@ -30,6 +30,7 @@ module.exports = {
     '.*\\.(css|less|styl|scss|sass)$': '<rootDir>/internals/mocks/cssModule.js',
     '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/internals/mocks/image.js',
+    '^p-limit$': '<rootDir>/internals/mocks/p-limit.js', // XXX: use ESM
   },
   setupFiles: ['jest-localstorage-mock', './setup-jest.ts'],
   testRegex: '.*\\.(test|spec)\\.[jt]sx?$',

@@ -19,15 +19,14 @@ const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 const Status = RT.mkLazy(() => import('./Status'), SuspensePlaceholder)
 
 const ErrorBoundary = createBoundary(
-  () => () =>
-    (
-      <M.Box my={4}>
-        <M.Typography variant="h4" align="center" gutterBottom>
-          Unexpected Error
-        </M.Typography>
-        <M.Typography align="center">See the console for details</M.Typography>
-      </M.Box>
-    ),
+  () => () => (
+    <M.Box my={4}>
+      <M.Typography variant="h4" align="center" gutterBottom>
+        Unexpected Error
+      </M.Typography>
+      <M.Typography align="center">See the console for details</M.Typography>
+    </M.Box>
+  ),
   'AdminErrorBoundary',
 )
 

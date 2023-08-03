@@ -413,7 +413,7 @@ export default function File() {
     })
   const bookmarks = Bookmarks.use()
   const isBookmarked = React.useMemo(
-    () => bookmarks?.isBookmarked('main', handle),
+    () => bookmarks.isBookmarked('main', handle),
     [bookmarks, handle],
   )
 
@@ -469,7 +469,7 @@ export default function File() {
             className={classes.button}
             icon={isBookmarked ? 'turned_in' : 'turned_in_not'}
             label={isBookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
-            onClick={() => bookmarks?.toggle('main', handle)}
+            onClick={() => bookmarks.toggle('main', handle)}
           />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />

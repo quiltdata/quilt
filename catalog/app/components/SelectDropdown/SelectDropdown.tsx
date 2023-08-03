@@ -38,6 +38,7 @@ export interface ValueBase {
 
 interface SelectDropdownProps<Value extends ValueBase> {
   ButtonProps?: M.ButtonProps
+  adaptive?: boolean
   children?: React.ReactNode
   disabled?: boolean
   emptySlot?: React.ReactNode
@@ -52,6 +53,7 @@ interface SelectDropdownProps<Value extends ValueBase> {
 
 export default function SelectDropdown<Value extends ValueBase>({
   ButtonProps,
+  adaptive = true,
   children,
   className,
   disabled = false,
@@ -104,7 +106,7 @@ export default function SelectDropdown<Value extends ValueBase>({
         {...buttonProps}
       >
         {children}
-        {aboveSm && (
+        {(aboveSm || !adaptive) && (
           <>
             <span className={classes.value}>{value.toString()}</span>
             {loading && (

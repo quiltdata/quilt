@@ -147,19 +147,18 @@ type LayoutHeading = React.ReactNode | ((props: {}) => React.ReactNode)
 
 export const mkLayout =
   (heading: LayoutHeading) =>
-  ({ children, ...props }: LayoutProps) =>
-    (
-      <Layout>
-        <Container>
-          <M.Box pt={5} pb={2}>
-            <Heading data-testid="auth-heading">
-              {typeof heading === 'function' ? heading(props) : heading}
-            </Heading>
-          </M.Box>
-          {children}
-        </Container>
-      </Layout>
-    )
+  ({ children, ...props }: LayoutProps) => (
+    <Layout>
+      <Container>
+        <M.Box pt={5} pb={2}>
+          <Heading data-testid="auth-heading">
+            {typeof heading === 'function' ? heading(props) : heading}
+          </Heading>
+        </M.Box>
+        {children}
+      </Container>
+    </Layout>
+  )
 
 interface SubmitProps extends M.ButtonProps {
   busy: boolean
