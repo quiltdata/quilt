@@ -1038,6 +1038,13 @@ class TestIndex(TestCase):
             "hash": pkg_hash,
             "package_stats": select_stats_mock.return_value,
             "metadata": json.dumps(meta),
+            "metadata_fields": [
+                {
+                    "name": "foo",
+                    "type": "keyword",
+                    "keyword": "bar",
+                },
+            ],
             "comment": message,
         })
 

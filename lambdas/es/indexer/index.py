@@ -299,6 +299,64 @@ def do_index(
         logger_.debug("%s indexed as package (%s)", key, event_type)
 
 
+def _try_parse_date(s: str) -> Optional[datetime.datetime]:
+    # XXX: do we need to support more formats?
+    # XXX: do we need to preserve UTC timezone?
+    if s[-1:] == "Z":
+        s = s[:-1]
+    try:
+        return datetime.datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def _get_metadata_fields(path: tuple, d: dict):
+    for k, v in d.items():
+        if "." in k:
+            # XXX: ignore for now
+            print("ignoring field %s" % (*path, k))
+            continue
+        if isinstance(v, dict):
+            yield from _get_metadata_fields(path + (k,), v)
+        else:
+            if isinstance(v, str):
+                date = _try_parse_date(v)
+                if date is not None:
+                    type_ = "date"
+                    v = date
+                else:
+                    # XXX: make length limit variable
+                    type_ = "keyword" if len(v) < 256 else "text"
+            elif isinstance(v, bool):
+                type_ = "boolean"
+            elif isinstance(v, (int, float)):
+                # XXX: do we need to convert it explicitly to float?
+                # XXX: do something on ints that can't be converted to float without loss?
+                type_ = "double"
+            elif isinstance(v, list):
+                # XXX: ignore for now
+                continue
+            else:
+                print("ignoring value of type %s" % type(v))
+                continue
+
+            yield path + (k,), type_, v
+
+
+def get_metadata_fields(meta):
+    if not isinstance(meta, dict):
+        # XXX: can we do something better?
+        return None
+    return [
+        {
+            "name": ".".join(path),
+            "type": type_,
+            type_: value,
+        }
+        for path, type_, value in _get_metadata_fields((), meta)
+    ]
+
+
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
@@ -351,7 +409,6 @@ def index_if_package(
             return
 
         user_meta = first.get("user_meta")
-        user_meta = json.dumps(user_meta) if user_meta else None
 
         return {
             "key": key,
@@ -363,7 +420,8 @@ def index_if_package(
             "pointer_file": pointer_file,
             "hash": package_hash,
             "package_stats": stats,
-            "metadata": user_meta,
+            "metadata": json.dumps(user_meta) if user_meta else None,
+            "metadata_fields": get_metadata_fields(user_meta),
             "comment": str(first.get("message", "")),
         }
 
