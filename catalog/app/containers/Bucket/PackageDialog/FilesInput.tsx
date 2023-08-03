@@ -157,9 +157,11 @@ function cloneDomFile<F extends AnyFile>(file: F, omitProperty: string): F {
 function setKeyValue<T>(key: string, value: T, file: AnyFile): AnyFile {
   if (file instanceof window.File) {
     const fileCopy = cloneDomFile(file, key)
-    Object.defineProperty(fileCopy, key, {
-      value,
-    })
+    if (value !== undefined) {
+      Object.defineProperty(fileCopy, key, {
+        value,
+      })
+    }
     return fileCopy
   }
   return R.assoc(key, value, file)
@@ -179,8 +181,8 @@ function addFile<T extends AnyFile, M extends Record<string, AnyFile>>(
     ...mainItems,
     [resolvedName]:
       resolvedName === path
-        ? setKeyValue<string>('conflict', '', file)
-        : setKeyValue<string>('conflict', path, file),
+        ? setKeyValue<undefined>('conflict', undefined, file)
+        : setKeyValue<typeof path>('conflict', path, file),
   }
 }
 
@@ -202,9 +204,9 @@ function renameFile(
   const file = mainItems[oldPath]
   if (!file) return mainItems
   const itemsWithOldNameRemoved = R.dissoc(oldPath, mainItems)
-  const changedFile = setKeyValue<{ logicalKey: string } | null>(
+  const changedFile = setKeyValue<ChangedDict | undefined>(
     'changed',
-    reverted ? null : { logicalKey: oldPath },
+    reverted ? undefined : { logicalKey: oldPath },
     file,
   )
   return addFile(newPath, changedFile, itemsWithOldNameRemoved, itemsToCheck)
@@ -265,11 +267,7 @@ const handleFilesAction = FilesAction.match<
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
-        return R.assoc(
-          path,
-          setKeyValue<Types.JsonRecord | null | undefined>('meta', meta, file),
-          filesDict,
-        )
+        return R.assoc(path, setKeyValue<typeof meta>('meta', meta, file), filesDict)
       }
     return R.evolve({
       added: mkSetMeta<AddedFile>(),
