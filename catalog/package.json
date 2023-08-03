@@ -130,7 +130,7 @@
     "semver": "^7.5.4",
     "tslib": "^2.6.0",
     "urql": "^2.2.3",
-    "urql-custom-scalars-exchange": "^0.1.6",
+    "urql-custom-scalars-exchange": "^1.0.1",
     "use-debounce": "^9.0.4",
     "use-resize-observer": "^9.0.2",
     "uuid": "^9.0.0",
