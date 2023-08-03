@@ -1,7 +1,7 @@
 /* Authentication progress */
 import PropTypes from 'prop-types'
 import React from 'react'
-import { styled } from '@material-ui/styles'
+import { styled } from '@material-ui/core/styles'
 
 import Spinner from 'components/Spinner'
 

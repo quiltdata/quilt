@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ThemeProvider } from '@material-ui/styles'
+import { ThemeProvider } from '@material-ui/core/styles'
 
 import * as Layout from 'components/Layout'
 import { TalkToUsProvider } from 'components/TalkToUs'
