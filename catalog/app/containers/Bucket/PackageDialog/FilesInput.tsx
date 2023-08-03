@@ -454,13 +454,7 @@ const computeEntries = ({
       })
     }
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
-    return acc.concat({
-      state: 'added',
-      type,
-      path,
-      size: f.size,
-      meta: f.meta,
-    })
+    return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
