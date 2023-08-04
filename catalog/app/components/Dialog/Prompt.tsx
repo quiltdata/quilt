@@ -96,7 +96,7 @@ export function usePrompt({
   }, [])
   const close = React.useCallback(() => setOpened(false), [])
   const handleSubmit = React.useCallback(
-    (...args: [React.FormEvent, string]) => {
+    (...args: Parameters<typeof onSubmit>) => {
       onSubmit(...args)
       close()
     },
