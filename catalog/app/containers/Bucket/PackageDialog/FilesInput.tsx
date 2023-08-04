@@ -181,8 +181,8 @@ function addFile<T extends AnyFile, M extends Record<string, AnyFile>>(
     ...mainItems,
     [resolvedName]:
       resolvedName === path
-        ? setKeyValue<undefined>('conflict', undefined, file)
-        : setKeyValue<typeof path>('conflict', path, file),
+        ? setKeyValue('conflict', undefined, file)
+        : setKeyValue('conflict', path, file),
   }
 }
 
@@ -204,7 +204,7 @@ function renameFile(
   const file = mainItems[oldPath]
   if (!file) return mainItems
   const itemsWithOldNameRemoved = R.dissoc(oldPath, mainItems)
-  const changedFile = setKeyValue<ChangedDict | undefined>(
+  const changedFile = setKeyValue(
     'changed',
     reverted ? undefined : { logicalKey: oldPath },
     file,
@@ -267,7 +267,7 @@ const handleFilesAction = FilesAction.match<
       (filesDict: Record<string, T>) => {
         const file = filesDict[path]
         if (!file) return filesDict
-        return R.assoc(path, setKeyValue<typeof meta>('meta', meta, file), filesDict)
+        return R.assoc(path, setKeyValue('meta', meta, file), filesDict)
       }
     return R.evolve({
       added: mkSetMeta<AddedFile>(),
