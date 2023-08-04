@@ -15,6 +15,7 @@ import * as AWS from 'utils/AWS'
 import * as JSONPointer from 'utils/JSONPointer'
 import log from 'utils/Logging'
 import * as Sentry from 'utils/Sentry'
+import { BaseError } from 'utils/error'
 import { mkFormError } from 'utils/formTools'
 import {
   JsonSchema,
@@ -581,8 +582,13 @@ export interface ValidationEntry {
   meta?: JsonRecord
 }
 
-interface EntryNameError extends Error {
-  data: ValidationEntry
+export class EntryNameError extends BaseError {
+  static data: ValidationEntry
+
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(message: string, props: { data: ValidationEntry }) {
+    super(message, props)
+  }
 }
 
 interface EntryValidationError extends ErrorObject {
@@ -621,13 +627,13 @@ export function useEntriesValidator(workflow?: workflows.Workflow) {
     async (entries: ValidationEntry[]) => {
       const conflictsErrors = entries
         .filter((e) => !!e.conflict)
-        .map((e) => {
-          const error = new Error(
-            `"${e.logical_key}" is conflicting with "${e.conflict}". Rename or remove it please.`,
-          )
-          ;(error as EntryNameError).data = e
-          return error
-        })
+        .map(
+          (e) =>
+            new EntryNameError(
+              `"${e.logical_key}" is conflicting with "${e.conflict}". Rename or remove it please.`,
+              { data: e },
+            ),
+        )
       const entriesSchema = await entriesSchemaAsync
       // TODO: Show error if there is network error
       if (!entriesSchema) return conflictsErrors

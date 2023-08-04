@@ -321,7 +321,7 @@ function PackageCreationForm({
     if (error?.length) {
       setEntriesError(error)
       return {
-        files: 'schema',
+        files: error[0] instanceof PD.EntryNameError ? 'conflict' : 'schema',
       }
     }
 
@@ -470,7 +470,7 @@ function PackageCreationForm({
       setEntriesError(errors || null)
       setFilesDisabled(false)
       if (errors?.length) {
-        return 'schema'
+        return errors[0] instanceof PD.EntryNameError ? 'conflict' : 'schema'
       }
     },
     [delayHashing, validateEntries],
@@ -624,6 +624,8 @@ function PackageCreationForm({
                       validate={validateFiles as FF.FieldValidator<$TSFixMe>}
                       validateFields={['files']}
                       errors={{
+                        conflict:
+                          'There are files with identical names. Rename or remove them please',
                         schema: 'Files should match schema',
                         [FI.HASHING]: 'Please wait while we hash the files',
                         [FI.HASHING_ERROR]:
