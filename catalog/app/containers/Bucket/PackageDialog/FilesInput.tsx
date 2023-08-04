@@ -179,10 +179,11 @@ function addFile<T extends AnyFile, M extends Record<string, AnyFile>>(
   )
   return {
     ...mainItems,
-    [resolvedName]:
-      resolvedName === path
-        ? setKeyValue('conflict', undefined, file)
-        : setKeyValue('conflict', path, file),
+    [resolvedName]: setKeyValue(
+      'conflict',
+      resolvedName === path ? undefined : path,
+      file,
+    ),
   }
 }
 
