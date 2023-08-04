@@ -7,7 +7,7 @@ interface DialogProps {
   cancelTitle?: string
   initialValue?: string
   onCancel: () => void
-  onSubmit: (value: string) => void
+  onSubmit: (e: React.FormEvent, v: string) => void
   open: boolean
   submitTitle?: string
   title: string
@@ -29,10 +29,11 @@ function Dialog({
   const error = React.useMemo(() => validate(value), [validate, value])
   const handleChange = React.useCallback((event) => setValue(event.target.value), [])
   const handleSubmit = React.useCallback(
-    (event) => {
+    (event: React.FormEvent) => {
+      // event.stopPropagation()
       event.preventDefault()
       setSubmitted(true)
-      if (!error) onSubmit(value)
+      if (!error) onSubmit(event, value)
     },
     [error, onSubmit, value],
   )
@@ -73,7 +74,7 @@ function Dialog({
 interface PromptProps {
   cancelTitle?: string
   initialValue?: string
-  onSubmit: (value: string) => void
+  onSubmit: (e: React.FormEvent, v: string) => void
   submitTitle?: string
   title: string
   validate: (value: string) => Error | undefined
@@ -95,8 +96,8 @@ export function usePrompt({
   }, [])
   const close = React.useCallback(() => setOpened(false), [])
   const handleSubmit = React.useCallback(
-    (value: string) => {
-      onSubmit(value)
+    (...args: [React.FormEvent, string]) => {
+      onSubmit(...args)
       close()
     },
     [close, onSubmit],

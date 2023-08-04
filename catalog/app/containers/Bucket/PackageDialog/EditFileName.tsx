@@ -9,7 +9,7 @@ function validateFileName(value: string) {
 
 interface EditFileNameProps {
   disabled?: boolean
-  onChange: (value: string) => void
+  onChange: (e: React.FormEvent, value: string) => void
   value?: string
 }
 

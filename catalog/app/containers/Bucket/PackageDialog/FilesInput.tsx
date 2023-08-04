@@ -642,7 +642,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   meta?: Model.EntryMeta
   editDisabled?: boolean
   onMeta: (value?: Model.EntryMeta) => void
-  onRename: (value: string) => void
+  onRename: (e: React.FormEvent, value: string) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -1281,7 +1281,8 @@ function FileUpload({
   )
 
   const onRename = React.useCallback(
-    (p: string) => {
+    (e: React.FormEvent, p: string) => {
+      e.stopPropagation()
       dispatch(FilesAction.Rename({ oldPath: path, newPath: p }))
     },
     [dispatch, path],
