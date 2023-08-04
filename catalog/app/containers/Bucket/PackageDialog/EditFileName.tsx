@@ -15,8 +15,9 @@ interface EditFileNameProps {
 
 export default function EditFileName({ disabled, value, onChange }: EditFileNameProps) {
   const prompt = Dialog.usePrompt({
-    onSubmit: onChange,
     initialValue: value,
+    onSubmit: onChange,
+    submitTitle: 'Rename',
     title: 'Enter file name',
     validate: validateFileName,
   })
