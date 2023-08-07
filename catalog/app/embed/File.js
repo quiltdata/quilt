@@ -231,7 +231,7 @@ function VersionInfo({ bucket, path, version }) {
 
 function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, bucket, path, version })
+  const data = useData(requests.objectMeta, { s3, location: { bucket, path, version } })
   return <FileView.ObjectMeta data={data.result} />
 }
 
@@ -246,8 +246,10 @@ function Analytics({ bucket, path }) {
     )
   const data = useData(requests.objectAccessCounts, {
     s3,
-    bucket,
-    path,
+    location: {
+      bucket,
+      key: path,
+    },
     today,
   })
 

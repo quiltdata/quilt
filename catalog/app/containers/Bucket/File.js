@@ -200,13 +200,13 @@ function VersionInfo({ location: { bucket, key, version } }) {
   )
 }
 
-function Meta({ location: { bucket, key, version } }) {
+function Meta({ location }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, bucket, path: key, version })
+  const data = useData(requests.objectMeta, { s3, location })
   return <FileView.ObjectMeta data={data.result} />
 }
 
-function Analytics({ location: { bucket, key } }) {
+function Analytics({ location }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -215,7 +215,7 @@ function Analytics({ location: { bucket, key } }) {
       date,
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
-  const data = useData(requests.objectAccessCounts, { s3, bucket, path: key, today })
+  const data = useData(requests.objectAccessCounts, { s3, location, today })
 
   const defaultExpanded = data.case({
     Ok: ({ total }) => !!total,

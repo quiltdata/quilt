@@ -569,11 +569,11 @@ export const objectVersions = ({ s3, bucket, path }) =>
 
 // TODO: handle archive, delete markers
 //       make re-useable head request with such handlers
-export const objectMeta = ({ s3, bucket, path, version }) =>
+export const objectMeta = ({ s3, location: { bucket, key, version } }) =>
   s3
     .headObject({
       Bucket: bucket,
-      Key: path,
+      Key: key,
       VersionId: version,
     })
     .promise()
@@ -825,7 +825,7 @@ const queryAccessCounts = async ({ s3, type, query, today, window = 365 }) => {
   }
 }
 
-export const objectAccessCounts = ({ s3, bucket, path, today }) =>
+export const objectAccessCounts = ({ s3, location: { bucket, key }, today }) =>
   queryAccessCounts({
     s3,
     type: 'Objects',
@@ -833,7 +833,7 @@ export const objectAccessCounts = ({ s3, bucket, path, today }) =>
       SELECT counts FROM s3object
       WHERE eventname = 'GetObject'
       AND bucket = '${sqlEscape(bucket)}'
-      AND "key" = '${sqlEscape(path)}'
+      AND "key" = '${sqlEscape(key)}'
     `,
     today,
     window: 365,
