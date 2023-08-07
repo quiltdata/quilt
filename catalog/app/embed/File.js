@@ -352,22 +352,31 @@ export default function File({
   match: {
     params: { bucket, path: encodedPath },
   },
-  location,
+  location: l,
 }) {
   const ecfg = EmbedConfig.use()
-  const { version } = parseSearch(location.search)
+  const { version } = parseSearch(l.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
 
   const path = s3paths.decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: path,
+      version,
+    }),
+    [bucket, path, version],
+  )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
+  const objExistsData = useData(requests.getObjectExistence, {
+    s3,
+    location: R.dissoc('version', location),
+  })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket,
-    key: path,
-    version,
+    location,
   })
 
   const objExists = objExistsData.case({

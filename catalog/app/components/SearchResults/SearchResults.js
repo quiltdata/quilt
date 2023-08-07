@@ -420,7 +420,10 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
   )
 
   const bucketExistenceData = useBucketExistence(bucket)
-  const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
+  const versionExistenceData = Data.use(requests.getObjectExistence, {
+    s3,
+    location: handle,
+  })
 
   const downloadable =
     !cfg.noDownload &&

@@ -590,7 +590,7 @@ function FileDisplay({
 
   return (
     // @ts-expect-error
-    <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
+    <Data fetch={requests.getObjectExistence} params={{ s3, location: handle }}>
       {AsyncResult.case({
         _: () => <FileDisplaySkeleton crumbs={crumbs} />,
         Err: (e: $TSFixMe) => {

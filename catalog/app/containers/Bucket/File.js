@@ -215,7 +215,7 @@ function Analytics({ location: { bucket, key } }) {
       date,
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
-  const data = useData(requests.objectAccessCounts, { s3, bucket, key, today })
+  const data = useData(requests.objectAccessCounts, { s3, bucket, path: key, today })
 
   const defaultExpanded = data.case({
     Ok: ({ total }) => !!total,
@@ -346,15 +346,12 @@ export default function File({
   const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket: location.bucket,
-    key: location.key,
+    location: R.dissoc('version', location),
     resetKey,
   })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket: location.bucket,
-    key: location.key,
-    version,
+    location,
     resetKey,
   })
 

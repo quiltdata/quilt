@@ -182,9 +182,11 @@ const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) 
   const [key, ...keysTail] = keys
   const fileExists = await ensureObjectIsPresent({
     s3,
-    bucket,
-    key,
-    version,
+    location: {
+      bucket,
+      key,
+      version,
+    },
   })
 
   return (
@@ -301,7 +303,7 @@ const MAX_IMGS = 100
 
 export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
 
-export async function getObjectExistence({ s3, bucket, key, version }) {
+export async function getObjectExistence({ s3, location: { bucket, key, version } }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
@@ -350,7 +352,7 @@ export const ensureObjectIsPresent = (...args) =>
   )
 
 export const ensureQuiltSummarizeIsPresent = ({ s3, bucket }) =>
-  ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
+  ensureObjectIsPresent({ s3, location: { bucket, key: SUMMARIZE_KEY } })
 
 export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
   const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
@@ -460,11 +462,13 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
       overviewUrl &&
       ensureObjectIsPresent({
         s3,
-        bucket: getOverviewBucket(overviewUrl),
-        key: getOverviewKey(overviewUrl, 'README.md'),
+        location: {
+          bucket: getOverviewBucket(overviewUrl),
+          key: getOverviewKey(overviewUrl, 'README.md'),
+        },
       }),
     discovered: Promise.all(
-      README_KEYS.map((key) => ensureObjectIsPresent({ s3, bucket, key })),
+      README_KEYS.map((key) => ensureObjectIsPresent({ s3, location: { bucket, key } })),
     ).then(R.filter(Boolean)),
   })
 

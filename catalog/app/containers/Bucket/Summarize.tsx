@@ -408,7 +408,7 @@ interface EnsureAvailabilityProps {
 }
 
 function EnsureAvailability({ s3, handle, children }: EnsureAvailabilityProps) {
-  return useData(requests.ensureObjectIsPresent, { s3, ...handle }).case({
+  return useData(requests.ensureObjectIsPresent, { s3, location: handle }).case({
     _: () => null,
     Ok: (h: unknown) => !!h && children(),
   })
