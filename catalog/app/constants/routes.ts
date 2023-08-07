@@ -1,3 +1,4 @@
+import type * as Model from 'model'
 import { mkSearch } from 'utils/NamedRoutes'
 import { encode } from 'utils/s3paths'
 
@@ -166,13 +167,13 @@ export const bucketFile: Route<BucketFileArgs> = {
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
 }
 
-export type BucketDirArgs = [bucket: string, path?: string, prefix?: string]
+export type BucketDirArgs = [location: Model.S3.S3ObjectLocation, prefix?: string]
 
 export const bucketDir: Route<BucketDirArgs> = {
   path: '/b/:bucket/tree/:path(.+/)?',
   // eslint-disable-next-line @typescript-eslint/default-param-last
-  url: (bucket, path = '', prefix) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
+  url: ({ bucket, key }: Model.S3.S3ObjectLocation, prefix) =>
+    `/b/${bucket}/tree/${encode(key)}${mkSearch({ prefix: prefix || undefined })}`,
 }
 
 export type BucketPackageListArgs = [

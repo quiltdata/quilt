@@ -321,7 +321,9 @@ function App({ init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
     createHistory({
-      initialEntries: [init.route || urls.bucketDir(init.bucket, init.path)],
+      initialEntries: [
+        init.route || urls.bucketDir({ bucket: init.bucket, key: init.path }),
+      ],
     }),
   )
 

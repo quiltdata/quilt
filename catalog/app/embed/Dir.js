@@ -27,7 +27,7 @@ const formatListing = ({ urls, scope }, r) => {
   const dirs = r.dirs.map((name) => ({
     type: 'dir',
     name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-    to: urls.bucketDir(r.bucket, name),
+    to: urls.bucketDir({ bucket: r.bucket, key: name }),
   }))
   const files = r.files.map(({ key, size, modified, archived }) => ({
     type: 'file',
@@ -42,7 +42,7 @@ const formatListing = ({ urls, scope }, r) => {
     items.unshift({
       type: 'dir',
       name: '..',
-      to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
+      to: urls.bucketDir({ bucket: r.bucket, key: s3paths.up(r.path) }),
     })
   }
   // filter-out files with same name as one of dirs

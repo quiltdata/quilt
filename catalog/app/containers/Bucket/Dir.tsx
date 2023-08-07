@@ -85,7 +85,7 @@ interface DirContentsProps {
 }
 
 function DirContents({
-  location: { bucket, key },
+  location,
   response,
   locked,
   loadMore,
@@ -97,9 +97,9 @@ function DirContents({
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
-      history.push(urls.bucketDir(bucket, key, newPrefix))
+      history.push(urls.bucketDir(location, newPrefix))
     },
-    [history, urls, bucket, key],
+    [history, location, urls],
   )
 
   const items = useFormattedListing(response)
@@ -307,7 +307,7 @@ export default function Dir({
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
-    (segPath: string) => urls.bucketDir(bucket, segPath),
+    (segPath: string) => urls.bucketDir({ bucket, key: segPath }),
     [bucket, urls],
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)

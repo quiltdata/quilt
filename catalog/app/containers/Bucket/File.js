@@ -420,7 +420,7 @@ export default function File({
   )
 
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketDir(bucket, segPath),
+    (segPath) => urls.bucketDir({ bucket, key: segPath }),
     [bucket, urls],
   )
   const crumbs = BreadCrumbs.use(up(path), getSegmentRoute, bucket, {

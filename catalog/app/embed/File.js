@@ -408,7 +408,7 @@ export default function File({
   const scoped = ecfg.scope && path.startsWith(ecfg.scope)
   const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
+    (segPath) => urls.bucketDir({ bucket, key: `${scoped ? ecfg.scope : ''}${segPath}` }),
     [bucket, ecfg.scope, scoped, urls],
   )
   const crumbs = BreadCrumbs.use(

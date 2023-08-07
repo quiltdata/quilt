@@ -58,7 +58,7 @@ function useLinkProcessor(handle) {
           const resolved = resolve(dirname(handle.key), p).slice(1)
           const normalized = hasSlash ? `${resolved}/` : resolved
           return hasSlash
-            ? urls.bucketDir(handle.bucket, normalized)
+            ? urls.bucketDir({ bucket: handle.bucket, key: normalized })
             : urls.bucketFile(handle.bucket, normalized)
         },
       }),

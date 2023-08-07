@@ -69,7 +69,7 @@ export function format(
 ) {
   const toDir = (path: string) => {
     if (!urls) return path
-    if (!packageHandle) return urls.bucketDir(bucket, path)
+    if (!packageHandle) return urls.bucketDir({ bucket, key: path })
     return (
       (urls as PackageUrls).bucketPackageTree?.(
         packageHandle.bucket,
