@@ -306,7 +306,11 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPath={setPath}
               setPrefix={setPrefix}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(
+                selection,
+                res.location.bucket,
+                res.location.key,
+              )}
               onSelectionChange={handleSelection}
             />
           ) : (
@@ -337,10 +341,13 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   return React.useMemo(() => {
     const d = r.dirs.map((p) =>
-      Listing.Entry.Dir({ location: { bucket: r.bucket, key: p } }),
+      Listing.Entry.Dir({ location: { bucket: r.location.bucket, key: p } }),
     )
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
+    return Listing.format([...d, ...f], {
+      bucket: r.location.bucket,
+      prefix: r.location.key,
+    })
   }, [r])
 }
 
@@ -379,7 +386,11 @@ function DirContents({
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
-  const { bucket, path, prefix, truncated } = response
+  const {
+    location: { bucket, key },
+    prefix,
+    truncated,
+  } = response
 
   const CellComponent = React.useMemo(
     () =>
@@ -418,7 +429,7 @@ function DirContents({
       dataGridProps={{ autoHeight: false }}
       toolbarContents={
         <Listing.PrefixFilter
-          key={`${bucket}/${path}`}
+          key={`${bucket}/${key}`}
           prefix={prefix}
           setPrefix={setPrefix}
         />

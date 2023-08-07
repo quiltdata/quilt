@@ -70,6 +70,13 @@ export default function Dir({
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: path,
+    }),
+    [bucket, path],
+  )
 
   const [prev, setPrev] = React.useState(null)
 
@@ -80,8 +87,7 @@ export default function Dir({
 
   const data = useData(requests.bucketListing, {
     s3,
-    bucket,
-    path,
+    location,
     prefix,
     prev,
   })

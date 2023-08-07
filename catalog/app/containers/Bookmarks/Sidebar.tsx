@@ -111,8 +111,10 @@ function useHandlesToS3Files(
       const requests = handles.map((handle) =>
         s3paths.isDir(handle.key)
           ? bucketListing({
-              bucket: handle.bucket,
-              path: s3paths.ensureNoSlash(handle.key),
+              location: {
+                bucket: handle.bucket,
+                key: s3paths.ensureNoSlash(handle.key),
+              },
               delimiter: false,
               drain: true,
             })
@@ -125,8 +127,10 @@ function useHandlesToS3Files(
             ? response.files.reduce(
                 (acc, file) => ({
                   ...acc,
-                  [path.relative(path.join(response.path, '..'), file.location.key)]:
-                    file,
+                  [path.relative(
+                    path.join(response.location.key, '..'),
+                    file.location.key,
+                  )]: file,
                 }),
                 memo,
               )

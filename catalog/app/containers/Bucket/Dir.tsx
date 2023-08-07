@@ -64,10 +64,14 @@ function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
     const d = r.dirs.map((p) =>
-      Listing.Entry.Dir({ location: { bucket: r.bucket, key: p } }),
+      Listing.Entry.Dir({ location: { bucket: r.location.bucket, key: p } }),
     )
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, urls })
+    return Listing.format([...d, ...f], {
+      bucket: r.location.bucket,
+      prefix: r.location.key,
+      urls,
+    })
   }, [r, urls])
 }
 
@@ -114,7 +118,7 @@ function DirContents({
         toolbarContents={
           <>
             <Listing.PrefixFilter
-              key={`${response.bucket}/${response.path}`}
+              key={`${response.location.bucket}/${response.location.key}`}
               prefix={response.prefix}
               setPrefix={setPrefix}
             />
@@ -257,8 +261,7 @@ export default function Dir({
 
   const data = useData(requests.bucketListing, {
     s3,
-    bucket,
-    path,
+    location,
     prefix,
     prev,
   })
@@ -400,7 +403,11 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               location={location}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(
+                selection,
+                res.location.bucket,
+                res.location.key,
+              )}
               onSelection={handleSelection}
             />
           ) : (
