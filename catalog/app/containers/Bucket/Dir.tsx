@@ -74,18 +74,16 @@ function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
 interface DirContentsProps {
   response: requests.BucketListingResult
   locked: boolean
-  bucket: string
-  path: string
+  location: Model.S3.S3ObjectLocation
   loadMore?: () => void
   selection: string[]
   onSelection: (ids: string[]) => void
 }
 
 function DirContents({
+  location: { bucket, key },
   response,
   locked,
-  bucket,
-  path,
   loadMore,
   selection,
   onSelection,
@@ -95,9 +93,9 @@ function DirContents({
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
-      history.push(urls.bucketDir(bucket, path, newPrefix))
+      history.push(urls.bucketDir(bucket, key, newPrefix))
     },
-    [history, urls, bucket, path],
+    [history, urls, bucket, key],
   )
 
   const items = useFormattedListing(response)
@@ -384,7 +382,7 @@ export default function Dir({
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { blocks } }) =>
-            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom />,
+            blocks.code && <DirCodeSamples location={location} gutterBottom />,
           Pending: () => null,
           Init: () => null,
         },
@@ -400,8 +398,7 @@ export default function Dir({
             <DirContents
               response={res}
               locked={!AsyncResult.Ok.is(x)}
-              bucket={bucket}
-              path={path}
+              location={location}
               loadMore={loadMore}
               selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
               onSelection={handleSelection}
