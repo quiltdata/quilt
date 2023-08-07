@@ -57,8 +57,7 @@ const drainObjectList = async ({
 }
 
 export interface BucketListingFile {
-  bucket: string
-  key: string
+  location: Model.S3.S3ObjectLocation
   modified: Date
   size: number
   etag: string
@@ -117,8 +116,10 @@ export const bucketListing = async ({
         // filter-out "directory-files" (files that match prefixes)
         .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
         .map((i: S3.Object) => ({
-          bucket,
-          key: i.Key!,
+          location: {
+            bucket,
+            key: i.Key!,
+          },
           modified: i.LastModified!,
           size: i.Size!,
           etag: i.ETag!,
@@ -164,7 +165,7 @@ function useHeadFile() {
       const { ContentLength: size } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId: version })
         .promise()
-      return { bucket, key, size: size || 0, version }
+      return { location: { bucket, key, version }, size: size || 0 }
     },
     [s3],
   )
@@ -194,14 +195,14 @@ export function useFilesListing() {
             ? response.files.reduce(
                 (acc, file) => ({
                   ...acc,
-                  [relative(join(response.path, '..'), file.key)]: file,
+                  [relative(join(response.path, '..'), file.location.key)]: file,
                 }),
                 memo,
               )
             : {
                 ...memo,
                 // TODO: handle the same key from another bucket
-                [basename(response.key)]: response,
+                [basename(response.location.key)]: response,
               },
         {} as Record<string, Model.S3File>,
       )

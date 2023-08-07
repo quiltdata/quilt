@@ -16,9 +16,9 @@ function useRedirect() {
   const location = RRDom.useLocation()
   const { add, next } = parseSearch(location.search, true)
   return React.useCallback(
-    ({ bucket, key, size, version }: Model.S3File) => {
+    ({ location: { bucket, key, version }, size }: Model.S3File) => {
       if (add && addToPackage?.append) {
-        addToPackage.append(add, { bucket, key, size, version })
+        addToPackage.append(add, { location: { bucket, key, version }, size })
       }
       history.push(next || urls.bucketFile(bucket, key, { version }))
     },

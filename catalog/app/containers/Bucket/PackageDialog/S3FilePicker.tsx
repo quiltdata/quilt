@@ -336,7 +336,9 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   return React.useMemo(() => {
-    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const d = r.dirs.map((p) =>
+      Listing.Entry.Dir({ location: { bucket: r.bucket, key: p } }),
+    )
     const f = r.files.map(Listing.Entry.File)
     return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
   }, [r])

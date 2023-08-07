@@ -65,7 +65,7 @@ function parseManifestEntryStringified(entry: ManifestEntryStringified): {
     const size = Number.isNaN(sizeParsed) ? 0 : sizeParsed
     return {
       [entry.logical_key]: {
-        ...handle,
+        location: handle,
         size,
       },
     }

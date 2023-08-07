@@ -348,7 +348,7 @@ function PackageCreationForm({
         ({ path, file }) =>
           [
             path,
-            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+            { physicalKey: s3paths.handleToS3Url(file.location), meta: file.meta },
           ] as R.KeyValuePair<string, PartialPackageEntry>,
       ),
       R.fromPairs,

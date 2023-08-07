@@ -286,11 +286,12 @@ function DirDisplay({
 
           const items: Listing.Item[] = Listing.format(
             dir.children.map((c) => {
+              const entryOptions = { location: { bucket, key: c.path }, size: c.size }
               switch (c.__typename) {
                 case 'PackageFile':
-                  return Listing.Entry.File({ key: c.path, size: c.size })
+                  return Listing.Entry.File(entryOptions)
                 case 'PackageDir':
-                  return Listing.Entry.Dir({ key: c.path, size: c.size })
+                  return Listing.Entry.Dir(entryOptions)
                 default:
                   return assertNever(c)
               }
