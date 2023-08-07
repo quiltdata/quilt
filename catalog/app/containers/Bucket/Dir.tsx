@@ -403,11 +403,7 @@ export default function Dir({
               locked={!AsyncResult.Ok.is(x)}
               location={location}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(
-                selection,
-                res.location.bucket,
-                res.location.key,
-              )}
+              selection={Selection.getDirectorySelection(selection, res.location)}
               onSelection={handleSelection}
             />
           ) : (

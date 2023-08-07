@@ -59,6 +59,5 @@ const EmptyKeys: string[] = []
 
 export const getDirectorySelection = (
   selection: PrefixedKeysMap,
-  bucket: string,
-  path: string,
-) => selection[`s3://${bucket}/${path}`] || EmptyKeys
+  { bucket, key }: Model.S3.S3ObjectLocation,
+) => selection[`s3://${bucket}/${key}`] || EmptyKeys

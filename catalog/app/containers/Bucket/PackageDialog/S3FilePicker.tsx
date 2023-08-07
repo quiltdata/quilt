@@ -306,11 +306,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPath={setPath}
               setPrefix={setPrefix}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(
-                selection,
-                res.location.bucket,
-                res.location.key,
-              )}
+              selection={Selection.getDirectorySelection(selection, res.location)}
               onSelectionChange={handleSelection}
             />
           ) : (
