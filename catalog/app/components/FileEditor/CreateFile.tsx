@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as Dialog from 'components/Dialog'
+import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import type { PackageHandle } from 'utils/packageHandle'
 
@@ -19,13 +20,13 @@ function validateFileName(value: string) {
   }
 }
 
-export function useCreateFileInBucket(bucket: string, path: string) {
+export function useCreateFileInBucket({ bucket, key }: Model.S3.S3ObjectLocation) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
   const toFile = React.useCallback(
-    (name: string) => urls.bucketFile(bucket, join(path, name), { edit: true }),
-    [bucket, path, urls],
+    (name: string) => urls.bucketFile(bucket, join(key, name), { edit: true }),
+    [bucket, key, urls],
   )
 
   const createFile = React.useCallback(

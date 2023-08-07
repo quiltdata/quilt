@@ -8,6 +8,7 @@ import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -30,13 +31,12 @@ import { displayError } from './errors'
 import * as requests from './requests'
 
 interface DirectoryMenuProps {
-  bucket: string
+  location: Model.S3.S3ObjectLocation
   className?: string
-  path: string
 }
 
-function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
+function DirectoryMenu({ location, className }: DirectoryMenuProps) {
+  const prompt = FileEditor.useCreateFileInBucket(location)
   const menuItems = React.useMemo(
     () => [
       {
@@ -242,6 +242,13 @@ export default function Dir({
   const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
   const path = s3paths.decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: path,
+    }),
+    [bucket, path],
+  )
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
@@ -306,9 +313,9 @@ export default function Dir({
 
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
   const guardNavigation = React.useCallback(
-    (location) => {
+    (loc) => {
       if (
-        !RRDom.matchPath(location.pathname, {
+        !RRDom.matchPath(loc.pathname, {
           path: paths.bucketDir,
           exact: true,
         })
@@ -370,7 +377,7 @@ export default function Dir({
               label="Download directory"
             />
           )}
-          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
+          <DirectoryMenu className={classes.button} location={location} />
         </div>
       </div>
 
