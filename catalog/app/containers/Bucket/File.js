@@ -67,7 +67,7 @@ function VersionInfo({ location }) {
 
   const getHttpsUri = (v) => handleToHttpsUri({ ...location, version: v.id })
   const getCliArgs = (v) =>
-    `--bucket ${location.bucket} --key "${key}" --version-id ${v.id}`
+    `--bucket ${location.bucket} --key "${location.key}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
     e.preventDefault()
@@ -85,10 +85,9 @@ function VersionInfo({ location }) {
 
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
+        {location.version ? (
+          <span className={classes.mono}>{location.version.substring(0, 12)}</span>
         ) : (
           'latest'
         )}{' '}

@@ -82,7 +82,8 @@ function VersionInfo({ location }) {
       version: v.id,
     })
 
-  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
+  const getCliArgs = (v) =>
+    `--bucket ${location.bucket} --key "${location.key}" --version-id ${v.id}`
 
   const copyLink = (v) => (e) => {
     e.preventDefault()
@@ -95,8 +96,7 @@ function VersionInfo({ location }) {
         type: 's3ObjectLink',
         url: urls.bucketFile({ ...location, version: v.id }),
         s3HttpsUri: s3paths.handleToHttpsUri({ ...location, version: v.id }),
-        bucket,
-        key: path,
+        ...location,
         version: v.id,
       })
     }
@@ -108,14 +108,18 @@ function VersionInfo({ location }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3, bucket, path })
+  const data = useData(requests.objectVersions, {
+    s3,
+    bucket: location.bucket,
+    path: location.key,
+  })
 
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
+        {location.version ? (
+          <span className={classes.mono}>{location.version.substring(0, 12)}</span>
         ) : (
           'latest'
         )}{' '}
@@ -136,7 +140,7 @@ function VersionInfo({ location }) {
                   key={v.id}
                   button
                   onClick={close}
-                  selected={version ? v.id === version : v.isLatest}
+                  selected={location.version ? v.id === location.version : v.isLatest}
                   component={Link}
                   to={urls.bucketFile({ ...location, version: v.id })}
                 >
@@ -162,7 +166,7 @@ function VersionInfo({ location }) {
                       {!v.deleteMarker &&
                         !v.archived &&
                         AWS.Signer.withDownloadUrl(
-                          { bucket, key: path, version: v.id },
+                          { ...location, version: v.id },
                           (url) => (
                             <M.IconButton
                               href={url}
