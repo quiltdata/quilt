@@ -61,7 +61,7 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const classes = useListItemStyles()
   const isDir = s3paths.isDir(handle.key)
   const { urls } = NamedRoutes.use()
-  const url = isDir ? urls.bucketDir(handle) : urls.bucketFile(handle.bucket, handle.key)
+  const url = isDir ? urls.bucketDir(handle) : urls.bucketFile(handle)
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
 
   const bookmarks = Bookmarks.use()

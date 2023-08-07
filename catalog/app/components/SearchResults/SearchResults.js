@@ -40,13 +40,11 @@ function ObjectCrumbs({ handle, showBucket = false }) {
       switch (segPath) {
         case '':
           return urls.bucketRoot(handle.bucket)
-        case handle.key:
-          return urls.bucketFile(handle.bucket, segPath, { version: handle.version })
         default:
-          return urls.bucketFile(handle.bucket, segPath)
+          return urls.bucketFile({ ...handle, key: segPath })
       }
     },
-    [handle.bucket, handle.key, handle.version, urls],
+    [handle, urls],
   )
   const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, rootLabel, {
     tailLink: true,

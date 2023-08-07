@@ -245,7 +245,7 @@ interface CrumbsProps {
 function Crumbs({ handle }: CrumbsProps) {
   const { urls } = NamedRoutes.use()
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketFile(handle.bucket, segPath),
+    (segPath) => urls.bucketFile({ bucket: handle.bucket, key: segPath }),
     [urls, handle.bucket],
   )
   const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, undefined, {
@@ -360,7 +360,7 @@ function useFileUrl(
 ): LocationDescriptor {
   const { urls } = NamedRoutes.use()
   return React.useMemo(
-    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
+    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle)),
     [handle, mkUrl, urls],
   )
 }

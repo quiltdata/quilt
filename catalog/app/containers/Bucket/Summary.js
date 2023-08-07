@@ -117,10 +117,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
   const { urls } = NamedRoutes.use()
   const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
-    (handle) =>
-      mkUrlProp
-        ? mkUrlProp(handle)
-        : urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
+    (handle) => (mkUrlProp ? mkUrlProp(handle) : urls.bucketFile(handle)),
     [mkUrlProp, urls],
   )
   const { readme, images, summarize } = extractSummary(

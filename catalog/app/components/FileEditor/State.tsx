@@ -13,14 +13,14 @@ function useRedirect() {
   const addToPackage = AddToPackage.use()
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
-  const location = RRDom.useLocation()
-  const { add, next } = parseSearch(location.search, true)
+  const loc = RRDom.useLocation()
+  const { add, next } = parseSearch(loc.search, true)
   return React.useCallback(
-    ({ location: { bucket, key, version }, size }: Model.S3File) => {
+    ({ location, size }: Model.S3File) => {
       if (add && addToPackage?.append) {
-        addToPackage.append(add, { location: { bucket, key, version }, size })
+        addToPackage.append(add, { location, size })
       }
-      history.push(next || urls.bucketFile(bucket, key, { version }))
+      history.push(next || urls.bucketFile(location))
     },
     [history, next, addToPackage, add, urls],
   )

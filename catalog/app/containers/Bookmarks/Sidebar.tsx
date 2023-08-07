@@ -35,7 +35,7 @@ interface BookmarkItemProps {
 function BookmarkItem({ handle, onRemove }: BookmarkItemProps) {
   const classes = useBookmarksItemStyles()
   const { urls } = NamedRoutes.use()
-  const to = urls.bucketFile(handle.bucket, handle.key)
+  const to = urls.bucketFile(handle)
   const title = `s3://${handle.bucket}/${handle.key}`
   return (
     <M.ListItem>

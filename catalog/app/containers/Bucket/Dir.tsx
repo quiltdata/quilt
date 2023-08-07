@@ -243,13 +243,12 @@ export default function Dir({
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
-  const path = s3paths.decode(encodedPath)
   const location = React.useMemo(
     () => ({
       bucket,
-      key: path,
+      key: s3paths.decode(encodedPath),
     }),
-    [bucket, path],
+    [bucket, encodedPath],
   )
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
@@ -257,7 +256,7 @@ export default function Dir({
   React.useLayoutEffect(() => {
     // reset accumulated results when path and / or prefix change
     setPrev(null)
-  }, [path, prefix])
+  }, [location.key, prefix])
 
   const data = useData(requests.bucketListing, {
     s3,
@@ -283,13 +282,13 @@ export default function Dir({
     Selection.EMPTY_MAP,
   )
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
+    (ids) => setSelection(Selection.merge(ids, location.bucket, location.key, prefix)),
+    [location.bucket, location.key, prefix],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
-    s3Path: path,
-    bucket,
+    s3Path: location.key,
+    bucket: location.bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })
@@ -297,20 +296,20 @@ export default function Dir({
   const openPackageCreationDialog = React.useCallback(
     (successor: workflows.Successor) => {
       packageDirectoryDialog.open({
-        path,
+        path: location.key,
         successor,
         selection,
       })
     },
-    [packageDirectoryDialog, path, selection],
+    [packageDirectoryDialog, location.key, selection],
   )
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
-    (segPath: string) => urls.bucketDir({ bucket, key: segPath }),
-    [bucket, urls],
+    (segPath: string) => urls.bucketDir({ bucket: location.bucket, key: segPath }),
+    [location.bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
+  const crumbs = BreadCrumbs.use(location.key, getSegmentRoute, location.bucket)
 
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
   const guardNavigation = React.useCallback(
@@ -330,7 +329,7 @@ export default function Dir({
 
   return (
     <M.Box pt={2} pb={4}>
-      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+      <MetaTitle>{[location.key || 'Files', location.bucket]}</MetaTitle>
 
       <RRDom.Prompt when={hasSelection} message={guardNavigation} />
 
@@ -357,7 +356,7 @@ export default function Dir({
               Ok: ({ ui: { actions } }) =>
                 actions.createPackage && (
                   <Successors.Button
-                    bucket={bucket}
+                    bucket={location.bucket}
                     className={classes.button}
                     onChange={openPackageCreationDialog}
                     variant={hasSelection ? 'contained' : 'outlined'}
@@ -374,7 +373,7 @@ export default function Dir({
           {!cfg.noDownload && !cfg.desktop && (
             <FileView.ZipDownloadForm
               className={classes.button}
-              suffix={`dir/${bucket}/${path}`}
+              suffix={`dir/${location.bucket}/${location.key}`}
               label="Download directory"
             />
           )}

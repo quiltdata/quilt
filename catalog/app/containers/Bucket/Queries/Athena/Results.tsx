@@ -38,9 +38,7 @@ function useLinkProcessor() {
         try {
           const s3Url = meta.value.replace(/^\[/, '').replace(/\]$/, '')
           const handle = s3paths.parseS3Url(s3Url)
-          const url = urls.bucketFile(handle.bucket, handle.key, {
-            version: handle.version,
-          })
+          const url = urls.bucketFile(handle)
 
           const link = document.createElement('a')
           link.addEventListener('click', () => history.push(url))

@@ -32,7 +32,7 @@ const formatListing = ({ urls, scope }, r) => {
   const files = r.files.map(({ key, size, modified, archived }) => ({
     type: 'file',
     name: basename(key),
-    to: urls.bucketFile(r.bucket, key),
+    to: urls.bucketFile({ bucket: r.bucket, key }),
     size,
     modified,
     archived,

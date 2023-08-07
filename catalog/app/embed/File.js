@@ -58,7 +58,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   },
 }))
 
-function VersionInfo({ bucket, path, version }) {
+function VersionInfo({ location }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
@@ -76,10 +76,9 @@ function VersionInfo({ bucket, path, version }) {
 
   const getLink = (v) =>
     overrides.s3ObjectLink.href({
-      url: urls.bucketFile(bucket, path, { version: v.id }),
-      s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
-      bucket,
-      key: path,
+      url: urls.bucketFile({ ...location, version: v.id }),
+      s3HttpsUri: s3paths.handleToHttpsUri({ ...location, version: v.id }),
+      ...location,
       version: v.id,
     })
 
@@ -94,8 +93,8 @@ function VersionInfo({ bucket, path, version }) {
     if (overrides.s3ObjectLink.emit) {
       messageParent({
         type: 's3ObjectLink',
-        url: urls.bucketFile(bucket, path, { version: v.id }),
-        s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
+        url: urls.bucketFile({ ...location, version: v.id }),
+        s3HttpsUri: s3paths.handleToHttpsUri({ ...location, version: v.id }),
         bucket,
         key: path,
         version: v.id,
@@ -139,7 +138,7 @@ function VersionInfo({ bucket, path, version }) {
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, { version: v.id })}
+                  to={urls.bucketFile({ ...location, version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -229,13 +228,13 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Meta({ bucket, path, version }) {
+function Meta({ location }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, location: { bucket, path, version } })
+  const data = useData(requests.objectMeta, { s3, location })
   return <FileView.ObjectMeta data={data.result} />
 }
 
-function Analytics({ bucket, path }) {
+function Analytics({ location }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -246,10 +245,7 @@ function Analytics({ bucket, path }) {
     )
   const data = useData(requests.objectAccessCounts, {
     s3,
-    location: {
-      bucket,
-      key: path,
-    },
+    location,
     today,
   })
 
@@ -439,7 +435,7 @@ export default function File({
           {basename(path)} <span className={classes.at}>@</span>
           &nbsp;
           {objExists ? ( // eslint-disable-line no-nested-ternary
-            <VersionInfo bucket={bucket} path={path} version={version} />
+            <VersionInfo location={location} />
           ) : version ? (
             <M.Box component="span" fontFamily="monospace.fontFamily">
               {version.substring(0, 12)}
@@ -473,7 +469,7 @@ export default function File({
             <>
               {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
-                <Analytics {...{ bucket, path }} />
+                <Analytics location={location} />
               )}
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 <div className={classes.preview}>
@@ -486,7 +482,7 @@ export default function File({
                   })}
                 </div>
               </Section>
-              <Meta bucket={bucket} path={path} version={version} />
+              <Meta location={location} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,

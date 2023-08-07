@@ -25,7 +25,7 @@ export function useCreateFileInBucket({ bucket, key }: Model.S3.S3ObjectLocation
   const history = RRDom.useHistory()
 
   const toFile = React.useCallback(
-    (name: string) => urls.bucketFile(bucket, join(key, name), { edit: true }),
+    (name: string) => urls.bucketFile({ bucket, key: join(key, name) }, { edit: true }),
     [bucket, key, urls],
   )
 
@@ -53,11 +53,14 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?:
     (fileName: string) => {
       const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
       const key = join(name, fileName)
-      return urls.bucketFile(bucket, key, {
-        add: fileName,
-        edit: true,
-        next,
-      })
+      return urls.bucketFile(
+        { bucket, key },
+        {
+          add: fileName,
+          edit: true,
+          next,
+        },
+      )
     },
     [bucket, name, urls],
   )

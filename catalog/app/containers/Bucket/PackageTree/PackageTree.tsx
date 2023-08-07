@@ -571,7 +571,7 @@ function FileDisplay({
   const handleEdit = React.useCallback(() => {
     const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
     const physicalHandle = s3paths.parseS3Url(file.physicalKey)
-    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
+    const editUrl = urls.bucketFile(physicalHandle, {
       add: path,
       edit: true,
       next,

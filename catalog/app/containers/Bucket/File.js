@@ -52,7 +52,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   },
 }))
 
-function VersionInfo({ location: { bucket, key, version } }) {
+function VersionInfo({ location }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
@@ -66,7 +66,8 @@ function VersionInfo({ location: { bucket, key, version } }) {
   const classes = useVersionInfoStyles()
 
   const getHttpsUri = (v) => handleToHttpsUri({ ...location, version: v.id })
-  const getCliArgs = (v) => `--bucket ${bucket} --key "${key}" --version-id ${v.id}`
+  const getCliArgs = (v) =>
+    `--bucket ${location.bucket} --key "${key}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
     e.preventDefault()
@@ -80,7 +81,7 @@ function VersionInfo({ location: { bucket, key, version } }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3, bucket, key })
+  const data = useData(requests.objectVersions, { s3, ...location })
 
   return (
     <>
@@ -108,9 +109,9 @@ function VersionInfo({ location: { bucket, key, version } }) {
                   key={v.id}
                   button
                   onClick={close}
-                  selected={version ? v.id === version : v.isLatest}
+                  selected={location.version ? v.id === location.version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, { version: v.id })}
+                  to={urls.bucketFile({ ...location, version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -134,7 +135,7 @@ function VersionInfo({ location: { bucket, key, version } }) {
                       {!v.deleteMarker &&
                         !v.archived &&
                         AWS.Signer.withDownloadUrl(
-                          { bucket, key: path, version: v.id },
+                          { ...location, version: v.id },
                           (url) => (
                             <M.IconButton
                               href={url}
@@ -333,14 +334,13 @@ export default function File({
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
 
-  const path = decode(encodedPath)
   const location = React.useMemo(
     () => ({
       bucket,
-      key: path,
+      key: decode(encodedPath),
       version,
     }),
-    [bucket, path, version],
+    [bucket, encodedPath, version],
   )
 
   const [resetKey, setResetKey] = React.useState(0)
@@ -382,9 +382,9 @@ export default function File({
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
+      history.push(urls.bucketFile(location, { mode: m.valueOf() }))
     },
-    [history, urls, bucket, encodedPath, version],
+    [history, urls, location],
   )
 
   const handle = React.useMemo(
@@ -428,21 +428,21 @@ export default function File({
     (segPath) => urls.bucketDir({ bucket, key: segPath }),
     [bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(up(path), getSegmentRoute, bucket, {
+  const crumbs = BreadCrumbs.use(up(location.key), getSegmentRoute, bucket, {
     tailLink: true,
     tailSeparator: true,
   })
 
   return (
     <FileView.Root>
-      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+      <MetaTitle>{[location.key || 'Files', bucket]}</MetaTitle>
 
       <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
         {BreadCrumbs.render(crumbs)}
       </div>
       <div className={classes.topBar}>
         <div className={classes.name}>
-          {basename(path)} <span className={classes.at}>@</span>
+          {basename(location.key)} <span className={classes.at}>@</span>
           &nbsp;
           {objExists ? ( // eslint-disable-line no-nested-ternary
             <VersionInfo location={location} />

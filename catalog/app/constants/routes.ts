@@ -150,21 +150,19 @@ export const bucketSearch: Route<BucketSearchArgs> = {
 }
 
 export type BucketFileArgs = [
-  bucket: string,
-  path: string,
+  location: Model.S3.S3ObjectLocation,
   options?: {
     add?: string
     edit?: boolean
     mode?: string
     next?: string
-    version?: string
   },
 ]
 
 export const bucketFile: Route<BucketFileArgs> = {
   path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, { add, edit, mode, next, version } = {}) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
+  url: ({ bucket, key, version }, { add, edit, mode, next } = {}) =>
+    `/b/${bucket}/tree/${encode(key)}${mkSearch({ add, edit, mode, next, version })}`,
 }
 
 export type BucketDirArgs = [location: Model.S3.S3ObjectLocation, prefix?: string]

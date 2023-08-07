@@ -79,16 +79,16 @@ export function format(
       ) || path
     )
   }
-  const toFile = (path: string) => {
-    if (!urls) return path
-    if (!packageHandle) return urls.bucketFile(bucket, path)
+  const toFile = (key: string) => {
+    if (!urls) return key
+    if (!packageHandle) return urls.bucketFile({ bucket, key })
     return (
       (urls as PackageUrls).bucketPackageTree?.(
         packageHandle.bucket,
         packageHandle.name,
         packageHandle.hashOrTag,
-        path,
-      ) || path
+        key,
+      ) || key
     )
   }
 
