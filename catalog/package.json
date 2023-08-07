@@ -128,7 +128,7 @@
     "reselect": "^4.0.0",
     "sanitize.css": "^12.0.1",
     "semver": "^7.5.4",
-    "tslib": "^2.6.0",
+    "tslib": "^2.6.1",
     "urql": "^2.2.3",
     "urql-custom-scalars-exchange": "^1.0.1",
     "use-debounce": "^9.0.4",
