@@ -79,7 +79,7 @@
     "graphql": "^15.8.0",
     "highlight.js": "^11.8.0",
     "history": "^4.10.1",
-    "igv": "^2.15.8",
+    "igv": "^2.15.10",
     "immutable": "^3.8.2",
     "invariant": "^2.2.4",
     "io-ts": "^2.2.20",
