@@ -52,7 +52,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   },
 }))
 
-function VersionInfo({ bucket, path, version }) {
+function VersionInfo({ location: { bucket, key, version } }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
@@ -65,8 +65,8 @@ function VersionInfo({ bucket, path, version }) {
 
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
-  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
+  const getHttpsUri = (v) => handleToHttpsUri({ ...location, version: v.id })
+  const getCliArgs = (v) => `--bucket ${bucket} --key "${key}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
     e.preventDefault()
@@ -80,7 +80,7 @@ function VersionInfo({ bucket, path, version }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3, bucket, path })
+  const data = useData(requests.objectVersions, { s3, bucket, key })
 
   return (
     <>
@@ -200,13 +200,13 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Meta({ bucket, path, version }) {
+function Meta({ location: { bucket, key, version } }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, bucket, path, version })
+  const data = useData(requests.objectMeta, { s3, bucket, path: key, version })
   return <FileView.ObjectMeta data={data.result} />
 }
 
-function Analytics({ bucket, path }) {
+function Analytics({ location: { bucket, key } }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -215,7 +215,7 @@ function Analytics({ bucket, path }) {
       date,
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
-  const data = useData(requests.objectAccessCounts, { s3, bucket, path, today })
+  const data = useData(requests.objectAccessCounts, { s3, bucket, key, today })
 
   const defaultExpanded = data.case({
     Ok: ({ total }) => !!total,
@@ -324,9 +324,9 @@ export default function File({
   match: {
     params: { bucket, path: encodedPath },
   },
-  location,
+  location: l,
 }) {
-  const { version, mode } = parseSearch(location.search)
+  const { version, mode } = parseSearch(l.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
@@ -334,18 +334,26 @@ export default function File({
   const prefs = BucketPreferences.use()
 
   const path = decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: path,
+      version,
+    }),
+    [bucket, path, version],
+  )
 
   const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket,
-    key: path,
+    bucket: location.bucket,
+    key: location.key,
     resetKey,
   })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket,
-    key: path,
+    bucket: location.bucket,
+    key: location.key,
     version,
     resetKey,
   })
@@ -383,8 +391,8 @@ export default function File({
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version: fileVersionId }),
-    [bucket, path, fileVersionId],
+    () => ({ ...location, version: fileVersionId }),
+    [location, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
@@ -440,7 +448,7 @@ export default function File({
           {basename(path)} <span className={classes.at}>@</span>
           &nbsp;
           {objExists ? ( // eslint-disable-line no-nested-ternary
-            <VersionInfo bucket={bucket} path={path} version={version} />
+            <VersionInfo location={location} />
           ) : version ? (
             <M.Box component="span" fontFamily="monospace.fontFamily">
               {version.substring(0, 12)}
@@ -498,13 +506,11 @@ export default function File({
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
+                      {blocks.code && <FileCodeSamples location={location} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
-                        <Analytics {...{ bucket, path }} />
+                        <Analytics location={location} />
                       )}
-                      {blocks.meta && (
-                        <Meta bucket={bucket} path={path} version={version} />
-                      )}
+                      {blocks.meta && <Meta location={location} />}
                     </>
                   ),
                   _: () => null,

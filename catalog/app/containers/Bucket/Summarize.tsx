@@ -630,9 +630,8 @@ function SummaryFailed({ error }: SummaryFailedProps) {
 interface SummaryNestedProps {
   mkUrl: MakeURL
   handle: {
-    key: string
+    location: Model.S3.S3ObjectLocation
     logicalKey: string
-    bucket: string
     version: string
     etag: string
   }

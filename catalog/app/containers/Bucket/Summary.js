@@ -89,7 +89,7 @@ function SummaryItemFile({ handle, name, mkUrl }) {
   return (
     <Container>
       <Header>
-        <StyledLink to={mkUrl(handle)}>
+        <StyledLink to={mkUrl(handle.location)}>
           {name || basename(handle.logicalKey || handle.key)}
         </StyledLink>
       </Header>
@@ -123,7 +123,9 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
         : urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
     [mkUrlProp, urls],
   )
-  const { readme, images, summarize } = extractSummary(files)
+  const { readme, images, summarize } = extractSummary(
+    files.map(({ location }) => location),
+  )
 
   return (
     <Summarize.FileThemeContext.Provider value={Summarize.FileThemes.Nested}>

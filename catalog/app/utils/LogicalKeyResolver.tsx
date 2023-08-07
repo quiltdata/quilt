@@ -4,7 +4,6 @@ import type * as Model from 'model'
 
 export interface S3SummarizeHandle extends Model.S3.S3ObjectLocation {
   logicalKey?: string
-  size?: number
 }
 
 export interface LogicalKeyResolver {
