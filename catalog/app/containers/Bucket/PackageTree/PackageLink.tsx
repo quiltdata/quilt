@@ -12,7 +12,7 @@ const useStyles = M.makeStyles({
 })
 
 interface PackageLinkProps {
-  handle: Model.PackageHandle
+  handle: Model.Package.Handle
 }
 
 export default function PackageLink({ handle }: PackageLinkProps) {

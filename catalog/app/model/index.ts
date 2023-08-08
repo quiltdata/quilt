@@ -10,6 +10,8 @@ export * as GQLTypes from './graphql/types.generated'
 
 export * as S3 from './S3'
 
+export * as Package from './Package'
+
 export const BucketPermissionLevel = Types.enum(
   GQLTypes.BucketPermissionLevel,
   'BucketPermissionLevel',
@@ -66,21 +68,4 @@ export interface S3File {
   location: S3.S3ObjectLocation
   meta?: EntryMeta
   size: number
-}
-
-export interface PackageHash {
-  value: string // hash
-  alias?: string // tag, ex. "latest"
-}
-
-export interface PackageHashAlias {
-  value?: string // hash
-  alias: string // tag, ex. "latest"
-}
-
-export type PackageRevision = Required<PackageHash> | PackageHash | PackageHashAlias
-
-export interface PackageHandle {
-  bucket: string
-  name: string
 }

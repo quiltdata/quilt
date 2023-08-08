@@ -330,7 +330,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionProps extends RevisionFields {
-  handle: Model.PackageHandle
+  handle: Model.Package.Handle
 }
 
 function Revision({
@@ -412,7 +412,7 @@ function Revision({
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
 interface PackageRevisionsProps {
-  handle: Model.PackageHandle
+  handle: Model.Package.Handle
   page?: number
 }
 
@@ -539,7 +539,7 @@ function PackageRevisions({ handle, page }: PackageRevisionsProps) {
 export default function PackageRevisionsWrapper({
   match: { params: handle },
   location,
-}: RRDom.RouteComponentProps<Model.PackageHandle>) {
+}: RRDom.RouteComponentProps<Model.Package.Handle>) {
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

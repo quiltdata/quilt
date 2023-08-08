@@ -14,8 +14,7 @@ import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
-import type * as Model from 'model'
-import { hashOrTag, isPackageHash } from 'model/helpers'
+import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -107,8 +106,8 @@ const useDirDisplayStyles = M.makeStyles((t) => ({
 }))
 
 interface DirDisplayProps {
-  handle: Model.PackageHandle
-  hash: Model.PackageHash
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
   path: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
@@ -128,7 +127,12 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
 
   const mkUrl = React.useCallback(
     (h) =>
-      urls.bucketPackageTree(handle.bucket, handle.name, hashOrTag(hash), h.logicalKey),
+      urls.bucketPackageTree(
+        handle.bucket,
+        handle.name,
+        Model.Package.hashOrTag(hash),
+        h.logicalKey,
+      ),
     [urls, handle, hash],
   )
 
@@ -297,7 +301,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
             {
               urls,
               bucket: handle.bucket,
-              packageHandle: { ...handle, hashOrTag: hashOrTag(hash) },
+              packageHandle: { ...handle, hashOrTag: Model.Package.hashOrTag(hash) },
               prefix: path,
             },
           )
@@ -380,7 +384,11 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
                     <>
                       {blocks.code && (
                         <PackageCodeSamples
-                          {...{ ...packageHandle, hashOrTag: hashOrTag(hash), path }}
+                          {...{
+                            ...packageHandle,
+                            hashOrTag: Model.Package.hashOrTag(hash),
+                            path,
+                          }}
                         />
                       )}
                       {blocks.meta && (
@@ -476,8 +484,8 @@ function FileDisplayError({ crumbs, detail, headline }: FileDisplayErrorProps) {
   )
 }
 interface FileDisplayQueryProps {
-  handle: Model.PackageHandle
-  hash: Model.PackageHash
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
   path: string
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
@@ -656,7 +664,11 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
                     <>
                       {blocks.code && (
                         <PackageCodeSamples
-                          {...{ ...packageHandle, hashOrTag: hashOrTag(hash), path }}
+                          {...{
+                            ...packageHandle,
+                            hashOrTag: Model.Package.hashOrTag(hash),
+                            path,
+                          }}
                         />
                       )}
                       {blocks.meta && (
@@ -688,8 +700,8 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
 }
 
 interface ResolverProviderProps {
-  handle: Model.PackageHandle
-  hash: Model.PackageHash
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
 }
 
 function ResolverProvider({
@@ -734,8 +746,8 @@ const useStyles = M.makeStyles({
 })
 
 interface PackageTreeProps {
-  handle: Model.PackageHandle
-  revision: Model.PackageRevision
+  handle: Model.Package.Handle
+  revision: Model.Package.Revision
   mode?: string
   path: string
   resolvedFrom?: string
@@ -823,7 +835,7 @@ function PackageTree({
         {' @ '}
         <RevisionInfo {...{ revision, handle, path, revisionListQuery }} />
       </M.Typography>
-      {isPackageHash(revision) ? (
+      {Model.Package.isPackageHash(revision) ? (
         <ResolverProvider {...{ handle, hash: revision }}>
           {isDir ? (
             <DirDisplay
@@ -862,8 +874,8 @@ function PackageTree({
 }
 
 interface PackageTreeQueriesProps {
-  handle: Model.PackageHandle
-  revision: Model.PackageRevision
+  handle: Model.Package.Handle
+  revision: Model.Package.Revision
   path: string
   resolvedFrom?: string
   mode?: string
@@ -879,7 +891,7 @@ function PackageTreeQueries({
   const revisionQuery = GQL.useQuery(REVISION_QUERY, {
     bucket: handle.bucket,
     name: handle.name,
-    hashOrTag: hashOrTag(revision),
+    hashOrTag: Model.Package.hashOrTag(revision),
   })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, handle)
 
@@ -928,17 +940,19 @@ export default function PackageTreeWrapper({
   location: l,
 }: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
   const path = s3paths.decode(encodedPath)
-  const handle: Model.PackageHandle = { bucket, name }
-  const rev: Model.PackageRevision = React.useMemo(() => {
-    if (!revision) return { alias: 'latest' } as Model.PackageHashAlias
-    if (revision === 'latest') return { alias: revision } as Model.PackageHashAlias
-    return { value: revision } as Model.PackageHash
+  const handle: Model.Package.Handle = { bucket, name }
+  const rev: Model.Package.Revision = React.useMemo(() => {
+    if (!revision) return { alias: 'latest' } as Model.Package.HashAlias
+    if (revision === 'latest') return { alias: revision } as Model.Package.HashAlias
+    return { value: revision } as Model.Package.Hash
   }, [revision])
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(l.search, true)
   return (
     <>
-      <MetaTitle>{[`${name}@${R.take(10, hashOrTag(rev))}/${path}`, bucket]}</MetaTitle>
+      <MetaTitle>
+        {[`${name}@${R.take(10, Model.Package.hashOrTag(rev))}/${path}`, bucket]}
+      </MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <PackageTreeQueries {...{ handle, revision: rev, path, resolvedFrom, mode }} />
       </WithPackagesSupport>

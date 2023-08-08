@@ -159,7 +159,7 @@ const useRevisionAttributesStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionAttributesProps {
-  handle: Model.PackageHandle
+  handle: Model.Package.Handle
   className: string
   revisions: {
     total: number

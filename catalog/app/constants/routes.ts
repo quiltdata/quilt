@@ -186,7 +186,7 @@ export const bucketPackageList: Route<BucketPackageListArgs> = {
 }
 
 export type BucketPackageDetailArgs = [
-  handle: Model.PackageHandle,
+  handle: Model.Package.Handle,
   options?: { action?: string },
 ]
 

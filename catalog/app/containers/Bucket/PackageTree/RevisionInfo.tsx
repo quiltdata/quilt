@@ -6,8 +6,7 @@ import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
-import type * as Model from 'model'
-import { hashOrTag } from 'model/helpers'
+import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
@@ -39,9 +38,9 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionInfoProps {
-  handle: Model.PackageHandle
+  handle: Model.Package.Handle
   path: string
-  revision: Model.PackageRevision
+  revision: Model.Package.Revision
   revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
 }
 
@@ -83,7 +82,7 @@ export default function RevisionInfo({
         ref={setAnchor}
         title={revision.value}
       >
-        {R.take(10, hashOrTag(revision))} <M.Icon>expand_more</M.Icon>
+        {R.take(10, Model.Package.hashOrTag(revision))} <M.Icon>expand_more</M.Icon>
       </span>
 
       {!!revision.value && (
