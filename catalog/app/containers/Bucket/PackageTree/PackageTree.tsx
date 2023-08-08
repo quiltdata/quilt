@@ -209,7 +209,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
 
   const openInDesktopState = OpenInDesktop.use(handle, hash, size)
 
-  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
+  const prompt = FileEditor.useCreateFileInPackage(handle, path)
 
   return (
     <>
@@ -379,13 +379,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples
-                          {...{
-                            ...packageHandle,
-                            hashOrTag: Model.Package.hashOrTag(hash),
-                            path,
-                          }}
-                        />
+                        <PackageCodeSamples handle={handle} hash={hash} path={path} />
                       )}
                       {blocks.meta && (
                         <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
@@ -657,13 +651,7 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
                   Ok: ({ ui: { blocks } }) => (
                     <>
                       {blocks.code && (
-                        <PackageCodeSamples
-                          {...{
-                            ...packageHandle,
-                            hashOrTag: Model.Package.hashOrTag(hash),
-                            path,
-                          }}
-                        />
+                        <PackageCodeSamples handle={handle} hash={hash} path={path} />
                       )}
                       {blocks.meta && (
                         <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
