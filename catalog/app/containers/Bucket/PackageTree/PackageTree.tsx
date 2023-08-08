@@ -207,7 +207,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
     [handle, hash],
   )
 
-  const openInDesktopState = OpenInDesktop.use(packageHandle, size)
+  const openInDesktopState = OpenInDesktop.use(handle, hash, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
 
@@ -232,7 +232,8 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
       <RevisionDeleteDialog
         error={deletionState.error}
         open={deletionState.opened}
-        packageHandle={packageHandle}
+        handle={handle}
+        hash={hash}
         onClose={onPackageDeleteDialogClose}
         loading={deletionState.loading}
         onDelete={handlePackageDeletion}

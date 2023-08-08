@@ -6,7 +6,6 @@ import * as RRDom from 'react-router-dom'
 import * as Dialog from 'components/Dialog'
 import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import type { PackageHandle } from 'utils/packageHandle'
 
 import { isSupportedFileType } from './loader'
 
@@ -45,7 +44,7 @@ export function useCreateFileInBucket({ bucket, key }: Model.S3.S3ObjectLocation
   })
 }
 
-export function useCreateFileInPackage(handle: PackageHandle, prefix?: string) {
+export function useCreateFileInPackage(handle: Model.Package.Handle, prefix?: string) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
