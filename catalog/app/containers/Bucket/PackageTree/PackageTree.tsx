@@ -295,7 +295,8 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
             {
               urls,
               bucket: handle.bucket,
-              packageHandle: { ...handle, hashOrTag: Model.Package.hashOrTag(hash) },
+              handle,
+              hash,
               prefix: path,
             },
           )

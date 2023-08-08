@@ -12,7 +12,6 @@ import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
 import type * as Model from 'model'
 import type { Urls } from 'utils/NamedRoutes'
-import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
@@ -58,36 +57,31 @@ type BucketUrls = Urls<Omit<RouteMap, 'bucketPackageTree'>>
 
 interface FormatListingOptions {
   bucket: string
-  packageHandle?: PackageHandleWithHashesOrTag
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
   prefix: string
   urls?: BucketUrls | PackageUrls
 }
 
 export function format(
   entries: Entry[],
-  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
+  { bucket, handle, hash, prefix, urls }: FormatListingOptions,
 ) {
   const toDir = (path: string) => {
     if (!urls) return path
-    if (!packageHandle) return urls.bucketDir({ bucket, key: path })
+    if (!handle || !hash) return urls.bucketDir({ bucket, key: path })
     return (
       (urls as PackageUrls).bucketPackageTree?.(
-        packageHandle,
-        { value: packageHandle.hashOrTag, alias: packageHandle.hashOrTag },
+        handle,
+        hash,
         s3paths.ensureSlash(path),
       ) || path
     )
   }
   const toFile = (key: string) => {
     if (!urls) return key
-    if (!packageHandle) return urls.bucketFile({ bucket, key })
-    return (
-      (urls as PackageUrls).bucketPackageTree?.(
-        packageHandle,
-        { value: packageHandle.hashOrTag, alias: packageHandle.hashOrTag },
-        key,
-      ) || key
-    )
+    if (!handle || !hash) return urls.bucketFile({ bucket, key })
+    return (urls as PackageUrls).bucketPackageTree?.(handle, hash, key) || key
   }
 
   const head = prefix

@@ -7,14 +7,6 @@ export interface PackageHandle {
   hash: string
 }
 
-// TODO: see https://github.com/quiltdata/specs/pull/53
-export interface PackageHandleWithHashesOrTag {
-  bucket: string
-  name: string
-  hashOrTag: string
-  hash?: string
-}
-
 export function shortenRevision(fullRevision: string): string {
   return R.take(10, fullRevision)
 }
