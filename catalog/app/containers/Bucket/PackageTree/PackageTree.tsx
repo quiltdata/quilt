@@ -887,7 +887,7 @@ function PackageTreeQueries({
         <PackageTree
           {...{
             handle,
-            revision: R.assoc('hash', d.package.revision?.hash, revision),
+            revision: R.assoc('value', d.package.revision?.hash, revision),
             size: d.package.revision?.totalBytes ?? undefined,
             path,
             mode,
@@ -925,7 +925,7 @@ export default function PackageTreeWrapper({
   return (
     <>
       <MetaTitle>
-        {[`${name}@${R.take(10, Model.Package.hashOrTag(rev))}/${path}`, bucket]}
+        {[`${name}@${R.take(10, Model.Package.tagOrHash(rev))}/${path}`, bucket]}
       </MetaTitle>
       <WithPackagesSupport bucket={bucket}>
         <PackageTreeQueries {...{ handle, revision: rev, path, resolvedFrom, mode }} />

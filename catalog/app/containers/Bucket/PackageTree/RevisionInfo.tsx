@@ -82,7 +82,7 @@ export default function RevisionInfo({
         ref={setAnchor}
         title={revision.value}
       >
-        {R.take(10, Model.Package.hashOrTag(revision))} <M.Icon>expand_more</M.Icon>
+        {R.take(10, Model.Package.tagOrHash(revision))} <M.Icon>expand_more</M.Icon>
       </span>
 
       {!!revision.value && (

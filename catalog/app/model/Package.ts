@@ -29,3 +29,10 @@ export function hashOrTag(rev: Revision): string {
   if (isPackageHash(rev)) return rev.value
   return rev.alias
 }
+
+export function tagOrHash(rev: Revision): string {
+  // TODO
+  // return rev.value || rev.alias
+  if (isPackageHashAlias(rev)) return rev.alias
+  return rev.value
+}
