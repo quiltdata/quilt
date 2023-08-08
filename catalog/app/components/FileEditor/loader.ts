@@ -79,34 +79,34 @@ export const isSupportedFileType: (path: string) => boolean = R.pipe(
 
 type AWSError = Error & { code: string }
 
-async function validToWriteFile(s3: S3, bucket: string, key: string, version?: string) {
+async function validToWriteFile(s3: S3, location: Model.S3.S3ObjectLocation) {
   try {
-    const { VersionId } = await s3.headObject({ Bucket: bucket, Key: key }).promise()
-    return VersionId === version
+    const { VersionId } = await s3
+      .headObject({ Bucket: location.bucket, Key: location.key })
+      .promise()
+    return VersionId === location.version
   } catch (error) {
     if (error instanceof Error && (error as AWSError).code === 'NotFound') return true
     throw error
   }
 }
 
-export function useWriteData({
-  bucket,
-  key,
-  version,
-}: Model.S3.S3ObjectLocation): (value: string) => Promise<Model.S3File> {
+export function useWriteData(
+  location: Model.S3.S3ObjectLocation,
+): (value: string) => Promise<Model.S3File> {
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (value) => {
-      const valid = await validToWriteFile(s3, bucket, key, version)
+      const valid = await validToWriteFile(s3, location)
       if (!valid) throw new Error('Revision is outdated')
       const { VersionId } = await s3
-        .putObject({ Bucket: bucket, Key: key, Body: value })
+        .putObject({ Bucket: location.bucket, Key: location.key, Body: value })
         .promise()
       const { ContentLength: size } = await s3
-        .headObject({ Bucket: bucket, Key: key, VersionId })
+        .headObject({ Bucket: location.bucket, Key: location.key, VersionId })
         .promise()
-      return { location: { bucket, key, version: VersionId }, size }
+      return { location: { ...location, version: VersionId }, size }
     },
-    [bucket, key, s3, version],
+    [location, s3],
   )
 }
