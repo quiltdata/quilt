@@ -25,8 +25,8 @@ const useAddReadmeSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function AddReadmeSection({ packageHandle, path }) {
-  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
+function AddReadmeSection({ handle, path }) {
+  const prompt = FileEditor.useCreateFileInPackage(handle, path)
   const classes = useAddReadmeSectionStyles()
   return (
     <div className={classes.root}>
@@ -113,11 +113,11 @@ function ThumbnailsWrapper({
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, handle, hash, path }) {
   const { urls } = NamedRoutes.use()
   const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
-    (handle) => (mkUrlProp ? mkUrlProp(handle) : urls.bucketFile(handle)),
+    (h) => (mkUrlProp ? mkUrlProp(h) : urls.bucketFile(h)),
     [mkUrlProp, urls],
   )
   const { readme, images, summarize } = extractSummary(files)
@@ -136,10 +136,8 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
           Ok: ({ ui: { actions } }) =>
             !readme &&
             !path &&
-            !!packageHandle &&
-            !!actions.revisePackage && (
-              <AddReadmeSection packageHandle={packageHandle} path={path} />
-            ),
+            !!handle &&
+            !!actions.revisePackage && <AddReadmeSection handle={handle} path={path} />,
           Pending: () => <Buttons.Skeleton size="small" />,
           Init: () => null,
         },
@@ -153,7 +151,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
                 images,
                 mkUrl,
                 preferences: blocks.gallery,
-                inPackage: !!packageHandle,
+                inPackage: !!handle,
                 hasSummarize: !!summarize,
               }}
             />
@@ -167,7 +165,8 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
         <Summarize.SummaryNested
           handle={summarize}
           mkUrl={mkUrl}
-          packageHandle={packageHandle}
+          packageHandle={handle}
+          packageHash={hash}
         />
       )}
     </Summarize.FileThemeContext.Provider>

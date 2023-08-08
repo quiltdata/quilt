@@ -20,7 +20,6 @@ import Data, { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import { PackageHandle } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 
 import * as requests from './requests'
@@ -257,34 +256,34 @@ function Crumbs({ handle }: CrumbsProps) {
 interface FilePreviewProps {
   expanded?: boolean
   file?: SummarizeFile
-  handle: LogicalKeyResolver.S3SummarizeHandle
+  location: LogicalKeyResolver.S3SummarizeHandle
   headingOverride: React.ReactNode
-  packageHandle?: PackageHandle
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
 export function FilePreview({
   expanded: defaultExpanded,
   file,
-  handle,
+  location,
   headingOverride,
-  packageHandle,
+  handle,
+  hash,
 }: FilePreviewProps) {
   const description = file?.description ? <Markdown data={file.description} /> : null
-  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
+  const heading = headingOverride != null ? headingOverride : <Crumbs handle={location} />
 
-  const key = handle.logicalKey || handle.key
+  const key = location.logicalKey || location.key
   const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
 
   const previewOptions = React.useMemo(
     () => ({
       ...file,
       context: Preview.CONTEXT.LISTING,
+      handle,
+      hash,
     }),
-    [file],
-  )
-  const previewHandle = React.useMemo(
-    () => ({ ...handle, packageHandle }),
-    [handle, packageHandle],
+    [file, handle, hash],
   )
 
   const [expanded, setExpanded] = React.useState(defaultExpanded)
@@ -299,12 +298,12 @@ export function FilePreview({
     <Section
       description={description}
       heading={heading}
-      handle={handle}
+      handle={location}
       expanded={expanded}
       onToggle={onToggle}
     >
       {Preview.load(
-        previewHandle,
+        location,
         Preview.display({
           renderContents,
           renderProgress: () => <ContentSkel />,
@@ -418,10 +417,11 @@ interface FileHandleProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
-  packageHandle?: PackageHandle
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
-function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
+function FileHandle({ file, mkUrl, handle, hash, s3 }: FileHandleProps) {
   if (file.handle.error)
     return (
       <Section heading={file.handle.key}>
@@ -433,11 +433,12 @@ function FileHandle({ file, mkUrl, packageHandle, s3 }: FileHandleProps) {
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
         <FilePreview
-          handle={file.handle}
+          location={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
           file={file}
           expanded={file.expand}
-          packageHandle={packageHandle}
+          handle={handle}
+          hash={hash}
         />
       )}
     </EnsureAvailability>
@@ -457,14 +458,15 @@ interface ColumnProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
-  packageHandle?: PackageHandle
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
-function Column({ className, file, mkUrl, packageHandle, s3 }: ColumnProps) {
+function Column({ className, file, mkUrl, handle, hash, s3 }: ColumnProps) {
   const style = React.useMemo(() => getColumnStyles(file.width), [file.width])
   return (
     <div className={className} style={style}>
-      <FileHandle file={file} mkUrl={mkUrl} packageHandle={packageHandle} s3={s3} />
+      <FileHandle file={file} mkUrl={mkUrl} handle={handle} hash={hash} s3={s3} />
     </div>
   )
 }
@@ -487,14 +489,15 @@ interface RowProps {
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
-  packageHandle?: PackageHandle
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
-function Row({ file, mkUrl, packageHandle, s3 }: RowProps) {
+function Row({ file, mkUrl, handle, hash, s3 }: RowProps) {
   const classes = useRowStyles()
 
   if (!Array.isArray(file))
-    return <FileHandle file={file} s3={s3} mkUrl={mkUrl} packageHandle={packageHandle} />
+    return <FileHandle file={file} s3={s3} mkUrl={mkUrl} handle={handle} hash={hash} />
 
   return (
     <div className={classes.row}>
@@ -505,6 +508,8 @@ function Row({ file, mkUrl, packageHandle, s3 }: RowProps) {
           key={`${f.handle.bucket}/${f.handle.key}`}
           mkUrl={mkUrl}
           s3={s3}
+          handle={handle}
+          hash={hash}
         />
       ))}
     </div>
@@ -527,10 +532,11 @@ interface SummaryEntriesProps {
   entries: SummarizeFile[]
   mkUrl?: MakeURL
   s3: S3
-  packageHandle?: PackageHandle
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
-function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesProps) {
+function SummaryEntries({ entries, mkUrl, handle, hash, s3 }: SummaryEntriesProps) {
   const classes = useSummaryEntriesStyles()
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
@@ -547,7 +553,8 @@ function SummaryEntries({ entries, mkUrl, packageHandle, s3 }: SummaryEntriesPro
           }_${i}`}
           file={file}
           mkUrl={mkUrl}
-          packageHandle={packageHandle}
+          handle={handle}
+          hash={hash}
           s3={s3}
         />
       ))}
@@ -635,10 +642,16 @@ interface SummaryNestedProps {
     version: string
     etag: string
   }
-  packageHandle: PackageHandle
+  packageHash: Model.Package.Hash
+  packageHandle: Model.Package.Handle
 }
 
-export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedProps) {
+export function SummaryNested({
+  handle,
+  mkUrl,
+  packageHandle,
+  packageHash,
+}: SummaryNestedProps) {
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
@@ -649,7 +662,8 @@ export function SummaryNested({ handle, mkUrl, packageHandle }: SummaryNestedPro
         entries={entries}
         s3={s3}
         mkUrl={mkUrl}
-        packageHandle={packageHandle}
+        handle={packageHandle}
+        hash={packageHash}
       />
     ),
     Pending: () => <FilePreviewSkel />,

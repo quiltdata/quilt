@@ -226,6 +226,17 @@ export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 }
 
+// export type BucketPackageRevisionsArgs = [
+//   handle: Model.Package.Handle,
+//   options?: { p?: string },
+// ]
+//
+// export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
+//   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
+//   url: ({ bucket, name }, { p } = {}) =>
+//     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
+// }
+
 export type BucketQueriesArgs = [bucket: string]
 
 export const bucketQueries: Route<BucketQueriesArgs> = {

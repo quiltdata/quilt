@@ -172,7 +172,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         <Nowrap>
           Version{' '}
           <StyledLink
-            to={urls.bucketFile(bucket, path, { version: version.id })}
+            to={urls.bucketFile({ bucket, key: path, version: version.id })}
             className={classes.version}
           >
             {clip(version.id, 24)}
@@ -202,7 +202,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               className={classes.versionContainer}
             >
               <StyledLink
-                to={urls.bucketFile(bucket, path, { version: v.id })}
+                to={urls.bucketFile({ bucket, key: path, version: v.id })}
                 className={classes.version}
               >
                 {clip(v.id, 6)}

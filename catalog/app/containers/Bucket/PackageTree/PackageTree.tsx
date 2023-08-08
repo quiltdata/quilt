@@ -202,11 +202,6 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
     }
   }, [handle, hash, deleteRevision, redirectToPackagesList, setDeletionState])
 
-  const packageHandle = React.useMemo(
-    () => ({ ...handle, hash: hash.value }),
-    [handle, hash],
-  )
-
   const openInDesktopState = OpenInDesktop.use(handle, hash, size)
 
   const prompt = FileEditor.useCreateFileInPackage(handle, path)
@@ -392,7 +387,8 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
                           path={path}
                           files={summaryHandles}
                           mkUrl={mkUrl}
-                          packageHandle={packageHandle}
+                          handle={handle}
+                          hash={hash}
                         />
                       </M.Box>
                     </>
@@ -411,18 +407,25 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
 
 const withPreview = (
   { archived, deleted }: ObjectAttrs,
-  handle: LogicalKeyResolver.S3SummarizeHandle,
+  location: LogicalKeyResolver.S3SummarizeHandle,
   mode: FileType | null,
   callback: (res: $TSFixMe) => JSX.Element,
+  handle: Model.Package.Handle,
+  hash: Model.Package.Hash,
 ) => {
   if (deleted) {
-    return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
+    return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle: location })))
   }
   if (archived) {
-    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+    return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle: location })))
   }
-  const previewOptions = { mode, context: Preview.CONTEXT.FILE }
-  return Preview.load(handle, callback, previewOptions)
+  const previewOptions = {
+    handle,
+    hash,
+    mode,
+    context: Preview.CONTEXT.FILE,
+  }
+  return Preview.load(location, callback, previewOptions)
 }
 
 interface ObjectAttrs {
@@ -542,11 +545,6 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
   const classes = useFileDisplayStyles()
   const prefs = BucketPreferences.use()
 
-  const packageHandle = React.useMemo(
-    () => ({ ...handle, hash: hash.value }),
-    [handle, hash],
-  )
-
   const viewModes = useViewModes(mode)
 
   const onViewModeChange = React.useCallback(
@@ -573,9 +571,8 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
     () => ({
       ...s3paths.parseS3Url(file.physicalKey),
       logicalKey: file.path,
-      packageHandle,
     }),
-    [file, packageHandle],
+    [file],
   )
 
   return (
@@ -669,6 +666,8 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
                     h,
                     viewModes.mode,
                     renderPreview(viewModes.handlePreviewResult),
+                    handle,
+                    hash,
                   )}
                 </div>
               </Section>
@@ -865,8 +864,7 @@ function PackageTreeQueries({
   mode,
 }: PackageTreeQueriesProps) {
   const revisionQuery = GQL.useQuery(REVISION_QUERY, {
-    bucket: handle.bucket,
-    name: handle.name,
+    ...handle,
     hashOrTag: Model.Package.hashOrTag(revision),
   })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, handle)

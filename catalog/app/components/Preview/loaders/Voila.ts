@@ -4,13 +4,14 @@ import cfg from 'constants/config'
 import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
+import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import mkSearch from 'utils/mkSearch'
-import { PackageHandle } from 'utils/packageHandle'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
 
 import FileType from './fileType'
+import * as summarize from './summarize'
 import * as utils from './utils'
 
 export const FILE_TYPE = FileType.Voila
@@ -30,12 +31,12 @@ const getCredentialsQuery = (credentials: AWSCredentials) => ({
 
 const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
 
-function usePackageQuery(packageHandle: PackageHandle) {
-  if (!packageHandle) return null
+function usePackageQuery(handle?: Model.Package.Handle, hash?: Model.Package.Hash) {
+  if (!handle || !hash) return null
   return {
-    pkg_bucket: packageHandle.bucket,
-    pkg_name: packageHandle.name,
-    pkg_top_hash: packageHandle.hash,
+    pkg_bucket: handle.bucket,
+    pkg_name: handle.name,
+    pkg_top_hash: hash.value,
   }
 }
 
@@ -92,32 +93,42 @@ async function loadVoila({ src }: { src: string }) {
   })
 }
 
-interface FileHandle extends Model.S3.S3ObjectLocation {
-  packageHandle: PackageHandle
-}
-
-const useVoilaUrl = (handle: FileHandle) => {
+const useVoilaUrl = (
+  location: Model.S3.S3ObjectLocation,
+  handle?: Model.Package.Handle,
+  hash?: Model.Package.Hash,
+) => {
   const sign = AWS.Signer.useS3Signer()
   const credentialsQuery = useCredentialsQuery()
-  const packageQuery = usePackageQuery(handle.packageHandle)
+  const packageQuery = usePackageQuery(handle, hash)
   return useMemoEq(
-    [credentialsQuery, handle, packageQuery, sign],
+    [credentialsQuery, location, packageQuery, sign],
     () =>
       `${cfg.registryUrl}/voila/voila/render/${mkSearch({
-        url: sign(handle),
+        url: sign(location),
         ...credentialsQuery,
         ...packageQuery,
       })}`,
   )
 }
 
-interface VoilaLoaderProps {
-  handle: FileHandle
-  children: (r: $TSFixMe) => React.ReactNode
+interface LoaderOptions extends summarize.FileExtended {
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
-export const Loader = function VoilaLoader({ handle, children }: VoilaLoaderProps) {
-  const src = useVoilaUrl(handle)
+interface VoilaLoaderProps {
+  handle: LogicalKeyResolver.S3SummarizeHandle
+  children: (r: $TSFixMe) => React.ReactNode
+  options: LoaderOptions
+}
+
+export const Loader = function VoilaLoader({
+  handle,
+  children,
+  options,
+}: VoilaLoaderProps) {
+  const src = useVoilaUrl(handle, options.handle, options.hash)
   const data = Data.use(loadVoila, { src })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }

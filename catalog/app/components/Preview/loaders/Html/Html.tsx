@@ -13,12 +13,12 @@ import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as PackageUri from 'utils/PackageUri'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import assertNever from 'utils/assertNever'
-import type { PackageHandle } from 'utils/packageHandle'
 
 import { PreviewError, PreviewData } from '../../types'
 
 import * as Text from '../Text'
 import FileType from '../fileType'
+import * as summarize from '../summarize'
 import * as utils from '../utils'
 
 import BUCKET_CONFIG_QUERY from './gql/BrowsableBucketConfig.generated'
@@ -111,11 +111,11 @@ function useDisposeSession() {
   )
 }
 
-interface FileHandle extends LogicalKeyResolver.S3SummarizeHandle {
-  packageHandle: PackageHandle
-}
-
-function useSession(handle: FileHandle) {
+function useSession(
+  location: LogicalKeyResolver.S3SummarizeHandle,
+  handle: Model.Package.Handle,
+  hash: Model.Package.Hash,
+) {
   const [result, setResult] = React.useState(AsyncResult.Pending())
   const [key, setKey] = React.useState(0)
   const retry = React.useCallback(() => setKey(R.inc), [])
@@ -124,7 +124,7 @@ function useSession(handle: FileHandle) {
   const disposeSession = useDisposeSession()
   const refreshSession = useRefreshSession()
 
-  const scope = PackageUri.stringify(handle.packageHandle)
+  const scope = PackageUri.stringify({ ...handle, hash: hash.value })
 
   React.useEffect(() => {
     let ignore = false
@@ -176,17 +176,24 @@ function useSession(handle: FileHandle) {
 
 interface IFrameLoaderBrowsableProps {
   children: (result: $TSFixMe) => JSX.Element
-  handle: FileHandle
+  location: LogicalKeyResolver.S3SummarizeHandle
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
 }
 
-function IFrameLoaderBrowsable({ handle, children }: IFrameLoaderBrowsableProps) {
-  const sessionData = useSession(handle)
+function IFrameLoaderBrowsable({
+  location,
+  children,
+  handle,
+  hash,
+}: IFrameLoaderBrowsableProps) {
+  const sessionData = useSession(location, handle, hash)
   return children(
     AsyncResult.mapCase(
       {
         Ok: (sessionId: SessionId) =>
           PreviewData.IFrame({
-            src: `${cfg.s3Proxy}/browse/${sessionId}/${handle.logicalKey}`,
+            src: `${cfg.s3Proxy}/browse/${sessionId}/${location.logicalKey}`,
             modes: [FileType.Html, FileType.Text],
             sandbox: 'allow-scripts allow-same-origin',
           }),
@@ -198,15 +205,15 @@ function IFrameLoaderBrowsable({ handle, children }: IFrameLoaderBrowsableProps)
 
 interface IFrameLoaderSignedProps {
   children: (result: $TSFixMe) => JSX.Element
-  handle: Model.S3.S3ObjectLocation
+  location: Model.S3.S3ObjectLocation
   browsable: boolean
 }
 
-function IFrameLoaderSigned({ handle, browsable, children }: IFrameLoaderSignedProps) {
+function IFrameLoaderSigned({ location, browsable, children }: IFrameLoaderSignedProps) {
   const sign = AWS.Signer.useS3Signer()
   const src = React.useMemo(
-    () => sign(handle, { ResponseContentType: 'text/html' }),
-    [handle, sign],
+    () => sign(location, { ResponseContentType: 'text/html' }),
+    [location, sign],
   )
   // TODO: issue a head request to ensure existence and get storage class
   return children(
@@ -222,21 +229,23 @@ function IFrameLoaderSigned({ handle, browsable, children }: IFrameLoaderSignedP
 
 interface IFrameLoaderProps {
   children: (result: $TSFixMe) => JSX.Element
-  handle: FileHandle
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
+  location: LogicalKeyResolver.S3SummarizeHandle
 }
 
-function IFrameLoader({ handle, children }: IFrameLoaderProps) {
-  const bucketData = GQL.useQuery(BUCKET_CONFIG_QUERY, { bucket: handle.bucket })
-  const inPackage = !!handle.packageHandle
+function IFrameLoader({ handle, children, location, hash }: IFrameLoaderProps) {
+  const bucketData = GQL.useQuery(BUCKET_CONFIG_QUERY, { bucket: location.bucket })
+  const inPackage = !!handle && !!hash
   return GQL.fold(bucketData, {
     fetching: () => children(AsyncResult.Pending()),
     error: (e) => children(AsyncResult.Err(e)),
     data: ({ bucketConfig }) =>
       bucketConfig?.browsable && inPackage ? (
-        <IFrameLoaderBrowsable {...{ handle, children }} />
+        <IFrameLoaderBrowsable {...{ location, children, handle, hash }} />
       ) : (
         <IFrameLoaderSigned
-          {...{ handle, children }}
+          {...{ location, children }}
           browsable={!!bucketConfig?.browsable}
         />
       ),
@@ -254,15 +263,23 @@ function useHtmlAsText(handle: Model.S3.S3ObjectLocation) {
   )
 }
 
-interface LoaderProps {
-  children: (result: $TSFixMe) => JSX.Element
-  handle: FileHandle
+interface LoaderOptions extends summarize.FileExtended {
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
-export const Loader = function HtmlLoader({ handle, children }: LoaderProps) {
+interface LoaderProps {
+  children: (result: $TSFixMe) => JSX.Element
+  handle: LogicalKeyResolver.S3SummarizeHandle
+  options: LoaderOptions
+}
+
+export const Loader = function HtmlLoader({ handle, children, options }: LoaderProps) {
   return useHtmlAsText(handle) ? (
     <Text.Loader {...{ handle, children }} />
   ) : (
-    <IFrameLoader {...{ handle, children }} />
+    <IFrameLoader
+      {...{ location: handle, children, handle: options.handle, hash: options.hash }}
+    />
   )
 }
