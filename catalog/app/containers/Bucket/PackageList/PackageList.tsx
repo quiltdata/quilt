@@ -159,8 +159,7 @@ const useRevisionAttributesStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionAttributesProps {
-  bucket: string
-  name: string
+  handle: Model.PackageHandle
   className: string
   revisions: {
     total: number
@@ -169,9 +168,8 @@ interface RevisionAttributesProps {
 }
 
 function RevisionAttributes({
-  bucket,
+  handle,
   className,
-  name,
   modified,
   revisions,
 }: RevisionAttributesProps) {
@@ -183,7 +181,7 @@ function RevisionAttributes({
     <div className={className}>
       <RRDom.Link
         className={classes.revisionsNumber}
-        to={urls.bucketPackageRevisions(bucket, name)}
+        to={urls.bucketPackageRevisions(handle.bucket, handle.name)}
       >
         {revisions.total}{' '}
         {xs ? (
@@ -396,23 +394,20 @@ function Package({
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const selectiveMeta = useSelectiveMeta(name, revision)
+  const handle = React.useMemo(() => ({ bucket, name }), [bucket, name])
   return (
     <M.Paper className={classes.root}>
       <div className={classes.base}>
         <div className={classes.handleContainer}>
-          <RRDom.Link
-            className={classes.handle}
-            to={urls.bucketPackageDetail(bucket, name)}
-          >
+          <RRDom.Link className={classes.handle} to={urls.bucketPackageDetail(handle)}>
             <span className={classes.handleClickArea} />
-            <span className={classes.handleText}>{name}</span>
+            <span className={classes.handleText}>{handle.name}</span>
           </RRDom.Link>
         </div>
         <RevisionAttributes
-          bucket={bucket}
+          handle={handle}
           className={classes.attributes}
           modified={modified}
-          name={name}
           revisions={revisions}
         />
         {!!accessCounts && <Counts {...accessCounts} />}

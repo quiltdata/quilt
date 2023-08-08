@@ -24,7 +24,7 @@ export default function PackageLink({ handle }: PackageLinkProps) {
       <Link to={urls.bucketPackageList(handle.bucket, { filter: `${prefix}/` })}>
         {prefix}/
       </Link>
-      <Link to={urls.bucketPackageDetail(handle.bucket, handle.name)}>{suffix}</Link>
+      <Link to={urls.bucketPackageDetail(handle)}>{suffix}</Link>
     </span>
   )
 }

@@ -10,6 +10,7 @@ import * as Buttons from 'components/Buttons'
 import JsonDisplay from 'components/JsonDisplay'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
+import type * as Model from 'model'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -329,13 +330,11 @@ const useRevisionStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionProps extends RevisionFields {
-  bucket: string
-  name: string
+  handle: Model.PackageHandle
 }
 
 function Revision({
-  bucket,
-  name,
+  handle,
   hash,
   modified,
   message,
@@ -355,7 +354,7 @@ function Revision({
       link={
         <RRDom.Link
           className={classes.time}
-          to={urls.bucketPackageTree(bucket, name, hash)}
+          to={urls.bucketPackageTree(handle.bucket, handle.name, hash)}
         >
           {dateFns.format(modified, dateFmt)}
         </RRDom.Link>
@@ -413,12 +412,11 @@ function Revision({
 const renderRevisionSkeletons = R.times((i) => <RevisionSkel key={i} />)
 
 interface PackageRevisionsProps {
-  bucket: string
-  name: string
+  handle: Model.PackageHandle
   page?: number
 }
 
-export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) {
+function PackageRevisions({ handle, page }: PackageRevisionsProps) {
   const prefs = BucketPreferences.use()
   const { urls } = NamedRoutes.use()
 
@@ -426,8 +424,10 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 
   const makePageUrl = React.useCallback(
     (newP: number) =>
-      urls.bucketPackageRevisions(bucket, name, { p: newP !== 1 ? newP : undefined }),
-    [urls, bucket, name],
+      urls.bucketPackageRevisions(handle.bucket, handle.name, {
+        p: newP !== 1 ? newP : undefined,
+      }),
+    [urls, handle],
   )
 
   const scrollRef = React.useRef<HTMLSpanElement>(null)
@@ -439,15 +439,17 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
     }
   })
 
-  const revisionCountQuery = GQL.useQuery(REVISION_COUNT_QUERY, { bucket, name })
+  const revisionCountQuery = GQL.useQuery(REVISION_COUNT_QUERY, handle)
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, {
-    bucket,
-    name,
+    ...handle,
     page: actualPage,
     perPage: PER_PAGE,
   })
 
-  const updateDialog = PD.usePackageCreationDialog({ bucket, src: { name } })
+  const updateDialog = PD.usePackageCreationDialog({
+    bucket: handle.bucket,
+    src: { name: handle.name },
+  })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -469,7 +471,7 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
         display="flex"
       >
         <M.Typography variant="h5" ref={scrollRef}>
-          <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>{' '}
+          <StyledLink to={urls.bucketPackageDetail(handle)}>{handle.name}</StyledLink>{' '}
           revisions
         </M.Typography>
         <M.Box flexGrow={1} />
@@ -520,7 +522,8 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
                   (dd.package?.revisions.page || []).map((r) => (
                     <Revision
                       key={`${r.hash}:${r.modified.valueOf()}`}
-                      {...{ bucket, name, ...r }}
+                      handle={handle}
+                      {...r}
                     />
                   )),
               })}
@@ -534,18 +537,16 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 }
 
 export default function PackageRevisionsWrapper({
-  match: {
-    params: { bucket, name },
-  },
+  match: { params: handle },
   location,
-}: RRDom.RouteComponentProps<{ bucket: string; name: string }>) {
+}: RRDom.RouteComponentProps<Model.PackageHandle>) {
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (
     <>
-      <MetaTitle>{[name, bucket]}</MetaTitle>
-      <WithPackagesSupport bucket={bucket}>
-        <PackageRevisions {...{ bucket, name, page }} />
+      <MetaTitle>{[handle.name, handle.bucket]}</MetaTitle>
+      <WithPackagesSupport bucket={handle.bucket}>
+        <PackageRevisions {...{ handle, page }} />
       </WithPackagesSupport>
     </>
   )

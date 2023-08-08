@@ -563,7 +563,7 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
   )
 
   const handleEdit = React.useCallback(() => {
-    const next = urls.bucketPackageDetail(handle.bucket, handle.name, {
+    const next = urls.bucketPackageDetail(handle, {
       action: 'revisePackage',
     })
     const physicalHandle = s3paths.parseS3Url(file.physicalKey)

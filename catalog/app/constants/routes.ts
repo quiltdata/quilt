@@ -186,14 +186,13 @@ export const bucketPackageList: Route<BucketPackageListArgs> = {
 }
 
 export type BucketPackageDetailArgs = [
-  bucket: string,
-  name: string,
+  handle: Model.PackageHandle,
   options?: { action?: string },
 ]
 
 export const bucketPackageDetail: Route<BucketPackageDetailArgs> = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  url: (bucket, name, { action } = {}) =>
+  url: ({ bucket, name }, { action } = {}) =>
     `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
 }
 
@@ -213,7 +212,7 @@ export const bucketPackageTree: Route<BucketPackageTreeArgs> = {
       ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
           path,
         )}${mkSearch({ mode })}`
-      : bucketPackageDetail.url(bucket, name),
+      : bucketPackageDetail.url({ bucket, name }),
 }
 
 export type BucketPackageRevisionsArgs = [
