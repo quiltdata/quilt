@@ -120,9 +120,7 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, 
     (handle) => (mkUrlProp ? mkUrlProp(handle) : urls.bucketFile(handle)),
     [mkUrlProp, urls],
   )
-  const { readme, images, summarize } = extractSummary(
-    files.map(({ location }) => location),
-  )
+  const { readme, images, summarize } = extractSummary(files)
 
   return (
     <Summarize.FileThemeContext.Provider value={Summarize.FileThemes.Nested}>

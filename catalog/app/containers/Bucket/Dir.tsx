@@ -103,6 +103,7 @@ function DirContents({
   )
 
   const items = useFormattedListing(response)
+  const summaryLocations = response.files.map((f) => f.location)
 
   // TODO: should prefix filtering affect summary?
   return (
@@ -127,7 +128,7 @@ function DirContents({
       />
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
-      <Summary files={response.files} mkUrl={null} path={location.key} />
+      <Summary files={summaryLocations} mkUrl={null} path={location.key} />
     </>
   )
 }
