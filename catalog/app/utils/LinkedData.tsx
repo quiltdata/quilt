@@ -4,6 +4,7 @@ import * as urql from 'urql'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 
 import cfg from 'constants/config'
+import type * as Routes from 'constants/routes'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
@@ -44,11 +45,11 @@ interface PackageHeader {
 }
 
 interface BucketRootRoutes {
-  bucketRoot: [string]
+  bucketRoot: Routes.BucketRootArgs
 }
 
 interface PackageRoutes {
-  bucketPackageTree: [string, string, string]
+  bucketPackageTree: Routes.BucketPackageTreeArgs
 }
 
 interface MkBucketRefOpts {
@@ -140,7 +141,9 @@ const mkPackageAnnotation = ({
     name: ld?.name || name,
     alternateName: ld?.name && name,
     description: ld?.description,
-    url: window.location.origin + urls.bucketPackageTree(bucket.name, name, hash),
+    url:
+      window.location.origin +
+      urls.bucketPackageTree({ bucket: bucket.name, name }, { value: hash }),
     version: hash,
     dateModified: modified,
     sameAs: ld?.sameAs,

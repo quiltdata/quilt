@@ -64,7 +64,7 @@ export interface S3Entry {
 
 export interface PackageCreationSuccess {
   name: string
-  hash?: string
+  hash: string
 }
 
 // Convert FilesState to entries consumed by Schema validation

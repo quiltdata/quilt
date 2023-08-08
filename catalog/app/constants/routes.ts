@@ -1,4 +1,4 @@
-import type * as Model from 'model'
+import * as Model from 'model'
 import { mkSearch } from 'utils/NamedRoutes'
 import { encode } from 'utils/s3paths'
 
@@ -197,9 +197,8 @@ export const bucketPackageDetail: Route<BucketPackageDetailArgs> = {
 }
 
 export type BucketPackageTreeArgs = [
-  bucket: string,
-  name: string,
-  revision?: string,
+  handle: Model.Package.Handle,
+  revision: Model.Package.Revision,
   path?: string,
   mode?: string,
 ]
@@ -207,11 +206,11 @@ export type BucketPackageTreeArgs = [
 export const bucketPackageTree: Route<BucketPackageTreeArgs> = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
   // eslint-disable-next-line @typescript-eslint/default-param-last
-  url: (bucket, name, revision, path = '', mode) =>
-    path || (revision && revision !== 'latest')
-      ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
-          path,
-        )}${mkSearch({ mode })}`
+  url: ({ bucket, name }, revision, path = '', mode) =>
+    path || revision.alias !== 'latest'
+      ? `/b/${bucket}/packages/${name}/tree/${
+          Model.Package.hashOrTag(revision) || 'latest'
+        }/${encode(path)}${mkSearch({ mode })}`
       : bucketPackageDetail.url({ bucket, name }),
 }
 

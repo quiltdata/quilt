@@ -72,9 +72,8 @@ export function format(
     if (!packageHandle) return urls.bucketDir({ bucket, key: path })
     return (
       (urls as PackageUrls).bucketPackageTree?.(
-        packageHandle.bucket,
-        packageHandle.name,
-        packageHandle.hashOrTag,
+        packageHandle,
+        { value: packageHandle.hashOrTag, alias: packageHandle.hashOrTag },
         s3paths.ensureSlash(path),
       ) || path
     )
@@ -84,9 +83,8 @@ export function format(
     if (!packageHandle) return urls.bucketFile({ bucket, key })
     return (
       (urls as PackageUrls).bucketPackageTree?.(
-        packageHandle.bucket,
-        packageHandle.name,
-        packageHandle.hashOrTag,
+        packageHandle,
+        { value: packageHandle.hashOrTag, alias: packageHandle.hashOrTag },
         key,
       ) || key
     )

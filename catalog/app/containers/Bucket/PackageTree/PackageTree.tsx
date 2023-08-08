@@ -126,13 +126,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
   })
 
   const mkUrl = React.useCallback(
-    (h) =>
-      urls.bucketPackageTree(
-        handle.bucket,
-        handle.name,
-        Model.Package.hashOrTag(hash),
-        h.logicalKey,
-      ),
+    (h) => urls.bucketPackageTree(handle, hash, h.logicalKey),
     [urls, handle, hash],
   )
 
@@ -561,9 +555,7 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(
-        urls.bucketPackageTree(handle.bucket, handle.name, hash.alias, path, m.valueOf()),
-      )
+      history.push(urls.bucketPackageTree(handle, hash, path, m.valueOf()))
     },
     [handle, history, path, hash, urls],
   )
@@ -777,9 +769,8 @@ function PackageTree({
   const isDir = s3paths.isDir(path)
 
   const getSegmentRoute = React.useCallback(
-    (segPath: string) =>
-      urls.bucketPackageTree(handle.bucket, handle.name, revision.alias, segPath),
-    [handle, revision.alias, urls],
+    (segPath: string) => urls.bucketPackageTree(handle, revision, segPath),
+    [handle, revision, urls],
   )
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, 'ROOT', {
     tailSeparator: path.endsWith('/'),
@@ -807,12 +798,7 @@ function PackageTree({
                 size="small"
                 color="inherit"
                 component={RRDom.Link}
-                to={urls.bucketPackageTree(
-                  handle.bucket,
-                  handle.name,
-                  revision.alias,
-                  path,
-                )}
+                to={urls.bucketPackageTree(handle, revision, path)}
               >
                 <M.Icon fontSize="small">close</M.Icon>
               </M.IconButton>

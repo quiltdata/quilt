@@ -354,7 +354,7 @@ function Revision({
       link={
         <RRDom.Link
           className={classes.time}
-          to={urls.bucketPackageTree(handle.bucket, handle.name, hash)}
+          to={urls.bucketPackageTree(handle, { value: hash })}
         >
           {dateFns.format(modified, dateFmt)}
         </RRDom.Link>

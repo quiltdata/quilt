@@ -26,7 +26,7 @@ const defaultRenderMessage = (props: DialogSuccessRenderMessageProps) => (
 interface DialogSuccessProps {
   browseText?: React.ReactNode
   bucket: string
-  hash?: string
+  hash: string
   name: string
   onClose: () => void
   renderMessage?: (props: DialogSuccessRenderMessageProps) => React.ReactNode
@@ -49,7 +49,7 @@ export default function DialogSuccess({
   // TODO: return full revision from quilt3 CLI
   const isFullHash = hash && hash.length >= 10
   const packageUrl = isFullHash
-    ? urls.bucketPackageTree(bucket, name, hash)
+    ? urls.bucketPackageTree({ bucket, name }, { value: hash })
     : urls.bucketPackageRevisions(bucket, name)
   const packageLink = (
     <StyledLink to={packageUrl}>{hash ? `${name}@${R.take(10, hash)}` : name}</StyledLink>

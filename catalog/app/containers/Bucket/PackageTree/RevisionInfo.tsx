@@ -61,7 +61,7 @@ export default function RevisionInfo({
   const close = React.useCallback(() => setOpened(false), [])
 
   const getHttpsUri = (hash: string) =>
-    `${window.origin}${urls.bucketPackageTree(handle.bucket, handle.name, hash, path)}`
+    `${window.origin}${urls.bucketPackageTree(handle, { value: hash }, path)}`
 
   const copyHttpsUri =
     (hash: string, containerRef?: React.RefObject<HTMLUListElement>) =>
@@ -115,7 +115,7 @@ export default function RevisionInfo({
                     onClick={close}
                     selected={r.hash === revision.value}
                     component={RRLink}
-                    to={urls.bucketPackageTree(handle.bucket, handle.name, r.hash, path)}
+                    to={urls.bucketPackageTree(handle, { value: r.hash }, path)}
                   >
                     <M.ListItemText
                       primary={dateFns.format(r.modified, 'MMMM do yyyy - h:mma')}
