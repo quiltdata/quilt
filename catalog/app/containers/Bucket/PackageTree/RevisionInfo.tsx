@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import type * as Model from 'model'
+import { hashOrTag } from 'model/helpers'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
@@ -80,9 +81,9 @@ export default function RevisionInfo({
         className={classes.revision}
         onClick={open}
         ref={setAnchor}
-        title={revision.alias.length > 10 ? revision.alias : undefined}
+        title={revision.value}
       >
-        {R.take(10, revision.alias)} <M.Icon>expand_more</M.Icon>
+        {R.take(10, hashOrTag(revision))} <M.Icon>expand_more</M.Icon>
       </span>
 
       {!!revision.value && (

@@ -73,10 +73,12 @@ export interface PackageHash {
   alias?: string // tag, ex. "latest"
 }
 
-export interface PackageRevision {
+export interface PackageHashAlias {
   value?: string // hash
   alias: string // tag, ex. "latest"
 }
+
+export type PackageRevision = Required<PackageHash> | PackageHash | PackageHashAlias
 
 export interface PackageHandle {
   bucket: string

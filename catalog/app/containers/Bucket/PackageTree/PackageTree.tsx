@@ -15,6 +15,7 @@ import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
 import type * as Model from 'model'
+import { hashOrTag, isPackageHash } from 'model/helpers'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -54,10 +55,6 @@ import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 import DIR_QUERY from './gql/Dir.generated'
 import FILE_QUERY from './gql/File.generated'
 import DELETE_REVISION from './gql/DeleteRevision.generated'
-
-function packageHasHashValue(h: Model.PackageRevision): h is Required<Model.PackageHash> {
-  return !!h.value && !!h.alias
-}
 
 const useTopBarStyles = M.makeStyles((t) => ({
   topBar: {
@@ -111,7 +108,7 @@ const useDirDisplayStyles = M.makeStyles((t) => ({
 
 interface DirDisplayProps {
   handle: Model.PackageHandle
-  hash: Required<Model.PackageHash>
+  hash: Model.PackageHash
   path: string
   crumbs: BreadCrumbs.Crumb[]
   size?: number
@@ -130,7 +127,8 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
   })
 
   const mkUrl = React.useCallback(
-    (h) => urls.bucketPackageTree(handle.bucket, handle.name, hash.alias, h.logicalKey),
+    (h) =>
+      urls.bucketPackageTree(handle.bucket, handle.name, hashOrTag(hash), h.logicalKey),
     [urls, handle, hash],
   )
 
@@ -299,7 +297,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
             {
               urls,
               bucket: handle.bucket,
-              packageHandle: { ...handle, hashOrTag: hash.alias },
+              packageHandle: { ...handle, hashOrTag: hashOrTag(hash) },
               prefix: path,
             },
           )
@@ -382,7 +380,7 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
                     <>
                       {blocks.code && (
                         <PackageCodeSamples
-                          {...{ ...packageHandle, hashOrTag: hash.alias, path }}
+                          {...{ ...packageHandle, hashOrTag: hashOrTag(hash), path }}
                         />
                       )}
                       {blocks.meta && (
@@ -479,7 +477,7 @@ function FileDisplayError({ crumbs, detail, headline }: FileDisplayErrorProps) {
 }
 interface FileDisplayQueryProps {
   handle: Model.PackageHandle
-  hash: Required<Model.PackageHash>
+  hash: Model.PackageHash
   path: string
   crumbs: BreadCrumbs.Crumb[]
   mode?: string
@@ -658,7 +656,7 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
                     <>
                       {blocks.code && (
                         <PackageCodeSamples
-                          {...{ ...packageHandle, hashOrTag: hash.alias, path }}
+                          {...{ ...packageHandle, hashOrTag: hashOrTag(hash), path }}
                         />
                       )}
                       {blocks.meta && (
@@ -691,7 +689,7 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
 
 interface ResolverProviderProps {
   handle: Model.PackageHandle
-  hash: Required<Model.PackageHash>
+  hash: Model.PackageHash
 }
 
 function ResolverProvider({
@@ -825,7 +823,7 @@ function PackageTree({
         {' @ '}
         <RevisionInfo {...{ revision, handle, path, revisionListQuery }} />
       </M.Typography>
-      {packageHasHashValue(revision) ? (
+      {isPackageHash(revision) ? (
         <ResolverProvider {...{ handle, hash: revision }}>
           {isDir ? (
             <DirDisplay
@@ -881,7 +879,7 @@ function PackageTreeQueries({
   const revisionQuery = GQL.useQuery(REVISION_QUERY, {
     bucket: handle.bucket,
     name: handle.name,
-    hashOrTag: revision.alias,
+    hashOrTag: hashOrTag(revision),
   })
   const revisionListQuery = GQL.useQuery(REVISION_LIST_QUERY, handle)
 
@@ -925,20 +923,24 @@ interface PackageTreeRouteParams {
 
 export default function PackageTreeWrapper({
   match: {
-    params: { bucket, name, revision: hashOrTag = 'latest', path: encodedPath = '' },
+    params: { bucket, name, revision, path: encodedPath = '' },
   },
   location: l,
 }: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
   const path = s3paths.decode(encodedPath)
   const handle: Model.PackageHandle = { bucket, name }
-  const revision: Model.PackageRevision = { alias: hashOrTag }
+  const rev: Model.PackageRevision = React.useMemo(() => {
+    if (!revision) return { alias: 'latest' } as Model.PackageHashAlias
+    if (revision === 'latest') return { alias: revision } as Model.PackageHashAlias
+    return { value: revision } as Model.PackageHash
+  }, [revision])
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(l.search, true)
   return (
     <>
-      <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
+      <MetaTitle>{[`${name}@${R.take(10, hashOrTag(rev))}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageTreeQueries {...{ handle, revision, path, resolvedFrom, mode }} />
+        <PackageTreeQueries {...{ handle, revision: rev, path, resolvedFrom, mode }} />
       </WithPackagesSupport>
     </>
   )
