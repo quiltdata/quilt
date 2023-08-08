@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 
@@ -11,18 +12,19 @@ const useStyles = M.makeStyles({
 })
 
 interface PackageLinkProps {
-  bucket: string
-  name: string
+  handle: Model.PackageHandle
 }
 
-export default function PackageLink({ bucket, name }: PackageLinkProps) {
+export default function PackageLink({ handle }: PackageLinkProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const [prefix, suffix] = name.split('/')
+  const [prefix, suffix] = handle.name.split('/')
   return (
     <span className={classes.name}>
-      <Link to={urls.bucketPackageList(bucket, { filter: `${prefix}/` })}>{prefix}/</Link>
-      <Link to={urls.bucketPackageDetail(bucket, name)}>{suffix}</Link>
+      <Link to={urls.bucketPackageList(handle.bucket, { filter: `${prefix}/` })}>
+        {prefix}/
+      </Link>
+      <Link to={urls.bucketPackageDetail(handle.bucket, handle.name)}>{suffix}</Link>
     </span>
   )
 }

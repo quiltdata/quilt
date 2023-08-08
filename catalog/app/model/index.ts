@@ -67,3 +67,18 @@ export interface S3File {
   meta?: EntryMeta
   size: number
 }
+
+export interface PackageHash {
+  value: string // hash
+  alias?: string // tag, ex. "latest"
+}
+
+export interface PackageRevision {
+  value?: string // hash
+  alias: string // tag, ex. "latest"
+}
+
+export interface PackageHandle {
+  bucket: string
+  name: string
+}
