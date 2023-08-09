@@ -108,11 +108,7 @@ function VersionInfo({ location }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, {
-    s3,
-    bucket: location.bucket,
-    path: location.key,
-  })
+  const data = useData(requests.objectVersions, { s3, location })
 
   return (
     <>

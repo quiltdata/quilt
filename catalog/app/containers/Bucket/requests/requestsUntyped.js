@@ -546,15 +546,15 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   return []
 }
 
-export const objectVersions = ({ s3, bucket, path }) =>
+export const objectVersions = ({ s3, location: { bucket, key } }) =>
   s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
+    .listObjectVersions({ Bucket: bucket, Prefix: key, EncodingType: 'url' })
     .promise()
     .then(
       R.pipe(
         ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
         R.map(R.evolve({ Key: decodeS3Key })),
-        R.filter((v) => v.Key === path),
+        R.filter((v) => v.Key === key),
         R.map((v) => ({
           isLatest: v.IsLatest || false,
           lastModified: v.LastModified,

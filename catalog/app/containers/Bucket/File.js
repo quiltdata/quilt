@@ -81,8 +81,9 @@ function VersionInfo({ location }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3, ...location })
+  const data = useData(requests.objectVersions, { s3, location })
 
+  // TODO: move <M.ListItem>...</> to its own component with its out memoized location
   return (
     <>
       <span className={classes.version} onClick={open} ref={setAnchor}>
@@ -326,7 +327,7 @@ export default function File({
   },
   location: l,
 }) {
-  const { version, mode } = parseSearch(l.search)
+  const { version, mode } = parseSearch(l.search, true)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
