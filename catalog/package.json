@@ -99,7 +99,7 @@
     "ngl": "^2.1.1",
     "openchemlib": "^8.3.0",
     "p-limit": "^4.0.0",
-    "papaparse": "^5.3.2",
+    "papaparse": "^5.4.1",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "prop-types": "^15.8.1",
