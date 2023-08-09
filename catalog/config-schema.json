@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
     },
+    "defaultRegion": {
+      "type": "string",
+      "description": "Default region for the S3 client"
+    },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
