@@ -5,6 +5,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import type * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import { useMutation } from 'utils/GraphQL'
@@ -149,7 +150,10 @@ function DialogForm({
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
-          setSuccess({ name, hash: r.revision.hash, bucket: successor.slug })
+          setSuccess({
+            handle: { bucket: successor.slug, name },
+            hash: { value: r.revision.hash },
+          })
           return
         case 'OperationError':
           return mkFormError(r.message)
@@ -419,9 +423,8 @@ function DialogLoading({ bucket, onCancel }: DialogLoadingProps) {
 }
 
 interface PackageCreationSuccess {
-  bucket: string
-  name: string
-  hash: string
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
 }
 
 const DialogState = tagged.create(

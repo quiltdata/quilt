@@ -3,6 +3,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
@@ -25,9 +26,8 @@ const defaultRenderMessage = (props: DialogSuccessRenderMessageProps) => (
 
 interface DialogSuccessProps {
   browseText?: React.ReactNode
-  bucket: string
-  hash: string
-  name: string
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
   onClose: () => void
   renderMessage?: (props: DialogSuccessRenderMessageProps) => React.ReactNode
   title?: React.ReactNode
@@ -36,9 +36,8 @@ interface DialogSuccessProps {
 // TODO: use the same API as for DialogError and DialogLoading
 export default function DialogSuccess({
   browseText,
-  bucket,
+  handle,
   hash,
-  name,
   onClose,
   renderMessage,
   title,
@@ -46,18 +45,13 @@ export default function DialogSuccess({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
-  // TODO: return full revision from quilt3 CLI
-  const isFullHash = hash && hash.length >= 10
-  const packageUrl = isFullHash
-    ? urls.bucketPackageTree({ bucket, name }, { value: hash })
-    : urls.bucketPackageRevisions({ bucket, name })
+  const packageUrl = urls.bucketPackageTree(handle, hash)
   const packageLink = (
-    <StyledLink to={packageUrl}>{hash ? `${name}@${R.take(10, hash)}` : name}</StyledLink>
+    <StyledLink to={packageUrl}>{`${name}@${R.take(10, hash.value)}`}</StyledLink>
   )
   const bucketLink = (
-    <StyledLink to={urls.bucketOverview(bucket)}>s3://{bucket}</StyledLink>
+    <StyledLink to={urls.bucketOverview(handle.bucket)}>s3://{handle.bucket}</StyledLink>
   )
-  const defaultBrowseText = isFullHash ? 'Browse package' : 'Browse package revisions'
   return (
     <>
       <M.DialogTitle>{title || 'Push complete'}</M.DialogTitle>
@@ -75,7 +69,7 @@ export default function DialogSuccess({
           variant="contained"
           color="primary"
         >
-          {browseText || defaultBrowseText}
+          {browseText || 'Browse package'}
         </M.Button>
       </M.DialogActions>
     </>
