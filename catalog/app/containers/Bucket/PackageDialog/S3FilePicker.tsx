@@ -184,12 +184,13 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
   const bucketListing = requests.useBucketListing()
 
+  // TODO: setLocation<S3ObjectLocation>, and handlePath<string>
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const [selection, setSelection] = React.useState(Selection.EMPTY_MAP)
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
+    (ids) => setSelection(Selection.merge(ids, { bucket, key: path }, prefix)),
     [bucket, path, prefix],
   )
 

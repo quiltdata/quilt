@@ -113,7 +113,7 @@ function ThumbnailsWrapper({
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, mkUrl: mkUrlProp, handle, hash, path }) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, handle, hash }) {
   const { urls } = NamedRoutes.use()
   const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
@@ -135,9 +135,8 @@ export default function BucketSummary({ files, mkUrl: mkUrlProp, handle, hash, p
         {
           Ok: ({ ui: { actions } }) =>
             !readme &&
-            !path &&
             !!handle &&
-            !!actions.revisePackage && <AddReadmeSection handle={handle} path={path} />,
+            !!actions.revisePackage && <AddReadmeSection handle={handle} />,
           Pending: () => <Buttons.Skeleton size="small" />,
           Init: () => null,
         },

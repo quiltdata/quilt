@@ -63,13 +63,12 @@ interface RouteMap {
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
-    const d = r.dirs.map((p) =>
-      Listing.Entry.Dir({ location: { bucket: r.location.bucket, key: p } }),
-    )
+    const { bucket, key: prefix } = r.location
+    const d = r.dirs.map((p) => Listing.Entry.Dir({ location: { bucket, key: p } }))
     const f = r.files.map(Listing.Entry.File)
     return Listing.format([...d, ...f], {
-      bucket: r.location.bucket,
-      prefix: r.location.key,
+      bucket,
+      prefix,
       urls,
     })
   }, [r, urls])
@@ -85,7 +84,7 @@ interface DirContentsProps {
 }
 
 function DirContents({
-  location,
+  location, // TODO: use response.location?
   response,
   locked,
   loadMore,
@@ -96,14 +95,15 @@ function DirContents({
   const { urls } = NamedRoutes.use<RouteMap>()
 
   const setPrefix = React.useCallback(
-    (newPrefix) => {
-      history.push(urls.bucketDir(location, newPrefix))
-    },
+    (newPrefix) => history.push(urls.bucketDir(location, newPrefix)),
     [history, location, urls],
   )
 
   const items = useFormattedListing(response)
-  const summaryLocations = response.files.map((f) => f.location)
+  const summaryLocations = React.useMemo(
+    () => response.files.map((f) => f.location),
+    [response.files],
+  )
 
   // TODO: should prefix filtering affect summary?
   return (
@@ -128,7 +128,7 @@ function DirContents({
       />
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
-      <Summary files={summaryLocations} mkUrl={null} path={location.key} />
+      <Summary files={summaryLocations} mkUrl={null} />
     </>
   )
 }
@@ -257,7 +257,7 @@ export default function Dir({
   React.useLayoutEffect(() => {
     // reset accumulated results when path and / or prefix change
     setPrev(null)
-  }, [location.key, prefix])
+  }, [location, prefix])
 
   const data = useData(requests.bucketListing, {
     s3,
@@ -283,8 +283,8 @@ export default function Dir({
     Selection.EMPTY_MAP,
   )
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, location.bucket, location.key, prefix)),
-    [location.bucket, location.key, prefix],
+    (ids) => setSelection(Selection.merge(ids, location, prefix)),
+    [location, prefix],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({

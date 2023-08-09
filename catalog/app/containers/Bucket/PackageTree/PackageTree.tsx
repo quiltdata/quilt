@@ -384,7 +384,6 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
                           <Listing.Listing items={items} key={hash.value} />
                         )}
                         <Summary
-                          path={path}
                           files={summaryHandles}
                           mkUrl={mkUrl}
                           handle={handle}

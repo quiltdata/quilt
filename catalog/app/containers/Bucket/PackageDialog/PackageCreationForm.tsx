@@ -733,6 +733,7 @@ interface PackageCreationDialogUIOptions {
 interface UsePackageCreationDialogProps {
   bucket: string
   src?: {
+    // TODO: Model.Package.Handle, Model.Package.Hash
     name: string
     hash?: string
   }

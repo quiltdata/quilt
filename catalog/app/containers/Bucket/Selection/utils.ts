@@ -49,8 +49,12 @@ const mergeWithFiltered =
     return R.equals(newIds, allIds) ? allIds : newIds // avoids cyclic update
   }
 
-export function merge(ids: string[], bucket: string, path: string, filter?: string) {
-  const prefixUrl = `s3://${bucket}/${path}`
+export function merge(
+  ids: string[],
+  location: Model.S3.S3ObjectLocation,
+  filter?: string,
+) {
+  const prefixUrl = s3paths.handleToS3Url(location)
   const lens = R.lensProp<Record<string, string[]>>(prefixUrl)
   return filter ? R.over(lens, mergeWithFiltered(filter, ids)) : R.set(lens, ids)
 }
