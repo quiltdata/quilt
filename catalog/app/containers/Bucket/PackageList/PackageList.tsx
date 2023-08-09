@@ -181,7 +181,7 @@ function RevisionAttributes({
     <div className={className}>
       <RRDom.Link
         className={classes.revisionsNumber}
-        to={urls.bucketPackageRevisions(handle.bucket, handle.name)}
+        to={urls.bucketPackageRevisions(handle)}
       >
         {revisions.total}{' '}
         {xs ? (

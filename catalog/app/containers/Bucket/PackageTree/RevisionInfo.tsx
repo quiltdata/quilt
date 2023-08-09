@@ -170,7 +170,7 @@ export default function RevisionInfo({
             button
             onClick={close}
             component={RRLink}
-            to={urls.bucketPackageRevisions(handle.bucket, handle.name)}
+            to={urls.bucketPackageRevisions(handle)}
           >
             <M.Box textAlign="center" width="100%">
               Show all revisions

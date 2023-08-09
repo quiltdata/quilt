@@ -50,7 +50,7 @@ export default function DialogSuccess({
   const isFullHash = hash && hash.length >= 10
   const packageUrl = isFullHash
     ? urls.bucketPackageTree({ bucket, name }, { value: hash })
-    : urls.bucketPackageRevisions(bucket, name)
+    : urls.bucketPackageRevisions({ bucket, name })
   const packageLink = (
     <StyledLink to={packageUrl}>{hash ? `${name}@${R.take(10, hash)}` : name}</StyledLink>
   )

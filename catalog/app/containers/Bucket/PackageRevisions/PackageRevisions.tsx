@@ -423,10 +423,10 @@ function PackageRevisions({ handle, page }: PackageRevisionsProps) {
   const actualPage = page || 1
 
   const makePageUrl = React.useCallback(
-    (newP: number) =>
-      urls.bucketPackageRevisions(handle.bucket, handle.name, {
-        p: newP !== 1 ? newP : undefined,
-      }),
+    (p: number) =>
+      p === 1
+        ? urls.bucketPackageRevisions(handle)
+        : urls.bucketPackageRevisions(handle, { p }),
     [urls, handle],
   )
 
