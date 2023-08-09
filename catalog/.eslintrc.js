@@ -81,4 +81,12 @@ module.exports = {
       version: 'detect',
     },
   },
+  overrides: [
+    {
+      files: ['.js'],
+      rules: {
+        'no-undef': 2,
+      },
+    },
+  ],
 }
