@@ -132,7 +132,7 @@
     "urql": "^2.2.3",
     "urql-custom-scalars-exchange": "^1.0.1",
     "use-debounce": "^9.0.4",
-    "use-resize-observer": "^9.0.2",
+    "use-resize-observer": "^9.1.0",
     "uuid": "^9.0.0",
     "vega": "^5.25.0",
     "vega-embed": "^6.22.2",
