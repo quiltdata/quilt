@@ -16,6 +16,7 @@ import * as Credentials from './Credentials'
 const DEFAULT_OPTS = {
   signatureVersion: 'v4',
   s3UsEast1RegionalEndpoint: 'regional',
+  region: 'us-gov-west-1',
 }
 
 const PROXIED = Symbol('proxied')
