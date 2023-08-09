@@ -80,11 +80,10 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface DialogFormProps {
-  bucket: string
   close: () => void
-  hash: string
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
   initialMeta: PD.Manifest['meta']
-  name: string
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: PackageCreationSuccess) => void
   setWorkflow: (workflow: workflows.Workflow) => void
@@ -93,11 +92,10 @@ interface DialogFormProps {
 }
 
 function DialogForm({
-  bucket,
+  handle,
   close,
   hash,
   initialMeta,
-  name: initialName,
   responseError,
   schema,
   schemaLoading,
@@ -143,9 +141,8 @@ function DialogForm({
               : workflow.slug,
         },
         src: {
-          bucket,
-          name: initialName,
-          hash,
+          ...handle,
+          hash: hash.value,
         },
       })
       switch (r.__typename) {
@@ -272,7 +269,7 @@ function DialogForm({
 
               <RF.Field
                 component={PD.WorkflowInput}
-                bucket={bucket}
+                bucket={handle.bucket}
                 name="workflow"
                 workflowsConfig={workflowsConfig}
                 initialValue={selectedWorkflow}
@@ -298,7 +295,7 @@ function DialogForm({
                   pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                 }}
                 helperText={nameWarning}
-                initialValue={initialName}
+                initialValue={handle.name}
               />
 
               <RF.Field
@@ -439,18 +436,16 @@ const DialogState = tagged.create(
 
 interface PackageCopyDialogProps {
   open: boolean
-  bucket: string
+  handle: Model.Package.Handle
   successor: workflows.Successor | null
-  name: string
-  hash: string
+  hash: Model.Package.Hash
   onExited: (props: { pushed: PackageCreationSuccess | null }) => void
 }
 
 export default function PackageCopyDialog({
   open,
-  bucket,
+  handle,
   successor,
-  name,
   hash,
   onExited,
 }: PackageCopyDialogProps) {
@@ -462,9 +457,8 @@ export default function PackageCopyDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
 
   const manifestData = PD.useManifest({
-    bucket,
-    name,
-    hashOrTag: hash,
+    ...handle,
+    hashOrTag: hash.value,
     skipEntries: true,
     pause: !successor || !open,
   })
@@ -527,15 +521,14 @@ export default function PackageCopyDialog({
                 <DialogForm
                   {...schemaProps}
                   {...{
-                    bucket,
                     close,
                     setSubmitting,
                     setSuccess,
                     setWorkflow,
                     workflowsConfig,
                     initialMeta: manifest.meta,
+                    handle,
                     hash,
-                    name,
                     successor,
                   }}
                 />

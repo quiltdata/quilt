@@ -216,9 +216,8 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
       />
 
       <PackageCopyDialog
-        bucket={handle.bucket}
-        hash={hash.value}
-        name={handle.name}
+        handle={handle}
+        hash={hash}
         open={!!successor}
         successor={successor}
         onExited={onPackageCopyDialogExited}

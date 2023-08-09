@@ -73,9 +73,9 @@ export default function RevisionInfo({
       push('Canonical URI copied to clipboard')
     }
 
+  // TODO: move <M.ListItem>...</> to its own component with its own memoized Package.Handle
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span
         className={classes.revision}
         onClick={open}

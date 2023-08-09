@@ -83,7 +83,7 @@ function VersionInfo({ location }) {
 
   const data = useData(requests.objectVersions, { s3, location })
 
-  // TODO: move <M.ListItem>...</> to its own component with its out memoized location
+  // TODO: move <M.ListItem>...</> to its own component with its own memoized location
   return (
     <>
       <span className={classes.version} onClick={open} ref={setAnchor}>
