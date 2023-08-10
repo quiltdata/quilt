@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -58,8 +58,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function Dir() {
-  const { bucket, path: encodedPath = '' } = RRDom.useParams()
-  const l = RRDom.useLocation()
+  const { bucket, path: encodedPath = '' } = useParams()
+  const l = useLocation()
   const ecfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

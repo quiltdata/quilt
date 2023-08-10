@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as SearchResults from 'components/SearchResults'
@@ -26,8 +27,8 @@ function Results({ bucket, query, page, makePageUrl, retry, retryUrl, scrollRef 
 }
 
 export default function Search() {
-  const { bucket } = RRDom.useParams()
-  const l = RRDom.useLocation()
+  const { bucket } = useParams()
+  const l = useLocation()
   const { urls } = NamedRoutes.use()
   const { q: query = '', p, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)

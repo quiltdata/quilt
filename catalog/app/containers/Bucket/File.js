@@ -3,7 +3,7 @@ import { basename } from 'path'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
+import { Link, useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -321,8 +321,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function File() {
-  const location = RRDom.useLocation()
-  const { bucket, path: encodedPath } = RRDom.useParams()
+  const location = useLocation()
+  const { bucket, path: encodedPath } = useParams()
 
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
