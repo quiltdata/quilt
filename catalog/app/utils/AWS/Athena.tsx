@@ -7,7 +7,7 @@ import useMemoEqLazy from 'utils/useMemoEqLazy'
 import * as Config from './Config'
 import * as Credentials from './Credentials'
 
-const region = cfg.defaultRegion
+const region = cfg.region
 
 const AthenaContext = React.createContext<() => Athena | null>(() => null)
 

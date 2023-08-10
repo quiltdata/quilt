@@ -11,7 +11,7 @@ type AuthMethodConfig = 'ENABLED' | 'DISABLED' | 'SIGN_IN_ONLY'
 
 // manually synced w/ config-schema.json
 export interface ConfigJson {
-  defaultRegion: string
+  region: string
 
   mode: Mode
   alwaysRequiresAuth: boolean
