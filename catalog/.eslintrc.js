@@ -83,7 +83,7 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['.js'],
+      files: ['*.js'],
       rules: {
         'no-undef': 2,
       },
