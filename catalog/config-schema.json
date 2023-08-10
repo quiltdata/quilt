@@ -101,6 +101,7 @@
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
+    "defaultRegion",
     "mixpanelToken",
     "mode",
     "passwordAuth",
