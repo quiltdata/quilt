@@ -142,13 +142,14 @@ export function PackageMetaSection({ meta, preferences }: PackageMetaSectionProp
 }
 
 interface ObjectMetaSectionProps {
+  title?: string
   meta?: JsonRecord | null
 }
 
-export function ObjectMetaSection({ meta }: ObjectMetaSectionProps) {
+export function ObjectMetaSection({ meta, title = 'Metadata' }: ObjectMetaSectionProps) {
   if (!meta || R.isEmpty(meta)) return null
   return (
-    <Section icon="list" heading="Metadata" defaultExpanded>
+    <Section icon="list" heading={title} defaultExpanded>
       {/* @ts-expect-error */}
       <JsonDisplay value={meta} defaultExpanded={1} />
     </Section>
@@ -166,7 +167,7 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
     handle,
   })
   return metaData.case({
-    Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} />,
+    Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} title="S3 Metadata" />,
     Err: errorHandler,
     _: noop,
   })
