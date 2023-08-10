@@ -1,6 +1,6 @@
 import * as React from 'react'
 import renderer from 'react-test-renderer'
-import * as RRDom from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 
 import * as BreadCrumbs from './'
 
@@ -17,9 +17,9 @@ describe('components/BreadCrumbs', () => {
     it('should render link', () => {
       const tree = renderer
         .create(
-          <RRDom.MemoryRouter>
+          <MemoryRouter>
             <BreadCrumbs.Segment label="A" to="/a" />
-          </RRDom.MemoryRouter>,
+          </MemoryRouter>,
         )
         .toJSON()
       expect(tree).toMatchSnapshot()
@@ -29,7 +29,7 @@ describe('components/BreadCrumbs', () => {
     it('basic breadcrumbs', () => {
       const crumbs = BreadCrumbs.getCrumbs('aa a/bb-b/c/d_d', (x) => x, 'ROOT')
       const tree = renderer
-        .create(<RRDom.MemoryRouter>{BreadCrumbs.render(crumbs)}</RRDom.MemoryRouter>)
+        .create(<MemoryRouter>{BreadCrumbs.render(crumbs)}</MemoryRouter>)
         .toJSON()
       expect(tree).toMatchSnapshot()
     })
@@ -40,9 +40,7 @@ describe('components/BreadCrumbs', () => {
       })
       const tree = renderer
         .create(
-          <RRDom.MemoryRouter>
-            {BreadCrumbs.render(crumbs, { getLinkProps })}
-          </RRDom.MemoryRouter>,
+          <MemoryRouter>{BreadCrumbs.render(crumbs, { getLinkProps })}</MemoryRouter>,
         )
         .toJSON()
       expect(tree).toMatchSnapshot()
@@ -54,9 +52,7 @@ describe('components/BreadCrumbs', () => {
       })
       const tree = renderer
         .create(
-          <RRDom.MemoryRouter>
-            {BreadCrumbs.render(crumbs, { getLinkProps })}
-          </RRDom.MemoryRouter>,
+          <MemoryRouter>{BreadCrumbs.render(crumbs, { getLinkProps })}</MemoryRouter>,
         )
         .toJSON()
       expect(tree).toMatchSnapshot()
@@ -71,9 +67,7 @@ describe('components/BreadCrumbs', () => {
       })
       const tree = renderer
         .create(
-          <RRDom.MemoryRouter>
-            {BreadCrumbs.render(crumbs, { getLinkProps })}
-          </RRDom.MemoryRouter>,
+          <MemoryRouter>{BreadCrumbs.render(crumbs, { getLinkProps })}</MemoryRouter>,
         )
         .toJSON()
       expect(tree).toMatchSnapshot()
@@ -81,7 +75,7 @@ describe('components/BreadCrumbs', () => {
     it('without root label', () => {
       const crumbs = BreadCrumbs.getCrumbs('a/b/c', (x) => x)
       const tree = renderer
-        .create(<RRDom.MemoryRouter>{BreadCrumbs.render(crumbs)}</RRDom.MemoryRouter>)
+        .create(<MemoryRouter>{BreadCrumbs.render(crumbs)}</MemoryRouter>)
         .toJSON()
       expect(tree).toMatchSnapshot()
     })

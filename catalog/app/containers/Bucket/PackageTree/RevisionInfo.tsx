@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
@@ -115,7 +115,7 @@ export default function RevisionInfo({
                     button
                     onClick={close}
                     selected={r.hash === hash}
-                    component={RRDom.Link}
+                    component={RRLink}
                     to={urls.bucketPackageTree(bucket, name, r.hash, path)}
                   >
                     <M.ListItemText
@@ -170,7 +170,7 @@ export default function RevisionInfo({
           <M.ListItem
             button
             onClick={close}
-            component={RRDom.Link}
+            component={RRLink}
             to={urls.bucketPackageRevisions(bucket, name)}
           >
             <M.Box textAlign="center" width="100%">

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
@@ -13,13 +13,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-type NavTabProps = React.ComponentProps<typeof M.Tab> &
-  React.ComponentProps<typeof RRDom.Link>
+type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
 
 function NavTab(props: NavTabProps) {
   const classes = useStyles()
 
-  return <M.Tab className={classes.root} component={RRDom.Link} {...props} />
+  return <M.Tab className={classes.root} component={Link} {...props} />
 }
 
 interface BucketNavProps {

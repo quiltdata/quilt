@@ -1,6 +1,6 @@
 import cx from 'classnames'
+import { Link, LinkProps } from 'react-router-dom'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
@@ -19,14 +19,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-type ChevronLinkProps = M.LinkProps & Partial<RRDom.LinkProps>
+type ChevronLinkProps = M.LinkProps & Partial<LinkProps>
 
 export default function ChevronLink({ children, className, ...props }: ChevronLinkProps) {
   const classes = useStyles()
   return (
     <M.Link
       className={cx(classes.root, className)}
-      component={props.to ? RRDom.Link : undefined}
+      component={props.to ? Link : undefined}
       underline="none"
       {...props}
     >

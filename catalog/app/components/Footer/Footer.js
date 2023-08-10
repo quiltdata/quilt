@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -149,7 +149,7 @@ export default function Footer() {
                 <FooterLogo />
               </a>
             ) : (
-              <M.Box component={RRDom.Link} to={urls.home()} display="block">
+              <M.Box component={Link} to={urls.home()} display="block">
                 <FooterLogo />
               </M.Box>
             )}

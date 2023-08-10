@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Redirect } from 'react-router-dom'
 import * as redux from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
@@ -37,7 +37,7 @@ export default function SignOut() {
   }, [waiting, authenticated])
   return (
     <>
-      {!authenticated && <RRDom.Redirect to="/" />}
+      {!authenticated && <Redirect to="/" />}
       <Layout>
         <M.Box mt={5} textAlign="center">
           <Working>Signing out</Working>

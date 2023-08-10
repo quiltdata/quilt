@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Footer from 'components/Footer'
@@ -42,8 +42,8 @@ export interface LayoutProps {
 
 export function Layout({ bare = false, dark = false, children, pre }: LayoutProps) {
   const { paths } = NamedRoutes.use()
-  const isHomepage = RRDom.useRouteMatch(paths.home)
-  const bucketRoute = RRDom.useRouteMatch(paths.bucketRoot)
+  const isHomepage = useRouteMatch(paths.home)
+  const bucketRoute = useRouteMatch(paths.bucketRoot)
   const { bucket } = (bucketRoute?.params as { bucket?: string }) || {}
   return (
     <Root dark={dark}>

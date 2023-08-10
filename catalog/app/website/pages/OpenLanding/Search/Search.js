@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -135,7 +135,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Search() {
   const classes = useStyles()
 
-  const history = RRDom.useHistory()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
 
   // XXX: consider using graphql directly

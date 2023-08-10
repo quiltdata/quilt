@@ -3,7 +3,7 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as RRDom from 'react-router-dom'
+import { useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
@@ -290,10 +290,7 @@ function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
 
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const { paths } = NamedRoutes.use()
-  const match = RRDom.useRouteMatch<{ bucket: string }>({
-    path: paths.bucketFile,
-    exact: true,
-  })
+  const match = useRouteMatch<{ bucket: string }>({ path: paths.bucketFile, exact: true })
   const bucket = match?.params?.bucket
 
   const handleChange = React.useCallback(

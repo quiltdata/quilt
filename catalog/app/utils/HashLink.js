@@ -1,4 +1,4 @@
-import * as RRDom from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { genericHashLink } from 'react-router-hash-link'
 
-export default genericHashLink(RRDom.Link)
+export default genericHashLink(Link)

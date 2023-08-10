@@ -5,7 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import * as RRDom from 'react-router-dom'
+import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -98,42 +98,42 @@ const ErrorBoundary = createBoundary(() => (error) => (
 const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
 
 function Root() {
-  const l = RRDom.useLocation()
+  const l = RR.useLocation()
   const { paths } = NamedRoutes.use()
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <RRDom.Switch>
-        <RRDom.Route path={paths.bucketRoot}>
+      <RR.Switch>
+        <RR.Route path={paths.bucketRoot}>
           <Bucket />
-        </RRDom.Route>
-        <RRDom.Route>
+        </RR.Route>
+        <RR.Route>
           <ThrowNotFound />
-        </RRDom.Route>
-      </RRDom.Switch>
+        </RR.Route>
+      </RR.Switch>
     </CatchNotFound>
   )
 }
 
 function Bucket() {
-  const { bucket } = RRDom.useParams()
+  const { bucket } = RR.useParams()
   const { paths } = NamedRoutes.use()
 
   return (
     <BucketLayout bucket={bucket}>
-      <RRDom.Switch>
-        <RRDom.Route path={paths.bucketFile} exact strict>
+      <RR.Switch>
+        <RR.Route path={paths.bucketFile} exact strict>
           <File />
-        </RRDom.Route>
-        <RRDom.Route path={paths.bucketDir} exact>
+        </RR.Route>
+        <RR.Route path={paths.bucketDir} exact>
           <Dir />
-        </RRDom.Route>
-        <RRDom.Route path={paths.bucketSearch} exact>
+        </RR.Route>
+        <RR.Route path={paths.bucketSearch} exact>
           <Search />
-        </RRDom.Route>
-        <RRDom.Route>
+        </RR.Route>
+        <RR.Route>
           <ThrowNotFound />
-        </RRDom.Route>
-      </RRDom.Switch>
+        </RR.Route>
+      </RR.Switch>
     </BucketLayout>
   )
 }
@@ -350,7 +350,7 @@ function App({ init }) {
     [CustomThemeProvider, { theme: init.theme }],
     Store.Provider,
     Cache.Provider,
-    [RRDom.Router, { history }],
+    [RR.Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
     Notifications.Provider,

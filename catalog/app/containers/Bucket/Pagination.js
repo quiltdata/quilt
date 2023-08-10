@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 const Gap = Symbol('gap')
@@ -65,7 +65,7 @@ export default function Pagination({ page, pages, makePageUrl }) {
           ) : (
             <M.Button
               key={`page:${p}`}
-              component={RRDom.Link}
+              component={Link}
               className={cx(classes.button, { [classes.current]: page === p })}
               to={makePageUrl(p)}
             >

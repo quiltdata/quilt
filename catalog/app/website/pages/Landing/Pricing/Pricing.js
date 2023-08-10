@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { useTalkToUs } from 'components/TalkToUs'
@@ -109,7 +109,7 @@ function Btn({ to, trackingName, ...rest }) {
     const args = ['WEB', { type: 'action', location: `/#${trackingName}` }]
     return to ? () => t.track(...args) : t.trackLink(...args)
   }, [t, to, trackingName])
-  const props = to ? { component: RRDom.Link, to: to({ urls }), ...rest } : rest
+  const props = to ? { component: Link, to: to({ urls }), ...rest } : rest
   return <M.Button variant="contained" onClick={track} {...props} />
 }
 

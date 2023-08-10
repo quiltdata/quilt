@@ -3,7 +3,7 @@ import { basename } from 'path'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -109,7 +109,7 @@ function VersionInfo({ bucket, path, version }) {
                   button
                   onClick={close}
                   selected={version ? v.id === version : v.isLatest}
-                  component={RRDom.Link}
+                  component={Link}
                   to={urls.bucketFile(bucket, path, { version: v.id })}
                 >
                   <M.ListItemText
@@ -327,7 +327,7 @@ export default function File() {
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const history = useHistory()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
 
