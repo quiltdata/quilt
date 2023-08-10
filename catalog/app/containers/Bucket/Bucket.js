@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RR from 'react-router-dom'
+import { Route, Switch, matchPath, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -34,7 +34,7 @@ const match = (cases) => (pathname) => {
   for (const [section, variants] of Object.entries(cases)) {
     // eslint-disable-next-line no-restricted-syntax
     for (const opts of variants) {
-      if (RR.matchPath(pathname, opts)) return section
+      if (matchPath(pathname, opts)) return section
     }
   }
   return false
@@ -90,43 +90,43 @@ function BucketLayout({ bucket, section = false, children }) {
 }
 
 export default function Bucket() {
-  const location = RR.useLocation()
-  const { bucket } = RR.useParams()
+  const location = useLocation()
+  const { bucket } = useParams()
   const { paths } = NamedRoutes.use()
   return (
     <BucketPreferences.Provider bucket={bucket}>
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
-          <RR.Switch>
-            <RR.Route path={paths.bucketFile} exact strict>
+          <Switch>
+            <Route path={paths.bucketFile} exact strict>
               <File />
-            </RR.Route>
-            <RR.Route path={paths.bucketDir} exact>
+            </Route>
+            <Route path={paths.bucketDir} exact>
               <Dir />
-            </RR.Route>
-            <RR.Route path={paths.bucketOverview} exact>
+            </Route>
+            <Route path={paths.bucketOverview} exact>
               <Overview />
-            </RR.Route>
-            <RR.Route path={paths.bucketPackageList} exact>
+            </Route>
+            <Route path={paths.bucketPackageList} exact>
               <PackageList />
-            </RR.Route>
-            <RR.Route path={paths.bucketPackageDetail} exact>
+            </Route>
+            <Route path={paths.bucketPackageDetail} exact>
               <PackageTree />
-            </RR.Route>
-            <RR.Route path={paths.bucketPackageTree} exact>
+            </Route>
+            <Route path={paths.bucketPackageTree} exact>
               <PackageTree />
-            </RR.Route>
-            <RR.Route path={paths.bucketPackageRevisions} exact>
+            </Route>
+            <Route path={paths.bucketPackageRevisions} exact>
               <PackageRevisions />
-            </RR.Route>
-            <RR.Route path={paths.bucketQueries}>
+            </Route>
+            <Route path={paths.bucketQueries}>
               <Queries />
-            </RR.Route>
-            <RR.Route>
+            </Route>
+            <Route>
               <ThrowNotFound />
-            </RR.Route>
-          </RR.Switch>
+            </Route>
+          </Switch>
         </CatchNotFound>
       </BucketLayout>
     </BucketPreferences.Provider>

@@ -5,7 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import * as RR from 'react-router-dom'
+import { Route, Router, Switch, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -98,42 +98,42 @@ const ErrorBoundary = createBoundary(() => (error) => (
 const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
 
 function Root() {
-  const l = RR.useLocation()
+  const l = useLocation()
   const { paths } = NamedRoutes.use()
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <RR.Switch>
-        <RR.Route path={paths.bucketRoot}>
+      <Switch>
+        <Route path={paths.bucketRoot}>
           <Bucket />
-        </RR.Route>
-        <RR.Route>
+        </Route>
+        <Route>
           <ThrowNotFound />
-        </RR.Route>
-      </RR.Switch>
+        </Route>
+      </Switch>
     </CatchNotFound>
   )
 }
 
 function Bucket() {
-  const { bucket } = RR.useParams()
+  const { bucket } = useParams()
   const { paths } = NamedRoutes.use()
 
   return (
     <BucketLayout bucket={bucket}>
-      <RR.Switch>
-        <RR.Route path={paths.bucketFile} exact strict>
+      <Switch>
+        <Route path={paths.bucketFile} exact strict>
           <File />
-        </RR.Route>
-        <RR.Route path={paths.bucketDir} exact>
+        </Route>
+        <Route path={paths.bucketDir} exact>
           <Dir />
-        </RR.Route>
-        <RR.Route path={paths.bucketSearch} exact>
+        </Route>
+        <Route path={paths.bucketSearch} exact>
           <Search />
-        </RR.Route>
-        <RR.Route>
+        </Route>
+        <Route>
           <ThrowNotFound />
-        </RR.Route>
-      </RR.Switch>
+        </Route>
+      </Switch>
     </BucketLayout>
   )
 }
@@ -350,7 +350,7 @@ function App({ init }) {
     [CustomThemeProvider, { theme: init.theme }],
     Store.Provider,
     Cache.Provider,
-    [RR.Router, { history }],
+    [Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
     Notifications.Provider,
