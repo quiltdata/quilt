@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import Lock from 'components/Lock'
 import * as BreadCrumbs from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import { linkStyle } from 'utils/StyledLink'
 import type * as Model from 'model'
@@ -184,6 +185,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
   const bucketListing = requests.useBucketListing()
 
+  const prefs = BucketPreferences.use()
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
@@ -293,30 +295,45 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
           onSelection={setSelection}
         />
       </div>
-      {data.case({
-        // TODO: customized error display?
-        Err: displayError(),
-        Init: () => null,
-        _: (x: $TSFixMe) => {
-          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
-          return res ? (
-            <DirContents
-              response={res}
-              locked={!AsyncResult.Ok.is(x)}
-              setPath={setPath}
-              setPrefix={setPrefix}
-              loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
-              onSelectionChange={handleSelection}
-            />
-          ) : (
-            // TODO: skeleton
-            <M.Box px={3} pt={2} flexGrow={1}>
-              <M.CircularProgress />
-            </M.Box>
-          )
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) =>
+            data.case({
+              // TODO: customized error display?
+              Err: displayError(),
+              Init: () => null,
+              _: (x: $TSFixMe) => {
+                const res: requests.BucketListingResult | null =
+                  AsyncResult.getPrevResult(x)
+                return res ? (
+                  <DirContents
+                    response={res}
+                    locked={!AsyncResult.Ok.is(x)}
+                    setPath={setPath}
+                    setPrefix={setPrefix}
+                    loadMore={loadMore}
+                    selection={Selection.getDirectorySelection(
+                      selection,
+                      res.bucket,
+                      res.path,
+                    )}
+                    onSelectionChange={handleSelection}
+                    prefs={blocks.browser}
+                  />
+                ) : (
+                  // TODO: skeleton
+                  <M.Box px={3} pt={2} flexGrow={1}>
+                    <M.CircularProgress />
+                  </M.Box>
+                )
+              },
+            }),
+          Pending: () => <M.CircularProgress />,
+          Init: () => null,
         },
-      })}
+        prefs,
+      )}
+
       {locked && <Lock className={classes.lock} />}
       <M.DialogActions>
         {locked && <SubmitSpinner>Adding files</SubmitSpinner>}
@@ -334,12 +351,19 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
   )
 }
 
-function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
+function useFormattedListing(
+  r: requests.BucketListingResult,
+  prefs: false | BucketPreferences.BrowserBlockPreferences,
+): Listing.Item[] {
   return React.useMemo(() => {
     const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
-  }, [r])
+    return Listing.format([...d, ...f], {
+      bucket: r.bucket,
+      prefix: r.path,
+      showHidden: prefs && prefs.hidden,
+    })
+  }, [prefs, r])
 }
 
 const useDirContentsStyles = M.makeStyles((t) => ({
@@ -364,6 +388,7 @@ interface DirContentsProps {
   loadMore: () => void
   selection: string[]
   onSelectionChange: (ids: string[]) => void
+  prefs: false | BucketPreferences.BrowserBlockPreferences
 }
 
 function DirContents({
@@ -374,9 +399,10 @@ function DirContents({
   loadMore,
   selection,
   onSelectionChange,
+  prefs,
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
-  const items = useFormattedListing(response)
+  const items = useFormattedListing(response, prefs)
   const { bucket, path, prefix, truncated } = response
 
   const CellComponent = React.useMemo(

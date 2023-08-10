@@ -10,10 +10,10 @@ import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
@@ -60,13 +60,21 @@ interface RouteMap {
   bucketFile: Routes.BucketFileArgs
 }
 
-function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
+function useFormattedListing(
+  r: requests.BucketListingResult,
+  prefs: false | BucketPreferences.BrowserBlockPreferences,
+): Listing.Item[] {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
     const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, urls })
-  }, [r, urls])
+    return Listing.format([...d, ...f], {
+      bucket: r.bucket,
+      prefix: r.path,
+      showHidden: prefs && prefs.hidden,
+      urls,
+    })
+  }, [prefs, r, urls])
 }
 
 interface DirContentsProps {
@@ -77,6 +85,7 @@ interface DirContentsProps {
   loadMore?: () => void
   selection: string[]
   onSelection: (ids: string[]) => void
+  prefs: false | BucketPreferences.BrowserBlockPreferences
 }
 
 function DirContents({
@@ -87,6 +96,7 @@ function DirContents({
   loadMore,
   selection,
   onSelection,
+  prefs,
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
@@ -98,7 +108,7 @@ function DirContents({
     [history, urls, bucket, path],
   )
 
-  const items = useFormattedListing(response)
+  const items = useFormattedListing(response, prefs)
 
   // TODO: should prefix filtering affect summary?
   return (
@@ -382,26 +392,40 @@ export default function Dir({
         prefs,
       )}
 
-      {data.case({
-        Err: displayError(),
-        Init: () => null,
-        _: (x: $TSFixMe) => {
-          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
-          return res ? (
-            <DirContents
-              response={res}
-              locked={!AsyncResult.Ok.is(x)}
-              bucket={bucket}
-              path={path}
-              loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
-              onSelection={handleSelection}
-            />
-          ) : (
-            <M.CircularProgress />
-          )
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) =>
+            data.case({
+              Err: displayError(),
+              Init: () => null,
+              _: (x: $TSFixMe) => {
+                const res: requests.BucketListingResult | null =
+                  AsyncResult.getPrevResult(x)
+                return res ? (
+                  <DirContents
+                    response={res}
+                    locked={!AsyncResult.Ok.is(x)}
+                    bucket={bucket}
+                    path={path}
+                    loadMore={loadMore}
+                    selection={Selection.getDirectorySelection(
+                      selection,
+                      res.bucket,
+                      res.path,
+                    )}
+                    onSelection={handleSelection}
+                    prefs={blocks.browser}
+                  />
+                ) : (
+                  <M.CircularProgress />
+                )
+              },
+            }),
+          Pending: () => <M.CircularProgress />,
+          Init: () => null,
         },
-      })}
+        prefs,
+      )}
     </M.Box>
   )
 }

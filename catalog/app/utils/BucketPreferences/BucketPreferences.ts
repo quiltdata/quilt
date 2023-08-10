@@ -22,6 +22,10 @@ interface MetaBlockPreferencesInput {
   }
 }
 
+export interface BrowserBlockPreferences {
+  hidden: boolean
+}
+
 export interface MetaBlockPreferences {
   userMeta: {
     expanded: boolean | number
@@ -35,7 +39,7 @@ type GalleryPreferences = Record<'files' | 'packages' | 'overview' | 'summarize'
 
 interface BlocksPreferencesInput {
   analytics?: boolean
-  browser?: boolean
+  browser?: boolean | BrowserBlockPreferences
   code?: boolean
   meta?: boolean | MetaBlockPreferencesInput
   gallery?: boolean | GalleryPreferences
@@ -43,7 +47,7 @@ interface BlocksPreferencesInput {
 
 interface BlocksPreferences {
   analytics: boolean
-  browser: boolean
+  browser: false | BrowserBlockPreferences
   code: boolean
   meta: false | MetaBlockPreferences
   gallery: false | GalleryPreferences
@@ -111,6 +115,10 @@ interface BucketPreferences {
   ui: UiPreferences
 }
 
+const defaultBrowser: BrowserBlockPreferences = {
+  hidden: true,
+}
+
 const defaultBlockMeta: MetaBlockPreferences = {
   userMeta: {
     expanded: false,
@@ -139,7 +147,7 @@ const defaultPreferences: BucketPreferences = {
     athena: {},
     blocks: {
       analytics: true,
-      browser: true,
+      browser: defaultBrowser,
       code: true,
       meta: defaultBlockMeta,
       gallery: defaultGallery,
@@ -200,6 +208,14 @@ function parseGalleryBlock(
   }
 }
 
+function parseBrowserBlock(
+  browser?: boolean | BrowserBlockPreferences,
+): false | BrowserBlockPreferences {
+  if (browser === false) return false
+  if (browser === true || browser === undefined) return defaultBrowser
+  return R.mergeRight(defaultBrowser, browser)
+}
+
 function parseMetaBlock(
   meta?: boolean | MetaBlockPreferencesInput,
 ): false | MetaBlockPreferences {
@@ -215,8 +231,9 @@ function parseBlocks(blocks?: BlocksPreferencesInput): BlocksPreferences {
   return {
     ...defaultPreferences.ui.blocks,
     ...blocks,
-    meta: parseMetaBlock(blocks?.meta),
+    browser: parseBrowserBlock(blocks?.browser),
     gallery: parseGalleryBlock(blocks?.gallery),
+    meta: parseMetaBlock(blocks?.meta),
   }
 }
 

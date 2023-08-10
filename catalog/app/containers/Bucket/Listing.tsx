@@ -54,12 +54,13 @@ interface FormatListingOptions {
   bucket: string
   packageHandle?: PackageHandleWithHashesOrTag
   prefix: string
+  showHidden?: boolean
   urls?: BucketUrls | PackageUrls
 }
 
 export function format(
   entries: Entry[],
-  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
+  { bucket, packageHandle, prefix, showHidden = true, urls }: FormatListingOptions,
 ) {
   const toDir = (path: string) => {
     if (!urls) return path
@@ -116,8 +117,9 @@ export function format(
       }),
     ),
   ]
+  const filtered = showHidden ? items : items.filter(({ name }) => name !== '.quilt')
   // filter-out files with same name as one of dirs
-  return R.uniqBy(R.prop('name'), items)
+  return R.uniqBy(R.prop('name'), filtered)
 }
 
 function maxPartial<T extends R.Ord>(a: T | undefined, b: T | undefined) {
