@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link as RRLink, useParams } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -812,11 +812,11 @@ function Head({ s3, overviewUrl, bucket, description }) {
           />
         </M.Box>
         {isAdmin && (
-          <RRDom.Link className={classes.settings} to={urls.adminBuckets(bucket)}>
+          <RRLink className={classes.settings} to={urls.adminBuckets(bucket)}>
             <M.IconButton color="inherit">
               <M.Icon>settings</M.Icon>
             </M.IconButton>
-          </RRDom.Link>
+          </RRLink>
         )}
       </M.Box>
       <M.Box
@@ -917,7 +917,7 @@ function ThumbnailsWrapper({
 }
 
 export default function Overview() {
-  const { bucket } = RRDom.useParams()
+  const { bucket } = useParams()
 
   const s3 = AWS.S3.use()
   const { bucketConfig } = useQueryS(BUCKET_CONFIG_QUERY, { bucket })

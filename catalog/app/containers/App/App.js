@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import * as RR from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
@@ -17,29 +17,29 @@ const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
 const ProtectedThrowNotFound = protect(ThrowNotFound)
 
 function RedirectTo({ path }) {
-  const { search } = RRDom.useLocation()
-  return <RRDom.Redirect to={`${path}${search}`} />
+  const { search } = RR.useLocation()
+  return <RR.Redirect to={`${path}${search}`} />
 }
 
 const Activate = () => {
-  const { token } = RRDom.useParams()
+  const { token } = RR.useParams()
   const { urls } = NamedRoutes.use()
   return <AbsRedirect url={urls.activate({ registryUrl: cfg.registryUrl, token })} />
 }
 
 const LegacyPackages = () => {
-  const l = RRDom.useLocation()
+  const l = RR.useLocation()
   const { urls } = NamedRoutes.use()
   return <AbsRedirect url={urls.legacyPackages(cfg.legacyPackagesRedirect, l)} />
 }
 
 function BucketSearchRedirect() {
-  const { search } = RRDom.useLocation()
-  const { bucket } = RRDom.useParams()
+  const { search } = RR.useLocation()
+  const { bucket } = RR.useParams()
   const { urls } = NamedRoutes.use()
   const params = parseSearch(search, true)
   const url = urls.search({ buckets: bucket, ...params })
-  return <RRDom.Redirect to={url} />
+  return <RR.Redirect to={url} />
 }
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
@@ -86,155 +86,155 @@ const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
 export default function App() {
   const { paths, urls } = NamedRoutes.use()
-  const l = RRDom.useLocation()
+  const l = RR.useLocation()
 
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <RRDom.Switch>
-        <RRDom.Route path={paths.home} exact>
+      <RR.Switch>
+        <RR.Route path={paths.home} exact>
           <Home />
-        </RRDom.Route>
+        </RR.Route>
 
         {process.env.NODE_ENV === 'development' && (
-          <RRDom.Route path={paths.example}>
+          <RR.Route path={paths.example}>
             <Example />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {(cfg.mode === 'MARKETING' || cfg.mode === 'PRODUCT') && (
-          <RRDom.Route path={paths.install} exact>
+          <RR.Route path={paths.install} exact>
             <Install />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!!cfg.legacyPackagesRedirect && (
-          <RRDom.Route path={paths.legacyPackages}>
+          <RR.Route path={paths.legacyPackages}>
             <LegacyPackages />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.search} exact>
+          <RR.Route path={paths.search} exact>
             <Search />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {cfg.mode === 'MARKETING' && (
-          <RRDom.Route path={paths.about} exact>
+          <RR.Route path={paths.about} exact>
             <MAbout />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {cfg.enableMarketingPages && (
-          <RRDom.Route path={paths.personas} exact>
+          <RR.Route path={paths.personas} exact>
             <MPersonas />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {cfg.enableMarketingPages && (
-          <RRDom.Route path={paths.product} exact>
+          <RR.Route path={paths.product} exact>
             <MProduct />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {cfg.mode === 'MARKETING' && (
-          <RRDom.Route path="/bioit" exact>
+          <RR.Route path="/bioit" exact>
             <BioIT />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {cfg.mode === 'MARKETING' && (
-          <RRDom.Route path="/nextflow" exact>
+          <RR.Route path="/nextflow" exact>
             <NextFlow />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {cfg.mode === 'MARKETING' && (
-          <RRDom.Route path="/aws" exact>
+          <RR.Route path="/aws" exact>
             <BioIT />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {cfg.mode === 'MARKETING' && (
-          <RRDom.Route path="/aws-marketplace" exact>
+          <RR.Route path="/aws-marketplace" exact>
             <AwsMarketplace />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.activate} exact>
+          <RR.Route path={paths.activate} exact>
             <Activate />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.signIn} exact>
+          <RR.Route path={paths.signIn} exact>
             <AuthSignIn />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && (
-          <RRDom.Route path="/login" exact>
+          <RR.Route path="/login" exact>
             <RedirectTo path={urls.signIn()} />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.signOut} exact>
+          <RR.Route path={paths.signOut} exact>
             <AuthSignOut />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-          <RRDom.Route path={paths.signUp} exact>
+          <RR.Route path={paths.signUp} exact>
             <AuthSignUp />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
-          <RRDom.Route path={paths.passReset} exact>
+          <RR.Route path={paths.passReset} exact>
             <AuthPassReset />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
-          <RRDom.Route path={paths.passChange} exact>
+          <RR.Route path={paths.passChange} exact>
             <AuthPassChange />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.code} exact>
+          <RR.Route path={paths.code} exact>
             <AuthCode />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.activationError} exact>
+          <RR.Route path={paths.activationError} exact>
             <AuthActivationError />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {cfg.mode === 'OPEN' && (
-          <RRDom.Route path={paths.profile} exact>
+          <RR.Route path={paths.profile} exact>
             <OpenProfile />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.admin}>
+          <RR.Route path={paths.admin}>
             <Admin />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.uriResolver}>
+          <RR.Route path={paths.uriResolver}>
             <UriResolver />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.bucketSearch} exact>
+          <RR.Route path={paths.bucketSearch} exact>
             <BucketSearchRedirect />
-          </RRDom.Route>
+          </RR.Route>
         )}
         {!cfg.disableNavigator && (
-          <RRDom.Route path={paths.bucketRoot}>
+          <RR.Route path={paths.bucketRoot}>
             <Bucket />
-          </RRDom.Route>
+          </RR.Route>
         )}
 
-        <RRDom.Route>
+        <RR.Route>
           <ProtectedThrowNotFound />
-        </RRDom.Route>
-      </RRDom.Switch>
+        </RR.Route>
+      </RR.Switch>
     </CatchNotFound>
   )
 }

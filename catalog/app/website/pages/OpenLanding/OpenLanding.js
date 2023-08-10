@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
 import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
@@ -15,7 +15,7 @@ import Showcase from './Showcase'
 import QuiltIsDifferent from './QuiltIsDifferent'
 
 export default function OpenLanding() {
-  const location = RRDom.useLocation()
+  const location = useLocation()
   const { q: query = '' } = parseSearch(location.search)
   return (
     <Layout>

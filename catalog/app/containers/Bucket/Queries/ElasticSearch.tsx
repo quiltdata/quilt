@@ -1,7 +1,7 @@
 import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -189,7 +189,7 @@ const isButtonDisabled = (
 ): boolean => !!error || !!resultsData.case({ Pending: R.T, _: R.F })
 
 export default function ElastiSearch() {
-  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const { bucket } = useParams<{ bucket: string }>()
   invariant(!!bucket, '`bucket` must be defined')
 
   const classes = useStyles()

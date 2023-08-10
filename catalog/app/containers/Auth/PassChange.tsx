@@ -3,7 +3,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import * as RRDom from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -167,7 +167,7 @@ function Success() {
 const LINK_PLACEHOLDER = '_'
 
 export default function PassChange() {
-  const { link } = RRDom.useParams<{ link: string }>()
+  const { link } = useParams<{ link: string }>()
   invariant(!!link, '`link` must be defined')
 
   const { urls } = NamedRoutes.use()
@@ -177,7 +177,7 @@ export default function PassChange() {
   const onSuccess = React.useCallback(() => setDone(true), [setDone])
 
   const [storedLink] = React.useState(link)
-  const history = RRDom.useHistory()
+  const history = useHistory()
   const cleanUrl = urls.passChange(LINK_PLACEHOLDER)
 
   React.useEffect(() => {

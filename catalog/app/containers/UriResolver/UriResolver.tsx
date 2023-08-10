@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as RRDom from 'react-router'
+import { Redirect, useHistory, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -23,10 +23,10 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function UriResolver() {
-  const params = RRDom.useParams<{ uri?: string }>()
+  const params = useParams<{ uri?: string }>()
 
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const history = useHistory()
   const classes = useStyles()
 
   const uri = decodeURIComponent(params.uri || '')
@@ -64,7 +64,7 @@ export default function UriResolver() {
       parsed.path,
     ) + NamedRoutes.mkSearch({ resolvedFrom: uri })
 
-  if (to) return <RRDom.Redirect to={to} />
+  if (to) return <Redirect to={to} />
 
   return (
     <Layout

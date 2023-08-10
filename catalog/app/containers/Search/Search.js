@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RRDom from 'react-router-dom'
+import { Link, useLocation, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -18,7 +18,7 @@ function BrowseBucket({ bucket }) {
   return (
     <>
       <br />
-      <M.Button component={RRDom.Link} to={urls.bucketRoot(bucket)} variant="outlined">
+      <M.Button component={Link} to={urls.bucketRoot(bucket)} variant="outlined">
         Browse the bucket
       </M.Button>
     </>
@@ -340,9 +340,9 @@ const useSearchStyles = M.makeStyles((t) => ({
 }))
 
 export default function Search() {
-  const l = RRDom.useLocation()
+  const l = useLocation()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const history = useHistory()
   const classes = useSearchStyles()
 
   const scrollRef = React.useRef(null)
