@@ -89,6 +89,11 @@ function Invite({ close, roles, defaultRoleId }) {
             username: 'invalid',
           }
         }
+        if (APIConnector.HTTPError.is(e, 400, /Username is invalid/)) {
+          return {
+            username: 'invalid',
+          }
+        }
         if (APIConnector.HTTPError.is(e, 409, /Username already taken/)) {
           return {
             username: 'taken',
