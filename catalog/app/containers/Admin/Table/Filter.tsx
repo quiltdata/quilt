@@ -29,6 +29,7 @@ function ClearButton({ onClick }: ClearButtonProps) {
 const useFilterStyles = M.makeStyles({
   root: {
     animation: `$expand ${ANIMATION_DURATION}ms ease-out`,
+    flexShrink: 0,
     width: '40vw',
   },
   collapsing: {
