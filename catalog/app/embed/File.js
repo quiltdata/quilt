@@ -228,13 +228,7 @@ function VersionInfo({ location }) {
   )
 }
 
-function Meta({ location }) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, location })
-  return <FileView.ObjectMeta data={data.result} />
-}
-
-function Analytics({ location }) {
+function Analytics(location) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -482,7 +476,8 @@ export default function File({
                   })}
                 </div>
               </Section>
-              <Meta location={location} />
+              <FileView.ObjectMeta handle={handle} />
+              <FileView.ObjectTags handle={handle} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,

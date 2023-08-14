@@ -1,4 +1,5 @@
 ;(window as any).QUILT_CATALOG_CONFIG = {
+  region: 'us-east-1',
   apiGatewayEndpoint: '',
   alwaysRequiresAuth: true,
   s3Proxy: '',

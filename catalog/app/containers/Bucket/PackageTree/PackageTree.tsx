@@ -376,7 +376,10 @@ function DirDisplay({ handle, hash, path, crumbs, size }: DirDisplayProps) {
                         <PackageCodeSamples handle={handle} hash={hash} path={path} />
                       )}
                       {blocks.meta && (
-                        <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
+                        <FileView.PackageMetaSection
+                          meta={dir.metadata}
+                          preferences={blocks.meta}
+                        />
                       )}
                       <M.Box mt={2}>
                         {blocks.browser && (
@@ -533,7 +536,7 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
 }))
 
 interface FileDisplayProps extends FileDisplayQueryProps {
-  file: $TSFixMe
+  file: Model.GQLTypes.PackageFile
 }
 
 function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProps) {
@@ -649,7 +652,10 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
                         <PackageCodeSamples handle={handle} hash={hash} path={path} />
                       )}
                       {blocks.meta && (
-                        <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
+                        <>
+                          <FileView.ObjectMetaSection meta={file.metadata} />
+                          <FileView.ObjectTags handle={handle} />
+                        </>
                       )}
                     </>
                   ),

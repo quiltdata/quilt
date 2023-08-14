@@ -201,12 +201,6 @@ function VersionInfo({ location }) {
   )
 }
 
-function Meta({ location }) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, location })
-  return <FileView.ObjectMeta data={data.result} />
-}
-
 function Analytics({ location }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
@@ -507,7 +501,12 @@ export default function File({
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
                         <Analytics location={location} />
                       )}
-                      {blocks.meta && <Meta location={location} />}
+                      {blocks.meta && (
+                        <>
+                          <FileView.ObjectMeta handle={handle} />
+                          <FileView.ObjectTags handle={handle} />
+                        </>
+                      )}
                     </>
                   ),
                   _: () => null,
