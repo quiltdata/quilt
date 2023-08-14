@@ -268,6 +268,7 @@ def do_index(
         text: str = '',
         size: int = 0,
         version_id: Optional[str] = None,
+        s3_tags: Optional[dict] = None,
 ):
     """wrap dual indexing of packages and objects"""
     logger_ = get_quilt_logger()
@@ -282,7 +283,8 @@ def do_index(
         last_modified=last_modified,
         size=size,
         text=text,
-        version_id=version_id
+        version_id=version_id,
+        s3_tags=s3_tags,
     )
     # maybe index as package
     if index_if_package(
@@ -790,6 +792,24 @@ def handler(event, context):
                     text = ""
                     logger_.warning("Content extraction failed %s %s %s", bucket, key, exc)
 
+                # XXX: we could replace head_object() call above with get_object(Range='bytes=0-0')
+                #      which returns TagsCount, so we could optimize out get_object_tagging() call
+                #      for objects without tags.
+                try:
+                    s3_tags = s3_client.get_object_tagging(
+                        Bucket=bucket,
+                        Key=key,
+                        VersionId=version_id,
+                    )["TagSet"]
+                    s3_tags = {t["Key"]: t["Value"] for t in s3_tags}
+                except botocore.exceptions.ClientError as e:
+                    if e.response["Error"]["Code"] != "AccessDenied":
+                        raise
+                    s3_tags = None
+                    logger_.error(
+                        "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s",
+                        bucket, key, version_id
+                    )
                 do_index(
                     s3_client,
                     batch_processor,
@@ -801,7 +821,8 @@ def handler(event, context):
                     last_modified=last_modified,
                     size=size,
                     text=text,
-                    version_id=version_id
+                    version_id=version_id,
+                    s3_tags=s3_tags,
                 )
 
             except botocore.exceptions.ClientError as boto_exc:

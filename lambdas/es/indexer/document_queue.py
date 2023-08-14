@@ -102,6 +102,7 @@ class DocumentQueue:
         event_type: str,
         ext: str,
         version_id,
+        s3_tags,
     ):
         """format event as a document and then queue the document"""
         logger_ = get_quilt_logger()
@@ -143,6 +144,7 @@ class DocumentQueue:
             "event": event_type,
             "ext": ext,
             "updated": datetime.utcnow().isoformat(),
+            "s3_tags": " ".join([f"{key} {value}" for key, value in s3_tags.items()]) if s3_tags else None,
         }
 
         self.append_document(body)
