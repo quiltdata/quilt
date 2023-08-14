@@ -654,7 +654,7 @@ function FileDisplay({ handle, mode, hash, path, crumbs, file }: FileDisplayProp
                       {blocks.meta && (
                         <>
                           <FileView.ObjectMetaSection meta={file.metadata} />
-                          <FileView.ObjectTags handle={handle} />
+                          <FileView.ObjectTags location={h} />
                         </>
                       )}
                     </>

@@ -503,8 +503,8 @@ export default function File({
                       )}
                       {blocks.meta && (
                         <>
-                          <FileView.ObjectMeta handle={handle} />
-                          <FileView.ObjectTags handle={handle} />
+                          <FileView.ObjectMeta location={location} />
+                          <FileView.ObjectTags location={location} />
                         </>
                       )}
                     </>

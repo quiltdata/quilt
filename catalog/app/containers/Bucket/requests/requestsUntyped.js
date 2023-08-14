@@ -231,8 +231,10 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
 
   const versions = await objectVersions({
     s3,
-    bucket,
-    path: fileExists.key,
+    location: {
+      bucket,
+      key: fileExists.key,
+    },
   })
   const latest = R.find(R.prop('isLatest'), versions)
   const version = latest && latest.id !== 'null' ? latest.id : undefined
@@ -566,18 +568,6 @@ export const objectVersions = ({ s3, location: { bucket, key } }) =>
         R.sort(R.descend(R.prop('lastModified'))),
       ),
     )
-
-// TODO: handle archive, delete markers
-//       make re-useable head request with such handlers
-export const objectMeta = ({ s3, location: { bucket, key, version } }) =>
-  s3
-    .headObject({
-      Bucket: bucket,
-      Key: key,
-      VersionId: version,
-    })
-    .promise()
-    .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
 const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
 

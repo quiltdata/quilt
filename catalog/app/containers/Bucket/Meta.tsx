@@ -157,14 +157,14 @@ export function ObjectMetaSection({ meta, title = 'Metadata' }: ObjectMetaSectio
 }
 
 interface ObjectMetaProps {
-  handle: Model.S3.S3ObjectLocation
+  location: Model.S3.S3ObjectLocation
 }
 
-export function ObjectMeta({ handle }: ObjectMetaProps) {
+export function ObjectMeta({ location }: ObjectMetaProps) {
   const s3 = AWS.S3.use()
   const metaData = useData(requests.objectMeta, {
     s3,
-    handle,
+    location,
   })
   return metaData.case({
     Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} title="S3 Metadata" />,
@@ -188,14 +188,14 @@ function ObjectTagsSection({ tags }: ObjectTagsSectionProps) {
 }
 
 interface ObjectTagsProps {
-  handle: Model.S3.S3ObjectLocation
+  location: Model.S3.S3ObjectLocation
 }
 
-export function ObjectTags({ handle }: ObjectTagsProps) {
+export function ObjectTags({ location }: ObjectTagsProps) {
   const s3 = AWS.S3.use()
   const tagsData = useData(requests.objectTags, {
     s3,
-    handle,
+    location,
   })
   return tagsData.case({
     Ok: (tags: Record<string, string>) => <ObjectTagsSection tags={tags} />,
