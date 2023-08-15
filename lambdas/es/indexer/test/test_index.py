@@ -1770,7 +1770,6 @@ class TestIndex(TestCase):
             version_id=version_id
         ) == {"test-key": "test-value"}
 
-
     def test_get_object_tagging_access_denied(self):
         bucket = "test-bucket"
         key = "test-key"
