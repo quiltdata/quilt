@@ -795,21 +795,7 @@ def handler(event, context):
                 # XXX: we could replace head_object() call above with get_object(Range='bytes=0-0')
                 #      which returns TagsCount, so we could optimize out get_object_tagging() call
                 #      for objects without tags.
-                try:
-                    s3_tags = s3_client.get_object_tagging(
-                        Bucket=bucket,
-                        Key=key,
-                        VersionId=version_id,
-                    )["TagSet"]
-                    s3_tags = {t["Key"]: t["Value"] for t in s3_tags}
-                except botocore.exceptions.ClientError as e:
-                    if e.response["Error"]["Code"] != "AccessDenied":
-                        raise
-                    s3_tags = None
-                    logger_.error(
-                        "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s",
-                        bucket, key, version_id
-                    )
+
                 do_index(
                     s3_client,
                     batch_processor,
@@ -822,7 +808,12 @@ def handler(event, context):
                     size=size,
                     text=text,
                     version_id=version_id,
-                    s3_tags=s3_tags,
+                    s3_tags=get_object_tagging(
+                        s3_client=s3_client,
+                        bucket=bucket,
+                        key=key,
+                        version_id=version_id,
+                    ),
                 )
 
             except botocore.exceptions.ClientError as boto_exc:
@@ -886,3 +877,24 @@ def retry_s3(
         return function_(**arguments)
 
     return call()
+
+
+def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional[str]) -> Optional[dict]:
+    params = {
+        "Bucket": bucket,
+        "Key": key,
+    }
+    if version_id:
+        params["VersionId"] = version_id
+
+    try:
+        s3_tags = s3_client.get_object_tagging(**params)["TagSet"]
+        return {t["Key"]: t["Value"] for t in s3_tags}
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] != "AccessDenied":
+            raise
+        get_quilt_logger().error(
+            "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s",
+            bucket, key, version_id
+        )
+        return None
