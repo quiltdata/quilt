@@ -17,6 +17,7 @@ from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
 
 import boto3
+import botocore
 import pptx
 import pytest
 import responses
@@ -1719,6 +1720,97 @@ class TestIndex(TestCase):
             contents = self._get_contents('foo.parquet', '.parquet')
             size = len(contents.encode('utf-8', 'ignore'))
             assert size <= document_queue.ELASTIC_LIMIT_BYTES
+
+    def test_get_object_tagging(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = None
+
+        self.s3_stubber.add_response(
+            method="get_object_tagging",
+            service_response={
+                "TagSet": [
+                    {"Key": "test-key", "Value": "test-value"},
+                ]
+            },
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+        )
+
+        assert index.get_object_tagging(
+            s3_client=self.s3_client,
+            bucket=bucket, key=key,
+            version_id=version_id
+        ) == {"test-key": "test-value"}
+
+    def test_get_object_tagging_version_id(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = "test-version-id"
+
+        self.s3_stubber.add_response(
+            method="get_object_tagging",
+            service_response={
+                "TagSet": [
+                    {"Key": "test-key", "Value": "test-value"},
+                ]
+            },
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+                "VersionId": version_id,
+            },
+        )
+
+        assert index.get_object_tagging(
+            s3_client=self.s3_client,
+            bucket=bucket, key=key,
+            version_id=version_id
+        ) == {"test-key": "test-value"}
+
+
+    def test_get_object_tagging_access_denied(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = None
+
+        self.s3_stubber.add_client_error(
+            method="get_object_tagging",
+            service_error_code="AccessDenied",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+        )
+
+        assert index.get_object_tagging(
+            s3_client=self.s3_client,
+            bucket=bucket, key=key,
+            version_id=version_id
+        ) is None
+
+    def test_get_object_tagging_no_such_key(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = None
+
+        self.s3_stubber.add_client_error(
+            method="get_object_tagging",
+            service_error_code="NoSuchKey",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+        )
+
+        with pytest.raises(botocore.exceptions.ClientError):
+            assert index.get_object_tagging(
+                s3_client=self.s3_client,
+                bucket=bucket, key=key,
+                version_id=version_id
+            )
 
 
 def test_extract_pptx():
