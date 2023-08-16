@@ -17,6 +17,8 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
+import { RowActions } from './ListingActions'
+
 const EMPTY = <i>{'<EMPTY>'}</i>
 
 const TIP_DELAY = 1000
@@ -33,7 +35,7 @@ export interface Item {
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
-  File: (f: { key: string; size?: number; archived?: boolean; modified?: Date }) => f,
+  File: (f: { archived?: boolean; key: string; modified?: Date; size?: number }) => f,
   Dir: (d: { key: string; size?: number }) => d,
 })
 
@@ -1152,6 +1154,18 @@ export function Listing({
         },
       })
     }
+    columnsWithValues.push({
+      field: 'actions',
+      headerName: '',
+      align: 'right',
+      width: 0,
+      renderCell: (params: DG.GridCellParams) =>
+        params.id === '..' ? (
+          <></>
+        ) : (
+          <RowActions to={params.row.to} archived={params.row.archived} />
+        ),
+    })
     return columnsWithValues
   }, [classes, CellComponent, items, sm])
 
