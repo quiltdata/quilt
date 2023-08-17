@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { CssBaseline } from '@material-ui/core'
-import { makeStyles } from '@material-ui/styles'
+import { makeStyles } from '@material-ui/core/styles'
 
 const useGlobalStyles = makeStyles({
   '@global': {

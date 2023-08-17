@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Box } from '@material-ui/core'
-import { styled } from '@material-ui/styles'
+import { styled } from '@material-ui/core/styles'
 
 import img2x from 'utils/img2x'
 

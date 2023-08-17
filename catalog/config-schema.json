@@ -58,6 +58,10 @@
       "$ref": "#/definitions/AuthMethodConfig",
       "description": "Whether Quilt password authentication is enabled for sign in and sign up."
     },
+    "region": {
+      "type": "string",
+      "description": "Stack's region; used for S3 and Athena. S3 client supports any region, but will try this one first."
+    },
     "registryUrl": {
       "$ref": "#/definitions/Url",
       "description": "Registry your users will use to login and get credentials."
@@ -100,6 +104,7 @@
     "mixpanelToken",
     "mode",
     "passwordAuth",
+    "region",
     "registryUrl",
     "s3Proxy",
     "serviceBucket",

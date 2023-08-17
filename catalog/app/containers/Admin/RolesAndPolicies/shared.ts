@@ -2,8 +2,8 @@
 export const MAX_POLICIES_PER_ROLE = 5
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
-const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:[^:]+:role\/(?:.*\/)?(.+)$/
-const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:[^:]+:policy\/(.+)$/
+const ARN_ROLE_RE = /^arn:aws(?:-us-gov)?:iam:[^:]*:[^:]+:role\/(?:.*\/)?(.+)$/
+const ARN_POLICY_RE = /^arn:aws(?:-us-gov)?:iam:[^:]*:[^:]+:policy\/(.+)$/
 
 export function getArnLink(arn: string) {
   const [, role] = arn.match(ARN_ROLE_RE) || []

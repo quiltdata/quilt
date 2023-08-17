@@ -563,18 +563,6 @@ export const objectVersions = ({ s3, bucket, path }) =>
       ),
     )
 
-// TODO: handle archive, delete markers
-//       make re-useable head request with such handlers
-export const objectMeta = ({ s3, bucket, path, version }) =>
-  s3
-    .headObject({
-      Bucket: bucket,
-      Key: path,
-      VersionId: version,
-    })
-    .promise()
-    .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
-
 const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
 
 const isValidManifest = makeSchemaValidator(quiltSummarizeSchema)

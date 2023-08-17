@@ -14,6 +14,7 @@ import * as Preview from 'components/Preview'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
 import * as OpenInDesktop from 'containers/OpenInDesktop'
+import * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -383,7 +384,10 @@ function DirDisplay({
                         <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
-                        <FileView.PackageMeta data={AsyncResult.Ok(dir.metadata)} />
+                        <FileView.PackageMetaSection
+                          meta={dir.metadata}
+                          preferences={blocks.meta}
+                        />
                       )}
                       <M.Box mt={2}>
                         {blocks.browser && <Listing.Listing items={items} key={hash} />}
@@ -534,7 +538,7 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
 }))
 
 interface FileDisplayProps extends FileDisplayQueryProps {
-  file: $TSFixMe
+  file: Model.GQLTypes.PackageFile
 }
 
 function FileDisplay({
@@ -663,7 +667,10 @@ function FileDisplay({
                         <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
                       )}
                       {blocks.meta && (
-                        <FileView.ObjectMeta data={AsyncResult.Ok(file.metadata)} />
+                        <>
+                          <FileView.ObjectMetaSection meta={file.metadata} />
+                          <FileView.ObjectTags handle={handle} />
+                        </>
                       )}
                     </>
                   ),

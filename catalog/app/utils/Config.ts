@@ -11,6 +11,8 @@ type AuthMethodConfig = 'ENABLED' | 'DISABLED' | 'SIGN_IN_ONLY'
 
 // manually synced w/ config-schema.json
 export interface ConfigJson {
+  region: string
+
   mode: Mode
   alwaysRequiresAuth: boolean
   desktop?: boolean
