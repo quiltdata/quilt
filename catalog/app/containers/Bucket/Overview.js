@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
+import { Link as RRLink, useParams } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -916,11 +916,9 @@ function ThumbnailsWrapper({
   )
 }
 
-export default function Overview({
-  match: {
-    params: { bucket },
-  },
-}) {
+export default function Overview() {
+  const { bucket } = useParams()
+
   const s3 = AWS.S3.use()
   const { bucketConfig } = useQueryS(BUCKET_CONFIG_QUERY, { bucket })
   const inStack = !!bucketConfig
