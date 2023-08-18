@@ -269,6 +269,87 @@ type BrowsingSession {
   expires: Datetime!
 }
 
+type SearchResultObjectVersion {
+  id: String!
+  score: Float!
+  updated: Datetime!
+  lastModified: Datetime!
+  size: Float!
+  meta: JsonRecord! # user_meta
+  deleteMarker: Boolean!
+}
+
+type SearchResultObject {
+  # type: 'object',
+  key: String! # `object:${bucket}/${src.key}`
+  score: Float!
+  bucket: String!
+  path: String!
+  versions: [SearchResultObjectVersion!]!
+}
+
+type SearchResultPackage {
+  # type: 'package',
+  key: String! # `package:${bucket}/${src.handle}:${src.hash}`
+  bucket: String!
+  score: Float!
+  handle: String!
+  hash: String!
+  lastModified: Datetime!
+  meta: JsonRecord! # *whole* meta (not just user_meta)
+  # tags: [String!]! // TODO: currently not provided
+  comment: String
+}
+
+union SearchResult = SearchResultObject | SearchResultPackage
+
+type SearchFilterNumericRange {
+  min: Float
+  max: Float
+}
+
+type SearchFilterDateRange {
+  min: Datetime
+  max: Datetime
+}
+
+type SearchFilterEnum {
+  # XXX: id + label vs plain value (==id)
+  values: [String!]!
+}
+
+union SearchFilter =
+  SearchFilterNumericRange
+  | SearchFilterDateRange
+  | SearchFilterEnum
+
+type SearchFacet {
+  key: String! # path?
+  label: String!
+  filter: SearchFilter!
+}
+
+type SearchResults {
+  total: Int!
+  page(number: Int = 1, perPage: Int = 30): [SearchResult!]!
+  facets: [SearchFacet!]!
+}
+
+enum SearchResultType {
+  ANY
+  OBJECT
+  PACKAGE
+}
+
+input SearchFilterInput {
+  # field
+  # - path
+  # - type
+  # operator
+  key: String!
+  value: String!
+}
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -276,6 +357,15 @@ type Query {
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
+  search(
+    buckets: [String!]!,
+    query: String!,
+    type: SearchResultType!,
+    retry: Int = 0,
+    # filters: [SearchFilter!],
+    # XXX: opt-in merge versions? move down to search results?
+    # mergeVersions: Boolean = false,
+  ): SearchResults!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin

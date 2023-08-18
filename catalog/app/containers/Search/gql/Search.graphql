@@ -1,0 +1,6 @@
+query () {
+  search(params) {
+    total
+    hits
+  }
+}
