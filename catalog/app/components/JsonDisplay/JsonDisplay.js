@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -304,21 +305,6 @@ function JsonDisplayInner(props) {
   return <Component />
 }
 
-function useElementWidth(ref) {
-  const [width, setWidth] = React.useState(0)
-  React.useEffect(() => {
-    const wrapper = ref.current
-    if (!wrapper) return
-    const resizeObserver = new window.ResizeObserver(() => {
-      if (!wrapper) return
-      setWidth(wrapper.clientWidth)
-    })
-    resizeObserver.observe(ref.current)
-    return () => resizeObserver.unobserve(wrapper)
-  }, [ref])
-  return width
-}
-
 export default function JsonDisplay({
   name,
   value,
@@ -333,7 +319,7 @@ export default function JsonDisplay({
 }) {
   const ref = React.useRef(null)
   const classes = useStyles()
-  const currentBPWidth = useElementWidth(ref)
+  const { width: currentBPWidth } = useResizeObserver({ ref })
   const computedKeys = React.useMemo(() => {
     if (showKeysWhenCollapsed === true) return Number.POSITIVE_INFINITY
     if (showKeysWhenCollapsed === false) return Number.POSITIVE_INFINITY
