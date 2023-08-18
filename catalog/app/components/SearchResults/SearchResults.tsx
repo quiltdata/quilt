@@ -63,7 +63,9 @@ function ObjectCrumbs({ handle, showBucket = false }) {
   )
 }
 
-function HeaderIcon(props) {
+interface HeaderIconProps extends M.BoxProps {}
+
+function HeaderIcon(props: HeaderIconProps) {
   return (
     <M.Box
       component={M.Icon}
