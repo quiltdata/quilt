@@ -229,12 +229,6 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Meta({ bucket, path, version }) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.objectMeta, { s3, bucket, path, version })
-  return <FileView.ObjectMeta data={data.result} />
-}
-
 function Analytics({ bucket, path }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
@@ -472,7 +466,8 @@ export default function File() {
                   })}
                 </div>
               </Section>
-              <Meta bucket={bucket} path={path} version={version} />
+              <FileView.ObjectMeta handle={handle} />
+              <FileView.ObjectTags handle={handle} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,

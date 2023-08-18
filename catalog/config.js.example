@@ -1,4 +1,5 @@
 window.QUILT_CATALOG_CONFIG = {
+  "region": "us-east-1",
   "registryUrl": "<registry url here>",
   "alwaysRequiresAuth": false,
   "apiGatewayEndpoint": "https://ozj6r9bglc.execute-api.us-east-1.amazonaws.com/prod",

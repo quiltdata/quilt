@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as redux from 'react-redux'
 import Button from '@material-ui/core/Button'
-import { styled } from '@material-ui/styles'
+import { styled } from '@material-ui/core/styles'
 
 import Working from 'components/Working'
 import * as Sentry from 'utils/Sentry'
