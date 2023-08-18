@@ -69,7 +69,7 @@ export function format(
         bucket,
         packageHandle.name,
         packageHandle.hashOrTag,
-        path,
+        path ? s3paths.ensureSlash(path) : path,
       ) || path
     )
   }
