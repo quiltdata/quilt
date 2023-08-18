@@ -13,6 +13,7 @@ export class PackageUriError extends BaseError {
   }
 }
 
+// TODO: use Model.Package.*
 export interface PackageUri {
   bucket: string
   name: string
