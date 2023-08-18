@@ -1384,7 +1384,8 @@ function CRUD({ bucketName }: CRUDProps) {
   )
 }
 
-export default function Buckets({ location }: RRDom.RouteComponentProps) {
+export default function Buckets() {
+  const location = RRDom.useLocation()
   const { bucket } = parseSearch(location.search)
   const bucketName = Array.isArray(bucket) ? bucket[0] : bucket
   return (
