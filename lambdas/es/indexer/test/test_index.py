@@ -25,7 +25,7 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import EVENT_PREFIX, DocTypes, RetryError
+from document_queue import EVENT_PREFIX, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
@@ -250,11 +250,10 @@ def _make_event(
 
 
 @pytest.mark.parametrize(
-    "event_type, doc_type, kwargs",
+    "event_type, kwargs",
     [
         (
             "ObjectRemoved:Delete",
-            DocTypes.OBJECT,
             {
                 "bucket": "test",
                 "etag": "123",
@@ -268,7 +267,6 @@ def _make_event(
         ),
         (
             "ObjectCreated:Copy",
-            DocTypes.OBJECT,
             {
                 "bucket": "test",
                 "etag": "123",
@@ -283,14 +281,11 @@ def _make_event(
     ]
 )
 @patch.object(index.DocumentQueue, 'append_document')
-def test_append(_append_mock, event_type, doc_type, kwargs):
+def test_append(_append_mock, event_type, kwargs):
     """test document_queue.append; outside of class so we can parameterize"""
     dq = index.DocumentQueue(None)
     dq.append(event_type=event_type, **kwargs)
-    if event_type == "FAKE:EVENT":
-        assert not _append_mock.call_count
-    else:
-        assert _append_mock.call_count == 1
+    assert _append_mock.call_count == 1
 
 
 @pytest.mark.parametrize(
