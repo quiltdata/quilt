@@ -1,4 +1,5 @@
 import * as dateFns from 'date-fns'
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -536,10 +537,12 @@ function PackageRevisions({ handle, page }: PackageRevisionsProps) {
   )
 }
 
-export default function PackageRevisionsWrapper({
-  match: { params: handle },
-  location,
-}: RRDom.RouteComponentProps<Model.Package.Handle>) {
+export default function PackageRevisionsWrapper() {
+  const handle = RRDom.useParams<Model.Package.Handle>()
+  const location = RRDom.useLocation()
+  invariant(!!handle.bucket, '`bucket` must be defined')
+  invariant(!!handle.name, '`name` must be defined')
+
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

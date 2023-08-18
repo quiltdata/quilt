@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -911,12 +912,17 @@ interface PackageTreeRouteParams {
   path?: string
 }
 
-export default function PackageTreeWrapper({
-  match: {
-    params: { bucket, name, revision, path: encodedPath = '' },
-  },
-  location: l,
-}: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
+export default function PackageTreeWrapper() {
+  const {
+    bucket,
+    name,
+    revision,
+    path: encodedPath = '',
+  } = RRDom.useParams<PackageTreeRouteParams>()
+  const l = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+  invariant(!!name, '`name` must be defined')
+
   const path = s3paths.decode(encodedPath)
   const handle: Model.Package.Handle = { bucket, name }
   const rev: Model.Package.Revision = React.useMemo(() => {

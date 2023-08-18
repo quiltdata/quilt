@@ -3,7 +3,7 @@ import { basename } from 'path'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -340,12 +340,9 @@ const useStyles = M.makeStyles((t) => ({
 
 const previewOptions = { context: Preview.CONTEXT.FILE }
 
-export default function File({
-  match: {
-    params: { bucket, path: encodedPath },
-  },
-  location: l,
-}) {
+export default function File() {
+  const { bucket, path: encodedPath } = useParams()
+  const l = useLocation()
   const ecfg = EmbedConfig.use()
   const { version } = parseSearch(l.search)
   const classes = useStyles()

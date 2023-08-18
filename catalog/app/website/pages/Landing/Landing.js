@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useLocation } from 'react-router-dom'
 
 import cfg from 'constants/config'
 import * as LinkedData from 'utils/LinkedData'
@@ -23,7 +24,8 @@ import UseQuilt from './UseQuilt'
 
 const showMarketingBlocks = cfg.mode !== 'LOCAL' && cfg.mode !== 'PRODUCT'
 
-export default function Landing({ location }) {
+export default function Landing() {
+  const location = useLocation()
   const { q: query = '' } = parseSearch(location.search)
   return (
     <Layout>
