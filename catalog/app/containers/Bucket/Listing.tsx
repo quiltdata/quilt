@@ -74,7 +74,7 @@ export function format(
       (urls as PackageUrls).bucketPackageTree?.(
         handle,
         hash,
-        s3paths.ensureSlash(path),
+        path ? s3paths.ensureSlash(path) : path,
       ) || path
     )
   }
