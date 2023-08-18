@@ -84,11 +84,6 @@ function Invite({ close, roles, defaultRoleId }) {
         push('User invited')
         close()
       } catch (e) {
-        if (APIConnector.HTTPError.is(e, 400, /Username is not valid/)) {
-          return {
-            username: 'invalid',
-          }
-        }
         if (APIConnector.HTTPError.is(e, 400, /Username is invalid/)) {
           return {
             username: 'invalid',
