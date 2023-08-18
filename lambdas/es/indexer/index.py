@@ -680,6 +680,7 @@ def handler(event, context):
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
     # An exception that we'll want to re-raise after the batch sends
+    # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
     batch_processor = DocumentQueue(context)
     s3_client = make_s3_client()
