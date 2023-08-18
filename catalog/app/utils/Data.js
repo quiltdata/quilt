@@ -43,7 +43,10 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
   const stateRef = React.useRef()
   stateRef.current = state
 
+  const mountRef = React.useRef(true)
+  React.useEffect(() => () => (mountRef.current = false), [])
   const dispatch = (action) => {
+    if (!mountRef.current) return
     setState((stateRef.current = reducer(stateRef.current, action)))
   }
 
