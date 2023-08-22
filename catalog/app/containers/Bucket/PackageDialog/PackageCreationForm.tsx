@@ -5,6 +5,7 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import useResizeObserver from 'use-resize-observer'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
@@ -213,8 +214,9 @@ function PackageCreationForm({
   const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
-  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
+  const { height: metaHeight = 0 } = useResizeObserver({ ref: editorElement })
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
@@ -436,15 +438,6 @@ function PackageCreationForm({
     [nameWarning, nameExistence],
   )
 
-  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
-  const resizeObserver = React.useMemo(
-    () =>
-      new window.ResizeObserver((entries) => {
-        const { height } = entries[0]!.contentRect
-        setMetaHeight(height)
-      }),
-    [setMetaHeight],
-  )
   const [filesDisabled, setFilesDisabled] = React.useState(false)
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
@@ -452,13 +445,6 @@ function PackageCreationForm({
     },
     [handleNameChange],
   )
-
-  React.useEffect(() => {
-    if (editorElement) resizeObserver.observe(editorElement)
-    return () => {
-      if (editorElement) resizeObserver.unobserve(editorElement)
-    }
-  }, [editorElement, resizeObserver])
 
   const validateFiles = React.useCallback(
     async (files: FI.FilesState) => {

@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
+import invariant from 'invariant'
 import * as jsonpath from 'jsonpath'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -829,12 +830,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   )
 }
 
-export default function PackageListWrapper({
-  match: {
-    params: { bucket },
-  },
-  location,
-}: RRDom.RouteComponentProps<{ bucket: string }>) {
+export default function PackageListWrapper() {
+  const { bucket } = RRDom.useParams<{ bucket: string }>()
+  const location = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+
   const { sort, filter, p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (

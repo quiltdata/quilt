@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { styled } from '@material-ui/styles'
+import { styled } from '@material-ui/core/styles'
 
 import MetaTitle from 'utils/MetaTitle'
 

@@ -1,8 +1,9 @@
 import { FORM_ERROR } from 'final-form'
+import invariant from 'invariant'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -165,15 +166,10 @@ function Success() {
 
 const LINK_PLACEHOLDER = '_'
 
-interface PassChangeProps {
-  match: { params: { link: string } }
-}
+export default function PassChange() {
+  const { link } = useParams<{ link: string }>()
+  invariant(!!link, '`link` must be defined')
 
-export default function PassChange({
-  match: {
-    params: { link },
-  },
-}: PassChangeProps) {
   const { urls } = NamedRoutes.use()
 
   const authenticated = redux.useSelector(selectors.authenticated)

@@ -1,4 +1,4 @@
-FROM nginx:1.24.0@sha256:57e42e00530faa65e8acf98c3cf7bf6794093a9841c8a676b6d2fd0a9ba7262f
+FROM nginx:1.24.0@sha256:a195f9fb6503531660b25f9aeefef1f48bbaf56f46da04bffe1568abb3d3aff6
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Set up nginx

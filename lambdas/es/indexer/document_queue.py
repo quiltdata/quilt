@@ -4,7 +4,6 @@ import functools
 import json
 import os
 from datetime import datetime
-from enum import Enum
 from math import floor
 
 import boto3
@@ -75,11 +74,6 @@ class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
     def __init__(self, message):
         pass
-
-
-class DocTypes(Enum):
-    OBJECT = 1  # S3 objects
-    PACKAGE = 2  # Quilt packages
 
 
 class DocumentQueue:

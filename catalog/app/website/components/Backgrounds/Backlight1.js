@@ -1,5 +1,5 @@
 import { Box } from '@material-ui/core'
-import { styled } from '@material-ui/styles'
+import { styled } from '@material-ui/core/styles'
 
 import backlight1 from './backlight1.png'
 

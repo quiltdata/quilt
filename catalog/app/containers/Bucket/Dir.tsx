@@ -1,3 +1,4 @@
+import invariant from 'invariant'
 import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
@@ -229,12 +230,11 @@ interface DirParams {
   path?: string
 }
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}: RRDom.RouteComponentProps<DirParams>) {
+export default function Dir() {
+  const { bucket, path: encodedPath = '' } = RRDom.useParams<DirParams>()
+  const l = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
