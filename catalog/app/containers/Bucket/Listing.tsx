@@ -113,11 +113,12 @@ export function format(
           to: toDir(key),
           size,
         }),
-        File: ({ key, size, archived, modified }) => ({
+        File: ({ key, size, archived, modified, physicalKey }) => ({
           type: 'file' as const,
           name: s3paths.withoutPrefix(prefix, key),
           to: toFile(key),
           size,
+          physicalKey,
           modified,
           archived,
         }),
