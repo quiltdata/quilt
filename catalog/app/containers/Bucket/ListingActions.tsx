@@ -72,7 +72,7 @@ function BucketFile({ className, location }: BucketButtonProps) {
   )
 }
 
-interface PackageDownloadButtonProps {
+interface PackageDirectoryProps {
   className: string
   handle: {
     bucket: string
@@ -82,12 +82,12 @@ interface PackageDownloadButtonProps {
   path?: string
 }
 
-function PackageDownloadButton({
+function PackageDirectory({
   className,
   handle: { bucket, name },
   revision,
   path,
-}: PackageDownloadButtonProps) {
+}: PackageDirectoryProps) {
   const downloadPath = path
     ? `package/${bucket}/${name}/${revision}/${path}`
     : `package/${bucket}/${name}/${revision}`
@@ -96,6 +96,16 @@ function PackageDownloadButton({
       <Button icon="arrow_downward" title="Download" type="submit" />
     </FileView.ZipDownloadForm>
   )
+}
+
+interface PackageFileProps {
+  className: string
+  physicalKey: string
+}
+
+function PackageFile({ className, physicalKey }: PackageFileProps) {
+  const location = React.useMemo(() => s3paths.parseS3Url(physicalKey), [physicalKey])
+  return <BucketFile className={className} location={location} />
 }
 
 const useRowActionsStyles = M.makeStyles((t) => ({
@@ -208,9 +218,10 @@ function useMatchedParams(to: string) {
 interface RowActionsProps {
   to: string
   archived?: boolean
+  physicalKey?: string
 }
 
-export function RowActions({ archived, to }: RowActionsProps) {
+export function RowActions({ archived, physicalKey, to }: RowActionsProps) {
   const classes = useRowActionsStyles()
   const { location, handle, revision, path } = useMatchedParams(to)
 
@@ -235,12 +246,16 @@ export function RowActions({ archived, to }: RowActionsProps) {
       <div className={classes.root}>
         <div className={classes.wrapper}>
           <div className={classes.container}>
-            <PackageDownloadButton
-              className={classes.item}
-              handle={handle}
-              revision={revision}
-              path={path}
-            />
+            {physicalKey ? (
+              <PackageFile className={classes.item} physicalKey={physicalKey} />
+            ) : (
+              <PackageDirectory
+                className={classes.item}
+                handle={handle}
+                revision={revision}
+                path={path}
+              />
+            )}
           </div>
         </div>
       </div>

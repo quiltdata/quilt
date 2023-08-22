@@ -35,7 +35,13 @@ export interface Item {
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
-  File: (f: { archived?: boolean; key: string; modified?: Date; size?: number }) => f,
+  File: (f: {
+    archived?: boolean
+    key: string
+    modified?: Date
+    physicalKey?: string
+    size?: number
+  }) => f,
   Dir: (d: { key: string; size?: number }) => d,
 })
 
@@ -1163,7 +1169,11 @@ export function Listing({
         params.id === '..' ? (
           <></>
         ) : (
-          <RowActions to={params.row.to} archived={params.row.archived} />
+          <RowActions
+            archived={params.row.archived}
+            physicalKey={params.row.physicalKey}
+            to={params.row.to}
+          />
         ),
     })
     return columnsWithValues
