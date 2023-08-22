@@ -17,6 +17,7 @@ from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
 
 import boto3
+import botocore
 import pptx
 import pytest
 import responses
@@ -263,6 +264,7 @@ def _make_event(
                 "version_id": "abc",
                 "size": 0,
                 "text": "",
+                "s3_tags": None,
             }
         ),
         (
@@ -276,6 +278,7 @@ def _make_event(
                 "size": 0,
                 "text": "iajsoeqroieurqwiuro•",
                 "version_id": "abc",
+                "s3_tags": {"key": "value"},
             }
         ),
     ]
@@ -510,7 +513,8 @@ class TestIndex(TestCase):
             mock_elastic=True,
             mock_overrides=None,
             status=200,
-            unknown_items=False
+            unknown_items=False,
+
     ):
         """
         Reusable helper function to test indexing files based on on or more
@@ -537,7 +541,7 @@ class TestIndex(TestCase):
             elif eTag:
                 expected_params["IfMatch"] = eTag
             # infer mock status (we only talk head S3 on create events)
-            mock_head = mock_object = name in CREATE_EVENT_TYPES
+            mock_get_object_tagging = mock_head = mock_object = name in CREATE_EVENT_TYPES
             # check for occasional overrides (which can be false)
             if mock_overrides and "mock_head" in mock_overrides:
                 mock_head = mock_overrides.get("mock_head")
@@ -572,6 +576,23 @@ class TestIndex(TestCase):
                         'Body': BytesIO(b'Hello World!'),
                     },
                     expected_params=expected
+                )
+
+            if mock_get_object_tagging:
+                expected = {
+                    "Bucket": event["s3"]["bucket"]["name"],
+                    "Key": un_key,
+                }
+                if versionId:
+                    expected["VersionId"] = versionId
+                self.s3_stubber.add_response(
+                    method="get_object_tagging",
+                    service_response={
+                        "TagSet": [
+                            {"Key": "key", "Value": "value"},
+                        ]
+                    },
+                    expected_params=expected,
                 )
 
         if mock_elastic:
@@ -840,7 +861,8 @@ class TestIndex(TestCase):
             last_modified=ANY,
             size=100,
             text=parquet_data,
-            version_id='1313131313131.Vier50HdNbi7ZirO65'
+            version_id='1313131313131.Vier50HdNbi7ZirO65',
+            s3_tags={"key": "value"},
         )
 
     @patch.object(index, 'maybe_get_contents')
@@ -1088,7 +1110,8 @@ class TestIndex(TestCase):
             last_modified=ANY,
             size=100,
             text=json_data,
-            version_id='1313131313131.Vier50HdNbi7ZirO65'
+            version_id='1313131313131.Vier50HdNbi7ZirO65',
+            s3_tags={"key": "value"},
         )
 
     def test_multiple_index_events(self):
@@ -1692,6 +1715,96 @@ class TestIndex(TestCase):
             contents = self._get_contents('foo.parquet', '.parquet')
             size = len(contents.encode('utf-8', 'ignore'))
             assert size <= document_queue.ELASTIC_LIMIT_BYTES
+
+    def test_get_object_tagging(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = None
+
+        self.s3_stubber.add_response(
+            method="get_object_tagging",
+            service_response={
+                "TagSet": [
+                    {"Key": "test-key", "Value": "test-value"},
+                ]
+            },
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+        )
+
+        assert index.get_object_tagging(
+            s3_client=self.s3_client,
+            bucket=bucket, key=key,
+            version_id=version_id
+        ) == {"test-key": "test-value"}
+
+    def test_get_object_tagging_version_id(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = "test-version-id"
+
+        self.s3_stubber.add_response(
+            method="get_object_tagging",
+            service_response={
+                "TagSet": [
+                    {"Key": "test-key", "Value": "test-value"},
+                ]
+            },
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+                "VersionId": version_id,
+            },
+        )
+
+        assert index.get_object_tagging(
+            s3_client=self.s3_client,
+            bucket=bucket, key=key,
+            version_id=version_id
+        ) == {"test-key": "test-value"}
+
+    def test_get_object_tagging_access_denied(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = None
+
+        self.s3_stubber.add_client_error(
+            method="get_object_tagging",
+            service_error_code="AccessDenied",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+        )
+
+        assert index.get_object_tagging(
+            s3_client=self.s3_client,
+            bucket=bucket, key=key,
+            version_id=version_id
+        ) is None
+
+    def test_get_object_tagging_no_such_key(self):
+        bucket = "test-bucket"
+        key = "test-key"
+        version_id = None
+
+        self.s3_stubber.add_client_error(
+            method="get_object_tagging",
+            service_error_code="NoSuchKey",
+            expected_params={
+                "Bucket": bucket,
+                "Key": key,
+            },
+        )
+
+        with pytest.raises(botocore.exceptions.ClientError):
+            assert index.get_object_tagging(
+                s3_client=self.s3_client,
+                bucket=bucket, key=key,
+                version_id=version_id
+            )
 
 
 def test_extract_pptx():
