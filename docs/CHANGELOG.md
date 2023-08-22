@@ -27,6 +27,7 @@ Entries inside each section should be ordered by type:
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
+* [Added] Indexer lambda now indexes S3 Object tags ([#3691](https://github.com/quiltdata/quilt/pull/3691))
 * [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
 * [Changed] Hide columns without values in files listings ([#3512](https://github.com/quiltdata/quilt/pull/3512))
 * [Changed] Enable `allow-same-origin` for iframes in browsable buckets ([#3516](https://github.com/quiltdata/quilt/pull/3516))

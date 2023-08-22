@@ -268,6 +268,7 @@ def do_index(
         text: str = '',
         size: int = 0,
         version_id: Optional[str] = None,
+        s3_tags: Optional[dict] = None,
 ):
     """wrap dual indexing of packages and objects"""
     logger_ = get_quilt_logger()
@@ -282,7 +283,8 @@ def do_index(
         last_modified=last_modified,
         size=size,
         text=text,
-        version_id=version_id
+        version_id=version_id,
+        s3_tags=s3_tags,
     )
     # maybe index as package
     if index_if_package(
@@ -678,6 +680,7 @@ def handler(event, context):
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
     # An exception that we'll want to re-raise after the batch sends
+    # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
     batch_processor = DocumentQueue(context)
     s3_client = make_s3_client()
@@ -790,6 +793,10 @@ def handler(event, context):
                     text = ""
                     logger_.warning("Content extraction failed %s %s %s", bucket, key, exc)
 
+                # XXX: we could replace head_object() call above with get_object(Range='bytes=0-0')
+                #      which returns TagsCount, so we could optimize out get_object_tagging() call
+                #      for objects without tags.
+
                 do_index(
                     s3_client,
                     batch_processor,
@@ -801,7 +808,13 @@ def handler(event, context):
                     last_modified=last_modified,
                     size=size,
                     text=text,
-                    version_id=version_id
+                    version_id=version_id,
+                    s3_tags=get_object_tagging(
+                        s3_client=s3_client,
+                        bucket=bucket,
+                        key=key,
+                        version_id=version_id,
+                    ),
                 )
 
             except botocore.exceptions.ClientError as boto_exc:
@@ -865,3 +878,24 @@ def retry_s3(
         return function_(**arguments)
 
     return call()
+
+
+def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional[str]) -> Optional[dict]:
+    params = {
+        "Bucket": bucket,
+        "Key": key,
+    }
+    if version_id:
+        params["VersionId"] = version_id
+
+    try:
+        s3_tags = s3_client.get_object_tagging(**params)["TagSet"]
+        return {t["Key"]: t["Value"] for t in s3_tags}
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] != "AccessDenied":
+            raise
+        get_quilt_logger().error(
+            "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s",
+            bucket, key, version_id
+        )
+        return None
