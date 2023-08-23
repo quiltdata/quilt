@@ -182,9 +182,11 @@ const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) 
   const [key, ...keysTail] = keys
   const fileExists = await ensureObjectIsPresent({
     s3,
-    bucket,
-    key,
-    version,
+    location: {
+      bucket,
+      key,
+      version,
+    },
   })
 
   return (
@@ -229,8 +231,10 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
 
   const versions = await objectVersions({
     s3,
-    bucket,
-    path: fileExists.key,
+    location: {
+      bucket,
+      key: fileExists.key,
+    },
   })
   const latest = R.find(R.prop('isLatest'), versions)
   const version = latest && latest.id !== 'null' ? latest.id : undefined
@@ -301,7 +305,7 @@ const MAX_IMGS = 100
 
 export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
 
-export async function getObjectExistence({ s3, bucket, key, version }) {
+export async function getObjectExistence({ s3, location: { bucket, key, version } }) {
   const req = s3.headObject({ Bucket: bucket, Key: key, VersionId: version })
   try {
     const h = await req.promise()
@@ -350,7 +354,7 @@ export const ensureObjectIsPresent = (...args) =>
   )
 
 export const ensureQuiltSummarizeIsPresent = ({ s3, bucket }) =>
-  ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
+  ensureObjectIsPresent({ s3, location: { bucket, key: SUMMARIZE_KEY } })
 
 export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
   const handle = await ensureQuiltSummarizeIsPresent({ s3, bucket })
@@ -460,11 +464,13 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
       overviewUrl &&
       ensureObjectIsPresent({
         s3,
-        bucket: getOverviewBucket(overviewUrl),
-        key: getOverviewKey(overviewUrl, 'README.md'),
+        location: {
+          bucket: getOverviewBucket(overviewUrl),
+          key: getOverviewKey(overviewUrl, 'README.md'),
+        },
       }),
     discovered: Promise.all(
-      README_KEYS.map((key) => ensureObjectIsPresent({ s3, bucket, key })),
+      README_KEYS.map((key) => ensureObjectIsPresent({ s3, location: { bucket, key } })),
     ).then(R.filter(Boolean)),
   })
 
@@ -542,15 +548,15 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   return []
 }
 
-export const objectVersions = ({ s3, bucket, path }) =>
+export const objectVersions = ({ s3, location: { bucket, key } }) =>
   s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
+    .listObjectVersions({ Bucket: bucket, Prefix: key, EncodingType: 'url' })
     .promise()
     .then(
       R.pipe(
         ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
         R.map(R.evolve({ Key: decodeS3Key })),
-        R.filter((v) => v.Key === path),
+        R.filter((v) => v.Key === key),
         R.map((v) => ({
           isLatest: v.IsLatest || false,
           lastModified: v.LastModified,
@@ -809,7 +815,7 @@ const queryAccessCounts = async ({ s3, type, query, today, window = 365 }) => {
   }
 }
 
-export const objectAccessCounts = ({ s3, bucket, path, today }) =>
+export const objectAccessCounts = ({ s3, location: { bucket, key }, today }) =>
   queryAccessCounts({
     s3,
     type: 'Objects',
@@ -817,7 +823,7 @@ export const objectAccessCounts = ({ s3, bucket, path, today }) =>
       SELECT counts FROM s3object
       WHERE eventname = 'GetObject'
       AND bucket = '${sqlEscape(bucket)}'
-      AND "key" = '${sqlEscape(path)}'
+      AND "key" = '${sqlEscape(key)}'
     `,
     today,
     window: 365,

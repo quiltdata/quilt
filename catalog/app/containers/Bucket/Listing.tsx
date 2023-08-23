@@ -10,8 +10,8 @@ import { fade } from '@material-ui/core/styles'
 import * as DG from 'components/DataGrid'
 import { renderPageRange } from 'components/Pagination2'
 import type * as Routes from 'constants/routes'
+import type * as Model from 'model'
 import type { Urls } from 'utils/NamedRoutes'
-import type { PackageHandleWithHashesOrTag } from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
@@ -33,8 +33,13 @@ export interface Item {
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
-  File: (f: { key: string; size?: number; archived?: boolean; modified?: Date }) => f,
-  Dir: (d: { key: string; size?: number }) => d,
+  File: (f: {
+    location: Model.S3.S3ObjectLocation
+    size?: number
+    archived?: boolean
+    modified?: Date
+  }) => f,
+  Dir: (d: { location: Model.S3.S3ObjectLocation; size?: number }) => d,
 })
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -52,38 +57,31 @@ type BucketUrls = Urls<Omit<RouteMap, 'bucketPackageTree'>>
 
 interface FormatListingOptions {
   bucket: string
-  packageHandle?: PackageHandleWithHashesOrTag
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
   prefix: string
   urls?: BucketUrls | PackageUrls
 }
 
 export function format(
   entries: Entry[],
-  { bucket, packageHandle, prefix, urls }: FormatListingOptions,
+  { bucket, handle, hash, prefix, urls }: FormatListingOptions,
 ) {
   const toDir = (path: string) => {
     if (!urls) return path
-    if (!packageHandle) return urls.bucketDir(bucket, path)
+    if (!handle || !hash) return urls.bucketDir({ bucket, key: path })
     return (
       (urls as PackageUrls).bucketPackageTree?.(
-        bucket,
-        packageHandle.name,
-        packageHandle.hashOrTag,
+        handle,
+        hash,
         path ? s3paths.ensureSlash(path) : path,
       ) || path
     )
   }
-  const toFile = (path: string) => {
-    if (!urls) return path
-    if (!packageHandle) return urls.bucketFile(bucket, path)
-    return (
-      (urls as PackageUrls).bucketPackageTree?.(
-        bucket,
-        packageHandle.name,
-        packageHandle.hashOrTag,
-        path,
-      ) || path
-    )
+  const toFile = (key: string) => {
+    if (!urls) return key
+    if (!handle || !hash) return urls.bucketFile({ bucket, key })
+    return (urls as PackageUrls).bucketPackageTree?.(handle, hash, key) || key
   }
 
   const head = prefix
@@ -99,16 +97,16 @@ export function format(
     ...head,
     ...entries.map(
       Entry.match<Item>({
-        Dir: ({ key, size }) => ({
+        Dir: ({ location, size }) => ({
           type: 'dir' as const,
-          name: s3paths.ensureNoSlash(s3paths.withoutPrefix(prefix, key)),
-          to: toDir(key),
+          name: s3paths.ensureNoSlash(s3paths.withoutPrefix(prefix, location.key)),
+          to: toDir(location.key),
           size,
         }),
-        File: ({ key, size, archived, modified }) => ({
+        File: ({ location, size, archived, modified }) => ({
           type: 'file' as const,
-          name: s3paths.withoutPrefix(prefix, key),
-          to: toFile(key),
+          name: s3paths.withoutPrefix(prefix, location.key),
+          to: toFile(location.key),
           size,
           modified,
           archived,

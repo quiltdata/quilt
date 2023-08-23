@@ -165,14 +165,16 @@ interface TableRowProps {
 function TableRow({ onEdit, onRemove, row }: TableRowProps) {
   const classes = useTableRowStyles()
   const { urls } = NamedRoutes.use()
-  const handle = s3paths.parseS3Url(row.s3)
+  const location = s3paths.parseS3Url(row.s3)
   const handleRemove = React.useCallback(() => onRemove(row), [onRemove, row])
   const handleEdit = React.useCallback(() => onEdit(row), [onEdit, row])
   return (
     <M.TableRow hover>
       <M.TableCell>{row.local}</M.TableCell>
       <M.TableCell>
-        <StyledLink to={urls.bucketPackageDetail(handle.bucket, handle.key)}>
+        <StyledLink
+          to={urls.bucketPackageDetail({ bucket: location.bucket, name: location.key })}
+        >
           {row.s3}
         </StyledLink>
       </M.TableCell>

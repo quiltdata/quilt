@@ -6,12 +6,12 @@ import type { JsonRecord } from 'utils/types'
 
 interface ObjectTagsArgs {
   s3: S3
-  handle: Model.S3.S3ObjectLocation
+  location: Model.S3.S3ObjectLocation
 }
 
 export const objectTags = ({
   s3,
-  handle: { bucket, key, version },
+  location: { bucket, key, version },
 }: ObjectTagsArgs): Promise<Record<string, string>> =>
   s3
     .getObjectTagging({
@@ -26,12 +26,12 @@ export const objectTags = ({
 
 interface ObjectMetaArgs {
   s3: S3
-  handle: Model.S3.S3ObjectLocation
+  location: Model.S3.S3ObjectLocation
 }
 
 export const objectMeta = ({
   s3,
-  handle: { bucket, key, version },
+  location: { bucket, key, version },
 }: ObjectMetaArgs): Promise<JsonRecord> =>
   s3
     .headObject({

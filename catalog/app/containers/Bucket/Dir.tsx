@@ -9,6 +9,7 @@ import * as Buttons from 'components/Buttons'
 import * as FileEditor from 'components/FileEditor'
 import cfg from 'constants/config'
 import type * as Routes from 'constants/routes'
+import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -31,13 +32,12 @@ import { displayError } from './errors'
 import * as requests from './requests'
 
 interface DirectoryMenuProps {
-  bucket: string
+  location: Model.S3.S3ObjectLocation
   className?: string
-  path: string
 }
 
-function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
-  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
+function DirectoryMenu({ location, className }: DirectoryMenuProps) {
+  const prompt = FileEditor.useCreateFileInBucket(location)
   const menuItems = React.useMemo(
     () => [
       {
@@ -64,27 +64,30 @@ interface RouteMap {
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   const { urls } = NamedRoutes.use<RouteMap>()
   return React.useMemo(() => {
-    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const { bucket, key: prefix } = r.location
+    const d = r.dirs.map((p) => Listing.Entry.Dir({ location: { bucket, key: p } }))
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, urls })
+    return Listing.format([...d, ...f], {
+      bucket,
+      prefix,
+      urls,
+    })
   }, [r, urls])
 }
 
 interface DirContentsProps {
   response: requests.BucketListingResult
   locked: boolean
-  bucket: string
-  path: string
+  location: Model.S3.S3ObjectLocation
   loadMore?: () => void
   selection: string[]
   onSelection: (ids: string[]) => void
 }
 
 function DirContents({
+  location, // TODO: use response.location?
   response,
   locked,
-  bucket,
-  path,
   loadMore,
   selection,
   onSelection,
@@ -93,13 +96,15 @@ function DirContents({
   const { urls } = NamedRoutes.use<RouteMap>()
 
   const setPrefix = React.useCallback(
-    (newPrefix) => {
-      history.push(urls.bucketDir(bucket, path, newPrefix))
-    },
-    [history, urls, bucket, path],
+    (newPrefix) => history.push(urls.bucketDir(location, newPrefix)),
+    [history, location, urls],
   )
 
   const items = useFormattedListing(response)
+  const summaryLocations = React.useMemo(
+    () => response.files.map((f) => f.location),
+    [response.files],
+  )
 
   // TODO: should prefix filtering affect summary?
   return (
@@ -115,7 +120,7 @@ function DirContents({
         toolbarContents={
           <>
             <Listing.PrefixFilter
-              key={`${response.bucket}/${response.path}`}
+              key={`${response.location.bucket}/${response.location.key}`}
               prefix={response.prefix}
               setPrefix={setPrefix}
             />
@@ -124,7 +129,7 @@ function DirContents({
       />
       {/* Remove TS workaround when Summary will be converted to .tsx */}
       {/* @ts-expect-error */}
-      <Summary files={response.files} mkUrl={null} path={path} />
+      <Summary files={summaryLocations} mkUrl={null} />
     </>
   )
 }
@@ -239,19 +244,24 @@ export default function Dir() {
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
   const { prefix } = parseSearch(l.search, true)
-  const path = s3paths.decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: s3paths.decode(encodedPath),
+    }),
+    [bucket, encodedPath],
+  )
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
   React.useLayoutEffect(() => {
     // reset accumulated results when path and / or prefix change
     setPrev(null)
-  }, [path, prefix])
+  }, [location, prefix])
 
   const data = useData(requests.bucketListing, {
     s3,
-    bucket,
-    path,
+    location,
     prefix,
     prev,
   })
@@ -273,13 +283,13 @@ export default function Dir() {
     Selection.EMPTY_MAP,
   )
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
-    [bucket, path, prefix],
+    (ids) => setSelection(Selection.merge(ids, location, prefix)),
+    [location, prefix],
   )
 
   const packageDirectoryDialog = PD.usePackageCreationDialog({
-    s3Path: path,
-    bucket,
+    s3Path: location.key,
+    bucket: location.bucket,
     delayHashing: true,
     disableStateDisplay: true,
   })
@@ -287,26 +297,26 @@ export default function Dir() {
   const openPackageCreationDialog = React.useCallback(
     (successor: workflows.Successor) => {
       packageDirectoryDialog.open({
-        path,
+        path: location.key,
         successor,
         selection,
       })
     },
-    [packageDirectoryDialog, path, selection],
+    [packageDirectoryDialog, location.key, selection],
   )
 
   const { paths, urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
-    (segPath: string) => urls.bucketDir(bucket, segPath),
-    [bucket, urls],
+    (segPath: string) => urls.bucketDir({ bucket: location.bucket, key: segPath }),
+    [location.bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
+  const crumbs = BreadCrumbs.use(location.key, getSegmentRoute, location.bucket)
 
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
   const guardNavigation = React.useCallback(
-    (location) => {
+    (loc) => {
       if (
-        !RRDom.matchPath(location.pathname, {
+        !RRDom.matchPath(loc.pathname, {
           path: paths.bucketDir,
           exact: true,
         })
@@ -320,7 +330,7 @@ export default function Dir() {
 
   return (
     <M.Box pt={2} pb={4}>
-      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+      <MetaTitle>{[location.key || 'Files', location.bucket]}</MetaTitle>
 
       <RRDom.Prompt when={hasSelection} message={guardNavigation} />
 
@@ -347,7 +357,7 @@ export default function Dir() {
               Ok: ({ ui: { actions } }) =>
                 actions.createPackage && (
                   <Successors.Button
-                    bucket={bucket}
+                    bucket={location.bucket}
                     className={classes.button}
                     onChange={openPackageCreationDialog}
                     variant={hasSelection ? 'contained' : 'outlined'}
@@ -364,18 +374,18 @@ export default function Dir() {
           {!cfg.noDownload && !cfg.desktop && (
             <FileView.ZipDownloadForm
               className={classes.button}
-              suffix={`dir/${bucket}/${path}`}
+              suffix={`dir/${location.bucket}/${location.key}`}
               label="Download directory"
             />
           )}
-          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
+          <DirectoryMenu className={classes.button} location={location} />
         </div>
       </div>
 
       {BucketPreferences.Result.match(
         {
           Ok: ({ ui: { blocks } }) =>
-            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom />,
+            blocks.code && <DirCodeSamples location={location} gutterBottom />,
           Pending: () => null,
           Init: () => null,
         },
@@ -391,10 +401,9 @@ export default function Dir() {
             <DirContents
               response={res}
               locked={!AsyncResult.Ok.is(x)}
-              bucket={bucket}
-              path={path}
+              location={location}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(selection, res.location)}
               onSelection={handleSelection}
             />
           ) : (

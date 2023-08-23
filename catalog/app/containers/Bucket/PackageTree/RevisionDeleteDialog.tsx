@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
+import * as Model from 'model'
 import * as packageHandleUtils from 'utils/packageHandle'
 
 const useStyles = M.makeStyles((t) => ({
@@ -34,9 +35,10 @@ interface PackageDeleteDialogProps {
   error?: React.ReactNode
   loading: boolean
   onClose: () => void
-  onDelete: (handle: packageHandleUtils.PackageHandle) => void
+  onDelete: () => void
   open: boolean
-  packageHandle: packageHandleUtils.PackageHandle
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
 }
 
 export default function PackageDeleteDialog({
@@ -45,13 +47,10 @@ export default function PackageDeleteDialog({
   onClose,
   onDelete,
   open,
-  packageHandle,
+  handle,
+  hash,
 }: PackageDeleteDialogProps) {
   const classes = useStyles()
-
-  const onConfirm = React.useCallback(() => {
-    onDelete(packageHandle)
-  }, [packageHandle, onDelete])
 
   const onCancel = React.useCallback(() => {
     if (!loading) onClose()
@@ -66,8 +65,8 @@ export default function PackageDeleteDialog({
     >
       <M.DialogTitle id="alert-dialog-title">
         Really delete revision{' '}
-        <Code>{packageHandleUtils.shortenRevision(packageHandle.hash)}</Code> of{' '}
-        <Code>{packageHandle.name}</Code>?
+        <Code>{packageHandleUtils.shortenRevision(hash.value)}</Code> of{' '}
+        <Code>{handle.name}</Code>?
       </M.DialogTitle>
       <M.DialogContent id="alert-dialog-description">
         <M.DialogContentText>
@@ -83,7 +82,7 @@ export default function PackageDeleteDialog({
         <M.Button onClick={onCancel} color="primary" autoFocus disabled={loading}>
           Cancel
         </M.Button>
-        <M.Button onClick={onConfirm} className={classes.danger} disabled={loading}>
+        <M.Button onClick={onDelete} className={classes.danger} disabled={loading}>
           Yes, delete it
         </M.Button>
       </M.DialogActions>

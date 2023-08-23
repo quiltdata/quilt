@@ -6,6 +6,7 @@ import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
+import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
@@ -37,19 +38,15 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 }))
 
 interface RevisionInfoProps {
-  bucket: string
-  name: string
+  handle: Model.Package.Handle
   path: string
-  hashOrTag: string
-  hash?: string
+  revision: Model.Package.Revision
   revisionListQuery: GQL.QueryResultForDoc<typeof REVISION_LIST_QUERY>
 }
 
 export default function RevisionInfo({
-  bucket,
-  name,
-  hash,
-  hashOrTag,
+  handle,
+  revision,
   path,
   revisionListQuery,
 }: RevisionInfoProps) {
@@ -63,35 +60,37 @@ export default function RevisionInfo({
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
 
-  const getHttpsUri = (h: string) =>
-    `${window.origin}${urls.bucketPackageTree(bucket, name, h, path)}`
+  const getHttpsUri = (hash: string) =>
+    `${window.origin}${urls.bucketPackageTree(handle, { value: hash }, path)}`
 
   const copyHttpsUri =
-    (h: string, containerRef?: React.RefObject<HTMLUListElement>) =>
+    (hash: string, containerRef?: React.RefObject<HTMLUListElement>) =>
     (e: React.MouseEvent) => {
       e.preventDefault()
-      copyToClipboard(getHttpsUri(h), { container: containerRef?.current || undefined })
+      copyToClipboard(getHttpsUri(hash), {
+        container: containerRef?.current || undefined,
+      })
       push('Canonical URI copied to clipboard')
     }
 
+  // TODO: move <M.ListItem>...</> to its own component with its own memoized Package.Handle
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span
         className={classes.revision}
         onClick={open}
         ref={setAnchor}
-        title={hashOrTag.length > 10 ? hashOrTag : undefined}
+        title={revision.value}
       >
-        {R.take(10, hashOrTag)} <M.Icon>expand_more</M.Icon>
+        {R.take(10, Model.Package.tagOrHash(revision))} <M.Icon>expand_more</M.Icon>
       </span>
 
-      {!!hash && (
+      {!!revision.value && (
         <M.IconButton
           size="small"
           title="Copy package revision's canonical catalog URI to the clipboard"
-          href={getHttpsUri(hash)}
-          onClick={copyHttpsUri(hash)}
+          href={getHttpsUri(revision.value)}
+          onClick={copyHttpsUri(revision.value)}
           style={{ marginTop: -4, marginBottom: -4 }}
         >
           <M.Icon>link</M.Icon>
@@ -114,9 +113,9 @@ export default function RevisionInfo({
                     key={`${r.hash}:${r.modified.valueOf()}`}
                     button
                     onClick={close}
-                    selected={r.hash === hash}
+                    selected={r.hash === revision.value}
                     component={RRLink}
-                    to={urls.bucketPackageTree(bucket, name, r.hash, path)}
+                    to={urls.bucketPackageTree(handle, { value: r.hash }, path)}
                   >
                     <M.ListItemText
                       primary={dateFns.format(r.modified, 'MMMM do yyyy - h:mma')}
@@ -171,7 +170,7 @@ export default function RevisionInfo({
             button
             onClick={close}
             component={RRLink}
-            to={urls.bucketPackageRevisions(bucket, name)}
+            to={urls.bucketPackageRevisions(handle)}
           >
             <M.Box textAlign="center" width="100%">
               Show all revisions

@@ -58,9 +58,8 @@ export default function UriResolver() {
   const to =
     parsed &&
     urls.bucketPackageTree(
-      parsed.bucket,
-      parsed.name,
-      parsed.hash || parsed.tag,
+      { bucket: parsed.bucket, name: parsed.name },
+      { value: parsed.hash, alias: parsed.tag },
       parsed.path,
     ) + NamedRoutes.mkSearch({ resolvedFrom: uri })
 

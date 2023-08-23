@@ -35,7 +35,7 @@ interface BookmarkItemProps {
 function BookmarkItem({ handle, onRemove }: BookmarkItemProps) {
   const classes = useBookmarksItemStyles()
   const { urls } = NamedRoutes.use()
-  const to = urls.bucketFile(handle.bucket, handle.key)
+  const to = urls.bucketFile(handle)
   const title = `s3://${handle.bucket}/${handle.key}`
   return (
     <M.ListItem>
@@ -90,7 +90,7 @@ function useHeadFile() {
       const { ContentLength: size } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId: version })
         .promise()
-      return { bucket, key, size: size || 0, version }
+      return { location: { bucket, key, version }, size: size || 0 }
     },
     [s3],
   )
@@ -111,8 +111,10 @@ function useHandlesToS3Files(
       const requests = handles.map((handle) =>
         s3paths.isDir(handle.key)
           ? bucketListing({
-              bucket: handle.bucket,
-              path: s3paths.ensureNoSlash(handle.key),
+              location: {
+                bucket: handle.bucket,
+                key: s3paths.ensureNoSlash(handle.key),
+              },
               delimiter: false,
               drain: true,
             })
@@ -125,14 +127,17 @@ function useHandlesToS3Files(
             ? response.files.reduce(
                 (acc, file) => ({
                   ...acc,
-                  [path.relative(path.join(response.path, '..'), file.key)]: file,
+                  [path.relative(
+                    path.join(response.location.key, '..'),
+                    file.location.key,
+                  )]: file,
                 }),
                 memo,
               )
             : {
                 ...memo,
                 // TODO: handle the same key from another bucket
-                [path.basename(response.key)]: response,
+                [path.basename(response.location.key)]: response,
               },
         {} as Record<string, Model.S3File>,
       )

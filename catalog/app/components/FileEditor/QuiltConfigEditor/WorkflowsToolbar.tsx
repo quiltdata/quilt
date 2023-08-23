@@ -35,7 +35,10 @@ function SchemaField({
   const href = React.useMemo(
     () =>
       input.value
-        ? urls.bucketFile(bucket, `.quilt/workflows/${input.value}.json`, { edit: true })
+        ? urls.bucketFile(
+            { bucket, key: `.quilt/workflows/${input.value}.json` },
+            { edit: true },
+          )
         : null,
     [urls, bucket, input.value],
   )

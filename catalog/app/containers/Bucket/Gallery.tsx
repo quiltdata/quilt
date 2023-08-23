@@ -84,9 +84,7 @@ export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
         {pagination.paginated.map((i: LogicalKeyResolver.S3SummarizeHandle) => (
           <RRDom.Link
             key={i.logicalKey || i.key}
-            to={
-              mkUrl ? mkUrl(i) : urls.bucketFile(i.bucket, i.key, { version: i.version })
-            }
+            to={mkUrl ? mkUrl(i) : urls.bucketFile(i)}
             className={classes.link}
           >
             {/* @ts-expect-error */}

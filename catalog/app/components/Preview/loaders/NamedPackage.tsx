@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import type * as React from 'react'
 
 import type * as Model from 'model'
 

@@ -4,10 +4,13 @@ import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 
 import * as GQLTypes from './graphql/types.generated'
+import * as S3 from './S3'
 
 export * as GQLTypes from './graphql/types.generated'
 
 export * as S3 from './S3'
+
+export * as Package from './Package'
 
 export const BucketPermissionLevel = Types.enum(
   GQLTypes.BucketPermissionLevel,
@@ -62,9 +65,7 @@ export type PackageContentsFlatMap = Record<string, PackageEntry>
 export interface S3File {
   // TODO: replace with { address: { handle: S3.S3ObjectLocation }}
   //       so, you can merge PackageEntry and S3File
-  bucket: string
-  key: string
+  location: S3.S3ObjectLocation
   meta?: EntryMeta
   size: number
-  version?: string
 }

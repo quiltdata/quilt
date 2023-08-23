@@ -20,6 +20,9 @@ export default function WorkflowsConfigLink({
   const { urls } = NamedRoutes.use()
   const { pathname, search } = RRDom.useLocation()
   const next = pathname + search
-  const toConfig = urls.bucketFile(bucket, requests.WORKFLOWS_CONFIG_PATH, { next })
+  const toConfig = urls.bucketFile(
+    { bucket, key: requests.WORKFLOWS_CONFIG_PATH },
+    { next },
+  )
   return <StyledLink to={toConfig}>{children}</StyledLink>
 }

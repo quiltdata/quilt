@@ -58,7 +58,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   },
 }))
 
-function VersionInfo({ bucket, path, version }) {
+function VersionInfo({ location }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
@@ -76,14 +76,14 @@ function VersionInfo({ bucket, path, version }) {
 
   const getLink = (v) =>
     overrides.s3ObjectLink.href({
-      url: urls.bucketFile(bucket, path, { version: v.id }),
-      s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
-      bucket,
-      key: path,
+      url: urls.bucketFile({ ...location, version: v.id }),
+      s3HttpsUri: s3paths.handleToHttpsUri({ ...location, version: v.id }),
+      ...location,
       version: v.id,
     })
 
-  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
+  const getCliArgs = (v) =>
+    `--bucket ${location.bucket} --key "${location.key}" --version-id ${v.id}`
 
   const copyLink = (v) => (e) => {
     e.preventDefault()
@@ -94,10 +94,9 @@ function VersionInfo({ bucket, path, version }) {
     if (overrides.s3ObjectLink.emit) {
       messageParent({
         type: 's3ObjectLink',
-        url: urls.bucketFile(bucket, path, { version: v.id }),
-        s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
-        bucket,
-        key: path,
+        url: urls.bucketFile({ ...location, version: v.id }),
+        s3HttpsUri: s3paths.handleToHttpsUri({ ...location, version: v.id }),
+        ...location,
         version: v.id,
       })
     }
@@ -109,14 +108,14 @@ function VersionInfo({ bucket, path, version }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3, bucket, path })
+  const data = useData(requests.objectVersions, { s3, location })
 
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
+        {location.version ? (
+          <span className={classes.mono}>{location.version.substring(0, 12)}</span>
         ) : (
           'latest'
         )}{' '}
@@ -137,9 +136,9 @@ function VersionInfo({ bucket, path, version }) {
                   key={v.id}
                   button
                   onClick={close}
-                  selected={version ? v.id === version : v.isLatest}
+                  selected={location.version ? v.id === location.version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, { version: v.id })}
+                  to={urls.bucketFile({ ...location, version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -163,7 +162,7 @@ function VersionInfo({ bucket, path, version }) {
                       {!v.deleteMarker &&
                         !v.archived &&
                         AWS.Signer.withDownloadUrl(
-                          { bucket, key: path, version: v.id },
+                          { ...location, version: v.id },
                           (url) => (
                             <M.IconButton
                               href={url}
@@ -229,7 +228,7 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Analytics({ bucket, path }) {
+function Analytics(location) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -240,8 +239,7 @@ function Analytics({ bucket, path }) {
     )
   const data = useData(requests.objectAccessCounts, {
     s3,
-    bucket,
-    path,
+    location,
     today,
   })
 
@@ -344,21 +342,30 @@ const previewOptions = { context: Preview.CONTEXT.FILE }
 
 export default function File() {
   const { bucket, path: encodedPath } = useParams()
-  const location = useLocation()
+  const l = useLocation()
   const ecfg = EmbedConfig.use()
-  const { version } = parseSearch(location.search)
+  const { version } = parseSearch(l.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
 
   const path = s3paths.decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: path,
+      version,
+    }),
+    [bucket, path, version],
+  )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
+  const objExistsData = useData(requests.getObjectExistence, {
+    s3,
+    location: R.dissoc('version', location),
+  })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket,
-    key: path,
-    version,
+    location,
   })
 
   const objExists = objExistsData.case({
@@ -399,7 +406,7 @@ export default function File() {
   const scoped = ecfg.scope && path.startsWith(ecfg.scope)
   const scopedPath = scoped ? path.substring(ecfg.scope.length) : path
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketDir(bucket, `${scoped ? ecfg.scope : ''}${segPath}`),
+    (segPath) => urls.bucketDir({ bucket, key: `${scoped ? ecfg.scope : ''}${segPath}` }),
     [bucket, ecfg.scope, scoped, urls],
   )
   const crumbs = BreadCrumbs.use(
@@ -419,7 +426,7 @@ export default function File() {
           {basename(path)} <span className={classes.at}>@</span>
           &nbsp;
           {objExists ? ( // eslint-disable-line no-nested-ternary
-            <VersionInfo bucket={bucket} path={path} version={version} />
+            <VersionInfo location={location} />
           ) : version ? (
             <M.Box component="span" fontFamily="monospace.fontFamily">
               {version.substring(0, 12)}
@@ -453,7 +460,7 @@ export default function File() {
             <>
               {!ecfg.hideCode && <FileCodeSamples {...{ bucket, path }} />}
               {!ecfg.hideAnalytics && !!cfg.analyticsBucket && (
-                <Analytics {...{ bucket, path }} />
+                <Analytics location={location} />
               )}
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 <div className={classes.preview}>

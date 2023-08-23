@@ -35,7 +35,7 @@ function NamedPackage({
   const classes = useStyles()
   return (
     <div className={className} {...props}>
-      <StyledLink to={urls.bucketFile(bucket, `.quilt/packages/${hash}`)}>
+      <StyledLink to={urls.bucketFile({ bucket, key: `.quilt/packages/${hash}` })}>
         {hash}
       </StyledLink>
       {renderWarnings(warnings)}

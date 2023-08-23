@@ -57,8 +57,7 @@ const drainObjectList = async ({
 }
 
 export interface BucketListingFile {
-  bucket: string
-  key: string
+  location: Model.S3.S3ObjectLocation
   modified: Date
   size: number
   etag: string
@@ -70,8 +69,7 @@ export interface BucketListingResult {
   files: BucketListingFile[]
   truncated: boolean
   continuationToken?: string
-  bucket: string
-  path: string
+  location: Model.S3.S3ObjectLocation
   prefix?: string
 }
 
@@ -80,8 +78,7 @@ interface BucketListingDependencies {
 }
 
 interface BucketListingParams {
-  bucket: string
-  path?: string
+  location: Model.S3.S3ObjectLocation
   prefix?: string
   prev?: BucketListingResult
   delimiter?: string | false
@@ -90,8 +87,7 @@ interface BucketListingParams {
 
 export const bucketListing = async ({
   s3,
-  bucket,
-  path = '',
+  location: { bucket, key },
   prefix,
   prev,
   delimiter = '/',
@@ -100,7 +96,7 @@ export const bucketListing = async ({
   drainObjectList({
     s3,
     bucket,
-    prefix: path + (prefix || ''),
+    prefix: key + (prefix || ''),
     delimiter: delimiter === false ? undefined : delimiter,
     continuationToken: prev ? prev.continuationToken : undefined,
     maxRequests: drain === true ? DEFAULT_DRAIN_REQUESTS : drain,
@@ -115,10 +111,12 @@ export const bucketListing = async ({
       let files = (res.Contents || [])
         .map(R.evolve({ Key: decodeS3Key }))
         // filter-out "directory-files" (files that match prefixes)
-        .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
+        .filter(({ Key }: S3.Object) => Key !== key && !Key!.endsWith('/'))
         .map((i: S3.Object) => ({
-          bucket,
-          key: i.Key!,
+          location: {
+            bucket,
+            key: i.Key!,
+          },
           modified: i.LastModified!,
           size: i.Size!,
           etag: i.ETag!,
@@ -131,8 +129,10 @@ export const bucketListing = async ({
         files,
         truncated: res.IsTruncated!,
         continuationToken: res.NextContinuationToken,
-        bucket,
-        path,
+        location: {
+          bucket,
+          key,
+        },
         prefix,
       }
     })
@@ -164,7 +164,7 @@ function useHeadFile() {
       const { ContentLength: size } = await s3
         .headObject({ Bucket: bucket, Key: key, VersionId: version })
         .promise()
-      return { bucket, key, size: size || 0, version }
+      return { location: { bucket, key, version }, size: size || 0 }
     },
     [s3],
   )
@@ -180,8 +180,7 @@ export function useFilesListing() {
       const requests = handles.map((handle) =>
         s3paths.isDir(handle.key)
           ? limit(requestbucketListing, {
-              bucket: handle.bucket,
-              path: handle.key,
+              location: handle,
               delimiter: false,
               drain: true,
             })
@@ -194,14 +193,14 @@ export function useFilesListing() {
             ? response.files.reduce(
                 (acc, file) => ({
                   ...acc,
-                  [relative(join(response.path, '..'), file.key)]: file,
+                  [relative(join(response.location.key, '..'), file.location.key)]: file,
                 }),
                 memo,
               )
             : {
                 ...memo,
                 // TODO: handle the same key from another bucket
-                [basename(response.key)]: response,
+                [basename(response.location.key)]: response,
               },
         {} as Record<string, Model.S3File>,
       )

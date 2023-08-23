@@ -64,8 +64,8 @@ export interface S3Entry {
 }
 
 export interface PackageCreationSuccess {
-  name: string
-  hash?: string
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
 }
 
 // Convert FilesState to entries consumed by Schema validation
@@ -284,7 +284,10 @@ function PackageCreationForm({
         { name, bucket: successor.slug },
         schema,
       )
-      setSuccess({ name, hash: uploadResult?.hash })
+      setSuccess({
+        handle: { bucket: successor.slug, name },
+        hash: { value: uploadResult.hash },
+      })
       return null
     },
     [successor.slug, schema, setSuccess, uploadPackage],
@@ -350,7 +353,7 @@ function PackageCreationForm({
         ({ path, file }) =>
           [
             path,
-            { physicalKey: s3paths.handleToS3Url(file), meta: file.meta },
+            { physicalKey: s3paths.handleToS3Url(file.location), meta: file.meta },
           ] as R.KeyValuePair<string, PartialPackageEntry>,
       ),
       R.fromPairs,
@@ -393,7 +396,10 @@ function PackageCreationForm({
       })
       switch (r.__typename) {
         case 'PackagePushSuccess':
-          setSuccess({ name, hash: r.revision.hash })
+          setSuccess({
+            handle: { bucket: successor.slug, name },
+            hash: { value: r.revision.hash },
+          })
           return
         case 'OperationError':
           return mkFormError(r.message)
@@ -713,6 +719,7 @@ interface PackageCreationDialogUIOptions {
 interface UsePackageCreationDialogProps {
   bucket: string
   src?: {
+    // TODO: Model.Package.Handle, Model.Package.Hash
     name: string
     hash?: string
   }
@@ -930,7 +937,6 @@ export function usePackageCreationDialog({
           Success: (props) => (
             <DialogSuccess
               {...props}
-              bucket={successor.slug}
               onClose={close}
               browseText={ui.successBrowse}
               title={ui.successTitle}

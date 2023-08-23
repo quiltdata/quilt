@@ -52,7 +52,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   },
 }))
 
-function VersionInfo({ bucket, path, version }) {
+function VersionInfo({ location }) {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const { push } = Notifications.use()
@@ -65,8 +65,9 @@ function VersionInfo({ bucket, path, version }) {
 
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
-  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
+  const getHttpsUri = (v) => handleToHttpsUri({ ...location, version: v.id })
+  const getCliArgs = (v) =>
+    `--bucket ${location.bucket} --key "${location.key}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
     e.preventDefault()
@@ -80,14 +81,14 @@ function VersionInfo({ bucket, path, version }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3, bucket, path })
+  const data = useData(requests.objectVersions, { s3, location })
 
+  // TODO: move <M.ListItem>...</> to its own component with its own memoized location
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <span className={classes.version} onClick={open} ref={setAnchor}>
-        {version ? (
-          <span className={classes.mono}>{version.substring(0, 12)}</span>
+        {location.version ? (
+          <span className={classes.mono}>{location.version.substring(0, 12)}</span>
         ) : (
           'latest'
         )}{' '}
@@ -108,9 +109,9 @@ function VersionInfo({ bucket, path, version }) {
                   key={v.id}
                   button
                   onClick={close}
-                  selected={version ? v.id === version : v.isLatest}
+                  selected={location.version ? v.id === location.version : v.isLatest}
                   component={Link}
-                  to={urls.bucketFile(bucket, path, { version: v.id })}
+                  to={urls.bucketFile({ ...location, version: v.id })}
                 >
                   <M.ListItemText
                     primary={
@@ -134,7 +135,7 @@ function VersionInfo({ bucket, path, version }) {
                       {!v.deleteMarker &&
                         !v.archived &&
                         AWS.Signer.withDownloadUrl(
-                          { bucket, key: path, version: v.id },
+                          { ...location, version: v.id },
                           (url) => (
                             <M.IconButton
                               href={url}
@@ -200,7 +201,7 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-function Analytics({ bucket, path }) {
+function Analytics({ location }) {
   const [cursor, setCursor] = React.useState(null)
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
@@ -209,7 +210,7 @@ function Analytics({ bucket, path }) {
       date,
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
-  const data = useData(requests.objectAccessCounts, { s3, bucket, path, today })
+  const data = useData(requests.objectAccessCounts, { s3, location, today })
 
   const defaultExpanded = data.case({
     Ok: ({ total }) => !!total,
@@ -315,30 +316,34 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function File() {
-  const location = useLocation()
+  const l = useLocation()
   const { bucket, path: encodedPath } = useParams()
 
-  const { version, mode } = parseSearch(location.search)
+  const { version, mode } = parseSearch(l.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
 
-  const path = decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: decode(encodedPath),
+      version,
+    }),
+    [bucket, encodedPath, version],
+  )
 
   const [resetKey, setResetKey] = React.useState(0)
   const objExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket,
-    key: path,
+    location: R.dissoc('version', location),
     resetKey,
   })
   const versionExistsData = useData(requests.getObjectExistence, {
     s3,
-    bucket,
-    key: path,
-    version,
+    location,
     resetKey,
   })
 
@@ -369,14 +374,14 @@ export default function File() {
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
+      history.push(urls.bucketFile(location, { mode: m.valueOf() }))
     },
-    [history, urls, bucket, encodedPath, version],
+    [history, urls, location],
   )
 
   const handle = React.useMemo(
-    () => ({ bucket, key: path, version: fileVersionId }),
-    [bucket, path, fileVersionId],
+    () => ({ ...location, version: fileVersionId }),
+    [location, fileVersionId],
   )
 
   const editorState = FileEditor.useState(handle)
@@ -412,27 +417,27 @@ export default function File() {
   )
 
   const getSegmentRoute = React.useCallback(
-    (segPath) => urls.bucketDir(bucket, segPath),
+    (segPath) => urls.bucketDir({ bucket, key: segPath }),
     [bucket, urls],
   )
-  const crumbs = BreadCrumbs.use(up(path), getSegmentRoute, bucket, {
+  const crumbs = BreadCrumbs.use(up(location.key), getSegmentRoute, bucket, {
     tailLink: true,
     tailSeparator: true,
   })
 
   return (
     <FileView.Root>
-      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+      <MetaTitle>{[location.key || 'Files', bucket]}</MetaTitle>
 
       <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
         {BreadCrumbs.render(crumbs)}
       </div>
       <div className={classes.topBar}>
         <div className={classes.name}>
-          {basename(path)} <span className={classes.at}>@</span>
+          {basename(location.key)} <span className={classes.at}>@</span>
           &nbsp;
           {objExists ? ( // eslint-disable-line no-nested-ternary
-            <VersionInfo bucket={bucket} path={path} version={version} />
+            <VersionInfo location={location} />
           ) : version ? (
             <M.Box component="span" fontFamily="monospace.fontFamily">
               {version.substring(0, 12)}
@@ -490,14 +495,14 @@ export default function File() {
                 {
                   Ok: ({ ui: { blocks } }) => (
                     <>
-                      {blocks.code && <FileCodeSamples {...{ bucket, path }} />}
+                      {blocks.code && <FileCodeSamples location={location} />}
                       {!!cfg.analyticsBucket && !!blocks.analytics && (
-                        <Analytics {...{ bucket, path }} />
+                        <Analytics location={location} />
                       )}
                       {blocks.meta && (
                         <>
-                          <FileView.ObjectMeta handle={handle} />
-                          <FileView.ObjectTags handle={handle} />
+                          <FileView.ObjectMeta location={location} />
+                          <FileView.ObjectTags location={location} />
                         </>
                       )}
                     </>

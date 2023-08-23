@@ -3,9 +3,9 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import cfg from 'constants/config'
+import type * as Model from 'model'
 import * as IPC from 'utils/electron/ipc-provider'
 import * as TeleportUri from 'utils/TeleportUri'
-import { PackageHandle } from 'utils/packageHandle'
 import { readableBytes } from 'utils/string'
 
 const SIZE_THRESHOLD = 1024 * 1024 * 100
@@ -58,18 +58,26 @@ export function Dialog({ onClose, onConfirm, open, size }: OpenInDesktopProps) {
   )
 }
 
-function useOpenInDesktop(packageHandle: PackageHandle, size?: number) {
+function useOpenInDesktop(
+  handle: Model.Package.Handle,
+  hash: Model.Package.Hash,
+  size?: number,
+) {
   const ipc = IPC.use()
 
   const [confirming, setConfirming] = React.useState(false)
   const openInDesktop = React.useCallback(async () => {
     if (cfg.desktop) {
-      await ipc.invoke(IPC.EVENTS.DOWNLOAD_PACKAGE, packageHandle)
+      await ipc.invoke(IPC.EVENTS.DOWNLOAD_PACKAGE, handle, hash)
     } else {
-      const deepLink = TeleportUri.stringify(packageHandle)
+      const deepLink = TeleportUri.stringify({
+        ...handle,
+        hash: hash.value,
+        tag: hash.alias,
+      })
       window.location.assign(deepLink)
     }
-  }, [ipc, packageHandle])
+  }, [ipc, handle, hash])
   const unconfirm = React.useCallback(() => setConfirming(false), [])
   const confirm = React.useCallback(() => {
     if (!size || size > SIZE_THRESHOLD) {

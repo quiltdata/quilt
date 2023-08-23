@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import { docs } from 'constants/urls'
+import type * as Model from 'model'
 import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
@@ -12,7 +13,7 @@ import type { SectionProps } from '../Section'
 import Code from './Code'
 
 const TEMPLATES = {
-  PY: (bucket: string, name: string, path: string, hashDisplay: string) => {
+  PY: ({ bucket, name }: Model.Package.Handle, path: string, hashDisplay: string) => {
     const pathPy = path && `, path="${s3paths.ensureNoSlash(path)}"`
     const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
     return dedent`
@@ -30,7 +31,11 @@ const TEMPLATES = {
       q3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
     `
   },
-  CLI_DOWNLOAD: (bucket: string, name: string, path: string, hashDisplay: string) => {
+  CLI_DOWNLOAD: (
+    { bucket, name }: Model.Package.Handle,
+    path: string,
+    hashDisplay: string,
+  ) => {
     const pathCli = path && ` --path "${s3paths.ensureNoSlash(path)}"`
     const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
     return dedent`
@@ -38,7 +43,7 @@ const TEMPLATES = {
       quilt3 install "${name}"${pathCli}${hashCli} --registry s3://${bucket} --dest .
     `
   },
-  CLI_UPLOAD: (bucket: string, name: string) =>
+  CLI_UPLOAD: ({ bucket, name }: Model.Package.Handle) =>
     dedent`
       # Upload package [[${docs}/api-reference/cli#push]]
       echo "Hello World" > README.md
@@ -47,45 +52,41 @@ const TEMPLATES = {
 }
 
 interface PackageCodeSamplesProps extends Partial<SectionProps> {
-  bucket: string
-  name: string
-  hash: string
-  hashOrTag: string
+  handle: Model.Package.Handle
+  hash: Model.Package.Hash
   path: string
 }
 
 export default function PackageCodeSamples({
-  bucket,
-  name,
+  handle,
   hash,
-  hashOrTag,
   path,
   ...props
 }: PackageCodeSamplesProps) {
-  const hashDisplay = hashOrTag === 'latest' ? '' : R.take(10, hash)
+  const hashDisplay = hash.alias === 'latest' ? '' : R.take(10, hash.value)
   const code = React.useMemo(
     () => [
       {
         label: 'Python',
         hl: 'python',
-        contents: TEMPLATES.PY(bucket, name, path, hashDisplay),
+        contents: TEMPLATES.PY(handle, path, hashDisplay),
       },
       {
         label: 'CLI',
         hl: 'bash',
         contents: [
-          TEMPLATES.CLI_DOWNLOAD(bucket, name, path, hashDisplay),
-          !path ? TEMPLATES.CLI_UPLOAD(bucket, name) : '',
+          TEMPLATES.CLI_DOWNLOAD(handle, path, hashDisplay),
+          !path ? TEMPLATES.CLI_UPLOAD(handle) : '',
         ]
           .filter(Boolean)
           .join('\n\n'),
       },
       {
         label: 'URI',
-        contents: PackageUri.stringify({ bucket, name, hash, path }),
+        contents: PackageUri.stringify({ ...handle, hash: hash.value, path }),
       },
     ],
-    [bucket, name, hashDisplay, hash, path],
+    [handle, hashDisplay, hash, path],
   )
   return <Code {...props}>{code}</Code>
 }

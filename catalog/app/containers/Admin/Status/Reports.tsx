@@ -64,7 +64,7 @@ function DownloadLink({ loc }: ReportLinkProps) {
 
 function PreviewLink({ loc }: ReportLinkProps) {
   const { urls } = NamedRoutes.use()
-  const url = urls.bucketFile(loc.bucket, loc.key, { version: loc.version })
+  const url = urls.bucketFile(loc)
   return (
     <M.Tooltip title="Preview in catalog">
       <M.IconButton component={RRDom.Link} to={url}>

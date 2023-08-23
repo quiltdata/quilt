@@ -40,13 +40,11 @@ function ObjectCrumbs({ handle, showBucket = false }) {
       switch (segPath) {
         case '':
           return urls.bucketRoot(handle.bucket)
-        case handle.key:
-          return urls.bucketFile(handle.bucket, segPath, { version: handle.version })
         default:
-          return urls.bucketFile(handle.bucket, segPath)
+          return urls.bucketFile({ ...handle, key: segPath })
       }
     },
-    [handle.bucket, handle.key, handle.version, urls],
+    [handle, urls],
   )
   const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, rootLabel, {
     tailLink: true,
@@ -174,7 +172,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         <Nowrap>
           Version{' '}
           <StyledLink
-            to={urls.bucketFile(bucket, path, { version: version.id })}
+            to={urls.bucketFile({ bucket, key: path, version: version.id })}
             className={classes.version}
           >
             {clip(version.id, 24)}
@@ -204,7 +202,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               className={classes.versionContainer}
             >
               <StyledLink
-                to={urls.bucketFile(bucket, path, { version: v.id })}
+                to={urls.bucketFile({ bucket, key: path, version: v.id })}
                 className={classes.version}
               >
                 {clip(v.id, 6)}
@@ -420,7 +418,10 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
   )
 
   const bucketExistenceData = useBucketExistence(bucket)
-  const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
+  const versionExistenceData = Data.use(requests.getObjectExistence, {
+    s3,
+    location: handle,
+  })
 
   const downloadable =
     !cfg.noDownload &&

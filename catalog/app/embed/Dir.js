@@ -27,12 +27,12 @@ const formatListing = ({ urls, scope }, r) => {
   const dirs = r.dirs.map((name) => ({
     type: 'dir',
     name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-    to: urls.bucketDir(r.bucket, name),
+    to: urls.bucketDir({ bucket: r.bucket, key: name }),
   }))
   const files = r.files.map(({ key, size, modified, archived }) => ({
     type: 'file',
     name: basename(key),
-    to: urls.bucketFile(r.bucket, key),
+    to: urls.bucketFile({ bucket: r.bucket, key }),
     size,
     modified,
     archived,
@@ -42,7 +42,7 @@ const formatListing = ({ urls, scope }, r) => {
     items.unshift({
       type: 'dir',
       name: '..',
-      to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
+      to: urls.bucketDir({ bucket: r.bucket, key: s3paths.up(r.path) }),
     })
   }
   // filter-out files with same name as one of dirs
@@ -67,6 +67,13 @@ export default function Dir() {
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
+  const location = React.useMemo(
+    () => ({
+      bucket,
+      key: path,
+    }),
+    [bucket, path],
+  )
 
   const [prev, setPrev] = React.useState(null)
 
@@ -77,8 +84,7 @@ export default function Dir() {
 
   const data = useData(requests.bucketListing, {
     s3,
-    bucket,
-    path,
+    location,
     prefix,
     prev,
   })

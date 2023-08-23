@@ -137,7 +137,7 @@ export default function AppBar({ bucket }) {
   const classes = useStyles()
   const { urls, paths } = NamedRoutes.use()
   const isSearch = !!useRouteMatch(paths.bucketSearch)
-  const rootUrl = urls.bucketDir(bucket, cfg.scope)
+  const rootUrl = urls.bucketDir({ bucket, key: cfg.scope })
   const showRootLink = !cfg.hideRootLink || isSearch
   return (
     <>

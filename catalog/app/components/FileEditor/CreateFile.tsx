@@ -4,8 +4,8 @@ import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
 import * as Dialog from 'components/Dialog'
+import type * as Model from 'model'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import type { PackageHandle } from 'utils/packageHandle'
 
 import { isSupportedFileType } from './loader'
 
@@ -19,13 +19,13 @@ function validateFileName(value: string) {
   }
 }
 
-export function useCreateFileInBucket(bucket: string, path: string) {
+export function useCreateFileInBucket({ bucket, key }: Model.S3.S3ObjectLocation) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
   const toFile = React.useCallback(
-    (name: string) => urls.bucketFile(bucket, join(path, name), { edit: true }),
-    [bucket, path, urls],
+    (name: string) => urls.bucketFile({ bucket, key: join(key, name) }, { edit: true }),
+    [bucket, key, urls],
   )
 
   const createFile = React.useCallback(
@@ -44,21 +44,24 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   })
 }
 
-export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?: string) {
+export function useCreateFileInPackage(handle: Model.Package.Handle, prefix?: string) {
   const { urls } = NamedRoutes.use()
   const history = RRDom.useHistory()
 
   const toFile = React.useCallback(
     (fileName: string) => {
-      const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-      const key = join(name, fileName)
-      return urls.bucketFile(bucket, key, {
-        add: fileName,
-        edit: true,
-        next,
-      })
+      const next = urls.bucketPackageDetail(handle, { action: 'revisePackage' })
+      const key = join(handle.name, fileName)
+      return urls.bucketFile(
+        { bucket: handle.bucket, key },
+        {
+          add: fileName,
+          edit: true,
+          next,
+        },
+      )
     },
-    [bucket, name, urls],
+    [handle, urls],
   )
 
   const createFile = React.useCallback(

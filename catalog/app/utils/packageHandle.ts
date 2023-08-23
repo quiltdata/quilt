@@ -1,20 +1,6 @@
 import lodashTemplate from 'lodash/template'
 import * as R from 'ramda'
 
-export interface PackageHandle {
-  bucket: string
-  name: string
-  hash: string
-}
-
-// TODO: see https://github.com/quiltdata/specs/pull/53
-export interface PackageHandleWithHashesOrTag {
-  bucket: string
-  name: string
-  hashOrTag: string
-  hash?: string
-}
-
 export function shortenRevision(fullRevision: string): string {
   return R.take(10, fullRevision)
 }

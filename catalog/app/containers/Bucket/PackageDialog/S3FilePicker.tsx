@@ -184,12 +184,13 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
   const bucketListing = requests.useBucketListing()
 
+  // TODO: setLocation<S3ObjectLocation>, and handlePath<string>
   const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const [selection, setSelection] = React.useState(Selection.EMPTY_MAP)
   const handleSelection = React.useCallback(
-    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
+    (ids) => setSelection(Selection.merge(ids, { bucket, key: path }, prefix)),
     [bucket, path, prefix],
   )
 
@@ -306,7 +307,7 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
               setPath={setPath}
               setPrefix={setPrefix}
               loadMore={loadMore}
-              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              selection={Selection.getDirectorySelection(selection, res.location)}
               onSelectionChange={handleSelection}
             />
           ) : (
@@ -336,9 +337,14 @@ export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogP
 
 function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
   return React.useMemo(() => {
-    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const d = r.dirs.map((p) =>
+      Listing.Entry.Dir({ location: { bucket: r.location.bucket, key: p } }),
+    )
     const f = r.files.map(Listing.Entry.File)
-    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path })
+    return Listing.format([...d, ...f], {
+      bucket: r.location.bucket,
+      prefix: r.location.key,
+    })
   }, [r])
 }
 
@@ -377,7 +383,11 @@ function DirContents({
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
-  const { bucket, path, prefix, truncated } = response
+  const {
+    location: { bucket, key },
+    prefix,
+    truncated,
+  } = response
 
   const CellComponent = React.useMemo(
     () =>
@@ -416,7 +426,7 @@ function DirContents({
       dataGridProps={{ autoHeight: false }}
       toolbarContents={
         <Listing.PrefixFilter
-          key={`${bucket}/${path}`}
+          key={`${bucket}/${key}`}
           prefix={prefix}
           setPrefix={setPrefix}
         />

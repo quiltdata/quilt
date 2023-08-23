@@ -3,11 +3,11 @@ import * as React from 'react'
 
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
-import { PackageHandle } from 'utils/packageHandle'
 import { useVoila } from 'utils/voila'
 
 import { PreviewData } from '../types'
 import FileType from './fileType'
+import * as summarize from './summarize'
 import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.ipynb'))
@@ -24,16 +24,18 @@ interface PreviewResult {
   }
 }
 
-interface FileHandle extends Model.S3.S3ObjectLocation {
-  packageHandle: PackageHandle
+interface LoaderOptions extends summarize.FileExtended {
+  handle?: Model.Package.Handle
+  hash?: Model.Package.Hash
 }
 
 interface NotebookLoaderProps {
   children: (result: $TSFixMe) => React.ReactNode
-  handle: FileHandle
+  handle: Model.S3.S3ObjectLocation
+  options: LoaderOptions
 }
 
-function NotebookLoader({ handle, children }: NotebookLoaderProps) {
+function NotebookLoader({ handle, children, options }: NotebookLoaderProps) {
   const voilaAvailable = useVoila()
   const data = utils.usePreview({ type: 'ipynb', handle, query: undefined })
   const processed = utils.useProcessing(data.result, (json: PreviewResult) =>
@@ -42,7 +44,7 @@ function NotebookLoader({ handle, children }: NotebookLoaderProps) {
       note: json.info.note,
       warnings: json.info.warnings,
       modes:
-        !!handle.packageHandle && voilaAvailable
+        !!options.handle && voilaAvailable
           ? [FileType.Jupyter, FileType.Json, FileType.Voila, FileType.Text]
           : [FileType.Jupyter, FileType.Json, FileType.Text],
     }),
@@ -53,10 +55,11 @@ function NotebookLoader({ handle, children }: NotebookLoaderProps) {
 export const Loader = function WrappedNotebookLoader({
   handle,
   children,
+  options,
 }: NotebookLoaderProps) {
   return (
     <React.Suspense fallback={() => children(AsyncResult.Pending())}>
-      <NotebookLoader {...{ handle, children }} />
+      <NotebookLoader {...{ handle, children, options }} />
     </React.Suspense>
   )
 }
