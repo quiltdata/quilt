@@ -79,7 +79,7 @@ interface PackageDirectoryProps {
     name: string
   }
   revision: string
-  path?: string
+  path: string
 }
 
 function PackageDirectory({
@@ -88,11 +88,11 @@ function PackageDirectory({
   revision,
   path,
 }: PackageDirectoryProps) {
-  const downloadPath = path
-    ? `package/${bucket}/${name}/${revision}/${path}`
-    : `package/${bucket}/${name}/${revision}`
   return (
-    <FileView.ZipDownloadForm suffix={downloadPath} className={className}>
+    <FileView.ZipDownloadForm
+      suffix={`package/${bucket}/${name}/${revision}/${path}`}
+      className={className}
+    >
       <Button icon="arrow_downward" title="Download" type="submit" />
     </FileView.ZipDownloadForm>
   )
