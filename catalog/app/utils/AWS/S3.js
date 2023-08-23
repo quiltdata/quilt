@@ -98,11 +98,15 @@ function useSmartS3() {
               req.httpRequest.path = req.httpRequest.path.replace(`/${b}`, '')
             }
 
+            const signedRegion = req.httpRequest.headers.Host.endsWith('s3.amazonaws.com')
+              ? '-'
+              : req.httpRequest.region
+
             req.httpRequest.endpoint = endpoint
             req.httpRequest.path =
               type === 'select'
                 ? `${basePath}${req.httpRequest.path}`
-                : `${basePath}/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+                : `${basePath}/${signedRegion}/${b}${req.httpRequest.path}`
           })
           req.on(
             'retry',
