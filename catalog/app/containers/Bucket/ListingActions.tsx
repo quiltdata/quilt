@@ -7,7 +7,6 @@ import * as Bookmarks from 'containers/Bookmarks/Provider'
 import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import assertNever from 'utils/assertNever'
 import * as s3paths from 'utils/s3paths'
 
 import * as FileView from './FileView'
@@ -211,7 +210,7 @@ function useMatchedParams(to: string) {
         }
       }
       default:
-        assertNever(match.path as never)
+        throw new Error(`Unexpected path '${match.path}'. Should have been never.`)
     }
   }, [paths, to])
 }
