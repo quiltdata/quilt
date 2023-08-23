@@ -29,7 +29,16 @@ export function DownloadButton({ className, label, onClick, path }: DownloadButt
     )
   }
 
-  return <FileView.ZipDownloadForm className={className} label={label} suffix={path} />
+  return (
+    <FileView.ZipDownloadForm suffix={path}>
+      <Buttons.Iconized
+        className={className}
+        label={label}
+        icon="archive"
+        type="submit"
+      />
+    </FileView.ZipDownloadForm>
+  )
 }
 
 const STORAGE_KEYS = {
