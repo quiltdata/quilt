@@ -1,5 +1,5 @@
-import * as Model from 'model'
+import { handleToS3Url } from 'utils/s3paths'
 
 export const Signer = {
-  useDownloadUrl: (l: Model.S3.S3ObjectLocation) => JSON.stringify(l),
+  useDownloadUrl: handleToS3Url,
 }
