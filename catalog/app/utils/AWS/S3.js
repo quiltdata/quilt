@@ -98,7 +98,9 @@ function useSmartS3() {
               req.httpRequest.path = req.httpRequest.path.replace(`/${b}`, '')
             }
 
-            const signedRegion = req.httpRequest.headers.Host.endsWith('s3.amazonaws.com')
+            const signedRegion = req.httpRequest.endpoint.host.endsWith(
+              's3.amazonaws.com',
+            )
               ? '-'
               : req.httpRequest.region
 
