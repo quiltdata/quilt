@@ -92,7 +92,7 @@ export default function Admin() {
     for (const [section, maybeVariants] of Object.entries(sections)) {
       const variants = ([] as RR.RouteProps[]).concat(maybeVariants)
       for (const opts of variants) {
-        if (RR.matchPath(pathname, opts)) return section
+        if (RR.matchPath(opts, pathname)) return section
       }
     }
     return false
@@ -101,7 +101,7 @@ export default function Admin() {
   return (
     <AdminLayout section={getSection(location.pathname)}>
       <ErrorBoundary key={JSON.stringify(location)}>
-        <RR.Switch>
+        <RR.Routes>
           <RR.Route path={paths.adminUsers} exact strict>
             <UsersAndRoles />
           </RR.Route>
@@ -122,7 +122,7 @@ export default function Admin() {
           <RR.Route>
             <ThrowNotFound />
           </RR.Route>
-        </RR.Switch>
+        </RR.Routes>
       </ErrorBoundary>
     </AdminLayout>
   )

@@ -798,7 +798,7 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
                   const pages = Math.ceil(filteredCount / PER_PAGE)
 
                   if (computedPage > pages) {
-                    return <RRDom.Redirect to={makePageUrl(pages)} />
+                    return <RRDom.Navigate to={makePageUrl(pages)} />
                   }
 
                   return (

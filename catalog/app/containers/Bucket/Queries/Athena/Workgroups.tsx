@@ -125,7 +125,7 @@ function RedirectToDefaultWorkgroup({
 }: RedirectToDefaultWorkgroupProps) {
   const { urls } = NamedRoutes.use()
   return (
-    <RRDom.Redirect
+    <RRDom.Navigate
       to={urls.bucketAthenaWorkgroup(bucket, workgroups.defaultWorkgroup)}
     />
   )

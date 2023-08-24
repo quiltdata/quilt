@@ -2,7 +2,7 @@ import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Redirect, useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
@@ -90,7 +90,7 @@ export default function requireAuth<Props = {}>({ authorizedSelector = R.T } = {
     }
 
     if (!state.authenticated) {
-      return <Redirect to={urls.signIn(location.pathname + location.search)} />
+      return <Navigate to={urls.signIn(location.pathname + location.search)} />
     }
 
     if (!state.authorized) {

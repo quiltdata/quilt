@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Switch, Route, Redirect, useLocation, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 
 import Placeholder from 'components/Placeholder'
 import AbsRedirect from 'components/Redirect'
@@ -18,7 +18,7 @@ const ProtectedThrowNotFound = protect(ThrowNotFound)
 
 function RedirectTo({ path }) {
   const { search } = useLocation()
-  return <Redirect to={`${path}${search}`} />
+  return <Navigate to={`${path}${search}`} />
 }
 
 const Activate = () => {
@@ -39,7 +39,7 @@ function BucketSearchRedirect() {
   const { urls } = NamedRoutes.use()
   const params = parseSearch(search, true)
   const url = urls.search({ buckets: bucket, ...params })
-  return <Redirect to={url} />
+  return <Navigate to={url} />
 }
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
@@ -90,7 +90,7 @@ export default function App() {
 
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Switch>
+      <Routes>
         <Route path={paths.home} exact>
           <Home />
         </Route>
@@ -234,7 +234,7 @@ export default function App() {
         <Route>
           <ProtectedThrowNotFound />
         </Route>
-      </Switch>
+      </Routes>
     </CatchNotFound>
   )
 }

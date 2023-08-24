@@ -1,7 +1,7 @@
 import { basename } from 'path'
 
 import * as React from 'react'
-import { useNavigate, useLocation, useRouteMatch, Link } from 'react-router-dom'
+import { useNavigate, useLocation, useMatch, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
@@ -48,7 +48,7 @@ function SearchBox({ bucket }) {
   const { paths, urls } = NamedRoutes.use()
 
   const l = useLocation()
-  const match = useRouteMatch(paths.bucketSearch)
+  const match = useMatch(paths.bucketSearch)
   const query = (match && parse(l.search, true).q) || ''
 
   const makeUrl = React.useCallback(
@@ -136,7 +136,7 @@ export default function AppBar({ bucket }) {
   const trigger = M.useScrollTrigger()
   const classes = useStyles()
   const { urls, paths } = NamedRoutes.use()
-  const isSearch = !!useRouteMatch(paths.bucketSearch)
+  const isSearch = !!useMatch(paths.bucketSearch)
   const rootUrl = urls.bucketDir(bucket, cfg.scope)
   const showRootLink = !cfg.hideRootLink || isSearch
   return (

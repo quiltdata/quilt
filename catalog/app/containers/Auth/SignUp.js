@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { useLocation, Redirect } from 'react-router-dom'
+import { useLocation, Navigate } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Placeholder from 'components/Placeholder'
@@ -245,7 +245,7 @@ export default () => {
   const { next } = parseSearch(search)
 
   if (authenticated) {
-    return <Redirect to={next || '/'} />
+    return <Navigate to={next || '/'} />
   }
 
   if (done)

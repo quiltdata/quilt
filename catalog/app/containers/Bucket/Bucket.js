@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Route, Switch, matchPath, useLocation, useParams } from 'react-router-dom'
+import { Route, Routes, matchPath, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -34,7 +34,7 @@ const match = (cases) => (pathname) => {
   for (const [section, variants] of Object.entries(cases)) {
     // eslint-disable-next-line no-restricted-syntax
     for (const opts of variants) {
-      if (matchPath(pathname, opts)) return section
+      if (matchPath(opts, pathname)) return section
     }
   }
   return false
@@ -98,7 +98,7 @@ export default function Bucket() {
       <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
-          <Switch>
+          <Routes>
             <Route path={paths.bucketFile} exact strict>
               <File />
             </Route>
@@ -126,7 +126,7 @@ export default function Bucket() {
             <Route>
               <ThrowNotFound />
             </Route>
-          </Switch>
+          </Routes>
         </CatchNotFound>
       </BucketLayout>
     </BucketPreferences.Provider>

@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { useNavigate, useLocation, useRouteMatch } from 'react-router-dom'
+import { useNavigate, useLocation, useMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as Lab from '@material-ui/lab'
@@ -159,7 +159,7 @@ function SearchInput({
 function useSearchUrlState(bucket?: string) {
   const { paths, urls } = NamedRoutes.use()
   const location = useLocation()
-  const match = useRouteMatch(paths.search)
+  const match = useMatch(paths.search)
   const isInStack = BucketConfig.useIsInStack()
   const settings = CatalogSettings.use()
 

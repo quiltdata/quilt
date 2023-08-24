@@ -1334,7 +1334,7 @@ function CRUD({ bucketName }: CRUDProps) {
 
   if (bucketName && !editingBucket) {
     // Bucket name set in URL, but it was not found in buckets list
-    return <RRDom.Redirect to={urls.adminBuckets()} />
+    return <RRDom.Navigate to={urls.adminBuckets()} />
   }
 
   return (

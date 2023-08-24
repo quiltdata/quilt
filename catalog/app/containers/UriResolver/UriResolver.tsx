@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Redirect, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -64,7 +64,7 @@ export default function UriResolver() {
       parsed.path,
     ) + NamedRoutes.mkSearch({ resolvedFrom: uri })
 
-  if (to) return <Redirect to={to} />
+  if (to) return <Navigate to={to} />
 
   return (
     <Layout

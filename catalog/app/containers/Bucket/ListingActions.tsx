@@ -183,7 +183,7 @@ function useMatchedParams(to: string) {
       },
     ]
     const match = bucketMatchers.reduce(
-      (memo, matcher) => memo ?? matchPath(to, matcher),
+      (memo, matcher) => memo ?? matchPath(matcher, to),
       null as Match<BucketMatchParams | PackageMatchParams> | null,
     )
     if (!match) return {}

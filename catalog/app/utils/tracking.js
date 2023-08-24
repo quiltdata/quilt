@@ -32,7 +32,7 @@ function useMkLocation() {
   } = NamedRoutes.use()
   return React.useCallback(
     (l) => {
-      const pathname = matchPath(l.pathname, { path: passChangePath, exact: true })
+      const pathname = matchPath({ path: passChangePath, exact: true }, l.pathname)
         ? passChangeUrl('REDACTED')
         : l.pathname
 

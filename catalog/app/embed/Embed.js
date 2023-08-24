@@ -5,7 +5,7 @@ import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Router, Switch, useLocation, useParams } from 'react-router-dom'
+import { Route, Router, Routes, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -102,14 +102,14 @@ function Root() {
   const { paths } = NamedRoutes.use()
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Switch>
+      <Routes>
         <Route path={paths.bucketRoot}>
           <Bucket />
         </Route>
         <Route>
           <ThrowNotFound />
         </Route>
-      </Switch>
+      </Routes>
     </CatchNotFound>
   )
 }
@@ -120,7 +120,7 @@ function Bucket() {
 
   return (
     <BucketLayout bucket={bucket}>
-      <Switch>
+      <Routes>
         <Route path={paths.bucketFile} exact strict>
           <File />
         </Route>
@@ -133,7 +133,7 @@ function Bucket() {
         <Route>
           <ThrowNotFound />
         </Route>
-      </Switch>
+      </Routes>
     </BucketLayout>
   )
 }

@@ -1,6 +1,6 @@
 import invariant from 'invariant'
 import * as React from 'react'
-import { Redirect, Route, Switch, useParams } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import MetaTitle from 'utils/MetaTitle'
@@ -25,7 +25,7 @@ export default function Queries() {
     <div className={classes.root}>
       <MetaTitle>{['Queries', bucket]}</MetaTitle>
 
-      <Switch>
+      <Routes>
         <Route path={paths.bucketESQueries} exact>
           <ElasticSearch />
         </Route>
@@ -39,9 +39,9 @@ export default function Queries() {
           <Athena />
         </Route>
         <Route>
-          <Redirect to={urls.bucketAthena(bucket)} />
+          <Navigate to={urls.bucketAthena(bucket)} />
         </Route>
-      </Switch>
+      </Routes>
     </div>
   )
 }
