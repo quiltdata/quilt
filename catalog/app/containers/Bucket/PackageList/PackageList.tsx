@@ -544,7 +544,7 @@ interface PackageListProps {
 }
 
 function PackageList({ bucket, sort, filter, page }: PackageListProps) {
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
 
@@ -590,11 +590,11 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
   // set filter query param on filter input change (debounced)
   React.useEffect(() => {
     if (filtering.value !== computedFilter) {
-      history.push(
+      navigate(
         urls.bucketPackageList(bucket, { filter: filtering.value || undefined, sort }),
       )
     }
-  }, [history, urls, bucket, sort, filtering.value, computedFilter])
+  }, [navigate, urls, bucket, sort, filtering.value, computedFilter])
 
   // set sort query param to previously selected
   const sortPackagesBy = storage.load()?.sortPackagesBy
@@ -603,10 +603,10 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
     switch (sortPackagesBy) {
       case 'modified':
       case 'name':
-        history.replace(makeSortUrl(sortPackagesBy))
+        navigate(makeSortUrl(sortPackagesBy), { replace: true })
       // no default
     }
-  }, [history, makeSortUrl, sort, sortPackagesBy])
+  }, [navigate, makeSortUrl, sort, sortPackagesBy])
 
   // scroll to top on page change
   usePrevious(computedPage, (prev) => {

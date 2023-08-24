@@ -87,14 +87,14 @@ function useQueryRun(
   queryExecutionId?: string,
 ) {
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<Error | undefined>()
   const runQuery = requests.athena.useQueryRun(workgroup)
   const { push: notify } = Notifications.use()
   const goToExecution = React.useCallback(
-    (id: string) => history.push(urls.bucketAthenaExecution(bucket, workgroup, id)),
-    [bucket, history, urls, workgroup],
+    (id: string) => navigate(urls.bucketAthenaExecution(bucket, workgroup, id)),
+    [bucket, navigate, urls, workgroup],
   )
   const onSubmit = React.useCallback(
     async (value: string, executionContext: requests.athena.ExecutionContext | null) => {

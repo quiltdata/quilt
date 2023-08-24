@@ -3,7 +3,7 @@ import { basename } from 'path'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory, useLocation, useParams } from 'react-router-dom'
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -321,7 +321,7 @@ export default function File() {
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const navigate = useNavigate()
   const s3 = AWS.S3.use()
   const prefs = BucketPreferences.use()
 
@@ -369,9 +369,9 @@ export default function File() {
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
+      navigate(urls.bucketFile(bucket, encodedPath, { version, mode: m.valueOf() }))
     },
-    [history, urls, bucket, encodedPath, version],
+    [navigate, urls, bucket, encodedPath, version],
   )
 
   const handle = React.useMemo(

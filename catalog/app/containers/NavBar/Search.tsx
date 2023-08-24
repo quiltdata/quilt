@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
+import { useNavigate, useLocation, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as Lab from '@material-ui/lab'
@@ -194,7 +194,7 @@ interface SearchProps extends SearchInputExternalProps {
 }
 
 function useSearchState({ bucket, onFocus, onBlur, ...props }: SearchProps): SearchState {
-  const history = useHistory()
+  const navigate = useNavigate()
 
   const { query, makeUrl, buckets } = useSearchUrlState(bucket)
 
@@ -249,7 +249,7 @@ function useSearchState({ bucket, onFocus, onBlur, ...props }: SearchProps): Sea
           // suppress onSubmit
           evt.preventDefault()
           if (query !== value) {
-            history.push(makeUrl(value))
+            navigate(makeUrl(value))
           }
           handleCollapse()
           evt.currentTarget.blur()
@@ -264,7 +264,7 @@ function useSearchState({ bucket, onFocus, onBlur, ...props }: SearchProps): Sea
           break
       }
     },
-    [history, makeUrl, value, query, handleCollapse, handleHelpOpen],
+    [navigate, makeUrl, value, query, handleCollapse, handleHelpOpen],
   )
 
   const onClickAway = React.useCallback(() => {

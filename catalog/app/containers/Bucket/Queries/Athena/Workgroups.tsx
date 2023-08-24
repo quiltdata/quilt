@@ -37,13 +37,13 @@ function WorkgroupSelect({
 }: WorkgroupSelectProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
 
   const goToWorkgroup = React.useCallback(
     (workgroup: string) => {
-      history.push(urls.bucketAthenaWorkgroup(bucket, workgroup))
+      navigate(urls.bucketAthenaWorkgroup(bucket, workgroup))
     },
-    [bucket, history, urls],
+    [bucket, navigate, urls],
   )
 
   const handleChange = React.useCallback(

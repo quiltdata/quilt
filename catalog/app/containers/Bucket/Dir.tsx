@@ -89,14 +89,14 @@ function DirContents({
   selection,
   onSelection,
 }: DirContentsProps) {
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const { urls } = NamedRoutes.use<RouteMap>()
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
-      history.push(urls.bucketDir(bucket, path, newPrefix))
+      navigate(urls.bucketDir(bucket, path, newPrefix))
     },
-    [history, urls, bucket, path],
+    [navigate, urls, bucket, path],
   )
 
   const items = useFormattedListing(response)

@@ -11,7 +11,7 @@ import { EditorInputType } from './types'
 
 function useRedirect() {
   const addToPackage = AddToPackage.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const { urls } = NamedRoutes.use()
   const location = RRDom.useLocation()
   const { add, next } = parseSearch(location.search, true)
@@ -20,9 +20,9 @@ function useRedirect() {
       if (add && addToPackage?.append) {
         addToPackage.append(add, { bucket, key, size, version })
       }
-      history.push(next || urls.bucketFile(bucket, key, { version }))
+      navigate(next || urls.bucketFile(bucket, key, { version }))
     },
-    [history, next, addToPackage, add, urls],
+    [navigate, next, addToPackage, add, urls],
   )
 }
 

@@ -3,7 +3,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
-import { useHistory, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -177,12 +177,12 @@ export default function PassChange() {
   const onSuccess = React.useCallback(() => setDone(true), [setDone])
 
   const [storedLink] = React.useState(link)
-  const history = useHistory()
+  const navigate = useNavigate()
   const cleanUrl = urls.passChange(LINK_PLACEHOLDER)
 
   React.useEffect(() => {
-    if (link !== LINK_PLACEHOLDER) history.replace(cleanUrl)
-  }, [link, history, cleanUrl])
+    if (link !== LINK_PLACEHOLDER) navigate(cleanUrl, { replace: true })
+  }, [link, navigate, cleanUrl])
 
   if (authenticated) return <SignOut />
   if (done) return <Success />

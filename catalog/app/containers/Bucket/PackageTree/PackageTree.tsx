@@ -126,7 +126,7 @@ function DirDisplay({
   size,
 }: DirDisplayProps) {
   const initialActions = PD.useInitialActions()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useDirDisplayStyles()
 
@@ -164,8 +164,8 @@ function DirDisplay({
   const prefs = BucketPreferences.use()
 
   const redirectToPackagesList = React.useCallback(() => {
-    history.push(urls.bucketPackageList(bucket))
-  }, [bucket, history, urls])
+    navigate(urls.bucketPackageList(bucket))
+  }, [bucket, navigate, urls])
 
   const [deletionState, setDeletionState] = React.useState({
     error: undefined as React.ReactNode | undefined,
@@ -557,7 +557,7 @@ function FileDisplay({
   file,
 }: FileDisplayProps) {
   const s3 = AWS.S3.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const { urls } = NamedRoutes.use<RouteMap>()
   const classes = useFileDisplayStyles()
   const prefs = BucketPreferences.use()
@@ -571,9 +571,9 @@ function FileDisplay({
 
   const onViewModeChange = React.useCallback(
     (m) => {
-      history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
+      navigate(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
     },
-    [bucket, history, name, path, hashOrTag, urls],
+    [bucket, navigate, name, path, hashOrTag, urls],
   )
 
   const handleEdit = React.useCallback(() => {
@@ -584,8 +584,8 @@ function FileDisplay({
       edit: true,
       next,
     })
-    history.push(editUrl)
-  }, [file, bucket, history, name, path, urls])
+    navigate(editUrl)
+  }, [file, bucket, navigate, name, path, urls])
 
   const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({

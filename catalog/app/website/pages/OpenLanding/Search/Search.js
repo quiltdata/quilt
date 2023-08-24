@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -135,7 +135,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Search() {
   const classes = useStyles()
 
-  const history = useHistory()
+  const navigate = useNavigate()
   const { urls } = NamedRoutes.use()
 
   // XXX: consider using graphql directly
@@ -160,14 +160,14 @@ export default function Search() {
       // eslint-disable-next-line default-case
       switch (evt.key) {
         case 'Enter':
-          history.push(urls.search({ q: value }))
+          navigate(urls.search({ q: value }))
           break
         case 'Escape':
           evt.target.blur()
           break
       }
     },
-    [history, urls, value],
+    [navigate, urls, value],
   )
 
   return (

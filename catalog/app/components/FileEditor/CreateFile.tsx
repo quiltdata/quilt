@@ -21,7 +21,7 @@ function validateFileName(value: string) {
 
 export function useCreateFileInBucket(bucket: string, path: string) {
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
 
   const toFile = React.useCallback(
     (name: string) => urls.bucketFile(bucket, join(path, name), { edit: true }),
@@ -31,9 +31,9 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   const createFile = React.useCallback(
     (name: string) => {
       if (!name) return
-      history.push(toFile(name))
+      navigate(toFile(name))
     },
-    [history, toFile],
+    [navigate, toFile],
   )
 
   return Dialog.usePrompt({
@@ -46,7 +46,7 @@ export function useCreateFileInBucket(bucket: string, path: string) {
 
 export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?: string) {
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
 
   const toFile = React.useCallback(
     (fileName: string) => {
@@ -64,9 +64,9 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?:
   const createFile = React.useCallback(
     (fileName: string) => {
       if (!fileName) return
-      history.push(toFile(fileName))
+      navigate(toFile(fileName))
     },
-    [history, toFile],
+    [navigate, toFile],
   )
 
   const defaultFileName = 'README.md'

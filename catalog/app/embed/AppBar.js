@@ -1,7 +1,7 @@
 import { basename } from 'path'
 
 import * as React from 'react'
-import { useHistory, useLocation, useRouteMatch, Link } from 'react-router-dom'
+import { useNavigate, useLocation, useRouteMatch, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
@@ -44,7 +44,7 @@ const useSearchBoxStyles = M.makeStyles((t) => ({
 }))
 
 function SearchBox({ bucket }) {
-  const history = useHistory()
+  const navigate = useNavigate()
   const { paths, urls } = NamedRoutes.use()
 
   const l = useLocation()
@@ -72,7 +72,7 @@ function SearchBox({ bucket }) {
       switch (evt.key) {
         case 'Enter':
           if (query !== value) {
-            history.push(makeUrl(value))
+            navigate(makeUrl(value))
           }
           evt.target.blur()
           break
@@ -81,7 +81,7 @@ function SearchBox({ bucket }) {
           break
       }
     },
-    [history, makeUrl, value, query],
+    [navigate, makeUrl, value, query],
   )
 
   const handleFocus = React.useCallback(() => {

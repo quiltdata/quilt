@@ -2,7 +2,7 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -64,7 +64,7 @@ export default function Dir() {
   const ecfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const navigate = useNavigate()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = s3paths.decode(encodedPath)
@@ -99,9 +99,9 @@ export default function Dir() {
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
-      history.push(urls.bucketDir(bucket, path, newPrefix))
+      navigate(urls.bucketDir(bucket, path, newPrefix))
     },
-    [history, urls, bucket, path],
+    [navigate, urls, bucket, path],
   )
 
   const scoped = ecfg.scope && path.startsWith(ecfg.scope)

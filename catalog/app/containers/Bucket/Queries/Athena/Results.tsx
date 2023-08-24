@@ -26,7 +26,7 @@ function Empty() {
 
 function useLinkProcessor() {
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   return React.useCallback(
     (tableEl: RegularTableElement) => {
       tableEl.querySelectorAll('td').forEach((td) => {
@@ -43,7 +43,7 @@ function useLinkProcessor() {
           })
 
           const link = document.createElement('a')
-          link.addEventListener('click', () => history.push(url))
+          link.addEventListener('click', () => navigate(url))
           link.textContent = s3Url
           td.replaceChildren(link)
         } catch (error) {
@@ -51,7 +51,7 @@ function useLinkProcessor() {
         }
       })
     },
-    [history, urls],
+    [navigate, urls],
   )
 }
 

@@ -3,7 +3,7 @@ import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
-import { useHistory } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
@@ -119,7 +119,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
   // XXX: consider using graphql directly
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const history = useHistory()
+  const navigate = useNavigate()
   const { urls } = NamedRoutes.use()
 
   const [inputValue, setInputValue] = React.useState('')
@@ -148,7 +148,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
               const to =
                 typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
               if (to && currentBucket !== to) {
-                history.push(urls.bucketRoot(to))
+                navigate(urls.bucketRoot(to))
               }
             }
           }}

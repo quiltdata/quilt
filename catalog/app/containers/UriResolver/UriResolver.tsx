@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Redirect, useHistory, useParams } from 'react-router-dom'
+import { Redirect, useNavigate, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -26,7 +26,7 @@ export default function UriResolver() {
   const params = useParams<{ uri?: string }>()
 
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const navigate = useNavigate()
   const classes = useStyles()
 
   const uri = decodeURIComponent(params.uri || '')
@@ -50,9 +50,9 @@ export default function UriResolver() {
   const handleSubmit = React.useCallback(
     (e) => {
       e.preventDefault()
-      if (value !== uri) history.push(urls.uriResolver(value))
+      if (value !== uri) navigate(urls.uriResolver(value))
     },
-    [value, uri, history, urls],
+    [value, uri, navigate, urls],
   )
 
   const to =

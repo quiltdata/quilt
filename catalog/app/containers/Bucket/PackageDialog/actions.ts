@@ -1,4 +1,3 @@
-import type * as H from 'history'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 
@@ -10,9 +9,9 @@ const Actions: Partial<ActionPreferences> = {
 
 type Action = keyof typeof Actions
 
-function clearActions(searchParams: URLSearchParams, history: H.History) {
+function clearActions(searchParams: URLSearchParams, navigate: RRDom.NavigateFunction) {
   searchParams.delete('action')
-  history.replace({
+  navigate({
     search: searchParams.toString(),
   })
 }
@@ -22,7 +21,7 @@ function isActions(actions: string[]): actions is Action[] {
 }
 
 export default function useInitialActions(): Action[] {
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
   const location = RRDom.useLocation()
 
   const searchParams = React.useMemo(
@@ -33,8 +32,8 @@ export default function useInitialActions(): Action[] {
   const initialActions = React.useRef<Action[]>(isActions(actions) ? actions : [])
 
   React.useEffect(() => {
-    if (searchParams.has('action')) clearActions(searchParams, history)
-  }, [history, searchParams])
+    if (searchParams.has('action')) clearActions(searchParams, navigate)
+  }, [navigate, searchParams])
 
   return initialActions.current
 }

@@ -1290,7 +1290,7 @@ function CRUD({ bucketName }: CRUDProps) {
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
   const { urls } = NamedRoutes.use()
-  const history = RRDom.useHistory()
+  const navigate = RRDom.useNavigate()
 
   const toolbarActions = [
     {
@@ -1304,7 +1304,7 @@ function CRUD({ bucketName }: CRUDProps) {
   ]
 
   const edit = (bucket: BucketConfig) => () => {
-    history.push(urls.adminBuckets(bucket.name))
+    navigate(urls.adminBuckets(bucket.name))
   }
 
   const inlineActions = (bucket: BucketConfig) => [
@@ -1329,8 +1329,8 @@ function CRUD({ bucketName }: CRUDProps) {
   )
 
   const onBucketClose = React.useCallback(() => {
-    history.push(urls.adminBuckets())
-  }, [history, urls])
+    navigate(urls.adminBuckets())
+  }, [navigate, urls])
 
   if (bucketName && !editingBucket) {
     // Bucket name set in URL, but it was not found in buckets list
