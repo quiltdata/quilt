@@ -161,7 +161,7 @@ function UserDropdown() {
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const bookmarks = Bookmarks.use()
-  const isProfile = !!useMatch({ path: paths.profile, exact: true })
+  const isProfile = !!useMatch({ path: paths.profile })
   const isAdmin = !!useMatch(paths.admin)
   const [anchor, setAnchor] = React.useState(null)
   const [visible, setVisible] = React.useState(true)
@@ -272,7 +272,7 @@ interface AuthHamburgerProps {
 function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
-  const isProfile = !!useMatch({ path: paths.profile, exact: true })
+  const isProfile = !!useMatch(paths.profile)
   const isAdmin = !!useMatch(paths.admin)
   const ham = useHam()
   const links = useLinks()
@@ -489,7 +489,8 @@ interface NavLinkOwnProps {
 type NavLinkProps = NavLinkOwnProps & M.BoxProps
 
 const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) => {
-  const isActive = !!useMatch({ path: props.path, exact: true })
+  const match = useMatch({ path: props.path || '', end: true })
+  const isActive = props.path && !!match
   return (
     <M.Box
       component={props.to ? HashLink : 'a'}
@@ -535,6 +536,7 @@ function useLinks(): LinkDescriptor[] {
     process.env.NODE_ENV === 'development' && {
       to: urls.example(),
       label: 'Example',
+      path: paths.example,
     },
     customNavLink,
     cfg.mode !== 'MARKETING' && {
@@ -549,7 +551,7 @@ function useLinks(): LinkDescriptor[] {
       label: 'Jobs',
     },
     cfg.mode !== 'PRODUCT' && { href: URLS.blog, label: 'Blog' },
-    cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
+    cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About', path: paths.about },
   ].filter(Boolean) as LinkDescriptor[]
 }
 
@@ -580,7 +582,7 @@ const useNavBarStyles = M.makeStyles((t) => ({
 export function NavBar() {
   const settings = CatalogSettings.use()
   const { paths } = NamedRoutes.use()
-  const isSignIn = !!useMatch({ path: paths.signIn, exact: true })
+  const isSignIn = !!useMatch({ path: paths.signIn })
   const { error, waiting, authenticated } = redux.useSelector(selector)
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -589,7 +591,7 @@ export function NavBar() {
   const classes = useNavBarStyles()
   return (
     <Container>
-      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
+      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && !authenticated) ? (
         <div className={classes.spacer} />
       ) : (
         <Controls />

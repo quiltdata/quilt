@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -23,13 +23,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function UriResolver() {
-  const params = useParams<{ uri?: string }>()
+  const params = useParams<{ ['*']: string }>()
+  const l = useLocation()
 
   const { urls } = NamedRoutes.use()
   const navigate = useNavigate()
   const classes = useStyles()
 
-  const uri = decodeURIComponent(params.uri || '')
+  const uri = decodeURIComponent(params['*'] || '') + l.hash
   const [parsed, error] = React.useMemo(() => {
     try {
       return [uri ? PackageUri.parse(uri) : null]

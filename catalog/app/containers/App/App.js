@@ -44,7 +44,7 @@ function BucketSearchRedirect() {
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
 const Admin = requireAdmin(RT.mkLazy(() => import('containers/Admin'), Placeholder))
-
+//
 const AuthActivationError = RT.mkLazy(
   () => import('containers/Auth/ActivationError'),
   Placeholder,
@@ -84,6 +84,8 @@ const NextFlow = RT.mkLazy(() => import('website/pages/NextFlow'), Placeholder)
 
 const Home = protect(cfg.mode === 'OPEN' ? OpenLanding : Landing)
 
+// FIXME: remove Install, MPersonas, MProduct
+
 export default function App() {
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
@@ -91,149 +93,73 @@ export default function App() {
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Routes>
-        <Route path={paths.home} exact>
-          <Home />
-        </Route>
+        <Route path={paths.home} element={<Home />} />
 
         {process.env.NODE_ENV === 'development' && (
-          <Route path={paths.example}>
-            <Example />
-          </Route>
+          <Route path={paths.example} element={<Example />} />
         )}
 
         {(cfg.mode === 'MARKETING' || cfg.mode === 'PRODUCT') && (
-          <Route path={paths.install} exact>
-            <Install />
-          </Route>
+          <Route path={paths.install} element={<Install />} />
         )}
 
         {!!cfg.legacyPackagesRedirect && (
-          <Route path={paths.legacyPackages}>
-            <LegacyPackages />
-          </Route>
+          <Route path={paths.legacyPackages} element={<LegacyPackages />} />
         )}
 
-        {!cfg.disableNavigator && (
-          <Route path={paths.search} exact>
-            <Search />
-          </Route>
-        )}
+        {!cfg.disableNavigator && <Route path={paths.search} element={<Search />} />}
 
-        {cfg.mode === 'MARKETING' && (
-          <Route path={paths.about} exact>
-            <MAbout />
-          </Route>
+        {cfg.mode === 'MARKETING' && <Route path={paths.about} element={<MAbout />} />}
+        {cfg.enableMarketingPages && (
+          <Route path={paths.personas} element={<MPersonas />} />
         )}
         {cfg.enableMarketingPages && (
-          <Route path={paths.personas} exact>
-            <MPersonas />
-          </Route>
+          <Route path={paths.product} element={<MProduct />} />
         )}
-        {cfg.enableMarketingPages && (
-          <Route path={paths.product} exact>
-            <MProduct />
-          </Route>
-        )}
+        {cfg.mode === 'MARKETING' && <Route path="/bioit" element={<BioIT />} />}
+        {cfg.mode === 'MARKETING' && <Route path="/nextflow" element={<NextFlow />} />}
+        {cfg.mode === 'MARKETING' && <Route path="/aws" element={<BioIT />} />}
         {cfg.mode === 'MARKETING' && (
-          <Route path="/bioit" exact>
-            <BioIT />
-          </Route>
-        )}
-        {cfg.mode === 'MARKETING' && (
-          <Route path="/nextflow" exact>
-            <NextFlow />
-          </Route>
-        )}
-        {cfg.mode === 'MARKETING' && (
-          <Route path="/aws" exact>
-            <BioIT />
-          </Route>
-        )}
-        {cfg.mode === 'MARKETING' && (
-          <Route path="/aws-marketplace" exact>
-            <AwsMarketplace />
-          </Route>
+          <Route path="/aws-marketplace" element={<AwsMarketplace />} />
         )}
 
-        {!cfg.disableNavigator && (
-          <Route path={paths.activate} exact>
-            <Activate />
-          </Route>
-        )}
+        {!cfg.disableNavigator && <Route path={paths.activate} element={<Activate />} />}
 
+        {!cfg.disableNavigator && <Route path={paths.signIn} element={<AuthSignIn />} />}
         {!cfg.disableNavigator && (
-          <Route path={paths.signIn} exact>
-            <AuthSignIn />
-          </Route>
+          <Route path="/login" element={<RedirectTo path={urls.signIn()} />} />
         )}
         {!cfg.disableNavigator && (
-          <Route path="/login" exact>
-            <RedirectTo path={urls.signIn()} />
-          </Route>
-        )}
-        {!cfg.disableNavigator && (
-          <Route path={paths.signOut} exact>
-            <AuthSignOut />
-          </Route>
+          <Route path={paths.signOut} element={<AuthSignOut />} />
         )}
         {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-          <Route path={paths.signUp} exact>
-            <AuthSignUp />
-          </Route>
+          <Route path={paths.signUp} element={<AuthSignUp />} />
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
-          <Route path={paths.passReset} exact>
-            <AuthPassReset />
-          </Route>
+          <Route path={paths.passReset} element={<AuthPassReset />} />
         )}
         {!cfg.disableNavigator && !!cfg.passwordAuth && (
-          <Route path={paths.passChange} exact>
-            <AuthPassChange />
-          </Route>
+          <Route path={paths.passChange} element={<AuthPassChange />} />
         )}
+        {!cfg.disableNavigator && <Route path={paths.code} element={<AuthCode />} />}
         {!cfg.disableNavigator && (
-          <Route path={paths.code} exact>
-            <AuthCode />
-          </Route>
-        )}
-        {!cfg.disableNavigator && (
-          <Route path={paths.activationError} exact>
-            <AuthActivationError />
-          </Route>
+          <Route path={paths.activationError} element={<AuthActivationError />} />
         )}
 
-        {cfg.mode === 'OPEN' && (
-          <Route path={paths.profile} exact>
-            <OpenProfile />
-          </Route>
+        {cfg.mode === 'OPEN' && <Route path={paths.profile} element={<OpenProfile />} />}
+
+        {!cfg.disableNavigator && <Route path={paths.admin} element={<Admin />} />}
+
+        {!cfg.disableNavigator && (
+          <Route path={paths.uriResolver} element={<UriResolver />} />
         )}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.admin}>
-            <Admin />
-          </Route>
+          <Route path={paths.bucketSearch} element={<BucketSearchRedirect />} />
         )}
+        {!cfg.disableNavigator && <Route path={paths.bucketRoot} element={<Bucket />} />}
 
-        {!cfg.disableNavigator && (
-          <Route path={paths.uriResolver}>
-            <UriResolver />
-          </Route>
-        )}
-
-        {!cfg.disableNavigator && (
-          <Route path={paths.bucketSearch} exact>
-            <BucketSearchRedirect />
-          </Route>
-        )}
-        {!cfg.disableNavigator && (
-          <Route path={paths.bucketRoot}>
-            <Bucket />
-          </Route>
-        )}
-
-        <Route>
-          <ProtectedThrowNotFound />
-        </Route>
+        <Route path="*" element={<ProtectedThrowNotFound />} />
       </Routes>
     </CatchNotFound>
   )

@@ -1,6 +1,8 @@
+import invariant from 'invariant'
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
-import { matchPath, match as Match } from 'react-router-dom'
+import { matchPath, PathMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Bookmarks from 'containers/Bookmarks/Provider'
@@ -184,22 +186,26 @@ function useMatchedParams(to: string) {
     ]
     const match = bucketMatchers.reduce(
       (memo, matcher) => memo ?? matchPath(matcher, to),
-      null as Match<BucketMatchParams | PackageMatchParams> | null,
+      null as PathMatch<keyof BucketMatchParams | keyof PackageMatchParams> | null,
     )
     if (!match) return {}
-    switch (match.path) {
+    switch (match.pathname) {
       case paths.bucketFile:
       case paths.bucketDir: {
-        const { params } = match as Match<BucketMatchParams>
+        const { params } = match as PathMatch<keyof BucketMatchParams>
+        invariant(!R.isNil(params.bucket), '`bucket` must be defined')
         return {
           location: {
             bucket: params.bucket,
-            key: decodeURIComponent(params.path),
+            key: decodeURIComponent(params.path || ''),
           },
         }
       }
       case paths.bucketPackageTree: {
-        const { params } = match as Match<PackageMatchParams>
+        const { params } = match as PathMatch<keyof PackageMatchParams>
+        invariant(!R.isNil(params.bucket), '`bucket` must be defined')
+        invariant(!R.isNil(params.name), '`name` must be defined')
+        invariant(!R.isNil(params.path), '`name` must be defined')
         return {
           handle: {
             bucket: params.bucket,
@@ -210,7 +216,7 @@ function useMatchedParams(to: string) {
         }
       }
       default:
-        throw new Error(`Unexpected path '${match.path}'. Should have been never.`)
+        throw new Error(`Unexpected path '${match.pathname}'. Should have been never.`)
     }
   }, [paths, to])
 }

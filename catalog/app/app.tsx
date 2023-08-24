@@ -1,10 +1,9 @@
 // Application entry point
 
 // Import all the third party stuff
-import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { Router } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -14,8 +13,7 @@ import cfg from 'constants/config'
 // to allow importing it directly in other modules and capturing errors
 import * as Sentry from 'utils/Sentry'
 
-const history = createHistory()
-Sentry.init(cfg, history)
+Sentry.init(cfg)
 
 // side-effect: inject global css
 import 'sanitize.css'
@@ -89,7 +87,7 @@ const render = () => {
       Sentry.UserTracker,
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
-      [Router, { history }],
+      BrowserRouter,
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,

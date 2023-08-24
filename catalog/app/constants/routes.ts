@@ -117,12 +117,12 @@ export const search: Route<SearchArgs> = {
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 }
 
-export type UriResolverArgs = [uri: string]
-
 // Immutable URI resolver
 
+export type UriResolverArgs = [uri: string]
+
 export const uriResolver: Route<UriResolverArgs> = {
-  path: '/uri/:uri(.*)',
+  path: '/uri/*',
   url: (uri) => `/uri/${uri ? encodeURIComponent(uri) : ''}`,
 }
 
@@ -131,7 +131,7 @@ export const uriResolver: Route<UriResolverArgs> = {
 export type BucketRootArgs = [bucket: string]
 
 export const bucketRoot: Route<BucketRootArgs> = {
-  path: '/b/:bucket',
+  path: '/b/:bucket/*',
   url: (bucket) => `/b/${bucket}`,
 }
 
@@ -140,7 +140,11 @@ export type BucketSearchArgs = [
   options?: { q?: string; p?: string; mode?: string; retry?: string },
 ]
 
-export const bucketOverview = bucketRoot
+export const bucketOverview: Route<BucketRootArgs> = {
+  path: '',
+  url: (bucket) => `/b/${bucket}`,
+}
+
 // redirects to global search
 export const bucketSearch: Route<BucketSearchArgs> = {
   path: '/b/:bucket/search',
@@ -232,24 +236,24 @@ export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
 export type BucketQueriesArgs = [bucket: string]
 
 export const bucketQueries: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries',
+  path: 'queries/*',
   url: (bucket) => `/b/${bucket}/queries`,
 }
 
 export const bucketESQueries: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries/es',
+  path: 'es',
   url: (bucket) => `/b/${bucket}/queries/es`,
 }
 
 export const bucketAthena: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries/athena',
+  path: 'athena/*',
   url: (bucket) => `/b/${bucket}/queries/athena`,
 }
 
 export type BucketAthenaWorkgroupArgs = [bucket: string, workgroup: string]
 
 export const bucketAthenaWorkgroup: Route<BucketAthenaWorkgroupArgs> = {
-  path: '/b/:bucket/queries/athena/:workgroup',
+  path: ':workgroup/*',
   url: (bucket, workgroup) => `/b/${bucket}/queries/athena/${workgroup}`,
 }
 
@@ -260,7 +264,7 @@ export type BucketAthenaExecutionArgs = [
 ]
 
 export const bucketAthenaExecution: Route<BucketAthenaExecutionArgs> = {
-  path: '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
+  path: ':queryExecutionId',
   url: (bucket, workgroup, queryExecutionId) =>
     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 }
@@ -277,30 +281,33 @@ export const legacyPackages: Route<LegacyPackagesArgs> = {
 // Admin
 
 export const admin: Route = {
-  path: '/admin',
+  path: '/admin/*',
   url: () => '/admin',
 }
 
-export const adminUsers = admin
+export const adminUsers: Route = {
+  path: '',
+  url: () => '/admin',
+}
 
 export type AdminBucketsArgs = [bucket: string]
 
 export const adminBuckets: Route<AdminBucketsArgs> = {
-  path: '/admin/buckets',
+  path: 'buckets',
   url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
 }
 
 export const adminSettings: Route = {
-  path: '/admin/settings',
+  path: 'settings',
   url: () => '/admin/settings',
 }
 
 export const adminSync: Route = {
-  path: '/admin/sync',
+  path: 'sync',
   url: () => '/admin/sync',
 }
 
 export const adminStatus: Route = {
-  path: '/admin/status',
+  path: 'status',
   url: () => '/admin/status',
 }

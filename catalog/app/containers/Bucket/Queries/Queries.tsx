@@ -26,21 +26,13 @@ export default function Queries() {
       <MetaTitle>{['Queries', bucket]}</MetaTitle>
 
       <Routes>
-        <Route path={paths.bucketESQueries} exact>
-          <ElasticSearch />
+        <Route path={paths.bucketESQueries} element={<ElasticSearch />} />
+        <Route path={paths.bucketAthena} element={<Athena />}>
+          <Route path={paths.bucketAthenaWorkgroup} element={<Athena />}>
+            <Route path={paths.bucketAthenaExecution} element={<Athena />} />
+          </Route>
         </Route>
-        <Route path={paths.bucketAthena} exact>
-          <Athena />
-        </Route>
-        <Route path={paths.bucketAthenaWorkgroup} exact>
-          <Athena />
-        </Route>
-        <Route path={paths.bucketAthenaExecution} exact>
-          <Athena />
-        </Route>
-        <Route>
-          <Navigate to={urls.bucketAthena(bucket)} />
-        </Route>
+        <Route path="*" element={<Navigate to={urls.bucketAthena(bucket)} />} />
       </Routes>
     </div>
   )

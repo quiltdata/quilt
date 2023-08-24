@@ -37,7 +37,8 @@ const useTabStyles = M.makeStyles((t) => ({
   },
 }))
 
-function NavTab(props: M.TabProps & RR.LinkProps) {
+// NOTE: `ref` types are incompatible
+function NavTab(props: Omit<M.TabProps, 'ref'> & RR.LinkProps) {
   const classes = useTabStyles()
   return <M.Tab classes={classes} component={RR.Link} {...props} />
 }
@@ -80,48 +81,32 @@ export default function Admin() {
   const location = RR.useLocation()
   const { paths } = NamedRoutes.use()
 
-  const sections = {
-    users: { path: paths.adminUsers, exact: true },
-    buckets: { path: paths.adminBuckets, exact: true },
-    sync: { path: paths.adminSync, exact: true },
-    settings: { path: paths.adminSettings, exact: true },
-    status: { path: paths.adminStatus, exact: true },
-  }
-
-  const getSection = (pathname: string) => {
-    for (const [section, maybeVariants] of Object.entries(sections)) {
-      const variants = ([] as RR.RouteProps[]).concat(maybeVariants)
-      for (const opts of variants) {
-        if (RR.matchPath(opts, pathname)) return section
-      }
+  const section = React.useMemo(() => {
+    const parent = paths.admin.replace('*', '')
+    const sections = {
+      users: parent + paths.adminUsers,
+      buckets: parent + paths.adminBuckets,
+      sync: parent + paths.adminSync,
+      settings: parent + paths.adminSettings,
+      status: parent + paths.adminStatus,
     }
-    return false
-  }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const found = Object.entries(sections).find(([_0, pattern]) =>
+      RR.matchPath(pattern, location.pathname),
+    )
+    return found?.[0]
+  }, [location.pathname, paths])
 
   return (
-    <AdminLayout section={getSection(location.pathname)}>
+    <AdminLayout section={section}>
       <ErrorBoundary key={JSON.stringify(location)}>
         <RR.Routes>
-          <RR.Route path={paths.adminUsers} exact strict>
-            <UsersAndRoles />
-          </RR.Route>
-          <RR.Route path={paths.adminBuckets} exact>
-            <Buckets />
-          </RR.Route>
-          {cfg.desktop && (
-            <RR.Route path={paths.adminSync} exact>
-              <Sync />
-            </RR.Route>
-          )}
-          <RR.Route path={paths.adminSettings} exact>
-            <Settings />
-          </RR.Route>
-          <RR.Route path={paths.adminStatus} exact>
-            <Status />
-          </RR.Route>
-          <RR.Route>
-            <ThrowNotFound />
-          </RR.Route>
+          <RR.Route path={paths.adminUsers} element={<UsersAndRoles />} />
+          <RR.Route path={paths.adminBuckets} element={<Buckets />} />
+          {cfg.desktop && <RR.Route path={paths.adminSync} element={<Sync />} />}
+          <RR.Route path={paths.adminSettings} element={<Settings />} />
+          <RR.Route path={paths.adminStatus} element={<Status />} />
+          <RR.Route path="*" element={<ThrowNotFound />} />
         </RR.Routes>
       </ErrorBoundary>
     </AdminLayout>

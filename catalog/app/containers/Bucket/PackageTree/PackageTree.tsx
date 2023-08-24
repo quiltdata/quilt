@@ -933,7 +933,7 @@ function PackageTreeQueries({
   })
 }
 
-interface PackageTreeRouteParams {
+type PackageTreeRouteParams = {
   bucket: string
   name: string
   revision?: string

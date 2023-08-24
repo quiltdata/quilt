@@ -26,6 +26,7 @@ export default function ChevronLink({ children, className, ...props }: ChevronLi
   return (
     <M.Link
       className={cx(classes.root, className)}
+      // @ts-expect-error
       component={props.to ? Link : undefined}
       underline="none"
       {...props}

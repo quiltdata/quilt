@@ -1,6 +1,6 @@
-import type { History } from 'history'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import * as RRDom from 'react-router-dom'
 import * as Integrations from '@sentry/integrations'
 import * as Sentry from '@sentry/react'
 import * as Tracing from '@sentry/tracing'
@@ -14,13 +14,18 @@ type BrowserTracingOptions = NonNullable<
   ConstructorParameters<typeof Tracing.BrowserTracing>[0]
 >
 
-export function init(cfg: Config, history?: History) {
+export function init(cfg: Config) {
   if (!cfg.sentryDSN) return false
 
   const tracingOpts: BrowserTracingOptions = {}
-  if (history) {
-    tracingOpts.routingInstrumentation = Sentry.reactRouterV5Instrumentation(history)
-  }
+
+  tracingOpts.routingInstrumentation = Sentry.reactRouterV6Instrumentation(
+    React.useEffect,
+    RRDom.useLocation,
+    RRDom.useNavigationType,
+    RRDom.createRoutesFromChildren,
+    RRDom.matchRoutes,
+  )
 
   Sentry.init({
     dsn: cfg.sentryDSN,

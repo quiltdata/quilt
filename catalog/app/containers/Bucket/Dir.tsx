@@ -225,7 +225,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DirParams {
+type DirParams = {
   bucket: string
   path?: string
 }

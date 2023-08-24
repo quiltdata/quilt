@@ -290,7 +290,7 @@ function addWorkflow(workflow: WorkflowYaml): (j: JsonRecord) => JsonRecord {
 
 export default function ToolbarWrapper({ columnPath, onChange }: ToolbarWrapperProps) {
   const { paths } = NamedRoutes.use()
-  const match = useMatch<{ bucket: string }>({ path: paths.bucketFile, exact: true })
+  const match = useMatch({ path: paths.bucketFile })
   const bucket = match?.params?.bucket
 
   const handleChange = React.useCallback(

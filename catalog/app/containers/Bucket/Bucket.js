@@ -54,7 +54,10 @@ const sections = {
 const getBucketSection = (paths) =>
   match(
     R.map(
-      (variants) => [].concat(variants).map(R.evolve({ path: (p) => paths[p] })),
+      (variants) =>
+        []
+          .concat(variants)
+          .map(R.evolve({ path: (p) => paths.bucketRoot.replace('*', '') + paths[p] })),
       sections,
     ),
   )
@@ -99,33 +102,15 @@ export default function Bucket() {
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Routes>
-            <Route path={paths.bucketFile} exact strict>
-              <File />
-            </Route>
-            <Route path={paths.bucketDir} exact>
-              <Dir />
-            </Route>
-            <Route path={paths.bucketOverview} exact>
-              <Overview />
-            </Route>
-            <Route path={paths.bucketPackageList} exact>
-              <PackageList />
-            </Route>
-            <Route path={paths.bucketPackageDetail} exact>
-              <PackageTree />
-            </Route>
-            <Route path={paths.bucketPackageTree} exact>
-              <PackageTree />
-            </Route>
-            <Route path={paths.bucketPackageRevisions} exact>
-              <PackageRevisions />
-            </Route>
-            <Route path={paths.bucketQueries}>
-              <Queries />
-            </Route>
-            <Route>
-              <ThrowNotFound />
-            </Route>
+            <Route path={paths.bucketOverview} element={<Overview />} />
+            <Route path={paths.bucketFile} element={<File />} />
+            <Route path={paths.bucketDir} element={<Dir />} />
+            <Route path={paths.bucketPackageList} element={<PackageList />} />
+            <Route path={paths.bucketPackageDetail} element={<PackageTree />} />
+            <Route path={paths.bucketPackageTree} element={<PackageTree />} />
+            <Route path={paths.bucketPackageRevisions} element={<PackageRevisions />} />
+            <Route path={paths.bucketQueries} element={<Queries />} />
+            <Route path="*" element={<ThrowNotFound />} />
           </Routes>
         </CatchNotFound>
       </BucketLayout>
