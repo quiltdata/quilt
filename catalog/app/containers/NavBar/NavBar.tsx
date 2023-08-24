@@ -589,7 +589,7 @@ export function NavBar() {
   const classes = useNavBarStyles()
   return (
     <Container>
-      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
+      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && !authenticated) ? (
         <div className={classes.spacer} />
       ) : (
         <Controls />
