@@ -29,7 +29,7 @@ import ROLE_DELETE_MUTATION from './gql/RoleDelete.generated'
 import ROLE_SET_DEFAULT_MUTATION from './gql/RoleSetDefault.generated'
 import { RoleSelectionFragment as Role } from './gql/RoleSelection.generated'
 
-const columns = [
+const columns: Table.Column<Role>[] = [
   {
     id: 'name',
     label: 'Name',
@@ -694,7 +694,14 @@ export default function Roles() {
   const rows = data.roles
   const defaultRoleId = data.defaultRole?.id
 
-  const ordering = Table.useOrdering({ rows, column: columns[0] })
+  const filtering = Table.useFiltering({
+    rows,
+    filterBy: ({ name }) => name,
+  })
+  const ordering = Table.useOrdering({
+    rows: filtering.filtered,
+    column: columns[0],
+  })
   const dialogs = Dialogs.use()
 
   const toolbarActions = [
@@ -709,11 +716,11 @@ export default function Roles() {
 
   const inlineActions = (role: Role) => [
     role.arn
-      ? {
+      ? ({
           title: 'Open AWS Console',
           icon: <M.Icon>launch</M.Icon>,
           href: getArnLink(role.arn),
-        }
+        } as Table.Action)
       : null,
     {
       title: 'Edit',
@@ -742,7 +749,9 @@ export default function Roles() {
     >
       <M.Paper>
         {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
-        <Table.Toolbar heading="Roles" actions={toolbarActions} />
+        <Table.Toolbar heading="Roles" actions={toolbarActions}>
+          <Table.Filter {...filtering} />
+        </Table.Toolbar>
         <Table.Wrapper>
           <M.Table>
             <Table.Head columns={columns} ordering={ordering} withInlineActions />
@@ -750,9 +759,7 @@ export default function Roles() {
               {ordering.ordered.map((i: Role) => (
                 <M.TableRow hover key={i.id}>
                   {columns.map((col) => (
-                    // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
-                      {/* @ts-expect-error */}
                       {(col.getDisplay || R.identity)(col.getValue(i), i, {
                         defaultRoleId,
                       })}
@@ -760,7 +767,6 @@ export default function Roles() {
                   ))}
                   <M.TableCell align="right" padding="none">
                     <Table.InlineActions actions={inlineActions(i)}>
-                      {/* @ts-expect-error */}
                       <SettingsMenu role={i} openDialog={dialogs.open} />
                     </Table.InlineActions>
                   </M.TableCell>

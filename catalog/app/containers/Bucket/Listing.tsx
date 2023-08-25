@@ -17,6 +17,8 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import usePrevious from 'utils/usePrevious'
 
+import { RowActions } from './ListingActions'
+
 const EMPTY = <i>{'<EMPTY>'}</i>
 
 const TIP_DELAY = 1000
@@ -33,7 +35,13 @@ export interface Item {
 }
 
 export const Entry = tagged.create('app/containers/Listing:Entry' as const, {
-  File: (f: { key: string; size?: number; archived?: boolean; modified?: Date }) => f,
+  File: (f: {
+    archived?: boolean
+    key: string
+    modified?: Date
+    physicalKey?: string
+    size?: number
+  }) => f,
   Dir: (d: { key: string; size?: number }) => d,
 })
 
@@ -105,11 +113,12 @@ export function format(
           to: toDir(key),
           size,
         }),
-        File: ({ key, size, archived, modified }) => ({
+        File: ({ key, size, archived, modified, physicalKey }) => ({
           type: 'file' as const,
           name: s3paths.withoutPrefix(prefix, key),
           to: toFile(key),
           size,
+          physicalKey,
           modified,
           archived,
         }),
@@ -1152,6 +1161,22 @@ export function Listing({
         },
       })
     }
+    columnsWithValues.push({
+      field: 'actions',
+      headerName: '',
+      align: 'right',
+      width: 0,
+      renderCell: (params: DG.GridCellParams) =>
+        params.id === '..' ? (
+          <></>
+        ) : (
+          <RowActions
+            archived={params.row.archived}
+            physicalKey={params.row.physicalKey}
+            to={params.row.to}
+          />
+        ),
+    })
     return columnsWithValues
   }, [classes, CellComponent, items, sm])
 
