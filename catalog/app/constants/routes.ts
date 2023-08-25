@@ -1,8 +1,6 @@
 import { mkSearch } from 'utils/NamedRoutes'
 import { encode } from 'utils/s3paths'
 
-const PACKAGE_PATTERN = '[^/]+/[^/]+'
-
 // TODO: make sure types are explicitly divide codebase into
 //       main catalog and embed,
 //       so catalog routes aren't called in embed
@@ -147,7 +145,7 @@ export const bucketOverview: Route<BucketRootArgs> = {
 
 // redirects to global search
 export const bucketSearch: Route<BucketSearchArgs> = {
-  path: '/b/:bucket/search',
+  path: 'search',
   url: (bucket, { q, p, mode, retry } = {}) =>
     `/b/${bucket}/search${mkSearch({ q, p, mode, retry })}`,
 }
@@ -165,7 +163,7 @@ export type BucketFileArgs = [
 ]
 
 export const bucketFile: Route<BucketFileArgs> = {
-  path: '/b/:bucket/tree/:path(.*[^/])',
+  path: 'tree/:path',
   url: (bucket, path, { add, edit, mode, next, version } = {}) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
 }
@@ -173,7 +171,7 @@ export const bucketFile: Route<BucketFileArgs> = {
 export type BucketDirArgs = [bucket: string, path?: string, prefix?: string]
 
 export const bucketDir: Route<BucketDirArgs> = {
-  path: '/b/:bucket/tree/:path(.+/)?',
+  path: 'tree/*',
   // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
@@ -185,7 +183,7 @@ export type BucketPackageListArgs = [
 ]
 
 export const bucketPackageList: Route<BucketPackageListArgs> = {
-  path: '/b/:bucket/packages/',
+  path: 'packages',
   url: (bucket, { filter, sort, p } = {}) =>
     `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
 }
@@ -197,7 +195,7 @@ export type BucketPackageDetailArgs = [
 ]
 
 export const bucketPackageDetail: Route<BucketPackageDetailArgs> = {
-  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
+  path: `packages/:namespace/:name/*`,
   url: (bucket, name, { action } = {}) =>
     `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
 }
@@ -211,7 +209,7 @@ export type BucketPackageTreeArgs = [
 ]
 
 export const bucketPackageTree: Route<BucketPackageTreeArgs> = {
-  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
+  path: `packages/:namespace/:name/tree/:revision/:path?`,
   // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
@@ -228,7 +226,7 @@ export type BucketPackageRevisionsArgs = [
 ]
 
 export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
-  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
+  path: `packages/:namespace/:name/revisions`,
   url: (bucket, name, { p } = {}) =>
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 }

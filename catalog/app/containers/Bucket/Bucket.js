@@ -29,6 +29,12 @@ const PackageRevisions = RT.mkLazy(
 const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
 const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 
+function FileOrDir() {
+  const { ['*']: path } = useParams()
+  const isDir = !path || path?.endsWith('/')
+  return isDir ? <Dir /> : <File />
+}
+
 const match = (cases) => (pathname) => {
   // eslint-disable-next-line no-restricted-syntax
   for (const [section, variants] of Object.entries(cases)) {
@@ -41,13 +47,14 @@ const match = (cases) => (pathname) => {
 }
 
 const sections = {
-  es: { path: 'bucketESQueries', exact: true },
-  overview: { path: 'bucketOverview', exact: true },
-  packages: { path: 'bucketPackageList' },
-  tree: [
-    { path: 'bucketFile', exact: true, strict: true },
-    { path: 'bucketDir', exact: true },
+  es: { path: 'bucketESQueries' },
+  overview: { path: 'bucketOverview' },
+  packages: [
+    { path: 'bucketPackageList' },
+    { path: 'bucketPackageDetail' },
+    { path: 'bucketPackageTree' },
   ],
+  tree: [{ path: 'bucketFile' }, { path: 'bucketDir' }],
   queries: { path: 'bucketQueries' },
 }
 
@@ -103,10 +110,9 @@ export default function Bucket() {
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Routes>
             <Route path={paths.bucketOverview} element={<Overview />} />
-            <Route path={paths.bucketFile} element={<File />} />
-            <Route path={paths.bucketDir} element={<Dir />} />
-            <Route path={paths.bucketPackageList} element={<PackageList />} />
+            <Route path={paths.bucketDir} element={<FileOrDir />} />
             <Route path={paths.bucketPackageDetail} element={<PackageTree />} />
+            <Route path={paths.bucketPackageList} element={<PackageList />} />
             <Route path={paths.bucketPackageTree} element={<PackageTree />} />
             <Route path={paths.bucketPackageRevisions} element={<PackageRevisions />} />
             <Route path={paths.bucketQueries} element={<Queries />} />

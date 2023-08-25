@@ -935,6 +935,7 @@ function PackageTreeQueries({
 
 type PackageTreeRouteParams = {
   bucket: string
+  namespace: string
   name: string
   revision?: string
   path?: string
@@ -943,22 +944,28 @@ type PackageTreeRouteParams = {
 export default function PackageTreeWrapper() {
   const {
     bucket,
+    namespace,
     name,
     revision: hashOrTag = 'latest',
     path: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
   const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
+  invariant(!!namespace, '`namespace` must be defined')
   invariant(!!name, '`name` must be defined')
 
-  const path = s3paths.decode(encodedPath)
+  const isDir = location.pathname.endsWith('/')
+  const packageName = `${namespace}/${name}`
+  const path = s3paths.decode(encodedPath) + (isDir ? '/' : '')
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)
   return (
     <>
-      <MetaTitle>{[`${name}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
+      <MetaTitle>{[`${packageName}@${R.take(10, hashOrTag)}/${path}`, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageTreeQueries {...{ bucket, name, hashOrTag, path, resolvedFrom, mode }} />
+        <PackageTreeQueries
+          {...{ bucket, name: packageName, hashOrTag, path, resolvedFrom, mode }}
+        />
       </WithPackagesSupport>
     </>
   )

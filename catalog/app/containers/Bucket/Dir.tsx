@@ -227,11 +227,11 @@ const useStyles = M.makeStyles((t) => ({
 
 type DirParams = {
   bucket: string
-  path?: string
+  ['*']?: string
 }
 
 export default function Dir() {
-  const { bucket, path: encodedPath = '' } = RRDom.useParams<DirParams>()
+  const { bucket, ['*']: encodedPath = '' } = RRDom.useParams<DirParams>()
   const l = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
 

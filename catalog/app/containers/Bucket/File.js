@@ -316,7 +316,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function File() {
   const location = useLocation()
-  const { bucket, path: encodedPath } = useParams()
+  const { bucket, ['*']: encodedPath } = useParams()
 
   const { version, mode } = parseSearch(location.search)
   const classes = useStyles()

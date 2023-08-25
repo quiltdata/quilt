@@ -535,18 +535,25 @@ export function PackageRevisions({ bucket, name, page }: PackageRevisionsProps) 
 }
 
 export default function PackageRevisionsWrapper() {
-  const { bucket, name } = RRDom.useParams<{ bucket: string; name: string }>()
+  const { bucket, namespace, name } = RRDom.useParams<{
+    bucket: string
+    namespace: string
+    name: string
+  }>()
   const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
   invariant(!!name, '`name` must be defined')
+  invariant(!!namespace, '`namespace` must be defined')
+
+  const packageName = `${namespace}/${name}`
 
   const { p } = parseSearch(location.search, true)
   const page = p ? parseInt(p, 10) : undefined
   return (
     <>
-      <MetaTitle>{[name, bucket]}</MetaTitle>
+      <MetaTitle>{[packageName, bucket]}</MetaTitle>
       <WithPackagesSupport bucket={bucket}>
-        <PackageRevisions {...{ bucket, name, page }} />
+        <PackageRevisions {...{ bucket, name: packageName, page }} />
       </WithPackagesSupport>
     </>
   )
@@ -563,7 +570,7 @@ export default function PackageRevisionsWrapper() {
           <LinkedData.PackageData
             {...{
               bucket: bucketCfg,
-              name,
+              name: packageName,
               revision: r,
               hash,
               modified,
