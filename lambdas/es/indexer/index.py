@@ -351,9 +351,7 @@ def index_if_package(
             return
 
         user_meta = first.get("user_meta")
-        if user_meta == {}:
-            user_meta = None
-        user_meta = None if user_meta is None else json.dumps(user_meta)
+        user_meta = json.dumps(user_meta) if user_meta else None
 
         return {
             "key": key,
