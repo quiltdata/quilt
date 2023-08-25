@@ -36,7 +36,7 @@ const validateNonEmptyString: FF.FieldValidator<any> = validate(
   validators.matches(/\S/),
 )
 
-const columns = [
+const columns: Table.Column<Policy>[] = [
   {
     id: 'title',
     label: 'Title',
@@ -649,7 +649,14 @@ interface DialogsOpenProps {
 export default function Policies() {
   const { policies: rows } = GQL.useQueryS(POLICIES_QUERY)
 
-  const ordering = Table.useOrdering({ rows, column: columns[0] })
+  const filtering = Table.useFiltering({
+    rows,
+    filterBy: ({ title }) => title,
+  })
+  const ordering = Table.useOrdering({
+    rows: filtering.filtered,
+    column: columns[0],
+  })
   const dialogs = Dialogs.use()
 
   const toolbarActions = [
@@ -664,11 +671,11 @@ export default function Policies() {
 
   const inlineActions = (policy: Policy) => [
     policy.arn
-      ? {
+      ? ({
           title: 'Open AWS Console',
           icon: <M.Icon>launch</M.Icon>,
           href: getArnLink(policy.arn),
-        }
+        } as Table.Action)
       : null,
     {
       title: 'Edit',
@@ -697,7 +704,9 @@ export default function Policies() {
     >
       <M.Paper>
         {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
-        <Table.Toolbar heading="Policies" actions={toolbarActions} />
+        <Table.Toolbar heading="Policies" actions={toolbarActions}>
+          <Table.Filter {...filtering} />
+        </Table.Toolbar>
         <Table.Wrapper>
           <M.Table>
             <Table.Head columns={columns} ordering={ordering} withInlineActions />
@@ -705,14 +714,12 @@ export default function Policies() {
               {ordering.ordered.map((i: Policy) => (
                 <M.TableRow hover key={i.id}>
                   {columns.map((col) => (
-                    // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
                       {(col.getDisplay || R.identity)(col.getValue(i), i)}
                     </M.TableCell>
                   ))}
                   <M.TableCell align="right" padding="none">
                     <Table.InlineActions actions={inlineActions(i)}>
-                      {/* @ts-expect-error */}
                       <SettingsMenu policy={i} openDialog={dialogs.open} />
                     </Table.InlineActions>
                   </M.TableCell>

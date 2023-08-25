@@ -1,9 +1,12 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as GQL from 'utils/GraphQL'
 
+import * as Table from '../Table'
+import Filter from './Filter'
 import { MAX_POLICIES_PER_ROLE } from './shared'
 
 import ROLES_QUERY from './gql/Roles.generated'
@@ -45,12 +48,26 @@ function RoleSelectionDialog({
     [setSelected],
   )
 
+  const filtering = Table.useFiltering({
+    rows: roles,
+    filterBy: ({ name }: ManagedRole) => name,
+  })
+  const ordered = React.useMemo(
+    () => R.sortBy(({ name }: ManagedRole) => name, filtering.filtered),
+    [filtering.filtered],
+  )
+
   return (
     <M.Dialog maxWidth="xs" open={open} onClose={onClose} onExited={handleExited}>
       <M.DialogTitle>Attach policy to roles</M.DialogTitle>
+      {roles.length && (
+        <M.Box ml={3} mr={1.5}>
+          <Filter {...filtering} />
+        </M.Box>
+      )}
       <M.DialogContent dividers>
-        {roles.length ? (
-          roles.map((role) => (
+        {ordered.length ? (
+          ordered.map((role) => (
             <M.FormControlLabel
               key={role.id}
               style={{ display: 'flex', marginRight: 0 }}
@@ -73,7 +90,11 @@ function RoleSelectionDialog({
             />
           ))
         ) : (
-          <M.Typography>No more roles to attach this policy to</M.Typography>
+          <M.Typography>
+            {filtering.value
+              ? 'No roles found, try resetting filter'
+              : 'No more roles to attach this policy to'}
+          </M.Typography>
         )}
       </M.DialogContent>
       <M.DialogActions>

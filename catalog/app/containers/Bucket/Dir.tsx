@@ -362,11 +362,14 @@ export default function Dir() {
             prefs,
           )}
           {!cfg.noDownload && !cfg.desktop && (
-            <FileView.ZipDownloadForm
-              className={classes.button}
-              suffix={`dir/${bucket}/${path}`}
-              label="Download directory"
-            />
+            <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
+              <Buttons.Iconized
+                className={classes.button}
+                label="Download directory"
+                icon="archive"
+                type="submit"
+              />
+            </FileView.ZipDownloadForm>
           )}
           <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
         </div>

@@ -48,24 +48,21 @@ export function ViewModeSelector({ className, ...props }) {
   )
 }
 
-export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
+/** Child button must have `type="submit"` */
+export function ZipDownloadForm({ className = '', suffix, children, newTab = false }) {
   const { token } = redux.useSelector(tokensSelector) || {}
   if (!token || cfg.noDownload) return null
   const action = `${cfg.s3Proxy}/zip/${suffix}`
   return (
     <form
+      className={className}
       action={action}
       target={newTab ? '_blank' : undefined}
       method="POST"
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <Buttons.Iconized
-        className={className}
-        label={label}
-        icon="archive"
-        type="submit"
-      />
+      {children}
     </form>
   )
 }

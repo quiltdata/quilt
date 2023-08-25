@@ -6,6 +6,7 @@ import { useHistory, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as Buttons from 'components/Buttons'
 import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -123,11 +124,9 @@ export default function Dir() {
         </div>
         <M.Box flexGrow={1} />
         {!cfg.noDownload && (
-          <FileView.ZipDownloadForm
-            suffix={`dir/${bucket}/${path}`}
-            label="Download directory"
-            newTab
-          />
+          <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`} newTab>
+            <Buttons.Iconized label="Download directory" icon="archive" type="submit" />
+          </FileView.ZipDownloadForm>
         )}
       </M.Box>
 

@@ -14,7 +14,6 @@ import * as Cache from 'utils/ResourceCache'
 import * as Format from 'utils/format'
 import * as validators from 'utils/validators'
 
-import Filter from '../Filter'
 import * as Form from '../Form'
 import * as Table from '../Table'
 import * as data from '../data'
@@ -677,15 +676,14 @@ export default function Users({ users }) {
     [roles, openDialog, setIsActive, setRole],
   )
 
-  const [filter, setFilter] = React.useState('')
-  const filtered = React.useMemo(
-    () =>
-      filter
-        ? rows.filter(({ email, username }) => (email + username).includes(filter))
-        : rows,
-    [filter, rows],
-  )
-  const ordering = Table.useOrdering({ rows: filtered, column: columns[0] })
+  const filtering = Table.useFiltering({
+    rows,
+    filterBy: ({ email, username }) => email + username,
+  })
+  const ordering = Table.useOrdering({
+    rows: filtering.filtered,
+    column: columns[0],
+  })
   const pagination = Pagination.use(ordering.ordered, {
     getItemId: R.prop('username'),
   })
@@ -722,7 +720,7 @@ export default function Users({ users }) {
       <M.Paper>
         {dialogs.render({ maxWidth: 'xs', fullWidth: true })}
         <Table.Toolbar heading="Users" actions={toolbarActions}>
-          <Filter value={filter} onChange={setFilter} />
+          <Table.Filter {...filtering} />
         </Table.Toolbar>
         <Table.Wrapper>
           <M.Table size="small">

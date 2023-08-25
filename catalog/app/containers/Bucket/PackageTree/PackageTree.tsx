@@ -290,7 +290,11 @@ function DirDisplay({
             dir.children.map((c) => {
               switch (c.__typename) {
                 case 'PackageFile':
-                  return Listing.Entry.File({ key: c.path, size: c.size })
+                  return Listing.Entry.File({
+                    key: c.path,
+                    size: c.size,
+                    physicalKey: c.physicalKey,
+                  })
                 case 'PackageDir':
                   return Listing.Entry.Dir({ key: c.path, size: c.size })
                 default:

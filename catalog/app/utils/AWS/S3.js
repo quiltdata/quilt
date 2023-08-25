@@ -83,26 +83,23 @@ function useSmartS3() {
           )
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
+
             // Monkey-patch the request object after it has been signed and save the original
             // values in case of retry.
+            const origEndpoint = req.httpRequest.endpoint
+            const origPath = req.httpRequest.path
+
             req.httpRequest[PROXIED] = {
-              endpoint: req.httpRequest.endpoint,
-              path: req.httpRequest.path,
+              endpoint: origEndpoint,
+              path: origPath,
             }
             const basePath = endpoint.path.replace(/\/$/, '')
-            // handle buckets with dots in their names
-            if (
-              req.httpRequest.path.startsWith(`/${b}`) &&
-              !req.httpRequest.endpoint.host.startsWith(`${b}.`)
-            ) {
-              req.httpRequest.path = req.httpRequest.path.replace(`/${b}`, '')
-            }
 
             req.httpRequest.endpoint = endpoint
             req.httpRequest.path =
               type === 'select'
-                ? `${basePath}${req.httpRequest.path}`
-                : `${basePath}/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+                ? `${basePath}${origPath}`
+                : `${basePath}/${origEndpoint.host}${origPath}`
           })
           req.on(
             'retry',
