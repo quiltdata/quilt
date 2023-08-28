@@ -71,13 +71,12 @@ function Admin() {
   const { paths } = NamedRoutes.use()
 
   const section = React.useMemo(() => {
-    const parent = paths.admin.replace('*', '')
     const sections = {
-      users: parent + paths.adminUsers,
-      buckets: parent + paths.adminBuckets,
-      sync: parent + paths.adminSync,
-      settings: parent + paths.adminSettings,
-      status: parent + paths.adminStatus,
+      users: paths.adminUsers,
+      buckets: paths.adminBuckets,
+      sync: paths.adminSync,
+      settings: paths.adminSettings,
+      status: paths.adminStatus,
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const found = Object.entries(sections).find(([_0, pattern]) =>

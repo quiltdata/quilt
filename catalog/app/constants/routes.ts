@@ -279,33 +279,30 @@ export const legacyPackages: Route<LegacyPackagesArgs> = {
 // Admin
 
 export const admin: Route = {
-  path: '/admin/*',
+  path: '/admin',
   url: () => '/admin',
 }
 
-export const adminUsers: Route = {
-  path: '',
-  url: () => '/admin',
-}
+export const adminUsers = admin
 
 export type AdminBucketsArgs = [bucket: string]
 
 export const adminBuckets: Route<AdminBucketsArgs> = {
-  path: 'buckets',
+  path: '/admin/buckets',
   url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
 }
 
 export const adminSettings: Route = {
-  path: 'settings',
+  path: '/admin/settings',
   url: () => '/admin/settings',
 }
 
 export const adminSync: Route = {
-  path: 'sync',
+  path: '/admin/sync',
   url: () => '/admin/sync',
 }
 
 export const adminStatus: Route = {
-  path: 'status',
+  path: '/admin/status',
   url: () => '/admin/status',
 }

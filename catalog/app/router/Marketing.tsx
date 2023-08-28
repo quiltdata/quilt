@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { RouteObject, createBrowserRouter } from 'react-router-dom'
 
+import * as routes from 'constants/routes'
 import Wrapper from 'pages/Wrapper'
 
 import Error from './Error'
@@ -10,12 +11,12 @@ const developmentOnly = (r: RouteObject) =>
 
 export default createBrowserRouter([
   {
-    path: '/',
+    path: routes.home.path,
     element: <Wrapper />,
     errorElement: <Error />,
     children: [
       {
-        path: '',
+        path: routes.home.path,
         lazy: () => require('pages/Home'),
       },
       developmentOnly({
@@ -23,35 +24,35 @@ export default createBrowserRouter([
         lazy: () => require('pages/Example'),
       }),
       {
-        path: 'install',
+        path: routes.install.path,
         lazy: () => require('pages/Marketing/Install'),
       },
       {
-        path: 'about',
+        path: routes.about.path,
         lazy: () => require('pages/Marketing/About'),
       },
       {
-        path: 'personas',
+        path: routes.personas.path,
         lazy: () => require('pages/Marketing/Personas'),
       },
       {
-        path: 'product',
+        path: routes.product.path,
         lazy: () => require('pages/Marketing/Product'),
       },
       {
-        path: 'bioit',
+        path: '/bioit',
         lazy: () => require('pages/Marketing/BioIT'),
       },
       {
-        path: 'nextflow',
+        path: '/nextflow',
         lazy: () => require('pages/Marketing/NextFlow'),
       },
       {
-        path: 'aws',
+        path: '/aws',
         lazy: () => require('pages/Marketing/BioIT'),
       },
       {
-        path: 'aws-marketplace',
+        path: '/aws-marketplace',
         lazy: () => require('pages/Marketing/AwsMarketplace'),
       },
     ],

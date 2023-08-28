@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { RouteObject, createBrowserRouter } from 'react-router-dom'
 
+import * as routes from 'constants/routes'
 import Wrapper from 'pages/Wrapper'
 
 import Error from './Error'
@@ -10,44 +11,44 @@ const developmentOnly = (r: RouteObject) =>
 
 export default createBrowserRouter([
   {
-    path: '/',
+    path: routes.home.path,
     element: <Wrapper />,
     errorElement: <Error />,
     children: [
       {
-        path: '',
+        path: routes.home.path,
         lazy: () => require('pages/Home'),
       },
       {
-        path: 'uri',
+        path: routes.uriResolver.path,
         lazy: () => require('pages/Uri'),
       },
       developmentOnly({
-        path: '__example',
+        path: '/__example',
         lazy: () => require('pages/Example'),
       }),
       {
-        path: 'admin',
+        path: routes.admin.path,
         lazy: () => require('pages/Admin/Admin'),
         children: [
           {
-            path: '',
+            path: routes.adminUsers.path,
             lazy: () => require('pages/Admin/UsersAndRoles'),
           },
           {
-            path: 'buckets',
+            path: routes.adminBuckets.path,
             lazy: () => require('pages/Admin/Buckets'),
           },
           {
-            path: 'settings',
+            path: routes.adminSettings.path,
             lazy: () => require('pages/Admin/Settings'),
           },
           {
-            path: 'sync',
+            path: routes.adminSync.path,
             lazy: () => require('pages/Admin/Sync'),
           },
           {
-            path: 'status',
+            path: routes.adminStatus.path,
             lazy: () => require('pages/Admin/Status'),
           },
         ],
