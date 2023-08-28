@@ -28,27 +28,27 @@ export default createBrowserRouter([
       }),
       {
         path: 'admin',
-        lazy: () => require('pages/AdminIndex'),
+        lazy: () => require('pages/Admin/Admin'),
         children: [
           {
             path: '',
-            lazy: () => require('pages/AdminUsersAndRoles'),
+            lazy: () => require('pages/Admin/UsersAndRoles'),
           },
           {
             path: 'buckets',
-            lazy: () => require('pages/AdminBuckets'),
+            lazy: () => require('pages/Admin/Buckets'),
           },
           {
             path: 'settings',
-            lazy: () => require('pages/AdminSettings'),
+            lazy: () => require('pages/Admin/Settings'),
           },
           {
             path: 'sync',
-            lazy: () => require('pages/AdminSync'),
+            lazy: () => require('pages/Admin/Sync'),
           },
           {
             path: 'status',
-            lazy: () => require('pages/AdminStatus'),
+            lazy: () => require('pages/Admin/Status'),
           },
         ],
       },
