@@ -1,13 +1,10 @@
-import * as R from 'ramda'
 import * as React from 'react'
 
 import Placeholder from 'components/Placeholder'
-import requireAuth from 'containers/Auth/wrapper'
-import cfg from 'constants/config'
 import * as RT from 'utils/reactTools'
 
-const protect = cfg.alwaysRequiresAuth ? requireAuth() : R.identity
+import { authenticatedOnly } from './utils'
 
-export const Component: React.FC = protect(
+export const Component: React.FC = authenticatedOnly(
   RT.mkLazy(() => import('containers/UriResolver'), Placeholder),
 )
