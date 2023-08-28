@@ -26,6 +26,32 @@ export default createBrowserRouter([
         path: '__example',
         lazy: () => require('pages/Example'),
       }),
+      {
+        path: 'admin',
+        lazy: () => require('pages/AdminIndex'),
+        children: [
+          {
+            path: '',
+            lazy: () => require('pages/AdminUsersAndRoles'),
+          },
+          {
+            path: 'buckets',
+            lazy: () => require('pages/AdminBuckets'),
+          },
+          {
+            path: 'settings',
+            lazy: () => require('pages/AdminSettings'),
+          },
+          {
+            path: 'sync',
+            lazy: () => require('pages/AdminSync'),
+          },
+          {
+            path: 'status',
+            lazy: () => require('pages/AdminStatus'),
+          },
+        ],
+      },
     ],
   },
 ])
