@@ -21,9 +21,11 @@ function NavTab(props: NavTabProps) {
   return <M.Tab className={classes.root} component={Link} {...props} />
 }
 
+export type BucketNavSection = 'es' | 'overview' | 'packages' | 'queries' | 'tree'
+
 interface BucketNavProps {
   bucket: string
-  section: 'es' | 'overview' | 'packages' | 'queries' | 'tree' | false // `keyof` sections object
+  section?: BucketNavSection
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
@@ -52,10 +54,10 @@ function BucketNavSkeleton() {
 interface TabsProps {
   bucket: string
   preferences: BucketPreferences.NavPreferences
-  section: string | boolean
+  section?: string
 }
 
-function Tabs({ bucket, preferences, section = false }: TabsProps) {
+function Tabs({ bucket, preferences, section }: TabsProps) {
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
@@ -83,7 +85,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
   )
 }
 
-export default function BucketNav({ bucket, section = false }: BucketNavProps) {
+export default function BucketNav({ bucket, section }: BucketNavProps) {
   const prefs = BucketPreferences.use()
   return BucketPreferences.Result.match(
     {

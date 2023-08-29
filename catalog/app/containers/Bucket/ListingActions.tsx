@@ -189,7 +189,7 @@ function useMatchedParams(to: string) {
       null as PathMatch<keyof BucketMatchParams | keyof PackageMatchParams> | null,
     )
     if (!match) return {}
-    switch (match.pathname) {
+    switch (match.pattern.path) {
       case paths.bucketFile:
       case paths.bucketDir: {
         const { params } = match as PathMatch<keyof BucketMatchParams>

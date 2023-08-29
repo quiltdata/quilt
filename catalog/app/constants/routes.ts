@@ -129,7 +129,7 @@ export const uriResolver: Route<UriResolverArgs> = {
 export type BucketRootArgs = [bucket: string]
 
 export const bucketRoot: Route<BucketRootArgs> = {
-  path: '/b/:bucket/*',
+  path: '/b/:bucket/',
   url: (bucket) => `/b/${bucket}`,
 }
 
@@ -138,10 +138,7 @@ export type BucketSearchArgs = [
   options?: { q?: string; p?: string; mode?: string; retry?: string },
 ]
 
-export const bucketOverview: Route<BucketRootArgs> = {
-  path: '',
-  url: (bucket) => `/b/${bucket}`,
-}
+export const bucketOverview = bucketRoot
 
 // redirects to global search
 export const bucketSearch: Route<BucketSearchArgs> = {
@@ -163,7 +160,7 @@ export type BucketFileArgs = [
 ]
 
 export const bucketFile: Route<BucketFileArgs> = {
-  path: 'tree/:path',
+  path: '/b/:bucket/tree/:path',
   url: (bucket, path, { add, edit, mode, next, version } = {}) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
 }
@@ -171,7 +168,7 @@ export const bucketFile: Route<BucketFileArgs> = {
 export type BucketDirArgs = [bucket: string, path?: string, prefix?: string]
 
 export const bucketDir: Route<BucketDirArgs> = {
-  path: 'tree/*',
+  path: '/b/:bucket/tree/*',
   // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
@@ -183,7 +180,7 @@ export type BucketPackageListArgs = [
 ]
 
 export const bucketPackageList: Route<BucketPackageListArgs> = {
-  path: 'packages',
+  path: '/b/:bucket/packages',
   url: (bucket, { filter, sort, p } = {}) =>
     `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
 }
@@ -195,7 +192,7 @@ export type BucketPackageDetailArgs = [
 ]
 
 export const bucketPackageDetail: Route<BucketPackageDetailArgs> = {
-  path: `packages/:namespace/:name/*`,
+  path: `/b/:bucket/packages/:namespace/:name/*`,
   url: (bucket, name, { action } = {}) =>
     `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
 }
@@ -209,7 +206,7 @@ export type BucketPackageTreeArgs = [
 ]
 
 export const bucketPackageTree: Route<BucketPackageTreeArgs> = {
-  path: `packages/:namespace/:name/tree/:revision/:path?`,
+  path: `/b/:bucket/packages/:namespace/:name/tree/:revision/:path?`,
   // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
@@ -226,7 +223,7 @@ export type BucketPackageRevisionsArgs = [
 ]
 
 export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
-  path: `packages/:namespace/:name/revisions`,
+  path: `/b/:bucket/packages/:namespace/:name/revisions`,
   url: (bucket, name, { p } = {}) =>
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 }
@@ -234,12 +231,12 @@ export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
 export type BucketQueriesArgs = [bucket: string]
 
 export const bucketQueries: Route<BucketQueriesArgs> = {
-  path: 'queries/*',
+  path: '/b/:bucket/queries/*',
   url: (bucket) => `/b/${bucket}/queries`,
 }
 
 export const bucketESQueries: Route<BucketQueriesArgs> = {
-  path: 'es',
+  path: '/b/:bucket/es',
   url: (bucket) => `/b/${bucket}/queries/es`,
 }
 

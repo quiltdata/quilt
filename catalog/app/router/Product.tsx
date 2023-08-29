@@ -53,6 +53,32 @@ export default createBrowserRouter([
           },
         ],
       },
+      {
+        path: routes.bucketRoot.path,
+        lazy: () => require('pages/Bucket/Bucket'),
+        children: [
+          {
+            path: routes.bucketOverview.path,
+            lazy: () => require('pages/Bucket/Overview'),
+          },
+          {
+            path: routes.bucketDir.path,
+            lazy: () => require('pages/Bucket/Tree'),
+          },
+          {
+            path: routes.bucketPackageList.path,
+            lazy: () => require('pages/Bucket/PackageList'),
+          },
+          {
+            path: routes.bucketPackageRevisions.path,
+            lazy: () => require('pages/Bucket/PackageRevisions'),
+          },
+          {
+            path: routes.bucketPackageRevisions.path,
+            lazy: () => require('pages/Bucket/PackageTree'),
+          },
+        ],
+      },
     ],
   },
 ])

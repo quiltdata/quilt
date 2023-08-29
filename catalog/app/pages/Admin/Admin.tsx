@@ -66,24 +66,25 @@ function AdminLayout({ section = false, children }: AdminLayoutProps) {
   )
 }
 
-function Admin() {
+function useSection() {
   const location = useLocation()
   const { paths } = NamedRoutes.use()
-
-  const section = React.useMemo(() => {
+  return React.useMemo(() => {
     const sections = {
-      users: paths.adminUsers,
-      buckets: paths.adminBuckets,
-      sync: paths.adminSync,
-      settings: paths.adminSettings,
-      status: paths.adminStatus,
+      [paths.adminUsers]: 'users',
+      [paths.adminBuckets]: 'buckets',
+      [paths.adminSync]: 'sync',
+      [paths.adminSettings]: 'settings',
+      [paths.adminStatus]: 'status',
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const found = Object.entries(sections).find(([_0, pattern]) =>
-      matchPath(pattern, location.pathname),
-    )
-    return found?.[0]
+    for (const pattern in sections) {
+      if (matchPath(pattern, location.pathname)) return sections[pattern]
+    }
   }, [location.pathname, paths])
+}
+
+function Admin() {
+  const section = useSection()
 
   return (
     <AdminLayout section={section}>
