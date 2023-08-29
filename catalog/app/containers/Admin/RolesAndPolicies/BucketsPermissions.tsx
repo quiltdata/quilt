@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
@@ -6,6 +7,9 @@ import defaultBucketIcon from 'components/BucketIcon/bucket.svg'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
+
+import * as Table from '../Table'
+import Filter from './Filter'
 
 import BUCKETS_QUERY from './gql/Buckets.generated'
 import { BucketPermissionSelectionFragment as BucketPermission } from './gql/BucketPermissionSelection.generated'
@@ -39,33 +43,51 @@ function BucketAddDialog({ open, onClose, buckets, addBucket }: BucketAddDialogP
     [onClose, select],
   )
 
+  const filtering = Table.useFiltering({
+    rows: buckets,
+    filterBy: ({ name, title }: Bucket) => name + title,
+  })
+  const ordered = React.useMemo(
+    () => R.sortBy(({ name }: Bucket) => name, filtering.filtered),
+    [filtering.filtered],
+  )
+
   return (
     <M.Dialog maxWidth="xs" open={open} onClose={onClose} onExited={handleExited}>
       <M.DialogTitle>Add a bucket</M.DialogTitle>
-      {buckets.length ? (
-        <M.List>
-          {buckets.map((bucket) => (
-            <M.ListItem key={bucket.name} button onClick={() => handleAdd(bucket)}>
-              <M.ListItemAvatar style={{ minWidth: 44 }}>
-                <M.Avatar
-                  style={{ width: 32, height: 32 }}
-                  src={bucket.iconUrl || defaultBucketIcon}
-                />
-              </M.ListItemAvatar>
-              <M.ListItemText>
-                s3://{bucket.name}{' '}
-                <M.Box component="span" color="text.secondary" ml={0.5}>
-                  {bucket.title}
-                </M.Box>
-              </M.ListItemText>
-            </M.ListItem>
-          ))}
-        </M.List>
-      ) : (
-        <M.DialogContent>
-          <M.Typography>No more buckets to add</M.Typography>
-        </M.DialogContent>
+      {!!buckets.length && (
+        <M.Box ml={3} mr={1.5}>
+          <Filter {...filtering} />
+        </M.Box>
       )}
+      <M.DialogContent dividers>
+        {ordered.length ? (
+          <M.List>
+            {ordered.map((bucket) => (
+              <M.ListItem key={bucket.name} button onClick={() => handleAdd(bucket)}>
+                <M.ListItemAvatar style={{ minWidth: 44 }}>
+                  <M.Avatar
+                    style={{ width: 32, height: 32 }}
+                    src={bucket.iconUrl || defaultBucketIcon}
+                  />
+                </M.ListItemAvatar>
+                <M.ListItemText>
+                  s3://{bucket.name}{' '}
+                  <M.Box component="span" color="text.secondary" ml={0.5}>
+                    {bucket.title}
+                  </M.Box>
+                </M.ListItemText>
+              </M.ListItem>
+            ))}
+          </M.List>
+        ) : (
+          <M.Typography>
+            {filtering.value
+              ? 'No buckets found, try resetting filter'
+              : 'No more buckets to add'}
+          </M.Typography>
+        )}
+      </M.DialogContent>
       <M.DialogActions>
         <M.Button autoFocus onClick={onClose} color="primary">
           Cancel

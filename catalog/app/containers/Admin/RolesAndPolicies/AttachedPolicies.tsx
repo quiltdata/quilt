@@ -1,10 +1,13 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
+import * as Table from '../Table'
+import Filter from './Filter'
 import { MAX_POLICIES_PER_ROLE } from './shared'
 
 import POLICIES_QUERY from './gql/Policies.generated'
@@ -38,34 +41,52 @@ function PolicySelectionDialog({
     [setSelected, onClose],
   )
 
+  const filtering = Table.useFiltering({
+    rows: policies,
+    filterBy: ({ title }: Policy) => title,
+  })
+  const ordered = React.useMemo(
+    () => R.sortBy(({ title }: Policy) => title, filtering.filtered),
+    [filtering.filtered],
+  )
+
   return (
     <M.Dialog maxWidth="xs" open={open} onClose={onClose} onExited={handleExited}>
       <M.DialogTitle>Attach a policy</M.DialogTitle>
-      <M.List dense>
-        {policies.length ? (
-          policies.map((policy) => (
-            <M.ListItem button key={policy.id} onClick={() => select(policy)}>
-              <M.ListItemText>
-                {policy.title}
-                <M.Box component="span" color="text.secondary">
-                  {' '}
-                  (
-                  {policy.managed ? (
-                    <>{policy.permissions.length} buckets</>
-                  ) : (
-                    <>unmanaged</>
-                  )}
-                  )
-                </M.Box>
-              </M.ListItemText>
-            </M.ListItem>
-          ))
-        ) : (
-          <M.DialogContent dividers>
-            <M.Typography>No more policies to attach</M.Typography>
-          </M.DialogContent>
-        )}
-      </M.List>
+      {!!policies.length && (
+        <M.Box ml={3} mr={1.5}>
+          <Filter {...filtering} />
+        </M.Box>
+      )}
+      <M.DialogContent dividers>
+        <M.List dense>
+          {ordered.length ? (
+            ordered.map((policy) => (
+              <M.ListItem button key={policy.id} onClick={() => select(policy)}>
+                <M.ListItemText>
+                  {policy.title}
+                  <M.Box component="span" color="text.secondary">
+                    {' '}
+                    (
+                    {policy.managed ? (
+                      <>{policy.permissions.length} buckets</>
+                    ) : (
+                      <>unmanaged</>
+                    )}
+                    )
+                  </M.Box>
+                </M.ListItemText>
+              </M.ListItem>
+            ))
+          ) : (
+            <M.Typography>
+              {filtering.value
+                ? 'No policies found, try resetting filter'
+                : 'No more policies to attach'}
+            </M.Typography>
+          )}
+        </M.List>
+      </M.DialogContent>
       <M.DialogActions>
         <M.Button autoFocus onClick={onClose} color="primary">
           Cancel

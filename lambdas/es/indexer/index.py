@@ -350,6 +350,9 @@ def index_if_package(
         if not stats:
             return
 
+        user_meta = first.get("user_meta")
+        user_meta = json.dumps(user_meta) if user_meta else None
+
         return {
             "key": key,
             "etag": etag,
@@ -360,7 +363,7 @@ def index_if_package(
             "pointer_file": pointer_file,
             "hash": package_hash,
             "package_stats": stats,
-            "metadata": json.dumps(first.get("user_meta", {})),
+            "metadata": user_meta,
             "comment": str(first.get("message", "")),
         }
 

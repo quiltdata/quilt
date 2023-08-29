@@ -6,15 +6,56 @@ import { lighten } from '@material-ui/core/styles/colorManipulator'
 
 import useMemoEq from 'utils/useMemoEq'
 
-const changeDirection = (d) => (d === 'asc' ? 'desc' : 'asc')
+interface UseFilteringProps<Row> {
+  rows: readonly Row[]
+  filterBy: (r: Row) => string
+}
 
-export function useOrdering({ rows, ...opts }) {
+export function useFiltering<Row>({ rows, filterBy }: UseFilteringProps<Row>) {
+  const [value, onChange] = React.useState('')
+  const filtered = React.useMemo(
+    () =>
+      value
+        ? rows.filter((row) => filterBy(row).toLowerCase().includes(value.toLowerCase()))
+        : rows,
+    [filterBy, value, rows],
+  )
+  return { value, onChange, filtered }
+}
+
+type Direction = 'asc' | 'desc'
+
+const changeDirection = (d: Direction) => (d === 'asc' ? 'desc' : 'asc')
+
+export type Column<Row> = {
+  align?: M.TableCellProps['align']
+  getDisplay?: (v: $TSFixMe, r: Row, opts?: $TSFixMe) => React.ReactNode
+  getValue: (r: Row) => $TSFixMe
+  hint?: M.TooltipProps['title']
+  id: string
+  label: React.ReactNode
+  props?: M.TableCellProps
+  sortBy?: (r: Row) => string
+  sortable?: boolean
+}
+
+interface UseOrderingProps<Row> {
+  rows: readonly Row[]
+  direction?: Direction
+  column: Column<Row>
+}
+
+export function useOrdering<Row>({ rows, ...opts }: UseOrderingProps<Row>) {
   const [column, setColumn] = React.useState(opts.column)
   const [direction, setDirection] = React.useState(opts.direction || 'asc')
 
   const sortBy = column.sortBy || column.getValue
   const sort = React.useMemo(
-    () => R.pipe(R.sortBy(sortBy), direction === 'asc' ? R.identity : R.reverse),
+    () =>
+      R.pipe<readonly Row[], Row[], Row[]>(
+        R.sortBy(sortBy),
+        direction === 'asc' ? R.identity : R.reverse,
+      ),
     [sortBy, direction],
   )
 
@@ -35,20 +76,43 @@ export function useOrdering({ rows, ...opts }) {
   return { column, direction, change, ordered }
 }
 
-export const renderAction = (a) =>
-  !a ? null : (
+export type Action =
+  | {
+      href: string
+      icon: React.ReactNode
+      title: string
+      fn?: () => void
+    }
+  | {
+      fn: () => void
+      icon: React.ReactNode
+      title: string
+      href?: undefined
+    }
+  | null
+
+export const renderAction = (a: Action) => {
+  if (!a) return null
+  return (
     <M.Tooltip title={a.title} key={a.title}>
-      <M.IconButton
-        aria-label={a.title}
-        onClick={a.fn}
-        href={a.href}
-        component={a.href ? 'a' : undefined}
-        target={a.href ? '_blank' : undefined}
-      >
-        {a.icon}
-      </M.IconButton>
+      {a.href ? (
+        <M.IconButton
+          aria-label={a.title}
+          onClick={a.fn}
+          href={a.href}
+          component="a"
+          target="_blank"
+        >
+          {a.icon}
+        </M.IconButton>
+      ) : (
+        <M.IconButton aria-label={a.title} onClick={a.fn}>
+          {a.icon}
+        </M.IconButton>
+      )}
     </M.Tooltip>
   )
+}
 
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
@@ -75,13 +139,21 @@ const useToolbarStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface ToolbarProps {
+  heading: React.ReactNode
+  children?: React.ReactNode
+  selected?: number
+  actions?: Action[]
+  selectedActions?: Action[]
+}
+
 export function Toolbar({
   heading,
   selected = 0,
   actions = [],
   selectedActions = [],
-  children = null,
-}) {
+  children,
+}: ToolbarProps) {
   const classes = useToolbarStyles()
   return (
     <M.Toolbar className={cx(classes.root, { [classes.highlight]: selected > 0 })}>
@@ -103,65 +175,6 @@ export function Toolbar({
   )
 }
 
-export function Head({
-  columns,
-  selection: sel = undefined,
-  ordering: ord,
-  withInlineActions = false,
-}) {
-  return (
-    <M.TableHead>
-      <M.TableRow>
-        {!!sel && (
-          <M.TableCell padding="checkbox" onClick={sel.toggleAll}>
-            <M.Checkbox
-              indeterminate={sel.selected.size > 0 && sel.selected.size < sel.all.size}
-              checked={sel.selected.equals(sel.all)}
-            />
-          </M.TableCell>
-        )}
-        {columns.map((col) => (
-          <M.TableCell
-            key={col.id}
-            sortDirection={ord.column === col ? ord.direction : false}
-            align={col.align}
-          >
-            {col.sortable === false ? (
-              col.label
-            ) : (
-              <M.Tooltip
-                title={col.hint || 'Sort'}
-                placement="bottom-start"
-                enterDelay={300}
-              >
-                <M.TableSortLabel
-                  active={ord.column === col}
-                  direction={ord.direction}
-                  onClick={() => ord.change(col)}
-                >
-                  {col.label}
-                </M.TableSortLabel>
-              </M.Tooltip>
-            )}
-          </M.TableCell>
-        ))}
-        {withInlineActions && <M.TableCell align="right">Actions</M.TableCell>}
-      </M.TableRow>
-    </M.TableHead>
-  )
-}
-
-const useWrapperStyles = M.makeStyles({
-  root: {
-    overflowX: 'auto',
-  },
-})
-
-export function Wrapper({ className = undefined, ...props }) {
-  const classes = useWrapperStyles()
-  return <div className={cx(classes.root, className)} {...props} />
-}
-
 const useInlineActionsStyles = M.makeStyles((t) => ({
   root: {
     opacity: 0.3,
@@ -176,7 +189,16 @@ const useInlineActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function InlineActions({ actions = [], children = undefined, ...props }) {
+interface InlineActionsProps extends React.HTMLAttributes<HTMLDivElement> {
+  actions?: Action[]
+  children?: React.ReactNode
+}
+
+export function InlineActions({
+  actions = [],
+  children = undefined,
+  ...props
+}: InlineActionsProps) {
   const classes = useInlineActionsStyles()
   return (
     <div className={classes.root} {...props}>
@@ -186,6 +208,20 @@ export function InlineActions({ actions = [], children = undefined, ...props }) 
   )
 }
 
+const useWrapperStyles = M.makeStyles({
+  root: {
+    overflowX: 'auto',
+  },
+})
+
+export function Wrapper({
+  className = undefined,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  const classes = useWrapperStyles()
+  return <div className={cx(classes.root, className)} {...props} />
+}
+
 const useProgressStyles = M.makeStyles((t) => ({
   root: {
     marginBottom: t.spacing(2),
@@ -193,29 +229,7 @@ const useProgressStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Progress(props) {
+export function Progress(props: M.CircularProgressProps) {
   const classes = useProgressStyles()
   return <M.CircularProgress classes={classes} {...props} />
-}
-
-const usePaginationStyles = M.makeStyles((t) => ({
-  toolbar: {
-    paddingRight: [t.spacing(1), '!important'],
-  },
-}))
-
-export function Pagination({ pagination, ...rest }) {
-  const classes = usePaginationStyles()
-  return (
-    <M.TablePagination
-      classes={classes}
-      component="div"
-      count={pagination.total}
-      rowsPerPage={pagination.perPage}
-      page={pagination.page - 1}
-      onChangePage={(e, page) => pagination.goToPage(page + 1)}
-      onChangeRowsPerPage={(e) => pagination.setPerPage(e.target.value)}
-      {...rest}
-    />
-  )
 }

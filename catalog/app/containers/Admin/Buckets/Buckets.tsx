@@ -29,7 +29,6 @@ import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 
-import Filter from '../Filter'
 import * as Form from '../Form'
 import * as Table from '../Table'
 
@@ -1186,7 +1185,7 @@ function CustomBucketIcon({ src }: CustomBucketIconProps) {
   return <BucketIcon alt="" classes={classes} src={src} title="Default icon" />
 }
 
-const columns = [
+const columns: Table.Column<BucketConfig>[] = [
   {
     id: 'name',
     label: 'Name (relevance)',
@@ -1272,17 +1271,14 @@ interface CRUDProps {
 
 function CRUD({ bucketName }: CRUDProps) {
   const { bucketConfigs: rows } = GQL.useQueryS(BUCKET_CONFIGS_QUERY)
-  const [filter, setFilter] = React.useState('')
-  const filtered = React.useMemo(
-    () =>
-      filter
-        ? rows.filter(({ name, title }) =>
-            (name + title).toLowerCase().includes(filter.toLowerCase()),
-          )
-        : rows,
-    [filter, rows],
-  )
-  const ordering = Table.useOrdering({ rows: filtered, column: columns[0] })
+  const filtering = Table.useFiltering({
+    rows,
+    filterBy: ({ name, title }) => name + title,
+  })
+  const ordering = Table.useOrdering({
+    rows: filtering.filtered,
+    column: columns[0],
+  })
   const pagination = Pagination.use(ordering.ordered, {
     // @ts-expect-error
     getItemId: R.prop('name'),
@@ -1346,8 +1342,7 @@ function CRUD({ bucketName }: CRUDProps) {
       </M.Dialog>
 
       <Table.Toolbar heading="Buckets" actions={toolbarActions}>
-        {/* @ts-expect-error */}
-        <Filter value={filter} onChange={setFilter} />
+        <Table.Filter {...filtering} />
       </Table.Toolbar>
       <Table.Wrapper>
         <M.Table size="small">
@@ -1361,9 +1356,7 @@ function CRUD({ bucketName }: CRUDProps) {
                 style={{ cursor: 'pointer' }}
               >
                 {columns.map((col) => (
-                  // @ts-expect-error
                   <M.TableCell key={col.id} align={col.align} {...col.props}>
-                    {/* @ts-expect-error */}
                     {(col.getDisplay || R.identity)(col.getValue(i), i)}
                   </M.TableCell>
                 ))}
