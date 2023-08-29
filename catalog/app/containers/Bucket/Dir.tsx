@@ -198,6 +198,20 @@ function SelectionWidget({ className, selection, onSelection }: SelectionWidgetP
   )
 }
 
+function useConfirmNavigation(shouldBlock: RRDom.unstable_BlockerFunction) {
+  const blocker = RRDom.unstable_useBlocker(shouldBlock)
+  const title = 'Selection will be lost. Clear selection and confirm navigation?'
+  React.useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    const confirmed = window.confirm(title)
+    if (confirmed) {
+      blocker.proceed()
+    } else {
+      blocker.reset()
+    }
+  }, [title, blocker])
+}
+
 const useStyles = M.makeStyles((t) => ({
   crumbs: {
     ...t.typography.body1,
@@ -295,7 +309,7 @@ export default function Dir() {
     [packageDirectoryDialog, path, selection],
   )
 
-  const { urls } = NamedRoutes.use<RouteMap>()
+  const { paths, urls } = NamedRoutes.use<RouteMap>()
   const getSegmentRoute = React.useCallback(
     (segPath: string) => urls.bucketDir(bucket, segPath),
     [bucket, urls],
@@ -303,33 +317,18 @@ export default function Dir() {
   const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
 
   const hasSelection = Object.values(selection).some((ids) => !!ids.length)
-  // FIXME
-  // const guardNavigation = React.useCallback(
-  //   (location) => {
-  //     if (
-  //       !RRDom.matchPath(
-  //         {
-  //           path: paths.bucketDir,
-  //           exact: true,
-  //         },
-  //         location.pathname,
-  //       )
-  //     ) {
-  //       return 'Selection will be lost. Clear selection and confirm navigation?'
-  //     }
-  //     return true
-  //   },
-  //   [paths],
-  // )
+  const guardNavigation = React.useCallback(
+    ({ nextLocation }) =>
+      hasSelection &&
+      (!RRDom.matchPath(paths.bucketDir, nextLocation.pathname) ||
+        !s3paths.isDir(nextLocation.pathname)),
+    [hasSelection, paths],
+  )
+  useConfirmNavigation(guardNavigation)
 
   return (
     <M.Box pt={2} pb={4}>
       <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
-
-      {/*
-        FIXME:
-        <RRDom.Prompt when={hasSelection} message={guardNavigation} />
-      */}
 
       {packageDirectoryDialog.render({
         successTitle: 'Package created',
