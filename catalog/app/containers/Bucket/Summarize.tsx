@@ -1,8 +1,8 @@
 import type { S3 } from 'aws-sdk'
 import cx from 'classnames'
-import type { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
+import { To } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as BreadCrumbs from 'components/BreadCrumbs'
@@ -40,7 +40,7 @@ interface SummarizeFile {
   expand?: boolean
 }
 
-export type MakeURL = (h: Model.S3.S3ObjectLocation) => LocationDescriptor
+export type MakeURL = (h: Model.S3.S3ObjectLocation) => To
 
 interface HandleResolverProps {
   handle: LogicalKeyResolver.S3SummarizeHandle
@@ -354,10 +354,7 @@ function getDisplayName(handle: Model.S3.S3ObjectLocation): string {
   return s3paths.getBasename(handle.key)
 }
 
-function useFileUrl(
-  handle: Model.S3.S3ObjectLocation,
-  mkUrl?: MakeURL,
-): LocationDescriptor {
+function useFileUrl(handle: Model.S3.S3ObjectLocation, mkUrl?: MakeURL): To {
   const { urls } = NamedRoutes.use()
   return React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),

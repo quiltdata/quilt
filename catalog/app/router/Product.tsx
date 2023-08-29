@@ -2,6 +2,7 @@ import * as React from 'react'
 import { RouteObject, createBrowserRouter } from 'react-router-dom'
 
 import * as routes from 'constants/routes'
+import RedirectToAthena from 'pages/Bucket/Queries/RedirectToAthena'
 import Wrapper from 'pages/Wrapper'
 
 import Error from './Error'
@@ -76,6 +77,33 @@ export default createBrowserRouter([
           {
             path: routes.bucketPackageRevisions.path,
             lazy: () => require('pages/Bucket/PackageTree'),
+          },
+          {
+            path: routes.bucketQueries.path,
+            lazy: () => require('pages/Bucket/Queries/Queries'),
+            children: [
+              {
+                path: routes.bucketESQueries.path,
+                lazy: () => require('pages/Bucket/Queries/ElasticSearch'),
+              },
+              {
+                path: routes.bucketAthena.path,
+                lazy: () => require('pages/Bucket/Queries/Athena'),
+              },
+              {
+                path: routes.bucketAthenaWorkgroup.path,
+                lazy: () => require('pages/Bucket/Queries/Athena'),
+              },
+              {
+                path: routes.bucketAthenaExecution.path,
+                lazy: () => require('pages/Bucket/Queries/Athena'),
+              },
+              {
+                index: true,
+                path: '*',
+                element: <RedirectToAthena />,
+              },
+            ],
           },
         ],
       },

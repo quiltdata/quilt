@@ -231,24 +231,24 @@ export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
 export type BucketQueriesArgs = [bucket: string]
 
 export const bucketQueries: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/queries/*',
+  path: '/b/:bucket/queries',
   url: (bucket) => `/b/${bucket}/queries`,
 }
 
 export const bucketESQueries: Route<BucketQueriesArgs> = {
-  path: '/b/:bucket/es',
+  path: '/b/:bucket/queries/es',
   url: (bucket) => `/b/${bucket}/queries/es`,
 }
 
 export const bucketAthena: Route<BucketQueriesArgs> = {
-  path: 'athena/*',
+  path: '/b/:bucket/queries/athena',
   url: (bucket) => `/b/${bucket}/queries/athena`,
 }
 
 export type BucketAthenaWorkgroupArgs = [bucket: string, workgroup: string]
 
 export const bucketAthenaWorkgroup: Route<BucketAthenaWorkgroupArgs> = {
-  path: ':workgroup/*',
+  path: '/b/:bucket/queries/athena/:workgroup',
   url: (bucket, workgroup) => `/b/${bucket}/queries/athena/${workgroup}`,
 }
 
@@ -259,7 +259,7 @@ export type BucketAthenaExecutionArgs = [
 ]
 
 export const bucketAthenaExecution: Route<BucketAthenaExecutionArgs> = {
-  path: ':queryExecutionId',
+  path: '/b/:bucket/queries/athena/:workgroup/:queryExecutionId',
   url: (bucket, workgroup, queryExecutionId) =>
     `/b/${bucket}/queries/athena/${workgroup}/${queryExecutionId}`,
 }
