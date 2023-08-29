@@ -45,6 +45,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
   const isHomepage = useRouteMatch(paths.home)
   const bucketRoute = useRouteMatch(paths.bucketRoot)
   const { bucket } = (bucketRoute?.params as { bucket?: string }) || {}
+  const bookmarks = Bookmarks.use()
   return (
     <Root dark={dark}>
       {bare ? <NavBar.Container /> : <NavBar.NavBar />}
@@ -52,7 +53,7 @@ export function Layout({ bare = false, dark = false, children, pre }: LayoutProp
       {!!children && <M.Box p={4}>{children}</M.Box>}
       <M.Box flexGrow={1} />
       {!!isHomepage && isHomepage.isExact && <Footer />}
-      <Bookmarks.Sidebar bucket={bucket} />
+      {bookmarks && <Bookmarks.Sidebar bookmarks={bookmarks} bucket={bucket} />}
     </Root>
   )
 }

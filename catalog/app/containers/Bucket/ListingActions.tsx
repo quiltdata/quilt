@@ -39,6 +39,7 @@ interface BucketButtonProps {
 
 function Bookmark({ className, location }: BucketButtonProps) {
   const bookmarks = Bookmarks.use()
+  if (!bookmarks) return null
   const isBookmarked = location ? bookmarks.isBookmarked('main', location) : false
   const toggleBookmark = () => location && bookmarks.toggle('main', location)
   return (
