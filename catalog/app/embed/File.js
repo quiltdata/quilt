@@ -343,7 +343,7 @@ const useStyles = M.makeStyles((t) => ({
 const previewOptions = { context: Preview.CONTEXT.FILE }
 
 export default function File() {
-  const { bucket, path: encodedPath } = useParams()
+  const { bucket, ['*']: encodedPath } = useParams()
   const location = useLocation()
   const ecfg = EmbedConfig.use()
   const { version } = parseSearch(location.search)

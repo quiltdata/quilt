@@ -1,11 +1,10 @@
 // Embed entry point
 
 // Import all the third party stuff
-import { createMemoryHistory as createHistory } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { Route, Router, Routes, useLocation, useParams } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -24,7 +23,6 @@ import 'sanitize.css'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
-import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/embed-routes'
 import * as style from 'constants/style'
@@ -44,21 +42,12 @@ import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
 
-// TODO: consider reimplementing these locally or moving to some shared location
-import { displayError } from 'containers/Bucket/errors'
-
 import WithGlobalStyles from '../global-styles'
 
-import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
 import * as Overrides from './Overrides'
 import * as ipc from './ipc'
-
-const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
-
-const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
-const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
-const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
+import router from './router'
 
 const FinalBoundary = createBoundary(() => (error) => (
   <h1
@@ -94,66 +83,6 @@ function StyledError({ children }) {
 const ErrorBoundary = createBoundary(() => (error) => (
   <StyledError>{error.headline || 'Something went wrong'}</StyledError>
 ))
-
-const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
-
-function Root() {
-  const l = useLocation()
-  const { paths } = NamedRoutes.use()
-  return (
-    <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
-      <Routes>
-        <Route path={paths.bucketRoot}>
-          <Bucket />
-        </Route>
-        <Route>
-          <ThrowNotFound />
-        </Route>
-      </Routes>
-    </CatchNotFound>
-  )
-}
-
-function Bucket() {
-  const { bucket } = useParams()
-  const { paths } = NamedRoutes.use()
-
-  return (
-    <BucketLayout bucket={bucket}>
-      <Routes>
-        <Route path={paths.bucketFile} exact strict>
-          <File />
-        </Route>
-        <Route path={paths.bucketDir} exact>
-          <Dir />
-        </Route>
-        <Route path={paths.bucketSearch} exact>
-          <Search />
-        </Route>
-        <Route>
-          <ThrowNotFound />
-        </Route>
-      </Routes>
-    </BucketLayout>
-  )
-}
-
-function BucketLayout({ bucket, children }) {
-  const data = BucketCache.useBucketExistence(bucket)
-  return (
-    <>
-      <AppBar bucket={bucket} />
-      <M.Container maxWidth="lg">
-        {data.case({
-          Ok: () => children,
-          Err: displayError(),
-          _: () => <Placeholder color="text.secondary" />,
-        })}
-      </M.Container>
-      <M.Box flexGrow={1} />
-    </>
-  )
-}
 
 function useInit() {
   const messageParent = ipc.useMessageParent()
@@ -289,53 +218,7 @@ function useCssFiles(files = []) {
   }, [files])
 }
 
-function useSyncHistory(history) {
-  const messageParent = ipc.useMessageParent()
-
-  ipc.useMessageHandler(
-    React.useCallback(
-      ({ type, ...data }) => {
-        if (type !== 'navigate') return
-        try {
-          if (!data.route) throw new Error('missing .route')
-          if (typeof data.route !== 'string') throw new Error('.route must be a string')
-          history.push(data.route)
-        } catch (e) {
-          const message = `Navigate: error: ${e.message}`
-          // eslint-disable-next-line no-console
-          console.error(message)
-          // eslint-disable-next-line no-console
-          console.log('params:', data)
-          messageParent({ type: 'error', message, data })
-        }
-      },
-      [history, messageParent],
-    ),
-  )
-
-  React.useEffect(
-    () =>
-      history.listen((l, action) => {
-        messageParent({
-          type: 'navigate',
-          route: `${l.pathname}${l.search}${l.hash}`,
-          action,
-        })
-      }),
-    [history, messageParent],
-  )
-}
-
 function App({ init }) {
-  const { urls } = NamedRoutes.use()
-  const history = useConstant(() =>
-    createHistory({
-      initialEntries: [init.route || urls.bucketDir(init.bucket, init.path)],
-    }),
-  )
-
-  useSyncHistory(history)
-
   const storage = useConstant(() => ({
     load: () => ({}),
     set: () => {},
@@ -350,7 +233,7 @@ function App({ init }) {
     [CustomThemeProvider, { theme: init.theme }],
     Store.Provider,
     Cache.Provider,
-    [Router, { history }],
+    // [Router, { history }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     GraphQL.Provider,
     Notifications.Provider,
@@ -362,7 +245,8 @@ function App({ init }) {
     Notifications.WithNotifications,
     BucketCache.Provider,
     [PostInit, { init }],
-    Root,
+    // Root,
+    [RouterProvider, { router }],
   )
 }
 

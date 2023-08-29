@@ -59,7 +59,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function Dir() {
-  const { bucket, path: encodedPath = '' } = useParams()
+  const { bucket, ['*']: encodedPath = '' } = useParams()
   const l = useLocation()
   const ecfg = EmbedConfig.use()
   const classes = useStyles()

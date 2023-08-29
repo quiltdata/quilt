@@ -3,7 +3,7 @@
 // Import all the third party stuff
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { BrowserRouter } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -22,7 +22,7 @@ import 'sanitize.css'
 import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
-import App from 'containers/App'
+import router from 'router'
 import GTMLoader from 'utils/gtm'
 import * as Auth from 'containers/Auth'
 import * as Errors from 'containers/Errors'
@@ -42,7 +42,6 @@ import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
 import { nest } from 'utils/reactTools'
 import mkStorage from 'utils/storage'
-import * as Tracking from 'utils/tracking'
 // Load the icons
 /* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico'
@@ -87,7 +86,7 @@ const render = () => {
       Sentry.UserTracker,
       GlobalAPIProvider,
       [NamedRoutes.Provider, { routes }],
-      BrowserRouter,
+      // BrowserRouter,
       Cache.Provider,
       [React.Suspense, { fallback: <Placeholder /> }],
       GraphQL.Provider,
@@ -108,7 +107,6 @@ const render = () => {
         },
       ],
       ExperimentsProvider,
-      [Tracking.Provider, { userSelector: Auth.selectors.username }],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.Athena.Provider,
@@ -116,7 +114,7 @@ const render = () => {
       Notifications.WithNotifications,
       Errors.ErrorBoundary,
       BucketCacheProvider,
-      App,
+      [RouterProvider, { router }],
     ),
     MOUNT_NODE,
   )

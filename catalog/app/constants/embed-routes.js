@@ -6,12 +6,12 @@ export const bucketRoot = {
   url: (bucket) => `/b/${bucket}`,
 }
 export const bucketFile = {
-  path: '/b/:bucket/tree/:path(.*[^/])',
+  path: '/b/:bucket/tree/*',
   url: (bucket, path, { version } = {}) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ version })}`,
 }
 export const bucketDir = {
-  path: '/b/:bucket/tree/:path(.+/)?',
+  path: '/b/:bucket/tree/*',
   // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, path = '', prefix) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,

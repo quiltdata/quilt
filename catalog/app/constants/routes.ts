@@ -160,7 +160,7 @@ export type BucketFileArgs = [
 ]
 
 export const bucketFile: Route<BucketFileArgs> = {
-  path: '/b/:bucket/tree/:path',
+  path: '/b/:bucket/tree/*',
   url: (bucket, path, { add, edit, mode, next, version } = {}) =>
     `/b/${bucket}/tree/${encode(path)}${mkSearch({ add, edit, mode, next, version })}`,
 }
