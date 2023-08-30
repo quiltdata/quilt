@@ -938,7 +938,7 @@ type PackageTreeRouteParams = {
   namespace: string
   name: string
   revision?: string
-  path?: string
+  ['*']?: string
 }
 
 export default function PackageTreeWrapper() {
@@ -947,16 +947,15 @@ export default function PackageTreeWrapper() {
     namespace,
     name,
     revision: hashOrTag = 'latest',
-    path: encodedPath = '',
+    ['*']: encodedPath = '',
   } = RRDom.useParams<PackageTreeRouteParams>()
   const location = RRDom.useLocation()
   invariant(!!bucket, '`bucket` must be defined')
   invariant(!!namespace, '`namespace` must be defined')
   invariant(!!name, '`name` must be defined')
 
-  const isDir = location.pathname.endsWith('/')
   const packageName = `${namespace}/${name}`
-  const path = s3paths.decode(encodedPath) + (isDir ? '/' : '')
+  const path = s3paths.decode(encodedPath)
   // TODO: mode is "switch view mode" action, ex. mode=json, or type=json, or type=application/json
   const { resolvedFrom, mode } = parseSearch(location.search, true)
   return (

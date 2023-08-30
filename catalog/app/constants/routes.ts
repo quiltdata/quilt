@@ -192,7 +192,7 @@ export type BucketPackageDetailArgs = [
 ]
 
 export const bucketPackageDetail: Route<BucketPackageDetailArgs> = {
-  path: `/b/:bucket/packages/:namespace/:name/*`,
+  path: '/b/:bucket/packages/:namespace/:name',
   url: (bucket, name, { action } = {}) =>
     `/b/${bucket}/packages/${name}${mkSearch({ action })}`,
 }
@@ -206,7 +206,7 @@ export type BucketPackageTreeArgs = [
 ]
 
 export const bucketPackageTree: Route<BucketPackageTreeArgs> = {
-  path: `/b/:bucket/packages/:namespace/:name/tree/:revision/:path?`,
+  path: '/b/:bucket/packages/:namespace/:name/tree/:revision/*',
   // eslint-disable-next-line @typescript-eslint/default-param-last
   url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
@@ -223,7 +223,7 @@ export type BucketPackageRevisionsArgs = [
 ]
 
 export const bucketPackageRevisions: Route<BucketPackageRevisionsArgs> = {
-  path: `/b/:bucket/packages/:namespace/:name/revisions`,
+  path: '/b/:bucket/packages/:namespace/:name/revisions',
   url: (bucket, name, { p } = {}) =>
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 }
@@ -269,7 +269,7 @@ export const bucketAthenaExecution: Route<BucketAthenaExecutionArgs> = {
 export type LegacyPackagesArgs = [root: string, loc: Location]
 
 export const legacyPackages: Route<LegacyPackagesArgs> = {
-  path: `/package/:path+`,
+  path: '/package/*',
   url: (root, loc) => `${root}${loc.pathname}${loc.search}${loc.hash}`,
 }
 

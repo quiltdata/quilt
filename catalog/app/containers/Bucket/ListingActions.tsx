@@ -162,8 +162,9 @@ interface BucketMatchParams {
 interface PackageMatchParams {
   bucket: string
   name: string
-  hash?: string
-  path: string
+  namespace: string
+  revision?: string
+  ['*']: string
 }
 
 function useMatchedParams(to: string) {
@@ -204,15 +205,16 @@ function useMatchedParams(to: string) {
       case paths.bucketPackageTree: {
         const { params } = match as PathMatch<keyof PackageMatchParams>
         invariant(!R.isNil(params.bucket), '`bucket` must be defined')
+        invariant(!R.isNil(params.namespace), '`namespace` must be defined')
         invariant(!R.isNil(params.name), '`name` must be defined')
-        invariant(!R.isNil(params.path), '`name` must be defined')
+        invariant(!R.isNil(params['*']), '`*` (path) must be defined')
         return {
           handle: {
             bucket: params.bucket,
-            name: params.name,
+            name: `${params.namespace}/${params.name}`,
           },
-          revision: params.hash || 'latest',
-          path: params.path,
+          revision: params.revision || 'latest',
+          path: params['*'],
         }
       }
       default:

@@ -75,7 +75,11 @@ export default createBrowserRouter([
             lazy: () => require('pages/Bucket/PackageRevisions'),
           },
           {
-            path: routes.bucketPackageRevisions.path,
+            path: routes.bucketPackageDetail.path,
+            lazy: () => require('pages/Bucket/PackageTree'),
+          },
+          {
+            path: routes.bucketPackageTree.path,
             lazy: () => require('pages/Bucket/PackageTree'),
           },
           {
