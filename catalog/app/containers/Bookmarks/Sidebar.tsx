@@ -238,11 +238,11 @@ function Drawer({
 }
 
 interface SidebarProps {
+  bookmarks: NonNullable<ReturnType<typeof useBookmarks>>
   bucket?: string
 }
 
-export default function Sidebar({ bucket = '' }: SidebarProps) {
-  const bookmarks = useBookmarks()
+export default function Sidebar({ bookmarks, bucket = '' }: SidebarProps) {
   const addToPackage = AddToPackage.use()
   const entries = bookmarks.groups.main.entries
   const handles: Model.S3.S3ObjectLocation[] = React.useMemo(

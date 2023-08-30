@@ -67,14 +67,18 @@ function ListItem({ className, handle, onClear }: ListItemProps) {
   const name = isDir ? s3paths.ensureSlash(basename(handle.key)) : basename(handle.key)
 
   const bookmarks = Bookmarks.use()
-  const isBookmarked = bookmarks.isBookmarked('main', handle)
-  const toggleBookmark = () => bookmarks.toggle('main', handle)
+  const isBookmarked = bookmarks?.isBookmarked('main', handle)
+  const toggleBookmark = () => bookmarks?.toggle('main', handle)
   return (
     <M.ListItem className={cx(classes.root, className)} disableGutters>
       <M.ListItemIcon className={classes.icon}>
-        <M.IconButton size="small" onClick={toggleBookmark}>
-          <M.Icon fontSize="small">{isBookmarked ? 'turned_in' : 'turned_in_not'}</M.Icon>
-        </M.IconButton>
+        {bookmarks && (
+          <M.IconButton size="small" onClick={toggleBookmark}>
+            <M.Icon fontSize="small">
+              {isBookmarked ? 'turned_in' : 'turned_in_not'}
+            </M.Icon>
+          </M.IconButton>
+        )}
       </M.ListItemIcon>
       <M.ListItemIcon className={classes.icon}>
         <M.Icon fontSize="small">{isDir ? 'folder_open' : 'insert_drive_file'}</M.Icon>
@@ -134,12 +138,14 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
   const bookmarks = Bookmarks.use()
   const hasSomethingToBookmark = React.useMemo(
     () =>
+      bookmarks &&
       Object.values(lists).some((hs) =>
         hs.some((h) => !bookmarks.isBookmarked('main', h)),
       ),
     [bookmarks, lists],
   )
   const handleBookmarks = React.useCallback(() => {
+    if (!bookmarks) return
     const handles = Object.values(lists).reduce((memo, hs) => [...memo, ...hs], [])
     if (hasSomethingToBookmark) {
       bookmarks.append('main', handles)
@@ -167,16 +173,18 @@ export default function Dashboard({ onDone, onSelection, selection }: DashboardP
   return (
     <div className={classes.root}>
       <>
-        <M.Button
-          className={classes.button}
-          color="primary"
-          disabled={!hasSelection}
-          onClick={handleBookmarks}
-          size="small"
-          variant="outlined"
-        >
-          {hasSomethingToBookmark ? 'Add to bookmarks' : 'Remove from bookmarks'}
-        </M.Button>
+        {bookmarks && (
+          <M.Button
+            className={classes.button}
+            color="primary"
+            disabled={!hasSelection}
+            onClick={handleBookmarks}
+            size="small"
+            variant="outlined"
+          >
+            {hasSomethingToBookmark ? 'Add to bookmarks' : 'Remove from bookmarks'}
+          </M.Button>
+        )}
         <M.Button
           className={classes.button}
           color="primary"

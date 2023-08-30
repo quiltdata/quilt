@@ -1,4 +1,3 @@
-import invariant from 'invariant'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -169,10 +168,6 @@ export function Provider({ children }: ProviderProps) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export const useBookmarks = () => {
-  const bookmarks = React.useContext(Ctx)
-  invariant(bookmarks, `Bookmarks context wasn't initialized`)
-  return bookmarks
-}
+export const useBookmarks = () => React.useContext(Ctx)
 
 export const use = useBookmarks

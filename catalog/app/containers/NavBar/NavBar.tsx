@@ -179,13 +179,15 @@ function UserDropdown() {
   }, [setAnchor])
 
   const showBookmarks = React.useCallback(() => {
+    if (!bookmarks) return
     bookmarks.show()
     close()
   }, [bookmarks, close])
 
   React.useEffect(() => {
-    if (bookmarks.hasUpdates !== visible) setVisible(!!bookmarks.hasUpdates)
-  }, [bookmarks.hasUpdates, visible])
+    const hasUpdates = bookmarks?.hasUpdates || false
+    if (hasUpdates !== visible) setVisible(!!hasUpdates)
+  }, [bookmarks, visible])
 
   return (
     <>
@@ -198,12 +200,14 @@ function UserDropdown() {
 
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
-          <Item onClick={showBookmarks}>
-            <Badge color="secondary" invisible={!visible}>
-              <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
-            </Badge>
-            &nbsp;Bookmarks
-          </Item>
+          {bookmarks && (
+            <Item onClick={showBookmarks}>
+              <Badge color="secondary" invisible={!visible}>
+                <M.Icon fontSize="small">bookmarks_outlined</M.Icon>
+              </Badge>
+              &nbsp;Bookmarks
+            </Item>
+          )}
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings
