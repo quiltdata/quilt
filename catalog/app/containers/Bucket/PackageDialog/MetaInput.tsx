@@ -284,7 +284,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
               onChange(contents)
             } else {
               try {
-                JSON.parse(contents as string)
+                onChange(JSON.parse(contents as string))
               } catch (e) {
                 notify('The file does not contain valid JSON')
               }
@@ -318,7 +318,11 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
     const isDragging = useDragging()
 
-    const { getRootProps, isDragActive } = useDropzone({ onDrop })
+    const { getRootProps, isDragActive } = useDropzone({
+      onDrop,
+      noClick: true,
+      noKeyboard: true,
+    })
 
     return (
       <div className={className}>
