@@ -55,13 +55,14 @@ function useSection(): BucketNavSection | undefined {
   const { paths } = NamedRoutes.use()
   return React.useMemo(() => {
     const sections = {
-      [paths.bucketESQueries]: 'es',
-      [paths.bucketOverview]: 'overview',
-      [paths.bucketPackageList]: 'packages',
-      [paths.bucketPackageDetail]: 'packages',
-      [paths.bucketPackageTree]: 'packages',
-      [paths.bucketFile]: 'tree',
       [paths.bucketDir]: 'tree',
+      [paths.bucketESQueries]: 'es',
+      [paths.bucketFile]: 'tree',
+      [paths.bucketOverview]: 'overview',
+      [paths.bucketPackageDetail]: 'packages',
+      [paths.bucketPackageList]: 'packages',
+      [paths.bucketPackageRevisions]: 'packages',
+      [paths.bucketPackageTree]: 'packages',
       [paths.bucketQueries]: 'queries',
     }
     for (const pattern in sections) {
