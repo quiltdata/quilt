@@ -1,0 +1,1463 @@
+commit e899c0a82d0f7cae1d03f421ea3e0b22399c087c
+Author: Maxim Chervonny <fiskus@chervonny.ru>
+Date:   Fri Jun 2 19:47:50 2023 +0300
+
+    remove unused
+
+diff --git a/catalog/app/components/FileManager/FileRow.tsx b/catalog/app/components/FileManager/FileRow.tsx
+deleted file mode 100644
+index 2a0cd5e6..00000000
+--- a/catalog/app/components/FileManager/FileRow.tsx
++++ /dev/null
+@@ -1,278 +0,0 @@
+-import cx from 'classnames'
+-import * as React from 'react'
+-import * as M from '@material-ui/core'
+-
+-import * as Format from 'utils/format'
+-import { readableBytes } from 'utils/string'
+-
+-export const HEIGHT = 32
+-
+-interface BaseEntry {
+-  id: string
+-  name: string
+-  size?: number
+-}
+-
+-interface RemoteEntry extends BaseEntry {
+-  modifiedDate?: Date
+-}
+-
+-export enum Status {
+-  Changed,
+-  Unchanged,
+-  Hashing,
+-  S3,
+-}
+-
+-export interface LocalEntry extends BaseEntry {
+-  modifiedDate?: undefined // FIXME
+-  status: Status
+-}
+-
+-export type Entry = RemoteEntry | LocalEntry
+-
+-const useCellStyles = M.makeStyles({
+-  root: {
+-    alignItems: 'center',
+-    display: 'flex',
+-    height: `${HEIGHT}px`,
+-    overflow: 'hidden',
+-  },
+-  wrap: {
+-    overflow: 'hidden',
+-    textOverflow: 'ellipsis',
+-  },
+-})
+-
+-interface CellProps {
+-  children?: React.ReactNode
+-  className: string
+-  noWrap?: boolean
+-  onClick?: () => void
+-}
+-
+-function Cell({ className, children, noWrap, onClick }: CellProps) {
+-  const classes = useCellStyles()
+-  if (!children) return <div className={cx(classes.root, className)} />
+-  return (
+-    <div className={cx(classes.root, className)} onClick={onClick}>
+-      {noWrap ? children : <span className={classes.wrap}>{children}</span>}
+-    </div>
+-  )
+-}
+-
+-interface NameProps {
+-  className: string
+-  onClick: () => void
+-  value: string
+-}
+-
+-function Name({ className, onClick, value }: NameProps) {
+-  return (
+-    <Cell className={className} onClick={onClick}>
+-      {value}
+-    </Cell>
+-  )
+-}
+-
+-interface StatusCellProps {
+-  className: string
+-  value: Status
+-}
+-
+-function StatusCell({ className, value }: StatusCellProps) {
+-  const text = React.useMemo(() => {
+-    switch (value) {
+-      case Status.Changed:
+-        return (
+-          <M.IconButton size="small">
+-            <M.Icon fontSize="small">undo</M.Icon>
+-          </M.IconButton>
+-        )
+-      case Status.Unchanged:
+-        return ''
+-      case Status.Hashing:
+-        return <M.CircularProgress size={20} style={{ marginLeft: '3px' }} />
+-      case Status.S3:
+-        return <M.Icon fontSize="small">cloud</M.Icon>
+-      // no default
+-    }
+-  }, [value])
+-  return (
+-    <Cell className={className} noWrap>
+-      {text}
+-    </Cell>
+-  )
+-}
+-
+-interface ModifiedDateProps {
+-  className: string
+-  value?: Date
+-}
+-
+-function ModifiedDate({ className, value }: ModifiedDateProps) {
+-  if (!value) return <Cell className={className} />
+-  return (
+-    <Cell className={className}>
+-      <span title={value.toLocaleString()}>
+-        <Format.Relative value={value} />
+-      </span>
+-    </Cell>
+-  )
+-}
+-
+-interface SizeProps {
+-  className: string
+-  value?: number
+-}
+-
+-function Size({ className, value }: SizeProps) {
+-  if (!value) return <Cell className={className} />
+-  return (
+-    <Cell className={className}>
+-      <span title={`${value}B`}>{readableBytes(value)}</span>
+-    </Cell>
+-  )
+-}
+-
+-const useStyles = M.makeStyles((t) => ({
+-  root: {
+-    alignItems: 'center',
+-    display: 'flex',
+-    height: `${HEIGHT}px`,
+-    position: 'relative',
+-    whiteSpace: 'nowrap',
+-    '&:hover': {
+-      background: t.palette.background.paper,
+-      borderRadius: t.shape.borderRadius,
+-      boxShadow: t.shadows[4],
+-      marginLeft: t.spacing(-0.5),
+-      marginRight: `-${HEIGHT}px`,
+-      paddingLeft: t.spacing(0.5),
+-    },
+-    '&:hover $dragHandle': {
+-      display: 'flex',
+-    },
+-    '&:hover $menuHandle': {
+-      display: 'flex',
+-    },
+-  },
+-  draggable: {
+-    '&:hover': {
+-      marginLeft: `-${HEIGHT}px`,
+-      paddingLeft: 0,
+-    },
+-  },
+-  dragHandle: {
+-    alignItems: 'center',
+-    color: t.palette.text.hint,
+-    cursor: 'grab',
+-    display: 'none',
+-    height: `${HEIGHT}px`,
+-    justifyContent: 'center',
+-    width: `${HEIGHT}px`,
+-    '&:hover': {
+-      color: t.palette.text.primary,
+-    },
+-  },
+-  checkbox: {
+-    padding: t.spacing(0.5),
+-  },
+-  name: {
+-    cursor: 'pointer',
+-    flexGrow: 1,
+-    paddingLeft: t.spacing(0.5),
+-  },
+-  modifiedDate: {
+-    flexShrink: 0,
+-    padding: t.spacing(0, 0.5),
+-    width: t.spacing(20),
+-  },
+-  status: {
+-    flexShrink: 0,
+-    padding: t.spacing(0, 0.5),
+-    width: t.spacing(14),
+-  },
+-  size: {
+-    flexShrink: 0,
+-    justifyContent: 'flex-end',
+-    padding: t.spacing(0, 0.5),
+-    width: t.spacing(12),
+-  },
+-  menuHandle: {
+-    alignItems: 'center',
+-    color: t.palette.text.hint,
+-    display: 'none',
+-    height: `${HEIGHT}px`,
+-    justifyContent: 'center',
+-    width: `${HEIGHT}px`,
+-    '&:hover': {
+-      color: t.palette.text.primary,
+-    },
+-  },
+-  icon: {
+-    height: `${HEIGHT}px`,
+-    width: `${HEIGHT}px`,
+-  },
+-}))
+-
+-export interface FileRowProps {
+-  entry: Entry
+-  expanded: boolean
+-  hasChildren?: boolean
+-  onClick: () => void
+-  onSelect: (v: boolean) => void
+-  onToggle: () => void
+-  selected: boolean
+-  draggable?: boolean
+-}
+-
+-export default function FileRow({
+-  entry,
+-  expanded,
+-  hasChildren = false,
+-  onClick,
+-  onSelect,
+-  onToggle,
+-  selected,
+-  draggable = false,
+-}: FileRowProps) {
+-  const { name, size } = entry
+-  const classes = useStyles()
+-  const iconStr = React.useMemo(() => {
+-    if (!hasChildren) return 'insert_drive_file'
+-    return expanded ? 'folder_open' : 'folder'
+-  }, [expanded, hasChildren])
+-  return (
+-    <div className={cx(classes.root, { [classes.draggable]: draggable })}>
+-      {draggable && (
+-        <div className={classes.dragHandle}>
+-          <M.Icon fontSize="small">drag_indicator</M.Icon>
+-        </div>
+-      )}
+-      <M.Checkbox
+-        className={classes.checkbox}
+-        checked={selected}
+-        onChange={(e, v) => onSelect(v)}
+-      />
+-      <M.IconButton size="small" className={cx(classes.icon)} onClick={onToggle}>
+-        <M.Icon fontSize="small">{iconStr}</M.Icon>
+-      </M.IconButton>
+-      <Name className={classes.name} value={name} onClick={onClick} />
+-      {(entry as LocalEntry).status ? (
+-        <StatusCell className={classes.status} value={(entry as LocalEntry).status} />
+-      ) : (
+-        <ModifiedDate
+-          className={classes.modifiedDate}
+-          value={(entry as RemoteEntry).modifiedDate}
+-        />
+-      )}
+-      <Size className={classes.size} value={size} />
+-      <div className={classes.menuHandle}>
+-        <M.IconButton size="small" color="inherit">
+-          <M.Icon fontSize="small">more_vert</M.Icon>
+-        </M.IconButton>
+-      </div>
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/components/FileManager/FileRowWrapper.tsx b/catalog/app/components/FileManager/FileRowWrapper.tsx
+deleted file mode 100644
+index 79a8f13c..00000000
+--- a/catalog/app/components/FileManager/FileRowWrapper.tsx
++++ /dev/null
+@@ -1,65 +0,0 @@
+-import * as React from 'react'
+-import * as M from '@material-ui/core'
+-
+-import { L } from 'components/Form/Package/types'
+-
+-import FileRow, { FileRowProps, HEIGHT } from './FileRow'
+-
+-const useStyles = M.makeStyles((t) => ({
+-  root: {},
+-  children: {
+-    display: 'flex',
+-  },
+-  outline: {
+-    cursor: 'pointer',
+-    flexShrink: 0,
+-    position: 'relative',
+-    width: `${HEIGHT}px`,
+-    '&::before': {
+-      background: t.palette.divider,
+-      bottom: 0,
+-      content: '""',
+-      display: 'block',
+-      left: `${HEIGHT / 2}px`,
+-      position: 'absolute',
+-      top: 0,
+-      width: '2px',
+-    },
+-  },
+-  list: {
+-    flexGrow: 1,
+-  },
+-  spinner: {
+-    margin: '6px 0 0 7px',
+-  },
+-}))
+-
+-interface FileRowWrapperProps extends Omit<FileRowProps, 'expanded'> {
+-  children?: React.ReactNode
+-  expanded: boolean | typeof L
+-}
+-
+-export default function FileRowWrapper({
+-  children,
+-  expanded,
+-  ...props
+-}: FileRowWrapperProps) {
+-  const classes = useStyles()
+-  return (
+-    <div className={classes.root}>
+-      <FileRow {...props} expanded={!!expanded} />
+-      {expanded && !!children && (
+-        <div className={classes.children}>
+-          <div className={classes.outline} onClick={props.onToggle} />
+-          <div className={classes.list}>
+-            {expanded === L ? (
+-              <M.CircularProgress className={classes.spinner} size={20} />
+-            ) : (
+-              children
+-            )}
+-          </div>
+-        </div>
+-      )}
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/components/FileManager/FileTree.tsx b/catalog/app/components/FileManager/FileTree.tsx
+deleted file mode 100644
+index 8b9efeb5..00000000
+--- a/catalog/app/components/FileManager/FileTree.tsx
++++ /dev/null
+@@ -1,64 +0,0 @@
+-import * as React from 'react'
+-
+-import FileRowWrapper from 'components/FileManager/FileRowWrapper'
+-import type { Entry } from 'components/FileManager/FileRow'
+-import { L } from 'components/Form/Package/types'
+-
+-export type TreeEntry = Entry & {
+-  children?: TreeEntry[]
+-}
+-
+-interface FileTreeProps {
+-  className?: string
+-  draggable?: boolean
+-  entries: TreeEntry[]
+-  initialSelection?: Record<string, boolean>
+-}
+-
+-export default function FileTree({
+-  className,
+-  draggable = false,
+-  entries,
+-  initialSelection = {},
+-}: FileTreeProps) {
+-  const [selectedMap, setSelectedMap] =
+-    React.useState<Record<string, boolean>>(initialSelection)
+-  const [expandedMap, setExpandedMap] = React.useState<
+-    Record<string, typeof L | boolean>
+-  >({})
+-
+-  const handleSelect = React.useCallback(
+-    (entry: TreeEntry) => {
+-      const newSelection = { ...selectedMap, [entry.id]: !selectedMap[entry.id] }
+-      setSelectedMap(newSelection)
+-      // onSelect(rows.filter((r) => newSelection[`${r.id}`]));
+-    },
+-    [selectedMap],
+-  )
+-  const handleExpand = React.useCallback((entry: TreeEntry) => {
+-    setExpandedMap((x) => ({
+-      ...x,
+-      [entry.id]: !x[entry.id],
+-    }))
+-    // onSelect(rows.filter((r) => newSelection[`${r.id}`]));
+-  }, [])
+-  return (
+-    <div className={className}>
+-      {entries.map((entry) => (
+-        <FileRowWrapper
+-          draggable={draggable}
+-          entry={entry}
+-          expanded={expandedMap[entry.id]}
+-          hasChildren={!!entry.children}
+-          key={entry.id}
+-          onClick={() => handleExpand(entry)}
+-          onSelect={() => handleSelect(entry)}
+-          onToggle={() => handleExpand(entry)}
+-          selected={!!selectedMap[entry.id]}
+-        >
+-          {!!entry.children && <FileTree entries={entry.children} />}
+-        </FileRowWrapper>
+-      ))}
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/components/FileManager/Skeleton.tsx b/catalog/app/components/FileManager/Skeleton.tsx
+deleted file mode 100644
+index f7813f04..00000000
+--- a/catalog/app/components/FileManager/Skeleton.tsx
++++ /dev/null
+@@ -1,62 +0,0 @@
+-import * as React from 'react'
+-import * as M from '@material-ui/core'
+-
+-import Skeleton from 'components/Skeleton'
+-
+-import { HEIGHT } from './FileRow'
+-
+-const useFileRowSkeletonStyles = M.makeStyles<$TSFixMe, { odd: boolean }>((t) => ({
+-  root: {
+-    display: 'flex',
+-    height: `${HEIGHT}px`,
+-    padding: t.spacing(0.5, 0),
+-  },
+-  checkbox: {
+-    margin: t.spacing(0, 0.5),
+-    width: t.spacing(3),
+-  },
+-  name: {
+-    flexGrow: 1,
+-    margin: ({ odd }) => t.spacing(0.5, odd ? 9 : 12, 0.5, 0.5),
+-  },
+-  modifiedDate: {
+-    margin: ({ odd }) => t.spacing(0.5, odd ? 9.5 : 6.5, 0.5, 0.5),
+-    width: ({ odd }) => t.spacing(odd ? 11 : 14),
+-  },
+-  size: {
+-    margin: ({ odd }) => t.spacing(0.5, odd ? 3.5 : 4.5, 0.5, 0.5),
+-    width: ({ odd }) => t.spacing(odd ? 9 : 8),
+-  },
+-}))
+-
+-interface FileRowSkeletonProps {
+-  odd?: boolean
+-}
+-
+-function FileRowSkeleton({ odd = false }: FileRowSkeletonProps) {
+-  const classes = useFileRowSkeletonStyles({ odd })
+-  return (
+-    <div className={classes.root}>
+-      <Skeleton className={classes.checkbox} animate />
+-      <Skeleton className={classes.name} animate />
+-      <Skeleton className={classes.modifiedDate} animate />
+-      <Skeleton className={classes.size} animate />
+-    </div>
+-  )
+-}
+-
+-interface FilesTreeSkeletonProps {
+-  className?: string
+-}
+-
+-export default function FilesTreeSkeleton({ className }: FilesTreeSkeletonProps) {
+-  return (
+-    <div className={className}>
+-      <FileRowSkeleton odd />
+-      <FileRowSkeleton />
+-      <FileRowSkeleton odd />
+-      <FileRowSkeleton />
+-      <FileRowSkeleton odd />
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/FilesWorkspace.tsx b/catalog/app/containers/Bucket/PackageEditor/FilesWorkspace.tsx
+deleted file mode 100644
+index 13c29cf3..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/FilesWorkspace.tsx
++++ /dev/null
+@@ -1,155 +0,0 @@
+-import cx from 'classnames'
+-import * as React from 'react'
+-import * as M from '@material-ui/core'
+-
+-import * as Buttons from 'components/Buttons'
+-import { L } from 'components/Form/Package/types'
+-
+-import * as S3FilePicker from '../PackageDialog/S3FilePicker'
+-
+-import RemoteFiles from './RemoteFiles'
+-import StagedFiles from './StagedFiles'
+-import * as State from './State'
+-
+-const useActionStyles = M.makeStyles((t) => ({
+-  root: {
+-    display: 'flex',
+-    flexDirection: 'column',
+-  },
+-  button: {
+-    '& + &': {
+-      marginTop: t.spacing(1),
+-    },
+-  },
+-}))
+-
+-interface ActionsProps {
+-  className: string
+-  pending: boolean
+-  onLocal: () => void
+-  onRemote: () => void
+-}
+-
+-function Actions({ pending, className, onLocal, onRemote }: ActionsProps) {
+-  const classes = useActionStyles()
+-  if (pending) {
+-    return (
+-      <div className={cx(classes.root, className)}>
+-        <Buttons.Skeleton size="small" className={classes.button} />
+-        <Buttons.Skeleton size="small" className={classes.button} />
+-      </div>
+-    )
+-  }
+-  return (
+-    <div className={cx(classes.root, className)}>
+-      <M.Button
+-        className={classes.button}
+-        variant="outlined"
+-        size="small"
+-        onClick={onLocal}
+-      >
+-        Add local files
+-      </M.Button>
+-      <M.Button
+-        className={classes.button}
+-        variant="outlined"
+-        size="small"
+-        onClick={onRemote}
+-      >
+-        Add files from bucket
+-      </M.Button>
+-    </div>
+-  )
+-}
+-
+-const useDividerStyles = M.makeStyles((t) => ({
+-  root: {
+-    width: t.spacing(8),
+-    height: '100%',
+-  },
+-}))
+-
+-function Divider() {
+-  const classes = useDividerStyles()
+-  return <div className={classes.root}></div>
+-}
+-
+-const useStyles = M.makeStyles((t) => ({
+-  root: {
+-    display: 'flex',
+-    // maxHeight: '64vh',
+-    minHeight: '32vh',
+-  },
+-  staged: {
+-    flexGrow: 1,
+-    width: `calc(50% - ${t.spacing(8)}px)`,
+-  },
+-  remote: {
+-    width: `calc(50% - ${t.spacing(8)}px)`,
+-    flexGrow: 1,
+-  },
+-  actions: {
+-    marginLeft: t.spacing(8),
+-  },
+-}))
+-
+-export default function FilesWorkspace() {
+-  const classes = useStyles()
+-  const { bucket, files, src } = State.use()
+-  const [remoteOpened, setRemoteOpened] = React.useState(false)
+-  const [selectedBucket, setSelectedBucket] = React.useState(src.bucket)
+-
+-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
+-
+-  const buckets: string[] | typeof L = React.useMemo(() => {
+-    const { successors } = bucket.state
+-    if (successors === L || successors instanceof Error) return L
+-    return successors.map(({ name }) => name).concat(src.bucket)
+-  }, [bucket.state, src])
+-
+-  const handleClose = React.useCallback(
+-    (reason: S3FilePicker.CloseReason) => {
+-      if (!!reason && typeof reason === 'object') {
+-        files.actions.remote.onChange(reason)
+-      }
+-      setS3FilePickerOpen(false)
+-    },
+-    [files.actions.remote, setS3FilePickerOpen],
+-  )
+-  const handleStagedExpand = React.useCallback(() => setRemoteOpened(false), [])
+-  const handleRemoteExpand = React.useCallback(() => setS3FilePickerOpen(true), [])
+-
+-  return (
+-    <div className={classes.root}>
+-      {buckets !== L && (
+-        <S3FilePicker.Dialog
+-          bucket={selectedBucket}
+-          buckets={buckets}
+-          selectBucket={setSelectedBucket}
+-          open={s3FilePickerOpen}
+-          onClose={handleClose}
+-          initialPath={''}
+-        />
+-      )}
+-
+-      <StagedFiles
+-        className={classes.staged}
+-        expanded={remoteOpened}
+-        onExpand={handleStagedExpand}
+-      />
+-      {remoteOpened ? (
+-        <>
+-          <Divider />
+-          <RemoteFiles className={classes.remote} />
+-        </>
+-      ) : (
+-        <Actions
+-          pending={files.state === L || buckets === L}
+-          className={classes.actions}
+-          onLocal={files.actions.dropzone.openFilePicker}
+-          onRemote={handleRemoteExpand}
+-        />
+-      )}
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/LegacyFilesWorkspace.tsx b/catalog/app/containers/Bucket/PackageEditor/LegacyFilesWorkspace.tsx
+index 2b2a5566..cee9e468 100644
+--- a/catalog/app/containers/Bucket/PackageEditor/LegacyFilesWorkspace.tsx
++++ b/catalog/app/containers/Bucket/PackageEditor/LegacyFilesWorkspace.tsx
+@@ -5,8 +5,8 @@ import type { BucketConfig } from 'components/Form/Package/DestinationBucket'
+ 
+ import { FilesAction, FilesInput } from '../PackageDialog/FilesInput'
+ import type { EntriesValidationErrors } from '../PackageDialog/PackageDialog'
++import { FilesInputSkeleton } from '../PackageDialog/Skeleton'
+ 
+-import { StagedFilesSkeleton } from './StagedFiles'
+ import * as State from './State'
+ import type { FS, Uploads } from './State/Files'
+ 
+@@ -81,7 +81,7 @@ export default function LegacyFilesWorkspaceContainer() {
+     files.state.staged.map === L ||
+     bucket.state.successors === L
+   ) {
+-    return <StagedFilesSkeleton />
++    return <FilesInputSkeleton />
+   }
+   return (
+     <LegacyFilesWorkspace
+diff --git a/catalog/app/containers/Bucket/PackageEditor/RemoteFiles.tsx b/catalog/app/containers/Bucket/PackageEditor/RemoteFiles.tsx
+deleted file mode 100644
+index f0174cda..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/RemoteFiles.tsx
++++ /dev/null
+@@ -1,147 +0,0 @@
+-import cx from 'classnames'
+-import * as React from 'react'
+-import * as M from '@material-ui/core'
+-
+-import FileTree from 'components/FileManager/FileTree'
+-import FilesTreeSkeleton from 'components/FileManager/Skeleton'
+-import { L } from 'components/Form/Package/types'
+-// import { readableBytes } from 'utils/string'
+-
+-import type { BucketListingResult } from '../requests'
+-
+-import * as State from './State'
+-// import { TAB_BOOKMARKS, TAB_S3, Tab } from './State/Files'
+-
+-// const useTabsStyles = M.makeStyles((t) => ({
+-//   tabs: {
+-//     marginLeft: 'auto',
+-//     minHeight: t.spacing(3),
+-//   },
+-//   tab: {
+-//     fontWeight: 'normal',
+-//     fontSize: '12px',
+-//     minWidth: t.spacing(15),
+-//     minHeight: t.spacing(3),
+-//   },
+-// }))
+-//
+-// interface TabsProps {
+-//   className: string
+-//   value: Tab
+-//   onChange: (v: Tab) => void
+-// }
+-//
+-// function Tabs({ className, value, onChange }: TabsProps) {
+-//   const classes = useTabsStyles()
+-//   const handleChange = React.useCallback((event, v: Tab) => onChange(v), [onChange])
+-//   return (
+-//     <M.Tabs className={cx(classes.tabs, className)} onChange={handleChange} value={value}>
+-//       <M.Tab className={classes.tab} label="S3 Bucket" value={TAB_S3} />
+-//       <M.Tab className={classes.tab} label="Bookmarks" value={TAB_BOOKMARKS} />
+-//     </M.Tabs>
+-//   )
+-// }
+-
+-const useFilterStyles = M.makeStyles(() => ({
+-  root: {},
+-}))
+-
+-interface FilterProps {
+-  className: string
+-  value: string
+-  onChange: (v: string) => void
+-}
+-
+-function Filter({ className, value, onChange }: FilterProps) {
+-  const classes = useFilterStyles()
+-  const handleChange = React.useCallback(
+-    (event) => onChange(event.target.value),
+-    [onChange],
+-  )
+-  return (
+-    <M.TextField
+-      className={cx(classes.root, className)}
+-      onChange={handleChange}
+-      size="small"
+-      value={value}
+-      label="Filter by prefix"
+-      variant="outlined"
+-    />
+-  )
+-}
+-
+-function Listing({ r }: { r: BucketListingResult }) {
+-  const entries = React.useMemo(
+-    () => [
+-      ...r.dirs.map((name) => ({
+-        id: name,
+-        name,
+-        children: [],
+-      })),
+-      ...r.files.map((file) => ({
+-        id: file.key,
+-        modifiedDate: file.modified,
+-        name: file.key,
+-        size: file.size,
+-      })),
+-    ],
+-    [r.dirs, r.files],
+-  )
+-  return <FileTree entries={entries} draggable />
+-}
+-
+-const useStyles = M.makeStyles((t) => ({
+-  root: {
+-    display: 'flex',
+-    flexDirection: 'column',
+-  },
+-  filter: {
+-    marginBottom: t.spacing(1),
+-  },
+-  header: {
+-    ...t.typography.subtitle1,
+-    marginBottom: t.spacing(2),
+-    display: 'flex',
+-  },
+-  // tabs: {
+-  //   marginLeft: 'auto',
+-  // },
+-  content: {
+-    flexGrow: 1,
+-  },
+-}))
+-
+-interface RemoteFilesProps {
+-  className: string
+-}
+-
+-export default function RemoteFiles({ className }: RemoteFilesProps) {
+-  const classes = useStyles()
+-  const { files } = State.use()
+-  if (files.state === L) return null
+-  return (
+-    <div className={cx(classes.root, className)}>
+-      <div className={classes.header}>
+-        S3 sources
+-        {/*
+-        <Tabs
+-          className={classes.tabs}
+-          value={files.state.tab}
+-          onChange={files.actions.onTab}
+-        />
+-        */}
+-      </div>
+-      <Filter
+-        value={files.state.filter.value}
+-        onChange={files.actions.filter.onChange}
+-        className={classes.filter}
+-      />
+-      <div className={classes.content}>
+-        {files.state.remote.case({
+-          Ok: (r: BucketListingResult) => <Listing r={r} />,
+-          _: () => <FilesTreeSkeleton />,
+-        })}
+-      </div>
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/StagedFiles.tsx b/catalog/app/containers/Bucket/PackageEditor/StagedFiles.tsx
+deleted file mode 100644
+index c1d18cc1..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/StagedFiles.tsx
++++ /dev/null
+@@ -1,131 +0,0 @@
+-import cx from 'classnames'
+-import * as React from 'react'
+-import * as M from '@material-ui/core'
+-
+-import FileTree from 'components/FileManager/FileTree'
+-import FilesTreeSkeleton from 'components/FileManager/Skeleton'
+-import { L } from 'components/Form/Package/types'
+-import Skeleton from 'components/Skeleton'
+-
+-import * as State from './State'
+-
+-const useStagedFilesSkeletonStyles = M.makeStyles((t) => ({
+-  dropzone: {
+-    flexGrow: 1,
+-    marginTop: t.spacing(1),
+-  },
+-}))
+-
+-interface StagedFilesSkeletonProps {
+-  className?: string
+-}
+-
+-export function StagedFilesSkeleton({ className }: StagedFilesSkeletonProps) {
+-  const classes = useStagedFilesSkeletonStyles()
+-  return (
+-    <div className={className}>
+-      <FilesTreeSkeleton />
+-      <Skeleton className={classes.dropzone} animate />
+-    </div>
+-  )
+-}
+-
+-const useStyles = M.makeStyles((t) => ({
+-  root: {
+-    display: 'flex',
+-    flexDirection: 'column',
+-    position: 'relative',
+-  },
+-  header: {
+-    ...t.typography.subtitle1,
+-    display: 'flex',
+-    marginBottom: t.spacing(2),
+-  },
+-  fileTree: {
+-    marginBottom: t.spacing(2),
+-  },
+-  dropzone: {
+-    ...t.typography.body2,
+-    alignItems: 'center',
+-    background: t.palette.action.selected,
+-    border: `1px solid ${t.palette.action.disabled}`,
+-    borderRadius: t.shape.borderRadius,
+-    display: 'flex',
+-    flexGrow: 1,
+-    justifyContent: 'center',
+-    padding: t.spacing(6, 0),
+-  },
+-  expand: {
+-    marginLeft: 'auto',
+-    opacity: 0.3,
+-    '&:hover': {
+-      opacity: 1,
+-    },
+-  },
+-  dragging: {
+-    ...t.typography.h3,
+-    background: t.palette.grey[300],
+-    bottom: '1px',
+-    left: '1px',
+-    borderStyle: 'dashed',
+-    borderWidth: '2px',
+-    position: 'absolute',
+-    right: '1px',
+-    top: '1px',
+-  },
+-}))
+-
+-interface StagedFilesProps {
+-  className: string
+-  onExpand: () => void
+-  expanded: boolean
+-}
+-
+-export default function StagedFiles({ className, expanded, onExpand }: StagedFilesProps) {
+-  const classes = useStyles()
+-  const { files } = State.use()
+-  const [dragging, setDragging] = React.useState(false)
+-  const handleDragStart = React.useCallback(() => setDragging(true), [])
+-  const handleDragEnd = React.useCallback(() => setDragging(false), [])
+-  React.useEffect(() => {
+-    document.addEventListener('dragover', handleDragStart)
+-    document.addEventListener('drop', handleDragEnd)
+-    document.addEventListener('dragleave', handleDragEnd)
+-    return () => {
+-      document.removeEventListener('dragstart', handleDragStart)
+-      document.removeEventListener('drop', handleDragEnd)
+-      document.removeEventListener('dragleave', handleDragEnd)
+-    }
+-  }, [handleDragStart, handleDragEnd])
+-
+-  if (files.state === L || files.state.staged.value === L) {
+-    return <StagedFilesSkeleton className={cx(classes.root, className)} />
+-  }
+-
+-  return (
+-    <div className={cx(classes.root, className)}>
+-      {expanded && (
+-        <div className={classes.header}>
+-          Package contents
+-          <M.Fade in={expanded}>
+-            <M.IconButton onClick={onExpand} className={classes.expand} size="small">
+-              <M.Icon fontSize="small">zoom_out_map</M.Icon>
+-            </M.IconButton>
+-          </M.Fade>
+-        </div>
+-      )}
+-      <div className={classes.fileTree}>
+-        {files.state.staged.value.length && (
+-          <FileTree entries={files.state.staged.value} />
+-        )}
+-      </div>
+-      <div
+-        className={cx(classes.dropzone, { [classes.dragging]: dragging })}
+-        {...files.state.dropzone.root}
+-      >
+-        <input {...files.state.dropzone.input} />
+-        Drop files here or click to browse
+-      </div>
+-    </div>
+-  )
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/Files.ts b/catalog/app/containers/Bucket/PackageEditor/State/Files.ts
+index 79d9f394..e23bb864 100644
+--- a/catalog/app/containers/Bucket/PackageEditor/State/Files.ts
++++ b/catalog/app/containers/Bucket/PackageEditor/State/Files.ts
+@@ -1,13 +1,9 @@
+ import * as FP from 'fp-ts'
+ import * as R from 'ramda'
+ import * as React from 'react'
+-import { DropzoneInputProps, DropzoneRootProps, useDropzone } from 'react-dropzone'
+ 
+ import type * as Model from 'model'
+-import type { TreeEntry } from 'components/FileManager/FileTree'
+ import { L } from 'components/Form/Package/types'
+-import * as AWS from 'utils/AWS'
+-import { useData } from 'utils/Data'
+ import * as s3paths from 'utils/s3paths'
+ import type * as Types from 'utils/types'
+ import { useUploads, Uploads } from '../../PackageDialog/Uploads'
+@@ -20,23 +16,12 @@ import {
+   ValidationEntry,
+   useEntriesValidator,
+ } from '../../PackageDialog/PackageDialog'
+-import * as requests from '../../requests'
+ 
+ import type { WorkflowContext } from './Workflow'
+-import type { Src } from './Source'
+-import convertDesktopFilesToTree from './adapters/desktop'
+-// import convertFilesMapToTree from './adapters/manifest'
+-import convertS3FilesListToTree from './adapters/s3'
+-// import convertTreeToFilesMap from './adapters/package'
+-import { sortEntries } from './adapters/utils'
+ import NOT_READY from './errorNotReady'
+ 
+ export type { Uploads } from '../../PackageDialog/Uploads'
+ 
+-// export const TAB_BOOKMARKS = Symbol('bookmarks')
+-// export const TAB_S3 = Symbol('s3')
+-// export type Tab = typeof TAB_S3 | typeof TAB_BOOKMARKS | typeof L
+-
+ export interface FS {
+   added: Record<string, LocalFile | Model.S3File>
+   deleted: Record<string, true>
+@@ -67,20 +52,10 @@ interface S3Entry {
+ type PartialPackageEntry = Types.AtLeast<Model.PackageEntry, 'physicalKey'>
+ 
+ export interface FilesState {
+-  filter: {
+-    value: string
+-  }
+   staged: {
+     uploads: Uploads
+     map: FS | typeof L
+     errors?: EntriesValidationErrors | typeof L
+-    value: TreeEntry[] | typeof L
+-  }
+-  // tab: Tab
+-  remote: $TSFixMe
+-  dropzone: {
+-    root: DropzoneRootProps
+-    input: DropzoneInputProps
+   }
+ }
+ 
+@@ -91,20 +66,9 @@ export interface FilesContext {
+     formData: (bucket: string, name: string) => Promise<NullablePackageEntry[]>
+   }
+   actions: {
+-    dropzone: {
+-      openFilePicker: () => void
+-    }
+-    // onTab: (t: Tab) => void
+-    filter: {
+-      onChange: (v: string) => void
+-    }
+     staged: {
+-      onChange: (v: TreeEntry[]) => void
+       onMapChange: (v: FS) => void
+     }
+-    remote: {
+-      onChange: (v: { path: string; files: Model.S3File[] }) => void
+-    }
+   }
+ }
+ 
+@@ -175,56 +139,6 @@ function isDisabled(state: FilesState | typeof L) {
+   return state === L || state.staged.errors === L || !!state.staged.errors?.length
+ }
+ 
+-// FIXME: it's not finished
+-// function useRemoteFilesLists(src: Src) {
+-//   const [map, setMap] = React.useState<Record<string, TreeEntry[] | typeof L>>({})
+-//   const store = React.useRef<Record<string, Promise<TreeEntry[]>>>({})
+-//   const s3 = AWS.S3.use()
+-//   const fetch = React.useCallback(
+-//     async (bucket: string, path: string = '') => {
+-//       if (!!store.current[path]) return store.current[path]
+-//
+-//       setMap((x) => ({ ...x, [path]: L }))
+-//       store.current[path] =
+-//         store.current[path] ||
+-//         requests
+-//           .bucketListing({
+-//             s3,
+-//             bucket,
+-//             path,
+-//             prefix: '',
+-//             // prev: null,
+-//           })
+-//           .then((r) => {
+-//             return [
+-//               ...r.dirs.map((name) => ({
+-//                 id: name,
+-//                 name,
+-//                 children: [],
+-//               })),
+-//               ...r.files.map((file) => ({
+-//                 id: file.key,
+-//                 modifiedDate: file.modified,
+-//                 name: file.key,
+-//                 size: file.size,
+-//               })),
+-//             ]
+-//           })
+-//
+-//       const list = await store.current[path]
+-//       setMap((x) => ({
+-//         ...x,
+-//         [path]: list,
+-//       }))
+-//     },
+-//     [map, s3],
+-//   )
+-//   React.useEffect(() => {
+-//     fetch(src.bucket, src.s3Path)
+-//   }, [fetch])
+-//   return map['']
+-// }
+-
+ function filesStateToEntries(files: FS): ValidationEntry[] {
+   return FP.function.pipe(
+     R.mergeLeft(files.added, files.existing),
+@@ -250,7 +164,6 @@ function useValidation(value: FS | typeof L, workflow: WorkflowContext) {
+   React.useEffect(() => {
+     async function onFilesChange() {
+       if (value === L) return
+-      // const entries = convertTreeToFilesMap(value, '')
+       const entries = filesStateToEntries(value)
+       const validationErrors = await validateEntries(entries)
+       setErrors(validationErrors?.length ? validationErrors : undefined)
+@@ -261,52 +174,14 @@ function useValidation(value: FS | typeof L, workflow: WorkflowContext) {
+ }
+ 
+ export default function useFiles(
+-  src: Src,
+   workflow: WorkflowContext,
+   manifest?: Manifest | typeof L,
+ ): FilesContext {
+-  // useRemoteFilesLists(src)
+-  const s3 = AWS.S3.use()
+-  const data = useData(
+-    requests.bucketListing,
+-    {
+-      s3,
+-      bucket: src.bucket,
+-      path: src.s3Path || '',
+-      prefix: '',
+-      prev: null,
+-    },
+-    // FIXME: { noAutoFetch },
+-  )
+-  const onDrop = React.useCallback(async (files) => {
+-    // setHashing(true)
+-    // const hashingFiles: LocalFile[] = files.map(computeHash)
+-    // await Promise.all(hashingFiles.map(({ hash }) => hash.promise))
+-    setValue((x) => {
+-      if (x === L) return x
+-      return sortEntries([...x, ...convertDesktopFilesToTree(files)])
+-    })
+-    // setHashing(false)
+-  }, [])
+-  const { getRootProps, getInputProps, open: openFilePicker } = useDropzone({ onDrop })
+   const uploads = useUploads()
+-  const [filter, setFilter] = React.useState('')
+-  // const [tab, setTab] = React.useState<Tab>(TAB_S3)
+-  const [value, setValue] = React.useState<TreeEntry[] | typeof L>(L)
+   const [map, setMap] = React.useState<FS | typeof L>(L)
+-  const handleS3FilePicker = React.useCallback(
+-    ({ path, files }: { path: string; files: Model.S3File[] }) => {
+-      setValue((x) => {
+-        if (x === L) return x
+-        return sortEntries([...x, ...convertS3FilesListToTree(path, files)])
+-      })
+-    },
+-    [],
+-  )
+ 
+   React.useEffect(() => {
+     if (manifest === L) return
+-    // setValue(() => convertFilesMapToTree(manifest?.entries || EMPTY_MANIFEST_ENTRIES))
+     setMap({
+       added: {},
+       deleted: {},
+@@ -319,27 +194,9 @@ export default function useFiles(
+   const state: FilesState | typeof L = React.useMemo(() => {
+     if (manifest === L || workflow.state === L) return L
+     return {
+-      // tab,
+-      dropzone: {
+-        root: getRootProps(),
+-        input: getInputProps(),
+-      },
+-      filter: { value: filter },
+-      remote: data,
+-      staged: { map, errors, uploads, value },
++      staged: { map, errors, uploads },
+     }
+-  }, [
+-    data,
+-    errors,
+-    filter,
+-    getInputProps,
+-    getRootProps,
+-    manifest,
+-    map,
+-    uploads,
+-    value,
+-    workflow.state,
+-  ])
++  }, [errors, manifest, map, uploads, workflow.state])
+ 
+   return React.useMemo(
+     () => ({
+@@ -349,22 +206,11 @@ export default function useFiles(
+         disabled: () => isDisabled(state),
+       },
+       actions: {
+-        dropzone: {
+-          openFilePicker,
+-        },
+-        // onTab: setTab,
+-        filter: {
+-          onChange: setFilter,
+-        },
+         staged: {
+-          onChange: setValue,
+           onMapChange: setMap,
+         },
+-        remote: {
+-          onChange: handleS3FilePicker,
+-        },
+       },
+     }),
+-    [handleS3FilePicker, state, openFilePicker],
++    [state],
+   )
+ }
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/adapters/desktop.ts b/catalog/app/containers/Bucket/PackageEditor/State/adapters/desktop.ts
+deleted file mode 100644
+index a8d980a1..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/State/adapters/desktop.ts
++++ /dev/null
+@@ -1,45 +0,0 @@
+-import type { FileWithPath } from 'react-dropzone'
+-
+-import { Status } from 'components/FileManager/FileRow'
+-import type { TreeEntry } from 'components/FileManager/FileTree'
+-import * as s3paths from 'utils/s3paths'
+-
+-import { calcChildren, sortEntries } from './utils'
+-
+-export default function convertDesktopFilesToTree(files: FileWithPath[]): TreeEntry[] {
+-  const rootMap = files.reduce((memo, file) => {
+-    const filePath = s3paths.withoutPrefix('/', file.path || file.name)
+-    const pathParts = filePath.split('/')
+-
+-    if (pathParts.length === 1) {
+-      return {
+-        ...memo,
+-        [filePath]: {
+-          id: filePath,
+-          name: filePath,
+-          size: file.size,
+-          status: Status.Unchanged,
+-        },
+-      }
+-    }
+-
+-    const [head, ...tail] = pathParts
+-    const dir =
+-      memo[head] ||
+-      ({
+-        id: head,
+-        name: s3paths.ensureSlash(head),
+-        size: 0,
+-        status: Status.Unchanged,
+-        children: [],
+-      } as TreeEntry)
+-
+-    dir.children = sortEntries(calcChildren(file, tail, dir.children))
+-
+-    return {
+-      ...memo,
+-      [head]: dir,
+-    }
+-  }, {} as Record<string, TreeEntry>)
+-  return sortEntries(Object.values(rootMap))
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/adapters/manifest.ts b/catalog/app/containers/Bucket/PackageEditor/State/adapters/manifest.ts
+deleted file mode 100644
+index 11073b7a..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/State/adapters/manifest.ts
++++ /dev/null
+@@ -1,45 +0,0 @@
+-import { Status } from 'components/FileManager/FileRow'
+-import type { TreeEntry } from 'components/FileManager/FileTree'
+-import type * as Model from 'model'
+-import * as s3paths from 'utils/s3paths'
+-
+-import { calcChildren, sortEntries } from './utils'
+-
+-export default function convertFilesMapToTree(
+-  map: Model.PackageContentsFlatMap,
+-): TreeEntry[] {
+-  const rootMap = Object.entries(map).reduce((memo, [name, entry]) => {
+-    const pathParts = name.split('/')
+-
+-    if (pathParts.length === 1) {
+-      return {
+-        ...memo,
+-        [name]: {
+-          id: entry.physicalKey,
+-          name,
+-          size: entry.size,
+-          status: Status.Unchanged,
+-        },
+-      }
+-    }
+-
+-    const [head, ...tail] = pathParts
+-    const dir =
+-      memo[head] ||
+-      ({
+-        id: head,
+-        name: s3paths.ensureSlash(head),
+-        size: 0,
+-        status: Status.Unchanged,
+-        children: [],
+-      } as TreeEntry)
+-
+-    dir.children = sortEntries(calcChildren(entry, tail, dir.children))
+-
+-    return {
+-      ...memo,
+-      [head]: dir,
+-    }
+-  }, {} as Record<string, TreeEntry>)
+-  return sortEntries(Object.values(rootMap))
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/adapters/package.ts b/catalog/app/containers/Bucket/PackageEditor/State/adapters/package.ts
+deleted file mode 100644
+index a4c1e2f3..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/State/adapters/package.ts
++++ /dev/null
+@@ -1,19 +0,0 @@
+-import type { TreeEntry } from 'components/FileManager/FileTree'
+-
+-import type { ValidationEntry } from '../../../PackageDialog/PackageDialog'
+-
+-export default function convertTreeToFilesMap(
+-  entries: TreeEntry[],
+-  prefix: string,
+-): ValidationEntry[] {
+-  return entries.reduce((memo, entry) => {
+-    if (!entry.children) {
+-      return memo.concat({
+-        logical_key: `${prefix}${entry.name}`,
+-        size: entry.size,
+-      } as ValidationEntry)
+-    }
+-
+-    return [...memo, ...convertTreeToFilesMap(entry.children, entry.name)]
+-  }, [] as ValidationEntry[])
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/adapters/s3.ts b/catalog/app/containers/Bucket/PackageEditor/State/adapters/s3.ts
+deleted file mode 100644
+index 4f033291..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/State/adapters/s3.ts
++++ /dev/null
+@@ -1,45 +0,0 @@
+-import { Status } from 'components/FileManager/FileRow'
+-import type { TreeEntry } from 'components/FileManager/FileTree'
+-import type * as Model from 'model'
+-import * as s3paths from 'utils/s3paths'
+-
+-import { calcChildren, sortEntries } from './utils'
+-
+-export default function convertS3FilesListToTree(
+-  path: string,
+-  files: Model.S3File[],
+-): TreeEntry[] {
+-  const rootMap = files.reduce((memo, file) => {
+-    const filePath = s3paths.withoutPrefix(path, file.key)
+-    const pathParts = filePath.split('/')
+-    if (pathParts.length === 1) {
+-      return {
+-        ...memo,
+-        [filePath]: {
+-          id: filePath,
+-          name: filePath,
+-          size: file.size,
+-          status: Status.S3,
+-        },
+-      }
+-    }
+-    const [head, ...tail] = pathParts
+-    const dir =
+-      memo[head] ||
+-      ({
+-        id: head,
+-        name: s3paths.ensureSlash(head),
+-        size: 0,
+-        status: Status.S3,
+-        children: [],
+-      } as TreeEntry)
+-
+-    dir.children = sortEntries(calcChildren(file, tail, dir.children))
+-
+-    return {
+-      ...memo,
+-      [head]: dir,
+-    }
+-  }, {} as Record<string, TreeEntry>)
+-  return sortEntries(Object.values(rootMap))
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/adapters/utils.ts b/catalog/app/containers/Bucket/PackageEditor/State/adapters/utils.ts
+deleted file mode 100644
+index 3500aa45..00000000
+--- a/catalog/app/containers/Bucket/PackageEditor/State/adapters/utils.ts
++++ /dev/null
+@@ -1,37 +0,0 @@
+-import type { FileWithPath } from 'react-dropzone'
+-
+-import { Status } from 'components/FileManager/FileRow'
+-import type { TreeEntry } from 'components/FileManager/FileTree'
+-import type * as Model from 'model'
+-import * as s3paths from 'utils/s3paths'
+-
+-export function calcChildren(
+-  entry: Model.PackageEntry | Model.S3File | FileWithPath,
+-  tailParts: string[],
+-  children: TreeEntry[] = [],
+-): TreeEntry[] {
+-  const [name, ...tail] = tailParts
+-  const found = children.find((child) => child.id === name)
+-  if (found) {
+-    if (tail.length) {
+-      found.children = calcChildren(entry, tail, found.children)
+-    }
+-    return children
+-  }
+-
+-  return children.concat({
+-    id: name,
+-    name: tail.length ? s3paths.ensureSlash(name) : name,
+-    size: tail.length ? 0 : entry.size,
+-    status: Status.Unchanged,
+-    children: tail.length ? calcChildren(entry, tail, []) : undefined,
+-  })
+-}
+-
+-export function sortEntries(entries: TreeEntry[]): TreeEntry[] {
+-  return [...entries].sort((a, b) => {
+-    if (a.children && !b.children) return -1
+-    if (!a.children && b.children) return 1
+-    return a.name.localeCompare(b.name)
+-  })
+-}
+diff --git a/catalog/app/containers/Bucket/PackageEditor/State/index.tsx b/catalog/app/containers/Bucket/PackageEditor/State/index.tsx
+index cc9a304e..674d19f8 100644
+--- a/catalog/app/containers/Bucket/PackageEditor/State/index.tsx
++++ b/catalog/app/containers/Bucket/PackageEditor/State/index.tsx
+@@ -49,7 +49,7 @@ export function Provider({
+   const workflow = useWorkflow(bucket.state?.value, manifest)
+   const name = useName(src, bucket, workflow)
+   const message = useMessage()
+-  const files = useFiles(src, workflow, manifest)
++  const files = useFiles(workflow, manifest)
+   const meta = useMeta(workflow, manifest)
+   const main = useMain({ bucket, files, message, meta, name, workflow })
+   const v = React.useMemo(
