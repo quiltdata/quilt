@@ -1046,6 +1046,7 @@ class TestIndex(TestCase):
                 },
             ],
             "comment": message,
+            "workflow": None,
         })
 
     def test_index_if_package_skip(self):
