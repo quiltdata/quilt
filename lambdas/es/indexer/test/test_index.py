@@ -1040,7 +1040,7 @@ class TestIndex(TestCase):
             "metadata": json.dumps(meta),
             "metadata_fields": [
                 {
-                    "name": "foo",
+                    "json_pointer": "/foo",
                     "type": "keyword",
                     "keyword": "bar",
                 },

@@ -57,6 +57,7 @@ from urllib.parse import unquote_plus
 
 import boto3
 import botocore
+import jsonpointer
 import nbformat
 from dateutil.tz import tzutc
 from document_queue import (
@@ -312,10 +313,6 @@ def _try_parse_date(s: str) -> Optional[datetime.datetime]:
 
 def _get_metadata_fields(path: tuple, d: dict):
     for k, v in d.items():
-        if "." in k:
-            # XXX: ignore for now
-            print("ignoring field %s" % (*path, k))
-            continue
         if isinstance(v, dict):
             yield from _get_metadata_fields(path + (k,), v)
         else:
@@ -349,7 +346,7 @@ def get_metadata_fields(meta):
         return None
     return [
         {
-            "name": ".".join(path),
+            "json_pointer": jsonpointer.JsonPointer.from_parts(path).path,
             "type": type_,
             type_: value,
         }
