@@ -357,6 +357,27 @@ def get_metadata_fields(meta):
     ]
 
 
+def _prepare_workflow_for_es(workflow):
+    if workflow is None:
+        return None
+
+    try:
+        return {
+            "config_url": workflow["config"],
+            "id": workflow["id"],
+            "schemas": [
+                {
+                    "id": k,
+                    "url": v,
+                }
+                for k, v in workflow.get("schemas", {}).items()
+            ],
+        }
+    except Exception:
+        get_quilt_logger().exception("Bad workflow object: %s", json.dumps(workflow, indent=2))
+        return None
+
+
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
@@ -423,6 +444,7 @@ def index_if_package(
             "metadata": json.dumps(user_meta) if user_meta else None,
             "metadata_fields": get_metadata_fields(user_meta),
             "comment": str(first.get("message", "")),
+            "workflow": _prepare_workflow_for_es(first.get("workflow")),
         }
 
     data = get_pkg_data() or {}
