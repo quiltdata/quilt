@@ -9,7 +9,6 @@ import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
 import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
 import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
-import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
 import logoTessera from './logo-tessera.png'
 import logoResilience from './logo-resilience.svg'
@@ -33,10 +32,6 @@ const logos = [
   {
     src: logoCelsius,
     title: 'Celsius Therapeutics',
-  },
-  {
-    src: logoVir,
-    title: 'Vir Bio',
   },
   {
     src: logoNeumora,

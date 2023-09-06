@@ -20,7 +20,6 @@ import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
 import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
 import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
-import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
@@ -30,10 +29,6 @@ const logos = [
   {
     src: logoCelsius,
     title: 'Celsius Therapeutics',
-  },
-  {
-    src: logoVir,
-    title: 'Vir Bio',
   },
   {
     src: logoNeumora,
