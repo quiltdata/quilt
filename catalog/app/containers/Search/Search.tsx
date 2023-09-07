@@ -1,180 +1,183 @@
-import * as R from 'ramda'
 import * as React from 'react'
-import { Link, useHistory } from 'react-router-dom'
-import * as RR from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
-import * as SearchResults from 'components/SearchResults'
-import * as BucketConfig from 'utils/BucketConfig'
-import * as Data from 'utils/Data'
+// import * as SearchResults from 'components/SearchResults'
+// import * as BucketConfig from 'utils/BucketConfig'
+import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import parseSearch from 'utils/parseSearch'
-import useSearch from 'utils/search'
-import useEditableValue from 'utils/useEditableValue'
+import assertNever from 'utils/assertNever'
 
-const TYPE_OBJECTS = 'objects'
-const TYPE_PACKAGES = 'packages'
-const TYPES = [TYPE_OBJECTS, TYPE_PACKAGES, undefined] as const
-type SearchType = (typeof TYPES)[number]
+import * as SearchUIModel from './model'
 
-function parseSearchType(x: any): SearchType {
-  return TYPES.includes(x) ? x : undefined
+interface FilterWidgetProps {
+  path: SearchUIModel.FacetPath
 }
 
-interface SearchUrlState {
-  type: SearchType
-  buckets: string[]
-  query: string
-  page: number
-  retry?: number
-  // facets???
-}
-
-// XXX: use io-ts or smth for morphisms between url (querystring) and search state
-// XXX: split state into "global" (type, buckets) and "per-query" (query, page, retry)?
-function useUrlState(): SearchUrlState {
-  const l = RR.useLocation()
-  // XXX: support legacy "mode" param (convert to "type")
-  const params = React.useMemo(() => parseSearch(l.search, true), [l.search])
-  const type = parseSearchType(params.type)
-  const buckets = React.useMemo(
-    () => (params.buckets ? params.buckets.split(',').sort() : []),
-    [params.buckets],
-  )
-  const query = params.query || ''
-  const page = params.p ? parseInt(params.p, 10) : 1
-  const retry = (params.retry && parseInt(params.retry, 10)) || undefined
-  return React.useMemo(
-    () => ({ type, buckets, query, page, retry }),
-    [type, buckets, query, page, retry],
+function FilterWidget({ path, ...rest }: FilterWidgetProps) {
+  // switch on facet type
+  return (
+    <div>
+      <div>{path}</div>
+      <div>{rest}</div>
+    </div>
   )
 }
 
-function useMakeUrl() {
-  const { urls } = NamedRoutes.use()
-  return React.useCallback(
-    (state: SearchUrlState) =>
-      urls.search({
-        q: state.query,
-        buckets: state.buckets.join(',') || undefined,
-        type: state.type,
-        retry: state.retry,
-        p: state.page === 1 ? undefined : state.page,
-      }),
-    [urls],
+function FacetWidget({ name, type, ...rest }: SearchUIModel.ActiveFacet) {
+  // actions: deactivate, adjust
+  // TODO: facet query (request extents if required)
+  return (
+    <div>
+      <div>{name}</div>
+      <div>{rest.path}</div>
+      <FilterWidget {...rest} />
+    </div>
   )
 }
 
-export default function Search() {
-  const { urls } = NamedRoutes.use()
-  const history = RR.useHistory()
-  // const classes = useSearchStyles()
+function ActiveFacets() {
+  const model = SearchUIModel.use()
+  return (
+    <>
+      {model.state.activeFacets.map((facet, i) => (
+        <FacetWidget key={i} {...facet} />
+      ))}
+    </>
+  )
+}
 
-  const scrollRef = React.useRef(null)
+function AvailableFacet({ name, path }: SearchUIModel.AvailableFacet) {
+  const model = SearchUIModel.use()
+  return (
+    <button onClick={() => model.actions.activateFacet(path)}>
+      {name}
+      {path}
+    </button>
+  )
+}
 
-  const makeUrl = useMakeUrl()
+function AvailableFacets() {
+  const model = SearchUIModel.use()
+  return (
+    <>
+      {model.state.availableFacets.facets.map((facet, i) => (
+        // TODO: infer unique key
+        <AvailableFacet key={i} {...facet} />
+      ))}
+    </>
+  )
+}
 
-  const state = useUrlState()
+function Filters() {
+  return (
+    <div>
+      <h1>filter by</h1>
+      <ActiveFacets />
+      <AvailableFacets />
+    </div>
+  )
+}
 
-  const updateUrl = React.useCallback(
-    (newState: SearchUrlState) => {
-      history.push(makeUrl(newState))
+// interface ResultsPageProps {
+//   loadMore?: number
+// }
+//
+// function ResultsPage({ loadMore }: ResultsPageProps) {
+//   // const model = SearchUIModel.use()
+//   // const [moreLoaded, setMore] = React.useState(false)
+//   return (
+//     <div>
+//       <div>hits</div>
+//       {moreLoaded ? (
+//         // next page
+//         <ResultsPage />
+//       ) : (
+//         <button>load more</button>
+//       )}
+//     </div>
+//   )
+// }
+//
+// function NextPage() {
+//   // const page = SearchUIModel.useNextPage()
+//   // render next pages recursively
+//   return <ResultsPage loadMore={1} />
+// }
+
+function FirstPage() {
+  // const firstPage = SearchUIModel.useFirstPage()
+  return <div>first page</div>
+}
+
+interface ResultsBoundedProps {
+  total: number
+}
+
+function ResultsBounded({ total }: ResultsBoundedProps) {
+  const model = SearchUIModel.use()
+  // action: change sort order
+  // action: load more
+  return (
+    <div>
+      <div>{total} results</div>
+      <div>sort order: {model.state.order}</div>
+      <div>
+        <FirstPage />
+      </div>
+    </div>
+  )
+}
+
+function ResultsUnbounded() {
+  return <p>Specify search criteria</p>
+}
+
+function Results() {
+  const model = SearchUIModel.use()
+  return GQL.fold(model.baseSearchQuery, {
+    data: ({ search: r }) => {
+      switch (r.__typename) {
+        case 'BoundedSearch':
+          return <ResultsBounded total={r.results.total} />
+        case 'UnboundedSearch':
+          return <ResultsUnbounded />
+        case 'InvalidInput':
+          return <p>invalid input: {r.errors[0].message}</p>
+        case 'OperationError':
+          return <p>operation error: {r.message}</p>
+        default:
+          assertNever(r)
+      }
     },
-    [history, makeUrl],
-  )
-
-  const handleQueryChange = React.useCallback(
-    (query: string) => {
-      updateUrl({ query, buckets: state.buckets, type: state.type, page: 1 })
+    fetching: () => <p>loading...</p>,
+    error: (err) => {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      return <p>gql error: {err.message}</p>
     },
-    [updateUrl, state.buckets, state.type],
-  )
+  })
+}
 
-  // XXX: function to transition to a new state?
-  const handleBucketsChange = React.useCallback(
-    (buckets: string[]) => {
-      updateUrl({ query: state.query, buckets, type: state.type, page: 1 })
-    },
-    [updateUrl, state.query, state.type],
-  )
-
-  const handleTypeChange = React.useCallback(
-    (type: SearchType) => {
-      updateUrl({ query: state.query, buckets: state.buckets, type, page: 1 })
-    },
-    [updateUrl, state.query, state.buckets],
-  )
-
-  const retryUrl = makeUrl({ ...state, retry: (state.retry || 0) + 1 })
-
-  const makePageUrl = React.useCallback(
-    (page: number) => makeUrl({ ...state, page }),
-    [makeUrl, state],
-  )
-
-  const data = Data.use(
-    useSearch(),
-    { buckets, mode, query: q, retry },
-    { noAutoFetch: !q },
-  )
-
+function SearchLayout() {
+  const model = SearchUIModel.use()
   return (
     <Layout
       pre={
         <M.Container maxWidth="lg">
-          <MetaTitle>{q || 'Search'}</MetaTitle>
-          <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-            <M.Box
-              display="flex"
-              position="relative"
-              mt={{ xs: 0, sm: 3 }}
-              ref={scrollRef}
-            >
-              <M.Box
-                component={M.Paper}
-                className={classes.paper}
-                flexGrow={{ xs: 1, sm: 0 }}
-                position="relative"
-              >
-                <QueryInput
-                  query={q || ''}
-                  buckets={buckets}
-                  onChange={handleQueryChange}
-                />
-              </M.Box>
-              <div className={classes.stats}>{!!q && <SearchStats data={data} />}</div>
-              <M.Box component={M.Paper} className={classes.paper}>
-                <ModeAndBucketSelector
-                  mode={mode}
-                  onModeChange={handleTypeChange}
-                  buckets={buckets}
-                  onBucketsChange={handleBucketsChange}
-                />
-              </M.Box>
-            </M.Box>
-            {q ? (
-              <Results
-                {...{
-                  data,
-                  query: q,
-                  buckets,
-                  page,
-                  scrollRef,
-                  makePageUrl,
-                  retryUrl,
-                }}
-              />
-            ) : (
-              // TODO: revise copy
-              <SearchResults.Alt>
-                <M.Typography variant="body1">Search for anything</M.Typography>
-              </SearchResults.Alt>
-            )}
-          </M.Box>
+          <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
+          <Filters />
+          <Results />
         </M.Container>
       }
     />
+  )
+}
+
+export default function Search() {
+  return (
+    <SearchUIModel.Provider>
+      <SearchLayout />
+    </SearchUIModel.Provider>
   )
 }

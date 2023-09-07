@@ -1,0 +1,28 @@
+query ($searchString: String!, $filter: SearchFilterExpression, $path: [String!]!) {
+  search(searchString: $searchString, filter: $filter) {
+    __typename
+    ... on BoundedSearch {
+      facet(path: $path) {
+        source
+        name
+        path
+        type
+        extents
+      }
+    }
+    # ... on UnboundedSearch { }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+    ... on OperationError {
+      message
+      name
+      context
+    }
+  }
+}

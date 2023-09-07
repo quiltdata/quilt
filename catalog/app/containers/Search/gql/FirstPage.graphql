@@ -1,0 +1,54 @@
+query ($searchString: String!, $filter: SearchFilterExpression, $order: SearchResultOrder) {
+  search(searchString: $searchString, filter: $filter) {
+    __typename
+    ... on BoundedSearch {
+      results {
+        firstPage(order: $order) {
+          cursor
+          hits {
+            __typename
+            ... on SearchHitObject {
+              # ID
+              bucket
+              key
+              version
+              # shared props
+              score
+              size
+              lastModified
+              # specific props
+              deleteMarker
+            }
+            ... on SearchHitPackage {
+              # ID
+              bucket
+              name
+              hash
+              # shared props
+              score
+              size
+              lastModified
+              # specific props
+              comment
+              meta
+            }
+          }
+        }
+      }
+    }
+    # ... on UnboundedSearch { }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+    ... on OperationError {
+      message
+      name
+      context
+    }
+  }
+}

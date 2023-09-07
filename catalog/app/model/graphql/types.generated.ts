@@ -1,6 +1,7 @@
 import type { Json, JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
+import type { FacetExtents, FilterExpression } from 'model/Search'
 
 export type Maybe<T> = T | null
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
@@ -22,6 +23,8 @@ export interface Scalars {
   JsonRecord: JsonRecord
   PackageContentsFlatMap: PackageContentsFlatMap
   S3ObjectLocation: S3ObjectLocation
+  SearchFacetExtents: FacetExtents
+  SearchFilterExpression: FilterExpression
 }
 
 export interface AccessCountForDate {
@@ -34,6 +37,21 @@ export interface AccessCounts {
   readonly __typename: 'AccessCounts'
   readonly total: Scalars['Int']
   readonly counts: ReadonlyArray<AccessCountForDate>
+}
+
+export interface BoundedSearch {
+  readonly __typename: 'BoundedSearch'
+  readonly results: SearchResultSet
+  readonly facets: ReadonlyArray<SearchFacet>
+  readonly facet: Maybe<SearchFacet>
+}
+
+export interface BoundedSearchfacetsArgs {
+  options: Maybe<SearchFacetInferenceOptions>
+}
+
+export interface BoundedSearchfacetArgs {
+  path: ReadonlyArray<Scalars['String']>
 }
 
 export interface BrowsingSession {
@@ -591,6 +609,8 @@ export interface Query {
   readonly potentialCollaborators: ReadonlyArray<Collaborator>
   readonly packages: Maybe<PackageList>
   readonly package: Maybe<Package>
+  readonly search: SearchResult
+  readonly searchMore: SearchMoreResult
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
   readonly roles: ReadonlyArray<Role>
@@ -611,6 +631,16 @@ export interface QuerypackagesArgs {
 export interface QuerypackageArgs {
   bucket: Scalars['String']
   name: Scalars['String']
+}
+
+export interface QuerysearchArgs {
+  searchString: Scalars['String']
+  filter: Maybe<Scalars['SearchFilterExpression']>
+}
+
+export interface QuerysearchMoreArgs {
+  after: Scalars['String']
+  size?: Maybe<Scalars['Int']>
 }
 
 export interface QuerypolicyArgs {
@@ -714,9 +744,105 @@ export interface RoleUpdateSuccess {
   readonly role: Role
 }
 
+export interface SearchFacet {
+  readonly __typename: 'SearchFacet'
+  readonly source: SearchFacetSource
+  readonly name: Scalars['String']
+  readonly path: ReadonlyArray<Scalars['String']>
+  readonly type: SearchFacetType
+  readonly extents: Scalars['SearchFacetExtents']
+}
+
+export interface SearchFacetInferenceOptions {
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export enum SearchFacetSource {
+  GeneralProperties = 'GeneralProperties',
+  S3ObjectProperties = 'S3ObjectProperties',
+  S3ObjectTags = 'S3ObjectTags',
+  S3ObjectMetadata = 'S3ObjectMetadata',
+  QuiltPackageProperties = 'QuiltPackageProperties',
+  QuiltPackageMetadata = 'QuiltPackageMetadata',
+  QuiltWorkflow = 'QuiltWorkflow',
+}
+
+export enum SearchFacetType {
+  ResultType = 'ResultType',
+  Bucket = 'Bucket',
+  Workflow = 'Workflow',
+  Number = 'Number',
+  Date = 'Date',
+  Keyword = 'Keyword',
+  Text = 'Text',
+  Boolean = 'Boolean',
+}
+
+export type SearchHit = SearchHitObject | SearchHitPackage
+
+export interface SearchHitObject {
+  readonly __typename: 'SearchHitObject'
+  readonly bucket: Scalars['String']
+  readonly key: Scalars['String']
+  readonly version: Scalars['String']
+  readonly score: Scalars['Float']
+  readonly size: Scalars['Float']
+  readonly lastModified: Scalars['Datetime']
+  readonly deleteMarker: Scalars['Boolean']
+}
+
+export interface SearchHitPackage {
+  readonly __typename: 'SearchHitPackage'
+  readonly bucket: Scalars['String']
+  readonly name: Scalars['String']
+  readonly hash: Scalars['String']
+  readonly score: Scalars['Float']
+  readonly size: Scalars['Float']
+  readonly lastModified: Scalars['Datetime']
+  readonly comment: Maybe<Scalars['String']>
+  readonly meta: Scalars['JsonRecord']
+}
+
+export type SearchMoreResult = SearchResultSetPage | InvalidInput | OperationError
+
+export type SearchResult = BoundedSearch | UnboundedSearch | InvalidInput | OperationError
+
+export interface SearchResultOrder {
+  readonly field: SearchResultOrderField
+  readonly direction: Maybe<SortDirection>
+}
+
+export enum SearchResultOrderField {
+  Relevance = 'Relevance',
+  Modified = 'Modified',
+  Size = 'Size',
+}
+
+export interface SearchResultSet {
+  readonly __typename: 'SearchResultSet'
+  readonly total: Scalars['Int']
+  readonly firstPage: SearchResultSetPage
+}
+
+export interface SearchResultSetfirstPageArgs {
+  size?: Maybe<Scalars['Int']>
+  order: Maybe<SearchResultOrder>
+}
+
+export interface SearchResultSetPage {
+  readonly __typename: 'SearchResultSetPage'
+  readonly cursor: Maybe<Scalars['String']>
+  readonly hits: ReadonlyArray<SearchHit>
+}
+
 export interface SnsInvalid {
   readonly __typename: 'SnsInvalid'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export enum SortDirection {
+  ASC = 'ASC',
+  DESC = 'DESC',
 }
 
 export interface Status {
@@ -782,6 +908,11 @@ export interface TestStatsTimeSeries {
 
 export interface Unavailable {
   readonly __typename: 'Unavailable'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface UnboundedSearch {
+  readonly __typename: 'UnboundedSearch'
   readonly _: Maybe<Scalars['Boolean']>
 }
 

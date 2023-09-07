@@ -11,6 +11,11 @@ scalar PackageContentsFlatMap
 # bucket + key + version (aka physical key)
 scalar S3ObjectLocation
 
+enum SortDirection {
+  ASC
+  DESC
+}
+
 type OperationError {
   message: String!
   name: String!
@@ -269,85 +274,128 @@ type BrowsingSession {
   expires: Datetime!
 }
 
-type SearchResultObjectVersion {
-  id: String!
-  score: Float!
-  updated: Datetime!
-  lastModified: Datetime!
-  size: Float!
-  meta: JsonRecord! # user_meta
-  deleteMarker: Boolean!
+# There's no way to support recursive expressions natively in GraphQL
+# (no union support for input types), so we use a custom scalar type.
+# See details in XXX: path to the model TS file
+scalar SearchFilterExpression
+
+union SearchResult = BoundedSearch | UnboundedSearch | InvalidInput | OperationError
+
+union SearchMoreResult = SearchResultSetPage | InvalidInput | OperationError
+
+type SearchResultSetPage {
+  cursor: String
+  hits: [SearchHit!]!
 }
 
-type SearchResultObject {
-  # type: 'object',
-  key: String! # `object:${bucket}/${src.key}`
-  score: Float!
-  bucket: String!
-  path: String!
-  versions: [SearchResultObjectVersion!]!
+enum SearchResultOrderField {
+  Relevance # default
+  Modified
+  Size # XXX: is this useful?
 }
 
-type SearchResultPackage {
-  # type: 'package',
-  key: String! # `package:${bucket}/${src.handle}:${src.hash}`
-  bucket: String!
-  score: Float!
-  handle: String!
-  hash: String!
-  lastModified: Datetime!
-  meta: JsonRecord! # *whole* meta (not just user_meta)
-  # tags: [String!]! // TODO: currently not provided
-  comment: String
+input SearchResultOrder {
+  field: SearchResultOrderField!
+  direction: SortDirection
 }
 
-union SearchResult = SearchResultObject | SearchResultPackage
-
-type SearchFilterNumericRange {
-  min: Float
-  max: Float
+type SearchResultSet {
+  total: Int!
+  firstPage(size: Int = 30, order: SearchResultOrder): SearchResultSetPage!
 }
 
-type SearchFilterDateRange {
-  min: Datetime
-  max: Datetime
+enum SearchFacetSource {
+  # XXX: clarify this list
+  GeneralProperties
+  S3ObjectProperties
+  S3ObjectTags
+  S3ObjectMetadata
+  QuiltPackageProperties
+  QuiltPackageMetadata
+  QuiltWorkflow
 }
 
-type SearchFilterEnum {
-  # XXX: id + label vs plain value (==id)
-  values: [String!]!
+enum SearchFacetType {
+  ResultType
+  Bucket
+  Workflow
+  Number
+  Date
+  Keyword
+  Text
+  Boolean
 }
 
-union SearchFilter =
-  SearchFilterNumericRange
-  | SearchFilterDateRange
-  | SearchFilterEnum
+# XXX: use GraphQL types for extents?
+scalar SearchFacetExtents
 
 type SearchFacet {
-  key: String! # path?
-  label: String!
-  filter: SearchFilter!
+  source: SearchFacetSource! # XXX: rename to "kind" or smth?
+  name: String!
+  path: [String!]!
+  type: SearchFacetType!
+  extents: SearchFacetExtents!
 }
 
-type SearchResults {
-  total: Int!
-  page(number: Int = 1, perPage: Int = 30): [SearchResult!]!
-  facets: [SearchFacet!]!
+input SearchFacetInferenceOptions {
+  # TODO
+  _: Boolean
 }
 
-enum SearchResultType {
-  ANY
-  OBJECT
-  PACKAGE
+# input SearchOptions {
+#   # TODO
+#   _: Boolean
+# }
+
+type BoundedSearch {
+  results: SearchResultSet!
+  facets(options: SearchFacetInferenceOptions): [SearchFacet!]!
+  facet(path: [String!]!): SearchFacet
 }
 
-input SearchFilterInput {
-  # field
-  # - path
-  # - type
-  # operator
+type UnboundedSearch {
+  _: Boolean
+  # XXX: which data can we expose here?
+  # facets?
+}
+
+union SearchHit = SearchHitObject | SearchHitPackage
+
+# XXX: do we need to highlight active facets in the results?
+type SearchHitObject {
+  # ID:
+  bucket: String!
   key: String!
-  value: String!
+  version: String!
+
+  # shared props
+  score: Float!
+  size: Float!
+  lastModified: Datetime!
+  # updated: Datetime! # XXX: why we might need this?
+
+  # specific props
+  deleteMarker: Boolean!
+  # meta: JsonRecord! # String?
+  # tags
+}
+
+# TODO: reuse package types?
+type SearchHitPackage {
+  # ID
+  bucket: String!
+  name: String!
+  hash: String!
+
+  # shared props
+  score: Float!
+  size: Float!
+  lastModified: Datetime!
+
+  # specific props
+  comment: String
+  meta: JsonRecord! # *whole* meta (not just user_meta)
+  # tags: [String!]! // TODO: currently not provided
 }
 
 type Query {
@@ -358,14 +406,14 @@ type Query {
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
   search(
-    buckets: [String!]!,
-    query: String!,
-    type: SearchResultType!,
-    retry: Int = 0,
-    # filters: [SearchFilter!],
-    # XXX: opt-in merge versions? move down to search results?
-    # mergeVersions: Boolean = false,
-  ): SearchResults!
+    # buckets: [String!]!,
+    # type: SearchResultType!,
+    # retry: Int = 0,
+    searchString: String!,
+    filter: SearchFilterExpression,
+    # options: SearchOptions,
+  ): SearchResult!
+  searchMore(after: String!, size: Int = 30): SearchMoreResult!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
