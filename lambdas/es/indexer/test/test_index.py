@@ -1043,6 +1043,7 @@ class TestIndex(TestCase):
                     "json_pointer": "/foo",
                     "type": "keyword",
                     "keyword": "bar",
+                    "text": '"bar"',
                 },
             ],
             "comment": message,
