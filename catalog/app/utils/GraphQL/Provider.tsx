@@ -77,6 +77,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Datetime(value) {
             return new Date(value)
           },
+          // TODO: instantiate/validate other scalars (related to faceted search)
         },
       }),
     [],

@@ -30,7 +30,7 @@ const ES_REF_WILDCARDS = `${ES_REF}/query-dsl-query-string-query.html#_wildcards
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
-function ObjectCrumbs({ handle, showBucket = false }) {
+function ObjectCrumbs({ handle, showBucket = false }: $TSFixMe) {
   const { urls } = NamedRoutes.use()
   const isDir = handle.key.endsWith('/')
 
@@ -50,7 +50,8 @@ function ObjectCrumbs({ handle, showBucket = false }) {
   )
   const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, rootLabel, {
     tailLink: true,
-    rootRoute: urls.bucketRoot(handle.bucket),
+    // XXX: this prop was removed
+    // rootRoute: urls.bucketRoot(handle.bucket),
   })
 
   return (
@@ -77,7 +78,13 @@ function HeaderIcon(props: HeaderIconProps) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
+function ObjectHeader({
+  handle,
+  showBucket,
+  downloadable = false,
+  expanded,
+  onToggle,
+}: $TSFixMe) {
   return (
     <Preview.Header
       downloadable={downloadable}
@@ -90,10 +97,11 @@ function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onTo
   )
 }
 
-function PackageHeader({ bucket, handle, hash, showBucket }) {
+function PackageHeader({ bucket, handle, hash, showBucket }: $TSFixMe) {
   const { urls } = NamedRoutes.use()
   return (
     <Heading mb={1}>
+      {/* @ts-expect-error */}
       <HeaderIcon title="Package" component={M.SvgIcon} viewBox="-133 0 1264 1008">
         <path
           fill="currentColor"
@@ -120,9 +128,9 @@ function PackageHeader({ bucket, handle, hash, showBucket }) {
   )
 }
 
-const SmallerSection = ({ children }) => <M.Box mt={2}>{children}</M.Box>
+const SmallerSection = ({ children }: $TSFixMe) => <M.Box mt={2}>{children}</M.Box>
 
-const SectionHeading = ({ children, ...props }) => (
+const SectionHeading = ({ children, ...props }: $TSFixMe) => (
   <M.Typography variant="h6" {...props}>
     {children}
   </M.Typography>
@@ -155,7 +163,7 @@ const useVersionInfoStyles = M.makeStyles((t) => ({
   },
 }))
 
-function VersionInfo({ bucket, path, version, versions }) {
+function VersionInfo({ bucket, path, version, versions }: $TSFixMe) {
   const classes = useVersionInfoStyles()
   const { urls } = NamedRoutes.use()
   const [versionsShown, setVersionsShown] = React.useState(false)
@@ -165,7 +173,7 @@ function VersionInfo({ bucket, path, version, versions }) {
 
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const clip = (str, len) => {
+  const clip = (str: string, len: number) => {
     const s = `${str}`
     return xs ? s.substring(0, len) : s
   }
@@ -199,7 +207,7 @@ function VersionInfo({ bucket, path, version, versions }) {
       {versions.length > 1 && versionsShown && (
         <SmallerSection>
           <SectionHeading gutterBottom>Versions ordered by relevance</SectionHeading>
-          {versions.map((v) => (
+          {versions.map((v: $TSFixMe) => (
             <M.Typography
               key={`${v.updated.getTime()}:${v.id}`}
               variant="body2"
@@ -278,7 +286,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title, expanded, onToggle }) {
+function PreviewBox({ children, title, expanded, onToggle }: $TSFixMe) {
   const classes = usePreviewBoxStyles()
   return (
     <SmallerSection>
@@ -303,26 +311,26 @@ function PreviewDisplay({
   versionExistenceData,
   expanded,
   onToggle,
-}) {
+}: $TSFixMe) {
   const renderContents = React.useCallback(
     (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
     [expanded, onToggle],
   )
-  const withData = (callback) =>
+  const withData = (callback: $TSFixMe) =>
     bucketExistenceData.case({
       _: callback,
       Err: () => callback(AsyncResult.Err(Preview.PreviewError.DoesNotExist({ handle }))),
       Ok: () =>
         versionExistenceData.case({
           _: callback,
-          Err: (e) =>
+          Err: (e: $TSFixMe) =>
             callback(
               AsyncResult.Err(
                 Preview.PreviewError.Unexpected({ handle, originalError: e }),
               ),
             ),
           Ok: requests.ObjectExistence.case({
-            Exists: (h) => {
+            Exists: (h: $TSFixMe) => {
               if (h.deleted) {
                 return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
               }
@@ -347,13 +355,14 @@ function PreviewDisplay({
   )
 }
 
-function Meta({ meta }) {
+function Meta({ meta }: $TSFixMe) {
   const [expanded, setExpanded] = React.useState(false)
   const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
     <PreviewBox expanded={expanded} onToggle={onToggle}>
+      {/* @ts-expect-error */}
       <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
@@ -382,7 +391,7 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
   },
 }))
 
-function RevisionInfo({ bucket, handle, hash, comment, lastModified }) {
+function RevisionInfo({ bucket, handle, hash, comment, lastModified }: $TSFixMe) {
   const classes = useRevisionInfoStyles()
   const { urls } = NamedRoutes.use()
   return (
@@ -407,12 +416,12 @@ function RevisionInfo({ bucket, handle, hash, comment, lastModified }) {
   )
 }
 
-function ObjectHit({ hit, ...props }) {
+function ObjectHit({ hit, ...props }: $TSFixMe) {
   const Component = hit.path.endsWith('/') ? DirHit : FileHit
   return <Component {...{ hit, ...props }} />
 }
 
-function FileHit({ showBucket, hit: { path, versions, bucket } }) {
+function FileHit({ showBucket, hit: { path, versions, bucket } }: $TSFixMe) {
   const s3 = AWS.S3.use()
 
   const v = versions[0]
@@ -433,7 +442,7 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
           _: () => false,
           Ok: requests.ObjectExistence.case({
             _: () => false,
-            Exists: ({ deleted, archived }) => !deleted && !archived,
+            Exists: ({ deleted, archived }: $TSFixMe) => !deleted && !archived,
           }),
         }),
     })
@@ -464,7 +473,7 @@ function DirHit({
     versions: [v],
     bucket,
   },
-}) {
+}: $TSFixMe) {
   const handle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
   return (
     <Section
@@ -482,7 +491,7 @@ function DirHit({
 function PackageHit({
   showBucket,
   hit: { bucket, handle, hash, lastModified, meta, tags, comment },
-}) {
+}: $TSFixMe) {
   return (
     <Section
       data-testid="search-hit"
@@ -495,7 +504,7 @@ function PackageHit({
       <RevisionInfo {...{ bucket, handle, hash, comment, lastModified }} />
       {tags && tags.length > 0 && (
         <M.Box mt={2}>
-          {tags.map((t) => (
+          {tags.map((t: $TSFixMe) => (
             <React.Fragment key={t}>
               <M.Chip variant="outlined" size="small" label={t} />{' '}
             </React.Fragment>
@@ -507,7 +516,7 @@ function PackageHit({
   )
 }
 
-export function Hit(props) {
+export function Hit(props: $TSFixMe) {
   const Component = props.hit.type === 'package' ? PackageHit : ObjectHit
   return <Component {...props} />
 }
@@ -519,7 +528,7 @@ export function Hits({
   makePageUrl,
   perPage = PER_PAGE,
   showBucket,
-}) {
+}: $TSFixMe) {
   const actualPage = page || 1
   const pages = Math.ceil(hits.length / perPage)
 
@@ -537,9 +546,10 @@ export function Hits({
 
   return (
     <>
-      {paginated.map((hit) => (
+      {paginated.map((hit: $TSFixMe) => (
         <Hit key={hit.key} hit={hit} showBucket={showBucket} />
       ))}
+      {/* @ts-expect-error */}
       {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
     </>
   )
@@ -556,12 +566,12 @@ const useAltStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Alt({ className, ...props }) {
+export function Alt({ className, ...props }: $TSFixMe) {
   const classes = useAltStyles()
   return <M.Box className={cx(className, classes.root)} {...props} />
 }
 
-export function Progress({ children }) {
+export function Progress({ children }: $TSFixMe) {
   return (
     <Alt>
       <Delay alwaysRender>
@@ -580,7 +590,7 @@ export function Progress({ children }) {
   )
 }
 
-export const handleErr = (retryUrl) => (e) => (
+export const handleErr = (retryUrl: string) => (e: $TSFixMe) => (
   <Alt>
     <M.Typography variant="h5" gutterBottom>
       {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
@@ -635,7 +645,7 @@ export const handleErr = (retryUrl) => (e) => (
   </Alt>
 )
 
-export function NothingFound({ children }) {
+export function NothingFound({ children }: $TSFixMe) {
   return (
     <Alt>
       <M.Typography variant="body1">
