@@ -312,33 +312,36 @@ def _try_parse_date(s: str) -> Optional[datetime.datetime]:
         return None
 
 
+MAX_KEYWORD_LEN = 256
+
+
 def _get_metadata_fields(path: tuple, d: dict):
-    for k, v in d.items():
-        if isinstance(v, dict):
-            yield from _get_metadata_fields(path + (k,), v)
+    for k, raw_value in d.items():
+        if isinstance(raw_value, dict):
+            yield from _get_metadata_fields(path + (k,), raw_value)
         else:
+            v = raw_value
             if isinstance(v, str):
                 date = _try_parse_date(v)
                 if date is not None:
                     type_ = "date"
                     v = date
                 else:
-                    # XXX: make length limit variable
-                    type_ = "keyword" if len(v) < 256 else "text"
+                    type_ = "keyword" if len(v) <= MAX_KEYWORD_LEN else "text"
             elif isinstance(v, bool):
                 type_ = "boolean"
             elif isinstance(v, (int, float)):
-                # XXX: do we need to convert it explicitly to float?
                 # XXX: do something on ints that can't be converted to float without loss?
                 type_ = "double"
             elif isinstance(v, list):
-                # XXX: ignore for now
-                continue
+                if not (v and all(isinstance(x, str) for x in v)):
+                    continue
+                type_ = "keyword" if all(len(x) <= MAX_KEYWORD_LEN for x in v) else "text"
             else:
                 print("ignoring value of type %s" % type(v))
                 continue
 
-            yield path + (k,), type_, v
+            yield path + (k,), type_, raw_value, v
 
 
 def get_metadata_fields(meta):
@@ -349,9 +352,10 @@ def get_metadata_fields(meta):
         {
             "json_pointer": jsonpointer.JsonPointer.from_parts(path).path,
             "type": type_,
+            "text": json.dumps(raw_value, ensure_ascii=False),
             type_: value,
         }
-        for path, type_, value in _get_metadata_fields((), meta)
+        for path, type_, raw_value, value in _get_metadata_fields((), meta)
     ]
 
 
