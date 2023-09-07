@@ -51,6 +51,7 @@ import json
 import os
 import pathlib
 import re
+import urllib.parse
 from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
@@ -354,13 +355,23 @@ def get_metadata_fields(meta):
     ]
 
 
-def _prepare_workflow_for_es(workflow):
+def _prepare_workflow_for_es(workflow, bucket):
     if workflow is None:
         return None
 
     try:
+        config_url = workflow["config"]
+        if not config_url.startswith(f"s3://{bucket}/.quilt/workflows/config.yml"):
+            raise Exception(f"Bad workflow config URL {config_url}")
+
+        config_url_parsed = urllib.parse.urlparse(config_url)
+        query = urllib.parse.parse_qs(config_url_parsed.query)
+        version_id = query.pop('versionId', [None])[0]
+        if query:
+            raise Exception(f"Unexpected S3 query string: {config_url_parsed.query!r}")
+
         return {
-            "config_url": workflow["config"],
+            "config_version_id": version_id,  # XXX: how to handle None?
             "id": workflow["id"],
             "schemas": [
                 {
@@ -441,7 +452,7 @@ def index_if_package(
             "metadata": json.dumps(user_meta) if user_meta else None,
             "metadata_fields": get_metadata_fields(user_meta),
             "comment": str(first.get("message", "")),
-            "workflow": _prepare_workflow_for_es(first.get("workflow")),
+            "workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
     data = get_pkg_data() or {}
