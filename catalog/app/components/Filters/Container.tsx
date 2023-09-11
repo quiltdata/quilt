@@ -1,6 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { alpha } from '@material-ui/core/styles'
+import { fade } from '@material-ui/core/styles'
 
 import Skeleton from 'components/Skeleton'
 
@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
   lock: {
     alignItems: 'center',
     animation: '$showLock .3s ease-out',
-    background: alpha(t.palette.background.paper, 0.7),
+    background: fade(t.palette.background.paper, 0.7),
     bottom: 0,
     display: 'flex',
     justifyContent: 'center',
