@@ -19,12 +19,13 @@ const useStyles = M.makeStyles((t) => ({
 interface RangeFilterProps {
   extents: [number, number]
   onChange: (v: [number, number]) => void
+  unit: string
   value: [number, number] | null
 }
 
 interface RangeProps extends RangeFilterProps {}
 
-export default function Range({ extents, value, onChange }: RangeProps) {
+export default function Range({ extents, value, onChange, unit }: RangeProps) {
   const [invalid, setInvalid] = React.useState(false)
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
@@ -73,6 +74,15 @@ export default function Range({ extents, value, onChange }: RangeProps) {
     },
     [onChange, from, validate],
   )
+  const inputProps = React.useMemo(
+    () => ({
+      size: 'small' as const,
+      InputProps: {
+        endAdornment: <M.InputAdornment position="end">{unit}</M.InputAdornment>,
+      },
+    }),
+    [unit],
+  )
   return (
     <div>
       <M.Slider
@@ -83,8 +93,8 @@ export default function Range({ extents, value, onChange }: RangeProps) {
         valueLabelDisplay="auto"
       />
       <div className={classes.inputs}>
-        <M.TextField label="From" value={from} size="small" onChange={handleFrom} />
-        <M.TextField label="To" value={to} size="small" onChange={handleTo} />
+        <M.TextField label="From" value={from} onChange={handleFrom} {...inputProps} />
+        <M.TextField label="To" value={to} onChange={handleTo} {...inputProps} />
       </div>
     </div>
   )
