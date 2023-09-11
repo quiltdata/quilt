@@ -26,26 +26,24 @@ interface RangeFilterProps {
 interface RangeProps extends RangeFilterProps {}
 
 export default function Range({ extents, value, onChange, unit }: RangeProps) {
-  const [invalid, setInvalid] = React.useState(false)
+  const [invalidId, setInvalidId] = React.useState('')
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
-  const hideNotification = React.useCallback(() => {
-    if (invalid) {
-      setInvalid(false)
-      dismiss()
-    }
-  }, [dismiss, invalid])
   const validate = React.useCallback(
     (v) => {
-      if (isNumber(v)) {
-        hideNotification()
-      } else {
-        setInvalid(true)
-        notify('Enter valid number, please')
-        setTimeout(hideNotification, 3000)
+      if (invalidId) {
+        setInvalidId('')
+        dismiss(invalidId)
+      }
+
+      if (!isNumber(v)) {
+        const {
+          notification: { id },
+        } = notify('Enter valid number, please')
+        setInvalidId(id)
       }
     },
-    [hideNotification, notify],
+    [dismiss, invalidId, notify],
   )
   const handleSlider = React.useCallback(
     (event, newValue) => onChange(newValue as [number, number]),
