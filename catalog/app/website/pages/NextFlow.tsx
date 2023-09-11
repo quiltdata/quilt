@@ -15,49 +15,12 @@ import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
 import imageArch from 'website/pages/Landing/Assets/quilt-architecture.png'
-import logoDspconcepts from 'website/pages/Landing/Logos/logo-dspconcepts.svg'
-import logoDecibel from 'website/pages/Landing/Logos/logo-decibel.png'
-import logoInari from 'website/pages/Landing/Logos/logo-inari.svg'
-import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
-import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoResilience from 'website/pages/Landing/Logos/logo-resilience.svg'
-import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
+import logos from 'website/pages/Landing/Logos/list'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://quilt-web-public.s3.amazonaws.com/docs/Quilt+%26+Nextflow+for+trusted+cloud+datasets%E2%80%94Case+Study+at+Tessera+Therapeutics.pdf'
 
-const logos = [
-  {
-    src: logoDecibel,
-    title: 'Decibel Therapeutics',
-  },
-  {
-    src: logoNeumora,
-    title: 'Neumora Therapeutics',
-  },
-  {
-    src: logoResilience,
-    title: 'Resilience',
-    width: '240px',
-  },
-  {
-    src: logoInari,
-    title: 'Inari',
-  },
-  {
-    src: logoHudl,
-    title: 'hudl',
-  },
-  {
-    src: logoTessera,
-    title: 'Tessera',
-  },
-  {
-    src: logoDspconcepts,
-    title: 'DSP Concepts',
-  },
-]
 const useVideoStyles = M.makeStyles({
   wrapper: {
     maxWidth: '900px',

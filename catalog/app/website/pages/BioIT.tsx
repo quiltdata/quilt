@@ -13,51 +13,14 @@ import Layout from 'website/components/Layout'
 import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
+import logos from 'website/pages/Landing/Logos/list'
 
 import imageArch from 'website/pages/Landing/Assets/quilt-architecture.png'
-import logoDspconcepts from 'website/pages/Landing/Logos/logo-dspconcepts.svg'
-import logoDecibel from 'website/pages/Landing/Logos/logo-decibel.png'
-import logoInari from 'website/pages/Landing/Logos/logo-inari.svg'
-import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
-import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoResilience from 'website/pages/Landing/Logos/logo-resilience.svg'
-import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://quilt-web-public.s3.amazonaws.com/deck/Quilt%E2%80%94the+data+hub+for+biotech.pdf'
 
-const logos = [
-  {
-    src: logoDecibel,
-    title: 'Decibel Therapeutics',
-  },
-  {
-    src: logoNeumora,
-    title: 'Neumora Therapeutics',
-  },
-  {
-    src: logoResilience,
-    title: 'Resilience',
-    width: '240px',
-  },
-  {
-    src: logoInari,
-    title: 'Inari',
-  },
-  {
-    src: logoHudl,
-    title: 'hudl',
-  },
-  {
-    src: logoTessera,
-    title: 'Tessera',
-  },
-  {
-    src: logoDspconcepts,
-    title: 'DSP Concepts',
-  },
-]
 const useVideoStyles = M.makeStyles({
   wrapper: {
     maxWidth: '900px',
