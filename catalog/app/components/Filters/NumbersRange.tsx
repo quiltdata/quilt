@@ -16,16 +16,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface RangeFilterProps {
+interface NumbersRangeProps {
   extents: [number, number]
   onChange: (v: [number, number]) => void
   unit: string
   value: [number, number] | null
 }
 
-interface RangeProps extends RangeFilterProps {}
-
-export default function Range({ extents, value, onChange, unit }: RangeProps) {
+export default function NumbersRange({
+  extents,
+  value,
+  onChange,
+  unit,
+}: NumbersRangeProps) {
   const [invalidId, setInvalidId] = React.useState('')
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
