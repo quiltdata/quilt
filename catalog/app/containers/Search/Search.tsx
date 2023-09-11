@@ -79,35 +79,117 @@ function Filters() {
   )
 }
 
-// interface ResultsPageProps {
-//   loadMore?: number
-// }
-//
-// function ResultsPage({ loadMore }: ResultsPageProps) {
-//   // const model = SearchUIModel.use()
-//   // const [moreLoaded, setMore] = React.useState(false)
-//   return (
-//     <div>
-//       <div>hits</div>
-//       {moreLoaded ? (
-//         // next page
-//         <ResultsPage />
-//       ) : (
-//         <button>load more</button>
-//       )}
-//     </div>
-//   )
-// }
-//
-// function NextPage() {
-//   // const page = SearchUIModel.useNextPage()
-//   // render next pages recursively
-//   return <ResultsPage loadMore={1} />
-// }
+interface SearchHitProps {
+  hit: SearchUIModel.SearchHit
+}
+
+function SearchHit({ hit }: SearchHitProps) {
+  return (
+    <div>
+      <div>
+        {hit.__typename}:{hit.bucket}:
+        {hit.__typename === 'SearchHitObject'
+          ? `${hit.key}@${hit.version}`
+          : `${hit.name}@${hit.hash}`}
+      </div>
+      TODO: meta TODO: preview
+      {JSON.stringify(hit)}
+    </div>
+  )
+}
+
+interface ResultsPageProps {
+  hits: readonly SearchUIModel.SearchHit[]
+  cursor: string | null
+  more: number
+}
+
+function ResultsPage({ hits, cursor, more }: ResultsPageProps) {
+  // const model = SearchUIModel.use()
+  const loadMore = React.useCallback(() => {
+    // increment 'pages' in state (via URL?)
+  }, [])
+  return (
+    <div>
+      {hits.map((hit) => (
+        <SearchHit key={SearchUIModel.searchHitId(hit)} hit={hit} />
+      ))}
+      {!!cursor &&
+        (more > 0 ? (
+          <NextPage after={cursor} more={more - 1} />
+        ) : (
+          // onClick: increment more
+          <button onClick={loadMore}>load more</button>
+        ))}
+    </div>
+  )
+}
+
+interface NextPageProps {
+  after: string
+  more: number
+}
+
+function NextPage({ after, more }: NextPageProps) {
+  const pageQ = SearchUIModel.useNextPageQuery(after)
+  return GQL.fold(pageQ, {
+    data: ({ searchMore: r }) => {
+      switch (r.__typename) {
+        case 'SearchResultSetPage':
+          return <ResultsPage hits={r.hits} cursor={r.cursor} more={more} />
+        case 'InvalidInput':
+          // should not happen
+          return <p>invalid input: {r.errors[0].message}</p>
+        case 'OperationError':
+          // should not happen. retry?
+          return <p>operation error: {r.message}</p>
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => <p>loading...</p>,
+    error: (err) => {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      return <p>gql error: {err.message}</p>
+    },
+  })
+}
 
 function FirstPage() {
   // const firstPage = SearchUIModel.useFirstPage()
-  return <div>first page</div>
+  const model = SearchUIModel.use()
+  return GQL.fold(model.firstPageQuery, {
+    data: ({ search: r }) => {
+      switch (r.__typename) {
+        case 'BoundedSearch':
+          return (
+            <ResultsPage
+              hits={r.results.firstPage.hits}
+              cursor={r.results.firstPage.cursor}
+              more={model.state.pages}
+            />
+          )
+        case 'UnboundedSearch':
+          // should not happen
+          return <p>unbounded search</p>
+        case 'InvalidInput':
+          // should not happen
+          return <p>invalid input: {r.errors[0].message}</p>
+        case 'OperationError':
+          // should not happen
+          return <p>operation error: {r.message}</p>
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => <p>loading...</p>,
+    error: (err) => {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      return <p>gql error: {err.message}</p>
+    },
+  })
 }
 
 interface ResultsBoundedProps {
@@ -121,7 +203,9 @@ function ResultsBounded({ total }: ResultsBoundedProps) {
   return (
     <div>
       <div>{total} results</div>
-      <div>sort order: {model.state.order}</div>
+      <div>
+        sort order: {model.state.order.field} {model.state.order.direction}
+      </div>
       <div>
         <FirstPage />
       </div>
