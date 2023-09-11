@@ -12,7 +12,7 @@ import useMemoEq from 'utils/useMemoEq'
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
 // import FACET_QUERY from './gql/Facet.generated'
 import FIRST_PAGE_QUERY from './gql/FirstPage.generated'
-// import NEXT_PAGE_QUERY from './gql/NextPage.generated'
+import NEXT_PAGE_QUERY from './gql/NextPage.generated'
 
 function ifChanged<T>(newValue: T) {
   return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
@@ -197,6 +197,30 @@ function useBaseSearchQuery(
   return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, filter })
 }
 
+type BoundedSearch = Extract<
+  GQL.DataForDoc<typeof FIRST_PAGE_QUERY>['search'],
+  { __typename: 'BoundedSearch' }
+>
+
+export type SearchHit = BoundedSearch['results']['firstPage']['hits'][number]
+
+export function searchHitId(hit: SearchHit): string {
+  const id =
+    hit.__typename === 'SearchHitObject' ? [hit.key, hit.version] : [hit.name, hit.hash]
+  return [hit.__typename, hit.bucket, ...id].join('/')
+}
+
+function useFirstPageQuery(
+  { searchString, order }: SearchUrlState,
+  filter: Model.Search.FilterExpression | null,
+) {
+  return GQL.useQuery(FIRST_PAGE_QUERY, { searchString, filter, order })
+}
+
+export function useNextPageQuery(after: string) {
+  return GQL.useQuery(NEXT_PAGE_QUERY, { after })
+}
+
 export interface AvailableFacet {
   path: Model.Search.FacetPath
   name: string
@@ -246,6 +270,7 @@ function useSearchUIModel() {
   const activeFacets = useActiveFacets(urlState)
   const baseFilter = useFilterExpression(activeFacets)
   const baseSearchQuery = useBaseSearchQuery(urlState, baseFilter)
+  const firstPageQuery = useFirstPageQuery(urlState, baseFilter)
   const availableFacets = useAvailableFacets(baseSearchQuery)
 
   // TODO: actions
@@ -293,6 +318,7 @@ function useSearchUIModel() {
         activateFacet,
       },
       baseSearchQuery,
+      firstPageQuery,
     },
     R.identity,
   )
@@ -314,22 +340,3 @@ export function useSearchUIModelContext(): SearchUIModel {
 }
 
 export { SearchUIModelProvider as Provider, useSearchUIModelContext as use }
-
-// XXX: pre-fetch first page along with the base search
-export function useFirstPage() {
-  const model = useSearchUIModelContext()
-  const { searchString, filter, order } = model.state
-  const query = GQL.useQuery(FIRST_PAGE_QUERY, { searchString, filter, order })
-  return { query }
-}
-
-export function useNextPage() {
-  // TODO
-}
-
-export function useResultsPage(
-  { searchString }: SearchUrlState,
-  filter: Model.Search.FilterExpression | null,
-) {
-  return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, filter })
-}
