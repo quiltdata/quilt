@@ -1,11 +1,11 @@
-import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
-import logoDspconcepts from 'website/pages/Landing/Logos/logo-dspconcepts.svg'
-import logoDecibel from 'website/pages/Landing/Logos/logo-decibel.png'
-import logoInari from 'website/pages/Landing/Logos/logo-inari.svg'
-import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
-import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoResilience from 'website/pages/Landing/Logos/logo-resilience.svg'
-import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
+import logoAllencell from './logo-allencell.png'
+import logoDecibel from './logo-decibel.png'
+import logoDspconcepts from './logo-dspconcepts.svg'
+import logoHudl from './logo-hudl.png'
+import logoInari from './logo-inari.svg'
+import logoNeumora from './logo-neumora.png'
+import logoResilience from './logo-resilience.svg'
+import logoTessera from './logo-tessera.png'
 
 export default [
   {
