@@ -5,23 +5,26 @@ import * as Notifications from 'containers/Notifications'
 
 const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   root: {},
   inputs: {
     display: 'grid',
-    grid: '50% 50% 16px',
+    gridTemplateColumns: `calc(50% - ${t.spacing(4) / 2}px) calc(50% - ${
+      t.spacing(4) / 2
+    }px)`,
+    gridColumnGap: t.spacing(4),
   },
-})
+}))
 
-interface SliderFilterProps {
+interface RangeFilterProps {
   extents: [number, number]
   onChange: (v: [number, number]) => void
-  value: [number, number]
+  value: [number, number] | null
 }
 
-interface SliderProps extends SliderFilterProps {}
+interface RangeProps extends RangeFilterProps {}
 
-export default function Slider({ extents, value, onChange }: SliderProps) {
+export default function Range({ extents, value, onChange }: RangeProps) {
   const [invalid, setInvalid] = React.useState(false)
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
@@ -31,10 +34,6 @@ export default function Slider({ extents, value, onChange }: SliderProps) {
       dismiss()
     }
   }, [dismiss, invalid])
-  const handleSlider = React.useCallback(
-    (event, newValue) => onChange(newValue as [number, number]),
-    [onChange],
-  )
   const validate = React.useCallback(
     (v) => {
       if (isNumber(v)) {
@@ -47,35 +46,46 @@ export default function Slider({ extents, value, onChange }: SliderProps) {
     },
     [hideNotification, notify],
   )
+  const handleSlider = React.useCallback(
+    (event, newValue) => onChange(newValue as [number, number]),
+    [onChange],
+  )
+  const from = value?.[0] || extents[0]
+  const to = value?.[1] || extents[1]
   const handleFrom = React.useCallback(
     (event) => {
-      const from = Number(event.target.value)
-      if (isNumber(from)) {
-        onChange([value[0], from])
+      const newFrom = Number(event.target.value)
+      if (isNumber(newFrom)) {
+        onChange([newFrom, to])
       }
-      validate(from)
+      validate(newFrom)
     },
-    [onChange, validate, value],
+    [onChange, to, validate],
   )
   const handleTo = React.useCallback(
     (event) => {
-      const to = Number(event.target.value)
-      if (isNumber(to)) {
-        onChange([value[0], to])
+      const newTo = Number(event.target.value)
+      if (isNumber(newTo)) {
+        onChange([from, newTo])
       }
 
-      validate(to)
+      validate(newTo)
     },
-    [onChange, validate, value],
+    [onChange, from, validate],
   )
   return (
-    <M.Box flexDirection="column">
-      <M.Slider min={extents[0]} max={extents[1]} value={value} onChange={handleSlider} />
-      <M.Box display="flex" className={classes.inputs}>
-        <M.TextField label="from" value={value[0]} size="small" onChange={handleFrom} />
-        <M.Box width={16} />
-        <M.TextField label="to" value={value[1]} size="small" onChange={handleTo} />
-      </M.Box>
-    </M.Box>
+    <div>
+      <M.Slider
+        max={extents[1]}
+        min={extents[0]}
+        onChange={handleSlider}
+        value={value || extents}
+        valueLabelDisplay="auto"
+      />
+      <div className={classes.inputs}>
+        <M.TextField label="From" value={from} size="small" onChange={handleFrom} />
+        <M.TextField label="To" value={to} size="small" onChange={handleTo} />
+      </div>
+    </div>
   )
 }
