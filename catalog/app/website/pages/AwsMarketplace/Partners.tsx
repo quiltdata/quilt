@@ -4,21 +4,22 @@ import * as M from '@material-ui/core'
 
 import LogosCarousel from 'website/pages/Landing/LogosCarousel'
 
-import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
-import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
+import logoDspconcepts from 'website/pages/Landing/Logos/logo-dspconcepts.svg'
+import logoDecibel from 'website/pages/Landing/Logos/logo-decibel.png'
+import logoInari from 'website/pages/Landing/Logos/logo-inari.svg'
+import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
-import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
-
-import logoTessera from './logo-tessera.png'
-import logoResilience from './logo-resilience.svg'
-import logoDspconcepts from './logo-dspconcepts.svg'
+import logoResilience from 'website/pages/Landing/Logos/logo-resilience.svg'
+import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 
 const logos = [
   {
-    src: logoTessera,
-    title: 'Tessera',
-    // width: '240px',
+    src: logoDecibel,
+    title: 'Decibel Therapeutics',
+  },
+  {
+    src: logoNeumora,
+    title: 'Neumora Therapeutics',
   },
   {
     src: logoResilience,
@@ -26,28 +27,20 @@ const logos = [
     width: '240px',
   },
   {
+    src: logoInari,
+    title: 'Inari',
+  },
+  {
+    src: logoHudl,
+    title: 'hudl',
+  },
+  {
+    src: logoTessera,
+    title: 'Tessera',
+  },
+  {
     src: logoDspconcepts,
     title: 'DSP Concepts',
-  },
-  {
-    src: logoCelsius,
-    title: 'Celsius Therapeutics',
-  },
-  {
-    src: logoNeumora,
-    title: 'Neumora Therapeutics',
-  },
-  {
-    src: logoObsidian,
-    title: 'Obsidian Therapeutics',
-  },
-  {
-    src: logoStemson,
-    title: 'Stemson Therapeutics',
-  },
-  {
-    src: logoAllencell,
-    title: 'Allen Institute for Cell Science',
   },
 ]
 

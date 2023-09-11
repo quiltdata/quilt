@@ -15,11 +15,13 @@ import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
 import imageArch from 'website/pages/Landing/Assets/quilt-architecture.png'
-import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
-import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
+import logoDspconcepts from 'website/pages/Landing/Logos/logo-dspconcepts.svg'
+import logoDecibel from 'website/pages/Landing/Logos/logo-decibel.png'
+import logoInari from 'website/pages/Landing/Logos/logo-inari.svg'
+import logoHudl from 'website/pages/Landing/Logos/logo-hudl.png'
 import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
-import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
+import logoResilience from 'website/pages/Landing/Logos/logo-resilience.svg'
+import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
@@ -27,24 +29,33 @@ const DECK_URL =
 
 const logos = [
   {
-    src: logoCelsius,
-    title: 'Celsius Therapeutics',
+    src: logoDecibel,
+    title: 'Decibel Therapeutics',
   },
   {
     src: logoNeumora,
     title: 'Neumora Therapeutics',
   },
   {
-    src: logoObsidian,
-    title: 'Obsidian Therapeutics',
+    src: logoResilience,
+    title: 'Resilience',
+    width: '240px',
   },
   {
-    src: logoStemson,
-    title: 'Stemson Therapeutics',
+    src: logoInari,
+    title: 'Inari',
   },
   {
-    src: logoAllencell,
-    title: 'Allen Institute for Cell Science',
+    src: logoHudl,
+    title: 'hudl',
+  },
+  {
+    src: logoTessera,
+    title: 'Tessera',
+  },
+  {
+    src: logoDspconcepts,
+    title: 'DSP Concepts',
   },
 ]
 const useVideoStyles = M.makeStyles({

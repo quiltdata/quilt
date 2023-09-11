@@ -2,9 +2,9 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import logoCelsius from './logo-celsius.png'
-import logoResilience from './logo-resilience.svg'
-import logoTessera from './logo-tessera.png'
+import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
+import logoResilience from 'website/pages/Landing/Logos/logo-resilience.svg'
+import logoTessera from 'website/pages/Landing/Logos/logo-tessera.png'
 
 const useCaseStudyStyles = M.makeStyles((t) => ({
   logo: {
