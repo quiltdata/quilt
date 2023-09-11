@@ -11,7 +11,7 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   input: {
-    paddingTop: '6px',
+    paddingTop: '3px',
   },
 }))
 
