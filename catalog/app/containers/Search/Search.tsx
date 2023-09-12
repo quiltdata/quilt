@@ -18,8 +18,8 @@ function FilterWidget({ path, ...rest }: FilterWidgetProps) {
   // switch on facet type
   return (
     <div>
-      <div>{path}</div>
-      <div>{rest}</div>
+      <div>{path.join(' / ')}</div>
+      <div>{JSON.stringify(rest)}</div>
     </div>
   )
 }
@@ -92,7 +92,6 @@ function SearchHit({ hit }: SearchHitProps) {
           ? `${hit.key}@${hit.version}`
           : `${hit.name}@${hit.hash}`}
       </div>
-      TODO: meta TODO: preview
       {JSON.stringify(hit)}
     </div>
   )
@@ -101,13 +100,13 @@ function SearchHit({ hit }: SearchHitProps) {
 interface ResultsPageProps {
   hits: readonly SearchUIModel.SearchHit[]
   cursor: string | null
-  more: number
 }
 
-function ResultsPage({ hits, cursor, more }: ResultsPageProps) {
+function ResultsPage({ hits, cursor }: ResultsPageProps) {
   // const model = SearchUIModel.use()
+  const [more, setMore] = React.useState(false)
   const loadMore = React.useCallback(() => {
-    // increment 'pages' in state (via URL?)
+    setMore(true)
   }, [])
   return (
     <div>
@@ -115,10 +114,9 @@ function ResultsPage({ hits, cursor, more }: ResultsPageProps) {
         <SearchHit key={SearchUIModel.searchHitId(hit)} hit={hit} />
       ))}
       {!!cursor &&
-        (more > 0 ? (
-          <NextPage after={cursor} more={more - 1} />
+        (more ? (
+          <NextPage after={cursor} />
         ) : (
-          // onClick: increment more
           <button onClick={loadMore}>load more</button>
         ))}
     </div>
@@ -127,16 +125,15 @@ function ResultsPage({ hits, cursor, more }: ResultsPageProps) {
 
 interface NextPageProps {
   after: string
-  more: number
 }
 
-function NextPage({ after, more }: NextPageProps) {
+function NextPage({ after }: NextPageProps) {
   const pageQ = SearchUIModel.useNextPageQuery(after)
   return GQL.fold(pageQ, {
     data: ({ searchMore: r }) => {
       switch (r.__typename) {
         case 'SearchResultSetPage':
-          return <ResultsPage hits={r.hits} cursor={r.cursor} more={more} />
+          return <ResultsPage hits={r.hits} cursor={r.cursor} />
         case 'InvalidInput':
           // should not happen
           return <p>invalid input: {r.errors[0].message}</p>
@@ -167,7 +164,6 @@ function FirstPage() {
             <ResultsPage
               hits={r.results.firstPage.hits}
               cursor={r.results.firstPage.cursor}
-              more={model.state.pages}
             />
           )
         case 'UnboundedSearch':
@@ -199,7 +195,6 @@ interface ResultsBoundedProps {
 function ResultsBounded({ total }: ResultsBoundedProps) {
   const model = SearchUIModel.use()
   // action: change sort order
-  // action: load more
   return (
     <div>
       <div>{total} results</div>
