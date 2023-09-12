@@ -6,7 +6,8 @@ import * as RR from 'react-router-dom'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 // import * as NamedRoutes from 'utils/NamedRoutes'
-import parseSearch from 'utils/parseSearch'
+// import parseSearch from 'utils/parseSearch'
+import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
@@ -21,116 +22,219 @@ function ifChanged<T>(newValue: T) {
 enum ResultType {
   Objects = 'objects',
   Packages = 'packages',
-  Any = 'any',
 }
 
 interface ResultTypeFacetState {
-  selected: ResultType
+  value: ResultType | null
 }
 
 interface BucketFacetState {
-  selected: string[]
+  value: string[]
 }
 
-enum WorkflowMatchingStrictness {
-  WorkflowOnly,
-  WorkflowAndBucket,
-  WorkflowAndBucketAndVersion,
-}
-
-interface WorkflowFacetState {
-  selected: {
-    bucket: string | null
-    configVersion: string | null
-    workflow: string | null
-    strictness: WorkflowMatchingStrictness
-  }
-}
+// enum WorkflowMatchingStrictness {
+//   WorkflowOnly,
+//   WorkflowAndBucket,
+//   WorkflowAndBucketAndVersion,
+// }
+//
+// interface WorkflowFacetState {
+//   selected: {
+//     bucket: string | null
+//     configVersion: string | null
+//     workflow: string | null
+//     strictness: WorkflowMatchingStrictness
+//   }
+// }
 
 interface NumberFacetState {
   extents: {
+    min: number
+    max: number
+  }
+  value: {
     min: number | null
     max: number | null
   }
-  selected: {
-    min: number | null
-    max: number | null
-  }
 }
 
-interface DateFacetState {
-  extents: {
-    min: Date | null
-    max: Date | null
-  }
-  selected: {
-    min: Date | null
-    max: Date | null
-  }
-}
-
-interface KeywordFacetState {
-  selected: string[]
-}
-
-interface TextFacetState {
-  selected: string
-}
+// interface DateFacetState {
+//   extents: {
+//     min: Date
+//     max: Date
+//   }
+//   value: {
+//     min: Date | null
+//     max: Date | null
+//   }
+// }
+//
+// interface KeywordFacetState {
+//   selected: string[]
+// }
+//
+// interface TextFacetState {
+//   selected: string
+// }
 
 type FacetState =
   | ResultTypeFacetState
   | BucketFacetState
-  | WorkflowFacetState
+  // | WorkflowFacetState
   | NumberFacetState
-  | DateFacetState
-  | KeywordFacetState
-  | TextFacetState
+// | DateFacetState
+// | KeywordFacetState
+// | TextFacetState
+
+// enum FacetNamespace {
+//   Root = '',
+//   Package = 'pkg',
+//   PackageMeta = 'pkg_meta',
+//   Workflow = 'workflow',
+//   S3 = 's3',
+//   // S3Tags = 's3_tags',
+//   // S3Meta = 's3_meta',
+// }
+//
+// // TODO: express facet taxonomy to match against
+// const FacetNamespaces = {
+//   general: {
+//     type: {
+//       _t: 'ResultType',
+//     },
+//     bucket: {
+//       _t: 'Bucket',
+//     },
+//   },
+//   pkg: {
+//     name: {
+//       _t: 'Text', // keyword?
+//     },
+//     hash: {
+//       _t: 'Text', // keyword?
+//     },
+//     total_size: {
+//       _t: 'Number',
+//     },
+//     total_entries: {
+//       _t: 'Number',
+//     },
+//     comment: {
+//       _t: 'Text',
+//     },
+//     last_modified: {
+//       _t: 'Date',
+//     },
+//     workflow: {
+//       _t: 'Workflow',
+//     },
+//   },
+//   // XXX: other facets
+// }
+
+interface FacetDescriptor {
+  path: Model.Search.FacetPath
+  state: FacetState
+}
 
 interface SearchUrlState {
-  searchString: string
-  facets: { path: Model.Search.FacetPath; state: FacetState }[]
-  pages: number // extra result pages to load and display
+  searchString: string | null
+  facets: FacetDescriptor[]
   order: Model.GQLTypes.SearchResultOrder
-  // retry?: number
 }
 // TODO: methods to update url state
 
-// XXX: use io-ts or smth for morphisms between url (querystring) and search state
-function parseSearchParams(params: Record<string, string | undefined>): SearchUrlState {
-  // TODO
+const DEFAULT_ORDER: Model.GQLTypes.SearchResultOrder = {
+  field: Model.GQLTypes.SearchResultOrderField.Relevance,
+  direction: Model.GQLTypes.SortDirection.DESC,
+}
 
-  // XXX: support legacy "mode" param (convert to "type")
-  // const type = parseSearchType(params.type)
-  // const buckets = React.useMemo(
-  //   () => (params.buckets ? params.buckets.split(',').sort() : []),
-  //   [params.buckets],
-  // )
-  // const query = params.query || ''
-  // const page = params.p ? parseInt(params.p, 10) : 1
-  // const retry = (params.retry && parseInt(params.retry, 10)) || undefined
-  // return React.useMemo(
-  //   () => ({ type, buckets, query, page, retry }),
-  //   [type, buckets, query, page, retry],
-  // )
+// const SearchResultOrderField = Types.enum(
+//   Model.GQLTypes.BucketPermissionLevel,
+//   'SearchResultOrderField ',
+// )
 
+function parseOrder(input: string | null): Model.GQLTypes.SearchResultOrder {
+  if (!input) return DEFAULT_ORDER
+  let direction = Model.GQLTypes.SortDirection.ASC
+  let field = input
+  if (input.startsWith('-')) {
+    direction = Model.GQLTypes.SortDirection.DESC
+    field = input.slice(1)
+  }
+  if (!Object.values(Model.GQLTypes.SearchResultOrderField).includes(field as any))
+    return DEFAULT_ORDER
   return {
-    searchString: params.q || '',
-    facets: [],
-    pages: 0,
-    order: {
-      field: Model.GQLTypes.SearchResultOrderField.Relevance,
-      direction: Model.GQLTypes.SortDirection.DESC,
-    },
+    field: field as Model.GQLTypes.SearchResultOrderField,
+    direction,
   }
 }
 
-// function serializeSearchParams(state: SearchUrlState): Record<string, string> {
-//   return {}
+// XXX: we use the simplest ser/de logic here, to be optimized later
+// f=path:(type?):state
+function parseFacetDescriptor(input: string): FacetDescriptor | null {
+  let json: Types.JsonRecord
+  try {
+    json = JSON.parse(input)
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('failed to parse facet descriptor', input)
+    return null
+  }
+  invariant(typeof json === 'object', 'facet descriptor must be an object')
+  const { path, state } = json
+  invariant(Array.isArray(path), 'facet path must be an array')
+  invariant(typeof state === 'object', 'facet state must be an object')
+  // TODO: proper parsing and validation with io-ts or effect-ts
+  // TODO: traverse facets definitions to get missing data
+  return { path, state: state as unknown as FacetState }
+}
+
+// function serializeFacetDescriptor(f: FacetDescriptor): string {
+//   // for built-in static facets we don't need to save the type
+//   return JSON.stringify(f)
+// }
+
+// XXX: use io-ts or smth for morphisms between url (querystring) and search state
+function parseSearchParams(qs: string): SearchUrlState {
+  const params = new URLSearchParams(qs)
+  // console.log('params', params)
+
+  const searchString = params.get('q')
+
+  // XXX: support legacy "mode" param (convert to "type")
+  const typeInput = params.get('t') || params.get('mode')
+  const type = Object.values(ResultType).includes(typeInput as any)
+    ? (typeInput as ResultType)
+    : null
+
+  const bucketsInput = params.get('b')
+  const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
+
+  const extraFacets = params
+    .getAll('f')
+    .map(parseFacetDescriptor)
+    .filter((f): f is FacetDescriptor => !!f)
+
+  const order = parseOrder(params.get('o'))
+
+  const facets = [
+    { path: ['type'], state: { value: type } },
+    { path: ['bucket'], state: { value: buckets } },
+    ...extraFacets,
+  ]
+
+  return { searchString, facets, order }
+}
+
+// // XXX: return string?
+// function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
+//   return new URLSearchParams()
 // }
 
 function useUrlState(): SearchUrlState {
   const l = RR.useLocation()
-  return React.useMemo(() => parseSearchParams(parseSearch(l.search, true)), [l.search])
+  return React.useMemo(() => parseSearchParams(l.search), [l.search])
 }
 
 // function useMakeUrl() {
@@ -309,7 +413,6 @@ function useSearchUIModel() {
       state: {
         searchString: urlState.searchString,
         filter: baseFilter,
-        pages: urlState.pages,
         order: urlState.order,
         activeFacets,
         availableFacets,
