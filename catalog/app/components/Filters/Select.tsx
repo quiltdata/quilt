@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
 interface SelectFilterProps {
   extents: string[]
   onChange: (v: string) => void
-  value: string
+  value: string | null
 }
 
 interface SelectProps
