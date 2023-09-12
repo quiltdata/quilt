@@ -634,7 +634,7 @@ export interface QuerypackageArgs {
 }
 
 export interface QuerysearchArgs {
-  searchString: Scalars['String']
+  searchString: Maybe<Scalars['String']>
   filter: Maybe<Scalars['SearchFilterExpression']>
 }
 

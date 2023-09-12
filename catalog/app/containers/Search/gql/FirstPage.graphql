@@ -1,4 +1,4 @@
-query ($searchString: String!, $filter: SearchFilterExpression, $order: SearchResultOrder) {
+query ($searchString: String, $filter: SearchFilterExpression, $order: SearchResultOrder) {
   search(searchString: $searchString, filter: $filter) {
     __typename
     ... on BoundedSearch {

@@ -3,7 +3,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../model/graphql/types.generated'
 
 export type containers_Search_gql_FirstPageQueryVariables = Types.Exact<{
-  searchString: Types.Scalars['String']
+  searchString: Types.Maybe<Types.Scalars['String']>
   filter: Types.Maybe<Types.Scalars['SearchFilterExpression']>
   order: Types.Maybe<Types.SearchResultOrder>
 }>
@@ -68,10 +68,7 @@ export const containers_Search_gql_FirstPageDocument = {
         {
           kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'searchString' } },
-          type: {
-            kind: 'NonNullType',
-            type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
-          },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
         },
         {
           kind: 'VariableDefinition',
