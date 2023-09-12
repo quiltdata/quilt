@@ -15,23 +15,22 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface EnumFilterProps {
+interface SelectFilterProps {
   extents: string[]
-  onChange: (v: string[]) => void
-  value: string[]
+  onChange: (v: string) => void
+  value: string
 }
 
-interface EnumProps
-  extends Omit<M.TextFieldProps, keyof EnumFilterProps>,
-    EnumFilterProps {}
+interface SelectProps
+  extends Omit<M.TextFieldProps, keyof SelectFilterProps>,
+    SelectFilterProps {}
 
-export default function Select({ extents, value, onChange, ...props }: EnumProps) {
+export default function Select({ extents, value, onChange, ...props }: SelectProps) {
   const classes = useStyles()
   return (
     <Lab.Autocomplete
       fullWidth
-      multiple
-      onChange={(event, newValue) => onChange(newValue as string[])}
+      onChange={(event, newValue) => onChange(newValue as string)}
       options={extents}
       renderInput={(params) => (
         <M.TextField
