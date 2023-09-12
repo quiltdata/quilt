@@ -2854,12 +2854,9 @@ export default {
               {
                 name: 'searchString',
                 type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
                 },
               },
               {
