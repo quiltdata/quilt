@@ -409,7 +409,7 @@ type Query {
     # buckets: [String!]!,
     # type: SearchResultType!,
     # retry: Int = 0,
-    searchString: String!,
+    searchString: String,
     filter: SearchFilterExpression,
     # options: SearchOptions,
   ): SearchResult!
