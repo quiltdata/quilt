@@ -8,6 +8,7 @@ import * as GQLTypes from './graphql/types.generated'
 export * as GQLTypes from './graphql/types.generated'
 
 export * as S3 from './S3'
+export * as Search from './Search'
 
 export const BucketPermissionLevel = Types.enum(
   GQLTypes.BucketPermissionLevel,

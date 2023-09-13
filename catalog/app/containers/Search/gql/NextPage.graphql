@@ -1,0 +1,49 @@
+query ($after: String!) {
+  searchMore(after: $after) {
+    __typename
+    ... on SearchResultSetPage {
+      cursor
+      hits {
+        __typename
+        ... on SearchHitObject {
+          # ID
+          bucket
+          key
+          version
+          # shared props
+          score
+          size
+          lastModified
+          # specific props
+          deleteMarker
+        }
+        ... on SearchHitPackage {
+          # ID
+          bucket
+          name
+          hash
+          # shared props
+          score
+          size
+          lastModified
+          # specific props
+          comment
+          meta
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+    ... on OperationError {
+      message
+      name
+      context
+    }
+  }
+}

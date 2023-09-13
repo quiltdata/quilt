@@ -11,6 +11,11 @@ scalar PackageContentsFlatMap
 # bucket + key + version (aka physical key)
 scalar S3ObjectLocation
 
+enum SortDirection {
+  ASC
+  DESC
+}
+
 type OperationError {
   message: String!
   name: String!
@@ -269,6 +274,130 @@ type BrowsingSession {
   expires: Datetime!
 }
 
+# There's no way to support recursive expressions natively in GraphQL
+# (no union support for input types), so we use a custom scalar type.
+# See details in XXX: path to the model TS file
+scalar SearchFilterExpression
+
+union SearchResult = BoundedSearch | UnboundedSearch | InvalidInput | OperationError
+
+union SearchMoreResult = SearchResultSetPage | InvalidInput | OperationError
+
+type SearchResultSetPage {
+  cursor: String
+  hits: [SearchHit!]!
+}
+
+enum SearchResultOrderField {
+  Relevance # default
+  Modified
+  Size # XXX: is this useful?
+}
+
+input SearchResultOrder {
+  field: SearchResultOrderField!
+  direction: SortDirection
+}
+
+type SearchResultSet {
+  total: Int!
+  firstPage(size: Int = 30, order: SearchResultOrder): SearchResultSetPage!
+}
+
+enum SearchFacetSource {
+  # XXX: clarify this list
+  GeneralProperties
+  S3ObjectProperties
+  S3ObjectTags
+  S3ObjectMetadata
+  QuiltPackageProperties
+  QuiltPackageMetadata
+  QuiltWorkflow
+}
+
+enum SearchFacetType {
+  ResultType
+  Bucket
+  Workflow
+  Number
+  Date
+  Keyword
+  Text
+  Boolean
+}
+
+# XXX: use GraphQL types for extents?
+scalar SearchFacetExtents
+
+type SearchFacet {
+  source: SearchFacetSource! # XXX: rename to "kind" or smth?
+  name: String!
+  path: [String!]!
+  type: SearchFacetType!
+  extents: SearchFacetExtents!
+}
+
+input SearchFacetInferenceOptions {
+  # TODO
+  _: Boolean
+}
+
+# input SearchOptions {
+#   # TODO
+#   _: Boolean
+# }
+
+type BoundedSearch {
+  results: SearchResultSet!
+  facets(options: SearchFacetInferenceOptions): [SearchFacet!]!
+  facet(path: [String!]!): SearchFacet
+}
+
+type UnboundedSearch {
+  _: Boolean
+  # XXX: which data can we expose here?
+  # facets?
+}
+
+union SearchHit = SearchHitObject | SearchHitPackage
+
+# XXX: do we need to highlight active facets in the results?
+type SearchHitObject {
+  # ID:
+  bucket: String!
+  key: String!
+  version: String!
+
+  # shared props
+  score: Float!
+  size: Float!
+  lastModified: Datetime!
+  # updated: Datetime! # XXX: why we might need this?
+
+  # specific props
+  deleteMarker: Boolean!
+  # meta: JsonRecord! # String?
+  # tags
+}
+
+# TODO: reuse package types?
+type SearchHitPackage {
+  # ID
+  bucket: String!
+  name: String!
+  hash: String!
+
+  # shared props
+  score: Float!
+  size: Float!
+  lastModified: Datetime!
+
+  # specific props
+  comment: String
+  meta: JsonRecord! # *whole* meta (not just user_meta)
+  # tags: [String!]! // TODO: currently not provided
+}
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -276,6 +405,15 @@ type Query {
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
+  search(
+    # buckets: [String!]!,
+    # type: SearchResultType!,
+    # retry: Int = 0,
+    searchString: String,
+    filter: SearchFilterExpression,
+    # options: SearchOptions,
+  ): SearchResult!
+  searchMore(after: String!, size: Int = 30): SearchMoreResult!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
