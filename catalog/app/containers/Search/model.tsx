@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
 
+import * as JSONPointer from 'utils/JSONPointer'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 // import * as NamedRoutes from 'utils/NamedRoutes'
@@ -270,7 +271,7 @@ function useActiveFacets({ facets }: SearchUrlState): ActiveFacet[] {
   return useMemoEq(
     facets,
     R.map(({ path, state }) => {
-      const type = 'tbd' // TODO: compute from path and state
+      const type = JSONPointer.stringify(path as string[]) // TODO: compute from path and state
       const name = 'tbd'
       return { path, type, state, name }
     }),
