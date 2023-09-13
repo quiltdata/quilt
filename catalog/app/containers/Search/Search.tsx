@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useDebounce } from 'use-debounce'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -8,6 +9,7 @@ import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
 
+import * as Filters from './Filters'
 import * as SearchUIModel from './model'
 
 interface FilterWidgetProps {
@@ -25,8 +27,26 @@ function FilterWidget({ path, ...rest }: FilterWidgetProps) {
 }
 
 function FacetWidget({ name, type, ...rest }: SearchUIModel.ActiveFacet) {
+  // FIXME: where is supposed to be onChange?
+  //        use URL as a source of truth?
   // actions: deactivate, adjust
   // TODO: facet query (request extents if required)
+  const [value, setValue] = React.useState(rest.state.value)
+  const [debouncedValue] = useDebounce(value, 500)
+  React.useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('UPDATE URL')
+  }, [debouncedValue])
+  switch (type) {
+    case '/type':
+      return (
+        <Filters.Type value={value} onChange={setValue} extents={rest.state.extents} />
+      )
+    case '/bucket':
+      return <Filters.BucketExtented value={value} onChange={setValue} />
+    default:
+      throw new Error('Unknown facet widget')
+  }
   return (
     <div>
       <div>{name}</div>
@@ -69,9 +89,9 @@ function AvailableFacets() {
   )
 }
 
-function Filters() {
+function FiltersSidebar({ className }: { className: string }) {
   return (
-    <div>
+    <div className={className}>
       <h1>filter by</h1>
       <ActiveFacets />
       <AvailableFacets />
@@ -212,41 +232,56 @@ function ResultsUnbounded() {
   return <p>Specify search criteria</p>
 }
 
-function Results() {
+function Results({ className }: { className: string }) {
   const model = SearchUIModel.use()
-  return GQL.fold(model.baseSearchQuery, {
-    data: ({ search: r }) => {
-      switch (r.__typename) {
-        case 'BoundedSearch':
-          return <ResultsBounded total={r.results.total} />
-        case 'UnboundedSearch':
-          return <ResultsUnbounded />
-        case 'InvalidInput':
-          return <p>invalid input: {r.errors[0].message}</p>
-        case 'OperationError':
-          return <p>operation error: {r.message}</p>
-        default:
-          assertNever(r)
-      }
-    },
-    fetching: () => <p>loading...</p>,
-    error: (err) => {
-      // eslint-disable-next-line no-console
-      console.error(err)
-      return <p>gql error: {err.message}</p>
-    },
-  })
+  return (
+    <div className={className}>
+      {GQL.fold(model.baseSearchQuery, {
+        data: ({ search: r }) => {
+          switch (r.__typename) {
+            case 'BoundedSearch':
+              return <ResultsBounded total={r.results.total} />
+            case 'UnboundedSearch':
+              return <ResultsUnbounded />
+            case 'InvalidInput':
+              return <p>invalid input: {r.errors[0].message}</p>
+            case 'OperationError':
+              return <p>operation error: {r.message}</p>
+            default:
+              assertNever(r)
+          }
+        },
+        fetching: () => <p>loading...</p>,
+        error: (err) => {
+          // eslint-disable-next-line no-console
+          console.error(err)
+          return <p>gql error: {err.message}</p>
+        },
+      })}
+    </div>
+  )
 }
+
+const useSearchLayoutStyles = M.makeStyles((t) => ({
+  layout: {
+    display: 'grid',
+    gridTemplateColumns: `${t.spacing(32)}px auto`,
+    gridColumnGap: t.spacing(2),
+  },
+  sidebar: {},
+  main: {},
+}))
 
 function SearchLayout() {
   const model = SearchUIModel.use()
+  const classes = useSearchLayoutStyles()
   return (
     <Layout
       pre={
-        <M.Container maxWidth="lg">
+        <M.Container maxWidth="lg" className={classes.layout}>
           <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
-          <Filters />
-          <Results />
+          <FiltersSidebar className={classes.sidebar} />
+          <Results className={classes.main} />
         </M.Container>
       }
     />
