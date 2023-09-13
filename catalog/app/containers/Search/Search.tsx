@@ -10,28 +10,59 @@ import assertNever from 'utils/assertNever'
 
 import * as SearchUIModel from './model'
 
-interface FilterWidgetProps {
-  path: SearchUIModel.FacetPath
+type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
+  SearchUIModel.StateForFacetType<T>
+
+function ResultTypeFilterWidget({
+  value,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.ResultType>) {
+  return <>type: {value}</>
 }
 
-function FilterWidget({ path, ...rest }: FilterWidgetProps) {
-  // switch on facet type
+function BucketFilterWidget({
+  value,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Bucket>) {
+  return <>bucket: {value.join(',')}</>
+}
+
+function NumberFilterWidget({
+  value,
+  extents,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   return (
-    <div>
-      <div>{path.join(' / ')}</div>
-      <div>{JSON.stringify(rest)}</div>
-    </div>
+    <>
+      num: {value.min} ... {value.max} ({extents.min} ... {extents.max})
+    </>
   )
 }
 
-function FacetWidget({ name, type, ...rest }: SearchUIModel.ActiveFacet) {
+const FILTER_WIDGETS = {
+  ResultType: ResultTypeFilterWidget,
+  Bucket: BucketFilterWidget,
+  Number: NumberFilterWidget,
+}
+
+function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(facet: F) {
+  // eslint-disable-next-line no-underscore-dangle
+  const FilterWidget = FILTER_WIDGETS[facet.type._tag]
+  // @ts-expect-error
+  return <FilterWidget {...facet.state} />
+}
+
+interface FacetWidgetProps {
+  facet: SearchUIModel.KnownFacetDescriptor
+}
+
+function FacetWidget({ facet }: FacetWidgetProps) {
   // actions: deactivate, adjust
   // TODO: facet query (request extents if required)
   return (
     <div>
-      <div>{name}</div>
-      <div>{rest.path}</div>
-      <FilterWidget {...rest} />
+      <div>
+        {/* eslint-disable-next-line no-underscore-dangle */}
+        {facet.path} ({facet.type._tag})
+      </div>
+      {renderFilterWidget(facet)}
     </div>
   )
 }
@@ -41,13 +72,13 @@ function ActiveFacets() {
   return (
     <>
       {model.state.activeFacets.map((facet, i) => (
-        <FacetWidget key={i} {...facet} />
+        <FacetWidget key={i} facet={facet} />
       ))}
     </>
   )
 }
 
-function AvailableFacet({ name, path }: SearchUIModel.AvailableFacet) {
+function AvailableFacet({ name, descriptor: { path } }: SearchUIModel.AvailableFacet) {
   const model = SearchUIModel.use()
   return (
     <button onClick={() => model.actions.activateFacet(path)}>
@@ -62,7 +93,7 @@ function AvailableFacets() {
   return (
     <>
       {model.state.availableFacets.facets.map((facet, i) => (
-        // TODO: infer unique key
+        // TODO: infer unique key (serialize path?)
         <AvailableFacet key={i} {...facet} />
       ))}
     </>
@@ -154,7 +185,6 @@ function NextPage({ after }: NextPageProps) {
 }
 
 function FirstPage() {
-  // const firstPage = SearchUIModel.useFirstPage()
   const model = SearchUIModel.use()
   return GQL.fold(model.firstPageQuery, {
     data: ({ search: r }) => {
