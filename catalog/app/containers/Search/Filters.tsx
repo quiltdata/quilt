@@ -13,6 +13,7 @@ export function ResultType() {
 export interface ActiveFacet<V, E = null> {
   extents?: E | typeof L | null
   onChange: (v: V) => void
+  onDeactivate?: () => void
   value: V
 }
 
@@ -40,9 +41,9 @@ export function BucketExtented(props: Omit<ActiveFacet<string[], string[]>, 'ext
   return <Bucket {...props} extents={extents} />
 }
 
-export function Comment({ value, onChange }: ActiveFacet<string>) {
+export function Comment({ value, onChange, onDeactivate }: ActiveFacet<string>) {
   return (
-    <Filters.Container defaultExpanded title="Comment">
+    <Filters.Container defaultExpanded title="Comment" onDeactivate={onDeactivate}>
       <Filters.TextField
         onChange={onChange}
         placeholder="Enter comment message"
@@ -76,12 +77,13 @@ export function Type({ value, onChange }: ActiveFacet<string>) {
 }
 
 export function TotalSize({
-  value,
-  onChange,
   extents,
+  onChange,
+  onDeactivate,
+  value,
 }: ActiveFacet<[number, number] | null, [number, number]>) {
   return (
-    <Filters.Container defaultExpanded title="Total size">
+    <Filters.Container defaultExpanded title="Total size" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
         <Filters.NumbersRange
           extents={extents}
@@ -95,12 +97,13 @@ export function TotalSize({
 }
 
 export function LastModified({
-  value,
-  onChange,
   extents,
+  onChange,
+  onDeactivate,
+  value,
 }: ActiveFacet<[Date, Date] | null, [Date, Date]>) {
   return (
-    <Filters.Container defaultExpanded title="Last modified">
+    <Filters.Container defaultExpanded title="Last modified" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
         <Filters.DatesRange extents={extents} onChange={onChange} value={value} />
       )}
@@ -109,12 +112,13 @@ export function LastModified({
 }
 
 export function PackageHash({
-  value,
-  onChange,
   extents,
+  onChange,
+  onDeactivate,
+  value,
 }: ActiveFacet<string[], string[]>) {
   return (
-    <Filters.Container defaultExpanded title="Package hash">
+    <Filters.Container defaultExpanded title="Package hash" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
         <Filters.Enum extents={extents} onChange={onChange} value={value} />
       )}
@@ -123,12 +127,17 @@ export function PackageHash({
 }
 
 export function TotalEntries({
-  value,
-  onChange,
   extents,
+  onChange,
+  onDeactivate,
+  value,
 }: ActiveFacet<[number, number] | null, [number, number]>) {
   return (
-    <Filters.Container defaultExpanded title="Number of entries in package">
+    <Filters.Container
+      defaultExpanded
+      title="Number of entries in package"
+      onDeactivate={onDeactivate}
+    >
       {extents && extents !== L && (
         <Filters.NumbersRange
           extents={extents}
@@ -141,9 +150,9 @@ export function TotalEntries({
   )
 }
 
-export function Key({ value, onChange }: ActiveFacet<string>) {
+export function Key({ value, onDeactivate, onChange }: ActiveFacet<string>) {
   return (
-    <Filters.Container defaultExpanded title="Key">
+    <Filters.Container defaultExpanded title="Key" onDeactivate={onDeactivate}>
       <Filters.TextField
         onChange={onChange}
         placeholder="Enter key, eg. test/test.md"
@@ -153,9 +162,9 @@ export function Key({ value, onChange }: ActiveFacet<string>) {
   )
 }
 
-export function Ext({ value, onChange }: ActiveFacet<string>) {
+export function Ext({ value, onDeactivate, onChange }: ActiveFacet<string>) {
   return (
-    <Filters.Container defaultExpanded title="Key">
+    <Filters.Container defaultExpanded title="Key" onDeactivate={onDeactivate}>
       <Filters.TextField
         onChange={onChange}
         placeholder="Enter extension, eg. .md"
@@ -166,12 +175,13 @@ export function Ext({ value, onChange }: ActiveFacet<string>) {
 }
 
 export function Size({
-  value,
-  onChange,
   extents,
+  onChange,
+  onDeactivate,
+  value,
 }: ActiveFacet<[number, number] | null, [number, number]>) {
   return (
-    <Filters.Container defaultExpanded title="Size">
+    <Filters.Container defaultExpanded title="Size" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
         <Filters.NumbersRange
           extents={extents}
@@ -184,9 +194,14 @@ export function Size({
   )
 }
 
-export function Etag({ value, onChange, extents }: ActiveFacet<string[], string[]>) {
+export function Etag({
+  extents,
+  onChange,
+  onDeactivate,
+  value,
+}: ActiveFacet<string[], string[]>) {
   return (
-    <Filters.Container defaultExpanded title="ETag">
+    <Filters.Container defaultExpanded title="ETag" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
         <Filters.Enum extents={extents} onChange={onChange} value={value} />
       )}
@@ -194,9 +209,9 @@ export function Etag({ value, onChange, extents }: ActiveFacet<string[], string[
   )
 }
 
-export function DeleteMarker({ value, onChange }: ActiveFacet<boolean>) {
+export function DeleteMarker({ value, onChange, onDeactivate }: ActiveFacet<boolean>) {
   return (
-    <Filters.Container defaultExpanded title="Delete marker">
+    <Filters.Container defaultExpanded title="Delete marker" onDeactivate={onDeactivate}>
       <Filters.Checkbox label="Show deleted" onChange={onChange} value={value} />
     </Filters.Container>
   )
@@ -222,9 +237,10 @@ interface WorkflowExtents {
 }
 
 export function Workflow({
-  value,
-  onChange,
   extents,
+  onChange,
+  onDeactivate,
+  value,
 }: ActiveFacet<WorkflowValue, WorkflowExtents>) {
   const classes = useWorkflowStyles()
   const handleChange = React.useCallback(
@@ -239,7 +255,7 @@ export function Workflow({
   const areExtentsReady =
     extents !== L && extents?.bucket && extents?.s3Version && extents?.workflow
   return (
-    <Filters.Container defaultExpanded title="Workflow">
+    <Filters.Container defaultExpanded title="Workflow" onDeactivate={onDeactivate}>
       {areExtentsReady && (
         <div className={classes.workflow}>
           {extents?.bucket && extents?.bucket !== L && (
