@@ -19,7 +19,7 @@ function ifChanged<T>(newValue: T) {
   return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
 }
 
-enum ResultType {
+export enum ResultType {
   Objects = 'objects',
   Packages = 'packages',
 }
@@ -39,10 +39,16 @@ enum ResultType {
 //   }
 // }
 
+type FilterFn<Value> = (
+  value: Value,
+  path: FacetPath,
+) => Model.Search.FilterExpression | null
+
 interface FacetType<Tag extends string, Value, Extents> {
   _tag: Tag
   value: Value
   extents: Extents
+  filter: FilterFn<Value>
 }
 
 function FacetValue<Value>(value: Value) {
@@ -51,6 +57,24 @@ function FacetValue<Value>(value: Value) {
 
 function FacetExtents<Extents>(extents: Extents) {
   return extents
+}
+
+function FacetFilter<Value>(
+  makePredicates: (value: Value) => Model.Search.Predicate[],
+): FilterFn<Value> {
+  return (value: Value, path: FacetPath) => {
+    const predicates = makePredicates(value)
+    switch (predicates.length) {
+      case 0:
+        return null
+      case 1:
+        return Model.Search.FilterClause(path, predicates[0])
+      default:
+        return Model.Search.FilterCombination(
+          predicates.map((p) => Model.Search.FilterClause(path, p)),
+        )
+    }
+  }
 }
 
 // prettier-ignore
@@ -64,9 +88,10 @@ function FacetType<Tag extends string, Value, Extents>(
   _tag: Tag,
   value: typeof FacetValue<Value>,
   extents: typeof FacetExtents<Extents>,
+  filter: FilterFn<Value>,
 ) {
   ignore(value, extents)
-  return { _tag } as FacetType<Tag, Value, Extents>
+  return { _tag, filter } as FacetType<Tag, Value, Extents>
 }
 
 // facet type needs:
@@ -74,18 +99,29 @@ function FacetType<Tag extends string, Value, Extents>(
 // - value type
 // - extents
 // - predicates?
-
 export const FacetTypes = {
   ResultType: FacetType(
     'ResultType' as const,
     FacetValue<ResultType | null>,
     EmptyExtents,
+    FacetFilter((value) => (value ? [Model.Search.Predicate('is', value)] : [])),
   ),
-  Bucket: FacetType('Bucket' as const, FacetValue<string[]>, EmptyExtents),
+  Bucket: FacetType(
+    'Bucket' as const,
+    FacetValue<string[]>,
+    EmptyExtents,
+    FacetFilter((value) => (value.length ? [Model.Search.Predicate('in', value)] : [])),
+  ),
   Number: FacetType(
     'Number' as const,
     FacetValue<{ min: number | null; max: number | null }>,
     FacetExtents<{ min: number; max: number }>,
+    FacetFilter(({ min, max }) => {
+      const predicates = []
+      if (min !== null) predicates.push(Model.Search.Predicate('>=', min))
+      if (max !== null) predicates.push(Model.Search.Predicate('<=', max))
+      return predicates
+    }),
   ),
   // Date: FacetType(
   //   'Date' as const,
@@ -110,14 +146,22 @@ interface FacetValueState<Value> {
   value: Value
 }
 
-type FacetExtentsState<Extents> = Extents extends null ? {} : { extents: Extents }
+interface FacetExtentsStateNonEmpty<Extents> {
+  extents: Extents
+}
+
+type FacetExtentsState<Extents> = Extents extends null
+  ? {}
+  : FacetExtentsStateNonEmpty<Extents>
+
+type FacetState<Value, Extents> = FacetValueState<Value> & FacetExtentsState<Extents>
 
 export type StateForFacetType<T extends KnownFacetType> = T extends FacetType<
   any,
   infer Value,
   infer Extents
 >
-  ? FacetValueState<Value> & FacetExtentsState<Extents>
+  ? FacetState<Value, Extents>
   : never
 
 interface FacetDescriptor<P extends FacetPath, T extends FacetType<any, any, any>> {
@@ -394,12 +438,11 @@ function useActiveFacets({ facets }: SearchUrlState): KnownFacetDescriptor[] {
 function computeFilterExpression(
   activeFacets: KnownFacetDescriptor[],
 ): Model.Search.FilterExpression | null {
-  return activeFacets.reduce((filter: Model.Search.FilterExpression | null, facet) => {
-    // TODO: compute filter expression from active facets
-    // eslint-disable-next-line no-console
-    console.log('facet', facet)
-    return filter
-  }, null)
+  const filters = activeFacets
+    // @ts-expect-error
+    .map((facet) => facet.type.filter(facet.state.value, facet.path))
+    .filter((f): f is Model.Search.FilterExpression => !!f)
+  return filters.length ? Model.Search.FilterCombination(filters) : null
 }
 
 function useFilterExpression(
