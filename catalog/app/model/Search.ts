@@ -1,3 +1,5 @@
+import * as Types from 'utils/types'
+
 // model of faceted search domain
 
 export type FacetPath = readonly string[]
@@ -7,19 +9,14 @@ function FacetPath(...segments: string[]): FacetPath {
   return segments
 }
 
-interface Predicate {
-  // arbitrary underlying representation
+export interface Predicate {
+  readonly op: string
+  readonly arg: Types.Json
 }
 
-export namespace Predicates {
-  export function Between(min: number, max: number): Predicate {
-    // TODO
-    return { min, max }
-  }
-  export function In(...values: string[]): Predicate {
-    // TODO
-    return { values }
-  }
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export function Predicate(op: string, arg: Types.Json) {
+  return { op, arg }
 }
 
 export interface FilterClause {
@@ -39,8 +36,8 @@ export function FilterClause(
 
 type FilterCombinator = 'AND' | 'OR'
 
-export interface FilterExpression {
-  children: (FilterClause | FilterExpression)[]
+export interface FilterCombination {
+  children: (FilterClause | FilterCombination)[]
   combinator: FilterCombinator // defaults to AND
   negate: boolean // defaults to false
 }
@@ -51,15 +48,17 @@ interface FilterOpts {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export function FilterExpression(
-  children: (FilterClause | FilterExpression)[],
+export function FilterCombination(
+  children: (FilterClause | FilterCombination)[],
   opts: FilterOpts = {},
-): FilterExpression {
+): FilterCombination {
   return { children, combinator: opts.combinator ?? 'AND', negate: opts.negate ?? false }
 }
 
+export type FilterExpression = FilterClause | FilterCombination
+
 // example
-// const filter = FilterExpression(
+// const filter = FilterCombination(
 //   [
 //     FilterClause(
 //       FacetPath('s3', 'size'),
@@ -73,7 +72,7 @@ export function FilterExpression(
 //       FacetPath('pkg_meta', 'owner', 'keyword'),
 //       Predicates.In('Alexei', 'Sergey', 'Max'),
 //     ),
-//     // FilterExpression(...), // can be nested
+//     // FilterCombination(...), // can be nested
 //   ],
 //   {
 //     combinator: 'OR',
@@ -83,7 +82,7 @@ export function FilterExpression(
 
 // interface SearchCriteria {
 //   searchString?: string
-//   filter?: FilterExpression
+//   filter?: FilterCombination
 // }
 //
 // interface SearchOptions {

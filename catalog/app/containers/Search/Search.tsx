@@ -10,24 +10,48 @@ import assertNever from 'utils/assertNever'
 
 import * as SearchUIModel from './model'
 
+interface FacetActions<T extends SearchUIModel.KnownFacetType> {
+  // XXX: accept updater fn?
+  onChange: (value: SearchUIModel.StateForFacetType<T>['value']) => void
+  // TODO: onChangeExtents
+  onDeactivate: () => void
+}
+
 type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
-  SearchUIModel.StateForFacetType<T>
+  SearchUIModel.StateForFacetType<T> & FacetActions<T>
 
 function ResultTypeFilterWidget({
   value,
+  onChange, // onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.ResultType>) {
-  return <>type: {value}</>
+  const onSelect = React.useCallback(
+    (e) => {
+      onChange((e.target.value || null) as SearchUIModel.ResultType | null)
+    },
+    [onChange],
+  )
+
+  const selectValue = value ?? ''
+  return (
+    <div>
+      <select value={selectValue} onChange={onSelect}>
+        <option value={SearchUIModel.ResultType.Objects}>objects</option>
+        <option value={SearchUIModel.ResultType.Packages}>packages</option>
+        <option value={''}>both</option>
+      </select>
+    </div>
+  )
 }
 
 function BucketFilterWidget({
-  value,
+  value, // onChange, onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Bucket>) {
   return <>bucket: {value.join(',')}</>
 }
 
 function NumberFilterWidget({
   value,
-  extents,
+  extents, // onChange, onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   return (
     <>
@@ -42,27 +66,48 @@ const FILTER_WIDGETS = {
   Number: NumberFilterWidget,
 }
 
-function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(facet: F) {
+function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
+  facet: F,
+  actions: FacetActions<F['type']>,
+) {
   // eslint-disable-next-line no-underscore-dangle
   const FilterWidget = FILTER_WIDGETS[facet.type._tag]
   // @ts-expect-error
-  return <FilterWidget {...facet.state} />
+  return <FilterWidget {...facet.state} {...actions} />
 }
 
-interface FacetWidgetProps {
-  facet: SearchUIModel.KnownFacetDescriptor
+interface FacetWidgetProps<F extends SearchUIModel.KnownFacetDescriptor> {
+  facet: F
 }
 
-function FacetWidget({ facet }: FacetWidgetProps) {
-  // actions: deactivate, adjust
-  // TODO: facet query (request extents if required)
+function FacetWidget<F extends SearchUIModel.KnownFacetDescriptor>({
+  facet,
+}: FacetWidgetProps<F>) {
+  type FacetType = typeof facet.type
+
+  const model = SearchUIModel.use()
+  const { deactivateFacet, updateActiveFacet } = model.actions
+
+  const actions: FacetActions<FacetType> = {
+    onDeactivate: React.useCallback(() => {
+      deactivateFacet(facet.path)
+    }, [facet.path, deactivateFacet]),
+    onChange: React.useCallback(
+      (value) => {
+        // @ts-expect-error
+        updateActiveFacet(facet.path, (f) => ({ ...f, state: { ...f.state, value } }))
+      },
+      [facet.path, updateActiveFacet],
+    ),
+  }
+
   return (
     <div>
       <div>
         {/* eslint-disable-next-line no-underscore-dangle */}
         {facet.path} ({facet.type._tag})
       </div>
-      {renderFilterWidget(facet)}
+      {renderFilterWidget(facet, actions)}
     </div>
   )
 }
