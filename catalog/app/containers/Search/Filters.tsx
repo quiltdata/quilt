@@ -4,6 +4,8 @@ import * as M from '@material-ui/core'
 import * as Filters from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
 
+import * as SearchUIModel from './model'
+
 export const L = 'loading'
 
 export function ResultType() {
@@ -55,15 +57,15 @@ export function Comment({ value, onChange, onDeactivate }: ActiveFacet<string>) 
 
 const typeExtents = [
   {
-    value: 'po', // TODO: rename to 'any'
+    value: '', // TODO: rename to 'any'
     title: 'Packages and objects',
   },
   {
-    value: 'p',
+    value: SearchUIModel.ResultType.Packages,
     title: 'Packages',
   },
   {
-    value: 'o',
+    value: SearchUIModel.ResultType.Objects,
     title: 'Objects',
   },
 ]
