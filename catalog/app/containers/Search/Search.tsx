@@ -133,7 +133,7 @@ function ActiveFacets() {
 
 function AvailableFacet({ name, descriptor: { path } }: SearchUIModel.AvailableFacet) {
   const model = SearchUIModel.use()
-  return <button onClick={() => model.actions.activateFacet(path)}>{name}</button>
+  return <M.Chip onClick={() => model.actions.activateFacet(path)} label={name} />
 }
 
 function AvailableFacets() {
@@ -316,12 +316,21 @@ function Results() {
   })
 }
 
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: `${t.spacing(40)}px auto`,
+    gridGapColumn: t.spacing(2),
+  },
+}))
+
 function SearchLayout() {
   const model = SearchUIModel.use()
+  const classes = useStyles()
   return (
     <Layout
       pre={
-        <M.Container maxWidth="lg">
+        <M.Container maxWidth="lg" className={classes.root}>
           <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
           <Filters />
           <Results />
