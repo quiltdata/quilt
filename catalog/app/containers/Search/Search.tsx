@@ -8,6 +8,7 @@ import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
 
+import * as FiltersWidgets from './Filters'
 import * as SearchUIModel from './model'
 
 interface FacetActions<T extends SearchUIModel.KnownFacetType> {
@@ -24,29 +25,20 @@ function ResultTypeFilterWidget({
   value,
   onChange, // onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.ResultType>) {
-  const onSelect = React.useCallback(
-    (e) => {
-      onChange((e.target.value || null) as SearchUIModel.ResultType | null)
-    },
-    [onChange],
-  )
-
   const selectValue = value ?? ''
   return (
-    <div>
-      <select value={selectValue} onChange={onSelect}>
-        <option value={SearchUIModel.ResultType.Objects}>objects</option>
-        <option value={SearchUIModel.ResultType.Packages}>packages</option>
-        <option value={''}>both</option>
-      </select>
-    </div>
+    <FiltersWidgets.Type
+      value={selectValue}
+      onChange={(t) => onChange((t || null) as SearchUIModel.ResultType)}
+    />
   )
 }
 
 function BucketFilterWidget({
   value, // onChange, onDeactivate,
+  onChange,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Bucket>) {
-  return <>bucket: {value.join(',')}</>
+  return <FiltersWidgets.BucketExtented value={value} onChange={onChange} />
 }
 
 function NumberFilterWidget({
@@ -55,18 +47,24 @@ function NumberFilterWidget({
   onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   return (
-    <div>
-      num
-      <button onClick={onDeactivate}>x</button>
-      <div>
-        value:
-        {value.min} ... {value.max}
-      </div>
-      <div>
-        extents:
-        {extents.min} ... {extents.max}
-      </div>
-    </div>
+    <FiltersWidgets.TotalSize
+      onDeactivate={onDeactivate}
+      value={
+        value.min === null || value.min === null
+          ? null
+          : ([value.min, value.max] as [number, number])
+      }
+      extents={
+        extents.min === null || extents.min === null
+          ? null
+          : ([extents.min, extents.max] as [number, number])
+      }
+      onChange={(newValues) =>
+        newValues === null
+          ? { min: null, max: null }
+          : { min: newValues[0], max: newValues[1] }
+      }
+    />
   )
 }
 
