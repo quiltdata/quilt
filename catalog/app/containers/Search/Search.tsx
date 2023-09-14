@@ -51,12 +51,22 @@ function BucketFilterWidget({
 
 function NumberFilterWidget({
   value,
-  extents, // onChange, onDeactivate,
+  extents, // onChange, ,
+  onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   return (
-    <>
-      num: {value.min} ... {value.max} ({extents.min} ... {extents.max})
-    </>
+    <div>
+      num
+      <button onClick={onDeactivate}>x</button>
+      <div>
+        value:
+        {value.min} ... {value.max}
+      </div>
+      <div>
+        extents:
+        {extents.min} ... {extents.max}
+      </div>
+    </div>
   )
 }
 
@@ -105,7 +115,7 @@ function FacetWidget<F extends SearchUIModel.KnownFacetDescriptor>({
     <div>
       <div>
         {/* eslint-disable-next-line no-underscore-dangle */}
-        {facet.path} ({facet.type._tag})
+        {facet.path.join(' / ')} ({facet.type._tag})
       </div>
       {renderFilterWidget(facet, actions)}
     </div>
@@ -125,12 +135,7 @@ function ActiveFacets() {
 
 function AvailableFacet({ name, descriptor: { path } }: SearchUIModel.AvailableFacet) {
   const model = SearchUIModel.use()
-  return (
-    <button onClick={() => model.actions.activateFacet(path)}>
-      {name}
-      {path}
-    </button>
-  )
+  return <button onClick={() => model.actions.activateFacet(path)}>{name}</button>
 }
 
 function AvailableFacets() {
