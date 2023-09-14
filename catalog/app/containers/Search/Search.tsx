@@ -43,7 +43,8 @@ function BucketFilterWidget({
 
 function NumberFilterWidget({
   value,
-  extents, // onChange, ,
+  extents,
+  onChange,
   onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   return (
@@ -61,8 +62,8 @@ function NumberFilterWidget({
       }
       onChange={(newValues) =>
         newValues === null
-          ? { min: null, max: null }
-          : { min: newValues[0], max: newValues[1] }
+          ? onChange({ min: null, max: null })
+          : onChange({ min: newValues[0], max: newValues[1] })
       }
     />
   )
