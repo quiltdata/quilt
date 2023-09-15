@@ -23,4 +23,4 @@ extensions:
             PackageContentsFlatMap: model#PackageContentsFlatMap
             S3ObjectLocation: model/S3#S3ObjectLocation
             SearchFacetExtents: model/Search#FacetExtents
-            SearchFilterExpression: model/Search#FilterExpression
+            SearchPredicate: model/Search#Predicate

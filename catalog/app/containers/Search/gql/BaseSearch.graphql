@@ -1,5 +1,15 @@
-query ($searchString: String, $filter: SearchFilterExpression) {
-  search(searchString: $searchString, filter: $filter) {
+query (
+  $buckets: [String!]
+  $type: SearchResultType
+  $searchString: String
+  $filters: [SearchFilter!]
+) {
+  search(
+    buckets: $buckets
+    type: $type
+    searchString: $searchString
+    filters: $filters
+  ) {
     __typename
     ... on BoundedSearch {
       results {
