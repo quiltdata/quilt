@@ -20,33 +20,33 @@ interface FacetActions<T extends SearchUIModel.KnownFacetType> {
 type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
   SearchUIModel.StateForFacetType<T> & FacetActions<T>
 
-function ResultTypeFilterWidget({
-  value,
-  onChange, // onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.ResultType>) {
+function ResultTypeSelector() {
+  const model = SearchUIModel.use()
+  const { setResultType } = model.actions
   const onSelect = React.useCallback(
     (e) => {
-      onChange((e.target.value || null) as SearchUIModel.ResultType | null)
+      setResultType((e.target.value || null) as SearchUIModel.ResultType | null)
     },
-    [onChange],
+    [setResultType],
   )
 
-  const selectValue = value ?? ''
+  const selectValue = model.state.resultType ?? ''
   return (
     <div>
+      <div>type:</div>
       <select value={selectValue} onChange={onSelect}>
-        <option value={SearchUIModel.ResultType.Objects}>objects</option>
-        <option value={SearchUIModel.ResultType.Packages}>packages</option>
+        <option value={SearchUIModel.ResultType.S3Object}>objects</option>
+        <option value={SearchUIModel.ResultType.QuiltPackage}>packages</option>
         <option value={''}>both</option>
       </select>
     </div>
   )
 }
 
-function BucketFilterWidget({
-  value, // onChange, onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Bucket>) {
-  return <>bucket: {value.join(',')}</>
+function BucketSelector() {
+  const model = SearchUIModel.use()
+  // use model.actions.setBuckets
+  return <div>bucket(s): {model.state.buckets.join(',') || 'all'}</div>
 }
 
 function NumberFilterWidget({
@@ -71,8 +71,6 @@ function NumberFilterWidget({
 }
 
 const FILTER_WIDGETS = {
-  ResultType: ResultTypeFilterWidget,
-  Bucket: BucketFilterWidget,
   Number: NumberFilterWidget,
 }
 
@@ -82,7 +80,6 @@ function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
 ) {
   // eslint-disable-next-line no-underscore-dangle
   const FilterWidget = FILTER_WIDGETS[facet.type._tag]
-  // @ts-expect-error
   return <FilterWidget {...facet.state} {...actions} />
 }
 
@@ -104,7 +101,6 @@ function FacetWidget<F extends SearchUIModel.KnownFacetDescriptor>({
     }, [facet.path, deactivateFacet]),
     onChange: React.useCallback(
       (value) => {
-        // @ts-expect-error
         updateActiveFacet(facet.path, (f) => ({ ...f, state: { ...f.state, value } }))
       },
       [facet.path, updateActiveFacet],
@@ -133,9 +129,11 @@ function ActiveFacets() {
   )
 }
 
-function AvailableFacet({ name, descriptor: { path } }: SearchUIModel.AvailableFacet) {
+function AvailableFacet({ path }: SearchUIModel.AvailableFacet) {
   const model = SearchUIModel.use()
-  return <button onClick={() => model.actions.activateFacet(path)}>{name}</button>
+  return (
+    <button onClick={() => model.actions.activateFacet(path)}>{path.join(' / ')}</button>
+  )
 }
 
 function AvailableFacets() {
@@ -154,6 +152,8 @@ function Filters() {
   return (
     <div>
       <h1>filter by</h1>
+      <ResultTypeSelector />
+      <BucketSelector />
       <ActiveFacets />
       <AvailableFacets />
     </div>

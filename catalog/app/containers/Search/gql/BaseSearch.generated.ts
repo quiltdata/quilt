@@ -3,8 +3,10 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../model/graphql/types.generated'
 
 export type containers_Search_gql_BaseSearchQueryVariables = Types.Exact<{
+  buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
+  resultType: Types.Maybe<Types.SearchResultType>
   searchString: Types.Maybe<Types.Scalars['String']>
-  filter: Types.Maybe<Types.Scalars['SearchFilterExpression']>
+  filters: Types.Maybe<ReadonlyArray<Types.SearchFilter>>
 }>
 
 export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Query' } & {
@@ -17,7 +19,7 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
         readonly facets: ReadonlyArray<
           { readonly __typename: 'SearchFacet' } & Pick<
             Types.SearchFacet,
-            'source' | 'name' | 'path' | 'type' | 'extents'
+            'path' | 'extents'
           >
         >
       })
@@ -46,15 +48,34 @@ export const containers_Search_gql_BaseSearchDocument = {
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'buckets' } },
+          type: {
+            kind: 'ListType',
+            type: {
+              kind: 'NonNullType',
+              type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+            },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'resultType' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultType' } },
+        },
+        {
+          kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'searchString' } },
           type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'filters' } },
           type: {
-            kind: 'NamedType',
-            name: { kind: 'Name', value: 'SearchFilterExpression' },
+            kind: 'ListType',
+            type: {
+              kind: 'NonNullType',
+              type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchFilter' } },
+            },
           },
         },
       ],
@@ -67,6 +88,16 @@ export const containers_Search_gql_BaseSearchDocument = {
             arguments: [
               {
                 kind: 'Argument',
+                name: { kind: 'Name', value: 'buckets' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'buckets' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'resultType' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'resultType' } },
+              },
+              {
+                kind: 'Argument',
                 name: { kind: 'Name', value: 'searchString' },
                 value: {
                   kind: 'Variable',
@@ -75,8 +106,8 @@ export const containers_Search_gql_BaseSearchDocument = {
               },
               {
                 kind: 'Argument',
-                name: { kind: 'Name', value: 'filter' },
-                value: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+                name: { kind: 'Name', value: 'filters' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'filters' } },
               },
             ],
             selectionSet: {
@@ -108,10 +139,7 @@ export const containers_Search_gql_BaseSearchDocument = {
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'source' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'name' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'path' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'type' } },
                             { kind: 'Field', name: { kind: 'Name', value: 'extents' } },
                           ],
                         },

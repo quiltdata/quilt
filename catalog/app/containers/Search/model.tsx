@@ -19,10 +19,9 @@ function ifChanged<T>(newValue: T) {
   return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
 }
 
-export enum ResultType {
-  Objects = 'objects',
-  Packages = 'packages',
-}
+export const ResultType = Model.GQLTypes.SearchResultType
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type ResultType = Model.GQLTypes.SearchResultType
 
 // enum WorkflowMatchingStrictness {
 //   WorkflowOnly,
@@ -42,7 +41,7 @@ export enum ResultType {
 type FilterFn<Value> = (
   value: Value,
   path: FacetPath,
-) => Model.Search.FilterExpression | null
+) => Model.GQLTypes.SearchFilter | null
 
 interface FacetType<Tag extends string, Value, Extents> {
   _tag: Tag
@@ -52,34 +51,26 @@ interface FacetType<Tag extends string, Value, Extents> {
   init: (extents: Extents) => Value
 }
 
-function FacetValue<Value>(value: Value) {
-  return value
+type TypeContainer<T> = (x: T) => T
+
+function FacetValue<Value>(): TypeContainer<Value> {
+  return R.identity
 }
 
-function FacetExtents<Extents>(extents: Extents) {
-  return extents
+function FacetExtents<Extents>(): TypeContainer<Extents> {
+  return R.identity
 }
 
 function FacetFilter<Value>(
-  makePredicates: (value: Value) => Model.Search.Predicate[],
+  makePredicates: (value: Value) => Model.GQLTypes.SearchPredicate[],
 ): FilterFn<Value> {
   return (value: Value, path: FacetPath) => {
     const predicates = makePredicates(value)
-    switch (predicates.length) {
-      case 0:
-        return null
-      case 1:
-        return Model.Search.FilterClause(path, predicates[0])
-      default:
-        return Model.Search.FilterCombination(
-          predicates.map((p) => Model.Search.FilterClause(path, p)),
-        )
-    }
+    return predicates.length ? { path, predicates } : null
   }
 }
 
-// prettier-ignore
-const EmptyExtents = (FacetExtents<null>)
+// const EmptyExtents = FacetExtents<null>()
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ignore(..._args: any[]) {}
@@ -87,8 +78,8 @@ function ignore(..._args: any[]) {}
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 function FacetType<Tag extends string, Value, Extents>(
   _tag: Tag,
-  value: typeof FacetValue<Value>,
-  extents: typeof FacetExtents<Extents>,
+  value: TypeContainer<Value>,
+  extents: TypeContainer<Extents>,
   init: (extents: Extents) => Value,
   filter: FilterFn<Value>,
 ) {
@@ -96,30 +87,11 @@ function FacetType<Tag extends string, Value, Extents>(
   return { _tag, filter, init } as FacetType<Tag, Value, Extents>
 }
 
-// facet type needs:
-// - type tag
-// - value type
-// - extents
-// - predicates?
 export const FacetTypes = {
-  ResultType: FacetType(
-    'ResultType' as const,
-    FacetValue<ResultType | null>,
-    EmptyExtents,
-    () => null,
-    FacetFilter((value) => (value ? [Model.Search.Predicate('is', value)] : [])),
-  ),
-  Bucket: FacetType(
-    'Bucket' as const,
-    FacetValue<string[]>,
-    EmptyExtents,
-    () => [],
-    FacetFilter((value) => (value.length ? [Model.Search.Predicate('in', value)] : [])),
-  ),
   Number: FacetType(
     'Number' as const,
-    FacetValue<{ min: number | null; max: number | null }>,
-    FacetExtents<{ min: number; max: number }>,
+    FacetValue<{ min: number | null; max: number | null }>(),
+    FacetExtents<{ min: number; max: number }>(),
     ({ min, max }) => ({ min, max }),
     FacetFilter(({ min, max }) => {
       const predicates = []
@@ -205,8 +177,6 @@ function FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>>(
 }
 
 export const KNOWN_FACETS = [
-  FacetMatcher(['type'] as const, FacetTypes.ResultType),
-  FacetMatcher(['bucket'] as const, FacetTypes.Bucket),
   FacetMatcher(['pkg', 'total_size'] as const, FacetTypes.Number),
   FacetMatcher(['pkg', 'total_entries'] as const, FacetTypes.Number),
   // // comment: Text
@@ -219,20 +189,20 @@ export type KnownFacetMatcher = (typeof KNOWN_FACETS)[number]
 
 type KnownFacetPath = KnownFacetMatcher['path']
 
-type FacetMatcherForPath<P extends KnownFacetPath> = Extract<
-  KnownFacetMatcher,
-  { path: P }
->
+// type FacetMatcherForPath<P extends KnownFacetPath> = Extract<
+//   KnownFacetMatcher,
+//   { path: P }
+// >
 
-type FacetTypeForPath<P extends KnownFacetPath> = FacetMatcherForPath<P>['type']
+// type FacetTypeForPath<P extends KnownFacetPath> = FacetMatcherForPath<P>['type']
 
-type FacetStateForPath<P extends KnownFacetPath> = StateForFacetType<FacetTypeForPath<P>>
-
-function getMatcher<P extends KnownFacetPath>(path: P): FacetMatcherForPath<P> {
-  return KNOWN_FACETS.filter((m): m is FacetMatcherForPath<P> =>
-    R.equals(m.path, path),
-  )[0]
-}
+// type FacetStateForPath<P extends KnownFacetPath> = StateForFacetType<FacetTypeForPath<P>>
+//
+// function getMatcher<P extends KnownFacetPath>(path: P): FacetMatcherForPath<P> {
+//   return KNOWN_FACETS.filter((m): m is FacetMatcherForPath<P> =>
+//     R.equals(m.path, path),
+//   )[0]
+// }
 
 type FacetDescriptorFromMatcher<M> = M extends FacetMatcher<infer P, infer T>
   ? FacetDescriptor<P, T>
@@ -271,10 +241,10 @@ function initFacet(path: any, extents: any): KnownFacetDescriptor | null {
   return null
 }
 
-function makeFacet<P extends KnownFacetPath>(path: P, state: FacetStateForPath<P>) {
-  const matcher = getMatcher(path)
-  return matcher.cast({ path, state }) as FacetDescriptorFromPath<P>
-}
+// function makeFacet<P extends KnownFacetPath>(path: P, state: FacetStateForPath<P>) {
+//   const matcher = getMatcher(path)
+//   return matcher.cast({ path, state }) as FacetDescriptorFromPath<P>
+// }
 
 export function facetIs<P extends KnownFacetPath>(
   path: P,
@@ -289,6 +259,8 @@ export function getFacetType<F extends KnownFacetDescriptor>(facet: F): F['type'
 
 interface SearchUrlState {
   searchString: string | null
+  resultType: ResultType | null
+  buckets: string[]
   facets: KnownFacetDescriptor[]
   order: Model.GQLTypes.SearchResultOrder
 }
@@ -359,28 +331,22 @@ function parseSearchParams(qs: string): SearchUrlState {
   const searchString = params.get('q')
 
   // XXX: support legacy "mode" param (convert to "type")
-  const typeInput = params.get('t') || params.get('mode')
-  const type = Object.values(ResultType).includes(typeInput as any)
-    ? (typeInput as ResultType)
+  const resultTypeInput = params.get('t') || params.get('mode')
+  const resultType = Object.values(ResultType).includes(resultTypeInput as any)
+    ? (resultTypeInput as ResultType)
     : null
 
   const bucketsInput = params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
 
-  const extraFacets = params
+  const facets = params
     .getAll('f')
     .map(parseFacetDescriptor)
     .filter((f): f is KnownFacetDescriptor => !!f)
 
   const order = parseOrder(params.get('o'))
 
-  const facets = [
-    makeFacet(['type'] as const, { value: type }),
-    makeFacet(['bucket'] as const, { value: buckets }),
-    ...extraFacets,
-  ]
-
-  return { searchString, facets, order }
+  return { searchString, resultType, buckets, facets, order }
 }
 
 // XXX: return string?
@@ -389,17 +355,11 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
 
   if (state.searchString) params.set('q', state.searchString)
 
+  if (state.resultType) params.set('t', state.resultType)
+
+  if (state.buckets.length) params.set('b', state.buckets.join(','))
+
   for (const f of state.facets) {
-    if (R.equals(f.path, ['type'])) {
-      const fstate = f.state as StateForFacetType<typeof FacetTypes.ResultType>
-      if (fstate.value) params.set('t', fstate.value)
-      continue
-    }
-    if (R.equals(f.path, ['bucket'])) {
-      const fstate = f.state as StateForFacetType<typeof FacetTypes.Bucket>
-      if (fstate.value.length) params.set('b', fstate.value.join(','))
-      continue
-    }
     params.append('f', serializeFacetDescriptor(f))
   }
 
@@ -454,27 +414,23 @@ function useActiveFacets({ facets }: SearchUrlState): KnownFacetDescriptor[] {
   // )
 }
 
-function computeFilterExpression(
+function computeFilters(
   activeFacets: KnownFacetDescriptor[],
-): Model.Search.FilterExpression | null {
-  const filters = activeFacets
-    // @ts-expect-error
+): Model.GQLTypes.SearchFilter[] {
+  return activeFacets
     .map((facet) => facet.type.filter(facet.state.value, facet.path))
-    .filter((f): f is Model.Search.FilterExpression => !!f)
-  return filters.length ? Model.Search.FilterCombination(filters) : null
+    .filter((f): f is Model.GQLTypes.SearchFilter => !!f)
 }
 
-function useFilterExpression(
-  activeFacets: KnownFacetDescriptor[],
-): Model.Search.FilterExpression | null {
-  return useMemoEq(activeFacets, computeFilterExpression)
+function useFilters(activeFacets: KnownFacetDescriptor[]): Model.GQLTypes.SearchFilter[] {
+  return useMemoEq(activeFacets, computeFilters)
 }
 
 function useBaseSearchQuery(
-  { searchString }: SearchUrlState,
-  filter: Model.Search.FilterExpression | null,
+  { searchString, resultType, buckets }: SearchUrlState,
+  filters: Model.GQLTypes.SearchFilter[],
 ) {
-  return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, filter })
+  return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, resultType, buckets, filters })
 }
 
 type BoundedSearch = Extract<
@@ -491,22 +447,29 @@ export function searchHitId(hit: SearchHit): string {
 }
 
 function useFirstPageQuery(
-  { searchString, order }: SearchUrlState,
-  filter: Model.Search.FilterExpression | null,
+  { searchString, resultType, buckets, order }: SearchUrlState,
+  filters: Model.GQLTypes.SearchFilter[],
 ) {
-  return GQL.useQuery(FIRST_PAGE_QUERY, { searchString, filter, order })
+  return GQL.useQuery(FIRST_PAGE_QUERY, {
+    searchString,
+    resultType,
+    buckets,
+    filters,
+    order,
+  })
 }
 
 export function useNextPageQuery(after: string) {
   return GQL.useQuery(NEXT_PAGE_QUERY, { after })
 }
 
-export interface AvailableFacet {
-  descriptor: KnownFacetDescriptor
-  // path: Model.Search.FacetPath
-  name: string
-  // type: $TSFixMe
-}
+export type AvailableFacet = KnownFacetDescriptor
+// export interface AvailableFacet {
+//   descriptor: KnownFacetDescriptor
+//   // path: Model.Search.FacetPath
+//   name: string
+//   // type: $TSFixMe
+// }
 
 // XXX: async?
 function useAvailableFacets(
@@ -531,13 +494,8 @@ function useAvailableFacets(
             // - name -> drop? compute in ui?
             // - source -> drop
             const newFacets = r.facets
-              .map((f) => ({
-                descriptor: initFacet(f.path, f.extents),
-                // path: f.path,
-                name: f.name,
-                // type: f.type,
-              }))
-              .filter((f): f is AvailableFacet => !!f.descriptor)
+              .map((f) => initFacet(f.path, f.extents))
+              .filter((f): f is AvailableFacet => !!f)
             setFacets(ifChanged(newFacets))
             return
           default:
@@ -557,9 +515,7 @@ function useAvailableFacets(
   }, [searchQueryResult])
 
   const facetsFiltered = useMemoEq([facets, activeFacets], () =>
-    facets.filter(
-      (f) => !activeFacets.some((af) => R.equals(af.path, f.descriptor.path)),
-    ),
+    facets.filter((f) => !activeFacets.some((af) => R.equals(af.path, f.path))),
   )
 
   return useMemoEq({ facets: facetsFiltered, fetching }, R.identity)
@@ -568,7 +524,7 @@ function useAvailableFacets(
 function useSearchUIModel() {
   const urlState = useUrlState()
   const activeFacets = useActiveFacets(urlState)
-  const baseFilter = useFilterExpression(activeFacets)
+  const baseFilter = useFilters(activeFacets)
   const baseSearchQuery = useBaseSearchQuery(urlState, baseFilter)
   const firstPageQuery = useFirstPageQuery(urlState, baseFilter)
   const availableFacets = useAvailableFacets(baseSearchQuery, activeFacets)
@@ -593,14 +549,28 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
+  const setResultType = React.useCallback(
+    (resultType: ResultType | null) => {
+      updateUrlState((s) => ({ ...s, resultType }))
+    },
+    [updateUrlState],
+  )
+
+  const setBuckets = React.useCallback(
+    (buckets: string[]) => {
+      updateUrlState((s) => ({ ...s, buckets }))
+    },
+    [updateUrlState],
+  )
+
   const activateFacet = React.useCallback(
     (path: KnownFacetPath) => {
       // eslint-disable-next-line no-console
       console.log('activateFacet', path)
-      const facet = availableFacets.facets.find((f) => R.equals(f.descriptor.path, path))
+      const facet = availableFacets.facets.find((f) => R.equals(f.path, path))
       if (!facet) return
       updateUrlState(
-        R.evolve({ facets: R.append(facet.descriptor)<KnownFacetDescriptor> }),
+        R.evolve({ facets: (facets: KnownFacetDescriptor[]) => [...facets, facet] }),
       )
     },
     [availableFacets.facets, updateUrlState],
@@ -639,6 +609,8 @@ function useSearchUIModel() {
     {
       state: {
         searchString: urlState.searchString,
+        resultType: urlState.resultType,
+        buckets: urlState.buckets,
         filter: baseFilter,
         order: urlState.order,
         activeFacets,
@@ -646,6 +618,8 @@ function useSearchUIModel() {
       },
       actions: {
         setSearchString,
+        setResultType,
+        setBuckets,
         activateFacet,
         deactivateFacet,
         updateActiveFacet,
