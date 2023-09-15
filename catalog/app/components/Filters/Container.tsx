@@ -5,15 +5,20 @@ import { fade } from '@material-ui/core/styles'
 import Skeleton from 'components/Skeleton'
 
 const useStyles = M.makeStyles((t) => ({
-  button: {
-    opacity: 0.3,
-    '&:hover': {
-      opacity: 1,
-    },
+  close: {
+    margin: t.spacing(1),
   },
   content: {
+    display: 'flex',
     flexDirection: 'column',
+    padding: t.spacing(0, 2, 2),
     position: 'relative',
+    '&:last-child': {
+      paddingBottom: t.spacing(2),
+    },
+  },
+  header: {
+    padding: t.spacing(1, 2),
   },
   lock: {
     alignItems: 'center',
@@ -41,27 +46,35 @@ const useStyles = M.makeStyles((t) => ({
 interface ContainerProps {
   children?: React.ReactNode
   className?: string
-  defaultExpanded?: boolean
   extenting?: boolean
   onDeactivate?: () => void
   title: string
+  defaultExpanded?: boolean
 }
 
 export default function Container({
   className,
   children,
-  defaultExpanded,
   title,
   extenting,
   onDeactivate,
 }: ContainerProps) {
   const classes = useStyles()
   return (
-    <M.Accordion className={className} defaultExpanded={defaultExpanded}>
-      <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
-        {title}
-      </M.AccordionSummary>
-      <M.AccordionDetails className={classes.content}>
+    <M.Card className={className}>
+      <M.CardHeader
+        className={classes.header}
+        action={
+          onDeactivate && (
+            <M.IconButton size="small" className={classes.close}>
+              <M.Icon fontSize="inherit">clear</M.Icon>
+            </M.IconButton>
+          )
+        }
+        title={title}
+        titleTypographyProps={{ variant: 'body1' }}
+      />
+      <M.CardContent className={classes.content}>
         {children ? (
           <>
             {children}
@@ -74,14 +87,7 @@ export default function Container({
         ) : (
           <Skeleton height={32} />
         )}
-      </M.AccordionDetails>
-      {onDeactivate && (
-        <M.AccordionActions>
-          <M.Button className={classes.button} size="small" onClick={onDeactivate}>
-            Remove filter
-          </M.Button>
-        </M.AccordionActions>
-      )}
-    </M.Accordion>
+      </M.CardContent>
+    </M.Card>
   )
 }
