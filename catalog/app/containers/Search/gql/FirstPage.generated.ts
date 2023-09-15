@@ -3,8 +3,10 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 import * as Types from '../../../model/graphql/types.generated'
 
 export type containers_Search_gql_FirstPageQueryVariables = Types.Exact<{
+  buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
+  resultType: Types.Maybe<Types.SearchResultType>
   searchString: Types.Maybe<Types.Scalars['String']>
-  filter: Types.Maybe<Types.Scalars['SearchFilterExpression']>
+  filters: Types.Maybe<ReadonlyArray<Types.SearchFilter>>
   order: Types.Maybe<Types.SearchResultOrder>
 }>
 
@@ -67,15 +69,34 @@ export const containers_Search_gql_FirstPageDocument = {
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'buckets' } },
+          type: {
+            kind: 'ListType',
+            type: {
+              kind: 'NonNullType',
+              type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+            },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'resultType' } },
+          type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultType' } },
+        },
+        {
+          kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'searchString' } },
           type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
         },
         {
           kind: 'VariableDefinition',
-          variable: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'filters' } },
           type: {
-            kind: 'NamedType',
-            name: { kind: 'Name', value: 'SearchFilterExpression' },
+            kind: 'ListType',
+            type: {
+              kind: 'NonNullType',
+              type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchFilter' } },
+            },
           },
         },
         {
@@ -93,6 +114,16 @@ export const containers_Search_gql_FirstPageDocument = {
             arguments: [
               {
                 kind: 'Argument',
+                name: { kind: 'Name', value: 'buckets' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'buckets' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'resultType' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'resultType' } },
+              },
+              {
+                kind: 'Argument',
                 name: { kind: 'Name', value: 'searchString' },
                 value: {
                   kind: 'Variable',
@@ -101,8 +132,8 @@ export const containers_Search_gql_FirstPageDocument = {
               },
               {
                 kind: 'Argument',
-                name: { kind: 'Name', value: 'filter' },
-                value: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+                name: { kind: 'Name', value: 'filters' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'filters' } },
               },
             ],
             selectionSet: {

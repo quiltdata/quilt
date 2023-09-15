@@ -1,13 +1,13 @@
 query (
   $buckets: [String!]
-  $type: SearchResultType
+  $resultType: SearchResultType
   $searchString: String
   $filters: [SearchFilter!]
   $order: SearchResultOrder
 ) {
   search(
     buckets: $buckets
-    type: $type
+    resultType: $resultType
     searchString: $searchString
     filters: $filters
   ) {

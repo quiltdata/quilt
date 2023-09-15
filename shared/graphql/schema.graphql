@@ -274,7 +274,10 @@ type BrowsingSession {
   expires: Datetime!
 }
 
-scalar SearchPredicate
+input SearchPredicate {
+  op: String!
+  arg: Json!
+}
 
 input SearchFilter {
   path: [String!]!
@@ -310,37 +313,38 @@ type SearchResultSet {
   firstPage(size: Int = 30, order: SearchResultOrder): SearchResultSetPage!
 }
 
-enum SearchFacetSource {
-  # XXX: clarify this list
-  GeneralProperties
-  S3ObjectProperties
-  S3ObjectTags
-  S3ObjectMetadata
-  QuiltPackageProperties
-  QuiltPackageMetadata
-  QuiltWorkflow
-}
+# enum SearchFacetSource {
+#   # XXX: clarify this list
+#   GeneralProperties
+#   S3ObjectProperties
+#   S3ObjectTags
+#   S3ObjectMetadata
+#   QuiltPackageProperties
+#   QuiltPackageMetadata
+#   QuiltWorkflow
+# }
 
-enum SearchFacetType {
-  ResultType
-  Bucket
-  Workflow
-  Number
-  Date
-  Keyword
-  Text
-  Boolean
-}
+# enum SearchFacetType {
+#   # ResultType
+#   # Bucket
+#   Workflow
+#   Number
+#   Date
+#   Keyword
+#   Text
+#   Boolean
+# }
 
 # XXX: use GraphQL types for extents?
 scalar SearchFacetExtents
 
 type SearchFacet {
-  source: SearchFacetSource! # XXX: rename to "kind" or smth?
-  name: String!
+  # source: SearchFacetSource! # XXX: rename to "kind" or smth?
+  # name: String!
   path: [String!]!
-  type: SearchFacetType!
-  extents: SearchFacetExtents!
+  # XXX: do we need the type here or should we just infer it based on path?
+  # type: SearchFacetType!
+  extents: SearchFacetExtents
 }
 
 input SearchFacetInferenceOptions {
@@ -413,7 +417,7 @@ type Query {
   package(bucket: String!, name: String!): Package
   search(
     buckets: [String!]
-    type: SearchResultType
+    resultType: SearchResultType
     searchString: String
     filters: [SearchFilter!]
   ): SearchResult!

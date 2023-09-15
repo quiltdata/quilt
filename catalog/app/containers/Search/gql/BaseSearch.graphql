@@ -1,12 +1,12 @@
 query (
   $buckets: [String!]
-  $type: SearchResultType
+  $resultType: SearchResultType
   $searchString: String
   $filters: [SearchFilter!]
 ) {
   search(
     buckets: $buckets
-    type: $type
+    resultType: $resultType
     searchString: $searchString
     filters: $filters
   ) {
@@ -16,10 +16,10 @@ query (
         total
       }
       facets {
-        source
-        name
+        # source
+        # name
         path
-        type
+        # type
         extents
       }
     }
