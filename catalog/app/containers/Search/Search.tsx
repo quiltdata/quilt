@@ -70,8 +70,28 @@ function NumberFilterWidget({
   )
 }
 
+function GenericFilterWidget({
+  value,
+  // extents, // onChange, ,
+  onDeactivate,
+  ...rest
+}: FilterWidgetProps<SearchUIModel.FacetType<any, any, any>>) {
+  return (
+    <div>
+      generic
+      <button onClick={onDeactivate}>x</button>
+      <div>value: {JSON.stringify(value)}</div>
+      <div>extents: {JSON.stringify((rest as any).extents)}</div>
+    </div>
+  )
+}
+
 const FILTER_WIDGETS = {
   Number: NumberFilterWidget,
+  Date: GenericFilterWidget,
+  Keyword: GenericFilterWidget,
+  Text: GenericFilterWidget,
+  Boolean: GenericFilterWidget,
 }
 
 function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
@@ -80,6 +100,7 @@ function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
 ) {
   // eslint-disable-next-line no-underscore-dangle
   const FilterWidget = FILTER_WIDGETS[facet.type._tag]
+  // @ts-expect-error
   return <FilterWidget {...facet.state} {...actions} />
 }
 
@@ -101,6 +122,7 @@ function FacetWidget<F extends SearchUIModel.KnownFacetDescriptor>({
     }, [facet.path, deactivateFacet]),
     onChange: React.useCallback(
       (value) => {
+        // @ts-expect-error
         updateActiveFacet(facet.path, (f) => ({ ...f, state: { ...f.state, value } }))
       },
       [facet.path, updateActiveFacet],

@@ -43,7 +43,7 @@ type FilterFn<Value> = (
   path: FacetPath,
 ) => Model.GQLTypes.SearchFilter | null
 
-interface FacetType<Tag extends string, Value, Extents> {
+export interface FacetType<Tag extends string, Value, Extents> {
   _tag: Tag
   value: Value
   extents: Extents
@@ -70,7 +70,7 @@ function FacetFilter<Value>(
   }
 }
 
-// const EmptyExtents = FacetExtents<null>()
+const EmptyExtents = FacetExtents<null>()
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ignore(..._args: any[]) {}
@@ -92,7 +92,7 @@ export const FacetTypes = {
     'Number' as const,
     FacetValue<{ min: number | null; max: number | null }>(),
     FacetExtents<{ min: number; max: number }>(),
-    ({ min, max }) => ({ min, max }),
+    R.identity,
     FacetFilter(({ min, max }) => {
       const predicates = []
       if (min !== null) predicates.push(Model.Search.Predicate('>=', min))
@@ -100,21 +100,40 @@ export const FacetTypes = {
       return predicates
     }),
   ),
-  // Date: FacetType(
-  //   'Date' as const,
-  //   FacetValue<{ min: Date | null; max: Date | null }>,
-  //   FacetExtents<{ min: Date; max: Date }>,
-  // ),
-  // Keyword: FacetType(
-  //   'Keyword' as const,
-  //   FacetValue<string[]>,
-  //   EmptyExtents,
-  // ),
-  // Text: FacetType(
-  //   'Text' as const,
-  //   FacetValue<string[]>,
-  //   EmptyExtents,
-  // ),
+  Date: FacetType(
+    'Date' as const,
+    FacetValue<{ min: Date | null; max: Date | null }>(),
+    FacetExtents<{ min: Date; max: Date }>(),
+    R.identity,
+    FacetFilter(({ min, max }) => {
+      const predicates = []
+      // XXX: make sure dates are stringified properly
+      if (min !== null) predicates.push(Model.Search.Predicate('>=', JSON.stringify(min)))
+      if (max !== null) predicates.push(Model.Search.Predicate('<=', JSON.stringify(max)))
+      return predicates
+    }),
+  ),
+  Keyword: FacetType(
+    'Keyword' as const,
+    FacetValue<string[]>(),
+    EmptyExtents,
+    () => [],
+    FacetFilter((value) => (value.length ? [Model.Search.Predicate('in', value)] : [])),
+  ),
+  Text: FacetType(
+    'Text' as const,
+    FacetValue<string | null>(),
+    EmptyExtents,
+    () => null,
+    FacetFilter((value) => (value ? [Model.Search.Predicate('matches', value)] : [])),
+  ),
+  Boolean: FacetType(
+    'Boolean' as const,
+    FacetValue<boolean | null>(),
+    EmptyExtents,
+    () => null,
+    FacetFilter((value) => (value != null ? [Model.Search.Predicate('is', value)] : [])),
+  ),
 }
 
 export type KnownFacetType = (typeof FacetTypes)[keyof typeof FacetTypes]
@@ -141,84 +160,54 @@ export type StateForFacetType<T extends KnownFacetType> = T extends FacetType<
   ? FacetState<Value, Extents>
   : never
 
-interface FacetDescriptor<P extends FacetPath, T extends FacetType<any, any, any>> {
-  path: P
+interface FacetDescriptor<T extends FacetType<any, any, any>> {
+  path: FacetPath
   type: T
   state: StateForFacetType<T>
 }
 
-interface FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>> {
-  path: P
-  type: T
-  match: (p: any) => p is P
-  cast: ({ path, state }: any) => FacetDescriptor<P, T>
-  init: (path: FacetPath, extents: any) => FacetDescriptor<P, T>
-}
+export type KnownFacetDescriptor = FacetDescriptor<KnownFacetType>
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-function FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>>(
-  path: P,
-  type: T,
-): FacetMatcher<P, T> {
-  const match = (p: any): p is P => R.equals(path, p)
-  const cast = ({ path: p, state }: any) =>
-    ({
-      path: p,
-      type,
-      state,
-    }) as FacetDescriptor<P, T>
-  const init = (p: FacetPath, extents: any) =>
-    ({
-      path: p,
-      type,
-      state: { value: type.init(extents), extents },
-    }) as FacetDescriptor<P, T>
-  return { path, type, match, cast, init } as const
-}
-
-// PathPattern?
-export const KNOWN_FACETS = [
-  FacetMatcher(['pkg', 'total_size'] as const, FacetTypes.Number),
-  FacetMatcher(['pkg', 'total_entries'] as const, FacetTypes.Number),
-  // // comment: Text
-  // // last_modified: Date
-  // // workflow: Workflow
-  // // XXX: other facets
-  // FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
-  // FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
-]
-
-export type KnownFacetMatcher = (typeof KNOWN_FACETS)[number]
-
-type KnownFacetPath = KnownFacetMatcher['path']
-
-// type FacetMatcherForPath<P extends KnownFacetPath> = Extract<
-//   KnownFacetMatcher,
-//   { path: P }
-// >
-
-// type FacetTypeForPath<P extends KnownFacetPath> = FacetMatcherForPath<P>['type']
-
-// type FacetStateForPath<P extends KnownFacetPath> = StateForFacetType<FacetTypeForPath<P>>
+// interface FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>> {
+//   path: P
+//   type: T
+//   match: (p: any) => p is P
+//   cast: ({ path, state }: any) => FacetDescriptor<P, T>
+//   init: (path: FacetPath, extents: any) => FacetDescriptor<P, T>
+// }
 //
-// function getMatcher<P extends KnownFacetPath>(path: P): FacetMatcherForPath<P> {
-//   return KNOWN_FACETS.filter((m): m is FacetMatcherForPath<P> =>
-//     R.equals(m.path, path),
-//   )[0]
+// // eslint-disable-next-line @typescript-eslint/no-redeclare
+// function FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>>(
+//   path: P,
+//   type: T,
+// ): FacetMatcher<P, T> {
+//   const match = (p: any): p is P => R.equals(path, p)
+//   const cast = ({ path: p, state }: any) =>
+//     ({
+//       path: p,
+//       type,
+//       state,
+//     }) as FacetDescriptor<P, T>
+//   const init = (p: FacetPath, extents: any) =>
+//     ({
+//       path: p,
+//       type,
+//       state: { value: type.init(extents), extents },
+//     }) as FacetDescriptor<P, T>
+//   return { path, type, match, cast, init } as const
 // }
 
-type FacetDescriptorFromMatcher<M> = M extends FacetMatcher<infer P, infer T>
-  ? FacetDescriptor<P, T>
-  : never
-
-export type KnownFacetDescriptor = FacetDescriptorFromMatcher<KnownFacetMatcher>
-
-type FacetDescriptorFromPath<P extends KnownFacetPath> = Extract<
-  KnownFacetDescriptor,
-  { path: P }
->
-
-// type FacetStateFromPath<P> = FacetDescriptorFromPath<P>['state']
+// PathPattern?
+// export const KNOWN_FACETS = [
+//   FacetMatcher(['pkg', 'total_size'] as const, FacetTypes.Number),
+//   FacetMatcher(['pkg', 'total_entries'] as const, FacetTypes.Number),
+//   // comment: Text
+//   // last_modified: Date
+//   // workflow: Workflow
+//   // XXX: other facets
+//   FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
+//   FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
+// ]
 
 // function updateFacetDescriptorState<F extends KnownFacetDescriptor>(
 //   facet: F,
@@ -230,35 +219,52 @@ type FacetDescriptorFromPath<P extends KnownFacetPath> = Extract<
 //   }
 // }
 
-function matchFacet(path: any, state: any): KnownFacetDescriptor | null {
-  for (const matcher of KNOWN_FACETS) {
-    if (matcher.match(path)) return matcher.cast({ path, state })
+// for (const matcher of KNOWN_FACETS) {
+//   if (matcher.match(path)) return matcher.cast({ path, state })
+// }
+
+const TYPE_MAP = {
+  keyword: FacetTypes.Keyword,
+  text: FacetTypes.Text,
+  double: FacetTypes.Number,
+  date: FacetTypes.Date,
+  boolean: FacetTypes.Boolean,
+}
+
+function matchFacet(path: FacetPath): KnownFacetType | null {
+  if (R.equals(['pkg', 'total_size'], path)) return FacetTypes.Number
+  if (R.equals(['pkg', 'total_entries'], path)) return FacetTypes.Number
+  if (R.startsWith(['pkg_meta'], path)) {
+    const [, ptr, typeName] = path
+    if (!ptr || !typeName) return null
+    return TYPE_MAP[typeName as keyof typeof TYPE_MAP] ?? null
   }
   return null
+}
+
+function hydrateFacet(path: any, state: any): KnownFacetDescriptor | null {
+  const type = matchFacet(path)
+  if (!type) return null
+  return {
+    path,
+    type,
+    state,
+  } as FacetDescriptor<typeof type>
 }
 
 function initFacet(path: any, extents: any): KnownFacetDescriptor | null {
-  for (const matcher of KNOWN_FACETS) {
-    if (matcher.match(path)) return matcher.init(path, extents)
-  }
-  return null
+  const type = matchFacet(path)
+  if (!type) return null
+  return {
+    path,
+    type,
+    state: { value: (type.init as $TSFixMe)(extents), extents },
+  } as FacetDescriptor<typeof type>
 }
 
-// function makeFacet<P extends KnownFacetPath>(path: P, state: FacetStateForPath<P>) {
-//   const matcher = getMatcher(path)
-//   return matcher.cast({ path, state }) as FacetDescriptorFromPath<P>
+// export function getFacetType<F extends KnownFacetDescriptor>(facet: F): F['type'] {
+//   return facet.type
 // }
-
-export function facetIs<P extends KnownFacetPath>(
-  path: P,
-  f: KnownFacetDescriptor,
-): f is FacetDescriptorFromPath<P> {
-  return R.equals(path, f.path)
-}
-
-export function getFacetType<F extends KnownFacetDescriptor>(facet: F): F['type'] {
-  return facet.type
-}
 
 interface SearchUrlState {
   searchString: string | null
@@ -317,13 +323,14 @@ function parseFacetDescriptor(input: string): KnownFacetDescriptor | null {
   invariant(typeof state === 'object', 'facet state must be an object')
   // TODO: proper parsing and validation with io-ts or effect-ts
   // TODO: traverse facets definitions to get missing data
-  return matchFacet(path, state)
+  return hydrateFacet(path, state)
 }
 
 function serializeFacetDescriptor(f: KnownFacetDescriptor): string {
   // for built-in static facets we don't need to save the type
   // XXX: move serailization to FacetType or FacetMatcher?
-  return JSON.stringify(f)
+  const { path, state } = f
+  return JSON.stringify({ path, state })
 }
 
 // XXX: use io-ts or smth for morphisms between url (querystring) and search state
@@ -421,7 +428,7 @@ function computeFilters(
   activeFacets: KnownFacetDescriptor[],
 ): Model.GQLTypes.SearchFilter[] {
   return activeFacets
-    .map((facet) => facet.type.filter(facet.state.value, facet.path))
+    .map((facet) => (facet.type.filter as $TSFixMe)(facet.state.value, facet.path))
     .filter((f): f is Model.GQLTypes.SearchFilter => !!f)
 }
 
@@ -567,7 +574,7 @@ function useSearchUIModel() {
   )
 
   const activateFacet = React.useCallback(
-    (path: KnownFacetPath) => {
+    (path: FacetPath) => {
       // eslint-disable-next-line no-console
       console.log('activateFacet', path)
       const facet = availableFacets.facets.find((f) => R.equals(f.path, path))
@@ -580,7 +587,7 @@ function useSearchUIModel() {
   )
 
   const deactivateFacet = React.useCallback(
-    (path: KnownFacetPath) => {
+    (path: FacetPath) => {
       // eslint-disable-next-line no-console
       console.log('deactivateFacet', path)
       // add to active facets
@@ -594,14 +601,12 @@ function useSearchUIModel() {
   )
 
   const updateActiveFacet = React.useCallback(
-    // eslint-disable-next-line prefer-arrow-callback
-    function <P extends KnownFacetPath>(
-      path: P,
-      updater: (f: FacetDescriptorFromPath<P>) => FacetDescriptorFromPath<P>,
-    ) {
+    (path: FacetPath, updater: (f: KnownFacetDescriptor) => KnownFacetDescriptor) => {
       updateUrlState(
         R.evolve({
-          facets: R.map((f: KnownFacetDescriptor) => (facetIs(path, f) ? updater(f) : f)),
+          facets: R.map((f: KnownFacetDescriptor) =>
+            R.equals(path, f.path) ? updater(f) : f,
+          ),
         }),
       )
     },
