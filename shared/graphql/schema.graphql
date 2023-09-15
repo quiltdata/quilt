@@ -274,12 +274,18 @@ type BrowsingSession {
   expires: Datetime!
 }
 
-# There's no way to support recursive expressions natively in GraphQL
-# (no union support for input types), so we use a custom scalar type.
-# See details in XXX: path to the model TS file
-scalar SearchFilterExpression
+scalar SearchPredicate
 
-union SearchResult = BoundedSearch | UnboundedSearch | InvalidInput | OperationError
+input SearchFilter {
+  path: [String!]!
+  predicates: [SearchPredicate!]!
+}
+
+union SearchResult =
+    BoundedSearch
+  | UnboundedSearch
+  | InvalidInput
+  | OperationError
 
 union SearchMoreResult = SearchResultSetPage | InvalidInput | OperationError
 
@@ -342,11 +348,6 @@ input SearchFacetInferenceOptions {
   _: Boolean
 }
 
-# input SearchOptions {
-#   # TODO
-#   _: Boolean
-# }
-
 type BoundedSearch {
   results: SearchResultSet!
   facets(options: SearchFacetInferenceOptions): [SearchFacet!]!
@@ -398,6 +399,11 @@ type SearchHitPackage {
   # tags: [String!]! // TODO: currently not provided
 }
 
+enum SearchResultType {
+  QuiltPackage
+  S3Object
+}
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -406,12 +412,10 @@ type Query {
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
   search(
-    # buckets: [String!]!,
-    # type: SearchResultType!,
-    # retry: Int = 0,
-    searchString: String,
-    filter: SearchFilterExpression,
-    # options: SearchOptions,
+    buckets: [String!]
+    type: SearchResultType
+    searchString: String
+    filters: [SearchFilter!]
   ): SearchResult!
   searchMore(after: String!, size: Int = 30): SearchMoreResult!
   policies: [Policy!]! @admin
@@ -689,10 +693,7 @@ union PackageConstructResult =
   | InvalidInput
   | OperationError
 
-union PackagePromoteResult =
-    PackagePushSuccess
-  | InvalidInput
-  | OperationError
+union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
 union PackageFromFolderResult =
     PackagePushSuccess
@@ -742,7 +743,8 @@ type Mutation {
   policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
   policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
   policyUpdateManaged(id: ID!, input: ManagedPolicyInput!): PolicyResult! @admin
-  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult!
+    @admin
   policyDelete(id: ID!): PolicyDeleteResult! @admin
 
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
@@ -753,7 +755,13 @@ type Mutation {
   roleDelete(id: ID!): RoleDeleteResult! @admin
   roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
 
-  browsingSessionCreate(scope: String!, ttl: Int! = 180): BrowsingSessionCreateResult!
-  browsingSessionRefresh(id: ID!, ttl: Int! = 180): BrowsingSessionRefreshResult!
+  browsingSessionCreate(
+    scope: String!
+    ttl: Int! = 180
+  ): BrowsingSessionCreateResult!
+  browsingSessionRefresh(
+    id: ID!
+    ttl: Int! = 180
+  ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
 }
