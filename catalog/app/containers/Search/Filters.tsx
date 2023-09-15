@@ -290,3 +290,57 @@ export function Workflow({
     </Filters.Container>
   )
 }
+
+function getAvailableFacetLabel(facet: string) {
+  switch (facet) {
+    case 'type':
+      return 'Result type'
+    case 'buckets':
+      return 'Buckets'
+    case 'total_size':
+      return 'Total size'
+    case 'comment':
+      return 'Comment'
+    case 'last_modified':
+      return 'Last modified date'
+    case 'package_hash':
+      return 'Package hash'
+    case 'total_entries':
+      return 'Total entries'
+    case 'key':
+      return 'File name'
+    case 'ext':
+      return 'File extension'
+    case 'size':
+      return 'Size'
+    case 'etag':
+      return 'ETag'
+    case 'delete_marker':
+      return 'Show/hide deleted'
+    default:
+      throw new Error('Wrong type')
+  }
+}
+
+interface AvailableFacetsProps {
+  facets: string[]
+  onClick: (facet: string) => void
+}
+
+export function AvailableFacets({ facets, onClick }: AvailableFacetsProps) {
+  const items = React.useMemo(
+    () =>
+      facets.map((type) => ({
+        label: getAvailableFacetLabel(type) || '',
+        type,
+      })),
+    [facets],
+  )
+  const handleClick = React.useCallback(
+    (item) => {
+      onClick(item.type)
+    },
+    [onClick],
+  )
+  return <Filters.Available items={items} onClick={handleClick} />
+}
