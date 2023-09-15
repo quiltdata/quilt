@@ -122,8 +122,8 @@ function ActiveFacets() {
   const model = SearchUIModel.use()
   return (
     <>
-      {model.state.activeFacets.map((facet, i) => (
-        <FacetWidget key={i} facet={facet} />
+      {model.state.activeFacets.map((facet) => (
+        <FacetWidget key={JSON.stringify(facet.path)} facet={facet} />
       ))}
     </>
   )
@@ -140,9 +140,8 @@ function AvailableFacets() {
   const model = SearchUIModel.use()
   return (
     <>
-      {model.state.availableFacets.facets.map((facet, i) => (
-        // TODO: infer unique key (serialize path?)
-        <AvailableFacet key={i} {...facet} />
+      {model.state.availableFacets.facets.map((facet) => (
+        <AvailableFacet key={JSON.stringify(facet.path)} {...facet} />
       ))}
     </>
   )
@@ -173,7 +172,7 @@ function SearchHit({ hit }: SearchHitProps) {
           ? `${hit.key}@${hit.version}`
           : `${hit.name}@${hit.hash}`}
       </div>
-      {JSON.stringify(hit)}
+      <pre>{JSON.stringify(hit, null, 2)}</pre>
     </div>
   )
 }
@@ -192,7 +191,7 @@ function ResultsPage({ hits, cursor }: ResultsPageProps) {
   return (
     <div>
       {hits.map((hit) => (
-        <SearchHit key={SearchUIModel.searchHitId(hit)} hit={hit} />
+        <SearchHit key={hit.id} hit={hit} />
       ))}
       {!!cursor &&
         (more ? (

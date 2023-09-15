@@ -21,6 +21,7 @@ export type containers_Search_gql_FirstPageQuery = { readonly __typename: 'Query
               readonly hits: ReadonlyArray<
                 | ({ readonly __typename: 'SearchHitObject' } & Pick<
                     Types.SearchHitObject,
+                    | 'id'
                     | 'bucket'
                     | 'key'
                     | 'version'
@@ -31,6 +32,7 @@ export type containers_Search_gql_FirstPageQuery = { readonly __typename: 'Query
                   >)
                 | ({ readonly __typename: 'SearchHitPackage' } & Pick<
                     Types.SearchHitPackage,
+                    | 'id'
                     | 'bucket'
                     | 'name'
                     | 'hash'
@@ -39,6 +41,7 @@ export type containers_Search_gql_FirstPageQuery = { readonly __typename: 'Query
                     | 'lastModified'
                     | 'comment'
                     | 'meta'
+                    | 'workflow'
                   >)
               >
             }
@@ -199,6 +202,10 @@ export const containers_Search_gql_FirstPageDocument = {
                                             selections: [
                                               {
                                                 kind: 'Field',
+                                                name: { kind: 'Name', value: 'id' },
+                                              },
+                                              {
+                                                kind: 'Field',
                                                 name: { kind: 'Name', value: 'bucket' },
                                               },
                                               {
@@ -248,6 +255,10 @@ export const containers_Search_gql_FirstPageDocument = {
                                             selections: [
                                               {
                                                 kind: 'Field',
+                                                name: { kind: 'Name', value: 'id' },
+                                              },
+                                              {
+                                                kind: 'Field',
                                                 name: { kind: 'Name', value: 'bucket' },
                                               },
                                               {
@@ -280,6 +291,10 @@ export const containers_Search_gql_FirstPageDocument = {
                                               {
                                                 kind: 'Field',
                                                 name: { kind: 'Name', value: 'meta' },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'workflow' },
                                               },
                                             ],
                                           },

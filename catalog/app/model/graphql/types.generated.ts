@@ -764,6 +764,7 @@ export type SearchHit = SearchHitObject | SearchHitPackage
 
 export interface SearchHitObject {
   readonly __typename: 'SearchHitObject'
+  readonly id: Scalars['ID']
   readonly bucket: Scalars['String']
   readonly key: Scalars['String']
   readonly version: Scalars['String']
@@ -775,6 +776,7 @@ export interface SearchHitObject {
 
 export interface SearchHitPackage {
   readonly __typename: 'SearchHitPackage'
+  readonly id: Scalars['ID']
   readonly bucket: Scalars['String']
   readonly name: Scalars['String']
   readonly hash: Scalars['String']
@@ -782,7 +784,8 @@ export interface SearchHitPackage {
   readonly size: Scalars['Float']
   readonly lastModified: Scalars['Datetime']
   readonly comment: Maybe<Scalars['String']>
-  readonly meta: Scalars['JsonRecord']
+  readonly meta: Maybe<Scalars['JsonRecord']>
+  readonly workflow: Maybe<Scalars['JsonRecord']>
 }
 
 export type SearchMoreResult = SearchResultSetPage | InvalidInput | OperationError

@@ -3448,6 +3448,18 @@ export default {
         name: 'SearchHitObject',
         fields: [
           {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'bucket',
             type: {
               kind: 'NON_NULL',
@@ -3539,6 +3551,18 @@ export default {
         name: 'SearchHitPackage',
         fields: [
           {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'bucket',
             type: {
               kind: 'NON_NULL',
@@ -3622,12 +3646,18 @@ export default {
           {
             name: 'meta',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'JsonRecord',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
             },
             args: [],
           },

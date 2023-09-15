@@ -176,6 +176,7 @@ function FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>>(
   return { path, type, match, cast, init } as const
 }
 
+// PathPattern?
 export const KNOWN_FACETS = [
   FacetMatcher(['pkg', 'total_size'] as const, FacetTypes.Number),
   FacetMatcher(['pkg', 'total_entries'] as const, FacetTypes.Number),
@@ -183,6 +184,8 @@ export const KNOWN_FACETS = [
   // // last_modified: Date
   // // workflow: Workflow
   // // XXX: other facets
+  // FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
+  // FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
 ]
 
 export type KnownFacetMatcher = (typeof KNOWN_FACETS)[number]

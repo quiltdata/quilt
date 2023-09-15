@@ -6,6 +6,7 @@ query ($after: String!) {
       hits {
         __typename
         ... on SearchHitObject {
+          id
           # ID
           bucket
           key
@@ -18,6 +19,7 @@ query ($after: String!) {
           deleteMarker
         }
         ... on SearchHitPackage {
+          id
           # ID
           bucket
           name
@@ -29,6 +31,7 @@ query ($after: String!) {
           # specific props
           comment
           meta
+          workflow
         }
       }
     }
