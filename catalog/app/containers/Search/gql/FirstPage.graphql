@@ -19,6 +19,7 @@ query (
           hits {
             __typename
             ... on SearchHitObject {
+              id
               # ID
               bucket
               key
@@ -31,6 +32,7 @@ query (
               deleteMarker
             }
             ... on SearchHitPackage {
+              id
               # ID
               bucket
               name
@@ -42,6 +44,7 @@ query (
               # specific props
               comment
               meta
+              workflow
             }
           }
         }

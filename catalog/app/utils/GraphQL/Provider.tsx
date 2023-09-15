@@ -90,6 +90,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
         keys: {
           AccessCountForDate: () => null,
           AccessCounts: () => null,
+          BoundedSearch: () => null,
           BucketConfig: (b) => b.name as string,
           Canary: (c) => c.name as string,
           Collaborator: (c) => c.username as string,
@@ -108,6 +109,9 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
+          SearchFacet: (sf: any) => JSON.stringify(sf.path) ?? null,
+          SearchResultSet: () => null,
+          SearchResultSetPage: () => null,
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,

@@ -16,8 +16,6 @@ query (
         total
       }
       facets {
-        # source
-        # name
         path
         # type
         extents

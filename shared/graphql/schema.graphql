@@ -313,17 +313,6 @@ type SearchResultSet {
   firstPage(size: Int = 30, order: SearchResultOrder): SearchResultSetPage!
 }
 
-# enum SearchFacetSource {
-#   # XXX: clarify this list
-#   GeneralProperties
-#   S3ObjectProperties
-#   S3ObjectTags
-#   S3ObjectMetadata
-#   QuiltPackageProperties
-#   QuiltPackageMetadata
-#   QuiltWorkflow
-# }
-
 # enum SearchFacetType {
 #   # ResultType
 #   # Bucket
@@ -339,8 +328,6 @@ type SearchResultSet {
 scalar SearchFacetExtents
 
 type SearchFacet {
-  # source: SearchFacetSource! # XXX: rename to "kind" or smth?
-  # name: String!
   path: [String!]!
   # XXX: do we need the type here or should we just infer it based on path?
   # type: SearchFacetType!
@@ -368,6 +355,8 @@ union SearchHit = SearchHitObject | SearchHitPackage
 
 # XXX: do we need to highlight active facets in the results?
 type SearchHitObject {
+  id: ID!
+
   # ID:
   bucket: String!
   key: String!
@@ -387,6 +376,8 @@ type SearchHitObject {
 
 # TODO: reuse package types?
 type SearchHitPackage {
+  id: ID!
+
   # ID
   bucket: String!
   name: String!
@@ -399,7 +390,8 @@ type SearchHitPackage {
 
   # specific props
   comment: String
-  meta: JsonRecord! # *whole* meta (not just user_meta)
+  meta: JsonRecord # user_meta
+  workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
 }
 

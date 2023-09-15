@@ -14,8 +14,6 @@ query (
     __typename
     ... on BoundedSearch {
       facet(path: $path) {
-        # source
-        # name
         path
         # type
         extents
