@@ -1,4 +1,4 @@
-export { default as Available } from './Available'
+export { default as Available, AvailableSkeleton } from './Available'
 export { default as Checkbox } from './Checkbox'
 export { default as Container } from './Container'
 export { default as DatesRange } from './DatesRange'

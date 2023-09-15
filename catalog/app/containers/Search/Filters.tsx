@@ -6,10 +6,6 @@ import * as BucketConfig from 'utils/BucketConfig'
 
 export const L = 'loading'
 
-export function ResultType() {
-  return <></>
-}
-
 export interface ActiveFacet<V, E = null> {
   extents?: E | typeof L | null
   onChange: (v: V) => void
@@ -323,24 +319,22 @@ function getAvailableFacetLabel(facet: string) {
 }
 
 interface AvailableFacetsProps {
-  facets: string[]
+  facets: string[] | typeof L
   onClick: (facet: string) => void
 }
 
 export function AvailableFacets({ facets, onClick }: AvailableFacetsProps) {
-  const items = React.useMemo(
-    () =>
-      facets.map((type) => ({
-        label: getAvailableFacetLabel(type) || '',
-        type,
-      })),
-    [facets],
+  const items = React.useMemo(() => {
+    if (!Array.isArray(facets)) return [] as { label: string; type: string }[]
+    return facets.map((type) => ({
+      label: getAvailableFacetLabel(type) || '',
+      type,
+    }))
+  }, [facets])
+  const handleClick = React.useCallback((item) => onClick(item.type), [onClick])
+  return facets === L ? (
+    <Filters.AvailableSkeleton />
+  ) : (
+    <Filters.Available items={items} onClick={handleClick} />
   )
-  const handleClick = React.useCallback(
-    (item) => {
-      onClick(item.type)
-    },
-    [onClick],
-  )
-  return <Filters.Available items={items} onClick={handleClick} />
 }
