@@ -32,6 +32,7 @@ const SANITIZE_OPTS = {
     'aside',
     'b',
     'blockquote',
+    'br',
     'caption',
     'code',
     'col',
