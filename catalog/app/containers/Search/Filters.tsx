@@ -1,8 +1,10 @@
+import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Filters from 'components/Filters'
 import * as BucketConfig from 'utils/BucketConfig'
+import { formatQuantity, trimCenter } from 'utils/string'
 
 export const L = 'loading'
 
@@ -65,9 +67,15 @@ const typeExtents = [
 ]
 
 export function Type({ value, onChange }: ActiveFacet<string>) {
+  const val = typeExtents.find((e) => e.value === value) || null
   return (
     <Filters.Container defaultExpanded title="Result type">
-      <Filters.RadioGroup extents={typeExtents} onChange={onChange} value={value} />
+      <Filters.Select<{ value: string; title: string }>
+        extents={typeExtents}
+        getOptionLabel={(option) => option.title}
+        onChange={(o) => onChange(o.value)}
+        value={val}
+      />
     </Filters.Container>
   )
 }
@@ -116,7 +124,12 @@ export function PackageHash({
   return (
     <Filters.Container defaultExpanded title="Package hash" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
-        <Filters.Enum extents={extents} onChange={onChange} value={value} />
+        <Filters.List
+          extents={extents}
+          onChange={onChange}
+          value={value}
+          placeholder="Filter hashes"
+        />
       )}
     </Filters.Container>
   )
@@ -199,7 +212,12 @@ export function Etag({
   return (
     <Filters.Container defaultExpanded title="ETag" onDeactivate={onDeactivate}>
       {extents && extents !== L && (
-        <Filters.Enum extents={extents} onChange={onChange} value={value} />
+        <Filters.List
+          extents={extents}
+          onChange={onChange}
+          value={value}
+          placeholder="Filter etags"
+        />
       )}
     </Filters.Container>
   )
@@ -329,12 +347,168 @@ export function AvailableFacets({ facets, onClick }: AvailableFacetsProps) {
     return facets.map((type) => ({
       label: getAvailableFacetLabel(type) || '',
       type,
+      onClick: () => onClick(type),
     }))
-  }, [facets])
-  const handleClick = React.useCallback((item) => onClick(item.type), [onClick])
-  return facets === L ? (
-    <Filters.AvailableSkeleton />
-  ) : (
-    <Filters.Available items={items} onClick={handleClick} />
-  )
+  }, [facets, onClick])
+  return facets === L ? <Filters.ChipsSkeleton /> : <Filters.Chips items={items} />
+}
+
+type SelectedFacet<V, E = null> = Omit<ActiveFacet<V, E>, 'onChange' | 'onDeactivate'>
+
+type SelectedFilter =
+  | { path: 'type'; state: SelectedFacet<'po' | 'p' | 'o'> }
+  | { path: 'buckets'; state: SelectedFacet<string[], string[]> }
+  | {
+      path: 'total_size'
+      state: SelectedFacet<[number, number] | null, [number, number]>
+    }
+  | { path: 'comment'; state: SelectedFacet<string> }
+  | { path: 'last_modified'; state: SelectedFacet<[Date, Date] | null, [Date, Date]> }
+  | { path: 'package_hash'; state: SelectedFacet<string[], string[]> }
+  | {
+      path: 'total_entries'
+      state: SelectedFacet<[number, number] | null, [number, number]>
+    }
+  | { path: 'key'; state: SelectedFacet<string> }
+  | { path: 'ext'; state: SelectedFacet<string> }
+  | { path: 'size'; state: SelectedFacet<[number, number] | null, [number, number]> }
+  | { path: 'etag'; state: SelectedFacet<string[], string[]> }
+  | { path: 'delete_marker'; state: SelectedFacet<boolean> }
+
+interface ActiveItem {
+  label: React.ReactNode
+  type: string
+  onDelete?: () => SelectedFilter
+}
+
+function getActiveItems(filter: SelectedFilter): ActiveItem[] {
+  switch (filter.path) {
+    case 'type':
+      return [
+        {
+          label: (
+            <>
+              Return type is{' '}
+              <b>
+                {
+                  { po: 'Packages and objects', p: 'Packages', o: 'Objects' }[
+                    filter.state.value
+                  ]
+                }
+              </b>
+            </>
+          ),
+          type: filter.path,
+        },
+      ]
+    case 'buckets':
+      if (!filter.state.value.length) return []
+      return filter.state.value.map((value) => ({
+        label: (
+          <>
+            In <b>{value}</b> bucket
+          </>
+        ),
+        type: filter.path,
+        onDelete: () => ({
+          ...filter,
+          state: {
+            ...filter.state,
+            value: filter.state.value.filter((v) => v !== value),
+          },
+        }),
+      }))
+    case 'total_size':
+      if (!filter.state.value) return []
+      if (!filter.state.extents || filter.state.extents === L) return []
+      return [
+        {
+          label: (
+            <>
+              Total size <b>⩾ {formatQuantity(filter.state.value[0])}</b> and{' '}
+              <b>⩽ {formatQuantity(filter.state.value[1])}</b>
+            </>
+          ),
+          type: filter.path,
+          onDelete: () => {
+            if (!filter.state.extents || filter.state.extents === L) {
+              throw new Error('This should not happen')
+            }
+            return {
+              ...filter,
+              state: {
+                ...filter.state,
+                value: filter.state.extents,
+              },
+            }
+          },
+        },
+      ]
+    case 'comment':
+      if (!filter.state.value) return []
+      return [
+        {
+          label: (
+            <>
+              Comment is <b>{trimCenter(filter.state.value, 16)}</b>
+            </>
+          ),
+          type: filter.path,
+          onDelete: () => ({
+            ...filter,
+            state: {
+              ...filter.state,
+              value: '',
+            },
+          }),
+        },
+      ]
+    case 'last_modified':
+      if (!filter.state.value) return []
+      if (!filter.state.extents || filter.state.extents === L) return []
+      return [
+        {
+          label: (
+            <>
+              Last modified date{' '}
+              <b>after {dateFns.format(filter.state.value[0], 'yyyy-MM-dd')}</b> and{' '}
+              <b>before {dateFns.format(filter.state.value[1], 'yyyy-MM-dd')}</b>
+            </>
+          ),
+          type: filter.path,
+          onDelete: () => {
+            if (!filter.state.extents || filter.state.extents === L) {
+              throw new Error('This should not happen')
+            }
+            return {
+              ...filter,
+              state: {
+                ...filter.state,
+                value: filter.state.extents,
+              },
+            }
+          },
+        },
+      ]
+    default:
+      return [] as ActiveItem[]
+  }
+}
+
+interface ActiveFacetsProps {
+  filters: SelectedFilter[] | typeof L
+  onDelete: (facet: SelectedFilter) => void
+}
+
+export function ActiveFacets({ filters, onDelete }: ActiveFacetsProps) {
+  const items = React.useMemo(() => {
+    if (!Array.isArray(filters)) return [] as ActiveItem[]
+    return filters
+      .reduce((memo, filter) => [...memo, ...getActiveItems(filter)], [] as ActiveItem[])
+      .map((i) => ({
+        ...i,
+        onDelete: i.onDelete ? () => i.onDelete && onDelete(i.onDelete()) : undefined,
+      }))
+  }, [filters, onDelete])
+  return filters === L ? <Filters.ChipsSkeleton /> : <Filters.Chips items={items} />
 }
