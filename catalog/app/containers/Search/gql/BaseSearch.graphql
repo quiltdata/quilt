@@ -1,15 +1,23 @@
-query ($searchString: String, $filter: SearchFilterExpression) {
-  search(searchString: $searchString, filter: $filter) {
+query (
+  $buckets: [String!]
+  $resultType: SearchResultType
+  $searchString: String
+  $filters: [SearchFilter!]
+) {
+  search(
+    buckets: $buckets
+    resultType: $resultType
+    searchString: $searchString
+    filters: $filters
+  ) {
     __typename
     ... on BoundedSearch {
       results {
         total
       }
       facets {
-        source
-        name
         path
-        type
+        # type
         extents
       }
     }

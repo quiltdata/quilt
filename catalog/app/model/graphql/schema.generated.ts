@@ -2852,6 +2852,27 @@ export default {
             },
             args: [
               {
+                name: 'buckets',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'String',
+                      ofType: null,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'resultType',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+              {
                 name: 'searchString',
                 type: {
                   kind: 'SCALAR',
@@ -2860,11 +2881,16 @@ export default {
                 },
               },
               {
-                name: 'filter',
+                name: 'filters',
                 type: {
-                  kind: 'SCALAR',
-                  name: 'SearchFilterExpression',
-                  ofType: null,
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'Any',
+                    },
+                  },
                 },
               },
             ],
@@ -3370,29 +3396,6 @@ export default {
         name: 'SearchFacet',
         fields: [
           {
-            name: 'source',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Any',
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'path',
             type: {
               kind: 'NON_NULL',
@@ -3411,25 +3414,11 @@ export default {
             args: [],
           },
           {
-            name: 'type',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Any',
-              },
-            },
-            args: [],
-          },
-          {
             name: 'extents',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'SearchFacetExtents',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'SearchFacetExtents',
+              ofType: null,
             },
             args: [],
           },
@@ -3439,10 +3428,6 @@ export default {
       {
         kind: 'SCALAR',
         name: 'SearchFacetExtents',
-      },
-      {
-        kind: 'SCALAR',
-        name: 'SearchFilterExpression',
       },
       {
         kind: 'UNION',
@@ -3462,6 +3447,18 @@ export default {
         kind: 'OBJECT',
         name: 'SearchHitObject',
         fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
           {
             name: 'bucket',
             type: {
@@ -3554,6 +3551,18 @@ export default {
         name: 'SearchHitPackage',
         fields: [
           {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'bucket',
             type: {
               kind: 'NON_NULL',
@@ -3637,12 +3646,18 @@ export default {
           {
             name: 'meta',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'JsonRecord',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
             },
             args: [],
           },

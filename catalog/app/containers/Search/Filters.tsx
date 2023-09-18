@@ -57,15 +57,15 @@ export function Comment({ value, onChange, onDeactivate }: ActiveFacet<string>) 
 
 const typeExtents = [
   {
-    value: '', // TODO: rename to 'any'
+    value: '', // TODO: rename to 'any' or null
     title: 'Packages and objects',
   },
   {
-    value: SearchUIModel.ResultType.Packages,
+    value: SearchUIModel.ResultType.QuiltPackage,
     title: 'Packages',
   },
   {
-    value: SearchUIModel.ResultType.Objects,
+    value: SearchUIModel.ResultType.S3Object,
     title: 'Objects',
   },
 ]

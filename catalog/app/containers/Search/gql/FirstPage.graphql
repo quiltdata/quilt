@@ -1,5 +1,16 @@
-query ($searchString: String, $filter: SearchFilterExpression, $order: SearchResultOrder) {
-  search(searchString: $searchString, filter: $filter) {
+query (
+  $buckets: [String!]
+  $resultType: SearchResultType
+  $searchString: String
+  $filters: [SearchFilter!]
+  $order: SearchResultOrder
+) {
+  search(
+    buckets: $buckets
+    resultType: $resultType
+    searchString: $searchString
+    filters: $filters
+  ) {
     __typename
     ... on BoundedSearch {
       results {
@@ -8,6 +19,7 @@ query ($searchString: String, $filter: SearchFilterExpression, $order: SearchRes
           hits {
             __typename
             ... on SearchHitObject {
+              id
               # ID
               bucket
               key
@@ -20,6 +32,7 @@ query ($searchString: String, $filter: SearchFilterExpression, $order: SearchRes
               deleteMarker
             }
             ... on SearchHitPackage {
+              id
               # ID
               bucket
               name
@@ -31,6 +44,7 @@ query ($searchString: String, $filter: SearchFilterExpression, $order: SearchRes
               # specific props
               comment
               meta
+              workflow
             }
           }
         }

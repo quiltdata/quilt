@@ -22,24 +22,24 @@ interface FacetActions<T extends SearchUIModel.KnownFacetType> {
 type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
   SearchUIModel.StateForFacetType<T> & FacetActions<T>
 
-function ResultTypeFilterWidget({
-  value,
-  onChange, // onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.ResultType>) {
-  const selectValue = value ?? ''
+function ResultTypeSelector() {
+  const model = SearchUIModel.use()
+  const { setResultType } = model.actions
+  const selectValue = model.state.resultType ?? ''
   return (
     <FiltersWidgets.Type
       value={selectValue}
-      onChange={(t) => onChange((t || null) as SearchUIModel.ResultType)}
+      onChange={(t) => setResultType((t || null) as SearchUIModel.ResultType)}
     />
   )
 }
 
-function BucketFilterWidget({
-  value, // onChange, onDeactivate,
-  onChange,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Bucket>) {
-  return <FiltersWidgets.BucketExtented value={value} onChange={onChange} />
+function BucketSelector() {
+  const model = SearchUIModel.use()
+  const selectValue = model.state.buckets
+  // use model.actions.setBuckets
+  const { setBuckets } = model.actions
+  return <FiltersWidgets.BucketExtented value={selectValue} onChange={setBuckets} />
 }
 
 function NumberFilterWidget({
@@ -74,10 +74,28 @@ function NumberFilterWidget({
   )
 }
 
+function GenericFilterWidget({
+  value,
+  // extents, // onChange, ,
+  onDeactivate,
+  ...rest
+}: FilterWidgetProps<SearchUIModel.FacetType<any, any, any>>) {
+  return (
+    <div>
+      generic
+      <button onClick={onDeactivate}>x</button>
+      <div>value: {JSON.stringify(value)}</div>
+      <div>extents: {JSON.stringify((rest as any).extents)}</div>
+    </div>
+  )
+}
+
 const FILTER_WIDGETS = {
-  ResultType: ResultTypeFilterWidget,
-  Bucket: BucketFilterWidget,
   Number: NumberFilterWidget,
+  Date: GenericFilterWidget,
+  Keyword: GenericFilterWidget,
+  Text: GenericFilterWidget,
+  Boolean: GenericFilterWidget,
 }
 
 function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
@@ -130,25 +148,24 @@ function ActiveFacets() {
   const model = SearchUIModel.use()
   return (
     <>
-      {model.state.activeFacets.map((facet, i) => (
-        <FacetWidget key={i} facet={facet} />
+      {model.state.activeFacets.map((facet) => (
+        <FacetWidget key={JSON.stringify(facet.path)} facet={facet} />
       ))}
     </>
   )
 }
 
-function AvailableFacet({ name, descriptor: { path } }: SearchUIModel.AvailableFacet) {
+function AvailableFacet({ type, path }: SearchUIModel.AvailableFacet) {
   const model = SearchUIModel.use()
-  return <M.Chip onClick={() => model.actions.activateFacet(path)} label={name} />
+  return <M.Chip onClick={() => model.actions.activateFacet(path)} label={type} />
 }
 
 function AvailableFacets() {
   const model = SearchUIModel.use()
   return (
     <>
-      {model.state.availableFacets.facets.map((facet, i) => (
-        // TODO: infer unique key (serialize path?)
-        <AvailableFacet key={i} {...facet} />
+      {model.state.availableFacets.facets.map((facet) => (
+        <AvailableFacet key={JSONPointer.stringify(facet.path as string[])} {...facet} />
       ))}
     </>
   )
@@ -158,6 +175,8 @@ function Filters() {
   return (
     <div>
       <h1>filter by</h1>
+      <ResultTypeSelector />
+      <BucketSelector />
       <ActiveFacets />
       <AvailableFacets />
     </div>
@@ -177,7 +196,7 @@ function SearchHit({ hit }: SearchHitProps) {
           ? `${hit.key}@${hit.version}`
           : `${hit.name}@${hit.hash}`}
       </div>
-      {JSON.stringify(hit)}
+      <pre>{JSON.stringify(hit, null, 2)}</pre>
     </div>
   )
 }
@@ -196,7 +215,7 @@ function ResultsPage({ hits, cursor }: ResultsPageProps) {
   return (
     <div>
       {hits.map((hit) => (
-        <SearchHit key={SearchUIModel.searchHitId(hit)} hit={hit} />
+        <SearchHit key={hit.id} hit={hit} />
       ))}
       {!!cursor &&
         (more ? (
