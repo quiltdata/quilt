@@ -1,6 +1,7 @@
 // Application entry point
 
 // Import all the third party stuff
+import { Helmet } from 'react-helmet'
 import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
@@ -78,9 +79,22 @@ const intercomUserSelector = (state: $TSFixMe) => {
   )
 }
 
+function NoIndex({ children }: React.PropsWithChildren<{}>) {
+  if (cfg.mode !== 'PRODUCT') return <>{children}</>
+  return (
+    <>
+      <Helmet>
+        <meta name="robots" content="noindex,nofollow" />
+      </Helmet>
+      {children}
+    </>
+  )
+}
+
 const render = () => {
   ReactDOM.render(
     nest(
+      NoIndex,
       [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
       WithGlobalStyles,
       Errors.FinalBoundary,
