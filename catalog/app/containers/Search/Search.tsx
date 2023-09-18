@@ -155,30 +155,54 @@ function ActiveFacets() {
   )
 }
 
-function AvailableFacet({ type, path }: SearchUIModel.AvailableFacet) {
-  const model = SearchUIModel.use()
-  return <M.Chip onClick={() => model.actions.activateFacet(path)} label={type} />
+interface AvailableFacetsProps {
+  className: string
 }
 
-function AvailableFacets() {
+function AvailableFacets({ className }: AvailableFacetsProps) {
   const model = SearchUIModel.use()
+  const facets = React.useMemo(
+    () =>
+      model.state.availableFacets.facets.map(({ path }) =>
+        JSONPointer.stringify(path as string[]),
+      ),
+    [model.state.availableFacets.facets],
+  )
+  const handleClick = React.useCallback(
+    (path: string) => {
+      model.actions.activateFacet(JSONPointer.parse(path) as SearchUIModel.FacetPath)
+    },
+    [model],
+  )
   return (
-    <>
-      {model.state.availableFacets.facets.map((facet) => (
-        <AvailableFacet key={JSONPointer.stringify(facet.path as string[])} {...facet} />
-      ))}
-    </>
+    <FiltersWidgets.AvailableFacets
+      className={className}
+      facets={facets}
+      onClick={handleClick}
+    />
   )
 }
 
+const useFiltersStyles = M.makeStyles((t) => ({
+  root: {
+    alignContent: 'start',
+    display: 'grid',
+    gridRowGap: t.spacing(1),
+    gridTemplateRows: 'auto',
+  },
+  available: {
+    marginTop: t.spacing(2),
+  },
+}))
+
 function Filters() {
+  const classes = useFiltersStyles()
   return (
-    <div>
-      <h1>filter by</h1>
+    <div className={classes.root}>
       <ResultTypeSelector />
       <BucketSelector />
       <ActiveFacets />
-      <AvailableFacets />
+      <AvailableFacets className={classes.available} />
     </div>
   )
 }
@@ -345,7 +369,8 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
     gridTemplateColumns: `${t.spacing(40)}px auto`,
-    gridGapColumn: t.spacing(2),
+    gridColumnGap: t.spacing(2),
+    padding: t.spacing(4, 3),
   },
 }))
 

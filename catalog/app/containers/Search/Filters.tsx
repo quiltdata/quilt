@@ -309,13 +309,13 @@ export function Workflow({
 
 function getAvailableFacetLabel(facet: string) {
   switch (facet) {
-    case 'type':
+    case '/type':
       return 'Result type'
-    case 'buckets':
+    case '/buckets':
       return 'Buckets'
-    case 'total_size':
+    case '/total_size':
       return 'Total size'
-    case 'comment':
+    case '/comment':
       return 'Comment'
     case 'last_modified':
       return 'Last modified date'
@@ -334,16 +334,18 @@ function getAvailableFacetLabel(facet: string) {
     case 'delete_marker':
       return 'Show/hide deleted'
     default:
-      throw new Error('Wrong type')
+      return facet
+    // throw new Error('Wrong type')
   }
 }
 
 interface AvailableFacetsProps {
+  className?: string
   facets: string[] | typeof L
   onClick: (facet: string) => void
 }
 
-export function AvailableFacets({ facets, onClick }: AvailableFacetsProps) {
+export function AvailableFacets({ className, facets, onClick }: AvailableFacetsProps) {
   const items = React.useMemo(() => {
     if (!Array.isArray(facets)) return [] as { label: string; type: string }[]
     return facets.map((type) => ({
@@ -352,7 +354,11 @@ export function AvailableFacets({ facets, onClick }: AvailableFacetsProps) {
       onClick: () => onClick(type),
     }))
   }, [facets, onClick])
-  return facets === L ? <Filters.ChipsSkeleton /> : <Filters.Chips items={items} />
+  return facets === L ? (
+    <Filters.ChipsSkeleton className={className} />
+  ) : (
+    <Filters.Chips items={items} className={className} />
+  )
 }
 
 type SelectedFacet<V, E = null> = Omit<ActiveFacet<V, E>, 'onChange' | 'onDeactivate'>
