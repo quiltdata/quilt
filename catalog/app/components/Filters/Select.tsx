@@ -27,7 +27,7 @@ export default function Select<T = string>({
     >
       {extents.map((extent) => (
         // @ts-expect-error
-        <M.MenuItem value={extent} key={`${extent}`}>
+        <M.MenuItem value={extent} key={JSON.stringify(extent)}>
           {getOptionLabel ? getOptionLabel(extent) : extent}
         </M.MenuItem>
       ))}
