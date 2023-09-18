@@ -7,6 +7,7 @@ import Layout from 'components/Layout'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
+import * as JSONPointer from 'utils/JSONPointer'
 
 import * as FiltersWidgets from './Filters'
 import * as SearchUIModel from './model'
@@ -42,13 +43,17 @@ function BucketFilterWidget({
 }
 
 function NumberFilterWidget({
+  path,
   value,
   extents,
   onChange,
   onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number> & { path: string[] }) {
+  const type = JSONPointer.stringify(path)
+  const Component =
+    type === '/pkg/total_entries' ? FiltersWidgets.TotalEntries : FiltersWidgets.TotalSize
   return (
-    <FiltersWidgets.TotalSize
+    <Component
       onDeactivate={onDeactivate}
       value={
         value.min === null || value.min === null
@@ -82,7 +87,7 @@ function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
   // eslint-disable-next-line no-underscore-dangle
   const FilterWidget = FILTER_WIDGETS[facet.type._tag]
   // @ts-expect-error
-  return <FilterWidget {...facet.state} {...actions} />
+  return <FilterWidget path={facet.path} {...facet.state} {...actions} />
 }
 
 interface FacetWidgetProps<F extends SearchUIModel.KnownFacetDescriptor> {
