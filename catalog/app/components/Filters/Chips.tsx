@@ -8,13 +8,14 @@ export function AvailableFacet(props: M.ChipProps) {
 }
 
 interface Item {
-  label: string
+  label: React.ReactNode
   type: string
+  onClick?: () => void
+  onDelete?: () => void
 }
 
 interface AvailableFacetsListsProps {
   items: Item[]
-  onClick: (item: Item) => void
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -23,7 +24,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function AvailableSkeleton() {
+export function ChipsSkeleton() {
   const classes = useStyles()
   const maxWidth = 180
   const minWidth = 60
@@ -45,19 +46,17 @@ export function AvailableSkeleton() {
   )
 }
 
-export default function AvailableFacetsLists({
-  items,
-  onClick,
-}: AvailableFacetsListsProps) {
+export default function AvailableFacetsLists({ items }: AvailableFacetsListsProps) {
   const classes = useStyles()
   return (
     <>
-      {items.map((item) => (
+      {items.map((item, index) => (
         <M.Chip
-          key={item.type}
+          key={`${item.type}_${index}`}
           className={classes.chip}
           label={item.label}
-          onClick={() => onClick(item)}
+          onClick={item.onClick}
+          onDelete={item.onDelete}
         />
       ))}
     </>
