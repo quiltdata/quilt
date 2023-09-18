@@ -10,7 +10,7 @@
         "destination": "/index.html"
       }
     ],
-    "ignore": ["**/.*"],
+    "ignore": ["**/.*", "robots.txt"],
     "headers": [
       {
         "source": "**/*.@(jpg|jpeg|gif|png)",
