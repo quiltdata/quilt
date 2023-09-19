@@ -313,26 +313,41 @@ type SearchResultSet {
   firstPage(size: Int = 30, order: SearchResultOrder): SearchResultSetPage!
 }
 
-# enum SearchFacetType {
-#   # ResultType
-#   # Bucket
-#   Workflow
-#   Number
-#   Date
-#   Keyword
-#   Text
-#   Boolean
-# }
-
-# XXX: use GraphQL types for extents?
-scalar SearchFacetExtents
-
-type SearchFacet {
+interface ISearchFacet {
   path: [String!]!
-  # XXX: do we need the type here or should we just infer it based on path?
-  # type: SearchFacetType!
-  extents: SearchFacetExtents
 }
+
+type NumberSearchFacet implements ISearchFacet {
+  path: [String!]!
+  numberMin: Float!
+  numberMax: Float!
+}
+
+type DateSearchFacet implements ISearchFacet {
+  path: [String!]!
+  dateMin: Datetime!
+  dateMax: Datetime!
+}
+
+type KeywordSearchFacet implements ISearchFacet {
+  path: [String!]!
+  keywordValues: [String!]!
+}
+
+type TextSearchFacet implements ISearchFacet {
+  path: [String!]!
+}
+
+type BooleanSearchFacet implements ISearchFacet {
+  path: [String!]!
+}
+
+union SearchFacet =
+  | NumberSearchFacet
+  | DateSearchFacet
+  | KeywordSearchFacet
+  | TextSearchFacet
+  | BooleanSearchFacet
 
 input SearchFacetInferenceOptions {
   # TODO
@@ -351,42 +366,40 @@ type UnboundedSearch {
   # facets?
 }
 
-union SearchHit = SearchHitObject | SearchHitPackage
-
-# XXX: do we need to highlight active facets in the results?
-type SearchHitObject {
+interface ISearchHit {
   id: ID!
-
-  # ID:
   bucket: String!
-  key: String!
-  version: String!
-
-  # shared props
   score: Float!
   size: Float!
   lastModified: Datetime!
-  # updated: Datetime! # XXX: why we might need this?
+}
 
-  # specific props
+# XXX: do we need to highlight active facets in the results?
+type SearchHitObject implements ISearchHit {
+  id: ID!
+  bucket: String!
+  score: Float!
+  size: Float!
+  lastModified: Datetime!
+
+  key: String!
+  version: String!
+
   deleteMarker: Boolean!
   # meta: JsonRecord! # String?
   # tags
 }
 
 # TODO: reuse package types?
-type SearchHitPackage {
+type SearchHitPackage implements ISearchHit {
   id: ID!
-
-  # ID
   bucket: String!
-  name: String!
-  hash: String!
-
-  # shared props
   score: Float!
   size: Float!
   lastModified: Datetime!
+
+  name: String!
+  hash: String!
 
   # specific props
   comment: String
@@ -394,6 +407,8 @@ type SearchHitPackage {
   workflow: JsonRecord
   # tags: [String!]! // TODO: currently not provided
 }
+
+union SearchHit = SearchHitObject | SearchHitPackage
 
 enum SearchResultType {
   QuiltPackage

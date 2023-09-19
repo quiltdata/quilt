@@ -84,6 +84,40 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'BooleanSearchFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchFacet',
+          },
+        ],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
+      },
+      {
+        kind: 'OBJECT',
         name: 'BoundedSearch',
         fields: [
           {
@@ -107,7 +141,7 @@ export default {
                 ofType: {
                   kind: 'NON_NULL',
                   ofType: {
-                    kind: 'OBJECT',
+                    kind: 'UNION',
                     name: 'SearchFacet',
                     ofType: null,
                   },
@@ -127,7 +161,7 @@ export default {
           {
             name: 'facet',
             type: {
-              kind: 'OBJECT',
+              kind: 'UNION',
               name: 'SearchFacet',
               ofType: null,
             },
@@ -153,10 +187,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
       },
       {
         kind: 'OBJECT',
@@ -974,8 +1004,190 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'DateSearchFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'dateMin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'dateMax',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchFacet',
+          },
+        ],
+      },
+      {
         kind: 'SCALAR',
         name: 'Datetime',
+      },
+      {
+        kind: 'INTERFACE',
+        name: 'ISearchFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BooleanSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'DateSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'KeywordSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'NumberSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'TextSearchFacet',
+          },
+        ],
+      },
+      {
+        kind: 'INTERFACE',
+        name: 'ISearchHit',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'score',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'lastModified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'SearchHitObject',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'SearchHitPackage',
+          },
+        ],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Float',
       },
       {
         kind: 'OBJECT',
@@ -1090,6 +1302,54 @@ export default {
       {
         kind: 'SCALAR',
         name: 'JsonRecord',
+      },
+      {
+        kind: 'OBJECT',
+        name: 'KeywordSearchFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'keywordValues',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchFacet',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
@@ -1831,6 +2091,60 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'NumberSearchFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'numberMin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'numberMax',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchFacet',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Ok',
         fields: [
           {
@@ -1975,10 +2289,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Float',
       },
       {
         kind: 'UNION',
@@ -3392,42 +3702,30 @@ export default {
         name: 'S3ObjectLocation',
       },
       {
-        kind: 'OBJECT',
+        kind: 'UNION',
         name: 'SearchFacet',
-        fields: [
+        possibleTypes: [
           {
-            name: 'path',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'LIST',
-                ofType: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-            },
-            args: [],
+            kind: 'OBJECT',
+            name: 'NumberSearchFacet',
           },
           {
-            name: 'extents',
-            type: {
-              kind: 'SCALAR',
-              name: 'SearchFacetExtents',
-              ofType: null,
-            },
-            args: [],
+            kind: 'OBJECT',
+            name: 'DateSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'KeywordSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'TextSearchFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BooleanSearchFacet',
           },
         ],
-        interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'SearchFacetExtents',
       },
       {
         kind: 'UNION',
@@ -3472,30 +3770,6 @@ export default {
             args: [],
           },
           {
-            name: 'key',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'version',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'score',
             type: {
               kind: 'NON_NULL',
@@ -3532,6 +3806,30 @@ export default {
             args: [],
           },
           {
+            name: 'key',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'version',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'deleteMarker',
             type: {
               kind: 'NON_NULL',
@@ -3544,7 +3842,12 @@ export default {
             args: [],
           },
         ],
-        interfaces: [],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchHit',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
@@ -3575,30 +3878,6 @@ export default {
             args: [],
           },
           {
-            name: 'name',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
-            name: 'hash',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'score',
             type: {
               kind: 'NON_NULL',
@@ -3629,6 +3908,30 @@ export default {
               ofType: {
                 kind: 'SCALAR',
                 name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'hash',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -3662,7 +3965,12 @@ export default {
             args: [],
           },
         ],
-        interfaces: [],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchHit',
+          },
+        ],
       },
       {
         kind: 'UNION',
@@ -4109,6 +4417,36 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'TextSearchFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'ISearchFacet',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
