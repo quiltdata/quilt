@@ -23,22 +23,22 @@ export type containers_Search_gql_FirstPageQuery = { readonly __typename: 'Query
                     Types.SearchHitObject,
                     | 'id'
                     | 'bucket'
-                    | 'key'
-                    | 'version'
                     | 'score'
                     | 'size'
                     | 'lastModified'
+                    | 'key'
+                    | 'version'
                     | 'deleteMarker'
                   >)
                 | ({ readonly __typename: 'SearchHitPackage' } & Pick<
                     Types.SearchHitPackage,
                     | 'id'
                     | 'bucket'
-                    | 'name'
-                    | 'hash'
                     | 'score'
                     | 'size'
                     | 'lastModified'
+                    | 'name'
+                    | 'hash'
                     | 'comment'
                     | 'meta'
                     | 'workflow'
@@ -192,10 +192,7 @@ export const containers_Search_gql_FirstPageDocument = {
                                           kind: 'InlineFragment',
                                           typeCondition: {
                                             kind: 'NamedType',
-                                            name: {
-                                              kind: 'Name',
-                                              value: 'SearchHitObject',
-                                            },
+                                            name: { kind: 'Name', value: 'ISearchHit' },
                                           },
                                           selectionSet: {
                                             kind: 'SelectionSet',
@@ -207,14 +204,6 @@ export const containers_Search_gql_FirstPageDocument = {
                                               {
                                                 kind: 'Field',
                                                 name: { kind: 'Name', value: 'bucket' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'key' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'version' },
                                               },
                                               {
                                                 kind: 'Field',
@@ -230,6 +219,29 @@ export const containers_Search_gql_FirstPageDocument = {
                                                   kind: 'Name',
                                                   value: 'lastModified',
                                                 },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                        {
+                                          kind: 'InlineFragment',
+                                          typeCondition: {
+                                            kind: 'NamedType',
+                                            name: {
+                                              kind: 'Name',
+                                              value: 'SearchHitObject',
+                                            },
+                                          },
+                                          selectionSet: {
+                                            kind: 'SelectionSet',
+                                            selections: [
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'key' },
+                                              },
+                                              {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'version' },
                                               },
                                               {
                                                 kind: 'Field',
@@ -255,34 +267,11 @@ export const containers_Search_gql_FirstPageDocument = {
                                             selections: [
                                               {
                                                 kind: 'Field',
-                                                name: { kind: 'Name', value: 'id' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'bucket' },
-                                              },
-                                              {
-                                                kind: 'Field',
                                                 name: { kind: 'Name', value: 'name' },
                                               },
                                               {
                                                 kind: 'Field',
                                                 name: { kind: 'Name', value: 'hash' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'score' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: { kind: 'Name', value: 'size' },
-                                              },
-                                              {
-                                                kind: 'Field',
-                                                name: {
-                                                  kind: 'Name',
-                                                  value: 'lastModified',
-                                                },
                                               },
                                               {
                                                 kind: 'Field',

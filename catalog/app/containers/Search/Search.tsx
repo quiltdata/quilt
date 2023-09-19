@@ -75,7 +75,7 @@ function GenericFilterWidget({
   // extents, // onChange, ,
   onDeactivate,
   ...rest
-}: FilterWidgetProps<SearchUIModel.FacetType<any, any, any>>) {
+}: FilterWidgetProps<SearchUIModel.FacetType<any, any, any, any>>) {
   return (
     <div>
       generic

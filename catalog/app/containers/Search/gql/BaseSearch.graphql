@@ -16,9 +16,21 @@ query (
         total
       }
       facets {
-        path
-        # type
-        extents
+        __typename
+        ... on ISearchFacet {
+          path
+        }
+        ... on NumberSearchFacet {
+          numberMin
+          numberMax
+        }
+        ... on DateSearchFacet {
+          dateMin
+          dateMax
+        }
+        ... on KeywordSearchFacet {
+          keywordValues
+        }
       }
     }
     # ... on UnboundedSearch { }
