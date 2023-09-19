@@ -16,16 +16,19 @@ import * as SearchUIModel from './model'
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
   switch (head) {
-    case 'pkg_meta':
-      const type = tail.slice(-1)
-      switch (type) {
-        default:
-          return (
-            <>
-              Package meta <b>{tail.slice(0, -1).join(' ')}</b> {type} in:
-            </>
-          )
+    case 'pkg':
+      switch (tail[0]) {
+        case 'total_size':
+          return 'Total size'
+        case 'total_entries':
+          return 'Total entries'
       }
+    case 'pkg_meta':
+      return (
+        <>
+          Package meta <b>{tail.slice(0, -1).join(' ')}</b> {tail.slice(-1)} in:
+        </>
+      )
     default:
       return JSONPointer.stringify(path as string[])
   }
@@ -34,6 +37,13 @@ function pathToFilterTitle(path: SearchUIModel.FacetPath) {
 function pathToChipTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
   switch (head) {
+    case 'pkg':
+      switch (tail[0]) {
+        case 'total_size':
+          return 'Total size'
+        case 'total_entries':
+          return 'Total entries'
+      }
     case 'pkg_meta':
       return (
         <>
