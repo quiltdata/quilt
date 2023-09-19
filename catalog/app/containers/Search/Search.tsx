@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
 // import * as SearchResults from 'components/SearchResults'
 // import * as BucketConfig from 'utils/BucketConfig'
@@ -11,6 +12,38 @@ import * as JSONPointer from 'utils/JSONPointer'
 
 import * as FiltersWidgets from './Filters'
 import * as SearchUIModel from './model'
+
+function pathToFilterTitle(path: SearchUIModel.FacetPath) {
+  const [head, ...tail] = path
+  switch (head) {
+    case 'pkg_meta':
+      const type = tail.slice(-1)
+      switch (type) {
+        default:
+          return (
+            <>
+              Package meta <b>{tail.slice(0, -1).join(' ')}</b> {type} in:
+            </>
+          )
+      }
+    default:
+      return JSONPointer.stringify(path as string[])
+  }
+}
+
+function pathToChipTitle(path: SearchUIModel.FacetPath) {
+  const [head, ...tail] = path
+  switch (head) {
+    case 'pkg_meta':
+      return (
+        <>
+          Package meta has <b>{tail.slice(0, -1).join(' ')}</b> {tail.slice(-1)}
+        </>
+      )
+    default:
+      return JSONPointer.stringify(path as string[])
+  }
+}
 
 interface FacetActions<T extends SearchUIModel.KnownFacetType> {
   // XXX: accept updater fn?
@@ -37,7 +70,6 @@ function ResultTypeSelector() {
 function BucketSelector() {
   const model = SearchUIModel.use()
   const selectValue = model.state.buckets
-  // use model.actions.setBuckets
   const { setBuckets } = model.actions
   return <FiltersWidgets.BucketExtented value={selectValue} onChange={setBuckets} />
 }
@@ -52,50 +84,188 @@ function NumberFilterWidget({
   const type = JSONPointer.stringify(path)
   const Component =
     type === '/pkg/total_entries' ? FiltersWidgets.TotalEntries : FiltersWidgets.TotalSize
+  const valueList = React.useMemo(
+    () =>
+      value.min === null || value.min === null
+        ? null
+        : ([value.min, value.max] as [number, number]),
+    [value],
+  )
+
+  const extentsList = React.useMemo(
+    () =>
+      extents.min === null || extents.min === null
+        ? null
+        : ([extents.min, extents.max] as [number, number]),
+    [extents],
+  )
+  const handleChange = React.useCallback(
+    (newValues) => {
+      onChange(
+        newValues === null
+          ? { min: null, max: null }
+          : { min: newValues[0], max: newValues[1] },
+      )
+    },
+    [onChange],
+  )
+  if (extents.min === extents.max) {
+    return (
+      <FiltersUI.Container
+        defaultExpanded
+        onDeactivate={onDeactivate}
+        title={pathToFilterTitle(path)}
+      >
+        <FiltersUI.Checkbox
+          label={`Show ${extents.min}`}
+          value={value.min === extents.min && value.max === extents.max}
+          onChange={(checked) =>
+            checked
+              ? onChange({ min: extents.min, max: extents.max })
+              : onChange({ min: null, max: null })
+          }
+        />
+      </FiltersUI.Container>
+    )
+  }
   return (
     <Component
       onDeactivate={onDeactivate}
-      value={
-        value.min === null || value.min === null
-          ? null
-          : ([value.min, value.max] as [number, number])
-      }
-      extents={
-        extents.min === null || extents.min === null
-          ? null
-          : ([extents.min, extents.max] as [number, number])
-      }
-      onChange={(newValues) =>
-        newValues === null
-          ? onChange({ min: null, max: null })
-          : onChange({ min: newValues[0], max: newValues[1] })
-      }
+      value={valueList}
+      extents={extentsList}
+      onChange={handleChange}
     />
   )
 }
 
-function GenericFilterWidget({
-  value,
-  // extents, // onChange, ,
+function DateFilterWidget({
+  path,
   onDeactivate,
-  ...rest
-}: FilterWidgetProps<SearchUIModel.FacetType<any, any, any>>) {
+  onChange,
+  value,
+  extents,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Date> & {
+  path: string[]
+}) {
+  const valueList = React.useMemo(
+    () =>
+      value.min === null || value.min === null
+        ? null
+        : ([value.min, value.max] as [Date, Date]),
+    [value],
+  )
+
+  const extentsList = React.useMemo(
+    () =>
+      extents.min === null || extents.min === null
+        ? null
+        : ([extents.min, extents.max] as [Date, Date]),
+    [extents],
+  )
+  const handleChange = React.useCallback(
+    (newValues) => {
+      if (newValues === null) {
+        onChange({ min: null, max: null })
+      } else {
+        onChange({ min: newValues[0], max: newValues[1] })
+      }
+    },
+    [onChange],
+  )
   return (
-    <div>
-      generic
-      <button onClick={onDeactivate}>x</button>
-      <div>value: {JSON.stringify(value)}</div>
-      <div>extents: {JSON.stringify((rest as any).extents)}</div>
-    </div>
+    <FiltersUI.Container
+      defaultExpanded
+      onDeactivate={onDeactivate}
+      title={pathToFilterTitle(path)}
+    >
+      {extentsList && (
+        <FiltersUI.DatesRange
+          extents={extentsList}
+          onChange={handleChange}
+          value={valueList}
+        />
+      )}
+    </FiltersUI.Container>
+  )
+}
+
+function KeywordFilterWidget({
+  path,
+  onDeactivate,
+  onChange,
+  value, // @ts-expect-error
+  extents,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Keyword> & {
+  path: string[]
+}) {
+  return (
+    <FiltersUI.Container
+      defaultExpanded
+      onDeactivate={onDeactivate}
+      title={pathToFilterTitle(path)}
+    >
+      <FiltersUI.Enum
+        extents={extents.values}
+        onChange={onChange}
+        placeholder="Select enum value(s)"
+        value={value}
+      />
+    </FiltersUI.Container>
+  )
+}
+
+function TextFilterWidget({
+  path,
+  onDeactivate,
+  onChange,
+  value,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Text> & {
+  path: string[]
+}) {
+  return (
+    <FiltersUI.Container
+      defaultExpanded
+      onDeactivate={onDeactivate}
+      title={pathToFilterTitle(path)}
+    >
+      <FiltersUI.TextField
+        onChange={onChange}
+        placeholder="Select enum value(s)"
+        value={value || ''}
+      />
+    </FiltersUI.Container>
+  )
+}
+
+function BooleanFilterWidget({
+  path,
+  onDeactivate,
+  onChange,
+  value,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Boolean> & {
+  path: string[]
+}) {
+  return (
+    <FiltersUI.Container
+      defaultExpanded
+      onDeactivate={onDeactivate}
+      title={pathToFilterTitle(path)}
+    >
+      <FiltersUI.Checkbox
+        onChange={onChange}
+        label={`Show ${JSONPointer.stringify(path)}`}
+        value={!!value}
+      />
+    </FiltersUI.Container>
   )
 }
 
 const FILTER_WIDGETS = {
   Number: NumberFilterWidget,
-  Date: GenericFilterWidget,
-  Keyword: GenericFilterWidget,
-  Text: GenericFilterWidget,
-  Boolean: GenericFilterWidget,
+  Date: DateFilterWidget,
+  Keyword: KeywordFilterWidget,
+  Text: TextFilterWidget,
+  Boolean: BooleanFilterWidget,
 }
 
 function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
@@ -133,15 +303,7 @@ function FacetWidget<F extends SearchUIModel.KnownFacetDescriptor>({
     ),
   }
 
-  return (
-    <div>
-      <div>
-        {/* eslint-disable-next-line no-underscore-dangle */}
-        {facet.path.join(' / ')} ({facet.type._tag})
-      </div>
-      {renderFilterWidget(facet, actions)}
-    </div>
-  )
+  return renderFilterWidget(facet, actions)
 }
 
 function ActiveFacets() {
@@ -161,26 +323,15 @@ interface AvailableFacetsProps {
 
 function AvailableFacets({ className }: AvailableFacetsProps) {
   const model = SearchUIModel.use()
-  const facets = React.useMemo(
+  const items = React.useMemo(
     () =>
-      model.state.availableFacets.facets.map(({ path }) =>
-        JSONPointer.stringify(path as string[]),
-      ),
-    [model.state.availableFacets.facets],
+      model.state.availableFacets.facets.map(({ path }) => ({
+        label: pathToChipTitle(path),
+        onClick: () => model.actions.activateFacet(path),
+      })),
+    [model.state.availableFacets.facets, model.actions],
   )
-  const handleClick = React.useCallback(
-    (path: string) => {
-      model.actions.activateFacet(JSONPointer.parse(path) as SearchUIModel.FacetPath)
-    },
-    [model],
-  )
-  return (
-    <FiltersWidgets.AvailableFacets
-      className={className}
-      facets={facets}
-      onClick={handleClick}
-    />
-  )
+  return <FiltersUI.Chips items={items} className={className} />
 }
 
 const useFiltersStyles = M.makeStyles((t) => ({
