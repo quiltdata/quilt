@@ -96,7 +96,7 @@ export default function PassReset() {
                 busy={submitting}
               />
             </Layout.Actions>
-            {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+            {cfg.mode === 'OPEN' && (
               <Layout.Hint>
                 <>
                   Don&apos;t have an account? <Link to={urls.signUp()}>Sign up</Link>
