@@ -34,13 +34,7 @@ export default function Enum({ extents, value, onChange, ...props }: EnumProps) 
       onChange={(event, newValue) => onChange(newValue as string[])}
       options={extents}
       renderInput={(params) => (
-        <M.TextField
-          {...props}
-          {...params}
-          className={classes.input}
-          placeholder="Select bucket"
-          size="small"
-        />
+        <M.TextField {...props} {...params} className={classes.input} size="small" />
       )}
       renderOption={(option, { selected }) => (
         <>

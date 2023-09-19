@@ -6,7 +6,7 @@ import Skeleton from 'components/Skeleton'
 
 const useStyles = M.makeStyles((t) => ({
   close: {
-    margin: t.spacing(1),
+    margin: t.spacing(1, -0.5, 0, 0),
   },
   content: {
     display: 'flex',
@@ -48,7 +48,7 @@ interface ContainerProps {
   className?: string
   extenting?: boolean
   onDeactivate?: () => void
-  title: string
+  title: React.ReactNode
   defaultExpanded?: boolean
 }
 
