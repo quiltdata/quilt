@@ -3,7 +3,7 @@ import * as M from '@material-ui/core'
 
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
-// import * as SearchResults from 'components/SearchResults'
+import * as SearchResults from 'components/SearchResults'
 // import * as BucketConfig from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
@@ -373,17 +373,40 @@ interface SearchHitProps {
 }
 
 function SearchHit({ hit }: SearchHitProps) {
-  return (
-    <div>
-      <div>
-        {hit.__typename}:{hit.bucket}:
-        {hit.__typename === 'SearchHitObject'
-          ? `${hit.key}@${hit.version}`
-          : `${hit.name}@${hit.hash}`}
-      </div>
-      <pre>{JSON.stringify(hit, null, 2)}</pre>
-    </div>
-  )
+  switch (hit.__typename) {
+    case 'SearchHitObject':
+      return (
+        <SearchResults.Hit
+          {...{
+            hit: {
+              type: 'object',
+              bucket: hit.bucket,
+              path: hit.key,
+              versions: [{ id: hit.version, size: hit.size, updated: hit.lastModified }],
+            },
+          }}
+        />
+      )
+    case 'SearchHitPackage':
+      return (
+        <SearchResults.Hit
+          {...{
+            hit: {
+              type: 'package',
+              bucket: hit.bucket,
+              handle: hit.name,
+              hash: hit.hash,
+              lastModified: hit.lastModified,
+              meta: hit.meta,
+              tags: [],
+              comment: hit.comment,
+            },
+          }}
+        />
+      )
+    default:
+      throw new Error('Wrong typename')
+  }
 }
 
 interface ResultsPageProps {
@@ -484,7 +507,7 @@ function ResultsBounded({ total }: ResultsBoundedProps) {
   const model = SearchUIModel.use()
   // action: change sort order
   return (
-    <div>
+    <div style={{ overflow: 'hidden' }}>
       <div>{total} results</div>
       <div>
         sort order: {model.state.order.field} {model.state.order.direction}
