@@ -10,14 +10,23 @@ const useStyles = M.makeStyles((t) => ({
   },
   scrollArea: {
     flexGrow: 1,
-    overflowX: 'hidden',
-    overflowY: 'auto',
+    overflow: 'hidden auto',
   },
   hidden: {
     marginTop: t.spacing(1),
   },
   empty: {
     marginTop: t.spacing(2),
+  },
+  label: {
+    cursor: 'pointer',
+    display: 'block',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  checkboxWrapper: {
+    minWidth: t.spacing(4),
+    paddingLeft: '2px',
   },
 }))
 
@@ -81,16 +90,23 @@ export default function List({
         <M.List dense>
           {filteredExtents.map((extent) => (
             <M.ListItem key={extent} disableGutters>
-              <M.ListItemIcon>
+              <M.ListItemIcon className={classes.checkboxWrapper}>
                 <M.Checkbox
                   edge="start"
                   checked={!!valueMap[extent]}
                   id={`list_${extent}`}
                   onChange={(event, checked) => handleChange(extent, checked)}
+                  size="small"
                 />
               </M.ListItemIcon>
               <M.ListItemText>
-                <label htmlFor={`list_${extent}`}>{extent}</label>
+                <label
+                  className={classes.label}
+                  htmlFor={`list_${extent}`}
+                  title={extent}
+                >
+                  {extent}
+                </label>
               </M.ListItemText>
             </M.ListItem>
           ))}

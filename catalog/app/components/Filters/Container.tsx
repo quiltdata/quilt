@@ -66,7 +66,7 @@ export default function Container({
         className={classes.header}
         action={
           onDeactivate && (
-            <M.IconButton size="small" className={classes.close}>
+            <M.IconButton size="small" className={classes.close} onClick={onDeactivate}>
               <M.Icon fontSize="inherit">clear</M.Icon>
             </M.IconButton>
           )
