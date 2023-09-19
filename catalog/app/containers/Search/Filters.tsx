@@ -17,10 +17,15 @@ export interface ActiveFacet<V, E = null> {
   value: V
 }
 
-export function Bucket({ extents, value, onChange }: ActiveFacet<string[], string[]>) {
+export function BucketExtented({ value, onChange }: ActiveFacet<string[], string[]>) {
+  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const extents = React.useMemo(
+    () => bucketConfigs.map(({ name }) => `s3://${name}`),
+    [bucketConfigs],
+  )
   return (
-    <Filters.Container defaultExpanded extenting={extents === L} title="Buckets">
-      {extents && extents !== L && (
+    <Filters.Container defaultExpanded title="Buckets">
+      {extents && (
         <Filters.Enum
           extents={extents}
           onChange={onChange}
@@ -30,15 +35,6 @@ export function Bucket({ extents, value, onChange }: ActiveFacet<string[], strin
       )}
     </Filters.Container>
   )
-}
-
-export function BucketExtented(props: Omit<ActiveFacet<string[], string[]>, 'extents'>) {
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(
-    () => bucketConfigs.map(({ name }) => `s3://${name}`),
-    [bucketConfigs],
-  )
-  return <Bucket {...props} extents={extents} />
 }
 
 export function Comment({ value, onChange, onDeactivate }: ActiveFacet<string>) {

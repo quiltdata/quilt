@@ -10,7 +10,6 @@ export function AvailableFacet(props: M.ChipProps) {
 
 interface Item {
   label: React.ReactNode
-  type: string
   onClick?: () => void
   onDelete?: () => void
 }
@@ -66,7 +65,7 @@ export default function AvailableFacetsLists({
     <div className={cx(className, classes.root)}>
       {items.map((item, index) => (
         <M.Chip
-          key={`${item.type}_${index}`}
+          key={`${item.label}_${index}`}
           className={classes.chip}
           label={item.label}
           onClick={item.onClick}
