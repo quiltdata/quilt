@@ -2,6 +2,8 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import TinyTextField from './TinyTextField'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
@@ -72,22 +74,12 @@ export default function List({
   const hiddenNumber = extents.length - filteredExtents.length
   return (
     <div className={cx(classes.root, className)}>
-      {filteredExtents.length > searchThreshold && (
-        <M.TextField
-          onChange={(event) => setFilter(event.target.value)}
+      {extents.length > searchThreshold && (
+        <TinyTextField
+          fullWidth
+          onChange={setFilter}
           placeholder={placeholder}
-          size="small"
           value={filter}
-          variant="outlined"
-          InputProps={{
-            endAdornment: filter && (
-              <M.InputAdornment position="end">
-                <M.IconButton size="small" onClick={() => setFilter('')}>
-                  <M.Icon fontSize="inherit">close</M.Icon>
-                </M.IconButton>
-              </M.InputAdornment>
-            ),
-          }}
         />
       )}
       <div className={classes.scrollArea}>

@@ -49,11 +49,7 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 0, 0.5),
   },
   input: {
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
-    fontSize: t.typography.body2.fontSize,
     marginBottom: t.spacing(1),
-    padding: t.spacing(0, 1),
   },
 }))
 
@@ -79,21 +75,12 @@ export default function AvailableFacets({ className }: AvailableFacetsProps) {
       <M.Typography variant="subtitle2" className={classes.header}>
         Available filters
       </M.Typography>
-      <M.InputBase
-        fullWidth
-        placeholder="Search filters"
-        onChange={(event) => setSearch(event.target.value)}
+      <Filters.TinyTextField
         className={classes.input}
+        fullWidth
+        onChange={setSearch}
+        placeholder="Search filters"
         value={search}
-        endAdornment={
-          search && (
-            <M.InputAdornment position="end">
-              <M.IconButton size="small" onClick={() => setSearch('')}>
-                <M.Icon fontSize="inherit">clear</M.Icon>
-              </M.IconButton>
-            </M.InputAdornment>
-          )
-        }
       />
       <Filters.Chips items={items} />
       {!!hiddenNumber && (
