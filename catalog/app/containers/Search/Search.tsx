@@ -81,7 +81,11 @@ function BucketSelector() {
   const model = SearchUIModel.use()
   const selectValue = model.state.buckets
   const { setBuckets } = model.actions
-  return <FiltersWidgets.BucketExtented value={selectValue} onChange={setBuckets} />
+  const handleChange = React.useCallback(
+    (urls: string[]) => setBuckets(urls.map((u) => u.replace(/^s3:\/\//, ''))),
+    [setBuckets],
+  )
+  return <FiltersWidgets.BucketExtented value={selectValue} onChange={handleChange} />
 }
 
 function NumberFilterWidget({
@@ -91,9 +95,6 @@ function NumberFilterWidget({
   onChange,
   onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number> & { path: string[] }) {
-  const type = JSONPointer.stringify(path)
-  const Component =
-    type === '/pkg/total_entries' ? FiltersWidgets.TotalEntries : FiltersWidgets.TotalSize
   const valueList = React.useMemo(
     () =>
       value.min === null || value.min === null
@@ -138,13 +139,40 @@ function NumberFilterWidget({
       </FiltersUI.Container>
     )
   }
+  switch (JSONPointer.stringify(path)) {
+    case '/pkg/total_entries':
+      return (
+        <FiltersWidgets.TotalEntries
+          onDeactivate={onDeactivate}
+          value={valueList}
+          extents={extentsList}
+          onChange={handleChange}
+        />
+      )
+    case '/pkg/total_size':
+      return (
+        <FiltersWidgets.TotalSize
+          onDeactivate={onDeactivate}
+          value={valueList}
+          extents={extentsList}
+          onChange={handleChange}
+        />
+      )
+  }
   return (
-    <Component
+    <FiltersUI.Container
+      defaultExpanded
       onDeactivate={onDeactivate}
-      value={valueList}
-      extents={extentsList}
-      onChange={handleChange}
-    />
+      title={pathToFilterTitle(path)}
+    >
+      {extentsList && (
+        <FiltersUI.NumbersRange
+          value={valueList}
+          extents={extentsList}
+          onChange={handleChange}
+        />
+      )}
+    </FiltersUI.Container>
   )
 }
 
@@ -159,17 +187,17 @@ function DateFilterWidget({
 }) {
   const valueList = React.useMemo(
     () =>
-      value.min === null || value.min === null
+      value.min === null || value.max === null
         ? null
-        : ([value.min, value.max] as [Date, Date]),
+        : ([new Date(value.min), new Date(value.max)] as [Date, Date]),
     [value],
   )
 
   const extentsList = React.useMemo(
     () =>
-      extents.min === null || extents.min === null
+      extents.min === null || extents.max === null
         ? null
-        : ([extents.min, extents.max] as [Date, Date]),
+        : ([new Date(extents.min), new Date(extents.max)] as [Date, Date]),
     [extents],
   )
   const handleChange = React.useCallback(
