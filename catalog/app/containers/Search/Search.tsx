@@ -142,30 +142,20 @@ function DateFilterWidget({
   value,
   extents,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Date>) {
-  const valueList = React.useMemo(
-    () =>
-      value.min === null || value.max === null
-        ? null
-        : ([new Date(value.min), new Date(value.max)] as [Date, Date]),
-    [value],
-  )
-
-  const extentsList = React.useMemo(
-    () =>
-      extents.min === null || extents.max === null
-        ? null
-        : ([new Date(extents.min), new Date(extents.max)] as [Date, Date]),
+  // FIXME: fix TS type or value type
+  const fixedExtents = React.useMemo(
+    () => ({
+      min: extents.min === null ? extents.min : new Date(extents.min),
+      max: extents.max === null ? extents.max : new Date(extents.max),
+    }),
     [extents],
   )
-  const handleChange = React.useCallback(
-    (newValues) => {
-      if (newValues === null) {
-        onChange({ min: null, max: null })
-      } else {
-        onChange({ min: newValues[0], max: newValues[1] })
-      }
-    },
-    [onChange],
+  const fixedValue = React.useMemo(
+    () => ({
+      min: value.min === null ? value.min : new Date(value.min),
+      max: value.max === null ? value.max : new Date(value.max),
+    }),
+    [value],
   )
   return (
     <FiltersUI.Container
@@ -173,11 +163,11 @@ function DateFilterWidget({
       onDeactivate={onDeactivate}
       title={pathToFilterTitle(path)}
     >
-      {extentsList && (
+      {(fixedExtents.min === null || fixedExtents.max !== null) && (
         <FiltersUI.DatesRange
-          extents={extentsList}
-          onChange={handleChange}
-          value={valueList}
+          extents={fixedExtents}
+          onChange={onChange}
+          value={fixedValue}
         />
       )}
     </FiltersUI.Container>
