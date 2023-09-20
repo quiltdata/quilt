@@ -3,10 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Filters from 'components/Filters'
-import * as BucketConfig from 'utils/BucketConfig'
 import { formatQuantity, trimCenter } from 'utils/string'
-
-import * as SearchUIModel from './model'
 
 export const L = 'loading'
 
@@ -15,55 +12,6 @@ export interface ActiveFacet<V, E = null> {
   onChange: (v: V) => void
   onDeactivate?: () => void
   value: V
-}
-
-export function BucketExtented({ value, onChange }: ActiveFacet<string[], string[]>) {
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(
-    () => bucketConfigs.map(({ name }) => `s3://${name}`),
-    [bucketConfigs],
-  )
-  return (
-    <Filters.Container defaultExpanded title="Buckets">
-      {extents && (
-        <Filters.Enum
-          extents={extents}
-          onChange={onChange}
-          placeholder="Select buckets"
-          value={value}
-        />
-      )}
-    </Filters.Container>
-  )
-}
-
-const typeExtents = [
-  {
-    value: '', // TODO: rename to 'any' or null
-    title: 'Packages and objects',
-  },
-  {
-    value: SearchUIModel.ResultType.QuiltPackage,
-    title: 'Packages',
-  },
-  {
-    value: SearchUIModel.ResultType.S3Object,
-    title: 'Objects',
-  },
-]
-
-export function Type({ value, onChange }: ActiveFacet<string>) {
-  const val = typeExtents.find((e) => e.value === value) || null
-  return (
-    <Filters.Container defaultExpanded title="Result type">
-      <Filters.Select<{ value: string; title: string }>
-        extents={typeExtents}
-        getOptionLabel={(option) => option.title}
-        onChange={(o) => onChange(o.value)}
-        value={val}
-      />
-    </Filters.Container>
-  )
 }
 
 const useWorkflowStyles = M.makeStyles((t) => ({

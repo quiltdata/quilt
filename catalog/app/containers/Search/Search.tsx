@@ -10,9 +10,10 @@ import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
 import * as JSONPointer from 'utils/JSONPointer'
 
-import * as FiltersWidgets from './Filters'
 import * as SearchUIModel from './model'
 import AvailableFacets from './AvailableFacets'
+import BucketsFilterWidget from './Buckets'
+import ResultTypeFilterWidget from './ResultType'
 
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
@@ -44,29 +45,6 @@ interface FacetActions<T extends SearchUIModel.KnownFacetType> {
 
 type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
   SearchUIModel.StateForFacetType<T> & FacetActions<T> & { path: SearchUIModel.FacetPath }
-
-function ResultTypeSelector() {
-  const model = SearchUIModel.use()
-  const { setResultType } = model.actions
-  const selectValue = model.state.resultType ?? ''
-  return (
-    <FiltersWidgets.Type
-      value={selectValue}
-      onChange={(t) => setResultType((t || null) as SearchUIModel.ResultType)}
-    />
-  )
-}
-
-function BucketSelector() {
-  const model = SearchUIModel.use()
-  const selectValue = model.state.buckets
-  const { setBuckets } = model.actions
-  const handleChange = React.useCallback(
-    (urls: string[]) => setBuckets(urls.map((u) => u.replace(/^s3:\/\//, ''))),
-    [setBuckets],
-  )
-  return <FiltersWidgets.BucketExtented value={selectValue} onChange={handleChange} />
-}
 
 function NumberFilterWidget({
   path,
@@ -306,8 +284,8 @@ function Filters() {
   const classes = useFiltersStyles()
   return (
     <div className={classes.root}>
-      <ResultTypeSelector />
-      <BucketSelector />
+      <ResultTypeFilterWidget />
+      <BucketsFilterWidget />
       <ActiveFacets />
       <AvailableFacets className={classes.available} />
     </div>
