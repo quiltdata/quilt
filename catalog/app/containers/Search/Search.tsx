@@ -1,3 +1,4 @@
+import Fuse from 'fuse.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -202,7 +203,7 @@ function KeywordFilterWidget({
           }
           const availableValues = facet.keywordValues.filter((v) => !value.includes(v))
           return (
-            <FiltersUI.Enum extents={availableValues} onChange={onChange} value={value} />
+            <FiltersUI.List extents={availableValues} onChange={onChange} value={value} />
           )
         },
       })}
@@ -309,21 +310,61 @@ function ActiveFacets() {
   )
 }
 
+function fuzzySearchFacets(
+  facets: SearchUIModel.KnownFacetDescriptor[],
+  searchStr: string,
+): SearchUIModel.KnownFacetDescriptor[] {
+  if (!searchStr) return facets
+  const fuse = new Fuse(facets, {
+    includeScore: true,
+    keys: ['path'],
+    getFn: (facet) => facet.path.join(''),
+  })
+  return fuse
+    .search(searchStr)
+    .sort((a, b) => (a.score || Infinity) - (b.score || Infinity))
+    .map(({ item }) => item)
+}
+
+const useAvailableFacetsStyles = M.makeStyles((t) => ({
+  input: {
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
+    fontSize: t.typography.body2.fontSize,
+    marginBottom: t.spacing(1),
+    padding: t.spacing(0, 1),
+  },
+}))
+
 interface AvailableFacetsProps {
   className: string
 }
 
 function AvailableFacets({ className }: AvailableFacetsProps) {
+  const classes = useAvailableFacetsStyles()
   const model = SearchUIModel.use()
+  const [search, setSearch] = React.useState('')
   const items = React.useMemo(
     () =>
-      model.state.availableFacets.facets.map(({ path }) => ({
+      fuzzySearchFacets(model.state.availableFacets.facets, search).map(({ path }) => ({
         label: pathToChipTitle(path),
         onClick: () => model.actions.activateFacet(path),
       })),
-    [model.state.availableFacets.facets, model.actions],
+    [model.state.availableFacets.facets, model.actions, search],
   )
-  return <FiltersUI.Chips items={items} className={className} />
+  return (
+    <div className={className}>
+      <M.Typography variant="subtitle2">Available filters</M.Typography>
+      <M.InputBase
+        fullWidth
+        placeholder="Search filters"
+        onChange={(event) => setSearch(event.target.value)}
+        className={classes.input}
+        value={search}
+      />
+      <FiltersUI.Chips items={items} />
+    </div>
+  )
 }
 
 const useFiltersStyles = M.makeStyles((t) => ({
@@ -335,6 +376,7 @@ const useFiltersStyles = M.makeStyles((t) => ({
   },
   available: {
     marginTop: t.spacing(2),
+    overflow: 'hidden',
   },
 }))
 
