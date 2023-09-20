@@ -144,9 +144,8 @@ export const FacetTypes = {
     R.identity,
     FacetFilter(({ min, max }) => {
       const arg: any = {}
-      // XXX: make sure dates are stringified properly
-      if (min !== null) arg.gte = JSON.stringify(min)
-      if (max !== null) arg.lte = JSON.stringify(max)
+      if (min !== null) arg.gte = min
+      if (max !== null) arg.lte = max
       return R.isEmpty(arg) ? [] : [Model.Search.Predicate('date_range', arg)]
     }),
   ),
