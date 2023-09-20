@@ -261,7 +261,7 @@ function ActiveFacets() {
   return (
     <>
       {model.state.activeFacets.map((facet) => (
-        <FacetWidget key={JSON.stringify(facet.path)} facet={facet} />
+        <FacetWidget key={JSONPointer.stringify(facet.path)} facet={facet} />
       ))}
     </>
   )
