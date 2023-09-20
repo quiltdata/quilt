@@ -1,7 +1,6 @@
 import type { Json, JsonRecord } from 'utils/types'
 import type { PackageContentsFlatMap } from 'model'
 import type { S3ObjectLocation } from 'model/S3'
-import type { FacetExtents } from 'model/Search'
 
 export type Maybe<T> = T | null
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
@@ -23,7 +22,6 @@ export interface Scalars {
   JsonRecord: JsonRecord
   PackageContentsFlatMap: PackageContentsFlatMap
   S3ObjectLocation: S3ObjectLocation
-  SearchFacetExtents: FacetExtents
 }
 
 export interface AccessCountForDate {
@@ -36,6 +34,11 @@ export interface AccessCounts {
   readonly __typename: 'AccessCounts'
   readonly total: Scalars['Int']
   readonly counts: ReadonlyArray<AccessCountForDate>
+}
+
+export interface BooleanSearchFacet extends ISearchFacet {
+  readonly __typename: 'BooleanSearchFacet'
+  readonly path: ReadonlyArray<Scalars['String']>
 }
 
 export interface BoundedSearch {
@@ -230,6 +233,25 @@ export interface ContentIndexingSettings {
   readonly bytesMax: Scalars['Int']
 }
 
+export interface DateSearchFacet extends ISearchFacet {
+  readonly __typename: 'DateSearchFacet'
+  readonly path: ReadonlyArray<Scalars['String']>
+  readonly dateMin: Scalars['Datetime']
+  readonly dateMax: Scalars['Datetime']
+}
+
+export interface ISearchFacet {
+  readonly path: ReadonlyArray<Scalars['String']>
+}
+
+export interface ISearchHit {
+  readonly id: Scalars['ID']
+  readonly bucket: Scalars['String']
+  readonly score: Scalars['Float']
+  readonly size: Scalars['Float']
+  readonly lastModified: Scalars['Datetime']
+}
+
 export interface IndexingInProgress {
   readonly __typename: 'IndexingInProgress'
   readonly _: Maybe<Scalars['Boolean']>
@@ -251,6 +273,12 @@ export interface InsufficientPermissions {
 export interface InvalidInput {
   readonly __typename: 'InvalidInput'
   readonly errors: ReadonlyArray<InputError>
+}
+
+export interface KeywordSearchFacet extends ISearchFacet {
+  readonly __typename: 'KeywordSearchFacet'
+  readonly path: ReadonlyArray<Scalars['String']>
+  readonly keywordValues: ReadonlyArray<Scalars['String']>
 }
 
 export interface ManagedPolicyInput {
@@ -402,6 +430,13 @@ export interface NotificationConfigurationError {
 export interface NotificationTopicNotFound {
   readonly __typename: 'NotificationTopicNotFound'
   readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface NumberSearchFacet extends ISearchFacet {
+  readonly __typename: 'NumberSearchFacet'
+  readonly path: ReadonlyArray<Scalars['String']>
+  readonly numberMin: Scalars['Float']
+  readonly numberMax: Scalars['Float']
 }
 
 export interface Ok {
@@ -745,11 +780,12 @@ export interface RoleUpdateSuccess {
   readonly role: Role
 }
 
-export interface SearchFacet {
-  readonly __typename: 'SearchFacet'
-  readonly path: ReadonlyArray<Scalars['String']>
-  readonly extents: Maybe<Scalars['SearchFacetExtents']>
-}
+export type SearchFacet =
+  | NumberSearchFacet
+  | DateSearchFacet
+  | KeywordSearchFacet
+  | TextSearchFacet
+  | BooleanSearchFacet
 
 export interface SearchFacetInferenceOptions {
   readonly _: Maybe<Scalars['Boolean']>
@@ -762,27 +798,27 @@ export interface SearchFilter {
 
 export type SearchHit = SearchHitObject | SearchHitPackage
 
-export interface SearchHitObject {
+export interface SearchHitObject extends ISearchHit {
   readonly __typename: 'SearchHitObject'
   readonly id: Scalars['ID']
   readonly bucket: Scalars['String']
-  readonly key: Scalars['String']
-  readonly version: Scalars['String']
   readonly score: Scalars['Float']
   readonly size: Scalars['Float']
   readonly lastModified: Scalars['Datetime']
+  readonly key: Scalars['String']
+  readonly version: Scalars['String']
   readonly deleteMarker: Scalars['Boolean']
 }
 
-export interface SearchHitPackage {
+export interface SearchHitPackage extends ISearchHit {
   readonly __typename: 'SearchHitPackage'
   readonly id: Scalars['ID']
   readonly bucket: Scalars['String']
-  readonly name: Scalars['String']
-  readonly hash: Scalars['String']
   readonly score: Scalars['Float']
   readonly size: Scalars['Float']
   readonly lastModified: Scalars['Datetime']
+  readonly name: Scalars['String']
+  readonly hash: Scalars['String']
   readonly comment: Maybe<Scalars['String']>
   readonly meta: Maybe<Scalars['JsonRecord']>
   readonly workflow: Maybe<Scalars['JsonRecord']>
@@ -899,6 +935,11 @@ export interface TestStatsTimeSeries {
   readonly datetimes: ReadonlyArray<Scalars['Datetime']>
   readonly passed: ReadonlyArray<Scalars['Int']>
   readonly failed: ReadonlyArray<Scalars['Int']>
+}
+
+export interface TextSearchFacet extends ISearchFacet {
+  readonly __typename: 'TextSearchFacet'
+  readonly path: ReadonlyArray<Scalars['String']>
 }
 
 export interface Unavailable {

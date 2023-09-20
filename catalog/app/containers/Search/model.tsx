@@ -11,7 +11,7 @@ import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
-// import FACET_QUERY from './gql/Facet.generated'
+import FACET_QUERY from './gql/Facet.generated'
 import FIRST_PAGE_QUERY from './gql/FirstPage.generated'
 import NEXT_PAGE_QUERY from './gql/NextPage.generated'
 
@@ -43,10 +43,42 @@ type FilterFn<Value> = (
   path: FacetPath,
 ) => Model.GQLTypes.SearchFilter | null
 
-export interface FacetType<Tag extends string, Value, Extents> {
+type GQLSearchFacet = Extract<
+  GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['search'],
+  { __typename: 'BoundedSearch' }
+>['facets'][number]
+
+type GQLSearchFacetType = GQLSearchFacet['__typename']
+
+type GQLSearchFacetForType<T extends GQLSearchFacetType> = Extract<
+  GQLSearchFacet,
+  { __typename: T }
+>
+
+interface FacetExtents<GQLType extends GQLSearchFacetType, Extents> {
+  (gqlFacet: GQLSearchFacetForType<GQLType>): Extents
+}
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+function FacetExtents<GQLType extends GQLSearchFacetType, Extents>(
+  initExtents: FacetExtents<GQLType, Extents>,
+): FacetExtents<GQLType, Extents> {
+  return initExtents
+}
+
+function EmptyExtents<GQLType extends GQLSearchFacetType>() {
+  return FacetExtents<GQLType, null>(() => null)
+}
+
+export interface FacetType<
+  Tag extends string,
+  Value,
+  Extents,
+  GQLType extends GQLSearchFacet['__typename'],
+> {
   _tag: Tag
   value: Value
-  extents: Extents
+  extents: FacetExtents<GQLType, Extents>
   filter: FilterFn<Value>
   init: (extents: Extents) => Value
 }
@@ -54,10 +86,6 @@ export interface FacetType<Tag extends string, Value, Extents> {
 type TypeContainer<T> = (x: T) => T
 
 function FacetValue<Value>(): TypeContainer<Value> {
-  return R.identity
-}
-
-function FacetExtents<Extents>(): TypeContainer<Extents> {
   return R.identity
 }
 
@@ -70,69 +98,82 @@ function FacetFilter<Value>(
   }
 }
 
-const EmptyExtents = FacetExtents<null>()
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ignore(..._args: any[]) {}
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-function FacetType<Tag extends string, Value, Extents>(
+function FacetType<
+  Tag extends string,
+  Value,
+  Extents,
+  GQLType extends GQLSearchFacet['__typename'],
+>(
   _tag: Tag,
   value: TypeContainer<Value>,
-  extents: TypeContainer<Extents>,
+  extents: FacetExtents<GQLType, Extents>,
   init: (extents: Extents) => Value,
   filter: FilterFn<Value>,
 ) {
-  ignore(value, extents)
-  return { _tag, filter, init } as FacetType<Tag, Value, Extents>
+  ignore(value)
+  return { _tag, filter, init, extents } as FacetType<Tag, Value, Extents, GQLType>
 }
 
 export const FacetTypes = {
   Number: FacetType(
     'Number' as const,
     FacetValue<{ min: number | null; max: number | null }>(),
-    FacetExtents<{ min: number; max: number }>(),
+    FacetExtents((f: GQLSearchFacetForType<'NumberSearchFacet'>) => ({
+      min: f.numberMin,
+      max: f.numberMax,
+    })),
     R.identity,
     FacetFilter(({ min, max }) => {
-      const predicates = []
-      if (min !== null) predicates.push(Model.Search.Predicate('>=', min))
-      if (max !== null) predicates.push(Model.Search.Predicate('<=', max))
-      return predicates
+      const arg: any = {}
+      if (min !== null) arg.gte = min
+      if (max !== null) arg.lte = max
+      return R.isEmpty(arg) ? [] : [Model.Search.Predicate('num_range', arg)]
     }),
   ),
   Date: FacetType(
     'Date' as const,
     FacetValue<{ min: Date | null; max: Date | null }>(),
-    FacetExtents<{ min: Date; max: Date }>(),
+    FacetExtents((f: GQLSearchFacetForType<'DateSearchFacet'>) => ({
+      min: f.dateMin,
+      max: f.dateMax,
+    })),
     R.identity,
     FacetFilter(({ min, max }) => {
-      const predicates = []
+      const arg: any = {}
       // XXX: make sure dates are stringified properly
-      if (min !== null) predicates.push(Model.Search.Predicate('>=', JSON.stringify(min)))
-      if (max !== null) predicates.push(Model.Search.Predicate('<=', JSON.stringify(max)))
-      return predicates
+      if (min !== null) arg.gte = JSON.stringify(min)
+      if (max !== null) arg.lte = JSON.stringify(max)
+      return R.isEmpty(arg) ? [] : [Model.Search.Predicate('date_range', arg)]
     }),
   ),
   Keyword: FacetType(
     'Keyword' as const,
     FacetValue<string[]>(),
-    EmptyExtents,
+    EmptyExtents<'KeywordSearchFacet'>(),
     () => [],
-    FacetFilter((value) => (value.length ? [Model.Search.Predicate('in', value)] : [])),
+    FacetFilter((value) =>
+      value.length ? [Model.Search.Predicate('kw_in', value)] : [],
+    ),
   ),
   Text: FacetType(
     'Text' as const,
     FacetValue<string | null>(),
-    EmptyExtents,
+    EmptyExtents<'TextSearchFacet'>(),
     () => null,
-    FacetFilter((value) => (value ? [Model.Search.Predicate('matches', value)] : [])),
+    FacetFilter((value) => (value ? [Model.Search.Predicate('text_match', value)] : [])),
   ),
   Boolean: FacetType(
     'Boolean' as const,
     FacetValue<boolean | null>(),
-    EmptyExtents,
+    EmptyExtents<'BooleanSearchFacet'>(),
     () => null,
-    FacetFilter((value) => (value != null ? [Model.Search.Predicate('is', value)] : [])),
+    FacetFilter((value) =>
+      value != null ? [Model.Search.Predicate('bool_is', value)] : [],
+    ),
   ),
 }
 
@@ -155,12 +196,13 @@ type FacetState<Value, Extents> = FacetValueState<Value> & FacetExtentsState<Ext
 export type StateForFacetType<T extends KnownFacetType> = T extends FacetType<
   any,
   infer Value,
-  infer Extents
+  infer Extents,
+  any
 >
   ? FacetState<Value, Extents>
   : never
 
-interface FacetDescriptor<T extends FacetType<any, any, any>> {
+interface FacetDescriptor<T extends FacetType<any, any, any, any>> {
   path: FacetPath
   type: T
   state: StateForFacetType<T>
@@ -252,13 +294,24 @@ function hydrateFacet(path: any, state: any): KnownFacetDescriptor | null {
   } as FacetDescriptor<typeof type>
 }
 
-function initFacet(path: any, extents: any): KnownFacetDescriptor | null {
-  const type = matchFacet(path)
-  if (!type) return null
+const GQL_FACET_TYPES = {
+  KeywordSearchFacet: FacetTypes.Keyword,
+  TextSearchFacet: FacetTypes.Text,
+  NumberSearchFacet: FacetTypes.Number,
+  DateSearchFacet: FacetTypes.Date,
+  BooleanSearchFacet: FacetTypes.Boolean,
+}
+
+function initFacet(f: GQLSearchFacet): KnownFacetDescriptor | null {
+  const type = GQL_FACET_TYPES[f.__typename]
+  // @ts-expect-error
+  const extents = type.extents(f)
+  // @ts-expect-error
+  const value = type.init(extents)
   return {
-    path,
+    path: f.path,
     type,
-    state: { value: (type.init as $TSFixMe)(extents), extents },
+    state: { value, extents },
   } as FacetDescriptor<typeof type>
 }
 
@@ -436,6 +489,17 @@ function useFilters(activeFacets: KnownFacetDescriptor[]): Model.GQLTypes.Search
   return useMemoEq(activeFacets, computeFilters)
 }
 
+export function useUpstreamFilters(path: FacetPath): Model.GQLTypes.SearchFilter[] {
+  const model = useSearchUIModelContext()
+  const { activeFacets } = model.state
+  const idx = activeFacets.findIndex((f) => R.equals(f.path, path))
+  const upstreamFacets = React.useMemo(
+    () => (idx === -1 ? [] : activeFacets.slice(0, idx)),
+    [activeFacets, idx],
+  )
+  return useMemoEq(upstreamFacets, computeFilters)
+}
+
 function useBaseSearchQuery(
   { searchString, resultType, buckets }: SearchUrlState,
   filters: Model.GQLTypes.SearchFilter[],
@@ -473,6 +537,13 @@ export function useNextPageQuery(after: string) {
   return GQL.useQuery(NEXT_PAGE_QUERY, { after })
 }
 
+export function useFacetQuery(path: FacetPath) {
+  const model = useSearchUIModelContext()
+  const { searchString, resultType, buckets } = model.state
+  const filters = useUpstreamFilters(path)
+  return GQL.useQuery(FACET_QUERY, { searchString, resultType, buckets, filters, path })
+}
+
 export type AvailableFacet = KnownFacetDescriptor
 // export interface AvailableFacet {
 //   descriptor: KnownFacetDescriptor
@@ -504,7 +575,7 @@ function useAvailableFacets(
             // - name -> drop? compute in ui?
             // - source -> drop
             const newFacets = r.facets
-              .map((f) => initFacet(f.path, f.extents))
+              .map(initFacet)
               .filter((f): f is AvailableFacet => !!f)
             setFacets(ifChanged(newFacets))
             return
@@ -534,9 +605,9 @@ function useAvailableFacets(
 function useSearchUIModel() {
   const urlState = useUrlState()
   const activeFacets = useActiveFacets(urlState)
-  const baseFilter = useFilters(activeFacets)
-  const baseSearchQuery = useBaseSearchQuery(urlState, baseFilter)
-  const firstPageQuery = useFirstPageQuery(urlState, baseFilter)
+  const baseFilters = useFilters(activeFacets)
+  const baseSearchQuery = useBaseSearchQuery(urlState, baseFilters)
+  const firstPageQuery = useFirstPageQuery(urlState, baseFilters)
   const availableFacets = useAvailableFacets(baseSearchQuery, activeFacets)
 
   const makeUrl = useMakeUrl()
@@ -619,7 +690,7 @@ function useSearchUIModel() {
         searchString: urlState.searchString,
         resultType: urlState.resultType,
         buckets: urlState.buckets,
-        filter: baseFilter,
+        filters: baseFilters,
         order: urlState.order,
         activeFacets,
         availableFacets,

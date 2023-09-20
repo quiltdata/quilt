@@ -63,7 +63,7 @@ interface FacetActions<T extends SearchUIModel.KnownFacetType> {
 }
 
 type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
-  SearchUIModel.StateForFacetType<T> & FacetActions<T>
+  SearchUIModel.StateForFacetType<T> & FacetActions<T> & { path: SearchUIModel.FacetPath }
 
 function ResultTypeSelector() {
   const model = SearchUIModel.use()
@@ -201,25 +201,36 @@ function DateFilterWidget({
 
 function KeywordFilterWidget({
   path,
-  onDeactivate,
+  value,
   onChange,
-  value, // @ts-expect-error
-  extents,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Keyword> & {
-  path: string[]
-}) {
+  onDeactivate,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Keyword>) {
+  const facetQ = SearchUIModel.useFacetQuery(path)
   return (
     <FiltersUI.Container
       defaultExpanded
       onDeactivate={onDeactivate}
       title={pathToFilterTitle(path)}
     >
-      <FiltersUI.Enum
-        extents={extents.values}
-        onChange={onChange}
-        placeholder="Select enum value(s)"
-        value={value}
-      />
+      {GQL.fold(facetQ, {
+        fetching: () => null,
+        data: (d) => {
+          if (d.search.__typename !== 'BoundedSearch') {
+            return <div>bad response</div>
+          }
+          const { facet } = d.search
+          if (!facet) {
+            return <div>facet not found</div>
+          }
+          if (facet.__typename !== 'KeywordSearchFacet') {
+            return <div>bad facet type</div>
+          }
+          const availableValues = facet.keywordValues.filter((v) => !value.includes(v))
+          return (
+            <FiltersUI.Enum extents={availableValues} onChange={onChange} value={value} />
+          )
+        },
+      })}
     </FiltersUI.Container>
   )
 }
@@ -271,11 +282,11 @@ function BooleanFilterWidget({
 }
 
 const FILTER_WIDGETS = {
-  Number: NumberFilterWidget,
+  Boolean: BooleanFilterWidget,
   Date: DateFilterWidget,
   Keyword: KeywordFilterWidget,
+  Number: NumberFilterWidget,
   Text: TextFilterWidget,
-  Boolean: BooleanFilterWidget,
 }
 
 function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
@@ -285,7 +296,7 @@ function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
   // eslint-disable-next-line no-underscore-dangle
   const FilterWidget = FILTER_WIDGETS[facet.type._tag]
   // @ts-expect-error
-  return <FilterWidget path={facet.path} {...facet.state} {...actions} />
+  return <FilterWidget {...facet.state} {...actions} path={facet.path} />
 }
 
 interface FacetWidgetProps<F extends SearchUIModel.KnownFacetDescriptor> {

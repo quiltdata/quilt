@@ -5,30 +5,21 @@ query ($after: String!) {
       cursor
       hits {
         __typename
-        ... on SearchHitObject {
+        ... on ISearchHit {
           id
-          # ID
           bucket
-          key
-          version
-          # shared props
           score
           size
           lastModified
-          # specific props
+        }
+        ... on SearchHitObject {
+          key
+          version
           deleteMarker
         }
         ... on SearchHitPackage {
-          id
-          # ID
-          bucket
           name
           hash
-          # shared props
-          score
-          size
-          lastModified
-          # specific props
           comment
           meta
           workflow

@@ -17,10 +17,26 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
           'total'
         >
         readonly facets: ReadonlyArray<
-          { readonly __typename: 'SearchFacet' } & Pick<
-            Types.SearchFacet,
-            'path' | 'extents'
-          >
+          | ({ readonly __typename: 'NumberSearchFacet' } & Pick<
+              Types.NumberSearchFacet,
+              'path' | 'numberMin' | 'numberMax'
+            >)
+          | ({ readonly __typename: 'DateSearchFacet' } & Pick<
+              Types.DateSearchFacet,
+              'path' | 'dateMin' | 'dateMax'
+            >)
+          | ({ readonly __typename: 'KeywordSearchFacet' } & Pick<
+              Types.KeywordSearchFacet,
+              'path' | 'keywordValues'
+            >)
+          | ({ readonly __typename: 'TextSearchFacet' } & Pick<
+              Types.TextSearchFacet,
+              'path'
+            >)
+          | ({ readonly __typename: 'BooleanSearchFacet' } & Pick<
+              Types.BooleanSearchFacet,
+              'path'
+            >)
         >
       })
     | { readonly __typename: 'UnboundedSearch' }
@@ -139,8 +155,82 @@ export const containers_Search_gql_BaseSearchDocument = {
                         selectionSet: {
                           kind: 'SelectionSet',
                           selections: [
-                            { kind: 'Field', name: { kind: 'Name', value: 'path' } },
-                            { kind: 'Field', name: { kind: 'Name', value: 'extents' } },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: '__typename' },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'ISearchFacet' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'path' },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'NumberSearchFacet' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'numberMin' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'numberMax' },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'DateSearchFacet' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'dateMin' },
+                                  },
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'dateMax' },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'InlineFragment',
+                              typeCondition: {
+                                kind: 'NamedType',
+                                name: { kind: 'Name', value: 'KeywordSearchFacet' },
+                              },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'keywordValues' },
+                                  },
+                                ],
+                              },
+                            },
                           ],
                         },
                       },
