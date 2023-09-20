@@ -104,39 +104,33 @@ function NumberFilterWidget({
       // no-default
     }
   }, [path])
-  if (extents.min === extents.max) {
-    return (
-      <FiltersUI.Container
-        defaultExpanded
-        onDeactivate={onDeactivate}
-        title={pathToFilterTitle(path)}
-      >
-        <FiltersUI.Checkbox
-          label={`Show ${extents.min} ${unit}`}
-          onChange={(checked) =>
-            checked
-              ? onChange({ min: extents.min, max: extents.max })
-              : onChange({ min: null, max: null })
-          }
-          value={value.min === extents.min && value.max === extents.max}
-        />
-      </FiltersUI.Container>
-    )
-  }
+  const hasExtents = !!((extents.min ?? false) || (extents.max ?? false))
+  const hasSingleExtent = extents.min === extents.max
   return (
     <FiltersUI.Container
       defaultExpanded
       onDeactivate={onDeactivate}
       title={pathToFilterTitle(path)}
     >
-      {extents.min ?? extents.max ?? (
-        <FiltersUI.NumbersRange
-          extents={extents}
-          onChange={onChange}
-          unit={unit}
-          value={value}
-        />
-      )}
+      {hasExtents &&
+        (hasSingleExtent ? (
+          <FiltersUI.Checkbox
+            label={`${extents.min} ${unit || ''}`}
+            onChange={(checked) =>
+              checked
+                ? onChange({ min: extents.min, max: extents.max })
+                : onChange({ min: null, max: null })
+            }
+            value={value.min === extents.min && value.max === extents.max}
+          />
+        ) : (
+          <FiltersUI.NumbersRange
+            extents={extents}
+            onChange={onChange}
+            unit={unit}
+            value={value}
+          />
+        ))}
     </FiltersUI.Container>
   )
 }
