@@ -46,7 +46,7 @@ export default function Enum({ extents, value, onChange, ...props }: EnumProps) 
             size="small"
           />
           <M.Typography className={classes.option} title={option} variant="body2">
-            {option}
+            {option.trim() ? option : <i>Empty string</i>}
           </M.Typography>
         </>
       )}
