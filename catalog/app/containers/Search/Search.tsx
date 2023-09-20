@@ -94,7 +94,7 @@ function NumberFilterWidget({
   extents,
   onChange,
   onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number> & { path: string[] }) {
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   const unit = React.useMemo(() => {
     switch (JSONPointer.stringify(path)) {
       case '/pkg/total_entries':
@@ -147,9 +147,7 @@ function DateFilterWidget({
   onChange,
   value,
   extents,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Date> & {
-  path: string[]
-}) {
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Date>) {
   const valueList = React.useMemo(
     () =>
       value.min === null || value.max === null
@@ -233,9 +231,7 @@ function TextFilterWidget({
   onDeactivate,
   onChange,
   value,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Text> & {
-  path: string[]
-}) {
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Text>) {
   return (
     <FiltersUI.Container
       defaultExpanded
@@ -256,9 +252,7 @@ function BooleanFilterWidget({
   onDeactivate,
   onChange,
   value,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Boolean> & {
-  path: string[]
-}) {
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Boolean>) {
   return (
     <FiltersUI.Container
       defaultExpanded
