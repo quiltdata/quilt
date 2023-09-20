@@ -35,6 +35,7 @@ interface ListProps {
   extents: string[]
   onChange: (v: string[]) => void
   placeholder?: string
+  searchThreshold?: number
   value: string[]
 }
 
@@ -44,6 +45,7 @@ export default function List({
   onChange,
   placeholder,
   value,
+  searchThreshold = 5,
 }: ListProps) {
   const [filter, setFilter] = React.useState('')
   const classes = useStyles()
@@ -70,22 +72,24 @@ export default function List({
   const hiddenNumber = extents.length - filteredExtents.length
   return (
     <div className={cx(classes.root, className)}>
-      <M.TextField
-        onChange={(event) => setFilter(event.target.value)}
-        placeholder={placeholder}
-        size="small"
-        value={filter}
-        variant="outlined"
-        InputProps={{
-          endAdornment: filter && (
-            <M.InputAdornment position="end">
-              <M.IconButton size="small" onClick={() => setFilter('')}>
-                <M.Icon fontSize="inherit">close</M.Icon>
-              </M.IconButton>
-            </M.InputAdornment>
-          ),
-        }}
-      />
+      {filteredExtents.length > searchThreshold && (
+        <M.TextField
+          onChange={(event) => setFilter(event.target.value)}
+          placeholder={placeholder}
+          size="small"
+          value={filter}
+          variant="outlined"
+          InputProps={{
+            endAdornment: filter && (
+              <M.InputAdornment position="end">
+                <M.IconButton size="small" onClick={() => setFilter('')}>
+                  <M.Icon fontSize="inherit">close</M.Icon>
+                </M.IconButton>
+              </M.InputAdornment>
+            ),
+          }}
+        />
+      )}
       <div className={classes.scrollArea}>
         <M.List dense>
           {filteredExtents.map((extent) => (
