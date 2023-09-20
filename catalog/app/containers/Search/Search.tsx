@@ -18,7 +18,7 @@ interface FacetActions<T extends SearchUIModel.KnownFacetType> {
 }
 
 type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
-  SearchUIModel.StateForFacetType<T> & FacetActions<T>
+  SearchUIModel.StateForFacetType<T> & FacetActions<T> & { path: SearchUIModel.FacetPath }
 
 function ResultTypeSelector() {
   const model = SearchUIModel.use()
@@ -56,8 +56,7 @@ function NumberFilterWidget({
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
   return (
     <div>
-      num
-      <button onClick={onDeactivate}>x</button>
+      <button onClick={onDeactivate}>deactivate x</button>
       <div>
         value:
         {value.min} ... {value.max}
@@ -65,6 +64,59 @@ function NumberFilterWidget({
       <div>
         extents:
         {extents.min} ... {extents.max}
+      </div>
+    </div>
+  )
+}
+
+function KeywordFilterWidget({
+  path,
+  value,
+  onChange,
+  onDeactivate,
+}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Keyword>) {
+  const facetQ = SearchUIModel.useFacetQuery(path)
+  const select = React.useCallback(
+    (v: string) => onChange([...value, v]),
+    [onChange, value],
+  )
+  const deselect = React.useCallback(
+    (v: string) => onChange(value.filter((x) => x !== v)),
+    [onChange, value],
+  )
+  return (
+    <div>
+      <button onClick={onDeactivate}>deactivate x</button>
+      <div>
+        <div>values:</div>
+        {value.map((v) => (
+          <label key={v}>
+            <input type="checkbox" checked={true} onChange={() => deselect(v)} />
+            {v}
+          </label>
+        ))}
+        {GQL.fold(facetQ, {
+          fetching: () => <div>fetching values</div>,
+          data: (d) => {
+            if (d.search.__typename !== 'BoundedSearch') {
+              return <div>bad response</div>
+            }
+            const { facet } = d.search
+            if (!facet) {
+              return <div>facet not found</div>
+            }
+            if (facet.__typename !== 'KeywordSearchFacet') {
+              return <div>bad facet type</div>
+            }
+            const availableValues = facet.keywordValues.filter((v) => !value.includes(v))
+            return availableValues.map((v) => (
+              <label key={v}>
+                <input type="checkbox" checked={false} onChange={() => select(v)} />
+                {v}
+              </label>
+            ))
+          },
+        })}
       </div>
     </div>
   )
@@ -89,7 +141,7 @@ function GenericFilterWidget({
 const FILTER_WIDGETS = {
   Number: NumberFilterWidget,
   Date: GenericFilterWidget,
-  Keyword: GenericFilterWidget,
+  Keyword: KeywordFilterWidget,
   Text: GenericFilterWidget,
   Boolean: GenericFilterWidget,
 }
@@ -101,7 +153,7 @@ function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
   // eslint-disable-next-line no-underscore-dangle
   const FilterWidget = FILTER_WIDGETS[facet.type._tag]
   // @ts-expect-error
-  return <FilterWidget {...facet.state} {...actions} />
+  return <FilterWidget {...facet.state} {...actions} path={facet.path} />
 }
 
 interface FacetWidgetProps<F extends SearchUIModel.KnownFacetDescriptor> {
