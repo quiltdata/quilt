@@ -95,31 +95,15 @@ function NumberFilterWidget({
   onChange,
   onDeactivate,
 }: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number> & { path: string[] }) {
-  const valueList = React.useMemo(
-    () =>
-      value.min === null || value.min === null
-        ? null
-        : ([value.min, value.max] as [number, number]),
-    [value],
-  )
-
-  const extentsList = React.useMemo(
-    () =>
-      extents.min === null || extents.min === null
-        ? null
-        : ([extents.min, extents.max] as [number, number]),
-    [extents],
-  )
-  const handleChange = React.useCallback(
-    (newValues) => {
-      onChange(
-        newValues === null
-          ? { min: null, max: null }
-          : { min: newValues[0], max: newValues[1] },
-      )
-    },
-    [onChange],
-  )
+  const unit = React.useMemo(() => {
+    switch (JSONPointer.stringify(path)) {
+      case '/pkg/total_entries':
+        return 'Entries'
+      case '/pkg/total_size':
+        return 'Bytes'
+      // no-default
+    }
+  }, [path])
   if (extents.min === extents.max) {
     return (
       <FiltersUI.Container
@@ -128,36 +112,16 @@ function NumberFilterWidget({
         title={pathToFilterTitle(path)}
       >
         <FiltersUI.Checkbox
-          label={`Show ${extents.min}`}
-          value={value.min === extents.min && value.max === extents.max}
+          label={`Show ${extents.min} ${unit}`}
           onChange={(checked) =>
             checked
               ? onChange({ min: extents.min, max: extents.max })
               : onChange({ min: null, max: null })
           }
+          value={value.min === extents.min && value.max === extents.max}
         />
       </FiltersUI.Container>
     )
-  }
-  switch (JSONPointer.stringify(path)) {
-    case '/pkg/total_entries':
-      return (
-        <FiltersWidgets.TotalEntries
-          onDeactivate={onDeactivate}
-          value={valueList}
-          extents={extentsList}
-          onChange={handleChange}
-        />
-      )
-    case '/pkg/total_size':
-      return (
-        <FiltersWidgets.TotalSize
-          onDeactivate={onDeactivate}
-          value={valueList}
-          extents={extentsList}
-          onChange={handleChange}
-        />
-      )
   }
   return (
     <FiltersUI.Container
@@ -165,11 +129,12 @@ function NumberFilterWidget({
       onDeactivate={onDeactivate}
       title={pathToFilterTitle(path)}
     >
-      {extentsList && (
+      {extents.min ?? extents.max ?? (
         <FiltersUI.NumbersRange
-          value={valueList}
-          extents={extentsList}
-          onChange={handleChange}
+          extents={extents}
+          onChange={onChange}
+          unit={unit}
+          value={value}
         />
       )}
     </FiltersUI.Container>

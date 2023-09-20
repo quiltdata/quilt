@@ -11,7 +11,7 @@ import * as SearchUIModel from './model'
 export const L = 'loading'
 
 export interface ActiveFacet<V, E = null> {
-  extents?: E | typeof L | null
+  extents?: E | null
   onChange: (v: V) => void
   onDeactivate?: () => void
   value: V
@@ -33,18 +33,6 @@ export function BucketExtented({ value, onChange }: ActiveFacet<string[], string
           value={value}
         />
       )}
-    </Filters.Container>
-  )
-}
-
-export function Comment({ value, onChange, onDeactivate }: ActiveFacet<string>) {
-  return (
-    <Filters.Container defaultExpanded title="Comment" onDeactivate={onDeactivate}>
-      <Filters.TextField
-        onChange={onChange}
-        placeholder="Enter comment message"
-        value={value}
-      />
     </Filters.Container>
   )
 }
@@ -74,157 +62,6 @@ export function Type({ value, onChange }: ActiveFacet<string>) {
         onChange={(o) => onChange(o.value)}
         value={val}
       />
-    </Filters.Container>
-  )
-}
-
-export function TotalSize({
-  extents,
-  onChange,
-  onDeactivate,
-  value,
-}: ActiveFacet<[number, number] | null, [number, number]>) {
-  return (
-    <Filters.Container defaultExpanded title="Total size" onDeactivate={onDeactivate}>
-      {extents && extents !== L && (
-        <Filters.NumbersRange
-          extents={extents}
-          onChange={onChange}
-          unit="Kb"
-          value={value}
-        />
-      )}
-    </Filters.Container>
-  )
-}
-
-export function LastModified({
-  extents,
-  onChange,
-  onDeactivate,
-  value,
-}: ActiveFacet<[Date, Date] | null, [Date, Date]>) {
-  return (
-    <Filters.Container defaultExpanded title="Last modified" onDeactivate={onDeactivate}>
-      {extents && extents !== L && (
-        <Filters.DatesRange extents={extents} onChange={onChange} value={value} />
-      )}
-    </Filters.Container>
-  )
-}
-
-export function PackageHash({
-  extents,
-  onChange,
-  onDeactivate,
-  value,
-}: ActiveFacet<string[], string[]>) {
-  return (
-    <Filters.Container defaultExpanded title="Package hash" onDeactivate={onDeactivate}>
-      {extents && extents !== L && (
-        <Filters.List
-          extents={extents}
-          onChange={onChange}
-          value={value}
-          placeholder="Filter hashes"
-        />
-      )}
-    </Filters.Container>
-  )
-}
-
-export function TotalEntries({
-  extents,
-  onChange,
-  onDeactivate,
-  value,
-}: ActiveFacet<[number, number] | null, [number, number]>) {
-  return (
-    <Filters.Container
-      defaultExpanded
-      title="Number of entries in package"
-      onDeactivate={onDeactivate}
-    >
-      {extents && extents !== L && (
-        <Filters.NumbersRange
-          extents={extents}
-          onChange={onChange}
-          unit="entries"
-          value={value}
-        />
-      )}
-    </Filters.Container>
-  )
-}
-
-export function Key({ value, onDeactivate, onChange }: ActiveFacet<string>) {
-  return (
-    <Filters.Container defaultExpanded title="Key" onDeactivate={onDeactivate}>
-      <Filters.TextField
-        onChange={onChange}
-        placeholder="Enter key, eg. test/test.md"
-        value={value}
-      />
-    </Filters.Container>
-  )
-}
-
-export function Ext({ value, onDeactivate, onChange }: ActiveFacet<string>) {
-  return (
-    <Filters.Container defaultExpanded title="Key" onDeactivate={onDeactivate}>
-      <Filters.TextField
-        onChange={onChange}
-        placeholder="Enter extension, eg. .md"
-        value={value}
-      />
-    </Filters.Container>
-  )
-}
-
-export function Size({
-  extents,
-  onChange,
-  onDeactivate,
-  value,
-}: ActiveFacet<[number, number] | null, [number, number]>) {
-  return (
-    <Filters.Container defaultExpanded title="Size" onDeactivate={onDeactivate}>
-      {extents && extents !== L && (
-        <Filters.NumbersRange
-          extents={extents}
-          onChange={onChange}
-          unit="Kb"
-          value={value}
-        />
-      )}
-    </Filters.Container>
-  )
-}
-
-export function Etag({
-  extents,
-  onChange,
-  onDeactivate,
-  value,
-}: ActiveFacet<string[], string[]>) {
-  return (
-    <Filters.Container defaultExpanded title="ETag" onDeactivate={onDeactivate}>
-      {extents && extents !== L && (
-        <Filters.List
-          extents={extents}
-          onChange={onChange}
-          value={value}
-          placeholder="Filter etags"
-        />
-      )}
-    </Filters.Container>
-  )
-}
-
-export function DeleteMarker({ value, onChange, onDeactivate }: ActiveFacet<boolean>) {
-  return (
-    <Filters.Container defaultExpanded title="Delete marker" onDeactivate={onDeactivate}>
-      <Filters.Checkbox label="Show deleted" onChange={onChange} value={value} />
     </Filters.Container>
   )
 }
@@ -264,8 +101,7 @@ export function Workflow({
     },
     [onChange, value],
   )
-  const areExtentsReady =
-    extents !== L && extents?.bucket && extents?.s3Version && extents?.workflow
+  const areExtentsReady = extents?.bucket && extents?.s3Version && extents?.workflow
   return (
     <Filters.Container defaultExpanded title="Workflow" onDeactivate={onDeactivate}>
       {areExtentsReady && (
@@ -303,6 +139,7 @@ export function Workflow({
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getAvailableFacetLabel(facet: string) {
   switch (facet) {
     case '/type':
@@ -335,28 +172,6 @@ function getAvailableFacetLabel(facet: string) {
   }
 }
 
-interface AvailableFacetsProps {
-  className?: string
-  facets: string[] | typeof L
-  onClick: (facet: string) => void
-}
-
-export function AvailableFacets({ className, facets, onClick }: AvailableFacetsProps) {
-  const items = React.useMemo(() => {
-    if (!Array.isArray(facets)) return [] as { label: string; type: string }[]
-    return facets.map((type) => ({
-      label: getAvailableFacetLabel(type) || '',
-      type,
-      onClick: () => onClick(type),
-    }))
-  }, [facets, onClick])
-  return facets === L ? (
-    <Filters.ChipsSkeleton className={className} />
-  ) : (
-    <Filters.Chips items={items} className={className} />
-  )
-}
-
 type SelectedFacet<V, E = null> = Omit<ActiveFacet<V, E>, 'onChange' | 'onDeactivate'>
 
 type SelectedFilter =
@@ -385,6 +200,7 @@ interface ActiveItem {
   onDelete?: () => SelectedFilter
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getActiveItems(filter: SelectedFilter): ActiveItem[] {
   switch (filter.path) {
     case 'type':
@@ -424,7 +240,7 @@ function getActiveItems(filter: SelectedFilter): ActiveItem[] {
       }))
     case 'total_size':
       if (!filter.state.value) return []
-      if (!filter.state.extents || filter.state.extents === L) return []
+      if (!filter.state.extents) return []
       return [
         {
           label: (
@@ -435,7 +251,7 @@ function getActiveItems(filter: SelectedFilter): ActiveItem[] {
           ),
           type: filter.path,
           onDelete: () => {
-            if (!filter.state.extents || filter.state.extents === L) {
+            if (!filter.state.extents) {
               throw new Error('This should not happen')
             }
             return {
@@ -469,7 +285,7 @@ function getActiveItems(filter: SelectedFilter): ActiveItem[] {
       ]
     case 'last_modified':
       if (!filter.state.value) return []
-      if (!filter.state.extents || filter.state.extents === L) return []
+      if (!filter.state.extents) return []
       return [
         {
           label: (
@@ -481,7 +297,7 @@ function getActiveItems(filter: SelectedFilter): ActiveItem[] {
           ),
           type: filter.path,
           onDelete: () => {
-            if (!filter.state.extents || filter.state.extents === L) {
+            if (!filter.state.extents) {
               throw new Error('This should not happen')
             }
             return {
@@ -497,22 +313,4 @@ function getActiveItems(filter: SelectedFilter): ActiveItem[] {
     default:
       return [] as ActiveItem[]
   }
-}
-
-interface ActiveFacetsProps {
-  filters: SelectedFilter[] | typeof L
-  onDelete: (facet: SelectedFilter) => void
-}
-
-export function ActiveFacets({ filters, onDelete }: ActiveFacetsProps) {
-  const items = React.useMemo(() => {
-    if (!Array.isArray(filters)) return [] as ActiveItem[]
-    return filters
-      .reduce((memo, filter) => [...memo, ...getActiveItems(filter)], [] as ActiveItem[])
-      .map((i) => ({
-        ...i,
-        onDelete: i.onDelete ? () => i.onDelete && onDelete(i.onDelete()) : undefined,
-      }))
-  }, [filters, onDelete])
-  return filters === L ? <Filters.ChipsSkeleton /> : <Filters.Chips items={items} />
 }

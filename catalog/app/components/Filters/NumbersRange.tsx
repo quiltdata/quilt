@@ -17,10 +17,10 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface NumbersRangeProps {
-  extents: [number, number]
-  onChange: (v: [number, number]) => void
+  extents: { min: number; max: number }
+  onChange: (v: { min: number | null; max: number | null }) => void
   unit?: string
-  value: [number, number] | null
+  value: { min: number | null; max: number | null }
 }
 
 export default function NumbersRange({
@@ -49,31 +49,30 @@ export default function NumbersRange({
     [dismiss, invalidId, notify],
   )
   const handleSlider = React.useCallback(
-    (event, newValue) => onChange(newValue as [number, number]),
+    (event, [min, max]) => onChange({ min, max }),
     [onChange],
   )
-  const from = value?.[0] || extents[0]
-  const to = value?.[1] || extents[1]
+  const min = value.min || extents.min
+  const max = value.max || extents.max
   const handleFrom = React.useCallback(
     (event) => {
-      const newFrom = Number(event.target.value)
-      if (isNumber(newFrom)) {
-        onChange([newFrom, to])
+      const newMin = Number(event.target.value)
+      if (isNumber(newMin)) {
+        onChange({ min: newMin, max })
       }
-      validate(newFrom)
+      validate(newMin)
     },
-    [onChange, to, validate],
+    [onChange, max, validate],
   )
   const handleTo = React.useCallback(
     (event) => {
-      const newTo = Number(event.target.value)
-      if (isNumber(newTo)) {
-        onChange([from, newTo])
+      const newMax = Number(event.target.value)
+      if (isNumber(newMax)) {
+        onChange({ min, max: newMax })
       }
-
-      validate(newTo)
+      validate(newMax)
     },
-    [onChange, from, validate],
+    [onChange, min, validate],
   )
   const inputProps = React.useMemo(
     () => ({
@@ -84,18 +83,19 @@ export default function NumbersRange({
     }),
     [unit],
   )
+  const sliderValue = React.useMemo(() => [min, max], [min, max])
   return (
     <div>
       <M.Slider
-        max={extents[1]}
-        min={extents[0]}
+        max={extents.max}
+        min={extents.min}
         onChange={handleSlider}
-        value={value || extents}
+        value={sliderValue}
         valueLabelDisplay="auto"
       />
       <div className={classes.inputs}>
-        <M.TextField label="From" value={from} onChange={handleFrom} {...inputProps} />
-        <M.TextField label="To" value={to} onChange={handleTo} {...inputProps} />
+        <M.TextField label="From" value={min} onChange={handleFrom} {...inputProps} />
+        <M.TextField label="To" value={max} onChange={handleTo} {...inputProps} />
       </div>
     </div>
   )
