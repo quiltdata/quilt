@@ -19,7 +19,7 @@ const useStyles = M.makeStyles((t) => ({
 interface NumbersRangeProps {
   extents: [number, number]
   onChange: (v: [number, number]) => void
-  unit: string
+  unit?: string
   value: [number, number] | null
 }
 
@@ -79,7 +79,7 @@ export default function NumbersRange({
     () => ({
       size: 'small' as const,
       InputProps: {
-        endAdornment: <M.InputAdornment position="end">{unit}</M.InputAdornment>,
+        endAdornment: unit && <M.InputAdornment position="end">{unit}</M.InputAdornment>,
       },
     }),
     [unit],
