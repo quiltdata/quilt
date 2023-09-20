@@ -10,7 +10,7 @@ function decodeFragment(fragment: string) {
   return fragment.replaceAll('~1', '/').replaceAll('~0', '~')
 }
 
-export function stringify(addressPath: Path): Pointer {
+export function stringify(addressPath: Readonly<Path>): Pointer {
   return `/${addressPath.map(encodeFragment).join('/')}`
 }
 
