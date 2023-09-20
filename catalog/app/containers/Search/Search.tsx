@@ -1,4 +1,3 @@
-import Fuse from 'fuse.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -13,6 +12,7 @@ import * as JSONPointer from 'utils/JSONPointer'
 
 import * as FiltersWidgets from './Filters'
 import * as SearchUIModel from './model'
+import AvailableFacets from './AvailableFacets'
 
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
@@ -28,27 +28,6 @@ function pathToFilterTitle(path: SearchUIModel.FacetPath) {
       return (
         <>
           Package meta <b>{tail.slice(0, -1).join(' ')}</b> {tail.slice(-1)} in:
-        </>
-      )
-    default:
-      return JSONPointer.stringify(path as string[])
-  }
-}
-
-function pathToChipTitle(path: SearchUIModel.FacetPath) {
-  const [head, ...tail] = path
-  switch (head) {
-    case 'pkg':
-      switch (tail[0]) {
-        case 'total_size':
-          return 'Total size'
-        case 'total_entries':
-          return 'Total entries'
-      }
-    case 'pkg_meta':
-      return (
-        <>
-          Package meta has <b>{tail.slice(0, -1).join(' ')}</b> {tail.slice(-1)}
         </>
       )
     default:
@@ -307,63 +286,6 @@ function ActiveFacets() {
         <FacetWidget key={JSON.stringify(facet.path)} facet={facet} />
       ))}
     </>
-  )
-}
-
-function fuzzySearchFacets(
-  facets: SearchUIModel.KnownFacetDescriptor[],
-  searchStr: string,
-): SearchUIModel.KnownFacetDescriptor[] {
-  if (!searchStr) return facets
-  const fuse = new Fuse(facets, {
-    includeScore: true,
-    keys: ['path'],
-    getFn: (facet) => facet.path.join(''),
-  })
-  return fuse
-    .search(searchStr)
-    .sort((a, b) => (a.score || Infinity) - (b.score || Infinity))
-    .map(({ item }) => item)
-}
-
-const useAvailableFacetsStyles = M.makeStyles((t) => ({
-  input: {
-    border: `1px solid ${t.palette.divider}`,
-    borderRadius: t.shape.borderRadius,
-    fontSize: t.typography.body2.fontSize,
-    marginBottom: t.spacing(1),
-    padding: t.spacing(0, 1),
-  },
-}))
-
-interface AvailableFacetsProps {
-  className: string
-}
-
-function AvailableFacets({ className }: AvailableFacetsProps) {
-  const classes = useAvailableFacetsStyles()
-  const model = SearchUIModel.use()
-  const [search, setSearch] = React.useState('')
-  const items = React.useMemo(
-    () =>
-      fuzzySearchFacets(model.state.availableFacets.facets, search).map(({ path }) => ({
-        label: pathToChipTitle(path),
-        onClick: () => model.actions.activateFacet(path),
-      })),
-    [model.state.availableFacets.facets, model.actions, search],
-  )
-  return (
-    <div className={className}>
-      <M.Typography variant="subtitle2">Available filters</M.Typography>
-      <M.InputBase
-        fullWidth
-        placeholder="Search filters"
-        onChange={(event) => setSearch(event.target.value)}
-        className={classes.input}
-        value={search}
-      />
-      <FiltersUI.Chips items={items} />
-    </div>
   )
 }
 
