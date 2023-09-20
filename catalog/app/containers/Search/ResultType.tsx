@@ -21,7 +21,8 @@ const typeExtents = [
 
 export default function ResultType() {
   const model = SearchUIModel.use()
-  const value = typeExtents.find((e) => e.value === model.state.resultType) || null
+  const value =
+    typeExtents.find((e) => e.value === (model.state.resultType ?? '')) || null
   return (
     <Filters.Container defaultExpanded title="Result type">
       <Filters.Select<(typeof typeExtents)[0]>
