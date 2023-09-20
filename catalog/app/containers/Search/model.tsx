@@ -11,7 +11,7 @@ import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
-// import FACET_QUERY from './gql/Facet.generated'
+import FACET_QUERY from './gql/Facet.generated'
 import FIRST_PAGE_QUERY from './gql/FirstPage.generated'
 import NEXT_PAGE_QUERY from './gql/NextPage.generated'
 
@@ -489,6 +489,17 @@ function useFilters(activeFacets: KnownFacetDescriptor[]): Model.GQLTypes.Search
   return useMemoEq(activeFacets, computeFilters)
 }
 
+export function useUpstreamFilters(path: FacetPath): Model.GQLTypes.SearchFilter[] {
+  const model = useSearchUIModelContext()
+  const { activeFacets } = model.state
+  const idx = activeFacets.findIndex((f) => R.equals(f.path, path))
+  const upstreamFacets = React.useMemo(
+    () => (idx === -1 ? [] : activeFacets.slice(0, idx)),
+    [activeFacets, idx],
+  )
+  return useMemoEq(upstreamFacets, computeFilters)
+}
+
 function useBaseSearchQuery(
   { searchString, resultType, buckets }: SearchUrlState,
   filters: Model.GQLTypes.SearchFilter[],
@@ -524,6 +535,13 @@ function useFirstPageQuery(
 
 export function useNextPageQuery(after: string) {
   return GQL.useQuery(NEXT_PAGE_QUERY, { after })
+}
+
+export function useFacetQuery(path: FacetPath) {
+  const model = useSearchUIModelContext()
+  const { searchString, resultType, buckets } = model.state
+  const filters = useUpstreamFilters(path)
+  return GQL.useQuery(FACET_QUERY, { searchString, resultType, buckets, filters, path })
 }
 
 export type AvailableFacet = KnownFacetDescriptor
@@ -587,9 +605,9 @@ function useAvailableFacets(
 function useSearchUIModel() {
   const urlState = useUrlState()
   const activeFacets = useActiveFacets(urlState)
-  const baseFilter = useFilters(activeFacets)
-  const baseSearchQuery = useBaseSearchQuery(urlState, baseFilter)
-  const firstPageQuery = useFirstPageQuery(urlState, baseFilter)
+  const baseFilters = useFilters(activeFacets)
+  const baseSearchQuery = useBaseSearchQuery(urlState, baseFilters)
+  const firstPageQuery = useFirstPageQuery(urlState, baseFilters)
   const availableFacets = useAvailableFacets(baseSearchQuery, activeFacets)
 
   const makeUrl = useMakeUrl()
@@ -672,7 +690,7 @@ function useSearchUIModel() {
         searchString: urlState.searchString,
         resultType: urlState.resultType,
         buckets: urlState.buckets,
-        filter: baseFilter,
+        filters: baseFilters,
         order: urlState.order,
         activeFacets,
         availableFacets,

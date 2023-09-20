@@ -83,6 +83,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
     [],
   )
 
+  // TODO: instantly resolve BoundedSearch(id).facet from BoundedSearch(id).facets
   const cacheExchange = React.useMemo(
     () =>
       GraphCache.cacheExchange({
@@ -109,7 +110,11 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             p.bucket?.name && p.policy?.id ? `${p.bucket.name}/${p.policy.id}` : null,
           RoleBucketPermission: (p: any) =>
             p.bucket?.name && p.role?.id ? `${p.bucket.name}/${p.role.id}` : null,
-          SearchFacet: (sf: any) => JSON.stringify(sf.path) ?? null,
+          NumberSearchFacet: () => null,
+          DateSearchFacet: () => null,
+          KeywordSearchFacet: () => null,
+          TextSearchFacet: () => null,
+          BooleanSearchFacet: () => null,
           SearchResultSet: () => null,
           SearchResultSetPage: () => null,
           Status: () => null,
