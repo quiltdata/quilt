@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
-// import * as BucketConfig from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
@@ -15,6 +14,7 @@ import AvailableFacets from './AvailableFacets'
 import BucketsFilterWidget from './Buckets'
 import ResultTypeFilterWidget from './ResultType'
 import { ResultsSkeleton } from './Results'
+import SortSelector from './Sort'
 
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
@@ -443,6 +443,7 @@ const useResultsStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
   },
   toolbar: {
+    alignItems: 'center',
     display: 'flex',
   },
   sort: {
@@ -458,16 +459,12 @@ interface ResultsBoundedProps {
 }
 
 function ResultsBounded({ total }: ResultsBoundedProps) {
-  const model = SearchUIModel.use()
   const classes = useResultsStyles()
-  // action: change sort order
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
         <M.Typography variant="body1">{total} results</M.Typography>
-        <div className={classes.sort}>
-          sort order: {model.state.order.field} {model.state.order.direction}
-        </div>
+        <SortSelector className={classes.sort} />
       </div>
       <FirstPage className={classes.results} />
     </div>
