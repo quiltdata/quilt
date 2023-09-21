@@ -48,12 +48,13 @@ interface ListProps {
 
 export default function List({
   className,
-  extents,
+  extents: rawExtents,
   onChange,
   placeholder,
   value,
   searchThreshold = 5,
 }: ListProps) {
+  const extents = React.useMemo(() => [...value, ...rawExtents], [value, rawExtents])
   const [filter, setFilter] = React.useState('')
   const classes = useStyles()
   const valueMap = value.reduce(
