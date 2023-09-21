@@ -1,8 +1,18 @@
 import cx from 'classnames'
+import Fuse from 'fuse.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import TinyTextField from './TinyTextField'
+
+function fuzzySearchExtents(extents: string[], searchStr: string): string[] {
+  if (!searchStr) return extents
+  const fuse = new Fuse(extents, { includeScore: true })
+  return fuse
+    .search(searchStr)
+    .sort((a, b) => (a.score || Infinity) - (b.score || Infinity))
+    .map(({ item }) => item)
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -13,12 +23,7 @@ const useStyles = M.makeStyles((t) => ({
   scrollArea: {
     flexGrow: 1,
     overflow: 'hidden auto',
-  },
-  hidden: {
-    marginTop: t.spacing(1),
-  },
-  empty: {
-    marginTop: t.spacing(2),
+    margin: t.spacing(1, 0),
   },
   label: {
     cursor: 'pointer',
@@ -56,12 +61,7 @@ export default function List({
     {} as Record<string, boolean>,
   )
   const filteredExtents = React.useMemo(
-    () =>
-      !filter
-        ? extents
-        : extents.filter(
-            (extent) => extent.toLowerCase().indexOf(filter.toLowerCase()) > -1,
-          ),
+    () => fuzzySearchExtents(extents, filter),
     [filter, extents],
   )
   const handleChange = React.useCallback(
@@ -83,7 +83,7 @@ export default function List({
         />
       )}
       <div className={classes.scrollArea}>
-        <M.List dense>
+        <M.List dense disablePadding>
           {filteredExtents.map((extent) => (
             <M.ListItem key={extent} disableGutters>
               <M.ListItemIcon className={classes.checkboxWrapper}>
@@ -106,18 +106,15 @@ export default function List({
               </M.ListItemText>
             </M.ListItem>
           ))}
-          {!!hiddenNumber &&
-            (hiddenNumber === extents.length ? (
-              <M.Typography className={classes.empty} variant="body1">
-                Clear filter to see {hiddenNumber} items that do not fit the filter string
-              </M.Typography>
-            ) : (
-              <M.Typography className={classes.hidden} variant="caption">
-                {hiddenNumber} items do not fit the filter string
-              </M.Typography>
-            ))}
         </M.List>
       </div>
+      {!!hiddenNumber && (
+        <M.Typography variant="caption">
+          {extents.length
+            ? `There are ${hiddenNumber} more items available. Loosen search query to see more.`
+            : `${hiddenNumber} available items are hidden. Clear filters to see them.`}
+        </M.Typography>
+      )}
     </div>
   )
 }
