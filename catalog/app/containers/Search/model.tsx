@@ -643,6 +643,18 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
+  const clearFacets = React.useCallback(() => {
+    updateUrlState(
+      R.evolve({
+        searchString: () => '',
+        resultType: () => null,
+        buckets: () => [],
+        facets: () => [],
+        order: () => DEFAULT_ORDER,
+      }),
+    )
+  }, [updateUrlState])
+
   const updateActiveFacet = React.useCallback(
     (path: FacetPath, updater: (f: KnownFacetDescriptor) => KnownFacetDescriptor) => {
       updateUrlState(
@@ -675,6 +687,7 @@ function useSearchUIModel() {
         activateFacet,
         deactivateFacet,
         updateActiveFacet,
+        clearFacets,
       },
       baseSearchQuery,
       firstPageQuery,
