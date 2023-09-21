@@ -14,6 +14,7 @@ import * as SearchUIModel from './model'
 import AvailableFacets from './AvailableFacets'
 import BucketsFilterWidget from './Buckets'
 import ResultTypeFilterWidget from './ResultType'
+import { ResultsSkeleton } from './Results'
 
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
@@ -334,24 +335,32 @@ function SearchHit({ hit }: SearchHitProps) {
 }
 
 interface ResultsPageProps {
-  hits: readonly SearchUIModel.SearchHit[]
+  className: string
   cursor: string | null
+  hits: readonly SearchUIModel.SearchHit[]
 }
 
-function ResultsPage({ hits, cursor }: ResultsPageProps) {
+const useResultsPageStyles = M.makeStyles((t) => ({
+  next: {
+    marginTop: t.spacing(1),
+  },
+}))
+
+function ResultsPage({ className, hits, cursor }: ResultsPageProps) {
   // const model = SearchUIModel.use()
+  const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
   const loadMore = React.useCallback(() => {
     setMore(true)
   }, [])
   return (
-    <div>
+    <div className={className}>
       {hits.map((hit) => (
         <SearchHit key={hit.id} hit={hit} />
       ))}
       {!!cursor &&
         (more ? (
-          <NextPage after={cursor} />
+          <NextPage className={classes.next} after={cursor} />
         ) : (
           <button onClick={loadMore}>load more</button>
         ))}
@@ -361,35 +370,40 @@ function ResultsPage({ hits, cursor }: ResultsPageProps) {
 
 interface NextPageProps {
   after: string
+  className: string
 }
 
-function NextPage({ after }: NextPageProps) {
+function NextPage({ after, className }: NextPageProps) {
   const pageQ = SearchUIModel.useNextPageQuery(after)
   return GQL.fold(pageQ, {
     data: ({ searchMore: r }) => {
       switch (r.__typename) {
         case 'SearchResultSetPage':
-          return <ResultsPage hits={r.hits} cursor={r.cursor} />
+          return <ResultsPage className={className} hits={r.hits} cursor={r.cursor} />
         case 'InvalidInput':
           // should not happen
-          return <p>invalid input: {r.errors[0].message}</p>
+          return <p className={className}>invalid input: {r.errors[0].message}</p>
         case 'OperationError':
           // should not happen. retry?
-          return <p>operation error: {r.message}</p>
+          return <p className={className}>operation error: {r.message}</p>
         default:
           assertNever(r)
       }
     },
-    fetching: () => <p>loading...</p>,
+    fetching: () => <p className={className}>loading...</p>,
     error: (err) => {
       // eslint-disable-next-line no-console
       console.error(err)
-      return <p>gql error: {err.message}</p>
+      return <p className={className}>gql error: {err.message}</p>
     },
   })
 }
 
-function FirstPage() {
+interface FirstPageProps {
+  className: string
+}
+
+function FirstPage({ className }: FirstPageProps) {
   const model = SearchUIModel.use()
   return GQL.fold(model.firstPageQuery, {
     data: ({ search: r }) => {
@@ -397,31 +411,47 @@ function FirstPage() {
         case 'BoundedSearch':
           return (
             <ResultsPage
+              className={className}
               hits={r.results.firstPage.hits}
               cursor={r.results.firstPage.cursor}
             />
           )
         case 'UnboundedSearch':
           // should not happen
-          return <p>unbounded search</p>
+          return <p className={className}>unbounded search</p>
         case 'InvalidInput':
           // should not happen
-          return <p>invalid input: {r.errors[0].message}</p>
+          return <p className={className}>invalid input: {r.errors[0].message}</p>
         case 'OperationError':
           // should not happen
-          return <p>operation error: {r.message}</p>
+          return <p className={className}>operation error: {r.message}</p>
         default:
           assertNever(r)
       }
     },
-    fetching: () => <p>loading...</p>,
+    fetching: () => <ResultsSkeleton className={className} />,
     error: (err) => {
       // eslint-disable-next-line no-console
       console.error(err)
-      return <p>gql error: {err.message}</p>
+      return <p className={className}>gql error: {err.message}</p>
     },
   })
 }
+
+const useResultsStyles = M.makeStyles((t) => ({
+  root: {
+    overflow: 'hidden',
+  },
+  toolbar: {
+    display: 'flex',
+  },
+  sort: {
+    marginLeft: 'auto',
+  },
+  results: {
+    marginTop: t.spacing(2),
+  },
+}))
 
 interface ResultsBoundedProps {
   total: number
@@ -429,16 +459,17 @@ interface ResultsBoundedProps {
 
 function ResultsBounded({ total }: ResultsBoundedProps) {
   const model = SearchUIModel.use()
+  const classes = useResultsStyles()
   // action: change sort order
   return (
-    <div style={{ overflow: 'hidden' }}>
-      <div>{total} results</div>
-      <div>
-        sort order: {model.state.order.field} {model.state.order.direction}
+    <div className={classes.root}>
+      <div className={classes.toolbar}>
+        <M.Typography variant="body1">{total} results</M.Typography>
+        <div className={classes.sort}>
+          sort order: {model.state.order.field} {model.state.order.direction}
+        </div>
       </div>
-      <div>
-        <FirstPage />
-      </div>
+      <FirstPage className={classes.results} />
     </div>
   )
 }
