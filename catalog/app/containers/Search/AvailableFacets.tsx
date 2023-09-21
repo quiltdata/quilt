@@ -55,21 +55,23 @@ const useStyles = M.makeStyles((t) => ({
 
 interface AvailableFacetsProps {
   className: string
+  facets: SearchUIModel.KnownFacetDescriptor[]
+  onActivate: (path: SearchUIModel.FacetPath) => void
 }
 
-export default function AvailableFacets({ className }: AvailableFacetsProps) {
+function AvailableFacets({ className, facets, onActivate }: AvailableFacetsProps) {
   const classes = useStyles()
-  const model = SearchUIModel.use()
   const [search, setSearch] = React.useState('')
   const items = React.useMemo(
     () =>
-      fuzzySearchFacets(model.state.availableFacets.facets, search).map(({ path }) => ({
+      fuzzySearchFacets(facets, search).map(({ path }) => ({
         label: pathToChipTitle(path),
-        onClick: () => model.actions.activateFacet(path),
+        onClick: () => onActivate(path),
       })),
-    [model.state.availableFacets.facets, model.actions, search],
+    [facets, onActivate, search],
   )
-  const hiddenNumber = model.state.availableFacets.facets.length - items.length
+
+  const hiddenNumber = facets.length - items.length
   return (
     <div className={className}>
       <M.Typography variant="subtitle2" className={classes.header}>
@@ -92,4 +94,19 @@ export default function AvailableFacets({ className }: AvailableFacetsProps) {
       )}
     </div>
   )
+}
+
+interface AvailableFacetsWrapperProps {
+  className: string
+}
+
+export default function AvailableFacetsWrapper({
+  className,
+}: AvailableFacetsWrapperProps) {
+  const model = SearchUIModel.use()
+  const { facets, fetching } = model.state.availableFacets
+  const onActivate = model.actions.activateFacet
+  if (fetching) return <Filters.ChipsSkeleton className={className} />
+  if (!facets.length) return null
+  return <AvailableFacets className={className} facets={facets} onActivate={onActivate} />
 }
