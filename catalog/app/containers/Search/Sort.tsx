@@ -10,15 +10,7 @@ const sortOptions = [
   {
     field: Model.GQLTypes.SearchResultOrderField.Relevance,
     direction: Model.GQLTypes.SortDirection.DESC,
-    toString: () => 'Relevance ￬',
-    valueOf() {
-      return this.field + this.direction
-    },
-  },
-  {
-    field: Model.GQLTypes.SearchResultOrderField.Relevance,
-    direction: Model.GQLTypes.SortDirection.ASC,
-    toString: () => 'Relevance ￪',
+    toString: () => 'Relevance',
     valueOf() {
       return this.field + this.direction
     },
@@ -26,7 +18,7 @@ const sortOptions = [
   {
     field: Model.GQLTypes.SearchResultOrderField.Modified,
     direction: Model.GQLTypes.SortDirection.DESC,
-    toString: () => 'Modified ￬',
+    toString: () => 'Date modified (newest first)',
     valueOf() {
       return this.field + this.direction
     },
@@ -34,7 +26,7 @@ const sortOptions = [
   {
     field: Model.GQLTypes.SearchResultOrderField.Modified,
     direction: Model.GQLTypes.SortDirection.ASC,
-    toString: () => 'Modified ￪',
+    toString: () => 'Date modified (oldest first)',
     valueOf() {
       return this.field + this.direction
     },
@@ -42,7 +34,7 @@ const sortOptions = [
   {
     field: Model.GQLTypes.SearchResultOrderField.Size,
     direction: Model.GQLTypes.SortDirection.DESC,
-    toString: () => 'Size ￬',
+    toString: () => 'Size (highest first)',
     valueOf() {
       return this.field + this.direction
     },
@@ -50,7 +42,7 @@ const sortOptions = [
   {
     field: Model.GQLTypes.SearchResultOrderField.Size,
     direction: Model.GQLTypes.SortDirection.ASC,
-    toString: () => 'Size ￪',
+    toString: () => 'Size (lowest first)',
     valueOf() {
       return this.field + this.direction
     },
