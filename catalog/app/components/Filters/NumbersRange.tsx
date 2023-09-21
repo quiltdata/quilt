@@ -2,8 +2,15 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
+import { formatQuantity } from 'utils/string'
 
 const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
+
+const valueLabelFormat = (number: number) =>
+  // @ts-expect-error
+  formatQuantity(number, {
+    suffixes: ['', 'K', 'M', 'B', 'T', 'P', 'E', 'Z', 'Y'],
+  })
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
@@ -91,6 +98,7 @@ export default function NumbersRange({
         min={extents.min}
         onChange={handleSlider}
         value={sliderValue}
+        valueLabelFormat={valueLabelFormat}
         valueLabelDisplay="auto"
       />
       <div className={classes.inputs}>
