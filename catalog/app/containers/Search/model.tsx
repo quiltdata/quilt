@@ -629,6 +629,13 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
+  const setOrder = React.useCallback(
+    (order: Model.GQLTypes.SearchResultOrder) => {
+      updateUrlState((s) => ({ ...s, order }))
+    },
+    [updateUrlState],
+  )
+
   const setResultType = React.useCallback(
     (resultType: ResultType | null) => {
       updateUrlState((s) => ({ ...s, resultType }))
@@ -696,6 +703,7 @@ function useSearchUIModel() {
       },
       actions: {
         setSearchString,
+        setOrder,
         setResultType,
         setBuckets,
         activateFacet,
