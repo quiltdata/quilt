@@ -20,10 +20,12 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     maxHeight: t.spacing(40),
   },
-  scrollArea: {
-    flexGrow: 1,
-    overflow: 'hidden auto',
-    margin: t.spacing(1, 0),
+  checkboxWrapper: {
+    minWidth: t.spacing(4),
+    paddingLeft: '2px',
+  },
+  help: {
+    marginTop: t.spacing(1),
   },
   label: {
     cursor: 'pointer',
@@ -31,9 +33,15 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-  checkboxWrapper: {
-    minWidth: t.spacing(4),
-    paddingLeft: '2px',
+  listItem: {
+    padding: 0,
+  },
+  scrollArea: {
+    // negative margin and left padding is a workaround
+    // for not cutting checkbox ripple wrapper
+    flexGrow: 1,
+    margin: t.spacing(1, 0, 0, -1.5),
+    overflow: 'hidden auto',
   },
 }))
 
@@ -86,10 +94,9 @@ export default function List({
       <div className={classes.scrollArea}>
         <M.List dense disablePadding>
           {filteredExtents.map((extent) => (
-            <M.ListItem key={extent} disableGutters>
+            <M.ListItem key={extent} disableGutters className={classes.listItem} button>
               <M.ListItemIcon className={classes.checkboxWrapper}>
                 <M.Checkbox
-                  edge="start"
                   checked={!!valueMap[extent]}
                   id={`list_${extent}`}
                   onChange={(event, checked) => handleChange(extent, checked)}
@@ -110,7 +117,7 @@ export default function List({
         </M.List>
       </div>
       {!!hiddenNumber && (
-        <M.Typography variant="caption">
+        <M.Typography variant="caption" className={classes.help}>
           {extents.length
             ? `There are ${hiddenNumber} more items available. Loosen search query to see more.`
             : `${hiddenNumber} available items are hidden. Clear filters to see them.`}
