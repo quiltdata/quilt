@@ -209,47 +209,6 @@ interface FacetDescriptor<T extends FacetType<any, any, any, any>> {
 
 export type KnownFacetDescriptor = FacetDescriptor<KnownFacetType>
 
-// interface FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>> {
-//   path: P
-//   type: T
-//   match: (p: any) => p is P
-//   cast: ({ path, state }: any) => FacetDescriptor<P, T>
-//   init: (path: FacetPath, extents: any) => FacetDescriptor<P, T>
-// }
-//
-// // eslint-disable-next-line @typescript-eslint/no-redeclare
-// function FacetMatcher<P extends FacetPath, T extends FacetType<any, any, any>>(
-//   path: P,
-//   type: T,
-// ): FacetMatcher<P, T> {
-//   const match = (p: any): p is P => R.equals(path, p)
-//   const cast = ({ path: p, state }: any) =>
-//     ({
-//       path: p,
-//       type,
-//       state,
-//     }) as FacetDescriptor<P, T>
-//   const init = (p: FacetPath, extents: any) =>
-//     ({
-//       path: p,
-//       type,
-//       state: { value: type.init(extents), extents },
-//     }) as FacetDescriptor<P, T>
-//   return { path, type, match, cast, init } as const
-// }
-
-// PathPattern?
-// export const KNOWN_FACETS = [
-//   FacetMatcher(['pkg', 'total_size'] as const, FacetTypes.Number),
-//   FacetMatcher(['pkg', 'total_entries'] as const, FacetTypes.Number),
-//   // comment: Text
-//   // last_modified: Date
-//   // workflow: Workflow
-//   // XXX: other facets
-//   FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
-//   FacetMatcher(['pkg_meta', JSONPointer, type] as const, FacetTypes.Number),
-// ]
-
 // function updateFacetDescriptorState<F extends KnownFacetDescriptor>(
 //   facet: F,
 //   updater: (state: F['state']) => F['state'],
@@ -273,6 +232,7 @@ const TYPE_MAP = {
 }
 
 function matchFacet(path: FacetPath): KnownFacetType | null {
+  if (R.equals(['last_modified'], path)) return FacetTypes.Date
   if (R.equals(['pkg', 'total_size'], path)) return FacetTypes.Number
   if (R.equals(['pkg', 'total_entries'], path)) return FacetTypes.Number
   if (R.startsWith(['pkg_meta'], path)) {
@@ -280,6 +240,12 @@ function matchFacet(path: FacetPath): KnownFacetType | null {
     if (!ptr || !typeName) return null
     return TYPE_MAP[typeName as keyof typeof TYPE_MAP] ?? null
   }
+  if (R.equals(['s3', 'ext'], path)) return FacetTypes.Keyword
+  if (R.equals(['s3', 'key'], path)) return FacetTypes.Text
+  if (R.equals(['s3', 'size'], path)) return FacetTypes.Number
+  if (R.equals(['s3', 'content'], path)) return FacetTypes.Text
+  if (R.equals(['s3', 'delete_marker'], path)) return FacetTypes.Boolean
+
   return null
 }
 
@@ -652,9 +618,9 @@ function useSearchUIModel() {
 
   const activateFacet = React.useCallback(
     (path: FacetPath) => {
-      // eslint-disable-next-line no-console
-      console.log('activateFacet', path)
       const facet = availableFacets.facets.find((f) => R.equals(f.path, path))
+      // eslint-disable-next-line no-console
+      console.log('activateFacet', path, facet)
       if (!facet) return
       updateUrlState(
         R.evolve({ facets: (facets: KnownFacetDescriptor[]) => [...facets, facet] }),
