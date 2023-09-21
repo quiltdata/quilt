@@ -7,13 +7,14 @@ import * as SearchResults from 'components/SearchResults'
 import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
+import * as Format from 'utils/format'
 import * as JSONPointer from 'utils/JSONPointer'
 
 import * as SearchUIModel from './model'
 import AvailableFacets from './AvailableFacets'
 import BucketsFilterWidget from './Buckets'
 import ResultTypeFilterWidget from './ResultType'
-import { ResultsSkeleton } from './Results'
+import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
@@ -460,11 +461,19 @@ interface ResultsBoundedProps {
 
 function ResultsBounded({ total }: ResultsBoundedProps) {
   const classes = useResultsStyles()
+  if (!total) return <EmptyResults />
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
-        <M.Typography variant="body1">{total} results</M.Typography>
-        <SortSelector className={classes.sort} />
+        <M.Typography variant="h6">
+          <Format.Plural
+            value={total}
+            zero="Nothing found"
+            one="1 result found"
+            other={(n) => `${n} results found`}
+          />
+        </M.Typography>
+        {total > 1 && <SortSelector className={classes.sort} />}
       </div>
       <FirstPage className={classes.results} />
     </div>
