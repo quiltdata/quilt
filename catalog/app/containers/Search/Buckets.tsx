@@ -13,9 +13,14 @@ export default function Buckets() {
     [bucketConfigs],
   )
   const { setBuckets } = model.actions
+  const { buckets } = model.state
   const handleChange = React.useCallback(
     (urls: string[]) => setBuckets(urls.map((u) => u.replace(/^s3:\/\//, ''))),
     [setBuckets],
+  )
+  const normalizedValue = React.useMemo(
+    () => buckets.map((bucket) => `s3://${bucket}`),
+    [buckets],
   )
   return (
     <Filters.Container defaultExpanded title="Buckets">
@@ -24,7 +29,7 @@ export default function Buckets() {
           extents={extents}
           onChange={handleChange}
           placeholder="Select buckets"
-          value={model.state.buckets}
+          value={normalizedValue}
         />
       )}
     </Filters.Container>
