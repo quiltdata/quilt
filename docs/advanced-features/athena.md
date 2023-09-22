@@ -16,7 +16,7 @@ the table must contain the columns `logical_key`, `physical_keys` and `size` as 
 
 > This step is not required for users of Quilt enterprise, since tables and views
 are managed by Quilt. Check the value of `UserAthenaDatabaseName` output in your
-CloudFormation stack to know the name of Athena database.
+CloudFormation stack to know the name of the Athena database it created.
 
 The first step in configuring Athena to query the package contents and metadata
 is to define a set of tables and views that represent the metadata fields as columns.
