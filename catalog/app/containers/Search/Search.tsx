@@ -512,9 +512,10 @@ function Results() {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    alignItems: 'start',
     display: 'grid',
-    gridTemplateColumns: `${t.spacing(40)}px auto`,
     gridColumnGap: t.spacing(2),
+    gridTemplateColumns: `${t.spacing(40)}px auto`,
     padding: t.spacing(4, 3),
   },
 }))
