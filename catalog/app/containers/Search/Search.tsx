@@ -383,10 +383,18 @@ function NextPage({ after, className }: NextPageProps) {
           return <ResultsPage className={className} hits={r.hits} cursor={r.cursor} />
         case 'InvalidInput':
           // should not happen
-          return <p className={className}>invalid input: {r.errors[0].message}</p>
+          return (
+            <EmptyResults
+              description={r.errors[0].message}
+              image="error"
+              title="Invalid input"
+            />
+          )
         case 'OperationError':
           // should not happen. retry?
-          return <p className={className}>operation error: {r.message}</p>
+          return (
+            <EmptyResults description={r.message} image="error" title="Operation error" />
+          )
         default:
           assertNever(r)
       }
@@ -422,10 +430,18 @@ function FirstPage({ className }: FirstPageProps) {
           return <p className={className}>unbounded search</p>
         case 'InvalidInput':
           // should not happen
-          return <p className={className}>invalid input: {r.errors[0].message}</p>
+          return (
+            <EmptyResults
+              description={r.errors[0].message}
+              image="error"
+              title="Invalid input"
+            />
+          )
         case 'OperationError':
           // should not happen
-          return <p className={className}>operation error: {r.message}</p>
+          return (
+            <EmptyResults description={r.message} image="error" title="Operation error" />
+          )
         default:
           assertNever(r)
       }
@@ -485,7 +501,6 @@ function ResultsUnbounded() {
     <EmptyResults
       clearTitle="Specify search criteria"
       description=""
-      noImage
       title="No search query"
     />
   )
@@ -501,9 +516,17 @@ function Results() {
         case 'UnboundedSearch':
           return <ResultsUnbounded />
         case 'InvalidInput':
-          return <p>invalid input: {r.errors[0].message}</p>
+          return (
+            <EmptyResults
+              description={r.errors[0].message}
+              image="error"
+              title="Invalid input"
+            />
+          )
         case 'OperationError':
-          return <p>operation error: {r.message}</p>
+          return (
+            <EmptyResults description={r.message} image="error" title="Operation error" />
+          )
         default:
           assertNever(r)
       }

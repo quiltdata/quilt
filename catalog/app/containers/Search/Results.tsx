@@ -80,6 +80,10 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
   actions: {
     marginTop: t.spacing(3),
   },
+  error: {
+    fontSize: '64px',
+    color: t.palette.error.dark,
+  },
   title: {
     ...t.typography.h4,
   },
@@ -104,12 +108,19 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface EmptyResultsProps {
+  clearTitle?: string
+  description?: string
+  image?: 'not-found' | 'error'
+  title?: string
+}
+
 export function EmptyResults({
   clearTitle = 'Clear filters',
   description = "Try adjusting your search or filter to find what you're looking for",
-  noImage = false,
+  image,
   title = 'No results found',
-}) {
+}: EmptyResultsProps) {
   const classes = useEmptyResultsStyles()
   const model = SearchUIModel.use()
   const navbarModel = useNavBar()
@@ -130,12 +141,25 @@ export function EmptyResults({
     },
     [navbarModel, clearFacets],
   )
+  const tryAgain = React.useCallback(() => {
+    // FIXME: retry GQL request
+    window.location.reload()
+  }, [])
   return (
     <div className={classes.root}>
-      {!noImage && <div className={classes.sand} />}
+      {image === 'not-found' && <div className={classes.sand} />}
+      {image === 'error' && <M.Icon className={classes.error}>error_outline</M.Icon>}
       <div className={classes.title}>{title}</div>
       <div className={classes.description}>{description}</div>
       <div className={classes.actions}>
+        {image === 'error' && (
+          <>
+            <M.Button variant="outlined" onClick={tryAgain}>
+              Try again
+            </M.Button>
+            <span className={classes.divider}>or</span>
+          </>
+        )}
         {lastPath && (
           <>
             <M.Button variant="outlined" onClick={deactivateLast}>
