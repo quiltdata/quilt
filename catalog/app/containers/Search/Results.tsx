@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import sand from 'components/Error/sand.webp'
+import { useNavBar } from 'containers/NavBar'
 
 import * as SearchUIModel from './model'
 
@@ -104,11 +105,14 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
 }))
 
 export function EmptyResults({
-  title = 'No results found',
+  clearTitle = 'Clear filters',
   description = "Try adjusting your search or filter to find what you're looking for",
+  noImage = false,
+  title = 'No results found',
 }) {
   const classes = useEmptyResultsStyles()
   const model = SearchUIModel.use()
+  const navbarModel = useNavBar()
   const { activeFacets } = model.state
   const { deactivateFacet, clearFacets } = model.actions
   const lastPath = React.useMemo(
@@ -118,9 +122,17 @@ export function EmptyResults({
   const deactivateLast = React.useCallback(() => {
     deactivateFacet(lastPath)
   }, [lastPath, deactivateFacet])
+  const handleClear = React.useCallback(
+    (event) => {
+      event.stopPropagation()
+      clearFacets()
+      navbarModel?.input.onFocus()
+    },
+    [navbarModel, clearFacets],
+  )
   return (
     <div className={classes.root}>
-      <div className={classes.sand} />
+      {!noImage && <div className={classes.sand} />}
       <div className={classes.title}>{title}</div>
       <div className={classes.description}>{description}</div>
       <div className={classes.actions}>
@@ -132,8 +144,8 @@ export function EmptyResults({
             <span className={classes.divider}>or</span>
           </>
         )}
-        <M.Button variant="outlined" onClick={clearFacets}>
-          Clear filters
+        <M.Button variant="outlined" onClick={handleClear}>
+          {clearTitle}
         </M.Button>
       </div>
     </div>

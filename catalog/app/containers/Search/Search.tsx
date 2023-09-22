@@ -481,7 +481,14 @@ function ResultsBounded({ total }: ResultsBoundedProps) {
 }
 
 function ResultsUnbounded() {
-  return <p>Specify search criteria</p>
+  return (
+    <EmptyResults
+      clearTitle="Specify search criteria"
+      description=""
+      noImage
+      title="No search query"
+    />
+  )
 }
 
 function Results() {
