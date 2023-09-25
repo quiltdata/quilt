@@ -427,7 +427,7 @@ function FirstPage({ className }: FirstPageProps) {
           )
         case 'UnboundedSearch':
           // should not happen
-          return <p className={className}>unbounded search</p>
+          return <ResultsUnbounded className={className} />
         case 'InvalidInput':
           // should not happen
           return (
@@ -496,9 +496,14 @@ function ResultsBounded({ total }: ResultsBoundedProps) {
   )
 }
 
-function ResultsUnbounded() {
+interface ResultsUnboundedProps {
+  className?: string
+}
+
+function ResultsUnbounded({ className }: ResultsUnboundedProps) {
   return (
     <EmptyResults
+      className={className}
       clearTitle="Specify search criteria"
       description=""
       title="No search query"

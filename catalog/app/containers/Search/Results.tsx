@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -109,6 +110,7 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
 }))
 
 interface EmptyResultsProps {
+  className?: string
   clearTitle?: string
   description?: string
   image?: 'not-found' | 'error'
@@ -116,6 +118,7 @@ interface EmptyResultsProps {
 }
 
 export function EmptyResults({
+  className,
   clearTitle = 'Clear filters',
   description = "Try adjusting your search or filter to find what you're looking for",
   image,
@@ -146,7 +149,7 @@ export function EmptyResults({
     window.location.reload()
   }, [])
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       {image === 'not-found' && <div className={classes.sand} />}
       {image === 'error' && <M.Icon className={classes.error}>error_outline</M.Icon>}
       <div className={classes.title}>{title}</div>
