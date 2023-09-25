@@ -55,7 +55,7 @@ export const Loader = function WrappedNotebookLoader({
   children,
 }: NotebookLoaderProps) {
   return (
-    <React.Suspense fallback={() => children(AsyncResult.Pending())}>
+    <React.Suspense fallback={<>{children(AsyncResult.Pending())}</>}>
       <NotebookLoader {...{ handle, children }} />
     </React.Suspense>
   )
