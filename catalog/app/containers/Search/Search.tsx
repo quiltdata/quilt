@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -335,6 +336,38 @@ function SearchHit({ hit }: SearchHitProps) {
   }
 }
 
+const useLoadNextPageStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(1, 0),
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+}))
+
+interface LoadNextPageProps {
+  className: string
+  loading?: boolean
+  onClick?: () => void
+}
+
+function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps) {
+  const classes = useLoadNextPageStyles()
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Button
+        endIcon={
+          loading ? <M.CircularProgress size={16} /> : <M.Icon>expand_more</M.Icon>
+        }
+        onClick={onClick}
+        variant="outlined"
+        disabled={loading}
+      >
+        Load more
+      </M.Button>
+    </div>
+  )
+}
+
 interface ResultsPageProps {
   className: string
   cursor: string | null
@@ -363,7 +396,7 @@ function ResultsPage({ className, hits, cursor }: ResultsPageProps) {
         (more ? (
           <NextPage className={classes.next} after={cursor} />
         ) : (
-          <button onClick={loadMore}>load more</button>
+          <LoadNextPage className={classes.next} onClick={loadMore} />
         ))}
     </div>
   )
@@ -399,7 +432,7 @@ function NextPage({ after, className }: NextPageProps) {
           assertNever(r)
       }
     },
-    fetching: () => <p className={className}>loading...</p>,
+    fetching: () => <LoadNextPage className={className} loading />,
     error: (err) => {
       // eslint-disable-next-line no-console
       console.error(err)
