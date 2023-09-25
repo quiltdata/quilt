@@ -18,10 +18,12 @@ function pathToChipTitle(path: SearchUIModel.FacetPath) {
           return 'Total entries'
       }
     case 'pkg_meta':
+      const name = tail.slice(0, -1).join(' ')
+      const type = tail.slice(-1)
       return (
-        <>
-          Package meta has <b>{tail.slice(0, -1).join(' ')}</b> {tail.slice(-1)}
-        </>
+        <span title={`${head} ${name} ${type}`}>
+          Package meta has <b>{name}</b> {type}
+        </span>
       )
     default:
       return JSONPointer.stringify(path as string[])
