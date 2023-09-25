@@ -18,6 +18,8 @@ import ResultTypeFilterWidget from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
+const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
+
 function pathToFilterTitle(path: SearchUIModel.FacetPath) {
   const [head, ...tail] = path
   switch (head) {
@@ -65,7 +67,7 @@ function NumberFilterWidget({
       // no-default
     }
   }, [path])
-  const hasExtents = !!((extents.min ?? false) || (extents.max ?? false))
+  const hasExtents = isNumber(extents.min) && isNumber(extents.max)
   const hasSingleExtent = extents.min === extents.max
   return (
     <FiltersUI.Container
