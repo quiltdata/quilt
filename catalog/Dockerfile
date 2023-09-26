@@ -1,7 +1,18 @@
-FROM nginx:1.24.0@sha256:73341830a31bf12a44c846b6b323dd8a4fab7668e72c16e9124913ff097c9536
+FROM amazonlinux:2.0.20230912.0
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+RUN amazon-linux-extras enable nginx1 && \
+    yum -y update && yum -y install gettext nginx
+
+# Make logs show up in Docker output
+RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log
+
 # Set up nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx-web.conf /etc/nginx/conf.d/default.conf
 
 # Copy pre-built catalog assets to nginx
@@ -10,6 +21,9 @@ COPY build /usr/share/nginx/html
 
 # Copy config file
 COPY config.json.tmpl config.json.tmpl
+
+# Use SIGQUIT for a "graceful" shutdown
+STOPSIGNAL SIGQUIT
 
 # Substitute environment variables into config.json and generate config.js based on that before starting nginx.
 # Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
