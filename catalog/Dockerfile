@@ -4,8 +4,10 @@ MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
+# Upgrade and install dependencies
+# gettext is required by envsubst
 RUN amazon-linux-extras enable nginx1 && \
-    yum -y upgrade && yum -y install gettext nginx && \  # envsubst requires gettext
+    yum -y upgrade && yum -y install gettext nginx && \
     yum clean all
 
 # Make logs show up in Docker output
