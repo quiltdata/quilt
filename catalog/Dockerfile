@@ -5,7 +5,8 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 RUN amazon-linux-extras enable nginx1 && \
-    yum -y update && yum -y install gettext nginx
+    yum -y upgrade && yum -y install gettext nginx && \
+    yum clean all
 
 # Make logs show up in Docker output
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
