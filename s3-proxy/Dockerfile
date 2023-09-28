@@ -1,4 +1,4 @@
-FROM amazonlinux:2.0.20230912.0
+FROM amazonlinux:2023.2.20230920.1
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Based on:
@@ -10,9 +10,17 @@ EXPOSE 80
 
 ENV NGINX_VERSION=1.24.0
 
+# Download and compile Nginx.
+# Dependencies:
+# - pcre: runtime dependency for nginx
+# - awscli: aws used by run-nginx.sh
+# - gettext: envsubst used by run-nginx.sh
+# - shadow-utils: useradd
+# - tar, gzip: download the source
+# - gcc, make, *-devel: compile nginx
 RUN set -x \
-    && yum -y upgrade \
-    && yum -y install awscli gettext shadow-utils tar gcc git make openssl-devel pcre-devel zlib-devel \
+    && dnf -y upgrade \
+    && dnf -y install --setopt=install_weak_deps=False pcre awscli gettext shadow-utils tar gzip gcc make openssl-devel pcre-devel zlib-devel \
     && cd /root \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
@@ -64,8 +72,8 @@ RUN set -x \
     && make install \
     && cd .. \
     && rm -r nginx-${NGINX_VERSION} \
-    && yum -y remove gcc git make openssl-devel pcre-devel zlib-devel \
-    && yum -y clean all
+    && dnf -y remove gcc make openssl-devel pcre-devel zlib-devel \
+    && dnf -y clean all
 
 RUN set -x \
     && useradd --system --user-group --no-create-home --home /nonexistent --shell /sbin/nologin nginx
