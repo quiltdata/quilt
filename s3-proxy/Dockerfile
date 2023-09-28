@@ -1,4 +1,4 @@
-FROM debian:bullseye-20230919-slim@sha256:c618be84fc82aa8ba203abbb07218410b0f5b3c7cb6b4e7248fda7785d4f9946
+FROM amazonlinux:2.0.20230912.0
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Based on:
@@ -8,16 +8,11 @@ MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 EXPOSE 80
 
-ENV NGINX_VERSION=1.18.0
+ENV NGINX_VERSION=1.24.0
 
 RUN set -x \
-    && addgroup --system nginx \
-    && adduser --system --disabled-login --ingroup nginx --no-create-home --home /nonexistent --shell /bin/false nginx
-
-RUN set -x \
-    && apt-get update \
-    && apt-get install -y gettext \
-    && apt-get install -y curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
+    && yum -y upgrade \
+    && yum -y install awscli gettext shadow-utils tar gcc git make openssl-devel pcre-devel zlib-devel \
     && cd /root \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
@@ -69,15 +64,18 @@ RUN set -x \
     && make install \
     && cd .. \
     && rm -r nginx-${NGINX_VERSION} \
-    && apt-get install -y --no-install-recommends awscli \
-    && apt-get purge -y --autoremove curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
-    && apt-get clean
+    && yum -y remove gcc git make openssl-devel pcre-devel zlib-devel \
+    && yum -y clean all
 
-RUN cat /etc/ssl/certs/*.pem > /etc/nginx/certs.pem
+RUN set -x \
+    && useradd --system --user-group --no-create-home --home /nonexistent --shell /sbin/nologin nginx
 
 RUN mkdir /var/cache/nginx/
 COPY nginx.conf /root/nginx.conf.tmpl
 COPY run-nginx.sh /root/run-nginx.sh
+
+# Use SIGQUIT for a "graceful" shutdown
+STOPSIGNAL SIGQUIT
 
 # Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
 CMD exec /root/run-nginx.sh
