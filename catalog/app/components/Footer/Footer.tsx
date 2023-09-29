@@ -34,12 +34,13 @@ const useVersionStyles = M.makeStyles((t) => ({
 }))
 
 function Version() {
+  const revisionHash = process.env.REVISION_HASH || ''
   const classes = useVersionStyles()
   const { push } = Notifications.use()
   const handleCopy = React.useCallback(() => {
-    copyToClipboard(process.env.REVISION_HASH)
+    copyToClipboard(revisionHash)
     push('Web catalog container hash has been copied to clipboard')
-  }, [push])
+  }, [push, revisionHash])
   return (
     <div>
       <M.Typography
@@ -48,7 +49,7 @@ function Version() {
         title="Copy product revision hash to clipboard"
         variant="caption"
       >
-        Revision: {process.env.REVISION_HASH.substring(0, 8)}
+        Revision: {revisionHash.substring(0, 8)}
       </M.Typography>
     </div>
   )
@@ -56,7 +57,7 @@ function Version() {
 
 const FooterLogo = () => <Logo height="29px" width="76.5px" />
 
-const NavLink = (props) => (
+const NavLink = (props: M.LinkProps & { to?: string; target?: '_blank' }) => (
   <M.Link
     variant="button"
     underline="none"
@@ -66,23 +67,34 @@ const NavLink = (props) => (
   />
 )
 
-const NavSpacer = () => <M.Box ml={{ xs: 2, sm: 3 }} />
+const useNavIconStyles = M.makeStyles({
+  img: {
+    height: '18px',
+    display: 'block',
+  },
+})
 
-const NavIcon = ({ icon, ...props }) => (
-  <M.Box component="a" {...props}>
-    <M.Box component="img" height={18} src={icon} alt="" display="block" />
-  </M.Box>
-)
+interface NavIconProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  icon: string
+}
+
+const NavIcon = ({ icon, ...props }: NavIconProps) => {
+  const classes = useNavIconStyles()
+  return (
+    <a {...props}>
+      <img src={icon} alt="" className={classes.img} />
+    </a>
+  )
+}
 
 const useStyles = M.makeStyles((t) => ({
   padded: {},
   root: {
     background: `left / 64px url(${bg})`,
-    boxShadow: [
-      '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
-      '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
-      '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
-    ],
+    boxShadow: `
+      0px -12px 24px 0px rgba(25, 22, 59, 0.05)
+      0px -16px 40px 0px rgba(25, 22, 59, 0.07)
+      0px -24px 88px 0px rgba(25, 22, 59, 0.16)`,
     height: 230,
     paddingTop: t.spacing(6),
     position: 'relative',
@@ -124,6 +136,62 @@ const useStyles = M.makeStyles((t) => ({
       `,
     },
   },
+  logoWrapper: {
+    gridArea: 'logo',
+    display: 'flex',
+    [t.breakpoints.down('xs')]: {
+      justifyContent: 'center',
+    },
+    [t.breakpoints.up('sm')]: {
+      justifyContent: 'flex-start',
+    },
+  },
+  logoLink: {
+    display: 'block',
+  },
+  links: {
+    display: 'flex',
+    alignItems: 'center',
+    [t.breakpoints.down('xs')]: {
+      justifyContent: 'center',
+    },
+    [t.breakpoints.up('sm')]: {
+      justifyContent: 'flex-end',
+    },
+    gridArea: 'links',
+  },
+  link: {
+    [t.breakpoints.down('xs')]: {
+      marginLeft: t.spacing(2),
+    },
+    [t.breakpoints.up('sm')]: {
+      marginLeft: t.spacing(3),
+    },
+  },
+  iconsList: {
+    gridArea: 'icons',
+    [t.breakpoints.down('xs')]: {
+      justifyContent: 'center',
+    },
+    [t.breakpoints.up('sm')]: {
+      justifyContent: 'flex-end',
+    },
+  },
+  icon: {
+    '& +&': {
+      marginLeft: t.spacing(4),
+    },
+  },
+  copyright: {
+    gridArea: 'copy',
+    display: 'flex',
+    [t.breakpoints.down('xs')]: {
+      justifyContent: 'center',
+    },
+    [t.breakpoints.up('sm')]: {
+      justifyContent: 'flex-start',
+    },
+  },
 }))
 
 export default function Footer() {
@@ -139,84 +207,95 @@ export default function Footer() {
         className={cx(classes.root, { [classes.padded]: cfg.mode === 'MARKETING' })}
       >
         <M.Container maxWidth="lg" className={classes.container}>
-          <M.Box
-            style={{ gridArea: 'logo' }}
-            display="flex"
-            justifyContent={{ xs: 'center', sm: 'flex-start' }}
-          >
+          <div className={classes.logoWrapper}>
             {settings?.logo?.url ? (
               <a href={URLS.homeMarketing}>
                 <FooterLogo />
               </a>
             ) : (
-              <M.Box component={Link} to={urls.home()} display="block">
+              <Link className={classes.logoLink} to={urls.home()}>
                 <FooterLogo />
-              </M.Box>
+              </Link>
             )}
-          </M.Box>
+          </div>
 
-          <M.Box
-            component="nav"
-            display="flex"
-            alignItems="center"
-            justifyContent={{ xs: 'center', sm: 'flex-end' }}
-            style={{ gridArea: 'links' }}
-          >
-            <NavLink href={URLS.docs} target="_blank">
+          <nav className={classes.links}>
+            <NavLink className={classes.link} href={URLS.docs} target="_blank">
               Docs
             </NavLink>
             {cfg.mode === 'MARKETING' && (
               <>
-                <NavSpacer />
-                <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+                <NavLink className={classes.link} to={`${urls.home()}#pricing`}>
+                  Pricing
+                </NavLink>
               </>
             )}
-            <NavSpacer />
-            <NavLink href={URLS.blog} target="_blank">
+            <NavLink className={classes.link} href={URLS.blog} target="_blank">
               Blog
             </NavLink>
             {(cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && (
               <>
-                <NavSpacer />
-                <NavLink href={URLS.jobs} target="_blank">
+                <NavLink className={classes.link} href={URLS.jobs} target="_blank">
                   Jobs
                 </NavLink>
               </>
             )}
             {cfg.mode === 'MARKETING' && (
               <>
-                <NavSpacer />
-                <NavLink to={urls.about()}>About</NavLink>
+                <NavLink className={classes.link} to={urls.about()}>
+                  About
+                </NavLink>
               </>
             )}
-          </M.Box>
+          </nav>
 
-          <M.Box
-            style={{ gridArea: 'copy' }}
-            display="flex"
-            justifyContent={{ xs: 'center', sm: 'flex-start' }}
-          >
+          <div className={classes.copyright}>
             <M.Typography color="textSecondary">
               &copy;&nbsp;{year} Quilt Data, Inc.
             </M.Typography>
-          </M.Box>
+          </div>
 
-          <M.Box
-            component="nav"
-            display="flex"
-            justifyContent={{ xs: 'center', sm: 'flex-end' }}
-            style={{ gridArea: 'icons' }}
-          >
-            <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
-            <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
-            <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
-            <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
-            <NavIcon icon={iconInstagram} href={URLS.instagram} target="_blank" ml={4} />
-            <NavIcon icon={iconLinkedin} href={URLS.linkedin} target="_blank" ml={4} />
+          <nav className={classes.iconsList}>
+            <NavIcon
+              className={classes.icon}
+              icon={iconFacebook}
+              href={URLS.facebook}
+              target="_blank"
+            />
+            <NavIcon
+              className={classes.icon}
+              icon={iconTwitter}
+              href={URLS.twitter}
+              target="_blank"
+            />
+            <NavIcon
+              className={classes.icon}
+              icon={iconGithub}
+              href={URLS.gitWeb}
+              target="_blank"
+            />
+            <NavIcon
+              className={classes.icon}
+              icon={iconSlack}
+              href={URLS.slackInvite}
+              target="_blank"
+            />
+            <NavIcon
+              className={classes.icon}
+              icon={iconInstagram}
+              href={URLS.instagram}
+              target="_blank"
+            />
+            <NavIcon
+              className={classes.icon}
+              icon={iconLinkedin}
+              href={URLS.linkedin}
+              target="_blank"
+            />
             {reservedSpaceForIntercom && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
-          </M.Box>
+          </nav>
         </M.Container>
         <M.Container maxWidth="lg">
           <Version />
