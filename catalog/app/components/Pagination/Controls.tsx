@@ -7,8 +7,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// direction: left | right
-function Chevron({ direction, ...rest }) {
+interface ChevronProps extends M.IconButtonProps {
+  direction: 'left' | 'right'
+}
+
+function Chevron({ direction, ...rest }: ChevronProps) {
   const classes = useStyles()
   return (
     <M.IconButton className={classes.root} {...rest}>
@@ -17,7 +20,14 @@ function Chevron({ direction, ...rest }) {
   )
 }
 
-export default function Controls({ page, pages, nextPage, prevPage }) {
+interface ControlsProps {
+  nextPage: () => void
+  prevPage: () => void
+  page: number
+  pages: number
+}
+
+export default function Controls({ page, pages, nextPage, prevPage }: ControlsProps) {
   return pages <= 1 ? null : (
     <M.Box display="flex" alignItems="center">
       <Chevron direction="left" onClick={prevPage} disabled={page <= 1} />

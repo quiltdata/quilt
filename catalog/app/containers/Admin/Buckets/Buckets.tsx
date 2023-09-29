@@ -1280,7 +1280,6 @@ function CRUD({ bucketName }: CRUDProps) {
     column: columns[0],
   })
   const pagination = Pagination.use(ordering.ordered, {
-    // @ts-expect-error
     getItemId: R.prop('name'),
   })
   const { open: openDialog, render: renderDialogs } = Dialogs.use()

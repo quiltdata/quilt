@@ -5,25 +5,35 @@ import usePrevious from 'utils/usePrevious'
 
 const PER_PAGE = 10
 
-const useGetter = (value, get) =>
-  React.useMemo(() => (value == null ? value : get(value)), [value, get])
-
-function useHasChanged(value, getKey = R.identity) {
-  const key = useGetter(value, getKey)
-  const oldValue = usePrevious(value)
-  const oldKey = useGetter(oldValue, getKey)
-  if (R.is(Array, key) && R.is(Array, oldKey)) {
-    // if new list == old list + more items (appended), consider it unchanged
-    // to avoid resetting pagination on adding more items to the paginated set
-    return !R.startsWith(oldKey, key)
-  }
-  return !R.equals(key, oldKey)
+function useSafeGetter<T = unknown, O = unknown>(
+  value: T | undefined,
+  get: (input: T) => O,
+) {
+  return React.useMemo(() => (value == null ? value : get(value)), [value, get])
 }
 
-export const usePagination = (
-  items,
-  { getItemId = R.identity, perPage: initialPerPage = PER_PAGE, onChange } = {},
-) => {
+function useHasChanged<T>(items: T[], getKeys: (x: T[]) => string[]) {
+  const keys = useSafeGetter(items, getKeys)
+  const oldItems = usePrevious(items)
+  const oldKeys = useSafeGetter(oldItems, getKeys)
+  if (R.is(Array, keys) && R.is(Array, oldKeys)) {
+    // if new list == old list + more items (appended), consider it unchanged
+    // to avoid resetting pagination on adding more items to the paginated set
+    return !R.startsWith(oldKeys as string[], keys as string[])
+  }
+  return !R.equals(keys, oldKeys)
+}
+
+interface PaginationOptions<T = unknown> {
+  getItemId: (v: T) => string
+  perPage?: number
+  onChange?: (prev: number | undefined, page: number) => void
+}
+
+export function usePagination<T = unknown>(
+  items: T[],
+  { getItemId, perPage: initialPerPage = PER_PAGE, onChange }: PaginationOptions<T>,
+) {
   const [page, setPage] = React.useState(1)
   const [perPage, setPerPage] = React.useState(initialPerPage)
 
@@ -38,19 +48,20 @@ export const usePagination = (
 
   const prevPage = React.useCallback(() => goToPage(page - 1), [goToPage, page])
 
-  const getKey = useGetter(getItemId, R.map)
-  if (useHasChanged(items, getKey) && page !== 1) {
+  const getKeys = React.useCallback((x: T[]) => x.map(getItemId), [getItemId])
+
+  if (useHasChanged(items, getKeys) && page !== 1) {
     // reset to page 1 if items change (but not if appended)
     goToPage(1)
   }
 
   const offset = (page - 1) * perPage
 
-  const paginate = React.useMemo(
+  const paginate: (x: T[]) => T[] = React.useMemo(
     () => R.slice(offset, offset + perPage),
     [offset, perPage],
   )
-  const paginated = useGetter(items, paginate)
+  const paginated = React.useMemo(() => paginate(items), [items, paginate])
 
   usePrevious(perPage, (prev) => {
     if (prev && perPage !== prev) {
@@ -78,8 +89,3 @@ export const usePagination = (
 }
 
 export const use = usePagination
-
-// children: ReactNode[], items: any[]
-export function Pagination({ children, items, ...props }) {
-  return children(use(items, props))
-}

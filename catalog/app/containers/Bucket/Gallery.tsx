@@ -67,7 +67,11 @@ export function Thumbnails({ images, mkUrl }: ThumbnailsProps) {
     [scrollRef],
   )
 
-  const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
+  const pagination = Pagination.use(images, {
+    getItemId: R.prop('key'),
+    onChange: scroll,
+    perPage: 25,
+  })
 
   return (
     <Summarize.Section
