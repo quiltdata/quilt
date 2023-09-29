@@ -14,14 +14,16 @@ export const Section = M.styled(M.Paper)(({ theme: t }) => ({
   },
 }))
 
+// FIXME: help typescript and provide correct type
+// @ts-expect-error
 export const Heading = M.styled(M.Box)(({ theme: t }) => ({
   ...t.typography.h6,
   lineHeight: 1.4,
   marginBottom: t.spacing(1),
-  [t.breakpoints.up('sm')]: {
-    marginBottom: t.spacing(2),
-  },
   [t.breakpoints.up('md')]: {
     ...t.typography.h5,
+  },
+  [t.breakpoints.up('sm')]: {
+    marginBottom: t.spacing(2),
   },
 }))
