@@ -46,14 +46,14 @@ describe('components/JsonEditor/State', () => {
 
   describe('iterateSchema', () => {
     it('should return empty object for no Schema', () => {
-      const jsonDict = iterateSchema({}, { current: { counter: 0 } }, [], {})
+      const jsonDict = iterateSchema({}, { current: { counter: 0, dict: {} } }, [], {})
       expect(jsonDict).toEqual({})
     })
 
     it('should return values for a flat Schema', () => {
       const jsonDict = iterateSchema(
         booleansNulls.schema,
-        { current: { counter: 0 } },
+        { current: { counter: 0, dict: {} } },
         [],
         {},
       )
@@ -63,7 +63,7 @@ describe('components/JsonEditor/State', () => {
     it('should return values for every nesting level of Schema, when type is `object`', () => {
       const jsonDict = iterateSchema(
         deeplyNestedObject.schema,
-        { current: { counter: 0 } },
+        { current: { counter: 0, dict: {} } },
         [],
         {},
       )
@@ -73,7 +73,7 @@ describe('components/JsonEditor/State', () => {
     it('should return first value only for deep nesting level of Schema, when type is `array`', () => {
       const jsonDict = iterateSchema(
         deeplyNestedArray.schema,
-        { current: { counter: 0 } },
+        { current: { counter: 0, dict: {} } },
         [],
         {},
       )
@@ -86,7 +86,7 @@ describe('components/JsonEditor/State', () => {
       const sortOrder = { current: { counter: 0, dict: {} } }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, {})
-      const columns = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
+      const columns = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder, [])
       expect(columns).toEqual([{ parent: {}, items: [] }])
     })
 
@@ -94,7 +94,7 @@ describe('components/JsonEditor/State', () => {
       const sortOrder = { current: { counter: 0, dict: {} } }
       const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, {})
-      const columns = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
+      const columns = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder, [])
       expect(columns).toEqual(regular.columnsSchemaOnly)
     })
 
@@ -104,8 +104,15 @@ describe('components/JsonEditor/State', () => {
       }
       const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, regular.object1)
-      sortOrder.counter = 0
-      const columns = iterateJsonDict(jsonDict, regular.object1, [], rootKeys, sortOrder)
+      sortOrder.current.counter = 0
+      const columns = iterateJsonDict(
+        jsonDict,
+        regular.object1,
+        [],
+        rootKeys,
+        sortOrder,
+        [],
+      )
       expect(columns).toEqual(regular.columnsSchemaAndObject1)
     })
 
@@ -119,6 +126,7 @@ describe('components/JsonEditor/State', () => {
         deeplyNestedObject.fieldPathNested,
         rootKeys,
         sortOrder,
+        [],
       )
       expect(columns).toEqual(deeplyNestedObject.columnsNested)
     })
@@ -133,6 +141,7 @@ describe('components/JsonEditor/State', () => {
         deeplyNestedObject.fieldPath1,
         rootKeys,
         sortOrder,
+        [],
       )
       expect(columns).toMatchObject(deeplyNestedObject.columns1)
     })
@@ -141,9 +150,9 @@ describe('components/JsonEditor/State', () => {
       const sortOrder = { current: { counter: 0, dict: {} } }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, {})
-      iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
-      iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
-      const columnsRerender = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
+      iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder, [])
+      iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder, [])
+      const columnsRerender = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder, [])
       expect(columnsRerender).toEqual([{ parent: {}, items: [] }])
     })
 
@@ -151,7 +160,14 @@ describe('components/JsonEditor/State', () => {
       const sortOrder = { current: { counter: 0, dict: sorted.sortOrder1 } }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, sorted.object)
-      const columns = iterateJsonDict(jsonDict, sorted.object, [], rootKeys, sortOrder)
+      const columns = iterateJsonDict(
+        jsonDict,
+        sorted.object,
+        [],
+        rootKeys,
+        sortOrder,
+        [],
+      )
       expect(columns).toEqual(sorted.columns1)
     })
 
@@ -165,21 +181,31 @@ describe('components/JsonEditor/State', () => {
         ['a', 'b'],
         rootKeys,
         sortOrder,
+        [],
       )
       expect(columns).toEqual(sorted.columns2)
     })
   })
 
   describe('getJsonDictItemRecursively', () => {
+    const createFakeSchemaItem = () => ({
+      address: [],
+      required: false,
+      sortIndex: 0,
+    })
+    const foundC = createFakeSchemaItem()
+    const foundAdditioanal = createFakeSchemaItem()
+    const foundB = createFakeSchemaItem()
+    const foundItem = createFakeSchemaItem()
     const dict = {
-      '/c': 'found C',
-      '/c/__*': 'found additional',
-      '/c/__*/b': 'found B',
-      '/c/__*/b/__*': 'found item',
+      '/c': foundC,
+      '/c/__*': foundAdditioanal,
+      '/c/__*/b': foundB,
+      '/c/__*/b/__*': foundItem,
     }
-    expect(getJsonDictItemRecursively(dict, ['c'])).toBe('found C')
-    expect(getJsonDictItemRecursively(dict, ['c', 'foo'])).toBe('found additional')
-    expect(getJsonDictItemRecursively(dict, ['c', 'foo', 'b'])).toBe('found B')
-    expect(getJsonDictItemRecursively(dict, ['c', 'foo', 'b', 'bar'])).toBe('found item')
+    expect(getJsonDictItemRecursively(dict, ['c'])).toBe(foundC)
+    expect(getJsonDictItemRecursively(dict, ['c', 'foo'])).toBe(foundAdditioanal)
+    expect(getJsonDictItemRecursively(dict, ['c', 'foo', 'b'])).toBe(foundB)
+    expect(getJsonDictItemRecursively(dict, ['c', 'foo', 'b', 'bar'])).toBe(foundItem)
   })
 })
