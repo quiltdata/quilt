@@ -1,7 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-export default function Message({ headline, children, ...props }) {
+interface MessageProps extends M.BoxProps {
+  headline?: React.ReactNode
+}
+
+export default function Message({ headline, children, ...props }: MessageProps) {
   return (
     <M.Box pt={5} textAlign="center" {...props}>
       {!!headline && <M.Typography variant="h4">{headline}</M.Typography>}
