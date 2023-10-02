@@ -7,6 +7,8 @@ import usePrevious from 'utils/usePrevious'
 
 import { SELECTOR } from './Launcher'
 
+// TODO: use 'react-use-intercom'
+
 const canUseDOM = !!(
   typeof window !== 'undefined' &&
   window.document &&
