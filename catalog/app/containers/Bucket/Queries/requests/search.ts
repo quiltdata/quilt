@@ -2,6 +2,7 @@ import * as errors from 'containers/Bucket/errors'
 import * as APIConnector from 'utils/APIConnector'
 import { useData } from 'utils/Data'
 import mkSearch from 'utils/mkSearch'
+import { JsonRecord } from 'utils/types'
 
 import { ElasticSearchQuery } from './query'
 import { AsyncData } from './requests'
@@ -11,7 +12,7 @@ interface SearchArgs {
   query: ElasticSearchQuery | string
 }
 
-export type ElasticSearchResults = object | null
+export type ElasticSearchResults = JsonRecord | null
 
 type ElasticSearchRequestData = {
   action: 'freeform'
