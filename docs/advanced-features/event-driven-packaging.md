@@ -33,15 +33,29 @@ for all S3 buckets to be monitored by EDP.
 
 ## Deployment
 
-EDP is deployed by a standalone CloudFormation template that
-configures the conditions under which events get generated. The
-following template parameters are required:
+EDP deploys Lambda and RDS resources to monitor S3 and generate EventBridge
+events under user-configurable conditions. 
+
+### Networking
+
+* Lambda and RDS resources are placed in the `VPC` and `Subnets` that you provide.
+* `Subnets` are normally private and must be able to reach Amazon services
+such as EventBridge via port 443 (e.g. by means of a NAT gateway, or VPC
+endpoint).
+* `SecurityGroup` should allow outbound access to AWS services on port 443.
+Does not need inbound access.
+
+
+### Parameters
+
+EDP is deployed by a standalone CloudFormation template with the following
+parameters:
 
 | Parameter  | Description |
 | ------------- | ------------- |
-| `VPC` | Same as existing Quilt stack. |
-| `SecurityGroup` | Same as existing Quilt stack. |
-| `Subnets` | Same two subnets as existing Quilt stack. |
+| `VPC` | For EDP resources and Subnets. |
+| `Subnets` | For EDP Lambda, RDS (see above for configuration). |
+| `SecurityGroup` | For EDP Lambdas (see above for configuration). |
 | `BucketName` | Name of the Amazon S3 bucket to monitor. |
 | `BucketIgnorePrefixes` | Text string of comma separated bucket path segments to ignore, for example `raw/*, scratch/*`. Default value is an empty string (i.e. nothing ignored). |
 | `BucketPrefixDepth` | The number of `/`-separated *common* path segments at the beginning of an S3 object key. Default value is `2`. |
