@@ -1,39 +1,46 @@
-query (
-  $buckets: [String!]
-  $resultType: SearchResultType
-  $searchString: String
-  $filters: [SearchFilter!]
-) {
-  search(
-    buckets: $buckets
-    resultType: $resultType
-    searchString: $searchString
-    filters: $filters
-  ) {
+query ($buckets: [String!], $searchString: String) {
+  searchPackages(buckets: $buckets, searchString: $searchString) {
     __typename
-    ... on BoundedSearch {
-      results {
+    ... on PackagesSearchResultSet {
+      stats {
         total
-      }
-      facets {
-        __typename
-        ... on ISearchFacet {
-          path
+        modified {
+          min
+          max
         }
-        ... on NumberSearchFacet {
-          numberMin
-          numberMax
+        size {
+          min
+          max
         }
-        ... on DateSearchFacet {
-          dateMin
-          dateMax
+        entries {
+          min
+          max
         }
-        ... on KeywordSearchFacet {
-          keywordValues
+        userMeta {
+          __typename
+          ... on IPackageUserMetaFacet {
+            path
+          }
+          ... on NumberPackageUserMetaFacet {
+            numberExtents: extents {
+              min
+              max
+            }
+          }
+          ... on DatetimePackageUserMetaFacet {
+            datetimeExtents: extents {
+              min
+              max
+            }
+          }
+          ... on KeywordPackageUserMetaFacet {
+            extents {
+              values
+            }
+          }
         }
       }
     }
-    # ... on UnboundedSearch { }
     ... on InvalidInput {
       errors {
         path
@@ -42,10 +49,32 @@ query (
         context
       }
     }
-    ... on OperationError {
-      message
-      name
-      context
+  }
+  searchObjects(buckets: $buckets, searchString: $searchString) {
+    __typename
+    ... on ObjectsSearchResultSet {
+      stats {
+        total
+        modified {
+          min
+          max
+        }
+        size {
+          min
+          max
+        }
+        ext {
+          values
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
     }
   }
 }

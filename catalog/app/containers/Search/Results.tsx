@@ -4,9 +4,9 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import sand from 'components/Error/sand.webp'
-import { useNavBar } from 'containers/NavBar'
+// import { useNavBar } from 'containers/NavBar'
 
-import * as SearchUIModel from './model'
+// import * as SearchUIModel from './model'
 
 const useResultsSkeletonStyles = M.makeStyles((t) => ({
   root: {
@@ -119,31 +119,31 @@ interface EmptyResultsProps {
 
 export function EmptyResults({
   className,
-  clearTitle = 'Clear filters',
+  // clearTitle = 'Clear filters',
   description = "Try adjusting your search or filter to find what you're looking for",
   image,
-  title = 'No results found',
+  title = 'Nothing found',
 }: EmptyResultsProps) {
   const classes = useEmptyResultsStyles()
-  const model = SearchUIModel.use()
-  const navbarModel = useNavBar()
-  const { activeFacets } = model.state
-  const { deactivateFacet, clearFacets } = model.actions
-  const lastPath = React.useMemo(
-    () => activeFacets[activeFacets.length - 1]?.path,
-    [activeFacets],
-  )
-  const deactivateLast = React.useCallback(() => {
-    deactivateFacet(lastPath)
-  }, [lastPath, deactivateFacet])
-  const handleClear = React.useCallback(
-    (event) => {
-      event.stopPropagation()
-      clearFacets()
-      navbarModel?.input.onFocus()
-    },
-    [navbarModel, clearFacets],
-  )
+  // const model = SearchUIModel.use()
+  // const navbarModel = useNavBar()
+  // const { activeFacets } = model.state
+  // const { deactivateFacet, clearFacets } = model.actions
+  // const lastPath = React.useMemo(
+  //   () => activeFacets[activeFacets.length - 1]?.path,
+  //   [activeFacets],
+  // )
+  // const deactivateLast = React.useCallback(() => {
+  //   deactivateFacet(lastPath)
+  // }, [lastPath, deactivateFacet])
+  // const handleClear = React.useCallback(
+  //   (event) => {
+  //     event.stopPropagation()
+  //     clearFacets()
+  //     navbarModel?.input.onFocus()
+  //   },
+  //   [navbarModel, clearFacets],
+  // )
   const tryAgain = React.useCallback(() => {
     // FIXME: retry GQL request
     window.location.reload()
@@ -163,6 +163,7 @@ export function EmptyResults({
             <span className={classes.divider}>or</span>
           </>
         )}
+        {/*
         {lastPath && (
           <>
             <M.Button variant="outlined" onClick={deactivateLast}>
@@ -174,6 +175,7 @@ export function EmptyResults({
         <M.Button variant="outlined" onClick={handleClear}>
           {clearTitle}
         </M.Button>
+        */}
       </div>
     </div>
   )

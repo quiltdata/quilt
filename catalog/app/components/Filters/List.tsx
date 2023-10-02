@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import Fuse from 'fuse.js'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -47,7 +48,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface ListProps {
   className?: string
-  extents: string[]
+  extents: readonly string[]
   onChange: (v: string[]) => void
   placeholder?: string
   searchThreshold?: number
@@ -62,7 +63,10 @@ export default function List({
   value,
   searchThreshold = 5,
 }: ListProps) {
-  const extents = React.useMemo(() => [...value, ...rawExtents], [value, rawExtents])
+  const extents = React.useMemo(
+    () => R.uniq([...value, ...rawExtents]),
+    [value, rawExtents],
+  )
   const [filter, setFilter] = React.useState('')
   const classes = useStyles()
   const valueMap = value.reduce(

@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import invariant from 'invariant'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -9,266 +10,617 @@ import * as GQL from 'utils/GraphQL'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
-import * as JSONPointer from 'utils/JSONPointer'
+// import * as JSONPointer from 'utils/JSONPointer'
 
 import * as SearchUIModel from './model'
-import AvailableFacets from './AvailableFacets'
-import BucketsFilterWidget from './Buckets'
-import ResultTypeFilterWidget from './ResultType'
+// import AvailableFacets from './AvailableFacets'
+import BucketSelector from './Buckets'
+import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
-const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
+// const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
-function pathToFilterTitle(path: SearchUIModel.FacetPath) {
-  const [head, ...tail] = path
-  switch (head) {
-    case 'pkg':
-      switch (tail[0]) {
-        case 'total_size':
-          return 'Total size'
-        case 'total_entries':
-          return 'Total entries'
-      }
-    case 'pkg_meta':
-      return (
-        <>
-          Package meta <b>{tail.slice(0, -1).join(' ')}</b> {tail.slice(-1)} in:
-        </>
-      )
-    default:
-      return JSONPointer.stringify(path as string[])
-  }
+interface FilterWidgetProps<
+  P extends SearchUIModel.PrimitivePredicate = SearchUIModel.PrimitivePredicate,
+> {
+  state: SearchUIModel.PredicateState<P>
+  extents?: SearchUIModel.ExtentsForPredicate<P>
+  onChange: (state: SearchUIModel.PredicateState<P>) => void
 }
-
-interface FacetActions<T extends SearchUIModel.KnownFacetType> {
-  // XXX: accept updater fn?
-  onChange: (value: SearchUIModel.StateForFacetType<T>['value']) => void
-  // TODO: onChangeExtents
-  onDeactivate: () => void
-}
-
-type FilterWidgetProps<T extends SearchUIModel.KnownFacetType> =
-  SearchUIModel.StateForFacetType<T> & FacetActions<T> & { path: SearchUIModel.FacetPath }
 
 function NumberFilterWidget({
-  path,
-  value,
+  state,
   extents,
   onChange,
-  onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Number>) {
-  const unit = React.useMemo(() => {
-    switch (JSONPointer.stringify(path)) {
-      case '/pkg/total_entries':
-        return 'Entries'
-      case '/pkg/total_size':
-        return 'Bytes'
-      // no-default
-    }
-  }, [path])
-  const hasExtents = isNumber(extents.min) && isNumber(extents.max)
-  const hasSingleExtent = extents.min === extents.max
+}: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
+  // const unit = React.useMemo(() => {
+  //   switch (JSONPointer.stringify(path)) {
+  //     case '/pkg/total_entries':
+  //       return 'Entries'
+  //     case '/pkg/total_size':
+  //       return 'Bytes'
+  //     // no-default
+  //   }
+  // }, [path])
+  // const hasExtents = isNumber(extents.min) && isNumber(extents.max)
+  // const hasSingleExtent = extents.min === extents.max
+  const handleChange = React.useCallback(
+    (value: { min: number | null; max: number | null }) => {
+      onChange({ ...state, gte: value.min, lte: value.max })
+    },
+    [onChange, state],
+  )
+  // XXX
+  const extentsComputed = React.useMemo(
+    () => ({
+      min: extents?.min ?? state.gte ?? 0,
+      max: extents?.max ?? state.lte ?? 0,
+    }),
+    [extents?.min, extents?.max, state.gte, state.lte],
+  )
+
   return (
-    <FiltersUI.Container
-      defaultExpanded
-      onDeactivate={onDeactivate}
-      title={pathToFilterTitle(path)}
-    >
-      {hasExtents &&
-        (hasSingleExtent ? (
-          <FiltersUI.Checkbox
-            label={`${extents.min} ${unit || ''}`}
-            onChange={(checked) =>
-              checked
-                ? onChange({ min: extents.min, max: extents.max })
-                : onChange({ min: null, max: null })
-            }
-            value={value.min === extents.min && value.max === extents.max}
-          />
-        ) : (
-          <FiltersUI.NumbersRange
-            extents={extents}
-            onChange={onChange}
-            unit={unit}
-            value={value}
-          />
-        ))}
-    </FiltersUI.Container>
+    // {hasExtents &&
+    //   (hasSingleExtent ? (
+    //     <FiltersUI.Checkbox
+    //       label={`${extents.min} ${unit || ''}`}
+    //       onChange={(checked) =>
+    //         checked
+    //           ? onChange({ min: extents.min, max: extents.max })
+    //           : onChange({ min: null, max: null })
+    //       }
+    //       value={value.min === extents.min && value.max === extents.max}
+    //     />
+    //   ) : (
+    <FiltersUI.NumbersRange
+      extents={extentsComputed}
+      onChange={handleChange}
+      // unit={unit}
+      value={{ min: state.gte, max: state.lte }}
+    />
   )
 }
 
-function DateFilterWidget({
-  path,
-  onDeactivate,
-  onChange,
-  value,
+function DatetimeFilterWidget({
+  state,
   extents,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Date>) {
-  // FIXME: fix TS type or value type
+  onChange,
+}: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
   const fixedExtents = React.useMemo(
     () => ({
-      min: extents.min === null ? extents.min : new Date(extents.min),
-      max: extents.max === null ? extents.max : new Date(extents.max),
+      min: extents?.min ?? new Date(),
+      max: extents?.max ?? new Date(),
     }),
-    [extents],
+    [extents?.min, extents?.max],
   )
+
   const fixedValue = React.useMemo(
-    () => ({
-      min: value.min === null ? value.min : new Date(value.min),
-      max: value.max === null ? value.max : new Date(value.max),
-    }),
-    [value],
+    () => ({ min: state.gte, max: state.lte }),
+    [state.gte, state.lte],
   )
+
+  const handleChange = React.useCallback(
+    (v: { min: Date | null; max: Date | null }) => {
+      onChange({ ...state, gte: v.min, lte: v.max })
+    },
+    [onChange, state],
+  )
+
   return (
-    <FiltersUI.Container
-      defaultExpanded
-      onDeactivate={onDeactivate}
-      title={pathToFilterTitle(path)}
-    >
-      {(fixedExtents.min === null || fixedExtents.max !== null) && (
-        <FiltersUI.DatesRange
-          extents={fixedExtents}
-          onChange={onChange}
-          value={fixedValue}
-        />
-      )}
-    </FiltersUI.Container>
+    <FiltersUI.DatesRange
+      extents={fixedExtents}
+      onChange={handleChange}
+      value={fixedValue}
+    />
   )
 }
 
+const EMPTY_TERMS: string[] = []
+
 function KeywordFilterWidget({
-  path,
-  value,
+  state,
+  extents,
   onChange,
-  onDeactivate,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Keyword>) {
-  const facetQ = SearchUIModel.useFacetQuery(path)
+}: FilterWidgetProps<SearchUIModel.Predicates['Keyword']>) {
+  const handleChange = React.useCallback(
+    (value: string[]) => {
+      onChange({ ...state, terms: value })
+    },
+    [onChange, state],
+  )
+  const availableValues = extents?.values ?? EMPTY_TERMS
+
   return (
-    <FiltersUI.Container
-      defaultExpanded
-      onDeactivate={onDeactivate}
-      title={pathToFilterTitle(path)}
-    >
-      {GQL.fold(facetQ, {
-        fetching: () => null,
-        data: (d) => {
-          if (d.search.__typename !== 'BoundedSearch') {
-            return <div>bad response</div>
-          }
-          const { facet } = d.search
-          if (!facet) {
-            return <div>facet not found</div>
-          }
-          if (facet.__typename !== 'KeywordSearchFacet') {
-            return <div>bad facet type</div>
-          }
-          const availableValues = facet.keywordValues.filter((v) => !value.includes(v))
-          return (
-            <FiltersUI.List extents={availableValues} onChange={onChange} value={value} />
-          )
-        },
-      })}
-    </FiltersUI.Container>
+    <FiltersUI.List
+      extents={availableValues}
+      onChange={handleChange}
+      value={state.terms}
+    />
   )
 }
 
 function TextFilterWidget({
-  path,
-  onDeactivate,
+  state,
   onChange,
-  value,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Text>) {
+}: FilterWidgetProps<SearchUIModel.Predicates['Text']>) {
+  const handleChange = React.useCallback(
+    (match: string) => {
+      onChange({ ...state, match })
+    },
+    [onChange, state],
+  )
   return (
-    <FiltersUI.Container
-      defaultExpanded
-      onDeactivate={onDeactivate}
-      title={pathToFilterTitle(path)}
-    >
-      <FiltersUI.TextField
-        onChange={onChange}
-        placeholder="Select enum value(s)"
-        value={value || ''}
-      />
-    </FiltersUI.Container>
+    <FiltersUI.TextField
+      onChange={handleChange}
+      placeholder="Match against"
+      value={state.match}
+    />
   )
 }
 
 function BooleanFilterWidget({
-  path,
-  onDeactivate,
+  state,
   onChange,
-  value,
-}: FilterWidgetProps<typeof SearchUIModel.FacetTypes.Boolean>) {
+}: FilterWidgetProps<SearchUIModel.Predicates['Boolean']>) {
+  const handleChange = React.useCallback(
+    (value: boolean) => {
+      onChange({ ...state, value })
+    },
+    [onChange, state],
+  )
+  return (
+    <FiltersUI.Checkbox
+      onChange={handleChange}
+      label="LABEL TBD"
+      // label={`Show ${JSONPointer.stringify(path)}`}
+      value={!!state.value}
+    />
+  )
+}
+
+function FilterWidget(props: FilterWidgetProps) {
+  // eslint-disable-next-line no-underscore-dangle
+  switch (props.state._tag) {
+    case 'Datetime':
+      return <DatetimeFilterWidget {...(props as $TSFixMe)} />
+    case 'Number':
+      return <NumberFilterWidget {...(props as $TSFixMe)} />
+    case 'Text':
+      return <TextFilterWidget {...(props as $TSFixMe)} />
+    case 'Keyword':
+      return <KeywordFilterWidget {...(props as $TSFixMe)} />
+    case 'Boolean':
+      return <BooleanFilterWidget {...(props as $TSFixMe)} />
+    // TODO: separate component for workflow filtering
+    // case 'Workflow':
+    //   return <>{JSON.stringify(props.state)}</>
+    default:
+      assertNever(props.state)
+  }
+}
+
+const packageFilterLabels = {
+  modified: 'Last modified',
+  size: 'Cumulative package size',
+  name: 'Package name',
+  hash: 'Package hash',
+  entries: 'Total number of entries',
+  comment: 'Package revision comment',
+  workflow: 'Workflow',
+  userMeta: 'User metadata',
+}
+
+interface PackagesFilterActivatorProps {
+  field: keyof SearchUIModel.PackagesSearchFilter
+}
+
+function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
+    'Filter type mismatch',
+  )
+  const { activatePackagesFilter } = model.actions
+  const activate = React.useCallback(() => {
+    activatePackagesFilter(field)
+  }, [activatePackagesFilter, field])
+  return <button onClick={activate}>{packageFilterLabels[field]}</button>
+}
+
+interface PackagesFilterProps {
+  // field: Omit<keyof SearchUIModel.PackagesSearchFilter, 'workflow' | 'userMeta'>
+  field: 'modified' | 'size' | 'name' | 'hash' | 'entries' | 'comment'
+}
+
+function PackagesFilter({ field }: PackagesFilterProps) {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
+    'Filter type mismatch',
+  )
+  const predicateState = model.state.filter[field]
+  invariant(predicateState, 'Filter not active')
+
+  const extents = GQL.fold(model.baseSearchQuery, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return undefined
+        case 'InvalidInput':
+          return undefined
+        case 'PackagesSearchResultSet':
+          if (field === 'modified' || field === 'size' || field === 'entries') {
+            return r.stats[field]
+          }
+          return undefined
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => undefined,
+    error: (e) => {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return undefined
+    },
+  })
+
+  const { deactivatePackagesFilter, setPackagesFilter } = model.actions
+
+  const deactivate = React.useCallback(() => {
+    deactivatePackagesFilter(field)
+  }, [deactivatePackagesFilter, field])
+
+  const change = React.useCallback(
+    (state: $TSFixMe) => {
+      setPackagesFilter(field, state)
+    },
+    [setPackagesFilter, field],
+  )
+
   return (
     <FiltersUI.Container
       defaultExpanded
-      onDeactivate={onDeactivate}
-      title={pathToFilterTitle(path)}
+      onDeactivate={deactivate}
+      title={packageFilterLabels[field]}
     >
-      <FiltersUI.Checkbox
-        onChange={onChange}
-        label={`Show ${JSONPointer.stringify(path)}`}
-        value={!!value}
-      />
+      <FilterWidget state={predicateState} extents={extents} onChange={change} />
     </FiltersUI.Container>
   )
 }
 
-const FILTER_WIDGETS = {
-  Boolean: BooleanFilterWidget,
-  Date: DateFilterWidget,
-  Keyword: KeywordFilterWidget,
-  Number: NumberFilterWidget,
-  Text: TextFilterWidget,
-}
-
-function renderFilterWidget<F extends SearchUIModel.KnownFacetDescriptor>(
-  facet: F,
-  actions: FacetActions<F['type']>,
-) {
-  // eslint-disable-next-line no-underscore-dangle
-  const FilterWidget = FILTER_WIDGETS[facet.type._tag]
-  // @ts-expect-error
-  return <FilterWidget {...facet.state} {...actions} path={facet.path} />
-}
-
-interface FacetWidgetProps<F extends SearchUIModel.KnownFacetDescriptor> {
-  facet: F
-}
-
-function FacetWidget<F extends SearchUIModel.KnownFacetDescriptor>({
-  facet,
-}: FacetWidgetProps<F>) {
-  type FacetType = typeof facet.type
-
-  const model = SearchUIModel.use()
-  const { deactivateFacet, updateActiveFacet } = model.actions
-
-  const actions: FacetActions<FacetType> = {
-    onDeactivate: React.useCallback(() => {
-      deactivateFacet(facet.path)
-    }, [facet.path, deactivateFacet]),
-    onChange: React.useCallback(
-      (value) => {
-        // @ts-expect-error
-        updateActiveFacet(facet.path, (f) => ({ ...f, state: { ...f.state, value } }))
-      },
-      [facet.path, updateActiveFacet],
-    ),
-  }
-
-  return renderFilterWidget(facet, actions)
-}
-
-function ActiveFacets() {
-  const model = SearchUIModel.use()
+function getFacetLabel(facet: SearchUIModel.PackageUserMetaFacet) {
+  // XXX
   return (
     <>
-      {model.state.activeFacets.map((facet) => (
-        <FacetWidget key={JSONPointer.stringify(facet.path)} facet={facet} />
+      {facet.path} ({PackageUserMetaFacetMap[facet.__typename]})
+    </>
+  )
+}
+
+interface PackagesMetaFilterActivatorProps {
+  facet: SearchUIModel.PackageUserMetaFacet
+}
+
+const PackageUserMetaFacetMap = {
+  NumberPackageUserMetaFacet: 'Number' as const,
+  DatetimePackageUserMetaFacet: 'Datetime' as const,
+  KeywordPackageUserMetaFacet: 'Keyword' as const,
+  TextPackageUserMetaFacet: 'Text' as const,
+  BooleanPackageUserMetaFacet: 'Boolean' as const,
+}
+
+function PackagesMetaFilterActivator({ facet }: PackagesMetaFilterActivatorProps) {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
+    'Filter type mismatch',
+  )
+  const { activatePackagesMetaFilter } = model.actions
+  const type = PackageUserMetaFacetMap[facet.__typename]
+  const activate = React.useCallback(() => {
+    // XXX: accept the whole facet object?
+    activatePackagesMetaFilter(facet.path, type)
+  }, [activatePackagesMetaFilter, facet.path, type])
+  return <button onClick={activate}>{getFacetLabel(facet)}</button>
+}
+
+function getPackageUserMetaFacetExtents(
+  facet?: SearchUIModel.PackageUserMetaFacet,
+): SearchUIModel.Extents | undefined {
+  switch (facet?.__typename) {
+    case 'NumberPackageUserMetaFacet':
+      return facet.numberExtents
+    case 'DatetimePackageUserMetaFacet':
+      return facet.datetimeExtents
+    case 'KeywordPackageUserMetaFacet':
+      return facet.extents
+    default:
+      return
+  }
+}
+
+interface PackageMetaFilterProps {
+  path: string
+  facet?: SearchUIModel.PackageUserMetaFacet
+}
+
+function PackagesMetaFilter({ path, facet }: PackageMetaFilterProps) {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
+    'Filter type mismatch',
+  )
+
+  const predicateState = (model.state.filter.userMeta?.children ?? {})[path]
+  invariant(predicateState, 'Filter not active')
+
+  const { deactivatePackagesMetaFilter, setPackagesMetaFilter } = model.actions
+
+  const deactivate = React.useCallback(() => {
+    deactivatePackagesMetaFilter(path)
+  }, [deactivatePackagesMetaFilter, path])
+
+  const change = React.useCallback(
+    (state: SearchUIModel.PredicateState<SearchUIModel.PrimitivePredicate>) => {
+      setPackagesMetaFilter(path, state)
+    },
+    [setPackagesMetaFilter, path],
+  )
+
+  // TODO: const title = getFacetLabel(path)
+
+  const extents = getPackageUserMetaFacetExtents(facet)
+
+  return (
+    <FiltersUI.Container defaultExpanded onDeactivate={deactivate} title={path}>
+      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+    </FiltersUI.Container>
+  )
+}
+
+function PackagesMetaFilters() {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
+    'Filter type mismatch',
+  )
+
+  const activated = model.state.filter.userMeta?.children
+
+  const facets = GQL.fold(model.baseSearchQuery, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return []
+        case 'InvalidInput':
+          return []
+        case 'PackagesSearchResultSet':
+          return r.stats.userMeta
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => [],
+    error: (e) => {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return []
+    },
+  })
+
+  const available = React.useMemo(
+    () => facets.filter((f) => !activated || !activated[f.path]),
+    [facets, activated],
+  )
+
+  // workflow: WorkflowSearchPredicate
+  // userMeta: [PackageUserMetaPredicate!]
+  /*
+  workflow filter
+  active metadata filters
+  available metadata filters
+    visible
+    more
+  */
+  return (
+    <>
+      {Object.entries(activated || {}).map(([path, filter]) => {
+        const facet = facets.find(
+          (f) => f.path === path && filter._tag === PackageUserMetaFacetMap[f.__typename],
+        )
+        return <PackagesMetaFilter key={path} path={path} facet={facet} />
+      })}
+      {available.map((f) => (
+        <PackagesMetaFilterActivator key={`${f.path}:${f.__typename}`} facet={f} />
       ))}
     </>
+  )
+}
+
+const packagesFiltersPrimary = ['modified'] as const
+
+const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] as const
+
+const packagesFilters = [...packagesFiltersPrimary, ...packagesFiltersSecondary] as const
+
+function PackageFilters() {
+  const model = SearchUIModel.use()
+
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
+    'wrong result type',
+  )
+
+  const { filter } = model.state
+
+  // TODO: custom order (order of activation):
+  //       probably need to remember that, maybe in local state
+  const activeFilters = packagesFilters.filter((f) => filter[f])
+
+  const availableFilters = packagesFiltersPrimary.filter((f) => !filter[f])
+  const moreFilters = packagesFiltersSecondary.filter((f) => !filter[f])
+
+  return (
+    <div>
+      <h4>Filter by</h4>
+
+      {activeFilters.map((f) => (
+        <PackagesFilter key={f} field={f} />
+      ))}
+
+      {availableFilters.map((f) => (
+        <PackagesFilterActivator key={f} field={f} />
+      ))}
+
+      {!!moreFilters.length && (
+        <div>
+          <div>more dropdown:</div>
+          {moreFilters.map((f) => (
+            <PackagesFilterActivator key={f} field={f} />
+          ))}
+        </div>
+      )}
+
+      <h4>Metadata</h4>
+
+      <PackagesMetaFilters />
+    </div>
+  )
+}
+
+const objectFilterLabels = {
+  modified: 'Last modified',
+  size: 'Object size',
+  ext: 'Extension',
+  key: 'Object key',
+  content: 'Contents',
+  deleted: 'Delete marker',
+}
+
+interface ObjectsFilterActivatorProps {
+  field: keyof SearchUIModel.ObjectsSearchFilter
+}
+
+function ObjectsFilterActivator({ field }: ObjectsFilterActivatorProps) {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.S3Object,
+    'Filter type mismatch',
+  )
+  const { activateObjectsFilter } = model.actions
+  const activate = React.useCallback(() => {
+    activateObjectsFilter(field)
+  }, [activateObjectsFilter, field])
+  return <button onClick={activate}>{objectFilterLabels[field]}</button>
+}
+
+interface ObjectsFilterProps {
+  field: keyof SearchUIModel.ObjectsSearchFilter
+}
+
+function ObjectsFilter({ field }: ObjectsFilterProps) {
+  const model = SearchUIModel.use()
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.S3Object,
+    'Filter type mismatch',
+  )
+  const predicateState = model.state.filter[field]
+  invariant(predicateState, 'Filter not active')
+
+  const extents = GQL.fold(model.baseSearchQuery, {
+    data: ({ searchObjects: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return undefined
+        case 'InvalidInput':
+          return undefined
+        case 'ObjectsSearchResultSet':
+          if (field === 'modified' || field === 'size' || field === 'ext') {
+            return r.stats[field]
+          }
+          return undefined
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => undefined,
+    error: (e) => {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return undefined
+    },
+  })
+
+  const { deactivateObjectsFilter, setObjectsFilter } = model.actions
+
+  const deactivate = React.useCallback(() => {
+    deactivateObjectsFilter(field)
+  }, [deactivateObjectsFilter, field])
+
+  const change = React.useCallback(
+    (state: $TSFixMe) => {
+      setObjectsFilter(field, state)
+    },
+    [setObjectsFilter, field],
+  )
+
+  return (
+    <FiltersUI.Container
+      defaultExpanded
+      onDeactivate={deactivate}
+      title={objectFilterLabels[field]}
+    >
+      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+    </FiltersUI.Container>
+  )
+}
+
+const objectsFiltersPrimary = ['modified', 'ext'] as const
+
+const objectsFiltersSecondary = ['size', 'key', 'content', 'deleted'] as const
+
+const objectsFilters = [...objectsFiltersPrimary, ...objectsFiltersSecondary] as const
+
+function ObjectFilters() {
+  const model = SearchUIModel.use()
+
+  invariant(
+    model.state.resultType === SearchUIModel.ResultType.S3Object,
+    'wrong result type',
+  )
+
+  const { filter } = model.state
+
+  // TODO: custom order (order of activation):
+  //       probably need to remember that, maybe in local state
+  const activeFilters = objectsFilters.filter((f) => filter[f])
+
+  const availableFilters = objectsFiltersPrimary.filter((f) => !filter[f])
+  const moreFilters = objectsFiltersSecondary.filter((f) => !filter[f])
+
+  return (
+    <div>
+      <h4>Filter by</h4>
+
+      {activeFilters.map((f) => (
+        <ObjectsFilter key={f} field={f} />
+      ))}
+
+      {availableFilters.map((f) => (
+        <ObjectsFilterActivator key={f} field={f} />
+      ))}
+
+      {!!moreFilters.length && (
+        <div>
+          <div>more dropdown:</div>
+          {moreFilters.map((f) => (
+            <ObjectsFilterActivator key={f} field={f} />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -287,12 +639,16 @@ const useFiltersStyles = M.makeStyles((t) => ({
 
 function Filters() {
   const classes = useFiltersStyles()
+  const model = SearchUIModel.use()
   return (
     <div className={classes.root}>
-      <ResultTypeFilterWidget />
-      <BucketsFilterWidget />
-      <ActiveFacets />
-      <AvailableFacets className={classes.available} />
+      <ResultTypeSelector />
+      <BucketSelector />
+      {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
+        <PackageFilters />
+      ) : (
+        <ObjectFilters />
+      )}
     </div>
   )
 }
@@ -306,35 +662,33 @@ function SearchHit({ hit }: SearchHitProps) {
     case 'SearchHitObject':
       return (
         <SearchResults.Hit
-          {...{
-            hit: {
-              type: 'object',
-              bucket: hit.bucket,
-              path: hit.key,
-              versions: [{ id: hit.version, size: hit.size, updated: hit.lastModified }],
-            },
+          showBucket
+          hit={{
+            type: 'object',
+            bucket: hit.bucket,
+            path: hit.key,
+            versions: [{ id: hit.version, size: hit.size, updated: hit.modified }],
           }}
         />
       )
     case 'SearchHitPackage':
       return (
         <SearchResults.Hit
-          {...{
-            hit: {
-              type: 'package',
-              bucket: hit.bucket,
-              handle: hit.name,
-              hash: hit.hash,
-              lastModified: hit.lastModified,
-              meta: hit.meta,
-              tags: [],
-              comment: hit.comment,
-            },
+          showBucket
+          hit={{
+            type: 'package',
+            bucket: hit.bucket,
+            handle: hit.name,
+            hash: hit.hash,
+            lastModified: hit.modified,
+            meta: hit.meta,
+            tags: [],
+            comment: hit.comment,
           }}
         />
       )
     default:
-      throw new Error('Wrong typename')
+      assertNever(hit)
   }
 }
 
@@ -370,20 +724,20 @@ function LoadNextPage({ className, loading = false, onClick }: LoadNextPageProps
   )
 }
 
-interface ResultsPageProps {
-  className: string
-  cursor: string | null
-  hits: readonly SearchUIModel.SearchHit[]
-}
-
 const useResultsPageStyles = M.makeStyles((t) => ({
   next: {
     marginTop: t.spacing(1),
   },
 }))
 
-function ResultsPage({ className, hits, cursor }: ResultsPageProps) {
-  // const model = SearchUIModel.use()
+interface ResultsPageProps {
+  className: string
+  cursor: string | null
+  hits: readonly SearchUIModel.SearchHit[]
+  resultType: SearchUIModel.ResultType
+}
+
+function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) {
   const classes = useResultsPageStyles()
   const [more, setMore] = React.useState(false)
   const loadMore = React.useCallback(() => {
@@ -396,7 +750,7 @@ function ResultsPage({ className, hits, cursor }: ResultsPageProps) {
       ))}
       {!!cursor &&
         (more ? (
-          <NextPage className={classes.next} after={cursor} />
+          <NextPage after={cursor} className={classes.next} resultType={resultType} />
         ) : (
           <LoadNextPage className={classes.next} onClick={loadMore} />
         ))}
@@ -404,91 +758,77 @@ function ResultsPage({ className, hits, cursor }: ResultsPageProps) {
   )
 }
 
+type NextPageQueryResult =
+  | ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>
+  | ReturnType<typeof SearchUIModel.useNextPageObjectsQuery>
+
+interface NextPageQueryProps {
+  after: string
+  children: (result: NextPageQueryResult) => React.ReactElement
+}
+
+function NextPageObjectsQuery({ after, children }: NextPageQueryProps) {
+  return children(SearchUIModel.useNextPageObjectsQuery(after))
+}
+
+function NextPagePackagesQuery({ after, children }: NextPageQueryProps) {
+  return children(SearchUIModel.useNextPagePackagesQuery(after))
+}
+
 interface NextPageProps {
   after: string
+  resultType: SearchUIModel.ResultType
   className: string
 }
 
-function NextPage({ after, className }: NextPageProps) {
-  const pageQ = SearchUIModel.useNextPageQuery(after)
-  return GQL.fold(pageQ, {
-    data: ({ searchMore: r }) => {
-      switch (r.__typename) {
-        case 'SearchResultSetPage':
-          return <ResultsPage className={className} hits={r.hits} cursor={r.cursor} />
-        case 'InvalidInput':
-          // should not happen
-          return (
-            <EmptyResults
-              description={r.errors[0].message}
-              image="error"
-              title="Invalid input"
-            />
-          )
-        case 'OperationError':
-          // should not happen. retry?
-          return (
-            <EmptyResults description={r.message} image="error" title="Operation error" />
-          )
-        default:
-          assertNever(r)
-      }
-    },
-    fetching: () => <LoadNextPage className={className} loading />,
-    error: (err) => {
-      // eslint-disable-next-line no-console
-      console.error(err)
-      return <p className={className}>gql error: {err.message}</p>
-    },
-  })
+function NextPage({ after, className, resultType }: NextPageProps) {
+  const NextPageQuery =
+    resultType === SearchUIModel.ResultType.S3Object
+      ? NextPageObjectsQuery
+      : NextPagePackagesQuery
+  return (
+    <NextPageQuery after={after}>
+      {(r) => {
+        switch (r._tag) {
+          case 'fetching':
+            return <LoadNextPage className={className} loading />
+          case 'error':
+            // eslint-disable-next-line no-console
+            console.error(r.error)
+            return <p className={className}>gql error: {r.error.message}</p>
+          case 'data':
+            switch (r.data.__typename) {
+              case 'InvalidInput':
+                // should not happen
+                return (
+                  <EmptyResults
+                    description={r.data.errors[0].message}
+                    image="error"
+                    title="Invalid input"
+                  />
+                )
+              case 'PackagesSearchResultSetPage':
+              case 'ObjectsSearchResultSetPage':
+                return (
+                  <ResultsPage
+                    className={className}
+                    hits={r.data.hits}
+                    cursor={r.data.cursor}
+                    resultType={resultType}
+                  />
+                )
+              default:
+                assertNever(r.data)
+            }
+          default:
+            assertNever(r)
+        }
+      }}
+    </NextPageQuery>
+  )
 }
 
-interface FirstPageProps {
-  className: string
-}
-
-function FirstPage({ className }: FirstPageProps) {
-  const model = SearchUIModel.use()
-  return GQL.fold(model.firstPageQuery, {
-    data: ({ search: r }) => {
-      switch (r.__typename) {
-        case 'BoundedSearch':
-          return (
-            <ResultsPage
-              className={className}
-              hits={r.results.firstPage.hits}
-              cursor={r.results.firstPage.cursor}
-            />
-          )
-        case 'UnboundedSearch':
-          // should not happen
-          return <ResultsUnbounded className={className} />
-        case 'InvalidInput':
-          // should not happen
-          return (
-            <EmptyResults
-              description={r.errors[0].message}
-              image="error"
-              title="Invalid input"
-            />
-          )
-        case 'OperationError':
-          // should not happen
-          return (
-            <EmptyResults description={r.message} image="error" title="Operation error" />
-          )
-        default:
-          assertNever(r)
-      }
-    },
-    fetching: () => <ResultsSkeleton className={className} />,
-    error: (err) => {
-      // eslint-disable-next-line no-console
-      console.error(err)
-      return <p className={className}>gql error: {err.message}</p>
-    },
-  })
-}
+const { addTag } = SearchUIModel
 
 const useResultsStyles = M.makeStyles((t) => ({
   root: {
@@ -506,78 +846,81 @@ const useResultsStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ResultsBoundedProps {
-  total: number
-}
-
-function ResultsBounded({ total }: ResultsBoundedProps) {
-  const classes = useResultsStyles()
-  if (!total) return <EmptyResults />
-  return (
-    <div className={classes.root}>
-      <div className={classes.toolbar}>
-        <M.Typography variant="h6">
-          <Format.Plural
-            value={total}
-            zero="Nothing found"
-            one="1 result found"
-            other={(n) => `${n} results found`}
-          />
-        </M.Typography>
-        {total > 1 && <SortSelector className={classes.sort} />}
-      </div>
-      <FirstPage className={classes.results} />
-    </div>
-  )
-}
-
-interface ResultsUnboundedProps {
-  className?: string
-}
-
-function ResultsUnbounded({ className }: ResultsUnboundedProps) {
-  return (
-    <EmptyResults
-      className={className}
-      clearTitle="Specify search criteria"
-      description=""
-      title="No search query"
-    />
-  )
-}
-
 function Results() {
+  const classes = useResultsStyles()
   const model = SearchUIModel.use()
-  return GQL.fold(model.baseSearchQuery, {
-    data: ({ search: r }) => {
-      switch (r.__typename) {
-        case 'BoundedSearch':
-          return <ResultsBounded total={r.results.total} />
-        case 'UnboundedSearch':
-          return <ResultsUnbounded />
+
+  const className = 'TBD'
+
+  function fold() {
+    switch (model.state.resultType) {
+      case SearchUIModel.ResultType.S3Object:
+        return GQL.fold(model.firstPageObjectsQuery, {
+          data: ({ searchObjects: data }) => addTag('data', { data }),
+          fetching: () => addTag('fetching', {}),
+          error: (error) => addTag('error', { error }),
+        })
+      case SearchUIModel.ResultType.QuiltPackage:
+        return GQL.fold(model.firstPagePackagesQuery, {
+          data: ({ searchPackages: data }) => addTag('data', { data }),
+          fetching: () => addTag('fetching', {}),
+          error: (error) => addTag('error', { error }),
+        })
+      default:
+        assertNever(model.state)
+    }
+  }
+
+  const r = fold()
+
+  // eslint-disable-next-line no-underscore-dangle
+  switch (r._tag) {
+    case 'fetching':
+      return <ResultsSkeleton className={className} />
+    case 'error':
+      // eslint-disable-next-line no-console
+      console.error(r.error)
+      return <p className={className}>gql error: {r.error.message}</p>
+    case 'data':
+      switch (r.data.__typename) {
+        case 'EmptySearchResultSet':
+          return <EmptyResults />
         case 'InvalidInput':
           return (
             <EmptyResults
-              description={r.errors[0].message}
+              description={r.data.errors[0].message}
               image="error"
               title="Invalid input"
             />
           )
-        case 'OperationError':
+        case 'ObjectsSearchResultSet':
+        case 'PackagesSearchResultSet':
           return (
-            <EmptyResults description={r.message} image="error" title="Operation error" />
+            <div className={classes.root}>
+              <div className={classes.toolbar}>
+                <M.Typography variant="h6">
+                  <Format.Plural
+                    value={r.data.stats.total}
+                    one="1 result"
+                    other={(n) => `${n} results`}
+                  />
+                </M.Typography>
+                <SortSelector className={classes.sort} />
+              </div>
+              <ResultsPage
+                className={className}
+                resultType={model.state.resultType}
+                hits={r.data.firstPage.hits}
+                cursor={r.data.firstPage.cursor}
+              />
+            </div>
           )
         default:
-          assertNever(r)
+          assertNever(r.data)
       }
-    },
-    fetching: () => <p>loading...</p>,
-    error: (err) => {
-      // eslint-disable-next-line no-console
-      console.error(err)
-      return <p>gql error: {err.message}</p>
-    },
-  })
+    default:
+      assertNever(r)
+  }
 }
 
 const useStyles = M.makeStyles((t) => ({

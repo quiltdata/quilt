@@ -8,30 +8,15 @@ import * as SearchUIModel from './model'
 export default function Buckets() {
   const model = SearchUIModel.use()
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const extents = React.useMemo(
-    () => bucketConfigs.map(({ name }) => `s3://${name}`),
-    [bucketConfigs],
-  )
-  const { setBuckets } = model.actions
-  const { buckets } = model.state
-  const handleChange = React.useCallback(
-    (urls: string[]) => setBuckets(urls.map((u) => u.replace(/^s3:\/\//, ''))),
-    [setBuckets],
-  )
-  const normalizedValue = React.useMemo(
-    () => buckets.map((bucket) => `s3://${bucket}`),
-    [buckets],
-  )
+  const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
   return (
-    <Filters.Container defaultExpanded title="Buckets">
-      {extents && (
-        <Filters.Enum
-          extents={extents}
-          onChange={handleChange}
-          placeholder="Select buckets"
-          value={normalizedValue}
-        />
-      )}
+    <Filters.Container defaultExpanded title="In buckets">
+      <Filters.Enum
+        extents={extents}
+        onChange={model.actions.setBuckets}
+        placeholder="Select buckets"
+        value={model.state.buckets}
+      />
     </Filters.Container>
   )
 }

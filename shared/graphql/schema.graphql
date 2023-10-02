@@ -274,129 +274,190 @@ type BrowsingSession {
   expires: Datetime!
 }
 
-input SearchPredicate {
-  op: String!
-  arg: Json!
+enum SearchResultOrder {
+  BEST_MATCH
+  NEWEST
+  OLDEST
 }
 
-input SearchFilter {
-  path: [String!]!
-  predicates: [SearchPredicate!]!
+type DatetimeExtents {
+  min: Datetime!
+  max: Datetime!
 }
 
-union SearchResult =
-    BoundedSearch
-  | UnboundedSearch
-  | InvalidInput
-  | OperationError
+type NumberExtents {
+  min: Float!
+  max: Float!
+}
 
-union SearchMoreResult = SearchResultSetPage | InvalidInput | OperationError
+type KeywordExtents {
+  values: [String!]!
+}
 
-type SearchResultSetPage {
+interface IPackageUserMetaFacet {
+  path: String!
+}
+
+type NumberPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: NumberExtents!
+}
+
+type DatetimePackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: DatetimeExtents!
+}
+
+type KeywordPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: KeywordExtents!
+}
+
+type TextPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+}
+
+type BooleanPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+}
+
+union PackageUserMetaFacet =
+  | NumberPackageUserMetaFacet
+  | DatetimePackageUserMetaFacet
+  | KeywordPackageUserMetaFacet
+  | TextPackageUserMetaFacet
+  | BooleanPackageUserMetaFacet
+
+type PackagesSearchResultSetPage {
   cursor: String
-  hits: [SearchHit!]!
+  hits: [SearchHitPackage!]!
 }
 
-enum SearchResultOrderField {
-  Relevance # default
-  Modified
-  Size # XXX: is this useful?
+type ObjectsSearchResultSetPage {
+  cursor: String
+  hits: [SearchHitObject!]!
 }
 
-input SearchResultOrder {
-  field: SearchResultOrderField!
-  direction: SortDirection
+input DatetimeSearchPredicate {
+  gte: Datetime
+  lte: Datetime
 }
 
-type SearchResultSet {
+input NumberSearchPredicate {
+  gte: Float
+  lte: Float
+}
+
+input TextSearchPredicate {
+  match: String!
+}
+
+input KeywordSearchPredicate {
+  terms: [String!]!
+}
+
+input BooleanSearchPredicate {
+  value: Boolean!
+}
+
+input WorkflowSearchPredicate {
+  bucket: String
+  configVersionId: String
+  workflowId: String
+}
+
+input PackageUserMetaPredicate {
+  path: String!
+  # one of the following
+  datetime: DatetimeSearchPredicate
+  number: NumberSearchPredicate
+  text: TextSearchPredicate
+  keyword: KeywordSearchPredicate
+  boolean: BooleanSearchPredicate
+}
+
+input ObjectsSearchFilter {
+  modified: DatetimeSearchPredicate
+  size: NumberSearchPredicate
+  ext: KeywordSearchPredicate
+  key: TextSearchPredicate
+  content: TextSearchPredicate
+  deleted: BooleanSearchPredicate
+}
+
+input PackagesSearchFilter {
+  modified: DatetimeSearchPredicate
+  size: NumberSearchPredicate
+  name: TextSearchPredicate
+  hash: TextSearchPredicate
+  entries: NumberSearchPredicate
+  comment: TextSearchPredicate
+  workflow: WorkflowSearchPredicate
+  userMeta: [PackageUserMetaPredicate!]
+}
+
+type ObjectsSearchStats {
   total: Int!
-  firstPage(size: Int = 30, order: SearchResultOrder): SearchResultSetPage!
+  modified: DatetimeExtents!
+  size: NumberExtents!
+  ext: KeywordExtents!
 }
 
-interface ISearchFacet {
-  path: [String!]!
+type PackagesSearchStats {
+  total: Int!
+  modified: DatetimeExtents!
+  size: NumberExtents!
+  entries: NumberExtents!
+  userMeta: [PackageUserMetaFacet!]!
+  # userMetaTruncated: Boolean!
 }
 
-type NumberSearchFacet implements ISearchFacet {
-  path: [String!]!
-  numberMin: Float!
-  numberMax: Float!
+type ObjectsSearchResultSet {
+  stats: ObjectsSearchStats!
+  firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
 }
 
-type DateSearchFacet implements ISearchFacet {
-  path: [String!]!
-  dateMin: Datetime!
-  dateMax: Datetime!
+type PackagesSearchResultSet {
+  stats: PackagesSearchStats!
+  firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
+  # XXX: do we need this at all? do we need to accept type here?
+  userMetaFacet(path: String!): PackageUserMetaFacet
 }
 
-type KeywordSearchFacet implements ISearchFacet {
-  path: [String!]!
-  keywordValues: [String!]!
-}
-
-type TextSearchFacet implements ISearchFacet {
-  path: [String!]!
-}
-
-type BooleanSearchFacet implements ISearchFacet {
-  path: [String!]!
-}
-
-union SearchFacet =
-  | NumberSearchFacet
-  | DateSearchFacet
-  | KeywordSearchFacet
-  | TextSearchFacet
-  | BooleanSearchFacet
-
-input SearchFacetInferenceOptions {
-  # TODO
+type EmptySearchResultSet {
   _: Boolean
 }
 
-type BoundedSearch {
-  results: SearchResultSet!
-  facets(options: SearchFacetInferenceOptions): [SearchFacet!]!
-  facet(path: [String!]!): SearchFacet
-}
+union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput
 
-type UnboundedSearch {
-  _: Boolean
-  # XXX: which data can we expose here?
-  # facets?
-}
+union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput
 
-interface ISearchHit {
+union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
+
+union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
+
+type SearchHitObject {
   id: ID!
   bucket: String!
   score: Float!
   size: Float!
-  lastModified: Datetime!
-}
-
-# XXX: do we need to highlight active facets in the results?
-type SearchHitObject implements ISearchHit {
-  id: ID!
-  bucket: String!
-  score: Float!
-  size: Float!
-  lastModified: Datetime!
+  modified: Datetime!
 
   key: String!
   version: String!
 
-  deleteMarker: Boolean!
+  deleted: Boolean!
   # meta: JsonRecord! # String?
   # tags
 }
 
 # TODO: reuse package types?
-type SearchHitPackage implements ISearchHit {
+type SearchHitPackage {
   id: ID!
   bucket: String!
   score: Float!
   size: Float!
-  lastModified: Datetime!
+  modified: Datetime!
 
   name: String!
   hash: String!
@@ -408,13 +469,6 @@ type SearchHitPackage implements ISearchHit {
   # tags: [String!]! // TODO: currently not provided
 }
 
-union SearchHit = SearchHitObject | SearchHitPackage
-
-enum SearchResultType {
-  QuiltPackage
-  S3Object
-}
-
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -422,13 +476,18 @@ type Query {
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
-  search(
+  searchObjects(
     buckets: [String!]
-    resultType: SearchResultType
     searchString: String
-    filters: [SearchFilter!]
-  ): SearchResult!
-  searchMore(after: String!, size: Int = 30): SearchMoreResult!
+    filter: ObjectsSearchFilter
+  ): ObjectsSearchResult!
+  searchPackages(
+    buckets: [String!]
+    searchString: String
+    filter: PackagesSearchFilter
+  ): PackagesSearchResult!
+  searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
+  searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin

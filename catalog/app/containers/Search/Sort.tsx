@@ -8,43 +8,21 @@ import * as SearchUIModel from './model'
 
 const sortOptions = [
   {
-    field: Model.GQLTypes.SearchResultOrderField.Relevance,
-    direction: Model.GQLTypes.SortDirection.DESC,
-    toString: () => 'Relevance',
+    toString: () => 'Best match',
     valueOf() {
-      return this.field + this.direction
+      return Model.GQLTypes.SearchResultOrder.BEST_MATCH
     },
   },
   {
-    field: Model.GQLTypes.SearchResultOrderField.Modified,
-    direction: Model.GQLTypes.SortDirection.DESC,
-    toString: () => 'Date modified (newest first)',
+    toString: () => 'Most recent first',
     valueOf() {
-      return this.field + this.direction
+      return Model.GQLTypes.SearchResultOrder.NEWEST
     },
   },
   {
-    field: Model.GQLTypes.SearchResultOrderField.Modified,
-    direction: Model.GQLTypes.SortDirection.ASC,
-    toString: () => 'Date modified (oldest first)',
+    toString: () => 'Least recent first',
     valueOf() {
-      return this.field + this.direction
-    },
-  },
-  {
-    field: Model.GQLTypes.SearchResultOrderField.Size,
-    direction: Model.GQLTypes.SortDirection.DESC,
-    toString: () => 'Size (highest first)',
-    valueOf() {
-      return this.field + this.direction
-    },
-  },
-  {
-    field: Model.GQLTypes.SearchResultOrderField.Size,
-    direction: Model.GQLTypes.SortDirection.ASC,
-    toString: () => 'Size (lowest first)',
-    valueOf() {
-      return this.field + this.direction
+      return Model.GQLTypes.SearchResultOrder.OLDEST
     },
   },
 ]
@@ -65,21 +43,7 @@ interface SortProps {
 export default function Sort({ className }: SortProps) {
   const buttonClasses = useButtonStyles()
   const model = SearchUIModel.use()
-  const { order } = model.state
   const { setOrder } = model.actions
-  const value = React.useMemo(
-    () =>
-      sortOptions.find(
-        ({ field, direction }) => field === order.field && direction === order.direction,
-      ) || sortOptions[0],
-    [order],
-  )
-  const handleChange = React.useCallback(
-    ({ field, direction }) => {
-      setOrder({ field, direction })
-    },
-    [setOrder],
-  )
   const ButtonProps = React.useMemo(
     () => ({
       classes: buttonClasses,
@@ -88,11 +52,17 @@ export default function Sort({ className }: SortProps) {
     }),
     [buttonClasses],
   )
+  const handleChange = React.useCallback(
+    (value: (typeof sortOptions)[number]) => {
+      setOrder(value.valueOf())
+    },
+    [setOrder],
+  )
   return (
-    <SelectDropdown<(typeof sortOptions)[0]>
+    <SelectDropdown
       className={className}
       options={sortOptions}
-      value={value}
+      value={model.state.order}
       onChange={handleChange}
       ButtonProps={ButtonProps}
     />

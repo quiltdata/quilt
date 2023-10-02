@@ -4,32 +4,24 @@ import * as Filters from 'components/Filters'
 
 import * as SearchUIModel from './model'
 
-const typeExtents = [
-  {
-    value: '' as const, // TODO: rename to 'any' or null
-    title: 'Packages and objects',
-  },
-  {
-    value: SearchUIModel.ResultType.QuiltPackage,
-    title: 'Packages',
-  },
-  {
-    value: SearchUIModel.ResultType.S3Object,
-    title: 'Objects',
-  },
-]
+const VALUES = [SearchUIModel.ResultType.QuiltPackage, SearchUIModel.ResultType.S3Object]
+
+const LABELS = {
+  [SearchUIModel.ResultType.QuiltPackage]: 'Quilt Packages',
+  [SearchUIModel.ResultType.S3Object]: 'S3 Objects',
+}
+
+const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]
 
 export default function ResultType() {
   const model = SearchUIModel.use()
-  const value =
-    typeExtents.find((e) => e.value === (model.state.resultType ?? '')) || null
   return (
-    <Filters.Container defaultExpanded title="Result type">
-      <Filters.Select<(typeof typeExtents)[0]>
-        extents={typeExtents}
-        getOptionLabel={(option) => option.title}
-        onChange={(o) => model.actions.setResultType(o.value || null)}
-        value={value}
+    <Filters.Container defaultExpanded title="Search for">
+      <Filters.Select
+        extents={VALUES}
+        getOptionLabel={getLabel}
+        onChange={model.actions.setResultType}
+        value={model.state.resultType}
       />
     </Filters.Container>
   )

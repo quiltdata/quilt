@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Fuse from 'fuse.js'
 import * as React from 'react'
 import * as M from '@material-ui/core'

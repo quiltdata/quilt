@@ -8,7 +8,7 @@ const useStyles = M.makeStyles({
 })
 
 interface CheckboxFilterProps {
-  value: boolean
+  value: boolean | undefined
   onChange: (v: boolean) => void
 }
 

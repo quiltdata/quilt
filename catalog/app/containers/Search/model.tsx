@@ -1,4 +1,5 @@
 import invariant from 'invariant'
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
@@ -6,375 +7,406 @@ import * as RR from 'react-router-dom'
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
-// import parseSearch from 'utils/parseSearch'
-import * as Types from 'utils/types'
+import assertNever from 'utils/assertNever'
+// import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
-import FACET_QUERY from './gql/Facet.generated'
-import FIRST_PAGE_QUERY from './gql/FirstPage.generated'
-import NEXT_PAGE_QUERY from './gql/NextPage.generated'
+import FIRST_PAGE_OBJECTS_QUERY from './gql/FirstPageObjects.generated'
+import FIRST_PAGE_PACKAGES_QUERY from './gql/FirstPagePackages.generated'
+import NEXT_PAGE_OBJECTS_QUERY from './gql/NextPageObjects.generated'
+import NEXT_PAGE_PACKAGES_QUERY from './gql/NextPagePackages.generated'
 
-function ifChanged<T>(newValue: T) {
-  return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
-}
-
-export const ResultType = Model.GQLTypes.SearchResultType
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type ResultType = Model.GQLTypes.SearchResultType
-
-// enum WorkflowMatchingStrictness {
-//   WorkflowOnly,
-//   WorkflowAndBucket,
-//   WorkflowAndBucketAndVersion,
-// }
-//
-// interface WorkflowFacetState {
-//   selected: {
-//     bucket: string | null
-//     configVersion: string | null
-//     workflow: string | null
-//     strictness: WorkflowMatchingStrictness
-//   }
+// function ifChanged<T>(newValue: T) {
+//   return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
 // }
 
-type FilterFn<Value> = (
-  value: Value,
-  path: FacetPath,
-) => Model.GQLTypes.SearchFilter | null
-
-type GQLSearchFacet = Extract<
-  GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['search'],
-  { __typename: 'BoundedSearch' }
->['facets'][number]
-
-type GQLSearchFacetType = GQLSearchFacet['__typename']
-
-type GQLSearchFacetForType<T extends GQLSearchFacetType> = Extract<
-  GQLSearchFacet,
-  { __typename: T }
->
-
-interface FacetExtents<GQLType extends GQLSearchFacetType, Extents> {
-  (gqlFacet: GQLSearchFacetForType<GQLType>): Extents
+export enum ResultType {
+  QuiltPackage = 'p',
+  S3Object = 'o',
 }
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-function FacetExtents<GQLType extends GQLSearchFacetType, Extents>(
-  initExtents: FacetExtents<GQLType, Extents>,
-): FacetExtents<GQLType, Extents> {
-  return initExtents
-}
+export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
-function EmptyExtents<GQLType extends GQLSearchFacetType>() {
-  return FacetExtents<GQLType, null>(() => null)
-}
+export const DEFAULT_ORDER = Model.GQLTypes.SearchResultOrder.BEST_MATCH
 
-export interface FacetType<
-  Tag extends string,
-  Value,
-  Extents,
-  GQLType extends GQLSearchFacet['__typename'],
-> {
-  _tag: Tag
-  value: Value
-  extents: FacetExtents<GQLType, Extents>
-  filter: FilterFn<Value>
-  init: (extents: Extents) => Value
-}
-
-type TypeContainer<T> = (x: T) => T
-
-function FacetValue<Value>(): TypeContainer<Value> {
-  return R.identity
-}
-
-function FacetFilter<Value>(
-  makePredicates: (value: Value) => Model.GQLTypes.SearchPredicate[],
-): FilterFn<Value> {
-  return (value: Value, path: FacetPath) => {
-    const predicates = makePredicates(value)
-    return predicates.length ? { path, predicates } : null
+const parseDate = (x: unknown) => {
+  if (typeof x !== 'string') return null
+  try {
+    return dateFns.parseISO(x)
+  } catch (e) {
+    return null
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ignore(..._args: any[]) {}
+export type ObjectsFilterState = FilterState<typeof ObjectsSearchFilterIO>
+export type PackagesFilterState = FilterState<typeof PackagesSearchFilterIO>
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-function FacetType<
-  Tag extends string,
-  Value,
-  Extents,
-  GQLType extends GQLSearchFacet['__typename'],
->(
-  _tag: Tag,
-  value: TypeContainer<Value>,
-  extents: FacetExtents<GQLType, Extents>,
-  init: (extents: Extents) => Value,
-  filter: FilterFn<Value>,
-) {
-  ignore(value)
-  return { _tag, filter, init, extents } as FacetType<Tag, Value, Extents, GQLType>
-}
-
-export const FacetTypes = {
-  Number: FacetType(
-    'Number' as const,
-    FacetValue<{ min: number | null; max: number | null }>(),
-    FacetExtents((f: GQLSearchFacetForType<'NumberSearchFacet'>) => ({
-      min: f.numberMin,
-      max: f.numberMax,
-    })),
-    R.identity,
-    FacetFilter(({ min, max }) => {
-      const arg: any = {}
-      if (min !== null) arg.gte = min
-      if (max !== null) arg.lte = max
-      return R.isEmpty(arg) ? [] : [Model.Search.Predicate('num_range', arg)]
-    }),
-  ),
-  Date: FacetType(
-    'Date' as const,
-    FacetValue<{ min: Date | null; max: Date | null }>(),
-    FacetExtents((f: GQLSearchFacetForType<'DateSearchFacet'>) => ({
-      min: f.dateMin,
-      max: f.dateMax,
-    })),
-    R.identity,
-    FacetFilter(({ min, max }) => {
-      const arg: any = {}
-      if (min !== null) arg.gte = min
-      if (max !== null) arg.lte = max
-      return R.isEmpty(arg) ? [] : [Model.Search.Predicate('date_range', arg)]
-    }),
-  ),
-  Keyword: FacetType(
-    'Keyword' as const,
-    FacetValue<string[]>(),
-    EmptyExtents<'KeywordSearchFacet'>(),
-    () => [],
-    FacetFilter((value) =>
-      value.length ? [Model.Search.Predicate('kw_in', value)] : [],
-    ),
-  ),
-  Text: FacetType(
-    'Text' as const,
-    FacetValue<string | null>(),
-    EmptyExtents<'TextSearchFacet'>(),
-    () => null,
-    FacetFilter((value) => (value ? [Model.Search.Predicate('text_match', value)] : [])),
-  ),
-  Boolean: FacetType(
-    'Boolean' as const,
-    FacetValue<boolean | null>(),
-    EmptyExtents<'BooleanSearchFacet'>(),
-    () => null,
-    FacetFilter((value) =>
-      value != null ? [Model.Search.Predicate('bool_is', value)] : [],
-    ),
-  ),
-}
-
-export type KnownFacetType = (typeof FacetTypes)[keyof typeof FacetTypes]
-
-interface FacetValueState<Value> {
-  value: Value
-}
-
-interface FacetExtentsStateNonEmpty<Extents> {
-  extents: Extents
-}
-
-type FacetExtentsState<Extents> = Extents extends null
-  ? {}
-  : FacetExtentsStateNonEmpty<Extents>
-
-type FacetState<Value, Extents> = FacetValueState<Value> & FacetExtentsState<Extents>
-
-export type StateForFacetType<T extends KnownFacetType> = T extends FacetType<
-  any,
-  infer Value,
-  infer Extents,
-  any
->
-  ? FacetState<Value, Extents>
+export type FilterStateForResultType<T extends ResultType> = T extends ResultType.S3Object
+  ? ObjectsFilterState
+  : T extends ResultType.QuiltPackage
+  ? PackagesFilterState
   : never
 
-interface FacetDescriptor<T extends FacetType<any, any, any, any>> {
-  path: FacetPath
-  type: T
-  state: StateForFacetType<T>
+export type ObjectsSearchFilter = Model.GQLTypes.ObjectsSearchFilter
+export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
+
+interface ResultTypeAndFilter<T extends ResultType> {
+  resultType: T
+  filter: FilterStateForResultType<T>
 }
 
-export type KnownFacetDescriptor = FacetDescriptor<KnownFacetType>
-
-// function updateFacetDescriptorState<F extends KnownFacetDescriptor>(
-//   facet: F,
-//   updater: (state: F['state']) => F['state'],
-// ): F {
-//   return {
-//     ...facet,
-//     state: updater(facet.state),
-//   }
-// }
-
-// for (const matcher of KNOWN_FACETS) {
-//   if (matcher.match(path)) return matcher.cast({ path, state })
-// }
-
-const TYPE_MAP = {
-  keyword: FacetTypes.Keyword,
-  text: FacetTypes.Text,
-  double: FacetTypes.Number,
-  date: FacetTypes.Date,
-  boolean: FacetTypes.Boolean,
-}
-
-function matchFacet(path: FacetPath): KnownFacetType | null {
-  if (R.equals(['last_modified'], path)) return FacetTypes.Date
-  if (R.equals(['pkg', 'total_size'], path)) return FacetTypes.Number
-  if (R.equals(['pkg', 'total_entries'], path)) return FacetTypes.Number
-  if (R.startsWith(['pkg_meta'], path)) {
-    const [, ptr, typeName] = path
-    if (!ptr || !typeName) return null
-    return TYPE_MAP[typeName as keyof typeof TYPE_MAP] ?? null
-  }
-  if (R.equals(['s3', 'ext'], path)) return FacetTypes.Keyword
-  if (R.equals(['s3', 'key'], path)) return FacetTypes.Text
-  if (R.equals(['s3', 'size'], path)) return FacetTypes.Number
-  if (R.equals(['s3', 'content'], path)) return FacetTypes.Text
-  if (R.equals(['s3', 'delete_marker'], path)) return FacetTypes.Boolean
-
-  return null
-}
-
-function hydrateFacet(path: any, state: any): KnownFacetDescriptor | null {
-  const type = matchFacet(path)
-  if (!type) return null
-  return {
-    path,
-    type,
-    state,
-  } as FacetDescriptor<typeof type>
-}
-
-const GQL_FACET_TYPES = {
-  KeywordSearchFacet: FacetTypes.Keyword,
-  TextSearchFacet: FacetTypes.Text,
-  NumberSearchFacet: FacetTypes.Number,
-  DateSearchFacet: FacetTypes.Date,
-  BooleanSearchFacet: FacetTypes.Boolean,
-}
-
-function initFacet(f: GQLSearchFacet): KnownFacetDescriptor | null {
-  const type = GQL_FACET_TYPES[f.__typename]
-  // @ts-expect-error
-  const extents = type.extents(f)
-  // @ts-expect-error
-  const value = type.init(extents)
-  return {
-    path: f.path,
-    type,
-    state: { value, extents },
-  } as FacetDescriptor<typeof type>
-}
-
-// export function getFacetType<F extends KnownFacetDescriptor>(facet: F): F['type'] {
-//   return facet.type
-// }
-
-interface SearchUrlState {
+interface SearchUrlStateBase<T extends ResultType> extends ResultTypeAndFilter<T> {
   searchString: string | null
-  resultType: ResultType | null
   buckets: string[]
-  facets: KnownFacetDescriptor[]
   order: Model.GQLTypes.SearchResultOrder
 }
 
-const DEFAULT_ORDER: Model.GQLTypes.SearchResultOrder = {
-  field: Model.GQLTypes.SearchResultOrderField.Relevance,
-  direction: Model.GQLTypes.SortDirection.DESC,
-}
-
-// const SearchResultOrderField = Types.enum(
-//   Model.GQLTypes.BucketPermissionLevel,
-//   'SearchResultOrderField ',
-// )
+type SearchUrlState =
+  | SearchUrlStateBase<ResultType.S3Object>
+  | SearchUrlStateBase<ResultType.QuiltPackage>
 
 function parseOrder(input: string | null): Model.GQLTypes.SearchResultOrder {
-  if (!input) return DEFAULT_ORDER
-  let direction = Model.GQLTypes.SortDirection.ASC
-  let field = input
-  if (input.startsWith('-')) {
-    direction = Model.GQLTypes.SortDirection.DESC
-    field = input.slice(1)
-  }
-  if (!Object.values(Model.GQLTypes.SearchResultOrderField).includes(field as any))
-    return DEFAULT_ORDER
-  return {
-    field: field as Model.GQLTypes.SearchResultOrderField,
-    direction,
-  }
+  return Object.values(Model.GQLTypes.SearchResultOrder).includes(input as any)
+    ? (input as Model.GQLTypes.SearchResultOrder)
+    : DEFAULT_ORDER
 }
 
 function serializeOrder(order: Model.GQLTypes.SearchResultOrder): string | null {
-  if (R.equals(order, DEFAULT_ORDER)) return null
-  const direction = order.direction === Model.GQLTypes.SortDirection.ASC ? '' : '-'
-  return `${direction}${order.field}`
+  return order === DEFAULT_ORDER ? null : order
 }
 
-// XXX: using the simplest ser/de logic here, to be optimized later
-// f=path:(type?):state
-function parseFacetDescriptor(input: string): KnownFacetDescriptor | null {
-  let json: Types.JsonRecord
-  try {
-    json = JSON.parse(input)
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('failed to parse facet descriptor', input)
-    return null
+type Tagged<Tag extends string, T> = T & { _tag: Tag }
+
+export function addTag<Tag extends string, T>(tag: Tag, t: T): Tagged<Tag, T> {
+  return { _tag: tag, ...t }
+}
+
+interface PredicateIO<Tag extends string, State, GQLType> {
+  readonly _tag: Tag
+  initialState: Tagged<Tag, State>
+  fromString: (input: string) => Tagged<Tag, State>
+  toString: (state: Tagged<Tag, State>) => string | null
+  toGQL: (state: Tagged<Tag, State>) => GQLType | null
+}
+
+export type PredicateState<PIO extends PredicateIO<any, any, any>> =
+  PIO extends PredicateIO<infer Tag, infer State, any> ? Tagged<Tag, State> : never
+
+type PredicateGQLType<PIO extends PredicateIO<any, any, any>> = PIO extends PredicateIO<
+  any,
+  any,
+  infer G
+>
+  ? G
+  : never
+
+function Predicate<Tag extends string, State, GQLType>(input: {
+  tag: Tag
+  init: State
+  fromString: (input: string) => State
+  toString: (state: Tagged<Tag, State>) => string | null
+  toGQL: (state: Tagged<Tag, State>) => GQLType | null
+}): PredicateIO<Tag, State, GQLType> {
+  return {
+    _tag: input.tag,
+    initialState: addTag(input.tag, input.init),
+    fromString: (s: string) => addTag(input.tag, input.fromString(s)),
+    toString: input.toString,
+    toGQL: input.toGQL,
   }
-  invariant(typeof json === 'object', 'facet descriptor must be an object')
-  const { path, state } = json
-  invariant(Array.isArray(path), 'facet path must be an array')
-  invariant(typeof state === 'object', 'facet state must be an object')
-  // TODO: proper parsing and validation with io-ts or effect-ts
-  // TODO: traverse facets definitions to get missing data
-  return hydrateFacet(path, state)
 }
 
-function serializeFacetDescriptor(f: KnownFacetDescriptor): string {
-  // for built-in static facets we don't need to save the type
-  // XXX: move serailization to FacetType or FacetMatcher?
-  const { path, state } = f
-  return JSON.stringify({ path, state })
+const DatetimePredicate = Predicate({
+  tag: 'Datetime',
+  init: {
+    gte: null as Date | null,
+    lte: null as Date | null,
+  },
+  fromString: (input: string) => {
+    const json = JSON.parse(input)
+    return {
+      gte: parseDate(json.gte),
+      lte: parseDate(json.lte),
+    }
+  },
+  toString: ({ _tag, ...state }) => JSON.stringify(state),
+  toGQL: ({ _tag, ...state }) =>
+    state.gte == null && state.lte === null
+      ? null
+      : (state as Model.GQLTypes.DatetimeSearchPredicate),
+})
+
+const NumberPredicate = Predicate({
+  tag: 'Number',
+  init: {
+    gte: null as number | null,
+    lte: null as number | null,
+  },
+  fromString: (input: string) => {
+    const json = JSON.parse(input)
+    return {
+      gte: (json.gte as number) ?? null,
+      lte: (json.lte as number) ?? null,
+    }
+  },
+  toString: ({ _tag, ...state }) => JSON.stringify(state),
+  toGQL: ({ _tag, ...state }) =>
+    state.gte == null && state.lte === null
+      ? null
+      : (state as Model.GQLTypes.NumberSearchPredicate),
+})
+
+const TextPredicate = Predicate({
+  tag: 'Text',
+  init: { match: '' },
+  fromString: (input: string) => ({ match: input }),
+  toString: ({ _tag, ...state }) => state.match.trim(),
+  toGQL: ({ _tag, ...state }) => {
+    const match = state.match.trim()
+    return match ? ({ match } as Model.GQLTypes.TextSearchPredicate) : null
+  },
+})
+
+const KeywordPredicate = Predicate({
+  tag: 'Keyword',
+  init: { terms: [] as string[] },
+  fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
+  toString: ({ _tag, ...state }) => JSON.stringify(state.terms).slice(1, -1),
+  toGQL: ({ _tag, ...state }) =>
+    state.terms.length ? (state as Model.GQLTypes.KeywordSearchPredicate) : null,
+})
+
+const BooleanPredicate = Predicate({
+  tag: 'Boolean',
+  init: { value: null as boolean | null },
+  fromString: (input: string) => ({ value: JSON.parse(input) as boolean | null }),
+  toString: (state) => JSON.stringify(state.value),
+  toGQL: ({ _tag, ...state }) =>
+    state.value == null ? null : (state as Model.GQLTypes.BooleanSearchPredicate),
+})
+
+const WorkflowPredicate = Predicate({
+  tag: 'Workflow',
+  init: {
+    bucket: null as string | null,
+    configVersionId: null as string | null,
+    workflowId: null as string | null,
+  },
+  fromString: (input: string) => {
+    const json = JSON.parse(input)
+    return {
+      bucket: (json.bucket as string | null) ?? null,
+      configVersionId: (json.configVersionId as string | null) ?? null,
+      workflowId: (json.workflowId as string | null) ?? null,
+    }
+  },
+  toString: ({ _tag, ...state }) => JSON.stringify(state),
+  toGQL: ({ _tag, ...state }) =>
+    state.bucket == null && state.configVersionId == null && state.workflowId == null
+      ? null
+      : (state as Model.GQLTypes.WorkflowSearchPredicate),
+})
+
+const PrimitivePredicates = [
+  DatetimePredicate,
+  NumberPredicate,
+  TextPredicate,
+  KeywordPredicate,
+  BooleanPredicate,
+]
+
+export type PrimitivePredicate = (typeof PrimitivePredicates)[number]
+
+export type Extents =
+  | Model.GQLTypes.DatetimeExtents
+  | Model.GQLTypes.NumberExtents
+  | Model.GQLTypes.KeywordExtents
+
+export type ExtentsForPredicate<P> = P extends typeof DatetimePredicate
+  ? Model.GQLTypes.DatetimeExtents
+  : P extends typeof NumberPredicate
+  ? Model.GQLTypes.NumberExtents
+  : P extends typeof KeywordPredicate
+  ? Model.GQLTypes.KeywordExtents
+  : never
+
+const UserMetaPredicateMap = {
+  Datetime: 'datetime' as const,
+  Number: 'number' as const,
+  Text: 'text' as const,
+  Keyword: 'keyword' as const,
+  Boolean: 'boolean' as const,
 }
 
-// XXX: use io-ts or smth for morphisms between url (querystring) and search state
+const UserMetaPredicate = Predicate({
+  tag: 'UserMeta',
+  init: {
+    children: {} as Record<string, PredicateState<PrimitivePredicate>>,
+  },
+  fromString: (input: string) => ({
+    children: JSON.parse(input) as Record<string, PredicateState<PrimitivePredicate>>,
+  }),
+  toString: ({ children }) => JSON.stringify(children),
+  toGQL: ({ children }) => {
+    const userMeta = Object.entries(children).reduce((acc, [path, predicate]) => {
+      const gql = Predicates[predicate._tag].toGQL(
+        predicate as any,
+      ) as PredicateGQLType<PrimitivePredicate>
+      if (!gql) return acc
+      const obj = {
+        path,
+        datetime: null,
+        number: null,
+        text: null,
+        keyword: null,
+        boolean: null,
+        [UserMetaPredicateMap[predicate._tag]]: gql,
+      }
+      return [...acc, obj]
+    }, [] as Model.GQLTypes.PackageUserMetaPredicate[])
+    return userMeta.length ? userMeta : null
+  },
+})
+
+export const Predicates = {
+  Datetime: DatetimePredicate,
+  Number: NumberPredicate,
+  Text: TextPredicate,
+  Keyword: KeywordPredicate,
+  Boolean: BooleanPredicate,
+  Workflow: WorkflowPredicate,
+  UserMeta: UserMetaPredicate,
+}
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Predicates = typeof Predicates
+
+export type KnownPredicate = Predicates[keyof Predicates]
+
+type PredicateMap = Record<string, PredicateIO<any, any, any>>
+
+type CombinedState<PM extends PredicateMap> = {
+  [K in keyof PM]: PredicateState<PM[K]> | null
+}
+
+type CombinedGQLType<PM extends PredicateMap> = {
+  [K in keyof PM]: PredicateGQLType<PM[K]>
+}
+
+interface FilterIO<PM extends PredicateMap> {
+  fromURLSearchParams: (params: URLSearchParams) => CombinedState<PM>
+  toURLSearchParams: (state: CombinedState<PM>) => [string, string][]
+  toGQL: (state: CombinedState<PM>) => CombinedGQLType<PM> | null
+  children: PM
+  initialState: CombinedState<PM>
+}
+
+function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
+  function forEachChild(fn: (k: keyof PM, v: PM[typeof k]) => void) {
+    Object.entries(children).forEach(([k, v]) => fn(k, v as PM[typeof k]))
+  }
+
+  function fromURLSearchParams(params: URLSearchParams): CombinedState<PM> {
+    const state = {} as Record<keyof PM, any>
+    forEachChild((k, predicate) => {
+      const v = params.get(k as string)
+      state[k] = v == null ? null : predicate.fromString(v)
+    })
+    return state as CombinedState<PM>
+  }
+
+  function toURLSearchParams(state: CombinedState<PM>): [string, string][] {
+    const params: [string, string][] = []
+    forEachChild((k, predicate) => {
+      const v = state[k]
+      if (v == null) return
+      const s = predicate.toString(v)
+      if (s == null) return
+      params.push([k as string, s])
+    })
+    return params
+  }
+
+  const initialState = {} as CombinedState<PM>
+  forEachChild((k) => {
+    initialState[k] = null
+  })
+
+  function toGQL(state: CombinedState<PM>): CombinedGQLType<PM> | null {
+    const gqlInput = {} as CombinedGQLType<PM>
+    let isEmpty = true
+    forEachChild((k, predicate) => {
+      const s = state[k]
+      if (s == null) return
+      const v = predicate.toGQL(s)
+      if (v != null) isEmpty = false
+      gqlInput[k] = v
+    })
+    return isEmpty ? null : gqlInput
+  }
+
+  return { fromURLSearchParams, toURLSearchParams, toGQL, children, initialState }
+}
+
+type FilterState<FIO extends FilterIO<any>> = FIO extends FilterIO<infer PM>
+  ? CombinedState<PM>
+  : never
+
+export const ObjectsSearchFilterIO = Filter({
+  modified: Predicates.Datetime,
+  size: Predicates.Number,
+  ext: Predicates.Keyword,
+  key: Predicates.Text,
+  content: Predicates.Text,
+  deleted: Predicates.Boolean,
+})
+
+export const PackagesSearchFilterIO = Filter({
+  modified: Predicates.Datetime,
+  size: Predicates.Number,
+  name: Predicates.Text,
+  hash: Predicates.Text,
+  entries: Predicates.Number,
+  comment: Predicates.Text,
+  workflow: Predicates.Workflow,
+  userMeta: Predicates.UserMeta,
+})
+
+// XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
 function parseSearchParams(qs: string): SearchUrlState {
   const params = new URLSearchParams(qs)
-  // console.log('params', params)
-
   const searchString = params.get('q')
 
-  // XXX: support legacy "mode" param (convert to "type")
-  const resultTypeInput = params.get('t') || params.get('mode')
+  // XXX: support legacy "mode" param
+  const resultTypeInput = params.get('t')
   const resultType = Object.values(ResultType).includes(resultTypeInput as any)
     ? (resultTypeInput as ResultType)
-    : null
+    : DEFAULT_RESULT_TYPE
 
   const bucketsInput = params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
 
-  const facets = params
-    .getAll('f')
-    .map(parseFacetDescriptor)
-    .filter((f): f is KnownFacetDescriptor => !!f)
-
   const order = parseOrder(params.get('o'))
 
-  return { searchString, resultType, buckets, facets, order }
+  // XXX: try to make this less awkward
+  const base = { searchString, buckets, order }
+  switch (resultType) {
+    case ResultType.S3Object:
+      return {
+        ...base,
+        resultType,
+        filter: ObjectsSearchFilterIO.fromURLSearchParams(params),
+      }
+    case ResultType.QuiltPackage:
+      return {
+        ...base,
+        resultType,
+        filter: PackagesSearchFilterIO.fromURLSearchParams(params),
+      }
+    default:
+      assertNever(resultType)
+  }
 }
 
 // XXX: return string?
@@ -383,16 +415,27 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
 
   if (state.searchString) params.set('q', state.searchString)
 
-  if (state.resultType) params.set('t', state.resultType)
+  if (state.resultType !== DEFAULT_RESULT_TYPE) params.set('t', state.resultType)
 
   if (state.buckets.length) params.set('b', state.buckets.join(','))
 
-  for (const f of state.facets) {
-    params.append('f', serializeFacetDescriptor(f))
-  }
-
   const order = serializeOrder(state.order)
   if (order) params.set('o', order)
+
+  function appendParams(pairs: [string, string][]) {
+    pairs.forEach(([k, v]) => params.append(k, v))
+  }
+
+  switch (state.resultType) {
+    case ResultType.S3Object:
+      appendParams(ObjectsSearchFilterIO.toURLSearchParams(state.filter))
+      break
+    case ResultType.QuiltPackage:
+      appendParams(PackagesSearchFilterIO.toURLSearchParams(state.filter))
+      break
+    default:
+      assertNever(state)
+  }
 
   return params
 }
@@ -416,164 +459,88 @@ function useMakeUrl() {
   )
 }
 
-type FacetPath = Model.Search.FacetPath
-
-export { FacetPath }
-
-// export interface ActiveFacet {
-//   path: Model.Search.FacetPath
-//   name: string
-//   type: $TSFixMe
-//   state: $TSFixMe
-//   // state: FacetState
-//   // query parameters to get extents?
-//   // filter exp? -- compute?
-// }
-
-function useActiveFacets({ facets }: SearchUrlState): KnownFacetDescriptor[] {
-  return facets
-  // return useMemoEq(
-  //   facets,
-  //   R.map(({ path, state }) => {
-  //     const type = 'tbd' // TODO: compute from path and state
-  //     const name = 'tbd'
-  //     return { path, type, state, name }
-  //   }),
-  // )
+function useBaseSearchQuery({ searchString, buckets }: SearchUrlState) {
+  return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, buckets })
 }
 
-function computeFilters(
-  activeFacets: KnownFacetDescriptor[],
-): Model.GQLTypes.SearchFilter[] {
-  return activeFacets
-    .map((facet) => (facet.type.filter as $TSFixMe)(facet.state.value, facet.path))
-    .filter((f): f is Model.GQLTypes.SearchFilter => !!f)
-}
-
-function useFilters(activeFacets: KnownFacetDescriptor[]): Model.GQLTypes.SearchFilter[] {
-  return useMemoEq(activeFacets, computeFilters)
-}
-
-export function useUpstreamFilters(path: FacetPath): Model.GQLTypes.SearchFilter[] {
-  const model = useSearchUIModelContext()
-  const { activeFacets } = model.state
-  const idx = activeFacets.findIndex((f) => R.equals(f.path, path))
-  const upstreamFacets = React.useMemo(
-    () => (idx === -1 ? [] : activeFacets.slice(0, idx)),
-    [activeFacets, idx],
+function useFirstPageObjectsQuery({
+  searchString,
+  buckets,
+  order,
+  resultType,
+  filter,
+}: SearchUrlState) {
+  const gqlFilter = ObjectsSearchFilterIO.toGQL(
+    resultType === ResultType.S3Object ? filter : ObjectsSearchFilterIO.initialState,
   )
-  return useMemoEq(upstreamFacets, computeFilters)
+  const pause = resultType !== ResultType.S3Object
+  return GQL.useQuery(
+    FIRST_PAGE_OBJECTS_QUERY,
+    { searchString, buckets, order, filter: gqlFilter },
+    { pause },
+  )
 }
 
-function useBaseSearchQuery(
-  { searchString, resultType, buckets }: SearchUrlState,
-  filters: Model.GQLTypes.SearchFilter[],
-) {
-  return GQL.useQuery(BASE_SEARCH_QUERY, { searchString, resultType, buckets, filters })
+function useFirstPagePackagesQuery({
+  searchString,
+  buckets,
+  order,
+  resultType,
+  filter,
+}: SearchUrlState) {
+  const gqlFilter = PackagesSearchFilterIO.toGQL(
+    resultType === ResultType.QuiltPackage ? filter : PackagesSearchFilterIO.initialState,
+  )
+  const pause = resultType !== ResultType.QuiltPackage
+  return GQL.useQuery(
+    FIRST_PAGE_PACKAGES_QUERY,
+    { searchString, buckets, order, filter: gqlFilter },
+    { pause },
+  )
 }
 
-type BoundedSearch = Extract<
-  GQL.DataForDoc<typeof FIRST_PAGE_QUERY>['search'],
-  { __typename: 'BoundedSearch' }
->
-
-export type SearchHit = BoundedSearch['results']['firstPage']['hits'][number]
-
-export function searchHitId(hit: SearchHit): string {
-  const id =
-    hit.__typename === 'SearchHitObject' ? [hit.key, hit.version] : [hit.name, hit.hash]
-  return [hit.__typename, hit.bucket, ...id].join('/')
-}
-
-function useFirstPageQuery(
-  { searchString, resultType, buckets, order }: SearchUrlState,
-  filters: Model.GQLTypes.SearchFilter[],
-) {
-  return GQL.useQuery(FIRST_PAGE_QUERY, {
-    searchString,
-    resultType,
-    buckets,
-    filters,
-    order,
+export function useNextPageObjectsQuery(after: string) {
+  const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after })
+  const folded = GQL.fold(result, {
+    data: ({ searchMoreObjects: data }) => addTag('data', { data }),
+    fetching: () => addTag('fetching', {}),
+    error: (error) => addTag('error', { error }),
   })
+  return folded
 }
 
-export function useNextPageQuery(after: string) {
-  return GQL.useQuery(NEXT_PAGE_QUERY, { after })
+export function useNextPagePackagesQuery(after: string) {
+  const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after })
+  const folded = GQL.fold(result, {
+    data: ({ searchMorePackages: data }) => addTag('data', { data }),
+    fetching: () => addTag('fetching', {}),
+    error: (error) => addTag('error', { error }),
+  })
+  return folded
 }
 
-export function useFacetQuery(path: FacetPath) {
-  const model = useSearchUIModelContext()
-  const { searchString, resultType, buckets } = model.state
-  const filters = useUpstreamFilters(path)
-  return GQL.useQuery(FACET_QUERY, { searchString, resultType, buckets, filters, path })
-}
+export type SearhHitObject = Extract<
+  GQL.DataForDoc<typeof FIRST_PAGE_OBJECTS_QUERY>['searchObjects'],
+  { __typename: 'ObjectsSearchResultSet' }
+>['firstPage']['hits'][number]
 
-export type AvailableFacet = KnownFacetDescriptor
-// export interface AvailableFacet {
-//   descriptor: KnownFacetDescriptor
-//   // path: Model.Search.FacetPath
-//   name: string
-//   // type: $TSFixMe
-// }
+export type SearhHitPackage = Extract<
+  GQL.DataForDoc<typeof FIRST_PAGE_PACKAGES_QUERY>['searchPackages'],
+  { __typename: 'PackagesSearchResultSet' }
+>['firstPage']['hits'][number]
 
-// XXX: async?
-function useAvailableFacets(
-  searchQueryResult: ReturnType<typeof useBaseSearchQuery>,
-  activeFacets: KnownFacetDescriptor[],
-) {
-  const [facets, setFacets] = React.useState<AvailableFacet[]>([])
-  const [fetching, setFetching] = React.useState<boolean>(false)
+export type SearchHit = SearhHitObject | SearhHitPackage
 
-  // XXX: we can assume some facets exist regardless of search params / results
-  React.useEffect(() => {
-    GQL.fold(searchQueryResult, {
-      data: ({ search: r }) => {
-        setFetching(false)
-        switch (r.__typename) {
-          case 'BoundedSearch':
-            // TODO: compute
-            // available fields:
-            // - path
-            // - extents
-            // - type -> drop? can be computed from path
-            // - name -> drop? compute in ui?
-            // - source -> drop
-            const newFacets = r.facets
-              .map(initFacet)
-              .filter((f): f is AvailableFacet => !!f)
-            setFacets(ifChanged(newFacets))
-            return
-          default:
-            setFacets(ifChanged<AvailableFacet[]>([]))
-            return
-        }
-      },
-      fetching: () => {
-        setFetching(true)
-      },
-      error: () => {
-        // error to be handled elsewhere
-        setFacets(ifChanged<AvailableFacet[]>([]))
-        setFetching(false)
-      },
-    })
-  }, [searchQueryResult])
-
-  const facetsFiltered = useMemoEq([facets, activeFacets], () =>
-    facets.filter((f) => !activeFacets.some((af) => R.equals(af.path, f.path))),
-  )
-
-  return useMemoEq({ facets: facetsFiltered, fetching }, R.identity)
-}
+export type PackageUserMetaFacet = Extract<
+  GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
+  { __typename: 'PackagesSearchResultSet' }
+>['stats']['userMeta'][number]
 
 function useSearchUIModel() {
   const urlState = useUrlState()
-  const activeFacets = useActiveFacets(urlState)
-  const baseFilters = useFilters(activeFacets)
-  const baseSearchQuery = useBaseSearchQuery(urlState, baseFilters)
-  const firstPageQuery = useFirstPageQuery(urlState, baseFilters)
-  const availableFacets = useAvailableFacets(baseSearchQuery, activeFacets)
+  const baseSearchQuery = useBaseSearchQuery(urlState)
+  const firstPageObjectsQuery = useFirstPageObjectsQuery(urlState)
+  const firstPagePackagesQuery = useFirstPagePackagesQuery(urlState)
 
   const makeUrl = useMakeUrl()
 
@@ -590,6 +557,7 @@ function useSearchUIModel() {
 
   const setSearchString = React.useCallback(
     (searchString: string | null) => {
+      // XXX: reset other params? e.g. filters
       updateUrlState((s) => ({ ...s, searchString }))
     },
     [updateUrlState],
@@ -603,94 +571,221 @@ function useSearchUIModel() {
   )
 
   const setResultType = React.useCallback(
-    (resultType: ResultType | null) => {
-      updateUrlState((s) => ({ ...s, resultType }))
+    (resultType: ResultType) => {
+      updateUrlState((s) => {
+        if (s.resultType === resultType) return s
+        switch (resultType) {
+          case ResultType.QuiltPackage:
+            return {
+              ...s,
+              resultType,
+              filter: PackagesSearchFilterIO.initialState,
+            }
+          case ResultType.S3Object:
+            return {
+              ...s,
+              resultType,
+              filter: ObjectsSearchFilterIO.initialState,
+            }
+          default:
+            return assertNever(resultType)
+        }
+      })
     },
     [updateUrlState],
   )
 
   const setBuckets = React.useCallback(
     (buckets: string[]) => {
+      // XXX: reset filters or smth?
       updateUrlState((s) => ({ ...s, buckets }))
     },
     [updateUrlState],
   )
 
-  const activateFacet = React.useCallback(
-    (path: FacetPath) => {
-      const facet = availableFacets.facets.find((f) => R.equals(f.path, path))
-      // eslint-disable-next-line no-console
-      console.log('activateFacet', path, facet)
-      if (!facet) return
-      updateUrlState(
-        R.evolve({ facets: (facets: KnownFacetDescriptor[]) => [...facets, facet] }),
-      )
-    },
-    [availableFacets.facets, updateUrlState],
-  )
-
-  const deactivateFacet = React.useCallback(
-    (path: FacetPath) => {
-      // eslint-disable-next-line no-console
-      console.log('deactivateFacet', path)
-      // add to active facets
-      updateUrlState(
-        R.evolve({
-          facets: R.reject((f: KnownFacetDescriptor) => R.equals(f.path, path)),
-        }),
-      )
-    },
-    [updateUrlState],
-  )
-
-  const clearFacets = React.useCallback(() => {
-    updateUrlState(
-      R.evolve({
-        searchString: () => '',
-        resultType: () => null,
-        buckets: () => [],
-        facets: () => [],
-        order: () => DEFAULT_ORDER,
+  const activatePackagesFilter = React.useCallback(
+    (key: keyof PackagesSearchFilter) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        return {
+          ...s,
+          filter: {
+            ...s.filter,
+            [key]: PackagesSearchFilterIO.children[key].initialState,
+          },
+        }
       }),
-    )
-  }, [updateUrlState])
+    [updateUrlState],
+  )
 
-  const updateActiveFacet = React.useCallback(
-    (path: FacetPath, updater: (f: KnownFacetDescriptor) => KnownFacetDescriptor) => {
-      updateUrlState(
-        R.evolve({
-          facets: R.map((f: KnownFacetDescriptor) =>
-            R.equals(path, f.path) ? updater(f) : f,
-          ),
-        }),
-      )
+  const activatePackagesMetaFilter = React.useCallback(
+    (path: string, type: PrimitivePredicate['_tag']) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        const userMeta = s.filter.userMeta || UserMetaPredicate.initialState
+        if (path in userMeta.children) return s
+        return {
+          ...s,
+          filter: {
+            ...s.filter,
+            userMeta: {
+              ...userMeta,
+              children: {
+                ...userMeta.children,
+                [path]: Predicates[type].initialState,
+              },
+            },
+          },
+        }
+      }),
+    [updateUrlState],
+  )
+
+  const deactivatePackagesMetaFilter = React.useCallback(
+    (path: string) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        if (!s.filter.userMeta || !(path in s.filter.userMeta.children)) return s
+        const rest = R.dissoc(path, s.filter.userMeta.children)
+        return {
+          ...s,
+          filter: {
+            ...s.filter,
+            userMeta: {
+              ...s.filter.userMeta,
+              children: rest,
+            },
+          },
+        }
+      }),
+    [updateUrlState],
+  )
+
+  const activateObjectsFilter = React.useCallback(
+    (key: keyof ObjectsSearchFilter) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.S3Object, 'wrong result type')
+        return {
+          ...s,
+          filter: {
+            ...s.filter,
+            [key]: ObjectsSearchFilterIO.children[key].initialState,
+          },
+        }
+      }),
+    [updateUrlState],
+  )
+
+  const deactivatePackagesFilter = React.useCallback(
+    (key: keyof PackagesSearchFilter) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        return { ...s, filter: { ...s.filter, [key]: null } }
+      }),
+    [updateUrlState],
+  )
+
+  const deactivateObjectsFilter = React.useCallback(
+    (key: keyof ObjectsSearchFilter) =>
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.S3Object, 'wrong result type')
+        return { ...s, filter: { ...s.filter, [key]: null } }
+      }),
+    [updateUrlState],
+  )
+
+  const setPackagesFilter = React.useCallback(
+    function setPackagesFilterInternal<K extends keyof PackagesSearchFilter>(
+      key: K,
+      state: FilterState<typeof PackagesSearchFilterIO>[K],
+    ) {
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        return { ...s, filter: { ...s.filter, [key]: state } }
+      })
     },
     [updateUrlState],
   )
+
+  const setObjectsFilter = React.useCallback(
+    function setObjectsFilterInternal<K extends keyof ObjectsSearchFilter>(
+      key: K,
+      state: FilterState<typeof ObjectsSearchFilterIO>[K],
+    ) {
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.S3Object, 'wrong result type')
+        return { ...s, filter: { ...s.filter, [key]: state } }
+      })
+    },
+    [updateUrlState],
+  )
+
+  const setPackagesMetaFilter = React.useCallback(
+    function setPackagesMetaFilterInternal(
+      path: string,
+      state: PredicateState<PrimitivePredicate>,
+    ) {
+      updateUrlState((s) => {
+        invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
+        if (!s.filter.userMeta || !(path in s.filter.userMeta.children)) return s
+        return {
+          ...s,
+          filter: {
+            ...s.filter,
+            userMeta: {
+              ...s.filter.userMeta,
+              children: {
+                ...s.filter.userMeta.children,
+                [path]: state,
+              },
+            },
+          },
+        }
+      })
+    },
+    [updateUrlState],
+  )
+
+  // const clearFacets = React.useCallback(() => {
+  //   updateUrlState(
+  //     R.evolve({
+  //       searchString: () => '',
+  //       resultType: () => null,
+  //       buckets: () => [],
+  //       facets: () => [],
+  //       order: () => DEFAULT_ORDER,
+  //     }),
+  //   )
+  // }, [updateUrlState])
+
+  // eslint-disable-next-line no-console
+  // console.log('URL STATE', urlState)
 
   return useMemoEq(
     {
       state: {
-        searchString: urlState.searchString,
-        resultType: urlState.resultType,
-        buckets: urlState.buckets,
-        filters: baseFilters,
-        order: urlState.order,
-        activeFacets,
-        availableFacets,
+        ...urlState,
       },
       actions: {
         setSearchString,
         setOrder,
         setResultType,
         setBuckets,
-        activateFacet,
-        deactivateFacet,
-        updateActiveFacet,
-        clearFacets,
+
+        activateObjectsFilter,
+        deactivateObjectsFilter,
+        setObjectsFilter,
+        activatePackagesFilter,
+        deactivatePackagesFilter,
+        setPackagesFilter,
+        activatePackagesMetaFilter,
+        deactivatePackagesMetaFilter,
+        setPackagesMetaFilter,
+        // clearFacets,
       },
       baseSearchQuery,
-      firstPageQuery,
+      firstPageObjectsQuery,
+      firstPagePackagesQuery,
     },
     R.identity,
   )
