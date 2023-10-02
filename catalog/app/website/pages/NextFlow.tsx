@@ -101,7 +101,7 @@ function NextFlow() {
             stack.&nbsp; Quilt is powered by scalable and secure services like Amazon S3,
             Amazon OpenSearch, and Amazon Athena.
             <M.Box display="flex" flexDirection="column" pt={6}>
-              <M.Button variant="contained" color="primary" onClick={talk}>
+              <M.Button variant="contained" color="primary" onClick={() => talk()}>
                 Book a demo
               </M.Button>
             </M.Box>
@@ -231,7 +231,7 @@ function NextFlow() {
       <M.Box pt={2} />
       <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
-          <M.Button variant="contained" color="primary" onClick={talk}>
+          <M.Button variant="contained" color="primary" onClick={() => talk()}>
             Schedule a demo
           </M.Button>
           <M.Box pt={3} />

@@ -103,7 +103,7 @@ function BioIT() {
               OpenSearch, and Amazon Athena.
             </strong>
             <M.Box display="flex" flexDirection="column" pt={6}>
-              <M.Button variant="contained" color="primary" onClick={talk}>
+              <M.Button variant="contained" color="primary" onClick={() => talk()}>
                 Book a demo
               </M.Button>
             </M.Box>
@@ -233,7 +233,7 @@ function BioIT() {
       <M.Box pt={2} />
       <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
-          <M.Button variant="contained" color="primary" onClick={talk}>
+          <M.Button variant="contained" color="primary" onClick={() => talk()}>
             Schedule a demo
           </M.Button>
           <M.Box pt={3} />

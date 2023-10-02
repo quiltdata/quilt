@@ -3,14 +3,37 @@ import * as React from 'react'
 import cfg from 'constants/config'
 import { useTracker } from 'utils/tracking'
 
-const Ctx = React.createContext()
+interface Calendly {
+  initPopupWidget(options: { url: string }): void
+}
+
+interface CalendlyEvent extends Event {
+  data: {
+    event: string
+  }
+}
+
+declare global {
+  interface Window {
+    Calendly?: Calendly
+    [CALENDLY_PROMISE]: Promise<Calendly>
+  }
+}
+
+interface Extra {
+  src?: string
+}
+
+const Ctx = React.createContext<((extra?: Extra) => void) | null>(null)
 
 const CALENDLY_CSS = 'https://assets.calendly.com/assets/external/widget.css'
 const CALENDLY_JS = 'https://assets.calendly.com/assets/external/widget.js'
 
 const CALENDLY_PROMISE = Symbol('calendly')
 
-function insertEl(tag, attrs) {
+function insertEl(tag: 'link', attrs: Partial<HTMLLinkElement>): void
+function insertEl(tag: 'script', attrs: Partial<HTMLScriptElement>): void
+function insertEl(tag: string, attrs: Partial<HTMLElement>) {
   const el = Object.assign(window.document.createElement(tag), attrs)
   window.document.head.appendChild(el)
 }
@@ -26,7 +49,11 @@ function getCalendlyPromise() {
         src: CALENDLY_JS,
         async: true,
         onload: () => {
-          resolve(window.Calendly)
+          if (window.Calendly) {
+            resolve(window.Calendly)
+          } else {
+            reject('Calendly not found')
+          }
         },
         onerror: reject,
       })
@@ -48,22 +75,22 @@ function useSingletonListener() {
   }, [])
 }
 
-const getCalendlyEvent = (e) =>
+const getCalendlyEvent = (e: CalendlyEvent) =>
   e?.data?.event?.startsWith('calendly.') && e?.data?.event?.substring('calendly.'.length)
 
 function useCalendlyLink() {
-  return React.useCallback((extra) => {
+  return React.useCallback((extra?: Extra) => {
     const src = extra?.src || ''
     switch (src) {
       case 'bioit':
         return 'https://calendly.com/quilt-founders/quilt-at-bio-it-world'
       default:
-        return cfg.calendlyLink
+        return cfg.calendlyLink as string
     }
   }, [])
 }
 
-export function TalkToUsProvider({ children }) {
+export function TalkToUsProvider({ children }: React.PropsWithChildren<{}>) {
   const t = useTracker()
   const getCalendlyLink = useCalendlyLink()
 
@@ -72,16 +99,16 @@ export function TalkToUsProvider({ children }) {
   const listen = useSingletonListener()
 
   const showPopup = React.useCallback(
-    (extra) => {
+    (extra?: Extra) => {
       t.track('WEB', { type: 'meeting', action: 'popup', ...extra })
 
-      const handleCalendlyEvent = (e) => {
+      const handleCalendlyEvent = (e: CalendlyEvent) => {
         if (getCalendlyEvent(e) === 'event_scheduled') {
           t.track('WEB', { type: 'meeting', action: 'scheduled', ...extra })
         }
       }
 
-      if (!getCalendlyLink(extra)) {
+      if (!getCalendlyLink(extra) || !calendlyP) {
         // eslint-disable-next-line no-console
         console.warn('Unable to open Calendly popup: missing Config.calendlyLink', extra)
         return
@@ -100,9 +127,14 @@ export function TalkToUsProvider({ children }) {
   return <Ctx.Provider value={showPopup}>{children}</Ctx.Provider>
 }
 
-export function useTalkToUs(extra) {
-  const ref = React.useRef({
-    bound: (localExtra) => ref.current.show(ref.current.extra || localExtra),
+export function useTalkToUs(extra?: Extra) {
+  const ref: React.MutableRefObject<{
+    extra?: Extra
+    show?: ((extra?: Extra) => void) | null
+    bound: (extra?: Extra) => void
+  }> = React.useRef({
+    bound: (localExtra?: Extra) =>
+      ref.current.show && ref.current.show(ref.current.extra || localExtra),
   })
   ref.current.show = React.useContext(Ctx)
   ref.current.extra = extra

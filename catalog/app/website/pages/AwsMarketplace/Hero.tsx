@@ -78,7 +78,7 @@ export default function Hero({ className }: HeroProps) {
           className={cx(classes.button, classes.buttonOutlined)}
           variant="contained"
           color="primary"
-          onClick={bookDemo}
+          onClick={() => bookDemo()}
         >
           Book a demo
         </M.Button>
