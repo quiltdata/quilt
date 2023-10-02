@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import cfg from 'constants/config'
+import * as Model from 'model'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { mkSearch } from 'utils/NamedRoutes'
@@ -32,9 +33,9 @@ const SIZES = {
   lg: { w: 1024, h: 768 },
 }
 
-const sizeStr = (s) => `w${SIZES[s].w}h${SIZES[s].h}`
+const sizeStr = (s: keyof typeof SIZES) => `w${SIZES[s].w}h${SIZES[s].h}`
 
-const loadImg = async (src) => {
+const loadImg = async (src: string) => {
   const r = await fetch(src)
   if (r.status === 200) return r.blob()
   const text = await r.text()
@@ -69,12 +70,18 @@ const useSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
+type ThumbnailSkeletonProps = {
+  icon?: 'glacier' | 'error'
+  className?: string
+  animate?: boolean
+} & Parameters<typeof Skeleton>[0]
+
 export function ThumbnailSkeleton({
-  icon, // glacier | error
+  icon,
   className,
   animate,
   ...props
-}) {
+}: ThumbnailSkeletonProps) {
   const classes = useSkeletonStyles()
   return (
     <Skeleton
@@ -103,14 +110,22 @@ const useStyles = M.makeStyles({
   },
 })
 
+interface ThumbnailProps extends M.BoxProps {
+  handle: Model.S3.S3ObjectLocation
+  size: 'sm' | 'lg'
+  alt: string
+  skeletonProps: Parameters<typeof Skeleton>[0]
+  className?: string
+}
+
 export default function Thumbnail({
   handle,
-  size = 'sm', // sm | lg
+  size = 'sm',
   alt = '',
   skeletonProps,
   className,
   ...props
-}) {
+}: ThumbnailProps) {
   const sign = AWS.Signer.useS3Signer()
 
   const classes = useStyles()
@@ -147,18 +162,19 @@ export default function Thumbnail({
   return pipeThru(state)(
     AsyncResult.case({
       _: () => <ThumbnailSkeleton {...skeletonProps} {...props} />,
-      Ok: (src) => (
+      Ok: (src: string) => (
         <M.Box
           className={cx(classes.root, className)}
           component="img"
+          // @ts-expect-error
           src={src}
           alt={alt}
           {...props}
         />
       ),
-      Err: (e) => {
+      Err: (e: Error) => {
         let title = 'Error loading image'
-        let icon = 'error'
+        let icon: 'error' | 'glacier' = 'error'
         if (e instanceof HTTPError) {
           if (
             e.json &&
