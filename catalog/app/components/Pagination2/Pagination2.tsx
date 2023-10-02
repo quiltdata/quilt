@@ -15,7 +15,7 @@ const MAX_PAGE_BUTTONS = 8 // fits on 320px-wide screen
 // 100   | 1...4    | [1, 2, 3, 4, 5, 6, <G>, 100]
 // 100   | 5...95   | [1, <G>, N-1, N, N+1, N+2, <G>, 100]
 // 100   | 96...100 | [1, <G>, 95, 96, 97, 98, 99, 100]
-const displayRange = (total, current, max = MAX_PAGE_BUTTONS) => {
+const displayRange = (total: number, current: number, max = MAX_PAGE_BUTTONS) => {
   if (total <= max) return R.range(1, total + 1)
   if (current <= max - 4) {
     return [...R.range(1, max - 1), Gap, total]
@@ -26,8 +26,24 @@ const displayRange = (total, current, max = MAX_PAGE_BUTTONS) => {
   return [1, Gap, ...R.range(current - 1, current + 3), Gap, total]
 }
 
-export const renderPageRange = ({ pages, page, max, renderPage, renderGap }) =>
-  displayRange(pages, page, max).map((p, i) => (p === Gap ? renderGap(i) : renderPage(p)))
+interface RenderPageRangeArgs {
+  pages: number
+  page: number
+  max?: number
+  renderPage: (p: number) => React.ReactNode
+  renderGap: (i: number) => React.ReactNode
+}
+
+export const renderPageRange = ({
+  pages,
+  page,
+  max,
+  renderPage,
+  renderGap,
+}: RenderPageRangeArgs) =>
+  displayRange(pages, page, max).map((p, i) =>
+    p === Gap ? renderGap(i) : renderPage(p as number),
+  )
 
 const useStyles = M.makeStyles((t) => ({
   button: {
@@ -50,6 +66,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface Pagination2Props {
+  page: number
+  pages: number
+  makePageUrl: (p: number) => string
+  onChange: (p: number) => void
+  classes: Partial<ReturnType<typeof useStyles>>
+  buttonGroupProps: M.ButtonGroupProps
+}
+
 export default React.forwardRef(function Pagination2(
   {
     page,
@@ -59,14 +84,13 @@ export default React.forwardRef(function Pagination2(
     classes: customClasses = {},
     buttonGroupProps,
     ...props
-  },
+  }: Pagination2Props,
   ref,
 ) {
   const classes = useStyles()
 
-  const renderGap = (i) => (
+  const renderGap = (i: number) => (
     <M.Button
-      // eslint-disable-next-line react/no-array-index-key
       key={`gap:${i}`}
       className={cx(classes.button, classes.gap, customClasses.button, customClasses.gap)}
       component="span"
@@ -75,10 +99,12 @@ export default React.forwardRef(function Pagination2(
     </M.Button>
   )
 
-  const renderPage = (p) => {
-    const ps = {}
+  const renderPage = (p: number) => {
+    const ps: M.ButtonProps<Link> | M.ButtonProps = {}
     if (makePageUrl) {
+      // @ts-expect-error
       ps.component = Link
+      // @ts-expect-error
       ps.to = makePageUrl(p)
     }
     if (onChange) {
