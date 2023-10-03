@@ -1,3 +1,4 @@
+export { default as Activator } from './Activator'
 export { default as Checkbox } from './Checkbox'
 export { default as Chips, ChipsSkeleton } from './Chips'
 export { default as Container } from './Container'
