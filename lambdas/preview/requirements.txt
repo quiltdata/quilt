@@ -44,7 +44,7 @@ tinycss2==1.2.1
 tornado==6.2
 traitlets==5.3.0
 typing_extensions==4.5.0
-urllib3==1.26.5
+urllib3==1.26.17
 webencodings==0.5.1
 xlrd==2.0.1
 zipp==3.15.0
