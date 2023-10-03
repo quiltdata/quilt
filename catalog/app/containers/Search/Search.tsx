@@ -225,15 +225,16 @@ function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
   const activate = React.useCallback(() => {
     activatePackagesFilter(field)
   }, [activatePackagesFilter, field])
-  return <button onClick={activate}>{packageFilterLabels[field]}</button>
+  return <FiltersUI.Activator title={packageFilterLabels[field]} onClick={activate} />
 }
 
 interface PackagesFilterProps {
+  className: string
   // field: Omit<keyof SearchUIModel.PackagesSearchFilter, 'workflow' | 'userMeta'>
   field: 'modified' | 'size' | 'name' | 'hash' | 'entries' | 'comment'
 }
 
-function PackagesFilter({ field }: PackagesFilterProps) {
+function PackagesFilter({ className, field }: PackagesFilterProps) {
   const model = SearchUIModel.use()
   invariant(
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
@@ -281,6 +282,7 @@ function PackagesFilter({ field }: PackagesFilterProps) {
 
   return (
     <FiltersUI.Container
+      className={className}
       defaultExpanded
       onDeactivate={deactivate}
       title={packageFilterLabels[field]}
@@ -323,7 +325,7 @@ function PackagesMetaFilterActivator({ facet }: PackagesMetaFilterActivatorProps
     // XXX: accept the whole facet object?
     activatePackagesMetaFilter(facet.path, type)
   }, [activatePackagesMetaFilter, facet.path, type])
-  return <button onClick={activate}>{getFacetLabel(facet)}</button>
+  return <FiltersUI.Activator title={getFacetLabel(facet)} onClick={activate} />
 }
 
 function getPackageUserMetaFacetExtents(
@@ -432,9 +434,13 @@ function PackagesMetaFilters() {
         )
         return <PackagesMetaFilter key={path} path={path} facet={facet} />
       })}
-      {available.map((f) => (
-        <PackagesMetaFilterActivator key={`${f.path}:${f.__typename}`} facet={f} />
-      ))}
+      {available.length && (
+        <M.List dense>
+          {available.map((f) => (
+            <PackagesMetaFilterActivator key={`${f.path}:${f.__typename}`} facet={f} />
+          ))}
+        </M.List>
+      )}
     </>
   )
 }
@@ -445,8 +451,27 @@ const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] 
 
 const packagesFilters = [...packagesFiltersPrimary, ...packagesFiltersSecondary] as const
 
-function PackageFilters() {
+const usePackageFiltersStyles = M.makeStyles((t) => ({
+  title: {
+    marginBottom: t.spacing(1),
+    '& ~ &': {
+      marginTop: t.spacing(2),
+    },
+  },
+  filter: {
+    '& + &': {
+      marginTop: t.spacing(1),
+    },
+  },
+}))
+
+interface PackageFiltersProps {
+  className: string
+}
+
+function PackageFilters({ className }: PackageFiltersProps) {
   const model = SearchUIModel.use()
+  const classes = usePackageFiltersStyles()
 
   invariant(
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
@@ -462,28 +487,45 @@ function PackageFilters() {
   const availableFilters = packagesFiltersPrimary.filter((f) => !filter[f])
   const moreFilters = packagesFiltersSecondary.filter((f) => !filter[f])
 
+  const [expanded, setExpanded] = React.useState(false)
+
   return (
-    <div>
-      <h4>Filter by</h4>
+    <div className={className}>
+      <M.Typography variant="h6" className={classes.title}>
+        Filter by
+      </M.Typography>
 
       {activeFilters.map((f) => (
-        <PackagesFilter key={f} field={f} />
+        <PackagesFilter className={classes.filter} key={f} field={f} />
       ))}
 
-      {availableFilters.map((f) => (
-        <PackagesFilterActivator key={f} field={f} />
-      ))}
-
-      {!!moreFilters.length && (
-        <div>
-          <div>more dropdown:</div>
-          {moreFilters.map((f) => (
+      {!!availableFilters.length && (
+        <M.List dense>
+          {availableFilters.map((f) => (
             <PackagesFilterActivator key={f} field={f} />
           ))}
-        </div>
+        </M.List>
       )}
 
-      <h4>Metadata</h4>
+      {!!moreFilters.length &&
+        (expanded ? (
+          <M.List dense>
+            {moreFilters.map((f) => (
+              <PackagesFilterActivator key={f} field={f} />
+            ))}
+          </M.List>
+        ) : (
+          <M.Button
+            endIcon={<M.Icon>expand_more</M.Icon>}
+            onClick={() => setExpanded(true)}
+          >
+            More filters
+          </M.Button>
+        ))}
+
+      <M.Typography variant="h6" className={classes.title}>
+        Metadata
+      </M.Typography>
 
       <PackagesMetaFilters />
     </div>
@@ -583,7 +625,11 @@ const objectsFiltersSecondary = ['size', 'key', 'content', 'deleted'] as const
 
 const objectsFilters = [...objectsFiltersPrimary, ...objectsFiltersSecondary] as const
 
-function ObjectFilters() {
+interface ObjectFiltersProps {
+  className: string
+}
+
+function ObjectFilters({ className }: ObjectFiltersProps) {
   const model = SearchUIModel.use()
 
   invariant(
@@ -600,9 +646,13 @@ function ObjectFilters() {
   const availableFilters = objectsFiltersPrimary.filter((f) => !filter[f])
   const moreFilters = objectsFiltersSecondary.filter((f) => !filter[f])
 
+  const [expanded, setExpanded] = React.useState(false)
+
   return (
-    <div>
-      <h4>Filter by</h4>
+    <div className={className}>
+      <M.Typography variant="h6" gutterBottom>
+        Filter by
+      </M.Typography>
 
       {activeFilters.map((f) => (
         <ObjectsFilter key={f} field={f} />
@@ -612,14 +662,21 @@ function ObjectFilters() {
         <ObjectsFilterActivator key={f} field={f} />
       ))}
 
-      {!!moreFilters.length && (
-        <div>
-          <div>more dropdown:</div>
-          {moreFilters.map((f) => (
-            <ObjectsFilterActivator key={f} field={f} />
-          ))}
-        </div>
-      )}
+      {!!moreFilters.length &&
+        (expanded ? (
+          <M.Button
+            endIcon={<M.Icon>expand_more</M.Icon>}
+            onClick={() => setExpanded(true)}
+          >
+            More filters
+          </M.Button>
+        ) : (
+          <M.List dense>
+            {moreFilters.map((f) => (
+              <ObjectsFilterActivator key={f} field={f} />
+            ))}
+          </M.List>
+        ))}
     </div>
   )
 }
@@ -631,9 +688,8 @@ const useFiltersStyles = M.makeStyles((t) => ({
     gridRowGap: t.spacing(1),
     gridTemplateRows: 'auto',
   },
-  available: {
+  variable: {
     marginTop: t.spacing(2),
-    overflow: 'hidden',
   },
 }))
 
@@ -645,9 +701,9 @@ function Filters() {
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
-        <PackageFilters />
+        <PackageFilters className={classes.variable} />
       ) : (
-        <ObjectFilters />
+        <ObjectFilters className={classes.variable} />
       )}
     </div>
   )
