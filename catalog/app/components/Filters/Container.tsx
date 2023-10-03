@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -5,20 +6,19 @@ import { fade } from '@material-ui/core/styles'
 import Skeleton from 'components/Skeleton'
 
 const useStyles = M.makeStyles((t) => ({
-  close: {
-    margin: t.spacing(1, -0.5, 0, 0),
-  },
+  root: {},
+  close: {},
   content: {
     display: 'flex',
     flexDirection: 'column',
-    padding: t.spacing(0, 2, 2),
+    padding: t.spacing(0, 0, 2),
     position: 'relative',
-    '&:last-child': {
-      paddingBottom: t.spacing(2),
-    },
   },
   header: {
-    padding: t.spacing(1, 2),
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: t.spacing(0, 0, 1),
+    fontWeight: 600,
   },
   lock: {
     alignItems: 'center',
@@ -61,20 +61,16 @@ export default function Container({
 }: ContainerProps) {
   const classes = useStyles()
   return (
-    <M.Card className={className}>
-      <M.CardHeader
-        className={classes.header}
-        action={
-          onDeactivate && (
-            <M.IconButton size="small" className={classes.close} onClick={onDeactivate}>
-              <M.Icon fontSize="inherit">clear</M.Icon>
-            </M.IconButton>
-          )
-        }
-        title={title}
-        titleTypographyProps={{ variant: 'body1' }}
-      />
-      <M.CardContent className={classes.content}>
+    <div className={cx(classes.root, className)}>
+      <div className={classes.header}>
+        <M.Typography variant="body2">{title}</M.Typography>
+        {onDeactivate && (
+          <M.IconButton size="small" className={classes.close} onClick={onDeactivate}>
+            <M.Icon fontSize="inherit">clear</M.Icon>
+          </M.IconButton>
+        )}
+      </div>
+      <div className={classes.content}>
         {children ? (
           <>
             {children}
@@ -87,7 +83,7 @@ export default function Container({
         ) : (
           <Skeleton height={32} />
         )}
-      </M.CardContent>
-    </M.Card>
+      </div>
+    </div>
   )
 }

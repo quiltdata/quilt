@@ -13,9 +13,11 @@ interface TextFieldProps
 export default function TextField({ value, onChange, ...props }: TextFieldProps) {
   return (
     <M.TextField
-      {...props}
-      value={value}
       onChange={(event) => onChange(event.target.value)}
+      size="small"
+      value={value}
+      variant="outlined"
+      {...props}
     />
   )
 }

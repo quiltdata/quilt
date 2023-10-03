@@ -10,13 +10,14 @@ export default function Buckets() {
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   const extents = React.useMemo(() => bucketConfigs.map((b) => b.name), [bucketConfigs])
   return (
-    <Filters.Container defaultExpanded title="In buckets">
-      <Filters.Enum
-        extents={extents}
-        onChange={model.actions.setBuckets}
-        placeholder="Select buckets"
-        value={model.state.buckets}
-      />
-    </Filters.Container>
+    <Filters.Enum
+      extents={extents}
+      label="In buckets"
+      onChange={model.actions.setBuckets}
+      placeholder="Select buckets"
+      size="small"
+      value={model.state.buckets}
+      variant="outlined"
+    />
   )
 }

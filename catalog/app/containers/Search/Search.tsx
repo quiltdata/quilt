@@ -435,7 +435,7 @@ function PackagesMetaFilters() {
         return <PackagesMetaFilter key={path} path={path} facet={facet} />
       })}
       {available.length && (
-        <M.List dense>
+        <M.List dense disablePadding>
           {available.map((f) => (
             <PackagesMetaFilterActivator key={`${f.path}:${f.__typename}`} facet={f} />
           ))}
@@ -460,7 +460,10 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
   },
   filter: {
     '& + &': {
+      borderTop: `1px solid ${t.palette.divider}`,
+      boxShadow: `0 -1px 0 ${t.palette.background.paper}`,
       marginTop: t.spacing(1),
+      paddingTop: t.spacing(1),
     },
   },
 }))
@@ -500,7 +503,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
       ))}
 
       {!!availableFilters.length && (
-        <M.List dense>
+        <M.List dense disablePadding>
           {availableFilters.map((f) => (
             <PackagesFilterActivator key={f} field={f} />
           ))}
@@ -509,7 +512,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
 
       {!!moreFilters.length &&
         (expanded ? (
-          <M.List dense>
+          <M.List dense disablePadding>
             {moreFilters.map((f) => (
               <PackagesFilterActivator key={f} field={f} />
             ))}
@@ -518,6 +521,8 @@ function PackageFilters({ className }: PackageFiltersProps) {
           <M.Button
             endIcon={<M.Icon>expand_more</M.Icon>}
             onClick={() => setExpanded(true)}
+            variant="outlined"
+            size="small"
           >
             More filters
           </M.Button>
@@ -671,7 +676,7 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
             More filters
           </M.Button>
         ) : (
-          <M.List dense>
+          <M.List dense disablePadding>
             {moreFilters.map((f) => (
               <ObjectsFilterActivator key={f} field={f} />
             ))}

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
 import * as Filters from 'components/Filters'
 
@@ -16,13 +17,15 @@ const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]
 export default function ResultType() {
   const model = SearchUIModel.use()
   return (
-    <Filters.Container defaultExpanded title="Search for">
+    <M.FormControl variant="outlined" size="small">
+      <M.InputLabel>Search for</M.InputLabel>
       <Filters.Select
         extents={VALUES}
         getOptionLabel={getLabel}
+        labelWidth={100}
         onChange={model.actions.setResultType}
         value={model.state.resultType}
       />
-    </Filters.Container>
+    </M.FormControl>
   )
 }

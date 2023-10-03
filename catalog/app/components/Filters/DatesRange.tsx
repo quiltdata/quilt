@@ -42,6 +42,7 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
         value={dateToYmd(min)}
         onChange={handleFrom}
         size="small"
+        variant="outlined"
       />
       <M.TextField
         type="date"
@@ -49,6 +50,7 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
         value={dateToYmd(max)}
         onChange={handleTo}
         size="small"
+        variant="outlined"
       />
     </div>
   )

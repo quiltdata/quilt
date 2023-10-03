@@ -13,7 +13,9 @@ const valueLabelFormat = (number: number) =>
   })
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
+  slider: {
+    padding: t.spacing(0, 1),
+  },
   inputs: {
     display: 'grid',
     gridTemplateColumns: `calc(50% - ${t.spacing(4) / 2}px) calc(50% - ${
@@ -83,6 +85,7 @@ export default function NumbersRange({
   )
   const inputProps = React.useMemo(
     () => ({
+      variant: 'outlined' as const,
       size: 'small' as const,
       InputProps: {
         endAdornment: unit && <M.InputAdornment position="end">{unit}</M.InputAdornment>,
@@ -93,14 +96,16 @@ export default function NumbersRange({
   const sliderValue = React.useMemo(() => [min, max], [min, max])
   return (
     <div>
-      <M.Slider
-        max={extents.max}
-        min={extents.min}
-        onChange={handleSlider}
-        value={sliderValue}
-        valueLabelFormat={valueLabelFormat}
-        valueLabelDisplay="auto"
-      />
+      <div className={classes.slider}>
+        <M.Slider
+          max={extents.max}
+          min={extents.min}
+          onChange={handleSlider}
+          value={sliderValue}
+          valueLabelFormat={valueLabelFormat}
+          valueLabelDisplay="auto"
+        />
+      </div>
       <div className={classes.inputs}>
         <M.TextField label="From" value={min} onChange={handleFrom} {...inputProps} />
         <M.TextField label="To" value={max} onChange={handleTo} {...inputProps} />
