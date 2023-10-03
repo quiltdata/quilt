@@ -55,6 +55,60 @@ following to buckets in your *DataAccount*.
     ]
 }
 ```
+## Notifications
+
+To add a cross-account bucket to Quilt that already has object notifications enabled, add the following statement to the SNS topic access policy.
+
+```json
+{
+      "Sid": "AWSConfigSNSPolicy",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::CONTROL-ACCOUNT:root"
+      },
+      "Action": [
+        "sns:GetTopicAttributes",
+        "sns:Subscribe"
+      ],
+      "Resource": "SNS_TOPIC_ARN"
+}
+```
+
+The complete access policy will then look like this example:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowBucketToPushNotificationEffect",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "s3.amazonaws.com"
+      },
+      "Action": "sns:Publish",
+      "Resource": "*",
+      "Condition": {
+        "ArnLike": {
+          "aws:SourceArn": "arn:aws:s3:*:*:bucket-in-data-account"
+        }
+      }
+    },
+    {
+      "Sid": "AWSConfigSNSPolicy",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::CONTROL_ACCOUNT:root"
+      },
+      "Action": 
+        "sns:GetTopicAttributes",
+        "sns:Subscribe"
+      ],
+      "Resource": SNS_TOPIC_ARN
+    }
+  ]
+}
+```
+Once the access policy has been updated, add the bucket in your Quilt stack. Specify the SNS Topic ARN in the "Indexing and Metadata" parameters.
 
 ## CloudTrail
 
