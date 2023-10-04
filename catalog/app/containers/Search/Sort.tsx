@@ -36,11 +36,19 @@ const useButtonStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useStyles = M.makeStyles((t) => ({
+  caption: {
+    fontWeight: 500,
+    marginRight: t.spacing(1),
+  },
+}))
+
 interface SortProps {
   className: string
 }
 
 export default function Sort({ className }: SortProps) {
+  const classes = useStyles()
   const buttonClasses = useButtonStyles()
   const model = SearchUIModel.use()
   const { setOrder } = model.actions
@@ -71,6 +79,8 @@ export default function Sort({ className }: SortProps) {
       value={value}
       onChange={handleChange}
       ButtonProps={ButtonProps}
-    />
+    >
+      <span className={classes.caption}>Sort by:</span>
+    </SelectDropdown>
   )
 }
