@@ -1,0 +1,39 @@
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: PackagesSearchFilter
+  $order: SearchResultOrder
+) {
+  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        total
+      }
+      firstPage(order: $order) {
+        cursor
+        hits {
+          __typename
+          id
+          bucket
+          score
+          size
+          modified
+          name
+          hash
+          comment
+          meta
+          workflow
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}
