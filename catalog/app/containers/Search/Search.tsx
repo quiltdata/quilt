@@ -19,18 +19,25 @@ import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
+const useMoreButtonStyles = M.makeStyles((t) => ({
+  icon: {
+    marginRight: t.spacing(1),
+  },
+}))
+
 interface MoreButtonProps {
   onClick: () => void
   className?: string
 }
+
 function MoreButton({ className, onClick }: MoreButtonProps) {
+  const classes = useMoreButtonStyles()
   return (
     <M.Button
       className={className}
-      endIcon={<M.Icon>expand_more</M.Icon>}
+      startIcon={<M.Icon className={classes.icon}>expand_more</M.Icon>}
       onClick={onClick}
       size="small"
-      variant="outlined"
     >
       More filters
     </M.Button>
@@ -540,7 +547,7 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(3),
   },
   more: {
-    marginTop: t.spacing(1),
+    marginTop: t.spacing(0.5),
   },
   title: {
     ...t.typography.h6,
@@ -720,7 +727,7 @@ const useObjectFiltersStyles = M.makeStyles((t) => ({
     },
   },
   more: {
-    marginTop: t.spacing(1),
+    marginTop: t.spacing(0.5),
   },
   title: {
     ...t.typography.h6,
