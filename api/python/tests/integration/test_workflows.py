@@ -1,17 +1,22 @@
+import functools
 import textwrap
+from unittest import mock
 
 import pytest
 from tests.utils import QuiltTestCase
 
-from quilt3 import workflows
+from quilt3 import Package, workflows
 from quilt3.backends import get_package_registry
 from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
-def get_v1_conf_data(conf_data):
+def get_conf_data(conf_data, *, version: str):
     conf_data = textwrap.dedent(conf_data)
-    return f'version: "1"\n{conf_data}'
+    return f'version: "{version}"\n{conf_data}'
+
+
+get_v1_conf_data = functools.partial(get_conf_data, version="1")
 
 
 def set_local_conf_data(conf_data):
@@ -25,10 +30,12 @@ def create_local_tmp_schema(data):
 
 
 class WorkflowTest(QuiltTestCase):
-    def _validate(self, registry=None, workflow=..., meta=None, message=None):
+    def _validate(self, registry=None, workflow=..., name='test/name', meta=None, message=None):
         registry = get_package_registry(registry)
         meta = meta or {}
-        return workflows.validate(registry=registry, workflow=workflow, meta=meta, message=message)
+        pkg = Package()
+        pkg.set_meta(meta)
+        return workflows.validate(registry=registry, workflow=workflow, name=name, pkg=pkg, message=message)
 
     def s3_mock_config(self, data, pkg_registry):
         self.s3_stubber.add_response(
@@ -202,6 +209,20 @@ class WorkflowTest(QuiltTestCase):
                 url: %s
         ''' % tmp_schema))
         with pytest.raises(QuiltException, match=fr"Couldn't parse {tmp_schema} as JSON."):
+            self._validate(workflow='w1')
+
+    def test_schema_invalid_schema(self):
+        tmp_schema = create_local_tmp_schema('""')
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % tmp_schema))
+        with pytest.raises(QuiltException, match=r"Schema 'schema-id' is not valid:"):
             self._validate(workflow='w1')
 
     def test_schema_load_error(self):
@@ -434,3 +455,63 @@ class WorkflowTest(QuiltTestCase):
             'id': 'w1',
             'config': str(get_package_registry().workflow_conf_pk),
         }
+
+    @mock.patch.object(workflows.WorkflowConfig, 'CONFIG_DATA_VERSION', workflows.ConfigDataVersion(1, 1, 0))
+    def test_unsupported_version(self):
+        set_local_conf_data(get_conf_data('''
+            workflows:
+              w1:
+                name: Name
+        ''', version='2'))
+
+        with pytest.raises(workflows.UnsupportedConfigurationVersionError, match=r"Version '2.0.0' is not supported"):
+            self._validate(workflow='w1')
+
+    @mock.patch('quilt3.workflows.WorkflowConfig.load_schema')
+    def test_multiple_schema_usages(self, load_schema_mock):
+        load_schema_mock.return_value = b'true', get_package_registry().root.join('schemas/schema')
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+                entries_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % create_local_tmp_schema('true')))
+
+        assert self._validate(workflow='w1', meta="some-data") == {
+            'id': 'w1',
+            'config': str(get_package_registry().workflow_conf_pk),
+            'schemas': {
+                'schema-id': str(get_package_registry().root.join('schemas/schema')),
+            },
+        }
+        load_schema_mock.assert_called_once_with(get_package_registry().root.join('schemas/schema'))
+
+    @mock.patch('quilt3.workflows.WorkflowConfig.load_schema')
+    def test_multiple_schema_pk_usages(self, load_schema_mock):
+        load_schema_mock.return_value = b'true', get_package_registry().root.join('schemas/schema')
+        set_local_conf_data(get_v1_conf_data('''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id1
+                    entries_schema: schema-id2
+                schemas:
+                  schema-id1:
+                    url: %s
+                  schema-id2:
+                    url: %s
+            ''' % ((create_local_tmp_schema('true'),) * 2)))
+
+        assert self._validate(workflow='w1', meta="some-data") == {
+            'id': 'w1',
+            'config': str(get_package_registry().workflow_conf_pk),
+            'schemas': {
+                'schema-id1': str(get_package_registry().root.join('schemas/schema')),
+                'schema-id2': str(get_package_registry().root.join('schemas/schema')),
+            },
+        }
+        load_schema_mock.assert_called_once_with(get_package_registry().root.join('schemas/schema'))

@@ -1,12 +1,14 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  extends: [
-    'airbnb-typescript',
-    'prettier',
-    'prettier/react',
-    'prettier/@typescript-eslint',
+  extends: ['airbnb-typescript', 'prettier'],
+  plugins: [
+    '@typescript-eslint',
+    'redux-saga',
+    'react',
+    'react-hooks',
+    'jsx-a11y',
+    'import',
   ],
-  plugins: ['@typescript-eslint', 'redux-saga', 'react', 'react-hooks', 'jsx-a11y'],
   env: {
     jest: true,
     browser: true,
@@ -22,10 +24,16 @@ module.exports = {
     '@typescript-eslint/no-throw-literal': 0,
     'arrow-body-style': [2, 'as-needed'],
     'class-methods-use-this': 0,
+    'import/newline-after-import': 2,
+    'import/no-duplicates': 2,
     'import/no-extraneous-dependencies': 0,
     'import/no-named-as-default': 0,
     'import/no-unresolved': 2,
     'import/no-webpack-loader-syntax': 0,
+    'import/order': [
+      2,
+      { groups: ['builtin', 'external', 'internal', 'parent', 'sibling'] },
+    ],
     'import/prefer-default-export': 0,
     'jsx-a11y/aria-props': 2,
     'jsx-a11y/label-has-associated-control': [
@@ -43,7 +51,7 @@ module.exports = {
     'max-classes-per-file': 0,
     'no-console': 2,
     'no-nested-ternary': 1,
-    'no-underscore-dangle': [2, { allow: ['_', '__'] }],
+    'no-underscore-dangle': [2, { allow: ['_', '__', '__typename'] }],
     'prefer-arrow-callback': [2, { allowNamedFunctions: true }],
     'prefer-template': 2,
     'react-hooks/exhaustive-deps': 2,
@@ -52,6 +60,7 @@ module.exports = {
     // TODO: rm after migrating to ts
     'react/jsx-filename-extension': 0,
     'react/jsx-first-prop-new-line': [2, 'multiline'],
+    'react/jsx-key': 2,
     'react/jsx-props-no-spreading': 0,
     'react/jsx-uses-vars': 2,
     // TODO: rm after migrating to ts
@@ -68,5 +77,16 @@ module.exports = {
         config: './internals/webpack/webpack.prod.js',
       },
     },
+    react: {
+      version: 'detect',
+    },
   },
+  overrides: [
+    {
+      files: ['*.js'],
+      rules: {
+        'no-undef': 2,
+      },
+    },
+  ],
 }

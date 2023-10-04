@@ -1,4 +1,5 @@
 #!/bin/bash
+set -exo pipefail
 
 if [ -z "$REGISTRY_HOST" ]
 then
@@ -10,6 +11,12 @@ if [ -z "$INTERNAL_REGISTRY_URL" ]
 then
     echo "INTERNAL_REGISTRY_URL not set"
     exit 1
+fi
+
+cp /etc/ssl/cert.pem /etc/nginx/certs.pem
+if [ $CERTIFICATE_ARN ]
+then
+    aws --region $(echo $CERTIFICATE_ARN | cut -d ":" -f 4) acm get-certificate --certificate-arn $CERTIFICATE_ARN --output text --query "join('', [Certificate, CertificateChain])" >> /etc/nginx/certs.pem
 fi
 
 INTERNAL_REGISTRY_URL=${INTERNAL_REGISTRY_URL%%/} # Remove a trailing slash.

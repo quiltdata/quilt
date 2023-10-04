@@ -1,0 +1,9 @@
+query ($bucket: String!, $name: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    revisions {
+      total
+    }
+  }
+}

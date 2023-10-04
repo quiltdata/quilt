@@ -1,0 +1,7 @@
+# import PolicyResultSelection from "./PolicyResultSelection.graphql"
+
+mutation ($id: ID!, $input: ManagedPolicyInput!) {
+  policyUpdate: policyUpdateManaged(id: $id, input: $input) {
+    ...PolicyResultSelection
+  }
+}

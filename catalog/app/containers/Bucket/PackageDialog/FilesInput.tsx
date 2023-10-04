@@ -1,51 +1,68 @@
 import cx from 'classnames'
+import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
+import * as Lab from '@material-ui/lab'
 
+import * as urls from 'constants/urls'
+import type * as Model from 'model'
+import StyledLink from 'utils/StyledLink'
+import assertNever from 'utils/assertNever'
+import dissocBy from 'utils/dissocBy'
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
+import * as Types from 'utils/types'
 
+import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
+import * as S3FilePicker from './S3FilePicker'
 
 const COLORS = {
   default: M.colors.grey[900],
   added: M.colors.green[900],
   modified: M.darken(M.colors.yellow[900], 0.2),
   deleted: M.colors.red[900],
+  invalid: M.colors.red[400],
 }
 
 interface FileWithHash extends File {
   hash: {
-    value: string | undefined
     ready: boolean
-    promise: Promise<string>
+    value?: string
+    error?: Error
+    promise: Promise<string | undefined>
   }
+  meta?: Types.JsonRecord
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
 
-// XXX: it might make sense to limit concurrency, tho the tests show that perf os ok, since hashing is async anyways
-function computeHash<F extends File>(f: F) {
+const hashLimit = pLimit(2)
+
+export function computeHash(f: File) {
   if (hasHash(f)) return f
-  const promise = PD.hashFile(f)
-  const fh = f as F & FileWithHash
-  fh.hash = { value: undefined, ready: false, promise }
-  promise
+  const hashP = hashLimit(PD.hashFile, f)
+  const fh = f as FileWithHash
+  fh.hash = { ready: false } as any
+  fh.hash.promise = hashP
     .catch((e) => {
       // eslint-disable-next-line no-console
-      console.log('Error hashing file:')
+      console.log(`Error hashing file "${fh.name}":`)
       // eslint-disable-next-line no-console
       console.error(e)
+      fh.hash.error = e
+      fh.hash.ready = true
       return undefined
     })
     .then((hash) => {
       fh.hash.value = hash
       fh.hash.ready = true
+      return hash
     })
   return fh
 }
@@ -53,12 +70,11 @@ function computeHash<F extends File>(f: F) {
 export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
-    Add: (v: { files: FileWithPath[]; prefix?: string }) => ({
-      ...v,
-      files: v.files.map(computeHash),
-    }),
+    Add: (v: { files: FileWithHash[]; prefix?: string }) => v,
+    AddFromS3: (filesMap: Record<string, Model.S3File>) => filesMap,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
+    Meta: (v: { path: string; meta?: Model.EntryMeta }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -68,84 +84,117 @@ export const FilesAction = tagged.create(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
-// XXX: this looks more like a manifest entry, so we probably should move this out to a more appropriate place
-export interface ExistingFile {
-  hash: string
-  meta: {}
-  physicalKey: string
-  size: number
-}
+export type LocalFile = FileWithPath & FileWithHash
 
 export interface FilesState {
-  added: Record<string, FileWithPath & FileWithHash>
+  added: Record<string, LocalFile | Model.S3File>
   deleted: Record<string, true>
-  existing: Record<string, ExistingFile>
+  existing: Record<string, Model.PackageEntry>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
 }
 
-interface FilesStateTransformer {
-  (state: FilesState): FilesState
+const addMetaToFile = (
+  file: Model.PackageEntry | LocalFile | Model.S3File,
+  meta?: Model.EntryMeta,
+) => {
+  if (file instanceof window.File) {
+    const fileCopy = new window.File([file as File], (file as File).name, {
+      type: (file as File).type,
+    })
+    Object.defineProperty(fileCopy, 'meta', {
+      value: meta,
+    })
+    Object.defineProperty(fileCopy, 'hash', {
+      value: (file as FileWithHash).hash,
+    })
+    return fileCopy
+  }
+  return R.assoc('meta', meta, file)
 }
 
-const dissocBy = (fn: (key: string) => boolean) =>
-  R.pipe(
-    // @ts-expect-error
-    R.toPairs,
-    R.filter(([k]) => !fn(k)),
-    R.fromPairs,
-  ) as { <T>(obj: Record<string, T>): Record<string, T> }
-
 const handleFilesAction = FilesAction.match<
-  FilesStateTransformer,
+  (state: FilesState) => FilesState,
   [{ initial: FilesState }]
 >({
-  Add: ({ files, prefix }) => (state) =>
-    files.reduce((acc, file) => {
-      const path = (prefix || '') + PD.getNormalizedPath(file)
-      return R.evolve(
-        {
-          added: R.assoc(path, file),
-          deleted: R.dissoc(path),
-        },
-        acc,
-      ) as FilesState
-    }, state),
+  Add:
+    ({ files, prefix }) =>
+    (state) =>
+      files.reduce((acc, file) => {
+        const path = (prefix || '') + PD.getNormalizedPath(file)
+        return R.evolve(
+          {
+            added: R.assoc(path, file),
+            deleted: R.dissoc(path),
+          },
+          acc,
+        )
+      }, state),
+  AddFromS3: (filesMap) =>
+    R.evolve({
+      added: R.mergeLeft(filesMap),
+      deleted: R.omit(Object.keys(filesMap)),
+    }),
   Delete: (path) =>
     R.evolve({
       added: R.dissoc(path),
-      deleted: R.assoc(path, true),
-    }) as FilesStateTransformer,
+      deleted: R.assoc(path, true as const),
+    }),
   // add all descendants from existing to deleted
-  DeleteDir: (prefix) => ({ existing, added, deleted, ...rest }) => ({
-    existing,
-    added: dissocBy(R.startsWith(prefix))(added),
-    deleted: R.mergeLeft(
-      Object.keys(existing).reduce(
-        (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
-        {},
+  DeleteDir:
+    (prefix) =>
+    ({ existing, added, deleted, ...rest }) => ({
+      existing,
+      added: dissocBy(R.startsWith(prefix))(added),
+      deleted: R.mergeLeft(
+        Object.keys(existing).reduce(
+          (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
+          {},
+        ),
+        deleted,
       ),
-      deleted,
-    ),
-    ...rest,
-  }),
-  Revert: (path) =>
-    R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }) as FilesStateTransformer,
+      ...rest,
+    }),
+  Meta: ({ path, meta }) => {
+    const mkSetMeta =
+      <T extends Model.PackageEntry | LocalFile | Model.S3File>() =>
+      (filesDict: Record<string, T>) => {
+        const file = filesDict[path]
+        if (!file) return filesDict
+        return R.assoc(path, addMetaToFile(file, meta), filesDict)
+      }
+    return R.evolve({
+      added: mkSetMeta<LocalFile | Model.S3File>(),
+      existing: mkSetMeta<Model.PackageEntry>(),
+    })
+  },
+  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
     R.evolve({
       added: dissocBy(R.startsWith(prefix)),
       deleted: dissocBy(R.startsWith(prefix)),
-    }) as FilesStateTransformer,
-  Reset: (_, { initial }) => () => initial,
+    }),
+  Reset:
+    (_, { initial }) =>
+    () =>
+      initial,
 })
 
 interface DispatchFilesAction {
   (action: FilesAction): void
 }
 
-type FilesEntryState = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
+type FilesEntryState =
+  | 'deleted'
+  | 'modified'
+  | 'unchanged'
+  | 'hashing'
+  | 'added'
+  | 'invalid'
+
+type FilesEntryType = 's3' | 'local'
 
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
 
@@ -155,7 +204,13 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     childEntries: tagged.Instance<typeof FilesEntryTag>[]
   }) => v,
-  File: (v: { name: string; state: FilesEntryState; size: number }) => v,
+  File: (v: {
+    name: string
+    state: FilesEntryState
+    type: FilesEntryType
+    size: number
+    meta?: Model.EntryMeta
+  }) => v,
 })
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -175,6 +230,7 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
   return FilesEntry.Dir({ name, state, childEntries: newChildren })
 }
 
+// eslint-disable-next-line @typescript-eslint/default-param-last
 const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEntry[]) => {
   let inserted = file
   let restEntries = entries
@@ -203,30 +259,65 @@ const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEnt
 
 interface IntermediateEntry {
   state: FilesEntryState
+  type: FilesEntryType
   path: string
   size: number
+  meta?: Model.EntryMeta
 }
 
-const computeEntries = ({ added, deleted, existing }: FilesState) => {
-  const existingEntries = Object.entries(existing).map(([path, { size, hash }]) => {
-    if (path in deleted) {
-      return { state: 'deleted' as const, path, size }
-    }
-    if (path in added) {
-      const a = added[path]
-      // eslint-disable-next-line no-nested-ternary
-      const state = !a.hash.ready
-        ? ('hashing' as const)
-        : a.hash.value === hash
-        ? ('unchanged' as const)
-        : ('modified' as const)
-      return { state, path, size: a.size }
-    }
-    return { state: 'unchanged' as const, path, size }
-  })
-  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
+function matchErrorToEntry(path: string, errors: PD.EntriesValidationErrors | null) {
+  return errors?.find((e) => PD.isEntryError(e) && e.data.logical_key === path)
+}
+
+const computeEntries = ({
+  value: { added, deleted, existing },
+  errors,
+}: {
+  value: FilesState
+  errors: PD.EntriesValidationErrors | null
+}) => {
+  const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
+    ([path, { size, hash, meta }]) => {
+      if (path in deleted) {
+        return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
+      }
+      if (matchErrorToEntry(path, errors)) {
+        return { state: 'invalid' as const, type: 'local' as const, path, size, meta }
+      }
+      if (path in added) {
+        const a = added[path]
+        let state: FilesEntryState
+        let type: FilesEntryType
+        if (S3FilePicker.isS3File(a)) {
+          type = 's3' as const
+          state = 'modified' as const
+        } else {
+          type = 'local' as const
+          // eslint-disable-next-line no-nested-ternary
+          state = !a.hash.ready
+            ? ('hashing' as const)
+            : a.hash.value === hash
+            ? ('unchanged' as const)
+            : ('modified' as const)
+        }
+        return { state, type, path, size: a.size, meta }
+      }
+      return { state: 'unchanged' as const, type: 'local' as const, path, size, meta }
+    },
+  )
+  const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
-    return acc.concat({ state: 'added', path, size })
+    if (matchErrorToEntry(path, errors)) {
+      return acc.concat({
+        state: 'invalid' as const,
+        type: 'local' as const,
+        path,
+        size: f.size,
+        meta: f.meta,
+      })
+    }
+    const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
+    return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
@@ -242,18 +333,15 @@ export const HASHING = 'hashing'
 export const HASHING_ERROR = 'hashingError'
 
 export const validateHashingComplete = (state: FilesState) => {
-  const files = Object.values(state.added)
+  const files = Object.values(state.added).filter(
+    (f) => !S3FilePicker.isS3File(f),
+  ) as FileWithHash[]
   if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
   if (files.some((f) => !f.hash.ready)) return HASHING
   return undefined
 }
 
 export const EMPTY_SELECTION = 'emptySelection'
-
-export const validateNonEmptySelection = (state: FilesSelectorState) => {
-  if (state.every(R.propEq('selected', false))) return EMPTY_SELECTION
-  return undefined
-}
 
 const useEntryIconStyles = M.makeStyles((t) => ({
   root: {
@@ -264,6 +352,19 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     display: 'block',
     fontSize: 18,
     padding: 3,
+  },
+  overlay: {
+    alignItems: 'center',
+    bottom: 0,
+    color: t.palette.background.paper,
+    display: 'flex',
+    fontFamily: t.typography.fontFamily,
+    fontSize: 8,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   stateContainer: {
     alignItems: 'center',
@@ -277,34 +378,44 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     left: 0,
     position: 'absolute',
     width: 12,
+    '$invalid &': {
+      borderColor: COLORS.invalid,
+    },
   },
   state: {
     fontFamily: t.typography.fontFamily,
     fontWeight: t.typography.fontWeightBold,
     fontSize: 9,
     color: t.palette.background.paper,
+    '$invalid &': {
+      color: COLORS.invalid,
+    },
   },
   hashProgress: {
     color: t.palette.background.paper,
   },
+  invalid: {},
 }))
 
-type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryState }>
+type EntryIconProps = React.PropsWithChildren<{
+  state: FilesEntryState
+  overlay?: React.ReactNode
+}>
 
-function EntryIcon({ state, children }: EntryIconProps) {
+function EntryIcon({ state, overlay, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
-  const stateContents =
-    state &&
-    {
-      added: '+',
-      deleted: <>&ndash;</>,
-      modified: '~',
-      hashing: 'hashing',
-      unchanged: undefined,
-    }[state]
+  const stateContents = {
+    added: '+',
+    invalid: '!',
+    deleted: <>&ndash;</>,
+    modified: '~',
+    hashing: 'hashing',
+    unchanged: undefined,
+  }[state]
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, { [classes.invalid]: state === 'invalid' })}>
       <M.Icon className={classes.icon}>{children}</M.Icon>
+      {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
         <div className={classes.stateContainer}>
           {stateContents === 'hashing' ? (
@@ -325,6 +436,13 @@ const useFileStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   interactive: {},
+  invalid: {},
+  actions: {
+    flexShrink: 0,
+    '$invalid &': {
+      color: t.palette.primary.contrastText,
+    },
+  },
   root: {
     alignItems: 'center',
     color: COLORS.default,
@@ -349,6 +467,10 @@ const useFileStyles = M.makeStyles((t) => ({
     },
     '&$interactive': {
       cursor: 'pointer',
+    },
+    '&$invalid': {
+      background: COLORS.invalid,
+      color: t.palette.primary.contrastText,
     },
   },
   inner: {
@@ -378,42 +500,68 @@ const useFileStyles = M.makeStyles((t) => ({
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
+  type?: FilesEntryType
   size?: number
   action?: React.ReactNode
+  meta?: Model.EntryMeta
+  metaDisabled?: boolean
+  onMeta?: (value?: Model.EntryMeta) => void
   interactive?: boolean
   faint?: boolean
+  disableStateDisplay?: boolean
 }
 
 function File({
   name,
   state = 'unchanged',
+  type = 'local',
   size,
   action,
+  meta,
+  metaDisabled,
+  onMeta,
   interactive = false,
   faint = false,
   className,
+  disableStateDisplay = false,
   ...props
 }: FileProps) {
   const classes = useFileStyles()
+  const stateDisplay = disableStateDisplay && state !== 'invalid' ? 'unchanged' : state
+
+  // XXX: reset EditFileMeta state when file is reverted
+  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
 
   return (
     <div
       className={cx(
         className,
         classes.root,
-        classes[state],
+        classes[stateDisplay],
         interactive && classes.interactive,
       )}
       {...props}
     >
       <div className={cx(classes.inner, faint && classes.faint)}>
-        <EntryIcon state={state}>insert_drive_file</EntryIcon>
+        <EntryIcon state={stateDisplay} overlay={type === 's3' ? 'S3' : undefined}>
+          insert_drive_file
+        </EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      {action}
+      <div className={classes.actions}>
+        <EditFileMeta
+          disabled={metaDisabled}
+          key={metaKey}
+          name={name}
+          onChange={onMeta}
+          state={stateDisplay}
+          value={meta}
+        />
+        {action}
+      </div>
     </div>
   )
 }
@@ -425,6 +573,7 @@ const useDirStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   active: {},
+  invalid: {},
   root: {
     cursor: 'pointer',
     outline: 'none',
@@ -450,6 +599,10 @@ const useDirStyles = M.makeStyles((t) => ({
     },
     '$deleted > &': {
       color: COLORS.deleted,
+    },
+    '$invalid > &': {
+      background: COLORS.invalid,
+      color: t.palette.primary.contrastText,
     },
   },
   headInner: {
@@ -513,6 +666,7 @@ const useDirStyles = M.makeStyles((t) => ({
 interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
+  disableStateDisplay?: boolean
   active?: boolean
   empty?: boolean
   expanded?: boolean
@@ -522,10 +676,11 @@ interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   onHeadClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
+export const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
     name,
     state = 'unchanged',
+    disableStateDisplay = false,
     active = false,
     empty = false,
     expanded = false,
@@ -539,10 +694,11 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   ref,
 ) {
   const classes = useDirStyles()
+  const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
   return (
     <div
-      className={cx(className, classes.root, classes[state], {
+      className={cx(className, classes.root, classes[stateDisplay], {
         [classes.active]: active,
       })}
       ref={ref}
@@ -551,7 +707,9 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
         <div className={cx(classes.headInner, faint && classes.faint)}>
-          <EntryIcon state={state}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
+          <EntryIcon state={stateDisplay}>
+            {expanded ? 'folder_open' : 'folder'}
+          </EntryIcon>
           <div className={classes.name}>{name}</div>
         </div>
         {action}
@@ -563,7 +721,7 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
         )}
       </div>
       {(!!children || empty) && (
-        <M.Collapse in={expanded}>
+        <M.Collapse in={expanded} mountOnEnter unmountOnExit>
           <div className={classes.body}>
             {children || <div className={classes.emptyDummy} />}
           </div>
@@ -594,33 +752,52 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 }))
 
 interface DropzoneMessageProps {
+  label?: React.ReactNode
   error: React.ReactNode
-  warn: boolean
+  warn: { upload: boolean; s3: boolean; count: boolean }
 }
 
-function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
+export function DropzoneMessage({
+  label: defaultLabel,
+  error,
+  warn,
+}: DropzoneMessageProps) {
   const classes = useDropzoneMessageStyles()
 
   const label = React.useMemo(() => {
-    if (error) return error
-    if (warn)
-      return (
-        <>
-          Total size of new files exceeds recommended maximum of{' '}
-          {readableBytes(PD.MAX_SIZE)}
-        </>
-      )
-    return 'Drop files here or click to browse'
-  }, [error, warn])
+    if (error) return <span>{error}</span>
+    if (!warn.s3 && !warn.count && !warn.upload) {
+      return <span>{defaultLabel || 'Drop files here or click to browse'}</span>
+    }
+    return (
+      <div>
+        {warn.upload && (
+          <p>
+            Total size of local files exceeds recommended maximum of{' '}
+            {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+          </p>
+        )}
+        {warn.s3 && (
+          <p>
+            Total size of files from S3 exceeds recommended maximum of{' '}
+            {readableBytes(PD.MAX_S3_SIZE)}.
+          </p>
+        )}
+        {warn.count && (
+          <p>Total number of files exceeds recommended maximum of {PD.MAX_FILE_COUNT}.</p>
+        )}
+      </div>
+    )
+  }, [defaultLabel, error, warn.upload, warn.s3, warn.count])
 
   return (
     <div
       className={cx(classes.root, {
         [classes.error]: error,
-        [classes.warning]: !error && warn,
+        [classes.warning]: !error && (warn.upload || warn.s3 || warn.count),
       })}
     >
-      <span>{label}</span>
+      {label}
     </div>
   )
 }
@@ -632,7 +809,10 @@ const useRootStyles = M.makeStyles({
   },
 })
 
-function Root({ className, ...props }: React.PropsWithChildren<{ className?: string }>) {
+export function Root({
+  className,
+  ...props
+}: React.PropsWithChildren<{ className?: string }>) {
   const classes = useRootStyles()
   return <div className={cx(classes.root, className)} {...props} />
 }
@@ -644,7 +824,7 @@ const useHeaderStyles = M.makeStyles({
   },
 })
 
-function Header(props: React.PropsWithChildren<{}>) {
+export function Header(props: React.PropsWithChildren<{}>) {
   const classes = useHeaderStyles()
   return <div className={classes.root} {...props} />
 }
@@ -671,15 +851,13 @@ const useHeaderTitleStyles = M.makeStyles((t) => ({
 
 type HeaderTitleState = 'disabled' | 'error' | 'warn' | 'regular'
 
-function HeaderTitle({
+export function HeaderTitle({
   state = 'regular',
   ...props
 }: React.PropsWithChildren<{ state?: HeaderTitleState }>) {
   const classes = useHeaderTitleStyles()
   return <div className={cx(classes.root, classes[state])} {...props} />
 }
-
-const PROGRESS_EMPTY = { total: 0, loaded: 0, percent: 0 }
 
 const useLockStyles = M.makeStyles((t) => ({
   root: {
@@ -719,7 +897,7 @@ const useLockStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Lock({
+export function Lock({
   progress,
 }: {
   progress?: {
@@ -782,7 +960,7 @@ type FilesContainerProps = React.PropsWithChildren<{
   noBorder?: boolean
 }>
 
-function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
+export function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
   const classes = useFilesContainerStyles()
   return (
     <div
@@ -817,7 +995,11 @@ type ContentsContainerProps = {
   outlined?: boolean
 } & React.HTMLAttributes<HTMLDivElement>
 
-function ContentsContainer({ outlined, className, ...props }: ContentsContainerProps) {
+export function ContentsContainer({
+  outlined,
+  className,
+  ...props
+}: ContentsContainerProps) {
   const classes = useContentsContainerStyles()
   return (
     <div
@@ -837,6 +1019,7 @@ const useContentsStyles = M.makeStyles((t) => ({
     minHeight: 80,
     outline: 'none',
     overflow: 'hidden',
+    position: 'relative',
   },
   interactive: {
     cursor: 'pointer',
@@ -859,7 +1042,7 @@ interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
   warn?: boolean
 }
 
-const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
+export const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
   { interactive, active, error, warn, className, ...props },
   ref,
 ) {
@@ -882,49 +1065,80 @@ const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Conten
 
 type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
   prefix?: string
+  disableStateDisplay?: boolean
   dispatch: DispatchFilesAction
 }
 
-function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
+function FileUpload({
+  name,
+  state,
+  type,
+  size,
+  prefix,
+  disableStateDisplay,
+  dispatch,
+  meta,
+}: FileUploadProps) {
   const path = (prefix || '') + name
 
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+  // eslint-disable-next-line consistent-return
+  const action = React.useMemo(() => {
+    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
-        modified: {
+      dispatch(a)
+    }
+    switch (state) {
+      case 'added':
+        return {
+          hint: 'Remove',
+          icon: 'clear',
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'modified':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        hashing: {
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'hashing':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        deleted: {
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'deleted':
+        return {
           hint: 'Restore',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
-      }[state]),
-    [state, handle],
-  )
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'unchanged':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.Delete(path)),
+        }
+      case 'invalid':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.Delete(path)),
+        }
+      default:
+        assertNever(state)
+    }
+  }, [state, dispatch, path])
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
     // stop click from propagating to parent elements and triggering their handlers
     e.stopPropagation()
   }, [])
+
+  const onMeta = React.useCallback(
+    (m?: Model.EntryMeta) => dispatch(FilesAction.Meta({ path, meta: m })),
+    [dispatch, path],
+  )
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
@@ -933,10 +1147,20 @@ function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
       role="button"
       tabIndex={0}
       state={state}
+      disableStateDisplay={disableStateDisplay}
+      type={type}
       name={name}
       size={size}
+      meta={meta}
+      metaDisabled={state === 'deleted'}
+      onMeta={onMeta}
       action={
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+        <M.IconButton
+          color="inherit"
+          onClick={action.handler}
+          size="small"
+          title={action.hint}
+        >
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
         </M.IconButton>
       }
@@ -947,10 +1171,20 @@ function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
 type DirUploadProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
   prefix?: string
   dispatch: DispatchFilesAction
+  delayHashing: boolean
+  disableStateDisplay?: boolean
 }
 
-function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadProps) {
-  const [expanded, setExpanded] = React.useState(true)
+function DirUpload({
+  name,
+  state,
+  childEntries,
+  prefix,
+  dispatch,
+  delayHashing,
+  disableStateDisplay,
+}: DirUploadProps) {
+  const [expanded, setExpanded] = React.useState(false)
 
   const toggleExpanded = React.useCallback(
     (e) => {
@@ -969,8 +1203,8 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
   const path = (prefix || '') + name
 
   const onDrop = React.useCallback(
-    (files: FileWithPath[]) => {
-      dispatch(FilesAction.Add({ prefix: path, files }))
+    (files: File[]) => {
+      dispatch(FilesAction.Add({ prefix: path, files: files.map(computeHash) }))
     },
     [dispatch, path],
   )
@@ -981,42 +1215,54 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
     noClick: true,
   })
 
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+  // eslint-disable-next-line consistent-return
+  const action = React.useMemo(() => {
+    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
-        modified: {
+      dispatch(a)
+    }
+    switch (state) {
+      case 'added':
+        return {
+          hint: 'Remove',
+          icon: 'clear',
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'modified':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        hashing: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'hashing':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        deleted: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'deleted':
+        return {
           hint: 'Restore',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        unchanged: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'unchanged':
+        return {
           hint: 'Delete',
           icon: 'clear',
-          handler: handle(FilesAction.DeleteDir),
-        },
-      }[state]),
-    [state, handle],
-  )
+          handler: handle(FilesAction.DeleteDir(path)),
+        }
+      case 'invalid':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.DeleteDir(path)),
+        }
+      default:
+        assertNever(state)
+    }
+  }, [state, dispatch, path])
 
   return (
     <Dir
@@ -1026,6 +1272,7 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
       expanded={expanded}
       name={name}
       state={state}
+      disableStateDisplay={disableStateDisplay}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
@@ -1037,10 +1284,23 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
         childEntries.map(
           FilesEntry.match({
             Dir: (ps) => (
-              <DirUpload {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
+              <DirUpload
+                {...ps}
+                key={ps.name}
+                prefix={path}
+                dispatch={dispatch}
+                delayHashing={delayHashing}
+                disableStateDisplay={disableStateDisplay}
+              />
             ),
             File: (ps) => (
-              <FileUpload {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
+              <FileUpload
+                {...ps}
+                key={ps.name}
+                prefix={path}
+                dispatch={dispatch}
+                disableStateDisplay={disableStateDisplay}
+              />
             ),
           }),
         )}
@@ -1048,16 +1308,23 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
   )
 }
 
+const DOCS_URL_SOURCE_BUCKETS = `${urls.docsMaster}/catalog/preferences#properties`
+
 const useFilesInputStyles = M.makeStyles((t) => ({
-  added: {
-    color: t.palette.success.main,
-    marginLeft: t.spacing(1),
-  },
-  deleted: {
-    color: t.palette.error.main,
-    marginLeft: t.spacing(1),
-  },
   hashing: {
+    marginLeft: t.spacing(1),
+  },
+  actions: {
+    display: 'flex',
+    marginTop: t.spacing(1),
+  },
+  action: {
+    flexGrow: 1,
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
+  },
+  warning: {
     marginLeft: t.spacing(1),
   },
 }))
@@ -1070,14 +1337,7 @@ interface FilesInputProps {
   className?: string
   disabled?: boolean
   errors?: Record<string, React.ReactNode>
-  meta: {
-    submitting: boolean
-    submitSucceeded: boolean
-    submitFailed: boolean
-    dirty: boolean
-    error?: string
-    initial: FilesState
-  }
+  meta: RF.FieldMetaState<FilesState> & { initial: FilesState }
   onFilesAction?: (
     action: FilesAction,
     oldValue: FilesState,
@@ -1089,6 +1349,15 @@ interface FilesInputProps {
     loaded: number
     percent: number
   }
+  bucket: string
+  buckets?: string[]
+  selectBucket?: (bucket: string) => void
+  delayHashing?: boolean
+  disableStateDisplay?: boolean
+  ui?: {
+    reset?: React.ReactNode
+  }
+  validationErrors: PD.EntriesValidationErrors | null
 }
 
 export function FilesInput({
@@ -1100,6 +1369,13 @@ export function FilesInput({
   onFilesAction,
   title,
   totalProgress,
+  bucket,
+  buckets,
+  selectBucket,
+  delayHashing = false,
+  disableStateDisplay = false,
+  ui = {},
+  validationErrors,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1118,7 +1394,8 @@ export function FilesInput({
   }
 
   const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
+  const error =
+    meta.submitFailed && (meta.error || (!meta.dirtySinceLastSubmit && meta.submitError))
 
   const refProps = {
     value,
@@ -1138,7 +1415,10 @@ export function FilesInput({
     // XXX: maybe observe value and trigger this when it changes,
     // regardless of the source of change (e.g. new value supplied directly via the prop)
     const waitFor = Object.values(newValue.added).reduce(
-      (acc, f) => (f.hash.ready ? acc : acc.concat(f.hash.promise.catch(() => {}))),
+      (acc, f) =>
+        S3FilePicker.isS3File(f) || f.hash.ready
+          ? acc
+          : acc.concat(f.hash.promise.catch(() => {})),
       [] as Promise<any>[],
     )
     cur.scheduleUpdate(waitFor)
@@ -1149,7 +1429,7 @@ export function FilesInput({
 
   const onDrop = React.useCallback(
     (files) => {
-      dispatch(FilesAction.Add({ files }))
+      dispatch(FilesAction.Add({ files: files.map(computeHash) }))
     },
     [dispatch],
   )
@@ -1159,30 +1439,75 @@ export function FilesInput({
   }, [dispatch])
 
   const isDragging = useDragging()
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ disabled, onDrop })
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    disabled,
+    onDrop,
+  })
 
-  const computedEntries = useMemoEq(value, computeEntries)
+  const valueWithErrors = React.useMemo(
+    () => ({ errors: validationErrors, value }),
+    [validationErrors, value],
+  )
+  const computedEntries = useMemoEq(valueWithErrors, computeEntries)
 
-  const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
-    added: Object.entries(added).reduce(
+  const stats = useMemoEq(value, ({ added, existing }) => ({
+    upload: Object.entries(added).reduce(
       (acc, [path, f]) => {
+        if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
         const e = existing[path]
         if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
         return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
       },
       { count: 0, size: 0 },
     ),
-    deleted: Object.keys(deleted).reduce(
-      (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
+    s3: Object.entries(added).reduce(
+      (acc, [, f]) =>
+        S3FilePicker.isS3File(f)
+          ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+          : acc,
       { count: 0, size: 0 },
     ),
-    hashing: Object.values(added).reduce((acc, f) => acc || !f.hash.ready, false),
+    hashing: Object.values(added).reduce(
+      (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
+      false,
+    ),
   }))
 
-  const warn = stats.added.size > PD.MAX_SIZE
+  const warn = {
+    upload: stats.upload.size > PD.MAX_UPLOAD_SIZE,
+    s3: stats.s3.size > PD.MAX_S3_SIZE,
+    count: stats.upload.count + stats.s3.count > PD.MAX_FILE_COUNT,
+  }
+
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
+
+  const closeS3FilePicker = React.useCallback(
+    (reason: S3FilePicker.CloseReason) => {
+      if (!!reason && typeof reason === 'object') {
+        dispatch(FilesAction.AddFromS3(reason.filesMap))
+      }
+      setS3FilePickerOpen(false)
+    },
+    [dispatch, setS3FilePickerOpen],
+  )
+
+  const handleS3Btn = React.useCallback(() => {
+    setS3FilePickerOpen(true)
+  }, [])
+
+  const isS3FilePickerEnabled = !!buckets?.length
 
   return (
     <Root className={className}>
+      {isS3FilePickerEnabled && (
+        <S3FilePicker.Dialog
+          bucket={bucket}
+          buckets={buckets}
+          selectBucket={selectBucket}
+          open={s3FilePickerOpen}
+          onClose={closeS3FilePicker}
+        />
+      )}
       <Header>
         <HeaderTitle
           state={
@@ -1190,30 +1515,52 @@ export function FilesInput({
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
               ? 'error'
-              : warn
+              : warn.upload || warn.s3 || warn.count
               ? 'warn'
               : undefined
           }
         >
           {title}
-          {!!stats.added.count && (
-            <span className={classes.added}>
-              {' +'}
-              {stats.added.count} ({readableBytes(stats.added.size)})
-            </span>
+          {(!!stats.upload.count || !!stats.s3.count) && (
+            <M.Box
+              ml={1}
+              color={warn.upload || warn.s3 ? 'warning.dark' : 'text.secondary'}
+              component="span"
+            >
+              (
+              {!!stats.upload.count && (
+                <M.Box
+                  color={warn.upload ? 'warning.dark' : 'text.secondary'}
+                  component="span"
+                >
+                  {readableBytes(stats.upload.size)} to upload
+                </M.Box>
+              )}
+              {!!stats.upload.count && !!stats.s3.count && (
+                <M.Box
+                  color={!warn.upload || !warn.s3 ? 'text.secondary' : undefined}
+                  component="span"
+                >
+                  {', '}
+                </M.Box>
+              )}
+              {!!stats.s3.count && (
+                <M.Box
+                  color={warn.s3 ? 'warning.dark' : 'text.secondary'}
+                  component="span"
+                >
+                  {readableBytes(stats.s3.size)} from S3
+                </M.Box>
+              )}
+              )
+            </M.Box>
           )}
-          {!!stats.deleted.count && (
-            <span className={classes.deleted}>
-              {' -'}
-              {stats.deleted.count} ({readableBytes(stats.deleted.size)})
-            </span>
-          )}
-          {warn && (
+          {(warn.upload || warn.s3 || warn.count) && (
             <M.Icon style={{ marginLeft: 6 }} fontSize="small">
               error_outline
             </M.Icon>
           )}
-          {stats.hashing && (
+          {!delayHashing && stats.hashing && (
             <M.CircularProgress
               className={classes.hashing}
               size={16}
@@ -1229,7 +1576,7 @@ export function FilesInput({
             size="small"
             endIcon={<M.Icon fontSize="small">undo</M.Icon>}
           >
-            Undo changes
+            {ui.reset || 'Clear files'}
           </M.Button>
         )}
       </Header>
@@ -1240,19 +1587,30 @@ export function FilesInput({
           interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
-          warn={warn}
+          warn={warn.upload || warn.s3 || warn.count}
         >
           <input {...getInputProps()} />
 
           {!!computedEntries.length && (
-            <FilesContainer error={!!error} warn={warn}>
+            <FilesContainer error={!!error} warn={warn.upload || warn.s3 || warn.count}>
               {computedEntries.map(
                 FilesEntry.match({
                   Dir: (ps) => (
-                    <DirUpload {...ps} key={`dir:${ps.name}`} dispatch={dispatch} />
+                    <DirUpload
+                      {...ps}
+                      key={`dir:${ps.name}`}
+                      dispatch={dispatch}
+                      delayHashing={delayHashing}
+                      disableStateDisplay={disableStateDisplay}
+                    />
                   ),
                   File: (ps) => (
-                    <FileUpload {...ps} key={`file:${ps.name}`} dispatch={dispatch} />
+                    <FileUpload
+                      {...ps}
+                      key={`file:${ps.name}`}
+                      dispatch={dispatch}
+                      disableStateDisplay={disableStateDisplay}
+                    />
                   ),
                 }),
               )}
@@ -1261,185 +1619,36 @@ export function FilesInput({
 
           <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
         </Contents>
-        {submitting && <Lock progress={totalProgress} />}
+        {(submitting || disabled) && <Lock progress={totalProgress} />}
       </ContentsContainer>
-    </Root>
-  )
-}
-
-const useFilesSelectorStyles = M.makeStyles((t) => ({
-  checkbox: {
-    color: `${t.palette.action.active} !important`,
-    padding: 3,
-    '&:hover': {
-      backgroundColor: `${fade(
-        t.palette.action.active,
-        t.palette.action.hoverOpacity,
-      )} !important`,
-    },
-    '& svg': {
-      fontSize: '18px',
-    },
-  },
-}))
-
-interface FilesSelectorEntry {
-  type: 'dir' | 'file'
-  name: string
-  selected: boolean
-  size?: number
-}
-
-export type FilesSelectorState = FilesSelectorEntry[]
-
-interface FilesSelectorProps {
-  input: {
-    value: FilesSelectorState
-    onChange: (value: FilesSelectorState) => void
-  }
-  className?: string
-  disabled?: boolean
-  errors?: Record<string, React.ReactNode>
-  meta: {
-    submitting: boolean
-    submitSucceeded: boolean
-    submitFailed: boolean
-    dirty: boolean
-    error?: string
-    initial: FilesSelectorState
-  }
-  title: React.ReactNode
-  truncated?: boolean
-}
-
-export function FilesSelector({
-  input: { value, onChange },
-  className,
-  disabled = false,
-  errors = {},
-  meta,
-  title,
-  truncated = false,
-}: FilesSelectorProps) {
-  const classes = useFilesSelectorStyles()
-
-  const submitting = meta.submitting || meta.submitSucceeded
-  const error = meta.submitFailed && meta.error
-
-  const selected = React.useMemo(
-    () => value.reduce((m, i) => (i.selected ? m + 1 : m), 0),
-    [value],
-  )
-
-  const toggleAll = React.useCallback(() => {
-    onChange(value.map(R.assoc('selected', selected < value.length)))
-  }, [onChange, value, selected])
-
-  const handleItemClick = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      e.stopPropagation()
-      const idx = value.findIndex(R.propEq('name', e.currentTarget.dataset.name!))
-      if (idx < 0) return
-      onChange(R.adjust(idx, R.evolve({ selected: R.not }), value))
-    },
-    [onChange, value],
-  )
-
-  return (
-    <Root className={className}>
-      <Header>
-        <HeaderTitle
-          state={
-            submitting || disabled // eslint-disable-line no-nested-ternary
-              ? 'disabled'
-              : error // eslint-disable-line no-nested-ternary
-              ? 'error'
-              : truncated
-              ? 'warn'
-              : undefined
-          }
+      <div className={classes.actions}>
+        <M.Button
+          onClick={open}
+          disabled={submitting || disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
         >
-          {title}
-          {truncated && (
-            // TODO: adjust copy
-            <M.Tooltip title="Only the first 1000 items are shown, but the folder contains more">
-              <M.Icon style={{ marginLeft: 6 }} fontSize="small">
-                error_outline
-              </M.Icon>
-            </M.Tooltip>
-          )}
-        </HeaderTitle>
-        <M.Box flexGrow={1} />
-        {value.length > 0 && (
+          Add local files
+        </M.Button>
+        {isS3FilePickerEnabled ? (
           <M.Button
-            onClick={toggleAll}
-            disabled={disabled || submitting}
+            onClick={handleS3Btn}
+            disabled={submitting || disabled}
+            className={classes.action}
+            variant="outlined"
             size="small"
-            endIcon={
-              <M.Icon fontSize="small">
-                {selected === value.length // eslint-disable-line no-nested-ternary
-                  ? 'check_box'
-                  : !selected
-                  ? 'check_box_outline_blank'
-                  : 'indeterminate_check_box_icon'}
-              </M.Icon>
-            }
           >
-            Select {selected < value.length ? 'all' : 'none'}
+            Add files from bucket
           </M.Button>
+        ) : (
+          <Lab.Alert className={classes.warning} severity="info">
+            <StyledLink href={DOCS_URL_SOURCE_BUCKETS} target="_blank">
+              Learn how to add files from a bucket
+            </StyledLink>
+          </Lab.Alert>
         )}
-      </Header>
-
-      <ContentsContainer>
-        <Contents error={!!error} warn={truncated}>
-          {value.length ? (
-            <FilesContainer noBorder>
-              {value.map(({ type, name, selected: sel, size }) =>
-                type === 'dir' ? (
-                  <Dir
-                    key={`dir:${name}`}
-                    name={name}
-                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                    onClick={handleItemClick}
-                    data-name={name}
-                    faint={!sel}
-                  />
-                ) : (
-                  <File
-                    key={`file:${name}`}
-                    name={name}
-                    size={size}
-                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                    onClick={handleItemClick}
-                    data-name={name}
-                    faint={!sel}
-                    interactive
-                  />
-                ),
-              )}
-            </FilesContainer>
-          ) : (
-            // TODO: adjust copy
-            <M.Box
-              display="flex"
-              flexGrow={1}
-              alignItems="center"
-              justifyContent="center"
-            >
-              <M.Typography align="center" color={error ? 'error' : undefined}>
-                Current directory is empty
-              </M.Typography>
-            </M.Box>
-          )}
-          {submitting && <Lock progress={PROGRESS_EMPTY} />}
-        </Contents>
-      </ContentsContainer>
-
-      {!!error && (
-        <M.FormHelperText error margin="dense">
-          {errors[error] || error}
-        </M.FormHelperText>
-      )}
+      </div>
     </Root>
   )
 }

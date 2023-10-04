@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { CssBaseline } from '@material-ui/core'
-import { makeStyles } from '@material-ui/styles'
+import { makeStyles } from '@material-ui/core/styles'
 
 const useGlobalStyles = makeStyles({
   '@global': {
@@ -27,9 +27,6 @@ const useGlobalStyles = makeStyles({
       // reset margins set by user-agent
       marginBlockEnd: 0,
       marginBlockStart: 0,
-    },
-    'body .intercom-lightweight-app-launcher, body .intercom-lightweight-app': {
-      zIndex: 1200,
     },
   },
 })

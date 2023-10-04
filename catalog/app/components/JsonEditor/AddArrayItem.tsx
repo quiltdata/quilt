@@ -1,5 +1,8 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+
+import * as JSONPointer from 'utils/JSONPointer'
 
 const useStyles = M.makeStyles((t) => ({
   buttonCell: {
@@ -15,12 +18,18 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface AddArrayItemProps {
-  columnPath: string[]
+  className?: string
+  columnPath: JSONPointer.Path
   index: number
-  onAdd: (path: string[], index: number, value: string) => void
+  onAdd: (path: JSONPointer.Path, index: number, value: string) => void
 }
 
-export default function AddArrayItem({ columnPath, index, onAdd }: AddArrayItemProps) {
+export default function AddArrayItem({
+  className,
+  columnPath,
+  index,
+  onAdd,
+}: AddArrayItemProps) {
   const classes = useStyles()
 
   const onClick = React.useCallback(() => {
@@ -29,7 +38,7 @@ export default function AddArrayItem({ columnPath, index, onAdd }: AddArrayItemP
 
   return (
     <M.TableRow>
-      <M.TableCell className={classes.buttonCell}>
+      <M.TableCell className={cx(classes.buttonCell, className)}>
         <M.Button variant="outlined" size="small" onClick={onClick}>
           Add array item
         </M.Button>

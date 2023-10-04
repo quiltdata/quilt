@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
+
 import Cell from './Cell'
 import { COLUMN_IDS, EMPTY_VALUE, JsonValue } from './constants'
 
@@ -30,11 +32,15 @@ const emptyKeyProps = {
   row: {
     original: {
       address: [],
+      errors: [],
+      key: '',
+      reactId: '',
       required: false,
       sortIndex: -1,
       type: 'undefined',
-      valueSchema: undefined,
       updateMyData: () => {},
+      value: '',
+      valueSchema: undefined,
     },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
@@ -51,11 +57,15 @@ const emptyValueProps = {
   row: {
     original: {
       address: [],
+      errors: [],
+      key: '',
+      reactId: '',
       required: false,
       sortIndex: -1,
       type: 'undefined',
-      valueSchema: undefined,
       updateMyData: () => {},
+      value: '',
+      valueSchema: undefined,
     },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
@@ -66,12 +76,20 @@ const emptyValueProps = {
 }
 
 interface AddRowProps {
-  columnPath: string[]
-  onAdd: (path: string[], key: string, value: JsonValue) => void
-  onExpand: (path: string[]) => void
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
+  onAdd: (path: JSONPointer.Path, key: string, value: JsonValue) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
 }
 
-export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
+export default function AddRow({
+  columnPath,
+  contextMenuPath,
+  onAdd,
+  onContextMenu,
+  onExpand,
+}: AddRowProps) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState('')
@@ -101,7 +119,9 @@ export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
           {...{
             ...emptyKeyProps,
             columnPath,
+            contextMenuPath,
             editing: false,
+            onContextMenu,
             onExpand,
             onRemove,
             updateMyData: onChangeKey,
@@ -114,7 +134,9 @@ export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
           {...{
             ...emptyValueProps,
             columnPath,
+            contextMenuPath,
             editing: false,
+            onContextMenu,
             onExpand,
             onRemove,
             updateMyData: onChangeValue,

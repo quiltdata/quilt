@@ -7,13 +7,14 @@ coverage:
           - '!**/test/'
         informational: true
     patch:
-      default: false
+      informational: true
 
 flag_management:
   default_rules:
     statuses:
       - name_prefix: 'auto-'
         type: project
+        threshold: 0.1
       - name_prefix: 'auto-'
         type: patch
   individual_flags:

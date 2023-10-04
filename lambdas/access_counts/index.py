@@ -297,7 +297,7 @@ def query_finished(execution_id):
     print("Query status:", response)
     state = response['QueryExecution']['Status']['State']
 
-    if state == 'RUNNING' or state == 'QUEUED':
+    if state in ('RUNNING', 'QUEUED'):
         return False
     elif state == 'SUCCEEDED':
         return True

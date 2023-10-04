@@ -12,5 +12,8 @@ setup(
             'pytest',
             'pytest-cov',
         ],
+        "lambda": [
+            "awslambdaric>=2,<3",
+        ]
     },
 )

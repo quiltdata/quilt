@@ -2,8 +2,6 @@ import { createActions } from 'utils/reduxTools'
 
 export const REDUX_KEY = 'app/Auth'
 
-export const states = ['SIGNED_OUT', 'SIGNING_IN', 'SIGNED_IN', 'REFRESHING']
-
 export const waitingStates = ['SIGNING_IN', 'REFRESHING']
 
 export const actions = createActions(
@@ -16,6 +14,7 @@ export const actions = createActions(
   'SIGN_OUT',
   'SIGN_OUT_RESULT',
   'CHECK',
+  'GET_TOKENS',
   'REFRESH',
   'REFRESH_RESULT',
   'AUTH_LOST',

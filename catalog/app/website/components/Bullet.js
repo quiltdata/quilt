@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Typography } from '@material-ui/core'
-import { styled } from '@material-ui/styles'
+import { styled } from '@material-ui/core/styles'
 
 import styledBy from 'utils/styledBy'
 

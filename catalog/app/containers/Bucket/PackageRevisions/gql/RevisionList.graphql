@@ -1,0 +1,23 @@
+query ($bucket: String!, $name: String!, $page: Int!, $perPage: Int!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    revisions {
+      page(number: $page, perPage: $perPage) {
+        hash
+        modified
+        message
+        userMeta
+        totalEntries
+        totalBytes
+        accessCounts {
+          total
+          counts {
+            date
+            value
+          }
+        }
+      }
+    }
+  }
+}

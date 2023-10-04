@@ -15,6 +15,8 @@ POINTER_PREFIX_V1 = ".quilt/named_packages/"
 
 PACKAGE_INDEX_SUFFIX = "_packages"
 
+LAMBDA_TMP_SPACE = 512 * 2 ** 20
+
 
 def separated_env_to_iter(
         env_var: str,
@@ -30,11 +32,12 @@ def separated_env_to_iter(
     if candidate:
         for c in candidate.split(separator):
             token = c.strip().lower() if lower else c.strip()
-            if predicate:
-                if predicate(token):
+            if token:
+                if predicate:
+                    if predicate(token):
+                        result.append(token)
+                else:
                     result.append(token)
-            else:
-                result.append(token)
     return set(result) if deduplicate else result
 
 
@@ -59,8 +62,9 @@ def get_quilt_logger():
 
 
 def get_available_memory():
-    """how much virtual memory is available to us (bytes)?"""
+    """how much virtual memory is available to us (in bytes)"""
     from psutil import virtual_memory
+
     return virtual_memory().available
 
 

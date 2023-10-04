@@ -48,10 +48,11 @@ See docs/EventBridge.md for more
 
 import datetime
 import json
+import os
 import pathlib
 import re
 from os.path import split
-from typing import Optional
+from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
 import boto3
@@ -59,13 +60,14 @@ import botocore
 import nbformat
 from dateutil.tz import tzutc
 from document_queue import (
-    CONTENT_INDEX_EXTS,
     EVENT_PREFIX,
     MAX_RETRY,
-    DocTypes,
     DocumentQueue,
+    get_content_index_bytes,
+    get_content_index_extensions,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
+from pdfminer.high_level import extract_text as extract_pdf_text
 from tenacity import (
     retry,
     retry_if_exception,
@@ -74,8 +76,8 @@ from tenacity import (
 )
 
 from t4_lambda_shared.preview import (
-    ELASTIC_LIMIT_BYTES,
     ELASTIC_LIMIT_LINES,
+    extract_excel,
     extract_fcs,
     extract_parquet,
     get_bytes,
@@ -84,6 +86,7 @@ from t4_lambda_shared.preview import (
 )
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
+    PACKAGE_INDEX_SUFFIX,
     POINTER_PREFIX_V1,
     get_available_memory,
     get_quilt_logger,
@@ -156,9 +159,12 @@ EVENT_SCHEMA = {
     'required': ['s3', 'eventName'],
     'additionalProperties': True
 }
+# Max number of PDF pages to extract because it can be slow
+MAX_PDF_PAGES = 100
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 # currently only affects .parquet, TODO: extend to other extensions
+assert 'SKIP_ROWS_EXTS' in os.environ
 SKIP_ROWS_EXTS = separated_env_to_iter('SKIP_ROWS_EXTS')
 SELECT_PACKAGE_META = "SELECT * from S3Object o WHERE o.version IS NOT MISSING LIMIT 1"
 # No WHERE clause needed for aggregations since S3 Select skips missing fields for aggs
@@ -181,18 +187,41 @@ def now_like_boto3():
     return datetime.datetime.now(tz=tzutc())
 
 
-def infer_extensions(key, ext):
+def get_compression(ext: str):
+    """return the compression type or None if not supported"""
+    return "gz" if ext == ".gz" else None
+
+
+def get_normalized_extensions(key) -> Tuple[str, str]:
+    """standard function turning keys into a list of (possibly empty) extensions"""
+    path = pathlib.PurePosixPath(key)
+    try:
+        ext_last = path.suffix.lower()
+        ext_next_last = path.with_suffix('').suffix.lower()
+    except ValueError:
+        return ("", "")
+
+    # return in left-to-right order as they occur in the key
+    return (ext_next_last, ext_last)
+
+
+def infer_extensions(key, exts: Tuple[str, str], compression):
     """guess extensions if possible"""
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
+    long_ext = "".join(exts)
+    # pylint: disable=too-many-boolean-expressions)
     if (
-            re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key)
+            re.fullmatch(r".c\d{3,5}", long_ext) or re.fullmatch(r".*-c\d{3,5}$", key)
             or key.endswith("_0")
-            or ext == ".pq"
+            or exts[-1] == ".pq"
+            or (compression and exts[0] == ".pq")
     ):
         return ".parquet"
+    elif compression:
+        return exts[0]
 
-    return ext
+    return exts[-1]
 
 
 def should_retry_exception(exception):
@@ -219,8 +248,8 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
             key=key,
             sql_stmt=SELECT_PACKAGE_META
         )
-        return raw.read()
-    except botocore.exceptions.ClientError as cle:
+        return json.load(raw)
+    except (botocore.exceptions.ClientError, json.JSONDecodeError) as cle:
         print(f"Unable to S3 select manifest: {cle}")
 
     return None
@@ -239,14 +268,14 @@ def do_index(
         text: str = '',
         size: int = 0,
         version_id: Optional[str] = None,
+        s3_tags: Optional[dict] = None,
 ):
     """wrap dual indexing of packages and objects"""
     logger_ = get_quilt_logger()
     # index as object (always)
     logger_.debug("%s to indexing queue (%s)", key, event_type)
     doc_queue.append(
-        event_type,
-        DocTypes.OBJECT,
+        event_type=event_type,
         bucket=bucket,
         ext=ext,
         etag=etag,
@@ -254,19 +283,17 @@ def do_index(
         last_modified=last_modified,
         size=size,
         text=text,
-        version_id=version_id
+        version_id=version_id,
+        s3_tags=s3_tags,
     )
     # maybe index as package
     if index_if_package(
         s3_client,
         doc_queue,
-        event_type,
         bucket=bucket,
         etag=etag,
-        ext=ext,
         key=key,
         last_modified=last_modified,
-        size=size,
         version_id=version_id,
     ):
         logger_.debug("%s indexed as package (%s)", key, event_type)
@@ -275,15 +302,12 @@ def do_index(
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
-        event_type: str,
         *,
         bucket: str,
         etag: str,
-        ext: str,
         key: str,
         last_modified: str,
         version_id: Optional[str],
-        size: int
 ) -> bool:
     """index manifest pointer files as package documents in ES
         Returns:
@@ -303,61 +327,53 @@ def index_if_package(
         return False
     try:
         manifest_timestamp = int(pointer_file)
-        is_tag = False
         if not 1451631600 <= manifest_timestamp <= 1767250800:
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
     except ValueError as err:
-        is_tag = True
         logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
-    package_hash = ''
-    first_dict = {}
-    stats = None
-    # we only need to get manifest contents for proper create events (not latest pointers)
-    if event_type.startswith(EVENT_PREFIX["Created"]) and not is_tag:
-        package_hash = get_plain_text(
-            bucket,
-            key,
-            size,
-            None,
-            etag=etag,
-            s3_client=s3_client,
-            version_id=version_id,
-        ).strip()
+    def get_pkg_data():
+        try:
+            package_hash = s3_client.get_object(
+                Bucket=bucket,
+                Key=key,
+            )['Body'].read().decode()
+        except botocore.exceptions.ClientError:
+            return
+
         manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
         first = select_manifest_meta(s3_client, bucket, manifest_key)
-        stats = select_package_stats(s3_client, bucket, manifest_key)
         if not first:
-            logger_.error("S3 select failed %s %s", bucket, manifest_key)
-            return False
-        try:
-            first_dict = json.loads(first)
-        except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
-            print(
-                f"{exc}\n"
-                f"\tFailed to select first line of manifest s3://{bucket}/{key}."
-                f"\tGot {first}."
-            )
-            return False
+            return
+        stats = select_package_stats(s3_client, bucket, manifest_key)
+        if not stats:
+            return
 
-    doc_queue.append(
-        event_type,
-        DocTypes.PACKAGE,
-        bucket=bucket,
-        etag=etag,
-        ext=ext,
-        handle=handle,
-        key=key,
-        last_modified=last_modified,
-        # if we don't have the hash, we're processing a tag
-        package_hash=(package_hash or pointer_file),
-        package_stats=stats,
-        pointer_file=pointer_file,
-        comment=str(first_dict.get("message", "")),
-        metadata=json.dumps(first_dict.get("user_meta", {})),
-        version_id=version_id,
-    )
+        user_meta = first.get("user_meta")
+        user_meta = json.dumps(user_meta) if user_meta else None
+
+        return {
+            "key": key,
+            "etag": etag,
+            "version_id": version_id,
+            "last_modified": last_modified,
+            "delete_marker": False,  # TODO: remove
+            "handle": handle,
+            "pointer_file": pointer_file,
+            "hash": package_hash,
+            "package_stats": stats,
+            "metadata": user_meta,
+            "comment": str(first.get("message", "")),
+        }
+
+    data = get_pkg_data() or {}
+    doc_queue.append_document({
+        "_index": bucket + PACKAGE_INDEX_SUFFIX,
+        "_id": key,
+        "_op_type": "index" if data else "delete",
+        **data,
+    })
 
     return True
 
@@ -386,36 +402,58 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
             json.JSONDecodeError,
             KeyError,
     ) as err:
-        logger_.error("Unable to compute package stats via S3 select: %s", err)
+        logger_.exception("Unable to compute package stats via S3 select")
 
     return None
 
 
-def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
-    """get the byte contents of a file if it's a target for deep indexing"""
-    if ext.endswith('.gz'):
-        compression = 'gz'
-        ext = ext[:-len('.gz')]
-    else:
-        compression = None
+def extract_pptx(fileobj, max_size: int) -> str:
+    import pptx
 
+    out = []
+    prs = pptx.Presentation(fileobj)
+
+    def iter_text_parts():
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    text = shape.text.strip()
+                    if text:
+                        yield text
+
+    for part in iter_text_parts():
+        max_size -= len(part) + 1
+        if max_size < 0:
+            break
+        out.append(part)
+    return '\n'.join(out)
+
+
+def maybe_get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client, size, compression=None):
+    """get the byte contents of a file if it's a target for deep indexing"""
+    logger_ = get_quilt_logger()
+    logger_.debug(
+        "Entering maybe_get_contents (could run out of mem.) %s %s %s", bucket, key, version_id
+    )
     content = ""
-    inferred_ext = infer_extensions(key, ext)
-    if inferred_ext in CONTENT_INDEX_EXTS:
-        if inferred_ext == ".fcs":
-            obj = retry_s3(
+    if inferred_ext in get_content_index_extensions(bucket_name=bucket):
+        def _get_obj():
+            return retry_s3(
                 "get",
                 bucket,
                 key,
                 size,
                 etag=etag,
                 s3_client=s3_client,
-                version_id=version_id
+                version_id=version_id,
             )
+
+        if inferred_ext == ".fcs":
+            obj = _get_obj()
             body, info = extract_fcs(get_bytes(obj["Body"], compression), as_html=False)
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
-            content = trim_to_bytes(f"{body}\n{info}", ELASTIC_LIMIT_BYTES)
+            content = trim_to_bytes(f"{body}\n{info}", get_content_index_bytes(bucket_name=bucket))
         elif inferred_ext == ".ipynb":
             content = trim_to_bytes(
                 # we have no choice but to fetch the entire notebook, because we
@@ -430,7 +468,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     s3_client=s3_client,
                     version_id=version_id
                 ),
-                ELASTIC_LIMIT_BYTES
+                get_content_index_bytes(bucket_name=bucket),
             )
         elif inferred_ext == ".parquet":
             if size >= get_available_memory():
@@ -438,24 +476,33 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 # at least index the key and other stats, but don't overrun memory
                 # and fail indexing altogether
                 return ""
-            obj = retry_s3(
-                "get",
-                bucket,
-                key,
-                size,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
-            )
+            obj = _get_obj()
             body, info = extract_parquet(
                 get_bytes(obj["Body"], compression),
                 as_html=False,
-                skip_rows=(inferred_ext in SKIP_ROWS_EXTS)
+                skip_rows=(inferred_ext in SKIP_ROWS_EXTS),
+                max_bytes=get_content_index_bytes(bucket_name=bucket),
             )
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
             columns = ','.join(list(info['schema']['names']))
-            content = trim_to_bytes(f"{columns}\n{body}", ELASTIC_LIMIT_BYTES)
+            content = trim_to_bytes(f"{columns}\n{body}", get_content_index_bytes(bucket_name=bucket))
+        elif inferred_ext == ".pdf":
+            obj = _get_obj()
+            content = trim_to_bytes(
+                extract_pdf(get_bytes(obj["Body"], compression)),
+                get_content_index_bytes(bucket_name=bucket),
+            )
+        elif inferred_ext in (".xls", ".xlsx"):
+            obj = _get_obj()
+            body, _ = extract_excel(get_bytes(obj["Body"], compression), as_html=False)
+            content = trim_to_bytes(
+                body,
+                get_content_index_bytes(bucket_name=bucket),
+            )
+        elif inferred_ext == ".pptx":
+            obj = _get_obj()
+            content = extract_pptx(get_bytes(obj["Body"], compression), get_content_index_bytes(bucket_name=bucket))
         else:
             content = get_plain_text(
                 bucket,
@@ -468,6 +515,22 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             )
 
     return content
+
+
+def extract_pdf(file_):
+    """Get plain text form PDF for searchability.
+    Args:
+        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+    Returns:
+        pdf text as a string
+
+    Warning:
+        This function can be slow. The 8-page test PDF takes ~10 sec to turn into a string.
+    """
+    txt = extract_pdf_text(file_, maxpages=MAX_PDF_PAGES)
+    # crunch down space; extract_text inserts multiple spaces
+    # between words, literal newlines, etc.
+    return re.sub(r"\s+", " ", txt)
 
 
 def extract_text(notebook_str):
@@ -552,14 +615,14 @@ def get_plain_text(
             size,
             etag=etag,
             s3_client=s3_client,
-            limit=ELASTIC_LIMIT_BYTES,
+            limit=get_content_index_bytes(bucket_name=bucket),
             version_id=version_id
         )
         lines = get_preview_lines(
             obj["Body"],
             compression,
             ELASTIC_LIMIT_LINES,
-            ELASTIC_LIMIT_BYTES
+            get_content_index_bytes(bucket_name=bucket),
         )
         text = '\n'.join(lines)
     except UnicodeDecodeError as ex:
@@ -620,6 +683,7 @@ def handler(event, context):
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
     # An exception that we'll want to re-raise after the batch sends
+    # TODO: handle s3:ObjectTagging:* events to keep s3_tags updated
     content_exception = None
     batch_processor = DocumentQueue(context)
     s3_client = make_s3_client()
@@ -657,10 +721,9 @@ def handler(event, context):
                     event_["s3"]["object"].get("lastModified") or event_["eventTime"]
                 )
                 # Get two levels of extensions to handle files like .csv.gz
-                path = pathlib.PurePosixPath(key)
-                ext1 = path.suffix
-                ext2 = path.with_suffix('').suffix
-                ext = (ext2 + ext1).lower()
+                ext_next_last, ext_last = get_normalized_extensions(key)
+                compression = get_compression(ext_last)
+                ext = ext_next_last + ext_last
                 # Handle delete and deletemarker first and then continue so that
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
@@ -717,11 +780,12 @@ def handler(event, context):
                     text = maybe_get_contents(
                         bucket,
                         key,
-                        ext,
+                        infer_extensions(key, (ext_next_last, ext_last), compression),
                         etag=etag,
                         version_id=version_id,
                         s3_client=s3_client,
-                        size=size
+                        size=size,
+                        compression=compression
                     )
                 # we still want an entry for this document in elastic so that, e.g.,
                 # the file counts from elastic are correct
@@ -731,6 +795,10 @@ def handler(event, context):
                 except Exception as exc:  # pylint: disable=broad-except
                     text = ""
                     logger_.warning("Content extraction failed %s %s %s", bucket, key, exc)
+
+                # XXX: we could replace head_object() call above with get_object(Range='bytes=0-0')
+                #      which returns TagsCount, so we could optimize out get_object_tagging() call
+                #      for objects without tags.
 
                 do_index(
                     s3_client,
@@ -743,7 +811,13 @@ def handler(event, context):
                     last_modified=last_modified,
                     size=size,
                     text=text,
-                    version_id=version_id
+                    version_id=version_id,
+                    s3_tags=get_object_tagging(
+                        s3_client=s3_client,
+                        bucket=bucket,
+                        key=key,
+                        version_id=version_id,
+                    ),
                 )
 
             except botocore.exceptions.ClientError as boto_exc:
@@ -786,7 +860,7 @@ def retry_s3(
     }
     if operation == 'get' and size and limit:
         # can only request range if file is not empty
-        arguments['Range'] = f"bytes=0-{min(size, limit)}"
+        arguments['Range'] = f"bytes=0-{min(size, limit) - 1}"
     if version_id:
         arguments['VersionId'] = version_id
     elif etag:
@@ -807,3 +881,24 @@ def retry_s3(
         return function_(**arguments)
 
     return call()
+
+
+def get_object_tagging(*, s3_client, bucket: str, key: str, version_id: Optional[str]) -> Optional[dict]:
+    params = {
+        "Bucket": bucket,
+        "Key": key,
+    }
+    if version_id:
+        params["VersionId"] = version_id
+
+    try:
+        s3_tags = s3_client.get_object_tagging(**params)["TagSet"]
+        return {t["Key"]: t["Value"] for t in s3_tags}
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] != "AccessDenied":
+            raise
+        get_quilt_logger().error(
+            "AccessDenied while getting tags for Bucket=%s, Key=%s, VersionId=%s",
+            bucket, key, version_id
+        )
+        return None

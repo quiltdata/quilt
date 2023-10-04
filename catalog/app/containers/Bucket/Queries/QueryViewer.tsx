@@ -1,6 +1,6 @@
 import Ajv from 'ajv'
 import brace from 'brace'
-import { JsonEditor } from 'jsoneditor-react'
+import { JsonEditor as ReactJsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -31,19 +31,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function parseJSON(str: string) {
-  try {
-    return JSON.parse(str)
-  } catch (e) {
-    return str
-  }
-}
-
-export const stringifyJSON = (obj: object | string) => {
-  if (typeof obj === 'string') return obj
-  return JSON.stringify(obj, null, 2)
-}
-
 interface QueryViewerProps {
   className: string
   onChange: (value: requests.ElasticSearchQuery) => void
@@ -64,9 +51,7 @@ export default function QueryViewer({
   const [error, setError] = React.useState<Error | null>(null)
 
   const handleChange = React.useCallback(
-    (value: object) => {
-      onChange(value as requests.ElasticSearchQuery)
-    },
+    (value: object) => onChange(value as requests.ElasticSearchQuery),
     [onChange],
   )
 
@@ -92,15 +77,13 @@ export default function QueryViewer({
     [t],
   )
 
-  if (!query) return null
-
   return (
     <div className={className}>
       <M.Typography className={classes.header} variant="body1">
         Query body
       </M.Typography>
       <M.Paper className={classes.editor}>
-        <JsonEditor
+        <ReactJsonEditor
           ace={brace}
           ajv={ajv}
           htmlElementProps={editorHtmlProps}

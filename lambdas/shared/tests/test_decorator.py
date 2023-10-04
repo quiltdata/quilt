@@ -181,16 +181,16 @@ class TestDecorator(TestCase):
             assert request.headers == {}
             return 200, 'blah', {}
 
-        code, body, headers = handler(Request(self._make_get({'foo': 'bar'}, None)))
+        code, body, headers = handler(Request(self._make_get({'foo': 'bar'}, None), None))
         assert code == 200
         assert body == 'blah'
         assert headers == {}
 
-        code, _, headers = handler(Request(self._make_get(None, None)))
+        code, _, headers = handler(Request(self._make_get(None, None), None))
         assert code == 400
         assert headers == {'Content-Type': 'text/plain'}
 
-        code, _, headers = handler(Request(self._make_get({'foo': 'bar', 'x': 'y'}, None)))
+        code, _, headers = handler(Request(self._make_get({'foo': 'bar', 'x': 'y'}, None), None))
         assert code == 400
         assert headers == {'Content-Type': 'text/plain'}
 

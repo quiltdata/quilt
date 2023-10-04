@@ -3,9 +3,10 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Auth from 'containers/Auth'
+import cfg from 'constants/config'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
-import { useConfig } from 'utils/Config'
+import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import useConstant from 'utils/useConstant'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
 
@@ -15,10 +16,12 @@ import * as Credentials from './Credentials'
 const DEFAULT_OPTS = {
   signatureVersion: 'v4',
   s3UsEast1RegionalEndpoint: 'regional',
+  region: cfg.region,
 }
 
 const PROXIED = Symbol('proxied')
 const PRESIGN = Symbol('presign')
+const FORCE_PROXY = Symbol('forceProxy')
 
 const Ctx = React.createContext()
 
@@ -34,10 +37,9 @@ function useTrackingFn(fn) {
 }
 
 function useSmartS3() {
-  const cfg = useConfig()
-  const selectEndpoint = `${cfg.binaryApiGatewayEndpoint}/s3select/`
-  const isAuthenticated = useTracking(redux.useSelector(Auth.selectors.authenticated))
+  const isAuthenticated = useTracking(redux.useSelector(authSelectors.authenticated))
   const isInStack = useTrackingFn(BucketConfig.useIsInStack())
+  const statusReportsBucket = useStatusReportsBucket()
 
   return useConstant(() => {
     class SmartS3 extends S3 {
@@ -51,7 +53,9 @@ function useSmartS3() {
             // sign if operation is not bucket-specific
             // (not sure if there are any such operations that can be used from the browser)
             !bucket ||
-            (cfg.analyticsBucket && cfg.analyticsBucket === bucket) ||
+            cfg.analyticsBucket === bucket ||
+            cfg.serviceBucket === bucket ||
+            statusReportsBucket === bucket ||
             (cfg.mode !== 'OPEN' && isInStack(bucket))
           ) {
             return 'signed'
@@ -75,21 +79,27 @@ function useSmartS3() {
 
         if (b) {
           const endpoint = new AWS.Endpoint(
-            type === 'select' ? selectEndpoint : cfg.s3Proxy,
+            type === 'select' ? `${cfg.apiGatewayEndpoint}/s3select/` : cfg.s3Proxy,
           )
           req.on('sign', () => {
             if (req.httpRequest[PRESIGN]) return
+
             // Monkey-patch the request object after it has been signed and save the original
             // values in case of retry.
+            const origEndpoint = req.httpRequest.endpoint
+            const origPath = req.httpRequest.path
+
             req.httpRequest[PROXIED] = {
-              endpoint: req.httpRequest.endpoint,
-              path: req.httpRequest.path,
+              endpoint: origEndpoint,
+              path: origPath,
             }
+            const basePath = endpoint.path.replace(/\/$/, '')
+
             req.httpRequest.endpoint = endpoint
             req.httpRequest.path =
               type === 'select'
-                ? `${endpoint.path.replace(/\/$/, '')}${req.httpRequest.path}`
-                : `/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+                ? `${basePath}${origPath}`
+                : `${basePath}/${origEndpoint.host}${origPath}`
           })
           req.on(
             'retry',
@@ -111,7 +121,7 @@ function useSmartS3() {
 
       prepareSignedUrl(req) {
         super.prepareSignedUrl(req)
-        req.httpRequest[PRESIGN] = true
+        if (!req.httpRequest[FORCE_PROXY]) req.httpRequest[PRESIGN] = true
       }
 
       makeRequest(operation, params, callback) {
@@ -122,7 +132,12 @@ function useSmartS3() {
           params = null
         }
 
+        const forceProxy = params?.forceProxy ?? false
+        delete params?.forceProxy
         const req = super.makeRequest(operation, params)
+        if (forceProxy) {
+          req.httpRequest[FORCE_PROXY] = true
+        }
         const type = this.getReqType(req)
 
         if (type !== 'signed') {
@@ -157,9 +172,3 @@ export function useS3() {
 }
 
 export const use = useS3
-
-export function InjectS3({ children }) {
-  return children(useS3())
-}
-
-export const Inject = InjectS3

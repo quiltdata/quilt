@@ -71,7 +71,7 @@ def list_packages(registry=None):
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
-    Returns an iterable of (version, hash) of a package in a registry.
+    Returns an iterable of (latest_or_unix_ts, hash) of package revisions.
     If the registry is None, default to the local registry.
 
     Args:
@@ -91,17 +91,18 @@ def config(*catalog_url, **config_values):
 
     To retrieve the current config, call directly, without arguments:
 
-        >>> import quilt3
-        >>> quilt3.config()
+        import quilt3
+        quilt3.config()
 
     To trigger autoconfiguration, call with just the navigator URL:
 
-        >>> quilt3.config('https://example.com')
+        import quilt3
+        quilt3.config('https://YOUR-CATALOG-URL.com')
 
     To set config values, call with one or more key=value pairs:
 
-        >>> quilt3.config(navigator_url='http://example.com',
-        ...               elastic_search_url='http://example.com/queries')
+        import quilt3
+        quilt3.config(navigator_url='http://example.com')
 
     Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
 

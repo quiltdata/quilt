@@ -8,11 +8,7 @@ const EXPERIMENTS = {
     'Ready to experiment faster?',
     'Ready to maximize return on data?',
   ],
-  lede: [
-    'Maximize your return on data by managing data like code',
-    'Accelerate from experiment to impact',
-    'Quilt is an experiment discovery platform',
-  ],
+  lede: ['Accelerate from data to impact', 'Manage data like code', 'Discover faster'],
 }
 
 const Ctx = React.createContext()

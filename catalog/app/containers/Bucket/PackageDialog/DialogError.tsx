@@ -4,9 +4,9 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import StyledLink from 'utils/StyledLink'
-import { readableBytes } from 'utils/string'
 import { docs } from 'constants/urls'
 
+import WorkflowsConfigLink from '../WorkflowsConfigLink'
 import * as ERRORS from '../errors'
 
 const useStyles = M.makeStyles((t) => ({
@@ -30,7 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 const errorDisplay = R.cond([
   [
     R.is(ERRORS.WorkflowsConfigInvalid),
-    (e: ERRORS.WorkflowsConfigInvalid) => (
+    (e: ERRORS.WorkflowsConfigInvalid, bucket) => (
       <>
         <M.Typography variant="h6" gutterBottom>
           Invalid workflows config
@@ -39,8 +39,10 @@ const errorDisplay = R.cond([
           Error: <code>{e.message}</code>
         </M.Typography>
         <M.Typography>
-          Please fix the workflows config according to{' '}
-          <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
+          Please fix the{' '}
+          <WorkflowsConfigLink bucket={bucket}>workflows config</WorkflowsConfigLink>{' '}
+          according to{' '}
+          <StyledLink href={`${docs}/advanced/workflows`} target="_blank">
             the documentation
           </StyledLink>
           .
@@ -57,7 +59,7 @@ const errorDisplay = R.cond([
         </M.Typography>
         <M.Typography gutterBottom>
           This package is not editable via the web UI&mdash;it cannot handle package
-          manifest that large ({readableBytes(e.actualSize)}).
+          manifests with more than {e.max} entries.
         </M.Typography>
         <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
       </>
@@ -80,33 +82,36 @@ const errorDisplay = R.cond([
 ])
 
 interface DialogErrorProps {
+  bucket: string
+  cancelText?: React.ReactNode
   error: any
-  skeletonElement: React.ReactNode
-  title: React.ReactNode
   onCancel: () => void
+  skeletonElement: React.ReactNode
+  submitText?: React.ReactNode
+  title: React.ReactNode
 }
 
 export default function DialogError({
+  bucket,
+  cancelText,
   error,
-  skeletonElement,
-  title,
   onCancel,
+  skeletonElement,
+  submitText,
+  title,
 }: DialogErrorProps) {
   const classes = useStyles()
-
   return (
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
-
       <M.DialogContent className={classes.content}>
         {skeletonElement}
-        <div className={classes.overlay}>{errorDisplay(error)}</div>
+        <div className={classes.overlay}>{errorDisplay(error, bucket)}</div>
       </M.DialogContent>
-
       <M.DialogActions>
-        <M.Button onClick={onCancel}>Cancel</M.Button>
+        <M.Button onClick={onCancel}>{cancelText || 'Cancel'}</M.Button>
         <M.Button variant="contained" color="primary" disabled>
-          Push
+          {submitText || 'Push'}
         </M.Button>
       </M.DialogActions>
     </>

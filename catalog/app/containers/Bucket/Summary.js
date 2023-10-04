@@ -2,21 +2,41 @@ import { basename } from 'path'
 
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as Pagination from 'components/Pagination'
+import * as Buttons from 'components/Buttons'
+import * as FileEditor from 'components/FileEditor'
 import * as Preview from 'components/Preview'
-import Thumbnail, { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
-import * as AWS from 'utils/AWS'
+import { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import AsyncResult from 'utils/AsyncResult'
-import Data, { useData } from 'utils/Data'
-import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import { getBasename, getPrefix, withoutPrefix } from 'utils/s3paths'
+import { getBasename } from 'utils/s3paths'
 
-import * as requests from './requests'
+import * as Gallery from './Gallery'
+import * as Summarize from './Summarize'
+
+const useAddReadmeSectionStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    margin: t.spacing(2, 0),
+  },
+}))
+
+function AddReadmeSection({ packageHandle, path }) {
+  const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
+  const classes = useAddReadmeSectionStyles()
+  return (
+    <div className={classes.root}>
+      {prompt.render()}
+      <M.Button color="primary" size="small" variant="contained" onClick={prompt.open}>
+        Add README
+      </M.Button>
+    </div>
+  )
+}
 
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
@@ -36,37 +56,34 @@ const extractSummary = R.applySpec({
 })
 
 const Container = M.styled(M.Card)(({ theme: t }) => ({
-  marginTop: t.spacing(2),
+  position: 'relative',
+  zIndex: 1,
+  [t.breakpoints.down('xs')]: {
+    borderRadius: 0,
+  },
+  [t.breakpoints.up('sm')]: {
+    marginTop: t.spacing(2),
+  },
 }))
 
 const Header = ({ children }) => (
   <M.CardHeader title={<M.Typography variant="h5">{children}</M.Typography>} />
 )
 
-function HandleResolver({ handle, children }) {
-  const resolve = LogicalKeyResolver.use()
-  if (resolve && handle.logicalKey && !handle.key) {
-    return (
-      <Data fetch={resolve} params={handle.logicalKey}>
-        {children}
-      </Data>
-    )
-  }
-  return children(AsyncResult.Ok(handle))
-}
-
 const renderContents = (contents) => <M.Box mx="auto">{contents}</M.Box>
+
+const previewOptions = { context: Preview.CONTEXT.LISTING }
 
 function SummaryItemFile({ handle, name, mkUrl }) {
   const withData = (callback) => (
-    <HandleResolver handle={handle}>
+    <Summarize.HandleResolver handle={handle}>
       {AsyncResult.case({
         Err: (e, { fetch }) =>
           Preview.PreviewError.Unexpected({ handle, retry: fetch, originalError: e }),
-        Ok: (resolved) => Preview.load(resolved, callback),
+        Ok: (resolved) => Preview.load(resolved, callback, previewOptions),
         _: callback,
       })}
-    </HandleResolver>
+    </Summarize.HandleResolver>
   )
 
   return (
@@ -81,141 +98,35 @@ function SummaryItemFile({ handle, name, mkUrl }) {
   )
 }
 
-const useThumbnailsStyles = M.makeStyles((t) => ({
-  container: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  link: {
-    flexBasis: '19%',
-    marginBottom: t.spacing(2),
-  },
-  img: {
-    display: 'block',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxWidth: '100%',
-  },
-  filler: {
-    flexBasis: '19%',
-
-    '&::after': {
-      content: '""',
-    },
-  },
-}))
-
-function Thumbnails({ images, mkUrl }) {
-  const classes = useThumbnailsStyles()
-
-  const scrollRef = React.useRef(null)
-  const scroll = React.useCallback(
-    (prev) => {
-      if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
-    },
-    [scrollRef],
-  )
-
-  const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
-
-  return (
-    <Container>
-      <Header>
-        Images ({pagination.from}&ndash;{pagination.to} of {images.length})
-      </Header>
-      <div ref={scrollRef} />
-      <M.CardContent className={classes.container}>
-        {pagination.paginated.map((i) => (
-          <Link key={i.logicalKey || i.key} to={mkUrl(i)} className={classes.link}>
-            <HandleResolver handle={i}>
-              {AsyncResult.case({
-                _: () => null,
-                Ok: (resolved) => (
-                  <Thumbnail
-                    handle={resolved}
-                    className={classes.img}
-                    alt={basename(i.logicalKey || i.key)}
-                    title={basename(i.logicalKey || i.key)}
-                  />
-                ),
-              })}
-            </HandleResolver>
-          </Link>
-        ))}
-        {R.times(
-          (i) => (
-            <div className={classes.filler} key={`__filler${i}`} />
-          ),
-          (5 - (pagination.paginated.length % 5)) % 5,
-        )}
-      </M.CardContent>
-      {pagination.pages > 1 && (
-        <M.Box>
-          <M.Divider />
-          <M.Box display="flex" justifyContent="flex-end" px={2} py={0.25}>
-            <Pagination.Controls {...pagination} />
-          </M.Box>
-        </M.Box>
-      )}
-    </Container>
-  )
-}
-
-const useSummarizeStyles = M.makeStyles((t) => ({
-  progress: {
-    marginTop: t.spacing(2),
-  },
-}))
-
-function Summarize({ handle, mkUrl }) {
-  const classes = useSummarizeStyles()
-  const s3 = AWS.S3.use()
-  const resolveLogicalKey = LogicalKeyResolver.use()
-  const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
-  return data.case({
-    Err: (e) => {
-      // eslint-disable-next-line no-console
-      console.warn('Error loading summary')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return null
-    },
-    _: () => <M.CircularProgress className={classes.progress} />,
-    Ok: R.map((i) => (
-      <SummaryItemFile
-        key={i.key}
-        // TODO: make a reusable function to compute relative s3 paths or smth
-        title={withoutPrefix(
-          getPrefix(handle.logicalKey || handle.key),
-          i.logicalKey || i.key,
-        )}
-        handle={i}
-        mkUrl={mkUrl}
-      />
-    )),
-  })
+function ThumbnailsWrapper({
+  preferences: galleryPrefs,
+  images,
+  mkUrl,
+  inPackage,
+  hasSummarize,
+}) {
+  if (!images.length || !galleryPrefs) return null
+  if (!inPackage && !galleryPrefs.files) return null
+  if (inPackage && !galleryPrefs.packages) return null
+  if (hasSummarize && !galleryPrefs.summarize) return null
+  return <Gallery.Thumbnails {...{ images, mkUrl }} />
 }
 
 // files: Array of s3 handles
-export default function BucketSummary({
-  files,
-  whenEmpty = () => null,
-  mkUrl: mkUrlProp,
-}) {
+export default function BucketSummary({ files, mkUrl: mkUrlProp, packageHandle, path }) {
   const { urls } = NamedRoutes.use()
+  const prefs = BucketPreferences.use()
   const mkUrl = React.useCallback(
     (handle) =>
       mkUrlProp
         ? mkUrlProp(handle)
-        : urls.bucketFile(handle.bucket, handle.key, handle.version),
+        : urls.bucketFile(handle.bucket, handle.key, { version: handle.version }),
     [mkUrlProp, urls],
   )
   const { readme, images, summarize } = extractSummary(files)
 
   return (
-    <>
-      {!readme && !summarize && !images.length && whenEmpty()}
+    <Summarize.FileThemeContext.Provider value={Summarize.FileThemes.Nested}>
       {readme && (
         <SummaryItemFile
           title={basename(readme.logicalKey || readme.key)}
@@ -223,8 +134,45 @@ export default function BucketSummary({
           mkUrl={mkUrl}
         />
       )}
-      {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
-      {summarize && <Summarize handle={summarize} mkUrl={mkUrl} />}
-    </>
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { actions } }) =>
+            !readme &&
+            !path &&
+            !!packageHandle &&
+            !!actions.revisePackage && (
+              <AddReadmeSection packageHandle={packageHandle} path={path} />
+            ),
+          Pending: () => <Buttons.Skeleton size="small" />,
+          Init: () => null,
+        },
+        prefs,
+      )}
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => (
+            <ThumbnailsWrapper
+              {...{
+                images,
+                mkUrl,
+                preferences: blocks.gallery,
+                inPackage: !!packageHandle,
+                hasSummarize: !!summarize,
+              }}
+            />
+          ),
+          Pending: () => <Gallery.Skeleton />,
+          Init: () => null,
+        },
+        prefs,
+      )}
+      {summarize && (
+        <Summarize.SummaryNested
+          handle={summarize}
+          mkUrl={mkUrl}
+          packageHandle={packageHandle}
+        />
+      )}
+    </Summarize.FileThemeContext.Provider>
   )
 }

@@ -1,0 +1,20 @@
+query {
+  roles {
+    ... on UnmanagedRole {
+      id
+      name
+    }
+    ... on ManagedRole {
+      id
+      name
+    }
+  }
+  defaultRole {
+    ... on UnmanagedRole {
+      id
+    }
+    ... on ManagedRole {
+      id
+    }
+  }
+}

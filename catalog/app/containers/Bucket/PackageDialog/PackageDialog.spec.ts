@@ -32,7 +32,7 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
     test('height should be enough for content on large screen', () => {
       const metaHeight = 300
       const windowHeight = 1440
-      expect(PD.calcDialogHeight(windowHeight, metaHeight)).toBe(700)
+      expect(PD.calcDialogHeight(windowHeight, metaHeight)).toBe(645)
     })
   })
 
@@ -42,7 +42,6 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
     })
 
     test('should return error when metadata is not an object', () => {
-      // TODO: remove this test when all references will be in typescript
       // @ts-expect-error
       expect(PD.mkMetaValidator()(123)).toMatchObject({
         message: 'Metadata must be a valid JSON object',
@@ -55,7 +54,7 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
 
     test("should return error when metadata isn't compliant with Schema", () => {
       expect(PD.mkMetaValidator({ type: 'array' })({ any: 'thing' })).toMatchObject([
-        { message: 'should be array' },
+        { message: 'must be array' },
       ])
     })
 

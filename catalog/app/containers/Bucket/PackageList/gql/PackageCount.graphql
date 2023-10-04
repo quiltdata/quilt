@@ -1,0 +1,5 @@
+query ($bucket: String!, $filter: String) {
+  packages(bucket: $bucket, filter: $filter) {
+    total
+  }
+}

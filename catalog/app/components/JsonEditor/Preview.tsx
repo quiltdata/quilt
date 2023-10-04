@@ -54,11 +54,20 @@ const hasDeleteButton = (
   columnId: 'key' | 'value',
   value: JsonValue,
   schema?: JsonSchema,
-) => columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
+) => {
+  // Remove button is shown in key field
+  if (columnId !== COLUMN_IDS.KEY) return false
+  // Remove button is shown only when key is set
+  if (value === EMPTY_VALUE) return false
+  // No button if key is a placeholder from Schema and it's not array index
+  if (schema && typeof value !== 'number') return false
+  return true
+}
 
 interface PreviewProps {
   columnId: 'key' | 'value'
   data: RowData // NOTE: react-table's row.original
+  onContextMenu: React.MouseEventHandler<HTMLElement>
   onExpand: () => void
   onRemove: () => void
   placeholder: string
@@ -69,6 +78,7 @@ interface PreviewProps {
 export default function Preview({
   columnId,
   data,
+  onContextMenu,
   onExpand,
   onRemove,
   placeholder,
@@ -81,7 +91,7 @@ export default function Preview({
   const isEmpty = React.useMemo(() => value === EMPTY_VALUE, [value])
 
   return (
-    <div className={classes.root}>
+    <div className={classes.root} onContextMenu={onContextMenu}>
       {isExpandable(value, data.valueSchema) && <ButtonExpand onClick={onExpand} />}
 
       <div className={classes.value} title={title}>

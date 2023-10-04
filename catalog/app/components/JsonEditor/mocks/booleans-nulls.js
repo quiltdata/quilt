@@ -18,33 +18,33 @@ export const schema = {
 }
 
 export const jsonDict = {
-  boolValue: {
-    address: ['boolValue'],
-    required: false,
-    sortIndex: 3,
-    type: 'boolean',
-    valueSchema: {
-      type: 'boolean',
-    },
-  },
-  enumBool: {
-    address: ['enumBool'],
-    required: false,
-    sortIndex: 5,
-    type: 'boolean',
-    valueSchema: {
-      enum: [true, false],
-      type: 'boolean',
-    },
-  },
-  nullValue: {
+  '/nullValue': {
     address: ['nullValue'],
     required: false,
-    sortIndex: 1,
-    type: 'null',
     valueSchema: {
       type: 'null',
     },
+    sortIndex: 1,
+    type: 'null',
+  },
+  '/boolValue': {
+    address: ['boolValue'],
+    required: false,
+    valueSchema: {
+      type: 'boolean',
+    },
+    sortIndex: 3,
+    type: 'boolean',
+  },
+  '/enumBool': {
+    address: ['enumBool'],
+    required: false,
+    valueSchema: {
+      type: 'boolean',
+      enum: [true, false],
+    },
+    sortIndex: 5,
+    type: 'boolean',
   },
 }
 
@@ -54,7 +54,7 @@ export const columns = [
     items: [
       {
         key: 'nullValue',
-        reactId: 'nullValue+undefined',
+        reactId: '/nullValue+undefined',
         address: ['nullValue'],
         required: false,
         valueSchema: {
@@ -66,7 +66,7 @@ export const columns = [
       },
       {
         key: 'boolValue',
-        reactId: 'boolValue+undefined',
+        reactId: '/boolValue+undefined',
         address: ['boolValue'],
         required: false,
         valueSchema: {
@@ -78,7 +78,7 @@ export const columns = [
       },
       {
         key: 'enumBool',
-        reactId: 'enumBool+undefined',
+        reactId: '/enumBool+undefined',
         address: ['enumBool'],
         required: false,
         valueSchema: {

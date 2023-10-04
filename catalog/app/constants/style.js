@@ -88,6 +88,11 @@ const websiteTypography = {
 }
 
 const websiteOverrides = {
+  MuiAppBar: {
+    colorPrimary: {
+      background: appPalette.primary.main,
+    },
+  },
   MuiButton: {
     root: {
       padding: [[8, 24]],

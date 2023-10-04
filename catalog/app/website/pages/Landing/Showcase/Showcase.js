@@ -72,21 +72,21 @@ export default function Showcase() {
             </M.Box>
             <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
-                Most teams are already on top of their code and containers, but their data
-                lags behind.
+                Your team might be on top of its code and containers, but your data feels
+                far behind.
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
-                Quilt transforms data into versioned, reusable datasets so that teams in
-                machine learning and computational biology can iterate faster, reduce
-                errors, and deploy smarter models.
+                You can use Quilt to transform scattered, unlabeled data into
+                reproducible, discoverable, and trusted datasets in the cloud. With Quilt,
+                your company will discover drugs, targets, and models faster.
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
-                Quilt consists of a Python API, web catalog, and backend stack to manage
-                data sets in S3.
+                Quilt consists of a Python API, web catalog, and backend to manage data
+                sets in S3.
               </M.Typography>
             </M.Box>
             <M.Box mt={3}>
@@ -106,12 +106,12 @@ export default function Showcase() {
               </M.Box>
             </M.Box>
             <M.Box mt={5}>
-              <ChevronLink href="https://docs.quiltdata.com/installation">
-                Create a versioned dataset in Python
-              </ChevronLink>
+              <ChevronLink href="#pricing">Get Quilt for your team</ChevronLink>
             </M.Box>
             <M.Box mt={1}>
-              <ChevronLink href="#pricing">Get the Quilt data portal for AWS</ChevronLink>
+              <ChevronLink href="https://docs.quiltdata.com/installation">
+                Create a Quilt package (Python)
+              </ChevronLink>
             </M.Box>
             <M.Box mt={1}>
               <ChevronLink href={URLS.slackInvite}>Ask questions on Slack</ChevronLink>

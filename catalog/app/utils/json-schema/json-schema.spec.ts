@@ -1,4 +1,9 @@
-import { makeSchemaDefaultsSetter, makeSchemaValidator } from './json-schema'
+import {
+  isSchemaEnum,
+  findTypeInCompoundSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from './json-schema'
 
 import * as booleansNulls from './mocks/booleans-nulls'
 import * as compound from './mocks/compound'
@@ -20,13 +25,10 @@ describe('utils/json-schema', () => {
       })
     })
 
-    it('should throw an error when schema is incorrect', () => {
-      const validate = makeSchemaValidator(incorrect.schema)
-      const errors = validate({})
-
-      expect(errors).toHaveLength(1)
-      expect(errors[0]).toBeInstanceOf(Error)
-      expect(errors[0].message).toMatch(/schema is invalid/)
+    it('should return an error when schema is incorrect', () => {
+      expect(makeSchemaValidator(incorrect.schema)()[0].message).toMatch(
+        /schema is invalid/,
+      )
     })
 
     describe('validator for Schema with enum types', () => {
@@ -36,7 +38,7 @@ describe('utils/json-schema', () => {
         const invalid = { a: 123, b: 'value', optEnum: 'value' }
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
-        expect(errors[0]).toMatchObject({ dataPath: '.optEnum', keyword: 'enum' })
+        expect(errors[0]).toMatchObject({ instancePath: '/optEnum', keyword: 'enum' })
       })
 
       it("shouldn't return error, when value matches enum", () => {
@@ -53,7 +55,7 @@ describe('utils/json-schema', () => {
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
         expect(errors[0]).toMatchObject({
-          dataPath: '.longNestedList[0]',
+          instancePath: '/longNestedList/0',
           keyword: 'type',
         })
       })
@@ -63,7 +65,7 @@ describe('utils/json-schema', () => {
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
         expect(errors[0]).toMatchObject({
-          dataPath: '.longNestedList[0][0][0][0][0][0][0][0][0][0]',
+          instancePath: '/longNestedList/0/0/0/0/0/0/0/0/0/0',
           keyword: 'type',
         })
       })
@@ -73,13 +75,13 @@ describe('utils/json-schema', () => {
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
         expect(errors[0]).toMatchObject({
-          dataPath: '.longNestedList[0][0][0][0][0][0][0][0][0][4]',
+          instancePath: '/longNestedList/0/0/0/0/0/0/0/0/0/4',
           keyword: 'type',
         })
       })
 
       it("shouldn't return error, when value matches array structure and types inside last nesting level", () => {
-        const valid = { longNestedList: [[[[[[[[[[1, 2.5, 3, 10e100, Infinity]]]]]]]]]] }
+        const valid = { longNestedList: [[[[[[[[[[1, 2.5, 3, 10e100]]]]]]]]]] }
         expect(validate(valid)).toHaveLength(0)
       })
     })
@@ -91,14 +93,14 @@ describe('utils/json-schema', () => {
         const invalidNumber = { a: 'b', b: 'b' }
         const errorsNumber = validate(invalidNumber)
         expect(errorsNumber).toHaveLength(1)
-        expect(errorsNumber[0]).toMatchObject({ dataPath: '.a', keyword: 'type' })
+        expect(errorsNumber[0]).toMatchObject({ instancePath: '/a', keyword: 'type' })
       })
 
       it('should return error, when string is expected but number is provided', () => {
         const invalidString = { a: 123, b: 123 }
         const errorsString = validate(invalidString)
         expect(errorsString).toHaveLength(1)
-        expect(errorsString[0]).toMatchObject({ dataPath: '.b', keyword: 'type' })
+        expect(errorsString[0]).toMatchObject({ instancePath: '/b', keyword: 'type' })
       })
 
       it("shouldn't return error, when object matches Schema types", () => {
@@ -114,21 +116,34 @@ describe('utils/json-schema', () => {
         const invalidNull = { nullValue: 123 }
         const errorsNull = validate(invalidNull)
         expect(errorsNull).toHaveLength(1)
-        expect(errorsNull[0]).toMatchObject({ dataPath: '.nullValue', keyword: 'type' })
+        expect(errorsNull[0]).toMatchObject({
+          instancePath: '/nullValue',
+          keyword: 'type',
+        })
       })
 
       it("should return error, when value doesn't match boolean", () => {
         const invalidBool = { boolValue: 0 }
         const errorsBool = validate(invalidBool)
         expect(errorsBool).toHaveLength(1)
-        expect(errorsBool[0]).toMatchObject({ dataPath: '.boolValue', keyword: 'type' })
+        expect(errorsBool[0]).toMatchObject({
+          instancePath: '/boolValue',
+          keyword: 'type',
+        })
       })
 
       it("should return error, when value doesn't match boolean as enum", () => {
         const invalidEnum = { enumBool: null }
         const errorsEnum = validate(invalidEnum)
-        expect(errorsEnum).toHaveLength(1)
-        expect(errorsEnum[0]).toMatchObject({ dataPath: '.enumBool', keyword: 'type' })
+        expect(errorsEnum).toHaveLength(2)
+        expect(errorsEnum[0]).toMatchObject({
+          instancePath: '/enumBool',
+          keyword: 'type',
+        })
+        expect(errorsEnum[1]).toMatchObject({
+          instancePath: '/enumBool',
+          keyword: 'enum',
+        })
       })
 
       it("shouldn't return error, when object matches Schema types", () => {
@@ -156,15 +171,15 @@ describe('utils/json-schema', () => {
         expect(errorsAnyOf).toHaveLength(3)
         expect(errorsAnyOf).toMatchObject([
           {
-            dataPath: '.numOrString',
+            instancePath: '/numOrString',
             keyword: 'type',
           },
           {
-            dataPath: '.numOrString',
+            instancePath: '/numOrString',
             keyword: 'type',
           },
           {
-            dataPath: '.numOrString',
+            instancePath: '/numOrString',
             keyword: 'anyOf',
           },
         ])
@@ -176,15 +191,15 @@ describe('utils/json-schema', () => {
         expect(errorsOneOf).toHaveLength(3)
         expect(errorsOneOf).toMatchObject([
           {
-            dataPath: '.intOrNonNumberOrLess3',
+            instancePath: '/intOrNonNumberOrLess3',
             keyword: 'maximum',
           },
           {
-            dataPath: '.intOrNonNumberOrLess3',
+            instancePath: '/intOrNonNumberOrLess3',
             keyword: 'type',
           },
           {
-            dataPath: '.intOrNonNumberOrLess3',
+            instancePath: '/intOrNonNumberOrLess3',
             keyword: 'oneOf',
           },
         ])
@@ -193,9 +208,13 @@ describe('utils/json-schema', () => {
       it("shouldn't return error, when value doesn't match `allOf` type", () => {
         const invalidAllOf = { intLessThan3: 'a' }
         const errorsAllOf = validate(invalidAllOf)
-        expect(errorsAllOf).toHaveLength(1)
+        expect(errorsAllOf).toHaveLength(2)
         expect(errorsAllOf[0]).toMatchObject({
-          dataPath: '.intLessThan3',
+          instancePath: '/intLessThan3',
+          keyword: 'type',
+        })
+        expect(errorsAllOf[1]).toMatchObject({
+          instancePath: '/intLessThan3',
           keyword: 'type',
         })
       })
@@ -203,10 +222,14 @@ describe('utils/json-schema', () => {
       it("shouldn't return error, when value doesn't match `allOf` comparing condition", () => {
         const invalidAllOf = { intLessThan3: 3.5 }
         const errorsAllOf = validate(invalidAllOf)
-        expect(errorsAllOf).toHaveLength(1)
+        expect(errorsAllOf).toHaveLength(2)
         expect(errorsAllOf[0]).toMatchObject({
-          dataPath: '.intLessThan3',
+          instancePath: '/intLessThan3',
           keyword: 'maximum',
+        })
+        expect(errorsAllOf[1]).toMatchObject({
+          instancePath: '/intLessThan3',
+          keyword: 'type',
         })
       })
 
@@ -218,14 +241,20 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with types as array', () => {
-      const validate = makeSchemaValidator(compound.schemaTypeArray)
+      const validate = makeSchemaValidator(compound.schemaTypeArray, [], {
+        allowUnionTypes: true,
+      })
 
       it("should return error, when root property doesn't match type", () => {
         const invalidProperty = { strOrNum: [], strOrNumList: [{}, null, true] }
         const errorsProperty = validate(invalidProperty)
-        expect(errorsProperty).toHaveLength(1)
+        expect(errorsProperty).toHaveLength(4)
         expect(errorsProperty[0]).toMatchObject({
-          dataPath: '.strOrNum',
+          instancePath: '/strOrNum',
+          keyword: 'type',
+        })
+        expect(errorsProperty[1]).toMatchObject({
+          instancePath: '/strOrNumList/0',
           keyword: 'type',
         })
       })
@@ -233,9 +262,17 @@ describe('utils/json-schema', () => {
       it("should return error, when first element inside array doesn't match type", () => {
         const invalidItem = { strOrNum: 123, strOrNumList: [{}, null, true] }
         const errorsItem = validate(invalidItem)
-        expect(errorsItem).toHaveLength(1)
+        expect(errorsItem).toHaveLength(3)
         expect(errorsItem[0]).toMatchObject({
-          dataPath: '.strOrNumList[0]',
+          instancePath: '/strOrNumList/0',
+          keyword: 'type',
+        })
+        expect(errorsItem[1]).toMatchObject({
+          instancePath: '/strOrNumList/1',
+          keyword: 'type',
+        })
+        expect(errorsItem[2]).toMatchObject({
+          instancePath: '/strOrNumList/2',
           keyword: 'type',
         })
       })
@@ -243,9 +280,13 @@ describe('utils/json-schema', () => {
       it("should return error, when second element inside array doesn't match type", () => {
         const invalidItem = { strOrNum: 123, strOrNumList: [123, null, true] }
         const errorsItem = validate(invalidItem)
-        expect(errorsItem).toHaveLength(1)
+        expect(errorsItem).toHaveLength(2)
         expect(errorsItem[0]).toMatchObject({
-          dataPath: '.strOrNumList[1]',
+          instancePath: '/strOrNumList/1',
+          keyword: 'type',
+        })
+        expect(errorsItem[1]).toMatchObject({
+          instancePath: '/strOrNumList/2',
           keyword: 'type',
         })
       })
@@ -334,8 +375,7 @@ describe('utils/json-schema', () => {
     })
 
     it('should return value with prepopulated date', () => {
-      jest.useFakeTimers('modern')
-      jest.setSystemTime(new Date(2020, 0, 30))
+      jest.useFakeTimers({ now: new Date(2020, 0, 30) })
 
       const obj = { a: { b: 1 } }
       const schema = {
@@ -375,6 +415,52 @@ describe('utils/json-schema', () => {
         g: '2020-01-30',
       })
       jest.useRealTimers()
+    })
+  })
+
+  describe('type checkers', () => {
+    describe('isSchemaEnum', () => {
+      const simpleString = { type: 'string' }
+      const enumString = { type: 'string', enum: ['one', 'two'] }
+      const simpleNumber = { type: 'number' }
+      const enumNumber = { type: 'number', enum: [1, 2] }
+      const numberOrString = { anyOf: [{ type: 'number' }, simpleString] }
+      const numberOrEnum = { anyOf: [simpleNumber, enumString] }
+      const numberAndString = { allOf: [simpleNumber, simpleString] }
+      const numberAndEnum = { allOf: [simpleNumber, enumString] }
+      const enumAndEnum = { allOf: [enumNumber, enumString] }
+
+      it('should detect simple enum', () => {
+        expect(isSchemaEnum(simpleString)).toBe(false)
+        expect(isSchemaEnum(enumString)).toBe(true)
+      })
+
+      it('should detect enum in complex types', () => {
+        expect(isSchemaEnum(numberOrString)).toBe(false)
+        expect(isSchemaEnum(numberOrEnum)).toBe(true)
+        expect(isSchemaEnum(numberAndString)).toBe(false)
+        expect(isSchemaEnum(numberAndEnum)).toBe(false)
+        expect(isSchemaEnum(enumAndEnum)).toBe(true)
+      })
+
+      it('should find simple enum', () => {
+        expect(findTypeInCompoundSchema(isSchemaEnum, simpleString)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, enumString)).toMatchObject(
+          enumString,
+        )
+      })
+
+      it('should find enum in complex types', () => {
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberOrString)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberOrEnum)).toMatchObject(
+          enumString,
+        )
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberAndString)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, numberAndEnum)).toBeUndefined()
+        expect(findTypeInCompoundSchema(isSchemaEnum, enumAndEnum)).toMatchObject(
+          enumNumber,
+        )
+      })
     })
   })
 })

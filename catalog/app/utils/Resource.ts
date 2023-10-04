@@ -1,3 +1,4 @@
+import type * as Model from 'model'
 import * as tagged from 'utils/taggedV2'
 
 /*
@@ -10,7 +11,7 @@ bucket/key/with/path/segments
 
 export const Pointer = tagged.create('app/utils/Resource:Pointer' as const, {
   Web: (url: string) => url,
-  S3: (h: { bucket: string; key: string }) => h,
+  S3: (h: Model.S3.S3ObjectLocation) => h,
   S3Rel: (path: string) => path,
   Path: (path: string) => path,
 })

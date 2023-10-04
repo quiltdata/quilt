@@ -3,10 +3,10 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
@@ -22,18 +22,17 @@ function useBlob(blob) {
   return url
 }
 
-async function loadBlob({ endpoint, sign, handle, page, firstPageBlob }) {
+async function loadBlob({ sign, handle, page, firstPageBlob, type }) {
   if (page === 1) return firstPageBlob
   try {
     const url = sign(handle)
     const search = mkSearch({
       url,
-      input: 'pdf',
-      output: 'raw',
+      input: type,
       size: 'w1024h768',
       page,
     })
-    const r = await fetch(`${endpoint}/thumbnail${search}`)
+    const r = await fetch(`${cfg.apiGatewayEndpoint}/thumbnail${search}`)
     if (r.status >= 400) {
       const text = await r.text()
       throw new HTTPError(r, text)
@@ -54,7 +53,6 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     position: 'relative',
     alignItems: 'center',
-    width: '100%',
   },
   btn: {
     marginBottom: -12,
@@ -104,15 +102,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Pdf({ handle, firstPageBlob, pages }, { className, ...props }) {
-  const endpoint = Config.use().binaryApiGatewayEndpoint
+function Pdf({ handle, firstPageBlob, pages, type }, { className, ...props }) {
   const sign = AWS.Signer.useS3Signer()
   const classes = useStyles()
 
   const [page, setPage] = React.useState(1)
   const [pageValue, setPageValue] = React.useState(page)
 
-  const data = Data.use(loadBlob, { endpoint, sign, handle, page, firstPageBlob })
+  const data = Data.use(loadBlob, { sign, handle, page, firstPageBlob, type })
 
   const [blob, setBlob] = React.useState(firstPageBlob)
 

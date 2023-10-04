@@ -3,12 +3,17 @@ import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
+
 import { COLUMN_IDS, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   cell: {
     border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
+  },
+  error: {
+    borderColor: t.palette.error.main,
   },
   key: {
     width: '50%',
@@ -26,13 +31,23 @@ const useStyles = M.makeStyles((t) => ({
 
 interface RowProps {
   cells: RTable.Cell<RowData>[]
-  columnPath: string[]
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   fresh: boolean
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
 }
 
-export default function Row({ cells, columnPath, fresh, onExpand, onRemove }: RowProps) {
+export default function Row({
+  cells,
+  columnPath,
+  contextMenuPath,
+  fresh,
+  onContextMenu,
+  onExpand,
+  onRemove,
+}: RowProps) {
   const classes = useStyles()
 
   return (
@@ -40,14 +55,18 @@ export default function Row({ cells, columnPath, fresh, onExpand, onRemove }: Ro
       {cells.map((cell) => (
         <M.TableCell
           {...cell.getCellProps()}
+          key={cell.column.id + cell.row.original.reactId}
           className={cx(classes.cell, {
+            [classes.error]: cell.row.original.errors.length,
             [classes.key]: cell.column.id === COLUMN_IDS.KEY,
             [classes.value]: cell.column.id === COLUMN_IDS.VALUE,
           })}
         >
           {cell.render('Cell', {
-            editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
             columnPath,
+            contextMenuPath,
+            editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
+            onContextMenu,
             onExpand,
             onRemove,
           })}

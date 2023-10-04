@@ -1,3 +1,11 @@
+<!-- markdownlint-disable -->
+<!--
+Entries inside each section should be ordered by type:
+1. Removed
+2. Added
+3. Fixed
+4. Changed
+!-->
 <!--template:
 # unreleased - YYYY-MM-DD
 ## Python API
@@ -6,27 +14,259 @@
 
 ## Catalog, Lambdas
 !-->
-
 # unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Fixed] Fixed file preview header layout ([#3454](https://github.com/quiltdata/quilt/pull/3454))
+* [Fixed] Fix getting custom styles and options for files listed in quilt_summarize.json ([#3485](https://github.com/quiltdata/quilt/pull/3485))
+* [Fixed] Fix Header's orange flash on load ([#3487](https://github.com/quiltdata/quilt/pull/3487))
+* [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
+* [Fixed] Make bookmarks optional (and fix Embed listings broken in #3697) ([#3705](https://github.com/quiltdata/quilt/pull/3705))
+* [Fixed] Disable opening file picker on metadata click, and fix dropping JSON as metadata ([#3707](https://github.com/quiltdata/quilt/pull/3707))
+* [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
+* [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
+* [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
+* [Added] Indexer lambda now indexes S3 Object tags ([#3691](https://github.com/quiltdata/quilt/pull/3691))
+* [Added] Add filters to Roles and Permissions in Admin dashboards ([#3690](https://github.com/quiltdata/quilt/pull/3690))
+* [Added] Add download and bookmarks button to file listings ([#3697](https://github.com/quiltdata/quilt/pull/3697))
+* [Changed] Enable user selection in perspective grids ([#3453](https://github.com/quiltdata/quilt/pull/3453))
+* [Changed] Hide columns without values in files listings ([#3512](https://github.com/quiltdata/quilt/pull/3512))
+* [Changed] Enable `allow-same-origin` for iframes in browsable buckets ([#3516](https://github.com/quiltdata/quilt/pull/3516))
+* [Changed] Allow users select files and directories and keep selection whenever they navigate to multiple directories or use filter ([#3527](https://github.com/quiltdata/quilt/pull/3527))
+* [Changed] Unify per-bucket and global search ([#3613](https://github.com/quiltdata/quilt/pull/3613))
+* [Changed] Allow use of <br /> in Markdown ([#3720](https://github.com/quiltdata/quilt/pull/3720))
+
+# 5.3.1 - 2023-05-02
+## Python API
+* [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
+
+## Catalog, Lambdas
+* [Fixed] Fix file URLs in embed ([#3419](https://github.com/quiltdata/quilt/pull/3419))
+* [Changed] Increased available file size to render Markdown preview to 3MiB ([#3427](https://github.com/quiltdata/quilt/pull/3427))
+
+# 5.3.0 - 2023-04-11
+## Python API
+* [Added] Support [AnnData](https://anndata.readthedocs.io/en/latest/) format ([#2974](https://github.com/quiltdata/quilt/pull/2974))
+* [Added] `--no-copy` parameter to `Package.push()` ([#3398](https://github.com/quiltdata/quilt/pull/3398))
+
+## Catalog, Lambdas
+* [Fixed] Fix package push failing for unrelated reason ([#3390](https://github.com/quiltdata/quilt/pull/3390))
+* [Fixed] Fix package page flash when there is Jupyter Notebook ([#3408](https://github.com/quiltdata/quilt/pull/3408))
+* [Added] Add `gallery` field for configuring galleries visibility ([#3421](https://github.com/quiltdata/quilt/pull/3421))
+
+# 5.2.1 - 2023-04-05
+## Python API
+* [Fixed] Fixed CSV serialization with pandas 2 ([#3395](https://github.com/quiltdata/quilt/pull/3395))
+
+# 5.2.0 - 2023-03-27
+## Python API
+* [Added] Validation of package entries metadata ([#3286](https://github.com/quiltdata/quilt/pull/3286))
+
+## Catalog, Lambdas
+* [Added] Add basic support for tasklist in Markdown ([#3339](https://github.com/quiltdata/quilt/pull/3339))
+* [Added] Object-level validation, frontend ([#3336](https://github.com/quiltdata/quilt/pull/3336))
+* [Added] Frontend for permissive HTML rendering ([#3198](https://github.com/quiltdata/quilt/pull/3198))
+* [Added] Confirmation to enable Package Files Server ([#3388](https://github.com/quiltdata/quilt/pull/3388))
+* [Fixed] Fixed mobile layout for collaborators badges ([#3307](https://github.com/quiltdata/quilt/pull/3307))
+* [Fixed] Fixed metadata handling for entries without hash or size in pkgpush lambda ([#3314](https://github.com/quiltdata/quilt/pull/3314))
+* [Fixed] Fixed adding metadata for S3 entries ([#3367]https://github.com/quiltdata/quilt/pull/3367)
+* [Fixed] Fixed crash of the iframe in Bucket tab ([3387](https://github.com/quiltdata/quilt/pull/3387))
+* [Changed] Edit .quilt/config files with text editor ([#3306](https://github.com/quiltdata/quilt/pull/3306))
+* [Changed] Refactoring of buttons adapted to page width ([#3300](https://github.com/quiltdata/quilt/pull/3300))
+* [Changed] Restrict editing `user_meta` field only for object-level metadata ([#3337](https://github.com/quiltdata/quilt/pull/3337))
+* [Changed] Tabular format defaults to .csv ([#3382](https://github.com/quiltdata/quilt/pull/3382))
+
+# 5.1.1 - 2023-01-25
+## Python API
+* [Fixed] Reduce backtracking during `pip install quilt3[catalog]` ([#3292](https://github.com/quiltdata/quilt/pull/3292))
+
+## Catalog, Lambdas
+* [Added] Add 'ECharts' and 'Text' file type switcher, significantly refactor this switcher ([#3240](https://github.com/quiltdata/quilt/pull/3240))
+* [Added] Add link to file from Athena results ([#3242](https://github.com/quiltdata/quilt/pull/3242))
+* [Added] Add link to package revisions from package list ([#3256](https://github.com/quiltdata/quilt/pull/3256))
+* [Added] WebP support in thumbnail lambda ([#3275](https://github.com/quiltdata/quilt/pull/3275))
+* [Added] Set default search mode in Admin Settings ([#3270](https://github.com/quiltdata/quilt/pull/3270))
+* [Added] Toggle buttons for file previews ([#3290](https://github.com/quiltdata/quilt/pull/3290))
+* [Fixed] Fix performance issue (missing memoization) in search results ([#3257](https://github.com/quiltdata/quilt/pull/3257))
+* [Fixed] Fix fetching and writing settings in Admin/Settings section ([#3276](https://github.com/quiltdata/quilt/pull/3276))
+* [Fixed] Fix iframe preview width ([#3279](https://github.com/quiltdata/quilt/pull/3279))
+* [Changed] Make file preview wrapper consistently 100% width ([#3245](https://github.com/quiltdata/quilt/pull/3245))
+* [Changed] Show collapsed values in JSON viewer ([#3249](https://github.com/quiltdata/quilt/pull/3249))
+* [Changed] Rename "Metadata" to "User metadata" ([#3255](https://github.com/quiltdata/quilt/pull/3255))
+* [Changed] Show selective metadata for packages as JSON ([#3259](https://github.com/quiltdata/quilt/pull/3259))
+* [Changed] Show selective metadata on one line and optionally on multiple lines ([#3284](https://github.com/quiltdata/quilt/pull/3284))
+
+# 5.1.0 - 2022-12-09
+## Python API
+* [Added] `dedupe` parameter for `Package.push()` ([#3181](https://github.com/quiltdata/quilt/pull/3181))
+* [Fixed] Fix check to determine if a file is a tempfile in Windows with Python 3.8+ ([#2900](https://github.com/quiltdata/quilt/pull/2900))
+* [Fixed] Speed up import and get rid of undeclared runtime dependency on `setuptools` ([#2994](https://github.com/quiltdata/quilt/pull/2994))
+* [Changed] Disable upload optimization for objects with SSE-KMS ([#2790](https://github.com/quiltdata/quilt/pull/2790))
+* [Changed] Use `platformdirs` instead of unmaintained `appdirs` ([#3140](https://github.com/quiltdata/quilt/pull/3140))
+
+## CLI
+* [Added] `--dedupe` flag for `quilt3 push` ([#3181](https://github.com/quiltdata/quilt/pull/3181))
+
+## Catalog, Lambdas
+* [Added] Add IGV renderer ([#2965](https://github.com/quiltdata/quilt/pull/2965))
+* [Added] Use `quilt_summarize.json` to control Perspective menu ([#2744](https://github.com/quiltdata/quilt/pull/2744))
+* [Added] Show bucket collaborators ([#2756](https://github.com/quiltdata/quilt/pull/2756))
+* [Added] Add `config` field to Perspective scope of `quilt_summarize.json` ([#2781](https://github.com/quiltdata/quilt/pull/2781))
+* [Added] Add `blocks` field to `.quilt/catalog/config.yaml` to control blocks visibility ([#2791](https://github.com/quiltdata/quilt/pull/2791))
+* [Added] Add theming with custom square logo and background color ([#2793](https://github.com/quiltdata/quilt/pull/2793))
+* [Added] Admin: new roles and policies UI ([#2819](https://github.com/quiltdata/quilt/pull/2819))
+* [Added] Deep search indexing for .pptx ([#2881](https://github.com/quiltdata/quilt/pull/2881))
+* [Added] Stack Status Admin UI ([#2935](https://github.com/quiltdata/quilt/pull/2935))
+* [Added] Render package manifests using Perspective ([#2971](https://github.com/quiltdata/quilt/pull/2971))
+* [Added] Athena default workflow config setting ([#2985](https://github.com/quiltdata/quilt/pull/2985))
+* [Added] Add missing README to package ([#2960](https://github.com/quiltdata/quilt/pull/2960), [#2979](https://github.com/quiltdata/quilt/pull/2979))
+* [Added] View and copy full Athena query by expanding table row ([2993](https://github.com/quiltdata/quilt/pull/2993))
+* [Added] Create packages from Athena query results ([#3004](https://github.com/quiltdata/quilt/pull/3004))
+* [Added] Add "Create text file" menu ([#3017](https://github.com/quiltdata/quilt/pull/3017))
+* [Added] Redirect to last selected Athena workgroup ([#3067](https://github.com/quiltdata/quilt/pull/3067))
+* [Added] `status_reports` lambda ([#2989](https://github.com/quiltdata/quilt/pull/2989), [#3088](https://github.com/quiltdata/quilt/pull/3088))
+* [Added] Stack Status Admin UI: reports ([#3068](https://github.com/quiltdata/quilt/pull/3068))
+* [Added] Edit button for text files in packages ([#3070](https://github.com/quiltdata/quilt/pull/3070))
+* [Added] Add execution context for Athena query execution ([#3062](https://github.com/quiltdata/quilt/pull/3062))
+* [Added] Add confirmation if now every row is valid for creating package from Athena results ([#3073](https://github.com/quiltdata/quilt/pull/3073))
+* [Added] Create file menu item for package ([#3127](https://github.com/quiltdata/quilt/pull/3127))
+* [Added] Expose Quilt Catalog automation API as `window.QuiltCatalog` ([#3141](https://github.com/quiltdata/quilt/pull/3143))
+* [Added] Add form to create workflow from quilt config editor ([#3158](https://github.com/quiltdata/quilt/pull/3158))
+* [Added] Add extended value for `ui.blocks.meta` in `.quilt/catalog/config.yaml` ([#3175](https://github.com/quiltdata/quilt/pull/3175))
+* [Fixed] Fix package creation in S3 buckets with SSE-KMS enabled ([#2754](https://github.com/quiltdata/quilt/pull/2754))
+* [Fixed] Fix creation of packages with large (4+ GiB) files ([#2933](https://github.com/quiltdata/quilt/pull/2933))
+* [Fixed] Fix pre-population of default dates when using "dateformat" + {"format": "date"} ([#3082](https://github.com/quiltdata/quilt/pull/3082))
+* [Fixed] Fix editing nested files in packages, fix editing files added from the different location to package ([#3117](https://github.com/quiltdata/quilt/pull/3117))
+* [Fixed] Fix enum detection in `anyOf`, `allOf`, `oneOf`, `not` fields and in arrays in JsonEditor ([#3169](https://github.com/quiltdata/quilt/pull/3169))
+* [Fixed] Fix adding new elements in JsonEditor ([#3169](https://github.com/quiltdata/quilt/pull/3169))
+* [Fixed] Fix enum free form fields ([#3185](https://github.com/quiltdata/quilt/pull/3185))
+* [Fixed] User role and admin status caching ([#3200](https://github.com/quiltdata/quilt/pull/3200))
+* [Changed] Clean up home page ([#2780](https://github.com/quiltdata/quilt/pull/2780)).
+* [Changed] Make `pkgpush` lambda directly invocable, adjust handling of parameters and errors ([#2776](https://github.com/quiltdata/quilt/pull/2776))
+* [Changed] Push packages via GraphQL ([#2768](https://github.com/quiltdata/quilt/pull/2768))
+* [Changed] Improve rendering performance for multi-slide .pptx ([#2878](https://github.com/quiltdata/quilt/pull/2878))
+* [Changed] Rework package indexing: now package indexes have documents only for current versions of package pointer objects, documents for 'latest' pointers have `package_hash`, `package_stats`, `comment`, `metadata` fields properly populated ([#2897](https://github.com/quiltdata/quilt/pull/2897))
+* [Changed] Remove ClientRequestToken (idempotency token) for making Athena queries ([#2992](https://github.com/quiltdata/quilt/pull/2992))
+* [Changed] Fixed config and docs mistyping: `ui.athena.defaultWorkflow` should be `ui.athena.defaultWorkgroup` ([#3067](https://github.com/quiltdata/quilt/pull/3067))
+* [Changed] Use dedicated columns field instead of first row, fix duplicated first row in table results ([#3101](https://github.com/quiltdata/quilt/pull/3101))
+* [Changed] Allow pushing empty packages, suggest creating a stub `README.md` file when trying to push an empty package ([#3114](https://github.com/quiltdata/quilt/pull/3114))
+* [Changed] Allow to save only latest revisions of files ([#3124](https://github.com/quiltdata/quilt/pull/3124))
+* [Changed] Render HTML files in LOCAL mode ([#3139](https://github.com/quiltdata/quilt/pull/3139))
+* [Changed] Support dots in bucket names while using S3 proxy ([#3147](https://github.com/quiltdata/quilt/pull/3147))
+* [Changed] Support `additionalProperties` and `items` in JsonEditor ([#3144](https://github.com/quiltdata/quilt/pull/3144))
+* [Changed] Initialize Catalog configuration synchronously from `QUILT_CATALOG_CONFIG` global var ([#3166](https://github.com/quiltdata/quilt/pull/3166))
+* [Changed] Handle rendering multiple molecules in one .sdf file ([#3179](https://github.com/quiltdata/quilt/pull/3179))
+* [Changed] Refactor Sentry set-up, add more integrations / instrumentation ([#3164](https://github.com/quiltdata/quilt/pull/3164))
+
+# 5.0.0 - 2022-03-14
+## CLI
+* [Added] `--force` flag for `quilt3 push` ([#2722](https://github.com/quiltdata/quilt/pull/2722))
+
+## Catalog, Lambdas
+* [Fixed] Respect prefix filtering when packaging a folder ([#2706](https://github.com/quiltdata/quilt/pull/2706))
+* [Fixed] Fix package creation failing for some regions ([#2718](https://github.com/quiltdata/quilt/pull/2718))
+* [Added] NGL renderer for .pdb files ([#2711](https://github.com/quiltdata/quilt/pull/2711))
+* [Added] Admin: default role management ([#2721](https://github.com/quiltdata/quilt/pull/2721))
+* [Added] Preview CZI images ([#2727](https://github.com/quiltdata/quilt/pull/2727))
+
+# 4.1.0 - 2022-02-22
+## Python API
+* [Added] Automatically decompress gzip'ed package entries when deserializing ([#2677](https://github.com/quiltdata/quilt/pull/2677))
+* [Added] Semi-atomic push ([#2689](https://github.com/quiltdata/quilt/pull/2689))
+
+# 4.0.0 - 2022-01-31
+## Python API
+* [Added] Declared compatibility with `jsonschema==4.*`.
+* [Added] `--host` and `--port` parameters for `quilt3 catalog`.
+* [Added] `--no-browser` parameter for `quilt3 catalog`.
+* [Changed] `quilt3 catalog` now requires `quilt3` to be installed with `catalog` extra dependency (`pip install 'quilt3[catalog]'`).
+* [Changed] Dependencies on `flask` and `dnspython` are dropped.
+* [Removed] Deprecated passing subpackage as part of package name for `Package.install()`, use `path` parameter instead.
+* [Removed] Deprecated calling of `Package.resolve_hash()` without specifying `name` parameter.
+* [Removed] Deprecated `PackageEntry.physical_keys`, use `PackageEntry.physical_key` instead.
+
+## CLI
+* [Removed] Deprecated passing subpackage as part of package name for `quilt3 install`, use `--path` parameter instead.
+
+## Catalog, Lambdas
+* [Changed] pkgselect: make directly invocable, always use execution role ([#2560](https://github.com/quiltdata/quilt/pull/2560))
+* [Changed] Move package listing / querying to GraphQL ([#2552](https://github.com/quiltdata/quilt/pull/2552))
+* [Changed] Fix performance of `countPages` in thumbnail lambda ([#2616](https://github.com/quiltdata/quilt/pull/2616)).
+* [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
+* [Changed] Local-mode-specific adjustments to landing page and catalog UI ([#2611](https://github.com/quiltdata/quilt/pull/2611))
+* [Changed] PDF preview: count pages again ([#2621](https://github.com/quiltdata/quilt/pull/2621))
+* [Changed] Make Vega download data files from S3 via proxy to avoid CORS issues ([#2631](https://github.com/quiltdata/quilt/pull/2631))
+* [Changed] Don't support packages in out-of-stack-buckets ([#2641](https://github.com/quiltdata/quilt/pull/2641))
+* [Changed] Use Perspective library for tabular data files (.csv, .tsv, .xls, .xlsx, .parquet, .jsonl) ([#2576](https://github.com/quiltdata/quilt/pull/2576), [#2691](https://github.com/quiltdata/quilt/pull/2691))
+* [Fixed] Improve upload performance and stability, fix some hashing-related errors ([#2532](https://github.com/quiltdata/quilt/pull/2532))
+* [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
+* [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
+* [Added] Add a "transcode" lambda for previewing video files ([#2366](https://github.com/quiltdata/quilt/pull/2366/))
+* [Added] Add object-level metadata editor and move package metadata editor to popup ([#2510](https://github.com/quiltdata/quilt/pull/2510/))
+* [Added] Video previews ([#2540](https://github.com/quiltdata/quilt/pull/2540))
+* [Added] Audio previews ([#2547](https://github.com/quiltdata/quilt/pull/2547))
+* [Added] Powerpoint (`.pptx`) preview ([#2598](https://github.com/quiltdata/quilt/pull/2598), [#2626](https://github.com/quiltdata/quilt/pull/2626))
+
+# 3.6.0 - 2021-10-15
+## Python API
+* [Added] Validation of package names with `handle_pattern` in [workflows](advanced-features/workflows.md) config.
+* [Added] Validation of package entries with `entries_schema` in [workflows](advanced-features/workflows.md) config.
+
+# 3.5.0 - 2021-09-07
 ## Python API
 * [Added] Size of each manifest record is now limited by 1 MB. This constraint is added to ensure that S3 select, Athena and downstream services work correctly. This limit can be overridden with `QUILT_MANIFEST_MAX_RECORD_SIZE` environment variable. ([#2114](https://github.com/quiltdata/quilt/pull/2114))
 * [Changed] Decrease size of `Package` in-memory representation ([#1943](https://github.com/quiltdata/quilt/pull/1943))
 
 ## CLI
+* [Added] `--workflow` argument to `push` command ([#2279](https://github.com/quiltdata/quilt/pull/2279))
 
 ## Catalog, Lambdas
-* [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
+* [Added] Pre-populate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
 * [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
 * [Added] File listing: "load more" button to fetch more entries from S3 ([#2150](https://github.com/quiltdata/quilt/pull/2150))
-* [Added] Lambda for pushing an existing package/creation of package from a S3 folder ([#2147](https://github.com/quiltdata/quilt/pull/2147))
+* [Added] Voila Notebooks format support ([#2163](https://github.com/quiltdata/quilt/pull/2163))
+* [Added] Ability to add files from S3 while revising a package ([#2171](https://github.com/quiltdata/quilt/pull/2171))
+* [Added] Lambdas for pushing an existing package/creation of package ([#2147](https://github.com/quiltdata/quilt/pull/2147), [#2180](https://github.com/quiltdata/quilt/pull/2180))
+* [Added] Custom navbar link configurable via admin UI ([#2192](https://github.com/quiltdata/quilt/pull/2192))
+* [Added] Adding S3 objects to packages from configurable source buckets while revising ([#2193](https://github.com/quiltdata/quilt/pull/2193))
+* [Added] Add Athena SQL queries initial viewer and runner ([#2197](https://github.com/quiltdata/quilt/pull/2197))
+* [Added] Managing per-bucket permissions via admin UI ([#2228](https://github.com/quiltdata/quilt/pull/2228))
+* [Added] Deep search indexing for Excel ([#2247](https://github.com/quiltdata/quilt/pull/2247))
+* [Added] Deep search indexing for PDF ([#2256](https://github.com/quiltdata/quilt/pull/2256))
+* [Added] Add Vega/JSON view switcher for Vega files ([#2236](https://github.com/quiltdata/quilt/pull/2236))
+* [Added] Subpackage download ([#2258](https://github.com/quiltdata/quilt/pull/2258))
+* [Added] Per-bucket deep indexing settings ([#2290](https://github.com/quiltdata/quilt/pull/2290))
+* [Added] Embed: IPC, more debug features, docs ([#2314](https://github.com/quiltdata/quilt/pull/2314))
+* [Added] Download button on Summary page ([#2367](https://github.com/quiltdata/quilt/pull/2367))
+* [Added] Validation of package names and entries, pattern for default package name ([2364](https://github.com/quiltdata/quilt/pull/2364))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
 * [Changed] Sort packages by modification time by default ([#2126](https://github.com/quiltdata/quilt/pull/2126))
 * [Changed] Resolve logical keys in summaries and vega inside packages ([#2140](https://github.com/quiltdata/quilt/pull/2140))
 * [Changed] Embed: load polyfills, bring back prefix filtering, load more ([#2153](https://github.com/quiltdata/quilt/pull/2153))
+* [Changed] Scan more bytes (first 128 KiB) when trying to detect if a JSON file is a Vega visualization ([#2229](https://github.com/quiltdata/quilt/pull/2229))
+* [Changed] Use GraphQL for fetching and editing buckets ([#2240](https://github.com/quiltdata/quilt/pull/2240))
+* [Changed] Use registry for search requests ([#2242](https://github.com/quiltdata/quilt/pull/2242))
+* [Changed] Enhance `quilt_summarize.json` format, support title, description and multi-column layout ([#2245](https://github.com/quiltdata/quilt/pull/2245))
+* [Changed] PDF preview: don't count pages ([#2276](https://github.com/quiltdata/quilt/pull/2276))
+* [Changed] Default bucket icon changed from Quilt logo to more neutral ([#2287](https://github.com/quiltdata/quilt/pull/2287))
+* [Changed] Cachebust revision list request ([#2298](https://github.com/quiltdata/quilt/pull/2298))
+* [Changed] Wrap wide Vega charts with horizontal scroll ([#2304](https://github.com/quiltdata/quilt/pull/2304))
+* [Changed] Unify package creation and update dialogs (support adding S3 files in both) ([#2302](https://github.com/quiltdata/quilt/pull/2302))
+* [Changed] Warmer chart colors ([#2329](https://github.com/quiltdata/quilt/pull/2329), [#2338](https://github.com/quiltdata/quilt/pull/2338))
+* [Changed] Remove custom button for adding Readme, and re-use dialog for creating files. Fix creating README in package ([#3173](https://github.com/quiltdata/quilt/pull/3173))
 * [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 * [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
+* [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
+* [Fixed] Infinite spinner on logout ([#2232](https://github.com/quiltdata/quilt/pull/2232))
+* [Fixed] Dismiss error page when navigating from it ([#2291](https://github.com/quiltdata/quilt/pull/2291))
+* [Fixed] Avoid crash on non-existent logical keys in pkgselect detail view ([#2307](https://github.com/quiltdata/quilt/pull/2307)
+* [Fixed] Error while rendering a preview inside a package ([#2328](https://github.com/quiltdata/quilt/pull/2328))
+* [FIxed] Bring back missing username at Admin/Users table ([#2339](https://github.com/quiltdata/quilt/pull/2339))
 
 # 3.4.0 - 2021-03-15
 ## Python API
@@ -69,7 +309,7 @@ via OIDC ([#2089](https://github.com/quiltdata/quilt/pull/2089))
 
 # 3.3.0 - 2020-12-08
 ## Python API
-* [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](Advanced Features/workflows.md).
+* [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](advanced-features/workflows.md).
 * [Changed] Improved formatting of package load progress bar ([#1897](https://github.com/quiltdata/quilt/pull/1897))
 * [Fixed] Crash during load of package manifest with unicode symbols with non-unicode locale set ([#1931](https://github.com/quiltdata/quilt/pull/1931))
 
@@ -121,14 +361,14 @@ via OIDC ([#2089](https://github.com/quiltdata/quilt/pull/2089))
 * [Fixed] Previews not rendering in global search ([#1787](https://github.com/quiltdata/quilt/pull/1787))
 
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
-## Python:
+## Python
 * Refactors local and s3 storage-layer code around a new PackageRegistry base class (to support improved file layouts in future releases)
 * Multi-threaded download for large files, 2X to 5X performance gains when installing packages with large files, especially on larger EC2 instances
 * Package name added to Package.resolve_hash
 * Bugfix: remove package revision by shorthash
 * Performance improvements for build and push
 
-## Catalog & Lambdas:
+## Catalog & Lambdas
 * PDF previews
 * Browse full package contents (no longer limited to 1000 files)
 * Indexing and search package-level metadata
@@ -188,12 +428,12 @@ Python
 * `quilt3 install foo/bar/subdirectory`
 * Bug fixes for CopyObject and other exceptions
 
-# 3.1.10 - 2020-01-29 - 3.1.10
+# 3.1.10 - 2020-01-29
 ## Python Client
 
 - Fix bug introduced in 3.1.9 where uploads fail due to incorrect error checking after a HEAD request to see if an object already exists (#1512)
 
-# 3.1.9 - 2020-01-29 - Release 3.1.9
+# 3.1.9 - 2020-01-29
 ## Python Client
 
 - `quilt3 install` now displays the tophash of the installed package (#1461)
@@ -253,10 +493,10 @@ Python
 * Fix uploads of very large files
 * Remove unnecessary copying during push
 
-# 3.1.4 - 2019-10-17 - Release v3.1.4
+# 3.1.4 - 2019-10-17
 * [`delete_package`](https://docs.quiltdata.com/api-reference/api#delete\_package) for a specific version via `top_hash=`
 
-# 3.1.3 - 2019-10-11 - Release v3.1.3
+# 3.1.3 - 2019-10-11
 - Bug fix: when adding python objects to a package a temporary file would be created and then deleted when the object was pushed, leading to a crash if you tried to push that package again (PR #1264)
 
 # 3.1.2 - 2019-10-11
@@ -370,10 +610,10 @@ Expands and improves documentation for working with Quilt packages.
 - Improved full-text search
 
 # 2.9.3 - 2018-03-20 - Package Composition
-## Compiler:
+## Compiler
 - Allow building packages out of other packages and elements from other packages. A new build-file keyword, `package` inserts a package (or sub-package) as an element in the package being built.
 
-## Catalog:
+## Catalog
 - Upgrade router and other dependencies
 - Display packages by author
 
@@ -413,7 +653,7 @@ Updates to commands and local storage to allow users to connect to different reg
 Fixes a bug in download that prevented retrying failed downloads.
 
 # 2.8.3 - 2018-01-19 - Remove Unneeded Pandas dependency
-#186 introduced an undeclared dependency on Pandas >= 0.21.0 (by catching ParserError during CSV parsing). This release removes that dependency and resolves #291.
+&#35;186 introduced an undeclared dependency on Pandas >= 0.21.0 (by catching ParserError during CSV parsing). This release removes that dependency and resolves #291.
 
 # 2.8.2 - 2018-01-17 - Hotfix for several quilt commands
 PR https://github.com/quiltdata/quilt/pull/290
@@ -443,7 +683,7 @@ Quilt now caches build intermediates. So if you wish to update the README of a m
 ## Group-level build parameters
 You can now specify build parameters (like transform) for all children of a group in one shot. The updated syntax and docs are [here](https://docs.quiltdata.com/buildyml.html).
 
-## quilt.yml is like requirments.txt but for data
+## quilt.yml is like requirements.txt but for data
 You can now express dependencies on multiple packages in a single file. Docs [here](https://docs.quiltdata.com/cli.html#installing-via-requirements-file).
 
 ## Experimental: build a package from a GitHub repo

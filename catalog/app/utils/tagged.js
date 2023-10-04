@@ -3,7 +3,10 @@ import * as R from 'ramda'
 
 const scope = 'app/utils/tagged'
 
-const withValue = (fn) => (inst, ...rest) => fn(R.prop('value', inst), ...rest)
+const withValue =
+  (fn) =>
+  (inst, ...rest) =>
+    fn(R.prop('value', inst), ...rest)
 
 const exhaustive = (variants, cases) => cases._ || variants.every((v) => cases[v])
 
@@ -67,7 +70,10 @@ export default (variants) => {
     )
     invariant(
       R.all(R.contains(R.__, ['_', '__', ...variants]), R.keys(cases)),
-      `${scope}/case: cases may only include type variants and placeholders (_ and __)`,
+      `${scope}/case: cases may only include type variants and placeholders (_ and __). Unrecognized variants: ${R.without(
+        ['_', '__', ...variants],
+        R.keys(cases),
+      )}`,
     )
     invariant(exhaustive(variants, cases), `${scope}/case: non-exhaustive cases`)
 

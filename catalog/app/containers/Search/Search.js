@@ -1,18 +1,29 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import { Link, useLocation, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
-import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import search from 'utils/search'
-import mkStorage from 'utils/storage'
+import useSearch from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
+
+function BrowseBucket({ bucket }) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <>
+      <br />
+      <M.Button component={Link} to={urls.bucketRoot(bucket)} variant="outlined">
+        Browse the bucket
+      </M.Button>
+    </>
+  )
+}
 
 function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl }) {
   return data.case({
@@ -26,7 +37,9 @@ function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl 
       total ? (
         <SearchResults.Hits {...{ hits, page, scrollRef, makePageUrl }} showBucket />
       ) : (
-        <SearchResults.NothingFound />
+        <SearchResults.NothingFound>
+          {buckets.length === 1 && <BrowseBucket bucket={buckets[0]} />}
+        </SearchResults.NothingFound>
       ),
   })
 }
@@ -122,7 +135,6 @@ const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
 
     ...t.typography.body1,
     cursor: 'pointer',
-    fontWeight: t.typography.fontWeightMedium,
   },
 }))
 
@@ -266,9 +278,10 @@ function ModeAndBucketSelector({ mode, onModeChange, buckets, onBucketsChange })
 
   const [controlsShown, setControlsShown] = React.useState(false)
   const showControls = React.useCallback(() => setControlsShown(true), [setControlsShown])
-  const hideControls = React.useCallback(() => setControlsShown(false), [
-    setControlsShown,
-  ])
+  const hideControls = React.useCallback(
+    () => setControlsShown(false),
+    [setControlsShown],
+  )
 
   const controls = (
     <>
@@ -326,11 +339,13 @@ const useSearchStyles = M.makeStyles((t) => ({
   },
 }))
 
-// Possible values are undefined, 'objects', 'packages'
-const storage = mkStorage({ searchMode: 'SEARCH_MODE' })
-
-export default function Search({ location: l }) {
+export default function Search() {
+  const l = useLocation()
+  const { urls } = NamedRoutes.use()
+  const history = useHistory()
   const classes = useSearchStyles()
+
+  const scrollRef = React.useRef(null)
 
   const { q, p, mode, ...params } = parseSearch(l.search)
   const buckets = React.useMemo(
@@ -339,11 +354,6 @@ export default function Search({ location: l }) {
   )
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
   const page = p && parseInt(p, 10)
-
-  const scrollRef = React.useRef(null)
-
-  const { urls } = NamedRoutes.use()
-  const history = useHistory()
 
   const handleQueryChange = React.useCallback(
     (newQuery) => {
@@ -363,11 +373,6 @@ export default function Search({ location: l }) {
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      if (newMode === 'objects' || newMode === 'packages') {
-        storage.set('searchMode', newMode)
-      } else {
-        storage.remove('searchMode')
-      }
       history.push(
         urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }),
       )
@@ -394,31 +399,17 @@ export default function Search({ location: l }) {
     [urls, q, buckets, mode, retry],
   )
 
-  const req = AWS.APIGateway.use()
   const data = Data.use(
-    search,
-    { req, buckets, mode, query: q, retry },
+    useSearch(),
+    { buckets, mode, query: q, retry },
     { noAutoFetch: !q },
   )
-
-  React.useEffect(() => {
-    if (mode) return
-
-    const searchMode = storage.load()?.searchMode
-    switch (searchMode) {
-      case 'objects':
-      case 'packages':
-        history.replace(
-          urls.search({ q, buckets: buckets.join(',') || undefined, mode: searchMode }),
-        )
-      // no default
-    }
-  }, [buckets, history, mode, q, urls])
 
   return (
     <Layout
       pre={
         <M.Container maxWidth="lg">
+          <MetaTitle>{q || 'Search'}</MetaTitle>
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box
               display="flex"

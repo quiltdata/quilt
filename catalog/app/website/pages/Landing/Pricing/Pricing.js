@@ -32,15 +32,9 @@ const PLANS = [
     variant: 'tertiary',
   },
   {
-    name: 'Virtual Private Cloud',
-    price: 1000,
-    perMonth: true,
-    features: [
-      'Unlimited data',
-      'Unlimited users',
-      'Three S3 buckets',
-      '30-day free trial',
-    ],
+    name: 'VPC',
+    price: 'Start-up',
+    features: ['Unlimited data', 'Up to 10 users', 'Up to 5 S3 buckets'],
     cta: ({ talk, className }) => (
       <Btn
         className={className}
@@ -55,14 +49,17 @@ const PLANS = [
     featured: true,
   },
   {
-    name: 'Enterprise',
-    price: 'Contact us',
+    name: 'VPN',
+    price: 'Enterprise',
     features: [
       'Unlimited data',
       'Unlimited users',
-      'Priority support',
-      'Custom features',
-      'Education and instruction',
+      'Up to hundreds of S3 buckets',
+      'Custom VPC & VPN',
+      'Personalized training',
+      'Single Sign-on (SSO)',
+      'EventBridge',
+      'SQL Queries',
     ],
     cta: ({ talk, className }) => (
       <Btn
@@ -75,6 +72,33 @@ const PLANS = [
       </Btn>
     ),
     variant: 'secondary',
+  },
+  {
+    name: 'VPN',
+    price: 'GxP Plus',
+    features: [
+      'Unlimited data',
+      'Unlimited users',
+      'Up to hundreds of S3 buckets',
+      'Custom VPC & VPN',
+      'Personalized training',
+      'Single Sign-on (SSO)',
+      'EventBridge',
+      'SQL Queries',
+      'GxP validation, Compliance',
+    ],
+    cta: ({ talk, className }) => (
+      <Btn
+        className={className}
+        color="primary"
+        onClick={() => talk({ src: 'pricing/marketplace' })}
+        trackingName="marketplace"
+      >
+        Talk To Us
+      </Btn>
+    ),
+    variant: 'primary',
+    featured: true,
   },
 ]
 
@@ -164,7 +188,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    height: 160,
+    height: 240,
     justifyContent: 'center',
     marginTop: t.spacing(10),
   },
@@ -217,7 +241,7 @@ export default function Pricing() {
         <div className={classes.plans}>
           {PLANS.map((p) => (
             <div
-              key={p.name}
+              key={p.name + p.price}
               className={cx(
                 classes.plan,
                 classes[p.variant],

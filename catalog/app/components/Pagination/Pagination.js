@@ -1,9 +1,6 @@
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RC from 'recompose'
 
-import * as RT from 'utils/reactTools'
 import usePrevious from 'utils/usePrevious'
 
 const PER_PAGE = 10
@@ -32,10 +29,10 @@ export const usePagination = (
 
   const pages = Math.max(1, Math.ceil(items.length / perPage))
 
-  const goToPage = React.useMemo(() => R.pipe(R.clamp(1, pages), setPage), [
-    pages,
-    setPage,
-  ])
+  const goToPage = React.useMemo(
+    () => R.pipe(R.clamp(1, pages), setPage),
+    [pages, setPage],
+  )
 
   const nextPage = React.useCallback(() => goToPage(page + 1), [goToPage, page])
 
@@ -49,10 +46,10 @@ export const usePagination = (
 
   const offset = (page - 1) * perPage
 
-  const paginate = React.useMemo(() => R.slice(offset, offset + perPage), [
-    offset,
-    perPage,
-  ])
+  const paginate = React.useMemo(
+    () => R.slice(offset, offset + perPage),
+    [offset, perPage],
+  )
   const paginated = useGetter(items, paginate)
 
   usePrevious(perPage, (prev) => {
@@ -82,11 +79,7 @@ export const usePagination = (
 
 export const use = usePagination
 
-export const Paginate = RT.composeComponent(
-  'Pagination.Paginate',
-  RC.setPropTypes({
-    items: PT.array.isRequired,
-    children: PT.func.isRequired,
-  }),
-  ({ items, children, ...props }) => children(use(items, props)),
-)
+// children: ReactNode[], items: any[]
+export function Pagination({ children, items, ...props }) {
+  return children(use(items, props))
+}

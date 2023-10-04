@@ -1,14 +1,17 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
+import * as JSONPointer from 'utils/JSONPointer'
 import { isSchemaEnum } from 'utils/json-schema'
 
+import ContextMenu from './ContextMenu'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { COLUMN_IDS, JsonValue, RowData } from './constants'
+import { COLUMN_IDS, JsonValue, RowData, EMPTY_VALUE } from './constants'
 import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
@@ -29,19 +32,23 @@ const cellPlaceholders = {
 
 interface CellProps {
   column: RTable.Column<{ id: 'key' | 'value' }>
-  columnPath: string[]
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   editing: boolean
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
   row: Pick<RTable.Row<RowData>, 'original' | 'values'>
-  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  updateMyData: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
   value: JsonValue
 }
 
 export default function Cell({
   column,
   columnPath,
+  contextMenuPath,
   editing: editingInitial,
+  onContextMenu,
   onExpand,
   onRemove,
   row,
@@ -56,6 +63,7 @@ export default function Cell({
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
+  const hasKey = React.useMemo(() => key !== EMPTY_VALUE, [key])
 
   const onChange = React.useCallback(
     (newValue) => {
@@ -69,10 +77,10 @@ export default function Cell({
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
 
-  const isEditable = React.useMemo(() => !(isKeyCell && row.original.valueSchema), [
-    isKeyCell,
-    row.original,
-  ])
+  const isEditable = React.useMemo(
+    () => !(isKeyCell && row.original.valueSchema),
+    [isKeyCell, row.original],
+  )
 
   const isEnumCell = React.useMemo(
     () => isValueCell && isSchemaEnum(row.original.valueSchema),
@@ -86,11 +94,11 @@ export default function Cell({
 
   const onKeyPress = React.useCallback(
     (event) => {
-      if (!editing) {
-        // Chromium able to send key event to Input created after this key event.
-        // Avoid to send this key event to Input constistently with Firefox
-        event.preventDefault()
-      }
+      if (editing) return
+
+      // Chromium able to send key event to Input created after this key event.
+      // Avoid to send this key event to Input constistently with Firefox
+      event.preventDefault()
 
       // Do nothing, if it's a key cell provided by schema
       if (!isEditable) return
@@ -122,31 +130,53 @@ export default function Cell({
   )
 
   const ValueComponent = React.useMemo(() => {
-    if (isEnumCell) return EnumSelect
+    if (editing && isEnumCell) return EnumSelect
     if (editing) return Input
     return Preview
   }, [editing, isEnumCell])
 
+  const addressPath = React.useMemo(() => [...columnPath, key], [columnPath, key])
+  const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null)
+  const handleContextMenu = React.useCallback(
+    (event) => {
+      event.preventDefault()
+      onContextMenu(addressPath)
+    },
+    [onContextMenu, addressPath],
+  )
+
   return (
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
-      role="textbox"
-      tabIndex={isEditable ? 0 : undefined}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
+      ref={setAnchorEl}
+      role="textbox"
+      tabIndex={isEditable ? 0 : undefined}
     >
       <ValueComponent
         {...{
           columnId: column.id as 'key' | 'value',
           data: row.original,
           onChange,
+          onContextMenu: handleContextMenu,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
-          placeholder: cellPlaceholders[column.id!],
+          placeholder: cellPlaceholders[column.id as 'key' | 'value'],
           title: isEditable ? 'Click to edit' : '',
           value,
         }}
       />
+
+      {anchorEl && isValueCell && hasKey && (
+        <ContextMenu
+          onChange={onChange}
+          anchorEl={anchorEl}
+          open={R.equals(contextMenuPath, addressPath)}
+          onClose={() => onContextMenu([])}
+          value={value}
+        />
+      )}
     </div>
   )
 }

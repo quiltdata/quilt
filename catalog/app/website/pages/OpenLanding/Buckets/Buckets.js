@@ -1,11 +1,14 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import scrollIntoView from 'utils/scrollIntoView'
+import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import BucketGrid from 'website/components/BucketGrid'
@@ -45,16 +48,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Buckets() {
+export default function Buckets({ query: filter } = { query: '' }) {
   const classes = useStyles()
+  // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
-  const [filter, setFilter] = React.useState('')
+  const { urls } = NamedRoutes.use()
+  const history = useHistory()
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
-  const terms = React.useMemo(() => filter.toLowerCase().split(/\s+/).filter(Boolean), [
-    filter,
-  ])
+  const terms = React.useMemo(
+    () => filter.toLowerCase().split(/\s+/).filter(Boolean),
+    [filter],
+  )
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
 
@@ -91,9 +97,19 @@ export default function Buckets() {
     }
   })
 
-  const handleFilterChange = React.useCallback((e) => setFilter(e.target.value), [])
+  const filtering = useDebouncedInput(filter, 500)
 
-  const clearFilter = React.useCallback(() => setFilter(''), [])
+  React.useEffect(() => {
+    // TODO: handle route change
+    //       and implement BucketGrid tag as <Link />
+    if (filtering.value !== filter) {
+      history.push(urls.home({ q: filtering.value }))
+    }
+  }, [history, filtering.value, filter, urls])
+
+  const clearFilter = React.useCallback(() => {
+    filtering.set()
+  }, [filtering])
 
   return (
     <M.Container
@@ -105,8 +121,6 @@ export default function Buckets() {
       <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
       <M.TextField
         className={classes.filter}
-        value={filter}
-        onChange={handleFilterChange}
         placeholder="Find a bucket"
         variant="outlined"
         margin="dense"
@@ -125,11 +139,12 @@ export default function Buckets() {
             </M.InputAdornment>
           ) : undefined,
         }}
+        {...filtering.input}
       />
       {paginated.length ? (
         <BucketGrid
           buckets={paginated}
-          onTagClick={setFilter}
+          onTagClick={filtering.set}
           tagIsMatching={tagIsMatching}
         />
       ) : (

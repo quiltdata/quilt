@@ -1,0 +1,6 @@
+query ($bucket: String!) {
+  bucketConfig(name: $bucket) {
+    name
+    browsable
+  }
+}

@@ -23,7 +23,7 @@ function NavTab(props: NavTabProps) {
 
 interface BucketNavProps {
   bucket: string
-  section: 'overview' | 'packages' | 'queries' | 'search' | 'tree' | false // `keyof` sections object
+  section: 'es' | 'overview' | 'packages' | 'queries' | 'tree' | false // `keyof` sections object
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
@@ -57,11 +57,18 @@ interface TabsProps {
 
 function Tabs({ bucket, preferences, section = false }: TabsProps) {
   const { urls } = NamedRoutes.use()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
-    <M.Tabs value={section} centered>
+    <M.Tabs
+      value={section}
+      centered={!sm}
+      variant={sm ? 'scrollable' : 'standard'}
+      scrollButtons="auto"
+    >
       <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
-        <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
+        <NavTab label="Bucket" value="tree" to={urls.bucketDir(bucket)} />
       )}
       {preferences.packages && (
         <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
@@ -69,17 +76,23 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
       {preferences.queries && (
         <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
       )}
-      {section === 'search' && (
-        <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
+      {preferences.queries && (section === 'queries' || section === 'es') && (
+        <NavTab label="ElasticSearch" value="es" to={urls.bucketESQueries(bucket)} />
       )}
     </M.Tabs>
   )
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const preferences = BucketPreferences.use()
-
-  if (!preferences) return <BucketNavSkeleton />
-
-  return <Tabs bucket={bucket} preferences={preferences.ui.nav} section={section} />
+  const prefs = BucketPreferences.use()
+  return BucketPreferences.Result.match(
+    {
+      Ok: ({ ui: { nav } }) => (
+        <Tabs bucket={bucket} preferences={nav} section={section} />
+      ),
+      Pending: () => <BucketNavSkeleton />,
+      Init: () => null,
+    },
+    prefs,
+  )
 }

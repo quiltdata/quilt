@@ -2,7 +2,6 @@ import contextlib
 import functools
 import gc
 import hashlib
-import inspect
 import io
 import json
 import logging
@@ -18,6 +17,7 @@ import warnings
 from collections import deque
 from multiprocessing import Pool
 
+import botocore.exceptions
 import jsonlines
 from tqdm import tqdm
 
@@ -34,20 +34,19 @@ from .data_transfer import (
     put_bytes,
 )
 from .exceptions import PackageException
-from .formats import FormatRegistry
+from .formats import CompressionRegistry, FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import CACHE_PATH, DISABLE_TQDM, PACKAGE_UPDATE_POLICY
 from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 from .util import (
     PhysicalKey,
+    QuiltConflictException,
     QuiltException,
-    RemovedInQuilt4Warning,
     catalog_package_url,
     extract_file_extension,
     fix_url,
     get_from_config,
     get_install_location,
-    parse_sub_package_name,
     quiltignore_filter,
     user_is_configured_to_custom_stack,
     validate_key,
@@ -65,6 +64,10 @@ DEFAULT_MANIFEST_MAX_RECORD_SIZE = 1_000_000
 MANIFEST_MAX_RECORD_SIZE = util.get_pos_int_from_env('QUILT_MANIFEST_MAX_RECORD_SIZE')
 if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
+
+SUPPORTED_HASH_TYPES = (
+    "SHA256",
+)
 
 
 def _fix_docstring(**kwargs):
@@ -93,6 +96,15 @@ def _filesystem_safe_encode(key):
     return hashlib.sha256(key.encode()).hexdigest()
 
 
+def _check_hash_type_support(hash_type: str) -> None:
+    if hash_type not in SUPPORTED_HASH_TYPES:
+        raise QuiltException(
+            f"Unsupported hash type: {hash_type!r}. "
+            f"Supported types: {', '.join(SUPPORTED_HASH_TYPES)}. "
+            "Try to update quilt3."
+        )
+
+
 class ObjectPathCache:
     @classmethod
     def _cache_path(cls, url):
@@ -103,7 +115,7 @@ class ObjectPathCache:
     def get(cls, url):
         cache_path = cls._cache_path(url)
         try:
-            with open(cache_path) as fd:
+            with open(cache_path, encoding='utf-8') as fd:
                 path, dev, ino, mtime = json.load(fd)
         except (FileNotFoundError, ValueError):
             return None
@@ -125,7 +137,7 @@ class ObjectPathCache:
         stat = pathlib.Path(path).stat()
         cache_path = cls._cache_path(url)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(cache_path, 'w') as fd:
+        with open(cache_path, 'w', encoding='utf-8') as fd:
             json.dump([path, stat.st_dev, stat.st_ino, stat.st_mtime_ns], fd)
 
     @classmethod
@@ -183,7 +195,7 @@ class PackageEntry:
 
     @property
     def meta(self):
-        return self._meta.get('user_meta', dict())
+        return self._meta.get('user_meta', {})
 
     def set_meta(self, meta):
         """
@@ -197,8 +209,7 @@ class PackageEntry:
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
-        if self.hash.get('type') != 'SHA256':
-            raise NotImplementedError
+        _check_hash_type_support(self.hash.get('type'))
         digest = hashlib.sha256(read_bytes).hexdigest()
         if digest != self.hash.get('value'):
             raise QuiltException("Hash validation failed")
@@ -294,13 +305,22 @@ class PackageEntry:
         if func is not None:
             return func(data)
 
-        pkey_ext = pathlib.PurePosixPath(self.physical_key.path).suffix
+        suffixes = pathlib.PurePosixPath(self.physical_key.path).suffixes
+
+        pkey_ext = suffixes.pop() if suffixes else ''
+        compression_handler = CompressionRegistry.search(pkey_ext)
+
+        if compression_handler is not None:
+            pkey_ext = suffixes.pop() if suffixes else ''
 
         # Verify format can be handled before checking hash.  Raises if none found.
         formats = FormatRegistry.search(None, self._meta, pkey_ext)
 
         # Verify hash before deserializing..
         self._verify_hash(data)
+
+        if compression_handler is not None:
+            data = compression_handler.decompress(data)
 
         return formats[0].deserialize(data, self._meta, pkey_ext, **format_opts)
 
@@ -336,18 +356,6 @@ class PackageEntry:
     def with_physical_key(self, key):
         return self.__class__(key, self.size, self.hash, self._meta)
 
-    @property
-    def physical_keys(self):
-        """
-        Deprecated
-        """
-        warnings.warn(
-            "PackageEntry.physical_keys is deprecated, use PackageEntry.physical_key instead.",
-            category=RemovedInQuilt4Warning,
-            stacklevel=2,
-        )
-        return [self.physical_key]
-
 
 class PackageRevInfo:
     __slots__ = ('registry', 'name', 'top_hash')
@@ -381,11 +389,10 @@ class ManifestJSONDecoder(json.JSONDecoder):
 class Package:
     """ In-memory representation of a package """
 
-    _origin = None
-
     def __init__(self):
         self._children = {}
         self._meta = {'version': 'v0'}
+        self._origin = None
 
     @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):
@@ -456,7 +463,7 @@ class Package:
 
     @property
     def meta(self):
-        return self._meta.get('user_meta', dict())
+        return self._meta.get('user_meta', {})
 
     @classmethod
     @ApiTelemetry("package.install")
@@ -465,10 +472,7 @@ class Package:
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install. It also can be passed as NAME/PATH
-                (/PATH is deprecated, use the `path` parameter instead),
-                in this case only the sub-package or the entry specified by PATH will
-                be downloaded.
+            name(str): Name of package to install.
             registry(str): Registry where package is located.
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
@@ -504,18 +508,7 @@ class Package:
                     f"'build' instead."
                 )
 
-        parts = parse_sub_package_name(name)
-        if parts and parts[1]:
-            warnings.warn(
-                "Passing path via package name is deprecated, use the 'path' parameter instead.",
-                category=RemovedInQuilt4Warning,
-                stacklevel=3,
-            )
-            name, subpkg_key = parts
-            validate_key(subpkg_key)
-            if path:
-                raise ValueError("You must not pass path via package name and 'path' parameter.")
-        elif path:
+        if path:
             validate_key(path)
             subpkg_key = path
         else:
@@ -564,15 +557,7 @@ class Package:
         print(f"Successfully installed package '{name}', tophash={short_top_hash} from {registry}")
 
     @classmethod
-    def _parse_resolve_hash_args(cls, name, registry, hash_prefix):
-        return name, registry, hash_prefix
-
-    @staticmethod
-    def _parse_resolve_hash_args_old(registry, hash_prefix):
-        return None, registry, hash_prefix
-
-    @classmethod
-    def resolve_hash(cls, *args, **kwargs):
+    def resolve_hash(cls, name, registry, hash_prefix):
         """
         Find a hash that starts with a given prefix.
 
@@ -581,25 +566,8 @@ class Package:
             registry (str): location of registry
             hash_prefix (str): hash prefix with length between 6 and 64 characters
         """
-        try:
-            name, registry, hash_prefix = cls._parse_resolve_hash_args_old(*args, **kwargs)
-        except TypeError:
-            name, registry, hash_prefix = cls._parse_resolve_hash_args(*args, **kwargs)
-            validate_package_name(name)
-            return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
-        else:
-            registry = get_package_registry(registry)
-            if registry.resolve_top_hash_requires_pkg_name:
-                raise TypeError(f'Package name is required for resolving top hash at {registry.root}.')
-            warnings.warn(
-                "Calling resolve_hash() without the 'name' parameter is deprecated.",
-                category=RemovedInQuilt4Warning,
-                stacklevel=2,
-            )
-            return registry.resolve_top_hash(name, hash_prefix)
-
-    # This is needed for nice signature in docs.
-    resolve_hash.__func__.__signature__ = inspect.signature(_parse_resolve_hash_args.__func__)
+        validate_package_name(name)
+        return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
 
     @classmethod
     @ApiTelemetry("package.browse")
@@ -649,7 +617,9 @@ class Package:
                     stack.callback(os.unlink, local_pkg_manifest)
                 download_manifest(local_pkg_manifest)
 
-            return cls._from_path(local_pkg_manifest)
+            pkg = cls._from_path(local_pkg_manifest)
+            pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+            return pkg
 
     @classmethod
     def _from_path(cls, path):
@@ -1047,8 +1017,8 @@ class Package:
         else:
             self._meta.pop('workflow', None)
 
-    def _validate_with_workflow(self, *, registry, workflow, message):
-        self._workflow = workflows.validate(registry=registry, workflow=workflow, meta=self.meta, message=message)
+    def _validate_with_workflow(self, *, registry, workflow, name, message):
+        self._workflow = workflows.validate(registry=registry, workflow=workflow, name=name, pkg=self, message=message)
 
     @ApiTelemetry("package.build")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
@@ -1067,7 +1037,7 @@ class Package:
             The top hash as a string.
         """
         registry = get_package_registry(registry)
-        self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
+        self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
         return self._build(name=name, registry=registry, message=message)
 
     def _build(self, name, registry, message):
@@ -1084,8 +1054,7 @@ class Package:
     def _push_manifest(self, name, registry, top_hash):
         manifest = io.BytesIO()
         self._dump(manifest)
-        self._timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
-        self._origin = PackageRevInfo(str(registry.base), name, top_hash)
+        registry.push_manifest(name, top_hash, manifest.getvalue())
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
@@ -1280,7 +1249,7 @@ class Package:
 
     def delete(self, logical_key):
         """
-        Returns the package with logical_key removed.
+        Returns self with logical_key removed.
 
         Returns:
             self
@@ -1335,7 +1304,10 @@ class Package:
 
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=...):
+    def push(
+        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
+        workflow=..., force: bool = False, dedupe: bool = False
+    ):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1358,26 +1330,38 @@ class Package:
         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
+        By default, push will not overwrite an existing package if its top hash does not match
+        the parent hash of the package being pushed. Use `force=True` to skip the check.
+
         Args:
             name: name for package in registry
-            dest: where to copy the objects in the package
-                Must be either an S3 URI prefix in the registry bucket, or a callable that takes
-                logical_key, package_entry, and top_hash and returns S3 URI. S3 URIs format is s3://$bucket/$key.
+            dest: where to copy the objects in the package. Must be either an S3 URI prefix (e.g., s3://$bucket/$key)
+                in the registry bucket, or a callable that takes logical_key, package_entry, and top_hash
+                and returns an S3 URI.
             registry: registry where to create the new package
             message: the commit message for the new package
             selector_fn: An optional function that determines which package entries should be copied to S3.
                 The function takes in two arguments, logical_key and package_entry, and should return False if that
-                PackageEntry should be skipped during push. If for example you have a package where the files
-                are spread over multiple buckets and you add a single local file, you can use selector_fn to
-                only push the local file to s3 (instead of pushing all data to the destination bucket).
+                PackageEntry should not be copied to the destination registry during push.
+                If for example you have a package where the files are spread over multiple buckets
+                and you add a single local file, you can use selector_fn to only
+                push the local file to s3 (instead of pushing all data to the destination bucket).
             %(workflow)s
+            force: skip the top hash check and overwrite any existing package
+            dedupe: don't push if the top hash matches the existing package top hash; return the current package
 
         Returns:
             A new package that points to the copied objects.
         """
-        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True)
+        return self._push(
+            name, registry, dest, message, selector_fn, workflow=workflow,
+            print_info=True, force=force, dedupe=dedupe
+        )
 
-    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info):
+    def _push(
+        self, name, registry=None, dest=None, message=None, selector_fn=None, *,
+        workflow, print_info, force: bool, dedupe: bool
+    ):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
@@ -1434,7 +1418,38 @@ class Package:
                     )
 
         registry = get_package_registry(registry)
-        self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
+        self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
+
+        def get_latest_hash():
+            try:
+                return get_bytes(registry.pointer_latest_pk(name)).decode()
+            except botocore.exceptions.ClientError as ex:
+                if ex.response['Error']['Code'] == 'NoSuchKey':
+                    # Expected
+                    return None
+                raise
+
+        def check_hash_conficts(latest_hash):
+            if latest_hash is None:
+                return
+
+            if self._origin is None or latest_hash != self._origin.top_hash:
+                raise QuiltConflictException(
+                    f"Package with hash {latest_hash} already exists at the destination; "
+                    f"expected {None if self._origin is None else self._origin.top_hash}. "
+                    "Use force=True (Python) or --force (CLI) to overwrite."
+                )
+
+        # Get the latest hash if we're either checking for conflicts or deduping.
+        # Otherwise, avoid making unnecessary network calls.
+        if not force or dedupe:
+            latest_hash = get_latest_hash()
+        else:
+            latest_hash = None
+
+        # Check the top hash and fail early if it's unexpected.
+        if not force:
+            check_hash_conficts(latest_hash)
 
         self._fix_sha256()
 
@@ -1442,6 +1457,15 @@ class Package:
         pkg._meta = self._meta
         pkg._set_commit_message(message)
         top_hash = self._calculate_top_hash(pkg._meta, self.walk())
+        pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+
+        if dedupe and top_hash == latest_hash:
+            if print_info:
+                print(
+                    f"Skipping since package with hash {latest_hash} already exists "
+                    "at the destination and dedupe parameter is true."
+                )
+            return self
 
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
@@ -1477,7 +1501,7 @@ class Package:
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
                 return False
-            return pathlib.Path(pk.path).parent == APP_DIR_TEMPFILE_DIR
+            return pathlib.Path(pk.path).parent.resolve() == APP_DIR_TEMPFILE_DIR.resolve()
 
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
         if temp_file_logical_keys:
@@ -1490,6 +1514,11 @@ class Package:
             # Update old package to point to the materialized location of the file since the tempfile no longest exists
             for lk in temp_file_logical_keys:
                 self._set(lk, pkg[lk])
+
+        # Check top hash again just before pushing, to minimize the race condition.
+        if not force:
+            latest_hash = get_latest_hash()
+            check_hash_conficts(latest_hash)
 
         pkg._push_manifest(name, registry, top_hash)
 
@@ -1634,6 +1663,9 @@ class Package:
         Returns:
             True if the package matches the directory; False otherwise.
         """
+        for lk, e in self.walk():
+            _check_hash_type_support(e.hash["type"])
+
         src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
         url_list = []

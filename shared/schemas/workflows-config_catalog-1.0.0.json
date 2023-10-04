@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.quiltdata.com/workflows-config_catalog-1.0.0",
+  "definitions": {
+    "PackageHandleTemplate": {
+      "description": "Template for pre-filling package handle, use <%= username %> or <%= directory %> for username and parent directory substitutions",
+      "type": "string",
+      "default": ""
+    },
+    "PackageHandleSettings": {
+      "description": "Map of contexts triggering different templates",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "$ref": "#/definitions/PackageHandleTemplate",
+          "description": "Default package name used for creating package from directory"
+        },
+        "packages": {
+          "$ref": "#/definitions/PackageHandleTemplate",
+          "description": "Default package name used for creating package from scratch or from another package"
+        }
+      }
+    },
+    "CatalogSettings": {
+      "type": "object",
+      "properties": {
+        "catalog": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "package_handle": {
+              "$ref": "#/definitions/PackageHandleSettings"
+            }
+          }
+        },
+        "workflows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "catalog": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "package_handle": {
+                    "$ref": "#/definitions/PackageHandleSettings"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "https://schemas.quiltdata.com/workflows-config-1.1.0"
+    },
+    {
+      "$ref": "#/definitions/CatalogSettings"
+    }
+  ]
+}

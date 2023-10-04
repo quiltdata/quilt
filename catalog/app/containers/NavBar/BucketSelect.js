@@ -1,13 +1,13 @@
-import { push } from 'connected-react-router/esm/immutable'
 import deburr from 'lodash/deburr'
-import matchSorter from 'match-sorter'
+import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
-import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
+import BucketIcon from 'components/BucketIcon'
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
@@ -63,11 +63,10 @@ const useBucketStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     maxWidth: '100%',
+    alignItems: 'center',
   },
   icon: {
     flexShrink: 0,
-    height: 40,
-    width: 40,
   },
   text: {
     display: 'flex',
@@ -95,8 +94,7 @@ function Bucket({ iconUrl, name, title, description }) {
   const classes = useBucketStyles()
   return (
     <div className={classes.root} title={description}>
-      {/* TODO: show text avatar or smth when iconUrl is empty */}
-      <img src={iconUrl} alt={title} className={classes.icon} />
+      <BucketIcon alt={title} className={classes.icon} src={iconUrl} />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})
@@ -119,8 +117,9 @@ function CustomPopper({ style: css, ...props }) {
 
 function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
+  // XXX: consider using graphql directly
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const dispatch = redux.useDispatch()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
 
   const [inputValue, setInputValue] = React.useState('')
@@ -149,7 +148,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
               const to =
                 typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
               if (to && currentBucket !== to) {
-                dispatch(push(urls.bucketRoot(to)))
+                history.push(urls.bucketRoot(to))
               }
             }
           }}

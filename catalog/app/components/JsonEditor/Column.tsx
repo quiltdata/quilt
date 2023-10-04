@@ -1,42 +1,74 @@
+import type { JSONType } from 'ajv'
+import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
+
+import * as JSONPointer from 'utils/JSONPointer'
+import type { JsonRecord } from 'utils/types'
 
 import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
+import EmptyRow from './EmptyRow'
 import Row from './Row'
 import { getJsonDictValue } from './State'
+import * as Toolbar from './Toolbar'
 import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    background: t.palette.common.white,
     flex: 'none',
     padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
   },
+  breadcrumbs: {
+    alignItems: 'center',
+    border: `1px solid ${t.palette.grey[400]}`,
+    borderWidth: '1px 1px 0',
+    color: t.palette.text.hint,
+    display: 'flex',
+    padding: '4px 8px',
+  },
+  sibling: {
+    flex: 1,
 
+    '& + &': {
+      marginLeft: '-1px',
+    },
+  },
+  siblingButton: {
+    paddingLeft: t.spacing(1),
+  },
+  scroll: {
+    maxHeight: `calc(100% - ${t.spacing(8)}px)`,
+    overflowY: 'auto',
+  },
   table: {
     tableLayout: 'fixed',
+  },
+  toolbar: {
+    marginLeft: 'auto',
   },
 }))
 
 function getColumnType(
-  columnPath: string[],
+  columnPath: JSONPointer.Path,
   jsonDict: Record<string, JsonValue>,
-  parent: JsonValue,
+  parent?: JsonValue,
 ) {
+  // TODO: use `getJsonDictItemRecursively`
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
-  if (columnSchema && !parent) return columnSchema.type
+  if (columnSchema && !parent) return columnSchema.type as JSONType
 
   if (Array.isArray(parent)) return 'array'
 
   if (!columnSchema) return 'object'
 
-  return typeof parent
+  return typeof parent as JSONType
 }
 
 const useEmptyColumnStyles = M.makeStyles((t) => ({
@@ -47,8 +79,9 @@ const useEmptyColumnStyles = M.makeStyles((t) => ({
 }))
 
 interface EmptyColumnProps {
-  columnType: 'array' | 'object'
+  columnType?: JSONType
 }
+
 function EmptyColumn({ columnType }: EmptyColumnProps) {
   const classes = useEmptyColumnStyles()
 
@@ -63,29 +96,63 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
   )
 }
 
+const MIN_ROWS_NUMBER = 10
+
+interface ColumnFillerProps {
+  hasSiblingColumn: boolean
+  filledRowsNumber: number
+}
+
+function ColumnFiller({ hasSiblingColumn, filledRowsNumber }: ColumnFillerProps) {
+  const emptyRows = React.useMemo(() => {
+    if (filledRowsNumber >= MIN_ROWS_NUMBER) return []
+    return R.range(0, MIN_ROWS_NUMBER - filledRowsNumber)
+  }, [filledRowsNumber])
+
+  if (!hasSiblingColumn) return null
+
+  return (
+    <>
+      {emptyRows.map((index) => (
+        <EmptyRow key={`empty_row_${index}`} />
+      ))}
+    </>
+  )
+}
+
 interface ColumnProps {
-  columnPath: string[]
+  hasSiblingColumn: boolean
+  className: string
+  columnPath: JSONPointer.Path
+  contextMenuPath: JSONPointer.Path
   data: {
     items: RowData[]
-    parent: JsonValue
+    parent?: JsonValue
   }
   jsonDict: Record<string, JsonValue>
-  onAddRow: (path: string[], key: string | number, value: JsonValue) => void
-  onBreadcrumb: (path: string[]) => void
-  onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
-  onExpand: (path: string[]) => void
-  onRemove: (path: string[]) => void
+  onAddRow: (path: JSONPointer.Path, key: string | number, value: JsonValue) => void
+  onBreadcrumb: (path: JSONPointer.Path) => void
+  onChange: (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => void
+  onContextMenu: (path: JSONPointer.Path) => void
+  onExpand: (path: JSONPointer.Path) => void
+  onRemove: (path: JSONPointer.Path) => void
+  onToolbar: (func: (v: JsonRecord) => JsonRecord) => void
 }
 
 export default function Column({
+  className,
   columnPath,
+  contextMenuPath,
   data,
+  hasSiblingColumn,
   jsonDict,
   onAddRow,
   onBreadcrumb,
   onChange,
+  onContextMenu,
   onExpand,
   onRemove,
+  onToolbar,
 }: ColumnProps) {
   const columns = React.useMemo(
     () =>
@@ -103,8 +170,9 @@ export default function Column({
   const classes = useStyles()
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
-  const onChangeInternal = React.useCallback(
-    (path: string[], id: 'key' | 'value', value: JsonValue) => {
+  // TODO: rename to less tutorial-ish name
+  const updateMyData = React.useCallback(
+    (path: JSONPointer.Path, id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
       onChange(path, id, value)
     },
@@ -117,25 +185,40 @@ export default function Column({
     defaultColumn: {
       Cell,
     },
-    updateMyData: onChangeInternal,
+    updateMyData,
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
   const columnType = getColumnType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
-    (path: string[], key: string | number, value: JsonValue) => {
+    (path: JSONPointer.Path, key: string | number, value: JsonValue) => {
       setHasNewRow(true)
       onAddRow(path, key, value)
     },
     [onAddRow],
   )
 
-  return (
-    <div className={classes.root}>
-      {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
+  const toolbar = Toolbar.use()
 
-      <M.TableContainer>
+  return (
+    <div className={cx(classes.root, { [classes.sibling]: hasSiblingColumn }, className)}>
+      {!!columnPath.length && (
+        <div className={classes.breadcrumbs}>
+          <Breadcrumbs
+            tailOnly={hasSiblingColumn}
+            items={columnPath}
+            onSelect={onBreadcrumb}
+          />
+          {toolbar && (
+            <div className={classes.toolbar}>
+              <toolbar.Toolbar columnPath={columnPath} onChange={onToolbar} />
+            </div>
+          )}
+        </div>
+      )}
+
+      <M.TableContainer className={cx({ [classes.scroll]: hasSiblingColumn })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
@@ -145,18 +228,15 @@ export default function Column({
 
               const props = {
                 cells: row.cells,
-                fresh: isLastRow && hasNewRow,
                 columnPath,
+                contextMenuPath,
+                fresh: isLastRow && hasNewRow,
+                onContextMenu,
                 onExpand,
                 onRemove,
-                key: '',
               }
 
-              if (row.original.reactId) {
-                props.key = row.original.reactId
-              }
-
-              return <Row {...row.getRowProps()} {...props} />
+              return <Row {...row.getRowProps()} {...props} key={row.original.reactId} />
             })}
 
             {!rows.length && <EmptyColumn columnType={columnType} />}
@@ -164,6 +244,7 @@ export default function Column({
             {columnType === 'array' && (
               <AddArrayItem
                 {...{
+                  className: hasSiblingColumn ? classes.siblingButton : undefined,
                   columnPath,
                   index: rows.length,
                   onAdd: onAddRowInternal,
@@ -176,10 +257,19 @@ export default function Column({
               <AddRow
                 {...{
                   columnPath,
-                  onExpand,
-                  onAdd: onAddRowInternal,
+                  contextMenuPath,
                   key: `add_row_${rows.length}`,
+                  onAdd: onAddRowInternal,
+                  onContextMenu,
+                  onExpand,
                 }}
+              />
+            )}
+
+            {columnType !== 'array' && (
+              <ColumnFiller
+                hasSiblingColumn={hasSiblingColumn}
+                filledRowsNumber={rows.length}
               />
             )}
           </M.TableBody>

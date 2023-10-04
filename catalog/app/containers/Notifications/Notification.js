@@ -19,6 +19,7 @@ export default function Notification({ id, ttl, message, action, dismiss }) {
       message={message}
       autoHideDuration={ttl}
       onClose={handleClose}
+      data-testid="notification"
       action={
         <>
           {!!action && (

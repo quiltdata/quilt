@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Route, Switch, matchPath } from 'react-router-dom'
+import { Route, Switch, matchPath, useLocation, useParams } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -9,22 +9,25 @@ import { ThrowNotFound } from 'containers/NotFoundPage'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
+import CatchNotFound from './CatchNotFound'
 import { displayError } from './errors'
 
-const mkLazy = (load) =>
-  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Dir = mkLazy(() => import('./Dir'))
-const File = mkLazy(() => import('./File'))
-const Overview = mkLazy(() => import('./Overview'))
-const PackageList = mkLazy(() => import('./PackageList'))
-const PackageRevisions = mkLazy(() => import('./PackageRevisions'))
-const PackageTree = mkLazy(() => import('./PackageTree'))
-const Queries = mkLazy(() => import('./Queries'))
-const Search = mkLazy(() => import('./Search'))
+const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
+const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
+const Overview = RT.mkLazy(() => import('./Overview'), SuspensePlaceholder)
+const PackageList = RT.mkLazy(() => import('./PackageList'), SuspensePlaceholder)
+const PackageRevisions = RT.mkLazy(
+  () => import('./PackageRevisions'),
+  SuspensePlaceholder,
+)
+const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
+const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
 
 const match = (cases) => (pathname) => {
   // eslint-disable-next-line no-restricted-syntax
@@ -38,14 +41,14 @@ const match = (cases) => (pathname) => {
 }
 
 const sections = {
+  es: { path: 'bucketESQueries', exact: true },
   overview: { path: 'bucketOverview', exact: true },
   packages: { path: 'bucketPackageList' },
   tree: [
     { path: 'bucketFile', exact: true, strict: true },
     { path: 'bucketDir', exact: true },
   ],
-  queries: { path: 'bucketQueries', exact: true },
-  search: { path: 'bucketSearch', exact: true },
+  queries: { path: 'bucketQueries' },
 }
 
 const getBucketSection = (paths) =>
@@ -86,28 +89,45 @@ function BucketLayout({ bucket, section = false, children }) {
   )
 }
 
-export default function Bucket({
-  location,
-  match: {
-    params: { bucket },
-  },
-}) {
+export default function Bucket() {
+  const location = useLocation()
+  const { bucket } = useParams()
   const { paths } = NamedRoutes.use()
   return (
     <BucketPreferences.Provider bucket={bucket}>
+      <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
-        <Switch>
-          <Route path={paths.bucketFile} component={File} exact strict />
-          <Route path={paths.bucketDir} component={Dir} exact />
-          <Route path={paths.bucketOverview} component={Overview} exact />
-          <Route path={paths.bucketSearch} component={Search} exact />
-          <Route path={paths.bucketPackageList} component={PackageList} exact />
-          <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-          <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-          <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
-          <Route path={paths.bucketQueries} component={Queries} exact />
-          <Route component={ThrowNotFound} />
-        </Switch>
+        <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
+          <Switch>
+            <Route path={paths.bucketFile} exact strict>
+              <File />
+            </Route>
+            <Route path={paths.bucketDir} exact>
+              <Dir />
+            </Route>
+            <Route path={paths.bucketOverview} exact>
+              <Overview />
+            </Route>
+            <Route path={paths.bucketPackageList} exact>
+              <PackageList />
+            </Route>
+            <Route path={paths.bucketPackageDetail} exact>
+              <PackageTree />
+            </Route>
+            <Route path={paths.bucketPackageTree} exact>
+              <PackageTree />
+            </Route>
+            <Route path={paths.bucketPackageRevisions} exact>
+              <PackageRevisions />
+            </Route>
+            <Route path={paths.bucketQueries}>
+              <Queries />
+            </Route>
+            <Route>
+              <ThrowNotFound />
+            </Route>
+          </Switch>
+        </CatchNotFound>
       </BucketLayout>
     </BucketPreferences.Provider>
   )

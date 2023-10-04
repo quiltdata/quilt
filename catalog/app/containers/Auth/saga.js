@@ -1,7 +1,10 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
+import * as Sentry from '@sentry/react'
 
+import cfg from 'constants/config'
 import { apiRequest, HTTPError } from 'utils/APIConnector'
 import defer from 'utils/defer'
+import log from 'utils/Logging'
 import { waitTil } from 'utils/sagaTools'
 import { timestamp } from 'utils/time'
 
@@ -56,6 +59,9 @@ function* signUp(credentials) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
+      if (e.status === 400 && e.json && e.json.message === 'Default role not set') {
+        throw new errors.NoDefaultRole({ originalError: e })
+      }
       if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
         throw new errors.InvalidUsername({ originalError: e })
       }
@@ -117,6 +123,10 @@ function* signOut() {
  * @throws {AuthError}
  */
 function* signIn(credentials) {
+  if (typeof credentials.token === 'string' && typeof credentials.exp === 'number') {
+    return { token: credentials.token, exp: credentials.exp }
+  }
+
   try {
     const { token, exp } = yield call(apiRequest, {
       auth: false,
@@ -132,11 +142,28 @@ function* signIn(credentials) {
     if (HTTPError.is(e, 401, /login attempt failed/i)) {
       throw new errors.InvalidCredentials()
     }
+    if (HTTPError.is(e, 400, 'Default role not set')) {
+      throw new errors.NoDefaultRole({ originalError: e })
+    }
 
     throw new errors.AuthError({
       message: 'unable to sign in',
       originalError: e,
     })
+  }
+}
+
+function* setBrowseCookie(tokens) {
+  try {
+    yield call(apiRequest, {
+      auth: { tokens, handleInvalidToken: false },
+      url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch (e) {
+    log.warn('Unable to set browse cookie:', e)
+    Sentry.captureException(e)
   }
 }
 
@@ -156,7 +183,7 @@ function* fetchUser(tokens) {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: '/me',
+      endpoint: `/me?_cachebust=${Math.random()}`,
     })
     return auth
   } catch (e) {
@@ -318,6 +345,7 @@ function* handleSignIn(
     const tokensRaw = yield call(signIn, credentials)
     const tokens = adjustTokensForLatency(tokensRaw, latency)
     const user = yield call(fetchUser, tokens)
+    yield fork(setBrowseCookie, tokens)
     yield fork(storeTokens, tokens)
     yield fork(storeUser, user)
     yield put(actions.signIn.resolve({ tokens, user }))
@@ -376,9 +404,6 @@ const isExpired = (tokens, time) => {
  * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
- * @param {function} options.forgetTokens
- * @param {function} options.forgetUser
- * @param {function} options.onAuthLost
  *
  * @param {Action} action
  */
@@ -387,6 +412,9 @@ function* handleCheck(
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
+    // waiting while all the current requests settle to avoid race conditions
+    yield call(waitTil, selectors.waiting, (w) => !w)
+
     const tokens = yield select(selectors.tokens)
     const time = yield call(timestamp)
     if (!tokens || !isExpired(tokens, time)) {
@@ -397,6 +425,7 @@ function* handleCheck(
 
     yield put(actions.refresh())
     const newTokens = yield call(refreshTokens, latency, tokens)
+    yield fork(setBrowseCookie, newTokens)
     yield fork(storeTokens, newTokens)
     let user
     if (refetch) {
@@ -416,6 +445,27 @@ function* handleCheck(
 }
 
 /**
+ * Handle GET_TOKENS action.
+ *
+ * @param {Action} action
+ */
+function* handleGetTokens({ meta: { resolve, reject } }) {
+  try {
+    const tokens = yield call(getTokens)
+    yield call(resolve, tokens)
+  } catch (e) {
+    if (reject) {
+      yield call(reject, e)
+    } else {
+      // eslint-disable-next-line no-console
+      console.error('handleGetTokens: unhandled error:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }
+}
+
+/**
  * Handle AUTH_LOST action.
  *
  * @param {Object} options
@@ -425,6 +475,7 @@ function* handleCheck(
 function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
   yield fork(forgetTokens)
   yield fork(forgetUser)
+  // TODO: dont call onAuthLost if not signed in / on consectutive dispatches
   yield call(onAuthLost, err)
 }
 
@@ -492,7 +543,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
- * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
  * @param {function} options.storeUser
@@ -501,7 +551,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  */
 export default function* Saga({
   latency,
-  checkOn,
   storeTokens,
   forgetTokens,
   storeUser,
@@ -515,6 +564,7 @@ export default function* Saga({
     storeTokens,
     storeUser,
   })
+  yield takeEvery(actions.getTokens.type, handleGetTokens)
   yield takeEvery(actions.authLost.type, handleAuthLost, {
     forgetTokens,
     forgetUser,
@@ -524,10 +574,4 @@ export default function* Saga({
   yield takeEvery(actions.resetPassword.type, handleResetPassword)
   yield takeEvery(actions.changePassword.type, handleChangePassword)
   yield takeEvery(actions.getCode.type, handleGetCode)
-
-  if (checkOn) {
-    yield takeEvery(checkOn, function* checkAuth() {
-      yield put(actions.check())
-    })
-  }
 }

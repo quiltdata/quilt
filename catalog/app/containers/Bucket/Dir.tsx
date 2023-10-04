@@ -1,107 +1,83 @@
-import { basename } from 'path'
-
-import dedent from 'dedent'
-import * as R from 'ramda'
+import invariant from 'invariant'
+import cx from 'classnames'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
+import * as Buttons from 'components/Buttons'
+import * as FileEditor from 'components/FileEditor'
+import cfg from 'constants/config'
+import type * as Routes from 'constants/routes'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import type * as workflows from 'utils/workflows'
 
-import Code from './Code'
-import CopyButton from './CopyButton'
+import DirCodeSamples from './CodeSamples/Dir'
 import * as FileView from './FileView'
-import { Listing, PrefixFilter } from './Listing'
-import PackageDirectoryDialog from './PackageDirectoryDialog'
+import * as Listing from './Listing'
+import Menu from './Menu'
+import * as PD from './PackageDialog'
+import * as Selection from './Selection'
+import * as Successors from './Successors'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-interface RouteMap {
-  bucketDir: [bucket: string, path?: string, prefix?: string]
-  bucketFile: [bucket: string, path: string, version?: string]
-}
-
-type Urls = NamedRoutes.Urls<RouteMap>
-
-interface ListingFile {
+interface DirectoryMenuProps {
   bucket: string
-  key: string
-  modified: Date
-  size: number
-  etag: string
-  archived: boolean
-}
-
-interface ListingResponse {
-  dirs: string[]
-  files: ListingFile[]
-  truncated: boolean
-  bucket: string
+  className?: string
   path: string
-  prefix: string
 }
 
-const getCrumbs = R.compose(
-  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
-  ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
-    [{ label: bucket, path: '' }, ...getBreadCrumbs(path)].map(
-      ({ label, path: segPath }) =>
-        Crumb.Segment({
-          label,
-          to: segPath === path ? undefined : urls.bucketDir(bucket, segPath),
-        }),
-    ),
-)
+function DirectoryMenu({ bucket, path, className }: DirectoryMenuProps) {
+  const prompt = FileEditor.useCreateFileInBucket(bucket, path)
+  const menuItems = React.useMemo(
+    () => [
+      {
+        onClick: prompt.open,
+        title: 'Create file',
+      },
+    ],
+    [prompt.open],
+  )
 
-const formatListing = ({ urls }: { urls: Urls }, r: ListingResponse) => {
-  const dirs = r.dirs.map((name) => ({
-    type: 'dir' as const,
-    name: ensureNoSlash(withoutPrefix(r.path, name)),
-    to: urls.bucketDir(r.bucket, name),
-  }))
-  const files = r.files.map(({ key, size, modified, archived }) => ({
-    type: 'file' as const,
-    name: withoutPrefix(r.path, key),
-    to: urls.bucketFile(r.bucket, key),
-    size,
-    modified,
-    archived,
-  }))
-  const items = [
-    ...(r.path !== '' && !r.prefix
-      ? [
-          {
-            type: 'dir' as const,
-            name: '..',
-            to: urls.bucketDir(r.bucket, up(r.path)),
-          },
-        ]
-      : []),
-    ...dirs,
-    ...files,
-  ]
-  // filter-out files with same name as one of dirs
-  return R.uniqBy(R.prop('name'), items)
+  return (
+    <>
+      {prompt.render()}
+      <Menu className={className} items={menuItems} />
+    </>
+  )
+}
+
+interface RouteMap {
+  bucketDir: Routes.BucketDirArgs
+  bucketFile: Routes.BucketFileArgs
+}
+
+function useFormattedListing(r: requests.BucketListingResult): Listing.Item[] {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  return React.useMemo(() => {
+    const d = r.dirs.map((p) => Listing.Entry.Dir({ key: p }))
+    const f = r.files.map(Listing.Entry.File)
+    return Listing.format([...d, ...f], { bucket: r.bucket, prefix: r.path, urls })
+  }, [r, urls])
 }
 
 interface DirContentsProps {
-  response: ListingResponse
+  response: requests.BucketListingResult
   locked: boolean
   bucket: string
   path: string
-  successor: workflows.Successor | null
-  setSuccessor: (successor: workflows.Successor | null) => void
   loadMore?: () => void
+  selection: string[]
+  onSelection: (ids: string[]) => void
 }
 
 function DirContents({
@@ -109,16 +85,12 @@ function DirContents({
   locked,
   bucket,
   path,
-  successor,
-  setSuccessor,
   loadMore,
+  selection,
+  onSelection,
 }: DirContentsProps) {
   const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use<RouteMap>()
-
-  const onPackageDirectoryDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-  }, [setSuccessor])
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -127,37 +99,101 @@ function DirContents({
     [history, urls, bucket, path],
   )
 
-  const items = React.useMemo(() => formatListing({ urls }, response), [urls, response])
+  const items = useFormattedListing(response)
 
   // TODO: should prefix filtering affect summary?
   return (
     <>
-      <PackageDirectoryDialog
-        bucket={bucket}
-        path={path}
-        files={response.files}
-        dirs={response.dirs}
-        truncated={response.truncated}
-        open={!!successor}
-        successor={successor}
-        onExited={onPackageDirectoryDialogExited}
-      />
-
-      <Listing
+      <Listing.Listing
         items={items}
         locked={locked}
         loadMore={loadMore}
         truncated={response.truncated}
         prefixFilter={response.prefix}
+        onSelectionChange={onSelection}
+        selection={selection}
         toolbarContents={
-          <PrefixFilter
-            key={`${response.bucket}/${response.path}`}
-            prefix={response.prefix}
-            setPrefix={setPrefix}
-          />
+          <>
+            <Listing.PrefixFilter
+              key={`${response.bucket}/${response.path}`}
+              prefix={response.prefix}
+              setPrefix={setPrefix}
+            />
+          </>
         }
       />
-      <Summary files={response.files} mkUrl={null} />
+      {/* Remove TS workaround when Summary will be converted to .tsx */}
+      {/* @ts-expect-error */}
+      <Summary files={response.files} mkUrl={null} path={path} />
+    </>
+  )
+}
+
+const useSelectionWidgetStyles = M.makeStyles({
+  close: {
+    marginLeft: 'auto',
+  },
+  title: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  badge: {
+    right: '4px',
+  },
+})
+
+interface SelectionWidgetProps {
+  className: string
+  selection: Selection.PrefixedKeysMap
+  onSelection: (changed: Selection.PrefixedKeysMap) => void
+}
+
+function SelectionWidget({ className, selection, onSelection }: SelectionWidgetProps) {
+  const classes = useSelectionWidgetStyles()
+  const location = RRDom.useLocation()
+  const count = Object.values(selection).reduce((memo, ids) => memo + ids.length, 0)
+  const [opened, setOpened] = React.useState(false)
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
+  React.useEffect(() => close(), [close, location])
+  const badgeClasses = React.useMemo(() => ({ badge: classes.badge }), [classes])
+  return (
+    <>
+      <M.Badge
+        badgeContent={count}
+        classes={badgeClasses}
+        className={className}
+        color="primary"
+        max={999}
+        showZero
+      >
+        <M.Button onClick={open} size="small">
+          Selected items
+        </M.Button>
+      </M.Badge>
+
+      <M.Dialog open={opened} onClose={close} fullWidth maxWidth="md">
+        <M.DialogTitle disableTypography>
+          <M.Typography className={classes.title} variant="h6">
+            {count} items selected
+            <M.IconButton size="small" className={classes.close} onClick={close}>
+              <M.Icon>close</M.Icon>
+            </M.IconButton>
+          </M.Typography>
+        </M.DialogTitle>
+        <M.DialogContent>
+          <Selection.Dashboard
+            onSelection={onSelection}
+            onDone={close}
+            selection={selection}
+          />
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={close} variant="contained" color="primary" size="small">
+            Close
+          </M.Button>
+        </M.DialogActions>
+      </M.Dialog>
     </>
   )
 }
@@ -168,6 +204,25 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
     overflowWrap: 'break-word',
   },
+  button: {
+    marginLeft: t.spacing(1),
+  },
+  topbar: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    marginBottom: t.spacing(2),
+    [t.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+    },
+  },
+  actions: {
+    display: 'flex',
+    flexShrink: 0,
+    margin: '-3px 0 -3px auto',
+    [t.breakpoints.down('sm')]: {
+      marginTop: t.spacing(0.5),
+    },
+  },
 }))
 
 interface DirParams {
@@ -175,50 +230,16 @@ interface DirParams {
   path?: string
 }
 
-export default function Dir({
-  match: {
-    params: { bucket, path: encodedPath = '' },
-  },
-  location: l,
-}: RRDom.RouteComponentProps<DirParams>) {
+export default function Dir() {
+  const { bucket, path: encodedPath = '' } = RRDom.useParams<DirParams>()
+  const l = RRDom.useLocation()
+  invariant(!!bucket, '`bucket` must be defined')
+
   const classes = useStyles()
-  const { urls } = NamedRoutes.use<RouteMap>()
-  const { noDownload } = Config.use()
   const s3 = AWS.S3.use()
-  const preferences = BucketPreferences.use()
-  const { prefix } = parseSearch(l.search)
-  const path = decode(encodedPath)
-  const dest = path ? basename(path) : bucket
-
-  const code = React.useMemo(
-    () => [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3
-          b = quilt3.Bucket("s3://${bucket}")
-          # list files
-          b.ls("${path}")
-          # download
-          b.fetch("${path}", "./${dest}")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          # list files
-          aws s3 ls "s3://${bucket}/${path}"
-          # download
-          aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
-        `,
-      },
-    ],
-    [bucket, path, dest],
-  )
-
-  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
+  const prefs = BucketPreferences.use()
+  const { prefix } = parseSearch(l.search, true)
+  const path = s3paths.decode(encodedPath)
 
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
 
@@ -248,45 +269,136 @@ export default function Dir({
     )
   }, [data.result])
 
+  const [selection, setSelection] = React.useState<Record<string, string[]>>(
+    Selection.EMPTY_MAP,
+  )
+  const handleSelection = React.useCallback(
+    (ids) => setSelection(Selection.merge(ids, bucket, path, prefix)),
+    [bucket, path, prefix],
+  )
+
+  const packageDirectoryDialog = PD.usePackageCreationDialog({
+    s3Path: path,
+    bucket,
+    delayHashing: true,
+    disableStateDisplay: true,
+  })
+
+  const openPackageCreationDialog = React.useCallback(
+    (successor: workflows.Successor) => {
+      packageDirectoryDialog.open({
+        path,
+        successor,
+        selection,
+      })
+    },
+    [packageDirectoryDialog, path, selection],
+  )
+
+  const { paths, urls } = NamedRoutes.use<RouteMap>()
+  const getSegmentRoute = React.useCallback(
+    (segPath: string) => urls.bucketDir(bucket, segPath),
+    [bucket, urls],
+  )
+  const crumbs = BreadCrumbs.use(path, getSegmentRoute, bucket)
+
+  const hasSelection = Object.values(selection).some((ids) => !!ids.length)
+  const guardNavigation = React.useCallback(
+    (location) => {
+      if (
+        !RRDom.matchPath(location.pathname, {
+          path: paths.bucketDir,
+          exact: true,
+        })
+      ) {
+        return 'Selection will be lost. Clear selection and confirm navigation?'
+      }
+      return true
+    },
+    [paths],
+  )
+
   return (
     <M.Box pt={2} pb={4}>
-      <M.Box display="flex" alignItems="flex-start" mb={2}>
-        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls }))}
-        </div>
-        <M.Box flexGrow={1} />
-        {preferences?.ui?.actions?.createPackage && (
-          <CopyButton bucket={bucket} onChange={setSuccessor}>
-            Create package from directory
-          </CopyButton>
-        )}
-        {!noDownload && (
-          <>
-            <M.Box ml={1} />
-            <FileView.ZipDownloadForm
-              suffix={`dir/${bucket}/${path}`}
-              label="Download directory"
-            />
-          </>
-        )}
-      </M.Box>
+      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
-      <Code gutterBottom>{code}</Code>
+      <RRDom.Prompt when={hasSelection} message={guardNavigation} />
+
+      {packageDirectoryDialog.render({
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      })}
+
+      <div className={classes.topbar}>
+        <div className={classes.crumbs} onCopy={BreadCrumbs.copyWithoutSpaces}>
+          {BreadCrumbs.render(crumbs)}
+        </div>
+        <div className={classes.actions}>
+          <SelectionWidget
+            className={cx(classes.button)}
+            selection={selection}
+            onSelection={setSelection}
+          />
+          {BucketPreferences.Result.match(
+            {
+              Ok: ({ ui: { actions } }) =>
+                actions.createPackage && (
+                  <Successors.Button
+                    bucket={bucket}
+                    className={classes.button}
+                    onChange={openPackageCreationDialog}
+                    variant={hasSelection ? 'contained' : 'outlined'}
+                    color={hasSelection ? 'primary' : 'default'}
+                  >
+                    Create package
+                  </Successors.Button>
+                ),
+              Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
+              Init: () => null,
+            },
+            prefs,
+          )}
+          {!cfg.noDownload && !cfg.desktop && (
+            <FileView.ZipDownloadForm suffix={`dir/${bucket}/${path}`}>
+              <Buttons.Iconized
+                className={classes.button}
+                label="Download directory"
+                icon="archive"
+                type="submit"
+              />
+            </FileView.ZipDownloadForm>
+          )}
+          <DirectoryMenu className={classes.button} bucket={bucket} path={path} />
+        </div>
+      </div>
+
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) =>
+            blocks.code && <DirCodeSamples bucket={bucket} path={path} gutterBottom />,
+          Pending: () => null,
+          Init: () => null,
+        },
+        prefs,
+      )}
 
       {data.case({
         Err: displayError(),
         Init: () => null,
         _: (x: $TSFixMe) => {
-          const res: ListingResponse | null = AsyncResult.getPrevResult(x)
+          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
           return res ? (
             <DirContents
               response={res}
               locked={!AsyncResult.Ok.is(x)}
               bucket={bucket}
               path={path}
-              successor={successor}
-              setSuccessor={setSuccessor}
               loadMore={loadMore}
+              selection={Selection.getDirectorySelection(selection, res.bucket, res.path)}
+              onSelection={handleSelection}
             />
           ) : (
             <M.CircularProgress />

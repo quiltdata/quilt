@@ -1,4 +1,9 @@
-import { iterateJsonDict, iterateSchema, mergeSchemaAndObjRootKeys } from './State'
+import {
+  getJsonDictItemRecursively,
+  iterateJsonDict,
+  iterateSchema,
+  mergeSchemaAndObjRootKeys,
+} from './State'
 
 import * as booleansNulls from './mocks/booleans-nulls'
 import * as deeplyNestedArray from './mocks/deeply-nested-array'
@@ -94,7 +99,9 @@ describe('components/JsonEditor/State', () => {
     })
 
     it('should return one state object utilizing Schema keys and object keys, when input is a flat object', () => {
-      const sortOrder = { current: { counter: Number.MIN_SAFE_INTEGER, dict: { c: 15 } } }
+      const sortOrder = {
+        current: { counter: Number.MIN_SAFE_INTEGER, dict: { '/c': 15 } },
+      }
       const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, regular.object1)
       sortOrder.counter = 0
@@ -127,7 +134,7 @@ describe('components/JsonEditor/State', () => {
         rootKeys,
         sortOrder,
       )
-      expect(columns).toEqual(deeplyNestedObject.columns1)
+      expect(columns).toMatchObject(deeplyNestedObject.columns1)
     })
 
     it('should set same sortIndexes on re-render', () => {
@@ -161,5 +168,18 @@ describe('components/JsonEditor/State', () => {
       )
       expect(columns).toEqual(sorted.columns2)
     })
+  })
+
+  describe('getJsonDictItemRecursively', () => {
+    const dict = {
+      '/c': 'found C',
+      '/c/__*': 'found additional',
+      '/c/__*/b': 'found B',
+      '/c/__*/b/__*': 'found item',
+    }
+    expect(getJsonDictItemRecursively(dict, ['c'])).toBe('found C')
+    expect(getJsonDictItemRecursively(dict, ['c', 'foo'])).toBe('found additional')
+    expect(getJsonDictItemRecursively(dict, ['c', 'foo', 'b'])).toBe('found B')
+    expect(getJsonDictItemRecursively(dict, ['c', 'foo', 'b', 'bar'])).toBe('found item')
   })
 })

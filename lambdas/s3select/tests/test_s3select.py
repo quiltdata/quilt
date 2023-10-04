@@ -5,10 +5,10 @@ from unittest.mock import patch
 
 import responses
 
-from ..index import lambda_handler
+import t4_lambda_s3select
 
 
-@patch('index.REGION', 'us-east-1')
+@patch('t4_lambda_s3select.REGION', 'us-east-1')
 class TestS3Select(TestCase):
     """Tests S3 Select"""
     def setUp(self):
@@ -76,7 +76,7 @@ class TestS3Select(TestCase):
         body = b's3 select request body'
 
         event = self._make_event('bucket/object.csv', query, headers, body)
-        resp = lambda_handler(event, None)
+        resp = t4_lambda_s3select.lambda_handler(event, None)
         assert resp['statusCode'] == 200
         assert resp['isBase64Encoded']
         assert b64decode(resp['body']) == b'results'
@@ -90,15 +90,15 @@ class TestS3Select(TestCase):
             status=403)
 
         event = self._make_event('bucket/object.csv', {'select': None}, {}, b'test')
-        resp = lambda_handler(event, None)
+        resp = t4_lambda_s3select.lambda_handler(event, None)
         assert resp['statusCode'] == 403
 
     def test_bad_request(self):
         event = self._make_event('bucket/object.csv', {}, {}, b'test')
-        resp = lambda_handler(event, None)
+        resp = t4_lambda_s3select.lambda_handler(event, None)
         assert resp['statusCode'] == 400
 
         event = self._make_event('bucket/object.csv', {'select': None}, {}, b'test')
         event['httpMethod'] = 'PUT'
-        resp = lambda_handler(event, None)
+        resp = t4_lambda_s3select.lambda_handler(event, None)
         assert resp['statusCode'] == 400

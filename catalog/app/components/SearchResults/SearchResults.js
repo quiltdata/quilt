@@ -4,20 +4,19 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
+import cfg from 'constants/config'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useBucketExistence } from 'utils/BucketCache'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
-import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -35,43 +34,31 @@ function ObjectCrumbs({ handle, showBucket = false }) {
   const { urls } = NamedRoutes.use()
   const isDir = handle.key.endsWith('/')
 
-  const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
-    const dirs = R.init(all).map(({ label, path }) => ({
-      to: urls.bucketFile(handle.bucket, path),
-      children: label,
-    }))
-    const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
-      children: R.last(all).label,
-    }
-    const bucket = showBucket
-      ? {
-          to: urls.bucketRoot(handle.bucket),
-          children: handle.bucket,
-        }
-      : null
-    return { bucket, dirs, file }
-  }, [handle, urls, showBucket])
+  const rootLabel = showBucket ? handle.bucket : ''
+  const getSegmentRoute = React.useCallback(
+    (segPath) => {
+      switch (segPath) {
+        case '':
+          return urls.bucketRoot(handle.bucket)
+        case handle.key:
+          return urls.bucketFile(handle.bucket, segPath, { version: handle.version })
+        default:
+          return urls.bucketFile(handle.bucket, segPath)
+      }
+    },
+    [handle.bucket, handle.key, handle.version, urls],
+  )
+  const crumbs = BreadCrumbs.use(handle.key, getSegmentRoute, rootLabel, {
+    tailLink: true,
+    rootRoute: urls.bucketRoot(handle.bucket),
+  })
 
   return (
-    <span onCopy={copyWithoutSpaces}>
+    <span onCopy={BreadCrumbs.copyWithoutSpaces}>
       <HeaderIcon title={isDir ? 'Directory' : 'File'}>
         {isDir ? 'folder_open' : 'insert_drive_file'}
       </HeaderIcon>
-      {crumbs.bucket && (
-        <>
-          <CrumbLink {...crumbs.bucket} />
-          &nbsp;/{' '}
-        </>
-      )}
-      {crumbs.dirs.map((c) => (
-        <React.Fragment key={`crumb:${c.to}`}>
-          <CrumbLink {...c} />
-          &nbsp;/{' '}
-        </React.Fragment>
-      ))}
-      <CrumbLink {...crumbs.file} />
+      {BreadCrumbs.render(crumbs)}
     </span>
   )
 }
@@ -88,27 +75,16 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, downloadable = false }) {
+function ObjectHeader({ handle, showBucket, downloadable = false, expanded, onToggle }) {
   return (
-    <Heading display="flex" alignItems="center" mb="0 !important">
+    <Preview.Header
+      downloadable={downloadable}
+      expanded={expanded}
+      handle={handle}
+      onToggle={onToggle}
+    >
       <ObjectCrumbs {...{ handle, showBucket }} />
-      <M.Box flexGrow={1} />
-      {!!downloadable &&
-        AWS.Signer.withDownloadUrl(handle, (url) => (
-          <M.Box
-            alignItems="center"
-            display="flex"
-            height={32}
-            justifyContent="center"
-            width={24}
-            my={{ xs: -0.25, md: 0 }}
-          >
-            <M.IconButton href={url} title="Download" download>
-              <M.Icon>arrow_downward</M.Icon>
-            </M.IconButton>
-          </M.Box>
-        ))}
-    </Heading>
+    </Preview.Header>
   )
 }
 
@@ -198,7 +174,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         <Nowrap>
           Version{' '}
           <StyledLink
-            to={urls.bucketFile(bucket, path, version.id)}
+            to={urls.bucketFile(bucket, path, { version: version.id })}
             className={classes.version}
           >
             {clip(version.id, 24)}
@@ -228,7 +204,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               className={classes.versionContainer}
             >
               <StyledLink
-                to={urls.bucketFile(bucket, path, v.id)}
+                to={urls.bucketFile(bucket, path, { version: v.id })}
                 className={classes.version}
               >
                 {clip(v.id, 6)}
@@ -288,6 +264,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
       rgba(255, 255, 255, 0.1)
     )`,
     bottom: 0,
+    cursor: 'pointer',
     display: 'flex',
     height: '100%',
     justifyContent: 'center',
@@ -299,12 +276,8 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ children, title }) {
+function PreviewBox({ children, title, expanded, onToggle }) {
   const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(false)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   return (
     <SmallerSection>
       {title && <SectionHeading>{title}</SectionHeading>}
@@ -313,20 +286,26 @@ function PreviewBox({ children, title }) {
         {children}
 
         {!expanded && (
-          <div className={classes.fade}>
-            <M.Button variant="outlined" onClick={expand}>
-              Expand
-            </M.Button>
-          </div>
+          <div className={classes.fade} onClick={onToggle} title="Click to expand" />
         )}
       </div>
     </SmallerSection>
   )
 }
 
-const renderContents = (children) => <PreviewBox {...{ children }} />
+const previewOptions = { context: Preview.CONTEXT.LISTING }
 
-function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
+function PreviewDisplay({
+  handle,
+  bucketExistenceData,
+  versionExistenceData,
+  expanded,
+  onToggle,
+}) {
+  const renderContents = React.useCallback(
+    (children) => <PreviewBox {...{ children, expanded, onToggle }} />,
+    [expanded, onToggle],
+  )
   const withData = (callback) =>
     bucketExistenceData.case({
       _: callback,
@@ -350,7 +329,7 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
                   AsyncResult.Err(Preview.PreviewError.Archived({ handle })),
                 )
               }
-              return Preview.load(handle, callback)
+              return Preview.load(handle, callback, previewOptions)
             },
             DoesNotExist: () =>
               callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
@@ -358,15 +337,22 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
         }),
     })
 
-  return withData(Preview.display({ renderContents }))
+  return withData(
+    Preview.display({
+      renderContents,
+      renderProgress: Progress,
+    }),
+  )
 }
 
 function Meta({ meta }) {
+  const [expanded, setExpanded] = React.useState(false)
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox title="Metadata">
-      <JsonDisplay defaultExpanded={1} value={meta} />
+    <PreviewBox expanded={expanded} onToggle={onToggle}>
+      <JsonDisplay defaultExpanded={1} name="User metadata" value={meta} />
     </PreviewBox>
   )
 }
@@ -425,11 +411,13 @@ function ObjectHit({ hit, ...props }) {
 }
 
 function FileHit({ showBucket, hit: { path, versions, bucket } }) {
-  const cfg = Config.use()
   const s3 = AWS.S3.use()
 
   const v = versions[0]
-  const handle = { bucket, key: path, version: v.id }
+  const handle = React.useMemo(
+    () => ({ bucket, key: path, version: v.id }),
+    [bucket, path, v.id],
+  )
 
   const bucketExistenceData = useBucketExistence(bucket)
   const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
@@ -447,13 +435,22 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }) {
           }),
         }),
     })
+  const [expanded, setExpanded] = React.useState(false)
+  const onToggle = React.useCallback(() => setExpanded((e) => !e), [])
 
   return (
-    <Section>
-      <ObjectHeader {...{ handle, showBucket, downloadable }} />
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="file"
+      data-search-hit-bucket={bucket}
+      data-search-hit-path={path}
+    >
+      <ObjectHeader {...{ handle, showBucket, downloadable, expanded, onToggle }} />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
-      <PreviewDisplay {...{ handle, bucketExistenceData, versionExistenceData }} />
+      <PreviewDisplay
+        {...{ handle, bucketExistenceData, versionExistenceData, expanded, onToggle }}
+      />
     </Section>
   )
 }
@@ -466,9 +463,14 @@ function DirHit({
     bucket,
   },
 }) {
-  const handle = { bucket, key: path }
+  const handle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="dir"
+      data-search-hit-bucket={bucket}
+      data-search-hit-path={path}
+    >
       <ObjectHeader {...{ handle, showBucket }} />
       <Meta meta={v.meta} />
     </Section>
@@ -480,7 +482,13 @@ function PackageHit({
   hit: { bucket, handle, hash, lastModified, meta, tags, comment },
 }) {
   return (
-    <Section>
+    <Section
+      data-testid="search-hit"
+      data-search-hit-type="package"
+      data-search-hit-bucket={bucket}
+      data-search-hit-package-name={handle}
+      data-search-hit-package-hash={hash}
+    >
       <PackageHeader {...{ handle, bucket, hash, showBucket }} />
       <RevisionInfo {...{ bucket, handle, hash, comment, lastModified }} />
       {tags && tags.length > 0 && (

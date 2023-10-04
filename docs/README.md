@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 [![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
@@ -41,26 +42,3 @@ on [quiltdata.com](https://quiltdata.com).
 * **Discover** related data by indexing objects in ElasticSearch
 * **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable versions for objects and data sets (a.k.a. "Quilt Packages")
 * **Decide** by broadening data access within the organization and supporting the documentation of decision processes through audit-able versioning and inline documentation
-
-## Roadmap
-### I - Performance and core services
-* [x] Address performance issues with push (e.g. re-hash)
-* [x] Provide Presto-DB-powered services for filtering package repos with SQL
-* [ ] Investigate and implement more efficient manifest formats (e.g. Parquet),
-that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
-* [ ] Refactor `s3://bucket/.quilt` for improved listing and delete performance
-
-### II - CI/CD for data
-* [ ] Ability to fork/merge packages
-* [ ] Data quality monitoring
-
-### III - Storage agnostic (support Azure, GCP buckets)
-* [ ] Evaluate min.io and ceph.io as shims
-* [ ] Evaluate feasibility of on-prem local storage as a repo
-
-### IV - Cloud agnostic
-* [ ] Evaluate K8s and Terraform to replace CloudFormation
-* [ ] Shim lambdas (consider serverless.com)
-* [ ] Shim ElasticSearch (consider SOLR)
-* [ ] Shim IAM via RBAC
-

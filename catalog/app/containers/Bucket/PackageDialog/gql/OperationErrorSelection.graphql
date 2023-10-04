@@ -1,0 +1,3 @@
+fragment OperationErrorSelection on OperationError {
+  message
+}

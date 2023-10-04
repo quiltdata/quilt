@@ -1,16 +1,22 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { styled } from '@material-ui/styles'
 
 import { printObject } from 'utils/string'
 
-import sand from './sand.jpg'
+import sand from './sand.webp'
 
-const Img = styled(M.Box)({
-  backgroundImage: `url(${sand})`,
-  backgroundRepeat: 'no-repeat',
-  backgroundSize: 'cover',
-})
+const useStyles = M.makeStyles((t) => ({
+  image: {
+    background: `url(${sand}) repeat`,
+    boxShadow: `
+      inset 0 0 10px ${t.palette.background.paper},
+      inset 0 0 20px ${t.palette.background.paper},
+      inset 0 0 50px ${t.palette.background.paper},
+      inset 0 0 100px ${t.palette.background.paper}`,
+    height: '600px', // 254px is header, tabs, title and description
+    marginTop: t.spacing(2),
+  },
+}))
 
 interface ErrorProps {
   headline?: React.ReactNode
@@ -23,14 +29,15 @@ export default function Error({
   headline = 'Something went wrong',
   object,
 }: ErrorProps) {
+  const classes = useStyles()
   return (
     <>
       <M.Typography variant="h4" gutterBottom>
         {headline}
       </M.Typography>
       <M.Typography variant="body1">{detail}</M.Typography>
-      <Img height={600} mt={2} />
-      {!!object && <M.Box component="pre">{printObject(object)}</M.Box>}
+      <div className={classes.image} />
+      {!!object && <pre>{printObject(object)}</pre>}
     </>
   )
 }
