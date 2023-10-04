@@ -52,9 +52,15 @@ export default function Sort({ className }: SortProps) {
     }),
     [buttonClasses],
   )
+  const value = React.useMemo(
+    () =>
+      sortOptions.find(({ valueOf }) => valueOf() === model.state.order) ||
+      sortOptions[0],
+    [model.state.order],
+  )
   const handleChange = React.useCallback(
-    (value: (typeof sortOptions)[number]) => {
-      setOrder(value.valueOf())
+    (v: (typeof sortOptions)[number]) => {
+      setOrder(v.valueOf())
     },
     [setOrder],
   )
@@ -62,7 +68,7 @@ export default function Sort({ className }: SortProps) {
     <SelectDropdown
       className={className}
       options={sortOptions}
-      value={model.state.order}
+      value={value}
       onChange={handleChange}
       ButtonProps={ButtonProps}
     />
