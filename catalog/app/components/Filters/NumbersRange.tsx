@@ -15,13 +15,16 @@ const valueLabelFormat = (number: number) =>
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
   return {
-    slider: {
-      padding: t.spacing(0, 1),
+    input: {
+      background: t.palette.background.paper,
     },
     inputs: {
       display: 'grid',
       gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
       columnGap: gap,
+    },
+    slider: {
+      padding: t.spacing(0, 1),
     },
   }
 })
@@ -29,16 +32,10 @@ const useStyles = M.makeStyles((t) => {
 interface NumbersRangeProps {
   extents: { min: number; max: number }
   onChange: (v: { min: number | null; max: number | null }) => void
-  unit?: string
   value: { min: number | null; max: number | null }
 }
 
-export default function NumbersRange({
-  extents,
-  value,
-  onChange,
-  unit,
-}: NumbersRangeProps) {
+export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
   const [invalidId, setInvalidId] = React.useState('')
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
@@ -84,16 +81,6 @@ export default function NumbersRange({
     },
     [onChange, min, validate],
   )
-  const inputProps = React.useMemo(
-    () => ({
-      variant: 'outlined' as const,
-      size: 'small' as const,
-      InputProps: {
-        endAdornment: unit && <M.InputAdornment position="end">{unit}</M.InputAdornment>,
-      },
-    }),
-    [unit],
-  )
   const sliderValue = React.useMemo(() => [min, max], [min, max])
   return (
     <div>
@@ -108,8 +95,22 @@ export default function NumbersRange({
         />
       </div>
       <div className={classes.inputs}>
-        <M.TextField label="From" value={min} onChange={handleFrom} {...inputProps} />
-        <M.TextField label="To" value={max} onChange={handleTo} {...inputProps} />
+        <M.TextField
+          className={classes.input}
+          label="From"
+          onChange={handleFrom}
+          size="small"
+          value={min}
+          variant="outlined"
+        />
+        <M.TextField
+          className={classes.input}
+          label="To"
+          onChange={handleTo}
+          size="small"
+          value={max}
+          variant="outlined"
+        />
       </div>
     </div>
   )

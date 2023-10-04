@@ -18,7 +18,10 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     justifyContent: 'space-between',
     padding: t.spacing(0, 0, 1),
-    fontWeight: 600,
+  },
+  title: {
+    ...t.typography.body2,
+    fontWeight: 500,
   },
   lock: {
     alignItems: 'center',
@@ -63,7 +66,7 @@ export default function Container({
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.header}>
-        <M.Typography variant="body2">{title}</M.Typography>
+        <div className={classes.title}>{title}</div>
         {onDeactivate && (
           <M.IconButton size="small" className={classes.close} onClick={onDeactivate}>
             <M.Icon fontSize="inherit">clear</M.Icon>

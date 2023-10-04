@@ -11,6 +11,7 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   input: {
+    background: t.palette.background.paper,
     paddingTop: '3px',
   },
 }))

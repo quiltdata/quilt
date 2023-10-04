@@ -14,6 +14,9 @@ const useStyles = M.makeStyles((t) => {
       gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
       columnGap: gap,
     },
+    input: {
+      background: t.palette.background.paper,
+    },
   }
 })
 
@@ -38,19 +41,21 @@ export default function DatesRange({ extents, value, onChange }: DateRangeProps)
   return (
     <div className={classes.root}>
       <M.TextField
-        type="date"
+        className={classes.input}
         label="From"
-        value={dateToYmd(min)}
         onChange={handleFrom}
         size="small"
+        type="date"
+        value={dateToYmd(min)}
         variant="outlined"
       />
       <M.TextField
-        type="date"
+        className={classes.input}
         label="To"
-        value={dateToYmd(max)}
         onChange={handleTo}
         size="small"
+        type="date"
+        value={dateToYmd(max)}
         variant="outlined"
       />
     </div>

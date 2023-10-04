@@ -19,6 +19,24 @@ import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
+interface MoreButtonProps {
+  onClick: () => void
+  className?: string
+}
+function MoreButton({ className, onClick }: MoreButtonProps) {
+  return (
+    <M.Button
+      className={className}
+      endIcon={<M.Icon>expand_more</M.Icon>}
+      onClick={onClick}
+      size="small"
+      variant="outlined"
+    >
+      More filters
+    </M.Button>
+  )
+}
+
 // const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
 interface FilterWidgetProps<
@@ -403,13 +421,15 @@ const usePackagesMetaFiltersStyles = M.makeStyles((t) => ({
       borderWidth: '1px 0',
       content: '""',
       height: '3px',
-      left: t.spacing(2),
+      left: '25%',
       position: 'absolute',
-      right: t.spacing(2),
+      right: '25%',
       top: 0,
     },
   },
   title: {
+    ...t.typography.h6,
+    fontWeight: 400,
     marginBottom: t.spacing(1),
   },
 }))
@@ -466,9 +486,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   if (!available.length && !Object.keys(activated || {}).length) return null
   return (
     <div className={className}>
-      <M.Typography variant="h6" className={classes.title}>
-        Metadata
-      </M.Typography>
+      <div className={classes.title}>Metadata</div>
       {Object.entries(activated || {}).map(([path, filter]) => {
         const facet = facets.find(
           (f) => f.path === path && filter._tag === PackageUserMetaFacetMap[f.__typename],
@@ -512,19 +530,21 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
       borderWidth: '1px 0',
       content: '""',
       height: '3px',
-      left: t.spacing(2),
+      left: '25%',
       position: 'absolute',
-      right: t.spacing(2),
+      right: '25%',
       top: 0,
     },
   },
   metadata: {
-    marginTop: t.spacing(2),
+    marginTop: t.spacing(3),
   },
   more: {
     marginTop: t.spacing(1),
   },
   title: {
+    ...t.typography.h6,
+    fontWeight: 400,
     marginBottom: t.spacing(1),
   },
 }))
@@ -555,9 +575,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
 
   return (
     <div className={className}>
-      <M.Typography variant="h6" className={classes.title}>
-        Filter by
-      </M.Typography>
+      <div className={classes.title}>Filter by</div>
 
       {activeFilters.map((f) => (
         <PackagesFilter className={classes.filter} key={f} field={f} />
@@ -579,15 +597,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
             ))}
           </M.List>
         ) : (
-          <M.Button
-            className={classes.more}
-            endIcon={<M.Icon>expand_more</M.Icon>}
-            onClick={() => setExpanded(true)}
-            size="small"
-            variant="outlined"
-          >
-            More filters
-          </M.Button>
+          <MoreButton className={classes.more} onClick={() => setExpanded(true)} />
         ))}
 
       <PackagesMetaFilters className={classes.metadata} />
@@ -703,9 +713,9 @@ const useObjectFiltersStyles = M.makeStyles((t) => ({
       borderWidth: '1px 0',
       content: '""',
       height: '3px',
-      left: t.spacing(2),
+      left: '25%',
       position: 'absolute',
-      right: t.spacing(2),
+      right: '25%',
       top: 0,
     },
   },
@@ -713,6 +723,8 @@ const useObjectFiltersStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
   },
   title: {
+    ...t.typography.h6,
+    fontWeight: 400,
     marginBottom: t.spacing(1),
   },
 }))
@@ -743,9 +755,7 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
   return (
     <div className={className}>
-      <M.Typography variant="h6" className={classes.title}>
-        Filter by
-      </M.Typography>
+      <div className={classes.title}>Filter by</div>
 
       {activeFilters.map((f) => (
         <ObjectsFilter className={classes.filter} key={f} field={f} />
@@ -767,15 +777,7 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
             ))}
           </M.List>
         ) : (
-          <M.Button
-            className={classes.more}
-            endIcon={<M.Icon>expand_more</M.Icon>}
-            onClick={() => setExpanded(true)}
-            size="small"
-            variant="outlined"
-          >
-            More filters
-          </M.Button>
+          <MoreButton className={classes.more} onClick={() => setExpanded(true)} />
         ))}
     </div>
   )
