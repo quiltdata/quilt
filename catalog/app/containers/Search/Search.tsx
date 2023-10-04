@@ -553,7 +553,7 @@ function ObjectsFilterActivator({ field }: ObjectsFilterActivatorProps) {
   const activate = React.useCallback(() => {
     activateObjectsFilter(field)
   }, [activateObjectsFilter, field])
-  return <button onClick={activate}>{objectFilterLabels[field]}</button>
+  return <FiltersUI.Activator title={objectFilterLabels[field]} onClick={activate} />
 }
 
 interface ObjectsFilterProps {
@@ -656,9 +656,13 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
         <ObjectsFilter key={f} field={f} />
       ))}
 
-      {availableFilters.map((f) => (
-        <ObjectsFilterActivator key={f} field={f} />
-      ))}
+      {!!availableFilters.length && (
+        <M.List dense disablePadding>
+          {availableFilters.map((f) => (
+            <ObjectsFilterActivator key={f} field={f} />
+          ))}
+        </M.List>
+      )}
 
       {!!moreFilters.length &&
         (expanded ? (
