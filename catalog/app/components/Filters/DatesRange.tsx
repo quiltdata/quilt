@@ -6,15 +6,16 @@ const ymdToDate = (ymd: string): Date => new Date(ymd)
 
 const dateToYmd = (date: Date): string => dateFns.format(date, 'yyyy-MM-dd')
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    display: 'grid',
-    gridTemplateColumns: `calc(50% - ${t.spacing(4) / 2}px) calc(50% - ${
-      t.spacing(4) / 2
-    }px)`,
-    gridColumnGap: t.spacing(4),
-  },
-}))
+const useStyles = M.makeStyles((t) => {
+  const gap = t.spacing(1)
+  return {
+    root: {
+      display: 'grid',
+      gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
+      columnGap: gap,
+    },
+  }
+})
 
 interface DateRangeProps {
   extents: { min: Date; max: Date }

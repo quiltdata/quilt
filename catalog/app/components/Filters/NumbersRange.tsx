@@ -12,18 +12,19 @@ const valueLabelFormat = (number: number) =>
     suffixes: ['', 'K', 'M', 'B', 'T', 'P', 'E', 'Z', 'Y'],
   })
 
-const useStyles = M.makeStyles((t) => ({
-  slider: {
-    padding: t.spacing(0, 1),
-  },
-  inputs: {
-    display: 'grid',
-    gridTemplateColumns: `calc(50% - ${t.spacing(4) / 2}px) calc(50% - ${
-      t.spacing(4) / 2
-    }px)`,
-    gridColumnGap: t.spacing(4),
-  },
-}))
+const useStyles = M.makeStyles((t) => {
+  const gap = t.spacing(1)
+  return {
+    slider: {
+      padding: t.spacing(0, 1),
+    },
+    inputs: {
+      display: 'grid',
+      gridTemplateColumns: `calc(50% - ${gap / 2}px) calc(50% - ${gap / 2}px)`,
+      columnGap: gap,
+    },
+  }
+})
 
 interface NumbersRangeProps {
   extents: { min: number; max: number }

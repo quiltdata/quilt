@@ -38,11 +38,16 @@ const useStyles = M.makeStyles((t) => ({
     padding: 0,
   },
   scrollArea: {
-    // negative margin and left padding is a workaround
-    // for not cutting checkbox ripple wrapper
+    border: `1px solid ${t.palette.divider}`,
     flexGrow: 1,
-    margin: t.spacing(1, 0, 0, -1.5),
     overflow: 'hidden auto',
+    borderRadius: t.shape.borderRadius,
+  },
+  filter: {
+    '& + $scrollArea': {
+      borderWidth: '0 1px 1px',
+      borderRadius: `0 0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px`,
+    },
   },
 }))
 
@@ -93,6 +98,7 @@ export default function List({
           onChange={setFilter}
           placeholder={placeholder}
           value={filter}
+          className={classes.filter}
         />
       )}
       <div className={classes.scrollArea}>

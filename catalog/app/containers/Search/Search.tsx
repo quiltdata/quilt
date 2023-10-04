@@ -346,11 +346,12 @@ function getPackageUserMetaFacetExtents(
 }
 
 interface PackageMetaFilterProps {
+  className: string
   path: string
   facet?: SearchUIModel.PackageUserMetaFacet
 }
 
-function PackagesMetaFilter({ path, facet }: PackageMetaFilterProps) {
+function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) {
   const model = SearchUIModel.use()
   invariant(
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
@@ -378,14 +379,48 @@ function PackagesMetaFilter({ path, facet }: PackageMetaFilterProps) {
   const extents = getPackageUserMetaFacetExtents(facet)
 
   return (
-    <FiltersUI.Container defaultExpanded onDeactivate={deactivate} title={path}>
+    <FiltersUI.Container
+      className={className}
+      defaultExpanded
+      onDeactivate={deactivate}
+      title={path}
+    >
       <FilterWidget state={predicateState} extents={extents} onChange={change} />
     </FiltersUI.Container>
   )
 }
 
-function PackagesMetaFilters() {
+const usePackagesMetaFiltersStyles = M.makeStyles((t) => ({
+  filter: {
+    '& + &': {
+      position: 'relative',
+      marginTop: t.spacing(1),
+      paddingTop: t.spacing(2),
+    },
+    '& + &:before': {
+      background: t.palette.divider,
+      border: `1px solid ${t.palette.background.paper}`,
+      borderWidth: '1px 0',
+      content: '""',
+      height: '3px',
+      left: t.spacing(2),
+      position: 'absolute',
+      right: t.spacing(2),
+      top: 0,
+    },
+  },
+  title: {
+    marginBottom: t.spacing(1),
+  },
+}))
+
+interface PackagesMetaFiltersProps {
+  className: string
+}
+
+function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   const model = SearchUIModel.use()
+  const classes = usePackagesMetaFiltersStyles()
   invariant(
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
     'Filter type mismatch',
@@ -419,22 +454,42 @@ function PackagesMetaFilters() {
     [facets, activated],
   )
 
+  // workflow: WorkflowSearchPredicate
+  // userMeta: [PackageUserMetaPredicate!]
+  /*
+  workflow filter
+  active metadata filters
+  available metadata filters
+    visible
+    more
+  */
+  if (!available.length && !Object.keys(activated || {}).length) return null
   return (
-    <>
+    <div className={className}>
+      <M.Typography variant="h6" className={classes.title}>
+        Metadata
+      </M.Typography>
       {Object.entries(activated || {}).map(([path, filter]) => {
         const facet = facets.find(
           (f) => f.path === path && filter._tag === PackageUserMetaFacetMap[f.__typename],
         )
-        return <PackagesMetaFilter key={path} path={path} facet={facet} />
+        return (
+          <PackagesMetaFilter
+            className={classes.filter}
+            key={path}
+            path={path}
+            facet={facet}
+          />
+        )
       })}
-      {available.length && (
+      {!!available.length && (
         <M.List dense disablePadding>
           {available.map((f) => (
             <PackagesMetaFilterActivator key={`${f.path}:${f.__typename}`} facet={f} />
           ))}
         </M.List>
       )}
-    </>
+    </div>
   )
 }
 
@@ -445,19 +500,32 @@ const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] 
 const packagesFilters = [...packagesFiltersPrimary, ...packagesFiltersSecondary] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
-  title: {
-    marginBottom: t.spacing(1),
-    '& ~ &': {
-      marginTop: t.spacing(2),
-    },
-  },
   filter: {
     '& + &': {
-      borderTop: `1px solid ${t.palette.divider}`,
-      boxShadow: `0 -1px 0 ${t.palette.background.paper}`,
+      position: 'relative',
       marginTop: t.spacing(1),
-      paddingTop: t.spacing(1),
+      paddingTop: t.spacing(2),
     },
+    '& + &:before': {
+      background: t.palette.divider,
+      border: `1px solid ${t.palette.background.paper}`,
+      borderWidth: '1px 0',
+      content: '""',
+      height: '3px',
+      left: t.spacing(2),
+      position: 'absolute',
+      right: t.spacing(2),
+      top: 0,
+    },
+  },
+  metadata: {
+    marginTop: t.spacing(2),
+  },
+  more: {
+    marginTop: t.spacing(1),
+  },
+  title: {
+    marginBottom: t.spacing(1),
   },
 }))
 
@@ -512,20 +580,17 @@ function PackageFilters({ className }: PackageFiltersProps) {
           </M.List>
         ) : (
           <M.Button
+            className={classes.more}
             endIcon={<M.Icon>expand_more</M.Icon>}
             onClick={() => setExpanded(true)}
-            variant="outlined"
             size="small"
+            variant="outlined"
           >
             More filters
           </M.Button>
         ))}
 
-      <M.Typography variant="h6" className={classes.title}>
-        Metadata
-      </M.Typography>
-
-      <PackagesMetaFilters />
+      <PackagesMetaFilters className={classes.metadata} />
     </div>
   )
 }
@@ -557,10 +622,11 @@ function ObjectsFilterActivator({ field }: ObjectsFilterActivatorProps) {
 }
 
 interface ObjectsFilterProps {
+  className: string
   field: keyof SearchUIModel.ObjectsSearchFilter
 }
 
-function ObjectsFilter({ field }: ObjectsFilterProps) {
+function ObjectsFilter({ className, field }: ObjectsFilterProps) {
   const model = SearchUIModel.use()
   invariant(
     model.state.resultType === SearchUIModel.ResultType.S3Object,
@@ -608,6 +674,7 @@ function ObjectsFilter({ field }: ObjectsFilterProps) {
 
   return (
     <FiltersUI.Container
+      className={className}
       defaultExpanded
       onDeactivate={deactivate}
       title={objectFilterLabels[field]}
@@ -623,12 +690,40 @@ const objectsFiltersSecondary = ['size', 'key', 'content', 'deleted'] as const
 
 const objectsFilters = [...objectsFiltersPrimary, ...objectsFiltersSecondary] as const
 
+const useObjectFiltersStyles = M.makeStyles((t) => ({
+  filter: {
+    '& + &': {
+      position: 'relative',
+      marginTop: t.spacing(1),
+      paddingTop: t.spacing(2),
+    },
+    '& + &:before': {
+      background: t.palette.divider,
+      border: `1px solid ${t.palette.background.paper}`,
+      borderWidth: '1px 0',
+      content: '""',
+      height: '3px',
+      left: t.spacing(2),
+      position: 'absolute',
+      right: t.spacing(2),
+      top: 0,
+    },
+  },
+  more: {
+    marginTop: t.spacing(1),
+  },
+  title: {
+    marginBottom: t.spacing(1),
+  },
+}))
+
 interface ObjectFiltersProps {
   className: string
 }
 
 function ObjectFilters({ className }: ObjectFiltersProps) {
   const model = SearchUIModel.use()
+  const classes = useObjectFiltersStyles()
 
   invariant(
     model.state.resultType === SearchUIModel.ResultType.S3Object,
@@ -648,12 +743,12 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
   return (
     <div className={className}>
-      <M.Typography variant="h6" gutterBottom>
+      <M.Typography variant="h6" className={classes.title}>
         Filter by
       </M.Typography>
 
       {activeFilters.map((f) => (
-        <ObjectsFilter key={f} field={f} />
+        <ObjectsFilter className={classes.filter} key={f} field={f} />
       ))}
 
       {!!availableFilters.length && (
@@ -666,18 +761,21 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
       {!!moreFilters.length &&
         (expanded ? (
-          <M.Button
-            endIcon={<M.Icon>expand_more</M.Icon>}
-            onClick={() => setExpanded(true)}
-          >
-            More filters
-          </M.Button>
-        ) : (
           <M.List dense disablePadding>
             {moreFilters.map((f) => (
               <ObjectsFilterActivator key={f} field={f} />
             ))}
           </M.List>
+        ) : (
+          <M.Button
+            className={classes.more}
+            endIcon={<M.Icon>expand_more</M.Icon>}
+            onClick={() => setExpanded(true)}
+            size="small"
+            variant="outlined"
+          >
+            More filters
+          </M.Button>
         ))}
     </div>
   )
@@ -687,11 +785,11 @@ const useFiltersStyles = M.makeStyles((t) => ({
   root: {
     alignContent: 'start',
     display: 'grid',
-    gridRowGap: t.spacing(1),
+    gridRowGap: t.spacing(2),
     gridTemplateRows: 'auto',
   },
   variable: {
-    marginTop: t.spacing(2),
+    marginTop: t.spacing(1),
   },
 }))
 
