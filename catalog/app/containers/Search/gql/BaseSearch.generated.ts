@@ -26,6 +26,10 @@ export type containers_Search_gql_BaseSearchQuery = { readonly __typename: 'Quer
               Types.NumberExtents,
               'min' | 'max'
             >
+            readonly workflow: { readonly __typename: 'KeywordExtents' } & Pick<
+              Types.KeywordExtents,
+              'values'
+            >
             readonly userMeta: ReadonlyArray<
               | ({ readonly __typename: 'NumberPackageUserMetaFacet' } & Pick<
                   Types.NumberPackageUserMetaFacet,
@@ -199,6 +203,19 @@ export const containers_Search_gql_BaseSearchDocument = {
                                 selections: [
                                   { kind: 'Field', name: { kind: 'Name', value: 'min' } },
                                   { kind: 'Field', name: { kind: 'Name', value: 'max' } },
+                                ],
+                              },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'workflow' },
+                              selectionSet: {
+                                kind: 'SelectionSet',
+                                selections: [
+                                  {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'values' },
+                                  },
                                 ],
                               },
                             },

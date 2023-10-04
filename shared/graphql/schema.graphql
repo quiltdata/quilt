@@ -360,12 +360,6 @@ input BooleanSearchPredicate {
   value: Boolean!
 }
 
-input WorkflowSearchPredicate {
-  bucket: String
-  configVersionId: String
-  workflowId: String
-}
-
 input PackageUserMetaPredicate {
   path: String!
   # one of the following
@@ -392,7 +386,7 @@ input PackagesSearchFilter {
   hash: TextSearchPredicate
   entries: NumberSearchPredicate
   comment: TextSearchPredicate
-  workflow: WorkflowSearchPredicate
+  workflow: KeywordSearchPredicate
   userMeta: [PackageUserMetaPredicate!]
 }
 
@@ -408,8 +402,8 @@ type PackagesSearchStats {
   modified: DatetimeExtents!
   size: NumberExtents!
   entries: NumberExtents!
+  workflow: KeywordExtents!
   userMeta: [PackageUserMetaFacet!]!
-  # userMetaTruncated: Boolean!
 }
 
 type ObjectsSearchResultSet {

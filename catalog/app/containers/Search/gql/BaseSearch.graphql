@@ -16,6 +16,9 @@ query ($buckets: [String!], $searchString: String) {
           min
           max
         }
+        workflow {
+          values
+        }
         userMeta {
           __typename
           ... on IPackageUserMetaFacet {

@@ -192,9 +192,6 @@ function FilterWidget(props: FilterWidgetProps) {
       return <KeywordFilterWidget {...(props as $TSFixMe)} />
     case 'Boolean':
       return <BooleanFilterWidget {...(props as $TSFixMe)} />
-    // TODO: separate component for workflow filtering
-    // case 'Workflow':
-    //   return <>{JSON.stringify(props.state)}</>
     default:
       assertNever(props.state)
   }
@@ -230,8 +227,8 @@ function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
 
 interface PackagesFilterProps {
   className: string
-  // field: Omit<keyof SearchUIModel.PackagesSearchFilter, 'workflow' | 'userMeta'>
-  field: 'modified' | 'size' | 'name' | 'hash' | 'entries' | 'comment'
+  // field: Omit<keyof SearchUIModel.PackagesSearchFilter, 'userMeta'>
+  field: 'workflow' | 'modified' | 'size' | 'name' | 'hash' | 'entries' | 'comment'
 }
 
 function PackagesFilter({ className, field }: PackagesFilterProps) {
@@ -251,7 +248,12 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
         case 'InvalidInput':
           return undefined
         case 'PackagesSearchResultSet':
-          if (field === 'modified' || field === 'size' || field === 'entries') {
+          if (
+            field === 'workflow' ||
+            field === 'modified' ||
+            field === 'size' ||
+            field === 'entries'
+          ) {
             return r.stats[field]
           }
           return undefined
@@ -417,15 +419,6 @@ function PackagesMetaFilters() {
     [facets, activated],
   )
 
-  // workflow: WorkflowSearchPredicate
-  // userMeta: [PackageUserMetaPredicate!]
-  /*
-  workflow filter
-  active metadata filters
-  available metadata filters
-    visible
-    more
-  */
   return (
     <>
       {Object.entries(activated || {}).map(([path, filter]) => {
@@ -445,7 +438,7 @@ function PackagesMetaFilters() {
   )
 }
 
-const packagesFiltersPrimary = ['modified'] as const
+const packagesFiltersPrimary = ['workflow', 'modified'] as const
 
 const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] as const
 

@@ -186,28 +186,6 @@ const BooleanPredicate = Predicate({
     state.value == null ? null : (state as Model.GQLTypes.BooleanSearchPredicate),
 })
 
-const WorkflowPredicate = Predicate({
-  tag: 'Workflow',
-  init: {
-    bucket: null as string | null,
-    configVersionId: null as string | null,
-    workflowId: null as string | null,
-  },
-  fromString: (input: string) => {
-    const json = JSON.parse(input)
-    return {
-      bucket: (json.bucket as string | null) ?? null,
-      configVersionId: (json.configVersionId as string | null) ?? null,
-      workflowId: (json.workflowId as string | null) ?? null,
-    }
-  },
-  toString: ({ _tag, ...state }) => JSON.stringify(state),
-  toGQL: ({ _tag, ...state }) =>
-    state.bucket == null && state.configVersionId == null && state.workflowId == null
-      ? null
-      : (state as Model.GQLTypes.WorkflowSearchPredicate),
-})
-
 const PrimitivePredicates = [
   DatetimePredicate,
   NumberPredicate,
@@ -275,7 +253,6 @@ export const Predicates = {
   Text: TextPredicate,
   Keyword: KeywordPredicate,
   Boolean: BooleanPredicate,
-  Workflow: WorkflowPredicate,
   UserMeta: UserMetaPredicate,
 }
 
@@ -369,7 +346,7 @@ export const PackagesSearchFilterIO = Filter({
   hash: Predicates.Text,
   entries: Predicates.Number,
   comment: Predicates.Text,
-  workflow: Predicates.Workflow,
+  workflow: Predicates.Keyword,
   userMeta: Predicates.UserMeta,
 })
 

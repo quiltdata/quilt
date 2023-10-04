@@ -688,7 +688,7 @@ export interface PackagesSearchFilter {
   readonly hash: Maybe<TextSearchPredicate>
   readonly entries: Maybe<NumberSearchPredicate>
   readonly comment: Maybe<TextSearchPredicate>
-  readonly workflow: Maybe<WorkflowSearchPredicate>
+  readonly workflow: Maybe<KeywordSearchPredicate>
   readonly userMeta: Maybe<ReadonlyArray<PackageUserMetaPredicate>>
 }
 
@@ -727,6 +727,7 @@ export interface PackagesSearchStats {
   readonly modified: DatetimeExtents
   readonly size: NumberExtents
   readonly entries: NumberExtents
+  readonly workflow: KeywordExtents
   readonly userMeta: ReadonlyArray<PackageUserMetaFacet>
 }
 
@@ -1046,10 +1047,4 @@ export interface UnmanagedRole {
 export interface UnmanagedRoleInput {
   readonly name: Scalars['String']
   readonly arn: Scalars['String']
-}
-
-export interface WorkflowSearchPredicate {
-  readonly bucket: Maybe<Scalars['String']>
-  readonly configVersionId: Maybe<Scalars['String']>
-  readonly workflowId: Maybe<Scalars['String']>
 }

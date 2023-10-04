@@ -3117,6 +3117,18 @@ export default {
             args: [],
           },
           {
+            name: 'workflow',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'userMeta',
             type: {
               kind: 'NON_NULL',
