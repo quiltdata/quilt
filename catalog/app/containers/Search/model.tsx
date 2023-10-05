@@ -62,7 +62,7 @@ interface SearchUrlStateBase<T extends ResultType> extends ResultTypeAndFilter<T
   order: Model.GQLTypes.SearchResultOrder
 }
 
-type SearchUrlState =
+export type SearchUrlState =
   | SearchUrlStateBase<ResultType.S3Object>
   | SearchUrlStateBase<ResultType.QuiltPackage>
 
@@ -351,7 +351,7 @@ export const PackagesSearchFilterIO = Filter({
 })
 
 // XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
-function parseSearchParams(qs: string): SearchUrlState {
+export function parseSearchParams(qs: string): SearchUrlState {
   const params = new URLSearchParams(qs)
   const searchString = params.get('q')
 
@@ -422,7 +422,7 @@ function useUrlState(): SearchUrlState {
   return React.useMemo(() => parseSearchParams(l.search), [l.search])
 }
 
-function useMakeUrl() {
+export function useMakeUrl() {
   const { urls } = NamedRoutes.use()
   const base = urls.search({})
   return React.useCallback(
@@ -770,7 +770,7 @@ function useSearchUIModel() {
 
 export type SearchUIModel = ReturnType<typeof useSearchUIModel>
 
-const Context = React.createContext<SearchUIModel | null>(null)
+export const Context = React.createContext<SearchUIModel | null>(null)
 
 export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
   const state = useSearchUIModel()

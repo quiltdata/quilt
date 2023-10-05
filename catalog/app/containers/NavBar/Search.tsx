@@ -4,11 +4,11 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as Lab from '@material-ui/lab'
 
-import SearchHelp from 'components/SearchHelp'
 import cfg from 'constants/config'
 import Delay from 'utils/Delay'
 
 import { useNavBar, expandAnimationDuration } from './Provider'
+import Suggestions from './Suggestions'
 
 const useContainerStyles = M.makeStyles({
   root: {
@@ -157,21 +157,7 @@ function SearchInput({
   )
 }
 
-function displayBucketNames(names: string[]) {
-  if (names.length > 1) return `${names.length} buckets`
-  if (names.length === 1) return `s3://${names[0]}`
-  return 'all buckets'
-}
-
 const useHelpStyles = M.makeStyles((t) => ({
-  contents: {
-    maxHeight: t.spacing(50),
-    overflowY: 'auto',
-    padding: t.spacing(0, 4),
-    [t.breakpoints.down('xs')]: {
-      padding: t.spacing(0, 1),
-    },
-  },
   paper: {
     left: 0,
     position: 'absolute',
@@ -188,13 +174,12 @@ function Search(props: SearchProps) {
   const helpClasses = useHelpStyles()
   const navbarState = useNavBar()
   if (!navbarState) return <SearchNotAvailable />
-  const { input, help, buckets, onClickAway } = navbarState
-  const placeholder = input.expanded ? `Search ${displayBucketNames(buckets)}` : 'Search'
+  const { input, help, onClickAway } = navbarState
 
   return (
     <Container onClickAway={onClickAway}>
-      <SearchHelp classes={helpClasses} {...help} />
-      <SearchInput placeholder={placeholder} {...input} {...props} />
+      <Suggestions classes={helpClasses} {...help} />
+      <SearchInput placeholder="Search" {...input} {...props} />
     </Container>
   )
 }

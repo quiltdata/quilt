@@ -1,6 +1,10 @@
 import * as React from 'react'
 import { useLocation } from 'react-router-dom'
 
+// TODO: decouple NavBar layout/state from gql and auth calls
+//       and place it into components/SearchBar
+import * as NavBar from 'containers/NavBar'
+
 import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
 import parseSearch from 'utils/parseSearch'
@@ -23,7 +27,9 @@ export default function OpenLanding() {
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>
-      <Search />
+      <NavBar.Provider>
+        <Search />
+      </NavBar.Provider>
       <Showcase />
       <Buckets query={query} />
       <Videos />

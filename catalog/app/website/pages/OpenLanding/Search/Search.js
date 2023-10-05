@@ -1,12 +1,14 @@
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import SearchHelp from 'components/SearchHelp'
+// TODO: decouple NavBar layout/state from gql and auth calls
+//       and place it into components/SearchBar
+import { useNavBar } from 'containers/NavBar/Provider'
+import Suggestions from 'containers/NavBar/Suggestions'
+
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
 import Dots from 'website/components/Backgrounds/Dots'
@@ -135,50 +137,20 @@ const useStyles = M.makeStyles((t) => ({
 export default function Search() {
   const classes = useStyles()
 
-  const history = useHistory()
-  const { urls } = NamedRoutes.use()
-
   // XXX: consider using graphql directly
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
-  const [value, change] = React.useState('')
-  const [helpOpened, setHelpOpened] = React.useState(false)
-
-  const onChange = React.useCallback((evt) => {
-    change(evt.target.value)
-  }, [])
-
-  const onQuery = React.useCallback((strPart) => change(`${value} ${strPart}`), [value])
-
-  const onToggleOptions = React.useCallback(
-    () => setHelpOpened(!helpOpened),
-    [helpOpened],
-  )
-
-  const onKeyDown = React.useCallback(
-    (evt) => {
-      // eslint-disable-next-line default-case
-      switch (evt.key) {
-        case 'Enter':
-          history.push(urls.search({ q: value }))
-          break
-        case 'Escape':
-          evt.target.blur()
-          break
-      }
-    },
-    [history, urls, value],
-  )
+  const { input, help, onClickAway } = useNavBar()
 
   return (
     <div className={classes.root}>
       <Dots />
       <M.Container maxWidth="lg" className={classes.container}>
         <div className={classes.inner}>
-          <M.ClickAwayListener onClickAway={() => setHelpOpened(false)}>
+          <M.ClickAwayListener onClickAway={onClickAway}>
             <div className={classes.inputWrapper}>
               <M.InputBase
-                {...{ value, onChange, onKeyDown }}
+                {...input}
                 startAdornment={
                   <M.InputAdornment className={classes.adornment}>
                     <M.MuiThemeProvider theme={style.appTheme}>
@@ -186,15 +158,15 @@ export default function Search() {
                         className={classes.inputOptions}
                         size="large"
                         value="help"
-                        selected={helpOpened}
-                        onChange={onToggleOptions}
+                        selected={help.open}
+                        onChange={input.onHelpToggle}
                         classes={{
                           selected: classes.inputOptionsSelected,
                         }}
                       >
                         <M.Icon fontSize="large">search</M.Icon>
                         <M.Icon fontSize="large">
-                          {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
+                          {help.open ? 'arrow_drop_up' : 'arrow_drop_down'}
                         </M.Icon>
                       </Lab.ToggleButton>
                     </M.MuiThemeProvider>
@@ -203,11 +175,9 @@ export default function Search() {
                 classes={{ root: classes.inputRoot, input: classes.inputInput }}
                 placeholder="Search"
               />
-
-              <SearchHelp
+              <Suggestions
                 classes={{ contents: classes.help, paper: classes.helpWrapper }}
-                onQuery={onQuery}
-                open={helpOpened}
+                open={help.open}
               />
             </div>
           </M.ClickAwayListener>

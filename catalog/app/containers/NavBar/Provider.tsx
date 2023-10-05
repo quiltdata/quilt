@@ -1,54 +1,49 @@
 import * as React from 'react'
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
 
-import type SearchHelp from 'components/SearchHelp'
+import * as SearchUIModel from 'containers/Search/model'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as CatalogSettings from 'utils/CatalogSettings'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
 
+import * as Suggestions from './Suggestions/model'
+
 export const expandAnimationDuration = 200
 
-function useSearchUrlState(bucket?: string) {
-  const { paths, urls } = NamedRoutes.use()
+function useUrlQuery() {
+  const { paths } = NamedRoutes.use()
   const location = useLocation()
   const match = useRouteMatch(paths.search)
-  const isInStack = BucketConfig.useIsInStack()
-  const settings = CatalogSettings.use()
-
   const qs = match && parse(location.search, true)
+  return qs?.q ?? ''
+}
 
-  const query = qs?.q ?? ''
-  const mode = qs?.mode ?? settings?.search?.mode
-  // if not in stack, search all buckets
-  const buckets = qs?.buckets ?? (bucket && isInStack(bucket) ? bucket : undefined)
-
-  const makeUrl = React.useCallback(
-    (q: string | null) => urls.search({ q, buckets, mode }),
-    [urls, buckets, mode],
-  )
-
-  const bucketList = React.useMemo(() => buckets?.split(',') ?? [], [buckets])
-
-  return { query, makeUrl, buckets: bucketList }
+function useSearchUIModel() {
+  return React.useContext(SearchUIModel.Context)
 }
 
 interface SearchState {
-  buckets: string[]
   // input: SearchInputProps
   input: $TSFixMe
-  help: Pick<Parameters<typeof SearchHelp>[0], 'open' | 'onQuery'>
+  help: {
+    open: boolean
+  }
   onClickAway: () => void
+  suggestions: ReturnType<typeof Suggestions.use>
 }
 
 function useSearchState(bucket?: string): SearchState {
   const history = useHistory()
 
-  const { query, makeUrl, buckets } = useSearchUrlState(bucket)
+  const searchUIModel = useSearchUIModel()
+
+  const query = useUrlQuery()
 
   const [value, change] = React.useState<string | null>(null)
   const [expanded, setExpanded] = React.useState(false)
   const [helpOpen, setHelpOpen] = React.useState(false)
+
+  const suggestions = Suggestions.use(value || '', bucket || searchUIModel)
 
   const onChange = React.useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     change(evt.target.value)
@@ -66,14 +61,12 @@ function useSearchState(bucket?: string): SearchState {
     setHelpOpen(false)
   }, [])
 
-  const handleHelpOpen = React.useCallback(() => setHelpOpen(true), [])
+  const handleHelpOpen = React.useCallback(() => {
+    setHelpOpen(true)
+    suggestions.setSelected(0)
+  }, [suggestions])
 
   const handleHelpClose = React.useCallback(() => setHelpOpen(false), [])
-
-  const onQuery = React.useCallback(
-    (strPart: string) => change((v) => (v ? `${v} ${strPart}` : strPart)),
-    [],
-  )
 
   const onHelpToggle = React.useCallback(() => {
     if (helpOpen) {
@@ -88,29 +81,53 @@ function useSearchState(bucket?: string): SearchState {
     }
   }, [expanded, helpOpen, handleExpand, handleHelpClose, handleHelpOpen])
 
+  const handleSubmit = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      event.preventDefault()
+      history.push(suggestions.url)
+      handleCollapse()
+      event.currentTarget.blur()
+    },
+    [handleCollapse, history, suggestions],
+  )
+
+  const handleEscape = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      handleCollapse()
+      event.currentTarget.blur()
+    },
+    [handleCollapse],
+  )
+
+  const handleArrow = React.useCallback(
+    (reverse: boolean) => {
+      if (helpOpen) {
+        suggestions.cycleSelected(reverse)
+      } else {
+        handleHelpOpen()
+      }
+    },
+    [helpOpen, handleHelpOpen, suggestions],
+  )
+
   const onKeyDown = React.useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
       switch (evt.key) {
         case 'Enter':
-          // suppress onSubmit
-          evt.preventDefault()
-          if (query !== value) {
-            history.push(makeUrl(value))
-          }
-          handleCollapse()
-          evt.currentTarget.blur()
-          break
+          return handleSubmit(evt)
         case 'Tab':
         case 'Escape':
-          handleCollapse()
-          evt.currentTarget.blur()
-          break
+          return handleEscape(evt)
         case 'ArrowDown':
+          return handleArrow(false)
+        case 'ArrowUp':
+          return handleArrow(true)
+        default:
           handleHelpOpen()
           break
       }
     },
-    [history, makeUrl, value, query, handleCollapse, handleHelpOpen],
+    [handleSubmit, handleEscape, handleArrow, handleHelpOpen],
   )
 
   const onClickAway = React.useCallback(() => {
@@ -118,9 +135,8 @@ function useSearchState(bucket?: string): SearchState {
   }, [expanded, helpOpen, handleCollapse])
 
   return {
-    buckets,
     input: {
-      expanded,
+      expanded: expanded || !!searchUIModel,
       helpOpen,
       onChange,
       onFocus: handleExpand,
@@ -129,10 +145,10 @@ function useSearchState(bucket?: string): SearchState {
       value: value === null ? query : value,
     },
     help: {
-      onQuery,
       open: helpOpen,
     },
     onClickAway,
+    suggestions,
   }
 }
 
