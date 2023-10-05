@@ -1102,22 +1102,18 @@ function SearchLayout() {
   const model = SearchUIModel.use()
   const classes = useStyles()
   return (
-    <Layout
-      pre={
-        <M.Container maxWidth="lg" className={classes.root}>
-          <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
-          <Filters />
-          <Results />
-        </M.Container>
-      }
-    />
+    <M.Container maxWidth="lg" className={classes.root}>
+      <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
+      <Filters />
+      <Results />
+    </M.Container>
   )
 }
 
 export default function Search() {
   return (
     <SearchUIModel.Provider>
-      <SearchLayout />
+      <Layout pre={<SearchLayout />} />
     </SearchUIModel.Provider>
   )
 }
