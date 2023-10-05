@@ -16,23 +16,7 @@ import Dots from 'website/components/Backgrounds/Dots'
 import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'relative',
-  },
-  container: {
-    position: 'relative',
-    '&::before': {
-      background: `center -260px / 1120px no-repeat url(${img2x(bg, bg2x)})`,
-      bottom: 0,
-      content: '""',
-      left: 0,
-      opacity: 0.5,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
-  },
+const useHelpStyles = M.makeStyles((t) => ({
   help: {
     maxHeight: '490px',
     overflowY: 'auto',
@@ -49,6 +33,25 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     width: '100%',
     zIndex: 1,
+  },
+}))
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+  },
+  container: {
+    position: 'relative',
+    '&::before': {
+      background: `center -260px / 1120px no-repeat url(${img2x(bg, bg2x)})`,
+      bottom: 0,
+      content: '""',
+      left: 0,
+      opacity: 0.5,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+    },
   },
   inner: {
     alignItems: 'center',
@@ -136,11 +139,12 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Search() {
   const classes = useStyles()
+  const helpClasses = useHelpStyles()
 
   // XXX: consider using graphql directly
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
-  const { input, help, onClickAway } = useNavBar()
+  const { input, onClickAway } = useNavBar()
 
   return (
     <div className={classes.root}>
@@ -158,7 +162,7 @@ export default function Search() {
                         className={classes.inputOptions}
                         size="large"
                         value="help"
-                        selected={help.open}
+                        selected={input.helpOpen}
                         onChange={input.onHelpToggle}
                         classes={{
                           selected: classes.inputOptionsSelected,
@@ -166,7 +170,7 @@ export default function Search() {
                       >
                         <M.Icon fontSize="large">search</M.Icon>
                         <M.Icon fontSize="large">
-                          {help.open ? 'arrow_drop_up' : 'arrow_drop_down'}
+                          {input.helpOpen ? 'arrow_drop_up' : 'arrow_drop_down'}
                         </M.Icon>
                       </Lab.ToggleButton>
                     </M.MuiThemeProvider>
@@ -175,10 +179,7 @@ export default function Search() {
                 classes={{ root: classes.inputRoot, input: classes.inputInput }}
                 placeholder="Search"
               />
-              <Suggestions
-                classes={{ contents: classes.help, paper: classes.helpWrapper }}
-                open={help.open}
-              />
+              <Suggestions classes={helpClasses} open={input.helpOpen} />
             </div>
           </M.ClickAwayListener>
 

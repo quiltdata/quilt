@@ -25,9 +25,6 @@ function useSearchUIModel() {
 interface SearchState {
   // input: SearchInputProps
   input: $TSFixMe
-  help: {
-    open: boolean
-  }
   onClickAway: () => void
   suggestions: ReturnType<typeof Suggestions.use>
 }
@@ -143,9 +140,6 @@ function useSearchState(bucket?: string): SearchState {
       onHelpToggle,
       onKeyDown,
       value: value === null ? query : value,
-    },
-    help: {
-      open: helpOpen,
     },
     onClickAway,
     suggestions,
