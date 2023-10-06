@@ -132,7 +132,7 @@ export default function List({
       </div>
       {!!hiddenNumber && (
         <M.Typography variant="caption" className={classes.help}>
-          {extents.length
+          {filteredExtents.length
             ? `There are ${hiddenNumber} more items available. Loosen search query to see more.`
             : `${hiddenNumber} available items are hidden. Clear filters to see them.`}
         </M.Typography>
