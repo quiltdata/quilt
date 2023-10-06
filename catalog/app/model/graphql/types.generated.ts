@@ -283,7 +283,8 @@ export interface KeywordPackageUserMetaFacet extends IPackageUserMetaFacet {
 }
 
 export interface KeywordSearchPredicate {
-  readonly terms: ReadonlyArray<Scalars['String']>
+  readonly terms: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly wildcard: Maybe<Scalars['String']>
 }
 
 export interface ManagedPolicyInput {
@@ -458,7 +459,7 @@ export interface ObjectsSearchFilter {
   readonly modified: Maybe<DatetimeSearchPredicate>
   readonly size: Maybe<NumberSearchPredicate>
   readonly ext: Maybe<KeywordSearchPredicate>
-  readonly key: Maybe<TextSearchPredicate>
+  readonly key: Maybe<KeywordSearchPredicate>
   readonly content: Maybe<TextSearchPredicate>
   readonly deleted: Maybe<BooleanSearchPredicate>
 }
@@ -684,8 +685,8 @@ export interface PackageWorkflow {
 export interface PackagesSearchFilter {
   readonly modified: Maybe<DatetimeSearchPredicate>
   readonly size: Maybe<NumberSearchPredicate>
-  readonly name: Maybe<TextSearchPredicate>
-  readonly hash: Maybe<TextSearchPredicate>
+  readonly name: Maybe<KeywordSearchPredicate>
+  readonly hash: Maybe<KeywordSearchPredicate>
   readonly entries: Maybe<NumberSearchPredicate>
   readonly comment: Maybe<TextSearchPredicate>
   readonly workflow: Maybe<KeywordSearchPredicate>
@@ -1023,7 +1024,7 @@ export interface TextPackageUserMetaFacet extends IPackageUserMetaFacet {
 }
 
 export interface TextSearchPredicate {
-  readonly match: Scalars['String']
+  readonly queryString: Scalars['String']
 }
 
 export interface Unavailable {

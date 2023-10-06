@@ -159,22 +159,37 @@ const NumberPredicate = Predicate({
 
 const TextPredicate = Predicate({
   tag: 'Text',
-  init: { match: '' },
-  fromString: (input: string) => ({ match: input }),
-  toString: ({ _tag, ...state }) => state.match.trim(),
+  init: { queryString: '' },
+  fromString: (input: string) => ({ queryString: input }),
+  toString: ({ _tag, ...state }) => state.queryString.trim(),
   toGQL: ({ _tag, ...state }) => {
-    const match = state.match.trim()
-    return match ? ({ match } as Model.GQLTypes.TextSearchPredicate) : null
+    const queryString = state.queryString.trim()
+    return queryString ? ({ queryString } as Model.GQLTypes.TextSearchPredicate) : null
   },
 })
 
-const KeywordPredicate = Predicate({
-  tag: 'Keyword',
+const KeywordEnumPredicate = Predicate({
+  tag: 'KeywordEnum',
   init: { terms: [] as string[] },
   fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
-  toString: ({ _tag, ...state }) => JSON.stringify(state.terms).slice(1, -1),
-  toGQL: ({ _tag, ...state }) =>
-    state.terms.length ? (state as Model.GQLTypes.KeywordSearchPredicate) : null,
+  toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
+  toGQL: ({ terms }) =>
+    terms.length
+      ? ({ terms, wildcard: null } as Model.GQLTypes.KeywordSearchPredicate)
+      : null,
+})
+
+const KeywordWildcardPredicate = Predicate({
+  tag: 'KeywordWildcard',
+  init: {
+    wildcard: '' as string,
+  },
+  fromString: (wildcard: string) => ({ wildcard }),
+  toString: ({ wildcard }) => wildcard,
+  toGQL: ({ wildcard }) =>
+    wildcard
+      ? ({ wildcard, terms: null } as Model.GQLTypes.KeywordSearchPredicate)
+      : null,
 })
 
 const BooleanPredicate = Predicate({
@@ -190,7 +205,8 @@ const PrimitivePredicates = [
   DatetimePredicate,
   NumberPredicate,
   TextPredicate,
-  KeywordPredicate,
+  KeywordEnumPredicate,
+  KeywordWildcardPredicate,
   BooleanPredicate,
 ]
 
@@ -205,7 +221,7 @@ export type ExtentsForPredicate<P> = P extends typeof DatetimePredicate
   ? Model.GQLTypes.DatetimeExtents
   : P extends typeof NumberPredicate
   ? Model.GQLTypes.NumberExtents
-  : P extends typeof KeywordPredicate
+  : P extends typeof KeywordEnumPredicate
   ? Model.GQLTypes.KeywordExtents
   : never
 
@@ -213,7 +229,8 @@ const UserMetaPredicateMap = {
   Datetime: 'datetime' as const,
   Number: 'number' as const,
   Text: 'text' as const,
-  Keyword: 'keyword' as const,
+  KeywordEnum: 'keyword' as const,
+  KeywordWildcard: 'keyword' as const,
   Boolean: 'boolean' as const,
 }
 
@@ -251,7 +268,8 @@ export const Predicates = {
   Datetime: DatetimePredicate,
   Number: NumberPredicate,
   Text: TextPredicate,
-  Keyword: KeywordPredicate,
+  KeywordEnum: KeywordEnumPredicate,
+  KeywordWildcard: KeywordWildcardPredicate,
   Boolean: BooleanPredicate,
   UserMeta: UserMetaPredicate,
 }
@@ -333,8 +351,8 @@ type FilterState<FIO extends FilterIO<any>> = FIO extends FilterIO<infer PM>
 export const ObjectsSearchFilterIO = Filter({
   modified: Predicates.Datetime,
   size: Predicates.Number,
-  ext: Predicates.Keyword,
-  key: Predicates.Text,
+  ext: Predicates.KeywordEnum,
+  key: Predicates.KeywordWildcard,
   content: Predicates.Text,
   deleted: Predicates.Boolean,
 })
@@ -342,11 +360,11 @@ export const ObjectsSearchFilterIO = Filter({
 export const PackagesSearchFilterIO = Filter({
   modified: Predicates.Datetime,
   size: Predicates.Number,
-  name: Predicates.Text,
-  hash: Predicates.Text,
+  name: Predicates.KeywordWildcard,
+  hash: Predicates.KeywordWildcard,
   entries: Predicates.Number,
   comment: Predicates.Text,
-  workflow: Predicates.Keyword,
+  workflow: Predicates.KeywordEnum,
   userMeta: Predicates.UserMeta,
 })
 

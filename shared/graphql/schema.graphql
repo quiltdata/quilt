@@ -349,11 +349,12 @@ input NumberSearchPredicate {
 }
 
 input TextSearchPredicate {
-  match: String!
+  queryString: String!
 }
 
 input KeywordSearchPredicate {
-  terms: [String!]!
+  terms: [String!]
+  wildcard: String
 }
 
 input BooleanSearchPredicate {
@@ -374,7 +375,7 @@ input ObjectsSearchFilter {
   modified: DatetimeSearchPredicate
   size: NumberSearchPredicate
   ext: KeywordSearchPredicate
-  key: TextSearchPredicate
+  key: KeywordSearchPredicate
   content: TextSearchPredicate
   deleted: BooleanSearchPredicate
 }
@@ -382,8 +383,8 @@ input ObjectsSearchFilter {
 input PackagesSearchFilter {
   modified: DatetimeSearchPredicate
   size: NumberSearchPredicate
-  name: TextSearchPredicate
-  hash: TextSearchPredicate
+  name: KeywordSearchPredicate
+  hash: KeywordSearchPredicate
   entries: NumberSearchPredicate
   comment: TextSearchPredicate
   workflow: KeywordSearchPredicate

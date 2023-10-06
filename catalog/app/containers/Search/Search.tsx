@@ -143,11 +143,11 @@ function DatetimeFilterWidget({
 
 const EMPTY_TERMS: string[] = []
 
-function KeywordFilterWidget({
+function KeywordEnumFilterWidget({
   state,
   extents,
   onChange,
-}: FilterWidgetProps<SearchUIModel.Predicates['Keyword']>) {
+}: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
   const handleChange = React.useCallback(
     (value: string[]) => {
       onChange({ ...state, terms: value })
@@ -165,21 +165,44 @@ function KeywordFilterWidget({
   )
 }
 
+function KeywordWildcardFilterWidget({
+  state,
+  onChange,
+}: FilterWidgetProps<SearchUIModel.Predicates['KeywordWildcard']>) {
+  const handleChange = React.useCallback(
+    (wildcard: string) => {
+      onChange({ ...state, wildcard })
+    },
+    [onChange, state],
+  )
+  // TODO: link to docs:
+  // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-wildcard-query.html
+  return (
+    <FiltersUI.TextField
+      onChange={handleChange}
+      placeholder="Match against"
+      value={state.wildcard}
+    />
+  )
+}
+
 function TextFilterWidget({
   state,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Text']>) {
   const handleChange = React.useCallback(
-    (match: string) => {
-      onChange({ ...state, match })
+    (queryString: string) => {
+      onChange({ ...state, queryString })
     },
     [onChange, state],
   )
+  // TODO: link to docs:
+  // https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-simple-query-string-query.html
   return (
     <FiltersUI.TextField
       onChange={handleChange}
       placeholder="Match against"
-      value={state.match}
+      value={state.queryString}
     />
   )
 }
@@ -213,8 +236,10 @@ function FilterWidget(props: FilterWidgetProps) {
       return <NumberFilterWidget {...(props as $TSFixMe)} />
     case 'Text':
       return <TextFilterWidget {...(props as $TSFixMe)} />
-    case 'Keyword':
-      return <KeywordFilterWidget {...(props as $TSFixMe)} />
+    case 'KeywordEnum':
+      return <KeywordEnumFilterWidget {...(props as $TSFixMe)} />
+    case 'KeywordWildcard':
+      return <KeywordWildcardFilterWidget {...(props as $TSFixMe)} />
     case 'Boolean':
       return <BooleanFilterWidget {...(props as $TSFixMe)} />
     default:
@@ -335,7 +360,7 @@ interface PackagesMetaFilterActivatorProps {
 const PackageUserMetaFacetMap = {
   NumberPackageUserMetaFacet: 'Number' as const,
   DatetimePackageUserMetaFacet: 'Datetime' as const,
-  KeywordPackageUserMetaFacet: 'Keyword' as const,
+  KeywordPackageUserMetaFacet: 'KeywordEnum' as const,
   TextPackageUserMetaFacet: 'Text' as const,
   BooleanPackageUserMetaFacet: 'Boolean' as const,
 }
@@ -481,15 +506,6 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
     [facets, activated],
   )
 
-  // workflow: WorkflowSearchPredicate
-  // userMeta: [PackageUserMetaPredicate!]
-  /*
-  workflow filter
-  active metadata filters
-  available metadata filters
-    visible
-    more
-  */
   if (!available.length && !Object.keys(activated || {}).length) return null
   return (
     <div className={className}>
