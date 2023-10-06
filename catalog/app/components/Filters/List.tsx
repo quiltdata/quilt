@@ -120,7 +120,7 @@ export default function List({
                   htmlFor={`list_${extent}`}
                   title={extent}
                 >
-                  {extent}
+                  {extent || <i>EMPTY STRING</i>}
                 </label>
               </M.ListItemText>
             </M.ListItem>
