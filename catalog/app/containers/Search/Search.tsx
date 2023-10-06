@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import invariant from 'invariant'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -18,6 +19,33 @@ import BucketSelector from './Buckets'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
+
+const useFilterSectionStyles = M.makeStyles((t) => ({
+  root: {
+    marginBottom: t.spacing(2),
+    paddingBottom: t.spacing(1),
+    position: 'relative',
+    '&:after': {
+      background: t.palette.divider,
+      border: `1px solid ${t.palette.background.paper}`,
+      borderWidth: '1px 0',
+      content: '""',
+      height: '3px',
+      left: '25%',
+      position: 'absolute',
+      right: '25%',
+      bottom: 0,
+    },
+  },
+}))
+
+function FilterSection({
+  children,
+  className,
+}: React.PropsWithChildren<{ className?: string }>) {
+  const classes = useFilterSectionStyles()
+  return <div className={cx(classes.root, className)}>{children}</div>
+}
 
 const useMoreButtonStyles = M.makeStyles((t) => ({
   icon: {
@@ -276,7 +304,7 @@ function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
 }
 
 interface PackagesFilterProps {
-  className: string
+  className?: string
   // field: Omit<keyof SearchUIModel.PackagesSearchFilter, 'userMeta'>
   field: 'workflow' | 'modified' | 'size' | 'name' | 'hash' | 'entries' | 'comment'
 }
@@ -346,11 +374,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
 
 function getFacetLabel(facet: SearchUIModel.PackageUserMetaFacet) {
   // XXX
-  return (
-    <>
-      {facet.path} ({PackageUserMetaFacetMap[facet.__typename]})
-    </>
-  )
+  return <>{facet.path}</>
 }
 
 interface PackagesMetaFilterActivatorProps {
@@ -396,7 +420,7 @@ function getPackageUserMetaFacetExtents(
 }
 
 interface PackageMetaFilterProps {
-  className: string
+  className?: string
   path: string
   facet?: SearchUIModel.PackageUserMetaFacet
 }
@@ -440,25 +464,88 @@ function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) 
   )
 }
 
-const usePackagesMetaFiltersStyles = M.makeStyles((t) => ({
-  filter: {
-    '& + &': {
-      position: 'relative',
-      marginTop: t.spacing(1),
-      paddingTop: t.spacing(2),
-    },
-    '& + &:before': {
-      background: t.palette.divider,
-      border: `1px solid ${t.palette.background.paper}`,
-      borderWidth: '1px 0',
-      content: '""',
-      height: '3px',
-      left: '25%',
-      position: 'absolute',
-      right: '25%',
-      top: 0,
-    },
+const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
+  list: {
+    background: t.palette.background.default,
+    overflowY: 'auto',
   },
+  listSection: {
+    background: 'inherit',
+  },
+  auxList: {
+    background: 'inherit',
+    padding: 0,
+  },
+  help: {
+    ...t.typography.caption,
+    marginTop: t.spacing(1),
+  },
+  input: {
+    background: t.palette.background.paper,
+  },
+}))
+
+interface AvailablePackagesMetaFiltersProps {
+  filters: SearchUIModel.PackageUserMetaFacet[]
+  className?: string
+}
+
+function AvailablePackagesMetaFilters({
+  filters,
+  className,
+}: AvailablePackagesMetaFiltersProps) {
+  const classes = useAvailablePackagesMetaFiltersStyles()
+  const [query, setQuery] = React.useState('')
+  const filtered = React.useMemo(
+    () =>
+      Object.values(
+        R.groupBy(
+          (f) => f.__typename,
+          filters.filter((f) => f.path.toLowerCase().includes(query.toLowerCase())),
+        ),
+      ),
+    [filters, query],
+  )
+  const filteredNumber = filtered.reduce((memo, list) => memo + list.length, 0)
+  const hiddenNumber = filters.length - filteredNumber
+  return (
+    <div className={className}>
+      <FiltersUI.TinyTextField
+        placeholder="Find metadata filter"
+        fullWidth
+        value={query}
+        onChange={setQuery}
+        className={classes.input}
+      />
+      <M.List dense disablePadding className={classes.list}>
+        {filtered.map((list) => (
+          <li key={list[0].__typename} className={classes.listSection}>
+            <ul className={classes.auxList}>
+              <M.ListSubheader disableGutters>
+                {PackageUserMetaFacetMap[list[0].__typename]}
+              </M.ListSubheader>
+              {list.map((f) => (
+                <PackagesMetaFilterActivator
+                  key={`${f.path}:${f.__typename}`}
+                  facet={f}
+                />
+              ))}
+            </ul>
+          </li>
+        ))}
+      </M.List>
+      {!!hiddenNumber && (
+        <p className={classes.help}>
+          {filteredNumber
+            ? `There are ${hiddenNumber} more filters available. Loosen search query to see more.`
+            : `${hiddenNumber} filters are hidden. Clear search query to see them.`}
+        </p>
+      )}
+    </div>
+  )
+}
+
+const usePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   title: {
     ...t.typography.h6,
     fontWeight: 400,
@@ -507,6 +594,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   )
 
   if (!available.length && !Object.keys(activated || {}).length) return null
+
   return (
     <div className={className}>
       <div className={classes.title}>Metadata</div>
@@ -515,21 +603,12 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
           (f) => f.path === path && filter._tag === PackageUserMetaFacetMap[f.__typename],
         )
         return (
-          <PackagesMetaFilter
-            className={classes.filter}
-            key={path}
-            path={path}
-            facet={facet}
-          />
+          <FilterSection key={path}>
+            <PackagesMetaFilter path={path} facet={facet} />
+          </FilterSection>
         )
       })}
-      {!!available.length && (
-        <M.List dense disablePadding>
-          {available.map((f) => (
-            <PackagesMetaFilterActivator key={`${f.path}:${f.__typename}`} facet={f} />
-          ))}
-        </M.List>
-      )}
+      {!!available.length && <AvailablePackagesMetaFilters filters={available} />}
     </div>
   )
 }
@@ -541,24 +620,6 @@ const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] 
 const packagesFilters = [...packagesFiltersPrimary, ...packagesFiltersSecondary] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
-  filter: {
-    '& + &': {
-      position: 'relative',
-      marginTop: t.spacing(1),
-      paddingTop: t.spacing(2),
-    },
-    '& + &:before': {
-      background: t.palette.divider,
-      border: `1px solid ${t.palette.background.paper}`,
-      borderWidth: '1px 0',
-      content: '""',
-      height: '3px',
-      left: '25%',
-      position: 'absolute',
-      right: '25%',
-      top: 0,
-    },
-  },
   metadata: {
     marginTop: t.spacing(3),
   },
@@ -601,7 +662,9 @@ function PackageFilters({ className }: PackageFiltersProps) {
       <div className={classes.title}>Filter by</div>
 
       {activeFilters.map((f) => (
-        <PackagesFilter className={classes.filter} key={f} field={f} />
+        <FilterSection key={f}>
+          <PackagesFilter field={f} />
+        </FilterSection>
       ))}
 
       {!!availableFilters.length && (
@@ -655,7 +718,7 @@ function ObjectsFilterActivator({ field }: ObjectsFilterActivatorProps) {
 }
 
 interface ObjectsFilterProps {
-  className: string
+  className?: string
   field: keyof SearchUIModel.ObjectsSearchFilter
 }
 
@@ -724,24 +787,6 @@ const objectsFiltersSecondary = ['size', 'key', 'content', 'deleted'] as const
 const objectsFilters = [...objectsFiltersPrimary, ...objectsFiltersSecondary] as const
 
 const useObjectFiltersStyles = M.makeStyles((t) => ({
-  filter: {
-    '& + &': {
-      position: 'relative',
-      marginTop: t.spacing(1),
-      paddingTop: t.spacing(2),
-    },
-    '& + &:before': {
-      background: t.palette.divider,
-      border: `1px solid ${t.palette.background.paper}`,
-      borderWidth: '1px 0',
-      content: '""',
-      height: '3px',
-      left: '25%',
-      position: 'absolute',
-      right: '25%',
-      top: 0,
-    },
-  },
   more: {
     marginTop: t.spacing(0.5),
   },
@@ -781,7 +826,9 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
       <div className={classes.title}>Filter by</div>
 
       {activeFilters.map((f) => (
-        <ObjectsFilter className={classes.filter} key={f} field={f} />
+        <FilterSection key={f}>
+          <ObjectsFilter field={f} />
+        </FilterSection>
       ))}
 
       {!!availableFilters.length && (
