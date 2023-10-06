@@ -26,11 +26,13 @@ interface SearchState {
   // input: SearchInputProps
   input: $TSFixMe
   onClickAway: () => void
+  reset: () => void
   suggestions: ReturnType<typeof Suggestions.use>
 }
 
 function useSearchState(bucket?: string): SearchState {
   const history = useHistory()
+  const location = useLocation()
 
   const searchUIModel = useSearchUIModel()
 
@@ -39,6 +41,8 @@ function useSearchState(bucket?: string): SearchState {
   const [value, change] = React.useState<string | null>(null)
   const [expanded, setExpanded] = React.useState(false)
   const [helpOpen, setHelpOpen] = React.useState(false)
+  const [focusTrigger, setFocusTrigger] = React.useState(0)
+  React.useEffect(() => setHelpOpen(false), [location])
 
   const suggestions = Suggestions.use(value || '', bucket || searchUIModel)
 
@@ -131,16 +135,26 @@ function useSearchState(bucket?: string): SearchState {
     if (expanded || helpOpen) handleCollapse()
   }, [expanded, helpOpen, handleCollapse])
 
+  const reset = React.useCallback(() => {
+    change('')
+    setFocusTrigger((n) => n + 1)
+  }, [])
+
+  const isExpanded = expanded || !!searchUIModel
+  const isSuggestionsOpened = helpOpen && Array.isArray(suggestions.items)
+  const focusTriggeredCount = isExpanded ? focusTrigger : 0
   return {
     input: {
-      expanded: expanded || !!searchUIModel,
-      helpOpen,
+      expanded: isExpanded,
+      focusTrigger: focusTriggeredCount,
+      helpOpen: isSuggestionsOpened,
       onChange,
       onFocus: handleExpand,
       onHelpToggle,
       onKeyDown,
       value: value === null ? query : value,
     },
+    reset,
     onClickAway,
     suggestions,
   }

@@ -960,13 +960,21 @@ function NextPage({ after, className, resultType }: NextPageProps) {
           case 'error':
             // eslint-disable-next-line no-console
             console.error(r.error)
-            return <p className={className}>gql error: {r.error.message}</p>
+            return (
+              <EmptyResults
+                className={className}
+                description={r.error.message}
+                image="error"
+                title="GQL error"
+              />
+            )
           case 'data':
             switch (r.data.__typename) {
               case 'InvalidInput':
                 // should not happen
                 return (
                   <EmptyResults
+                    className={className}
                     description={r.data.errors[0].message}
                     image="error"
                     title="Invalid input"
@@ -1045,14 +1053,22 @@ function Results() {
     case 'error':
       // eslint-disable-next-line no-console
       console.error(r.error)
-      return <p className={className}>gql error: {r.error.message}</p>
+      return (
+        <EmptyResults
+          className={className}
+          description={r.error.message}
+          image="error"
+          title="GQL error"
+        />
+      )
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <EmptyResults />
+          return <EmptyResults className={className} />
         case 'InvalidInput':
           return (
             <EmptyResults
+              className={className}
               description={r.data.errors[0].message}
               image="error"
               title="Invalid input"

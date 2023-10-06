@@ -103,6 +103,7 @@ interface SearchInputProps extends SearchProps, SearchInputBaseProps {
   expanded?: boolean
   helpOpen?: boolean
   onHelpToggle?: () => void
+  focusTrigger?: number
 }
 
 function SearchInput({
@@ -110,15 +111,17 @@ function SearchInput({
   helpOpen = false,
   hidden = false,
   iconized = false,
+  focusTrigger = 0,
   onHelpToggle,
   ...props
 }: SearchInputProps) {
   const classes = useInputStyles()
   const ref = React.useRef<HTMLInputElement>(null)
   React.useEffect(() => {
-    if (!expanded || !ref.current || document.activeElement === ref.current) return
-    ref.current.focus()
-  }, [expanded])
+    if (focusTrigger && ref.current && document.activeElement !== ref.current) {
+      ref.current.focus()
+    }
+  }, [focusTrigger])
   return (
     <M.InputBase
       classes={{ root: classes.root, input: classes.input }}

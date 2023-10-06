@@ -723,17 +723,18 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
-  // const clearFacets = React.useCallback(() => {
-  //   updateUrlState(
-  //     R.evolve({
-  //       searchString: () => '',
-  //       resultType: () => null,
-  //       buckets: () => [],
-  //       facets: () => [],
-  //       order: () => DEFAULT_ORDER,
-  //     }),
-  //   )
-  // }, [updateUrlState])
+  const clearFilter = React.useCallback(() => {
+    const defaultParams = parseSearchParams('')
+    updateUrlState(
+      (s) =>
+        ({
+          ...defaultParams,
+          buckets: s.buckets,
+          order: s.order,
+          resultType: s.resultType,
+        }) as SearchUrlState,
+    )
+  }, [updateUrlState])
 
   // eslint-disable-next-line no-console
   // console.log('URL STATE', urlState)
@@ -758,7 +759,7 @@ function useSearchUIModel() {
         activatePackagesMetaFilter,
         deactivatePackagesMetaFilter,
         setPackagesMetaFilter,
-        // clearFacets,
+        clearFilter,
       },
       baseSearchQuery,
       firstPageObjectsQuery,
