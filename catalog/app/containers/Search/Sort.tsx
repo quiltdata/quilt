@@ -37,9 +37,8 @@ const useButtonStyles = M.makeStyles((t) => ({
 }))
 
 const useStyles = M.makeStyles((t) => ({
-  caption: {
-    fontWeight: 500,
-    marginRight: t.spacing(1),
+  value: {
+    fontWeight: t.typography.fontWeightMedium,
   },
 }))
 
@@ -75,12 +74,13 @@ export default function Sort({ className }: SortProps) {
   return (
     <SelectDropdown
       className={className}
+      classes={classes}
       options={sortOptions}
       value={value}
       onChange={handleChange}
       ButtonProps={ButtonProps}
     >
-      <span className={classes.caption}>Sort by:</span>
+      <span>Sort by:</span>&nbsp;
     </SelectDropdown>
   )
 }
