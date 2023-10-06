@@ -129,6 +129,8 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           EmptySearchResultSet: () => null,
           ObjectsSearchResultSet: () => null,
           PackagesSearchResultSet: () => null,
+          InvalidInput: () => null,
+          InputError: () => null,
         },
         updates: {
           Mutation: {
