@@ -15,9 +15,10 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   header: {
+    alignItems: 'center',
     display: 'flex',
     justifyContent: 'space-between',
-    padding: t.spacing(0, 0, 1),
+    margin: t.spacing(0, 0, 1.5),
   },
   title: {
     ...t.typography.body2,
