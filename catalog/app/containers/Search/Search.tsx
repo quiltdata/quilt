@@ -950,7 +950,7 @@ const useResultsPageStyles = M.makeStyles((t) => ({
 }))
 
 interface ResultsPageProps {
-  className: string
+  className?: string
   cursor: string | null
   hits: readonly SearchUIModel.SearchHit[]
   resultType: SearchUIModel.ResultType
@@ -1077,8 +1077,6 @@ function Results() {
   const classes = useResultsStyles()
   const model = SearchUIModel.use()
 
-  const className = 'TBD'
-
   function fold() {
     switch (model.state.resultType) {
       case SearchUIModel.ResultType.S3Object:
@@ -1103,26 +1101,20 @@ function Results() {
   // eslint-disable-next-line no-underscore-dangle
   switch (r._tag) {
     case 'fetching':
-      return <ResultsSkeleton className={className} />
+      return <ResultsSkeleton />
     case 'error':
       // eslint-disable-next-line no-console
       console.error(r.error)
       return (
-        <EmptyResults
-          className={className}
-          description={r.error.message}
-          image="error"
-          title="GQL error"
-        />
+        <EmptyResults description={r.error.message} image="error" title="GQL error" />
       )
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
-          return <EmptyResults className={className} />
+          return <EmptyResults />
         case 'InvalidInput':
           return (
             <EmptyResults
-              className={className}
               description={r.data.errors[0].message}
               image="error"
               title="Invalid input"
@@ -1143,7 +1135,7 @@ function Results() {
                 <SortSelector className={classes.sort} />
               </div>
               <ResultsPage
-                className={className}
+                key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
                 resultType={model.state.resultType}
                 hits={r.data.firstPage.hits}
                 cursor={r.data.firstPage.cursor}
