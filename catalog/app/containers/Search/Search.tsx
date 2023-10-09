@@ -432,7 +432,7 @@ function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) 
     'Filter type mismatch',
   )
 
-  const predicateState = (model.state.filter.userMeta?.children ?? {})[path]
+  const predicateState = model.state.filter.userMeta?.children?.get(path)
   invariant(predicateState, 'Filter not active')
 
   const { deactivatePackagesMetaFilter, setPackagesMetaFilter } = model.actions
@@ -589,16 +589,16 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   })
 
   const available = React.useMemo(
-    () => facets.filter((f) => !activated || !activated[f.path]),
+    () => facets.filter((f) => !activated?.has(f.path)),
     [facets, activated],
   )
 
-  if (!available.length && !Object.keys(activated || {}).length) return null
+  if (!available.length && !Array.from(activated?.keys() ?? []).length) return null
 
   return (
     <div className={className}>
       <div className={classes.title}>Metadata</div>
-      {Object.entries(activated || {}).map(([path, filter]) => {
+      {Array.from(activated ?? []).map(([path, filter]) => {
         const facet = facets.find(
           (f) => f.path === path && filter._tag === PackageUserMetaFacetMap[f.__typename],
         )

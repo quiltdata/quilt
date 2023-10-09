@@ -237,14 +237,16 @@ const UserMetaPredicateMap = {
 const UserMetaPredicate = Predicate({
   tag: 'UserMeta',
   init: {
-    children: {} as Record<string, PredicateState<PrimitivePredicate>>,
+    children: new Map<string, PredicateState<PrimitivePredicate>>(),
   },
   fromString: (input: string) => ({
-    children: JSON.parse(input) as Record<string, PredicateState<PrimitivePredicate>>,
+    children: new Map<string, PredicateState<PrimitivePredicate>>(
+      input ? JSON.parse(input) : [],
+    ),
   }),
-  toString: ({ children }) => JSON.stringify(children),
+  toString: ({ children }) => JSON.stringify(Array.from(children)),
   toGQL: ({ children }) => {
-    const userMeta = Object.entries(children).reduce((acc, [path, predicate]) => {
+    const userMeta = Array.from(children).reduce((acc, [path, predicate]) => {
       const gql = Predicates[predicate._tag].toGQL(
         predicate as any,
       ) as PredicateGQLType<PrimitivePredicate>
@@ -618,18 +620,14 @@ function useSearchUIModel() {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
         const userMeta = s.filter.userMeta || UserMetaPredicate.initialState
-        if (path in userMeta.children) return s
+        if (userMeta.children.has(path)) return s
+        const children = new Map(userMeta.children)
+        children.set(path, Predicates[type].initialState)
         return {
           ...s,
           filter: {
             ...s.filter,
-            userMeta: {
-              ...userMeta,
-              children: {
-                ...userMeta.children,
-                [path]: Predicates[type].initialState,
-              },
-            },
+            userMeta: { ...userMeta, children },
           },
         }
       }),
@@ -640,16 +638,14 @@ function useSearchUIModel() {
     (path: string) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        if (!s.filter.userMeta || !(path in s.filter.userMeta.children)) return s
-        const rest = R.dissoc(path, s.filter.userMeta.children)
+        if (!s.filter.userMeta || !s.filter.userMeta.children.has(path)) return s
+        const children = new Map(s.filter.userMeta.children)
+        children.delete(path)
         return {
           ...s,
           filter: {
             ...s.filter,
-            userMeta: {
-              ...s.filter.userMeta,
-              children: rest,
-            },
+            userMeta: { ...s.filter.userMeta, children },
           },
         }
       }),
@@ -722,18 +718,14 @@ function useSearchUIModel() {
     ) {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        if (!s.filter.userMeta || !(path in s.filter.userMeta.children)) return s
+        if (!s.filter.userMeta || !s.filter.userMeta.children.has(path)) return s
+        const children = new Map(s.filter.userMeta.children)
+        children.set(path, state)
         return {
           ...s,
           filter: {
             ...s.filter,
-            userMeta: {
-              ...s.filter.userMeta,
-              children: {
-                ...s.filter.userMeta.children,
-                [path]: state,
-              },
-            },
+            userMeta: { ...s.filter.userMeta, children },
           },
         }
       })
