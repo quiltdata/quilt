@@ -305,8 +305,7 @@ function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
 
 interface PackagesFilterProps {
   className?: string
-  // field: Omit<keyof SearchUIModel.PackagesSearchFilter, 'userMeta'>
-  field: 'workflow' | 'modified' | 'size' | 'name' | 'hash' | 'entries' | 'comment'
+  field: Exclude<keyof SearchUIModel.PackagesSearchFilter, 'userMeta'>
 }
 
 function PackagesFilter({ className, field }: PackagesFilterProps) {
@@ -315,7 +314,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
     'Filter type mismatch',
   )
-  const predicateState = model.state.filter[field]
+  const predicateState = model.state.filter.predicates[field]
   invariant(predicateState, 'Filter not active')
 
   const extents = GQL.fold(model.baseSearchQuery, {
@@ -432,7 +431,7 @@ function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) 
     'Filter type mismatch',
   )
 
-  const predicateState = model.state.filter.userMeta?.children?.get(path)
+  const predicateState = model.state.filter.predicates.userMeta?.children?.get(path)
   invariant(predicateState, 'Filter not active')
 
   const { deactivatePackagesMetaFilter, setPackagesMetaFilter } = model.actions
@@ -565,7 +564,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
     'Filter type mismatch',
   )
 
-  const activated = model.state.filter.userMeta?.children
+  const activated = model.state.filter.predicates.userMeta?.children
 
   const facets = GQL.fold(model.baseSearchQuery, {
     data: ({ searchPackages: r }) => {
@@ -593,7 +592,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
     [facets, activated],
   )
 
-  if (!available.length && !Array.from(activated?.keys() ?? []).length) return null
+  if (!available.length && !activated?.size) return null
 
   return (
     <div className={className}>
@@ -616,8 +615,6 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
 const packagesFiltersPrimary = ['workflow', 'modified'] as const
 
 const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] as const
-
-const packagesFilters = [...packagesFiltersPrimary, ...packagesFiltersSecondary] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
   metadata: {
@@ -646,14 +643,10 @@ function PackageFilters({ className }: PackageFiltersProps) {
     'wrong result type',
   )
 
-  const { filter } = model.state
+  const { order: activeFilters, predicates } = model.state.filter
 
-  // TODO: custom order (order of activation):
-  //       probably need to remember that, maybe in local state
-  const activeFilters = packagesFilters.filter((f) => filter[f])
-
-  const availableFilters = packagesFiltersPrimary.filter((f) => !filter[f])
-  const moreFilters = packagesFiltersSecondary.filter((f) => !filter[f])
+  const availableFilters = packagesFiltersPrimary.filter((f) => !predicates[f])
+  const moreFilters = packagesFiltersSecondary.filter((f) => !predicates[f])
 
   const [expanded, setExpanded] = React.useState(false)
 
@@ -661,11 +654,14 @@ function PackageFilters({ className }: PackageFiltersProps) {
     <div className={className}>
       <div className={classes.title}>Filter by</div>
 
-      {activeFilters.map((f) => (
-        <FilterSection key={f}>
-          <PackagesFilter field={f} />
-        </FilterSection>
-      ))}
+      {activeFilters.map(
+        (f) =>
+          f !== 'userMeta' && (
+            <FilterSection key={f}>
+              <PackagesFilter field={f} />
+            </FilterSection>
+          ),
+      )}
 
       {!!availableFilters.length && (
         <M.List dense disablePadding>
@@ -728,7 +724,7 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
     model.state.resultType === SearchUIModel.ResultType.S3Object,
     'Filter type mismatch',
   )
-  const predicateState = model.state.filter[field]
+  const predicateState = model.state.filter.predicates[field]
   invariant(predicateState, 'Filter not active')
 
   const extents = GQL.fold(model.baseSearchQuery, {
@@ -784,8 +780,6 @@ const objectsFiltersPrimary = ['modified', 'ext'] as const
 
 const objectsFiltersSecondary = ['size', 'key', 'content', 'deleted'] as const
 
-const objectsFilters = [...objectsFiltersPrimary, ...objectsFiltersSecondary] as const
-
 const useObjectFiltersStyles = M.makeStyles((t) => ({
   more: {
     marginTop: t.spacing(0.5),
@@ -810,14 +804,10 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
     'wrong result type',
   )
 
-  const { filter } = model.state
+  const { order: activeFilters, predicates } = model.state.filter
 
-  // TODO: custom order (order of activation):
-  //       probably need to remember that, maybe in local state
-  const activeFilters = objectsFilters.filter((f) => filter[f])
-
-  const availableFilters = objectsFiltersPrimary.filter((f) => !filter[f])
-  const moreFilters = objectsFiltersSecondary.filter((f) => !filter[f])
+  const availableFilters = objectsFiltersPrimary.filter((f) => !predicates[f])
+  const moreFilters = objectsFiltersSecondary.filter((f) => !predicates[f])
 
   const [expanded, setExpanded] = React.useState(false)
 

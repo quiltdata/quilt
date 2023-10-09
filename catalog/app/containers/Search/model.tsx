@@ -287,16 +287,34 @@ type CombinedState<PM extends PredicateMap> = {
   [K in keyof PM]: PredicateState<PM[K]> | null
 }
 
+type OrderedCombinedState<PM extends PredicateMap> = {
+  predicates: CombinedState<PM>
+  order: (keyof PM)[]
+}
+
 type CombinedGQLType<PM extends PredicateMap> = {
   [K in keyof PM]: PredicateGQLType<PM[K]>
 }
 
 interface FilterIO<PM extends PredicateMap> {
-  fromURLSearchParams: (params: URLSearchParams) => CombinedState<PM>
-  toURLSearchParams: (state: CombinedState<PM>) => [string, string][]
-  toGQL: (state: CombinedState<PM>) => CombinedGQLType<PM> | null
+  fromURLSearchParams: (params: URLSearchParams) => OrderedCombinedState<PM>
+  toURLSearchParams: (state: OrderedCombinedState<PM>) => [string, string][]
+  toGQL: (state: OrderedCombinedState<PM>) => CombinedGQLType<PM> | null
   children: PM
-  initialState: CombinedState<PM>
+  initialState: OrderedCombinedState<PM>
+  activateFilter: (
+    state: OrderedCombinedState<PM>,
+    key: keyof PM,
+  ) => OrderedCombinedState<PM>
+  deactivateFilter: (
+    state: OrderedCombinedState<PM>,
+    key: keyof PM,
+  ) => OrderedCombinedState<PM>
+  setFilter: <K extends keyof PM>(
+    state: OrderedCombinedState<PM>,
+    key: K,
+    predicateState: CombinedState<PM>[K],
+  ) => OrderedCombinedState<PM>
 }
 
 function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
@@ -304,19 +322,31 @@ function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
     Object.entries(children).forEach(([k, v]) => fn(k, v as PM[typeof k]))
   }
 
-  function fromURLSearchParams(params: URLSearchParams): CombinedState<PM> {
-    const state = {} as Record<keyof PM, any>
-    forEachChild((k, predicate) => {
-      const v = params.get(k as string)
-      state[k] = v == null ? null : predicate.fromString(v)
+  function initState(): OrderedCombinedState<PM> {
+    const predicates = {} as CombinedState<PM>
+    const order: (keyof PM)[] = []
+    forEachChild((k) => {
+      predicates[k] = null
     })
-    return state as CombinedState<PM>
+    return { predicates, order }
   }
 
-  function toURLSearchParams(state: CombinedState<PM>): [string, string][] {
+  function fromURLSearchParams(params: URLSearchParams): OrderedCombinedState<PM> {
+    const state = initState()
+    params.forEach((v, k) => {
+      const predicate = children[k]
+      if (!predicate) return
+      state.order.push(k as keyof PM)
+      state.predicates[k as keyof PM] = predicate.fromString(v)
+    })
+    return state
+  }
+
+  function toURLSearchParams(state: OrderedCombinedState<PM>): [string, string][] {
     const params: [string, string][] = []
-    forEachChild((k, predicate) => {
-      const v = state[k]
+    state.order.forEach((k) => {
+      const predicate = children[k]
+      const v = state.predicates[k]
       if (v == null) return
       const s = predicate.toString(v)
       if (s == null) return
@@ -325,29 +355,75 @@ function Filter<PM extends PredicateMap>(children: PM): FilterIO<PM> {
     return params
   }
 
-  const initialState = {} as CombinedState<PM>
-  forEachChild((k) => {
-    initialState[k] = null
-  })
-
-  function toGQL(state: CombinedState<PM>): CombinedGQLType<PM> | null {
+  function toGQL(state: OrderedCombinedState<PM>): CombinedGQLType<PM> | null {
     const gqlInput = {} as CombinedGQLType<PM>
     let isEmpty = true
     forEachChild((k, predicate) => {
-      const s = state[k]
-      if (s == null) return
-      const v = predicate.toGQL(s)
-      if (v != null) isEmpty = false
-      gqlInput[k] = v
+      const v = state.predicates[k]
+      if (v == null) return
+      const g = predicate.toGQL(v)
+      if (g != null) isEmpty = false
+      gqlInput[k] = g
     })
     return isEmpty ? null : gqlInput
   }
 
-  return { fromURLSearchParams, toURLSearchParams, toGQL, children, initialState }
+  const initialState = initState()
+
+  function setFilter<K extends keyof PM>(
+    state: OrderedCombinedState<PM>,
+    key: K,
+    predicateState: CombinedState<PM>[K],
+  ): OrderedCombinedState<PM> {
+    invariant(state.order.includes(key), 'key must be in order')
+    return {
+      ...state,
+      predicates: {
+        ...state.predicates,
+        [key]: predicateState,
+      },
+    }
+  }
+
+  function activateFilter(
+    state: OrderedCombinedState<PM>,
+    key: keyof PM,
+  ): OrderedCombinedState<PM> {
+    if (state.predicates[key]) return state
+    return {
+      predicates: {
+        ...state.predicates,
+        [key]: children[key].initialState,
+      },
+      order: [...state.order, key],
+    }
+  }
+
+  function deactivateFilter(
+    state: OrderedCombinedState<PM>,
+    key: keyof PM,
+  ): OrderedCombinedState<PM> {
+    if (!state.predicates[key]) return state
+    const { ...predicates } = state.predicates
+    predicates[key] = null
+    const order = state.order.filter((k) => k !== key)
+    return { predicates, order }
+  }
+
+  return {
+    fromURLSearchParams,
+    toURLSearchParams,
+    toGQL,
+    children,
+    initialState,
+    activateFilter,
+    deactivateFilter,
+    setFilter,
+  }
 }
 
 type FilterState<FIO extends FilterIO<any>> = FIO extends FilterIO<infer PM>
-  ? CombinedState<PM>
+  ? OrderedCombinedState<PM>
   : never
 
 export const ObjectsSearchFilterIO = Filter({
@@ -606,10 +682,7 @@ function useSearchUIModel() {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
         return {
           ...s,
-          filter: {
-            ...s.filter,
-            [key]: PackagesSearchFilterIO.children[key].initialState,
-          },
+          filter: PackagesSearchFilterIO.activateFilter(s.filter, key),
         }
       }),
     [updateUrlState],
@@ -619,17 +692,15 @@ function useSearchUIModel() {
     (path: string, type: PrimitivePredicate['_tag']) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        const userMeta = s.filter.userMeta || UserMetaPredicate.initialState
+        let filter = PackagesSearchFilterIO.activateFilter(s.filter, 'userMeta')
+        let { userMeta } = filter.predicates
+        invariant(userMeta, 'userMeta filter must not be null at this point')
         if (userMeta.children.has(path)) return s
         const children = new Map(userMeta.children)
         children.set(path, Predicates[type].initialState)
-        return {
-          ...s,
-          filter: {
-            ...s.filter,
-            userMeta: { ...userMeta, children },
-          },
-        }
+        userMeta = { ...userMeta, children }
+        filter = PackagesSearchFilterIO.setFilter(filter, 'userMeta', userMeta)
+        return { ...s, filter }
       }),
     [updateUrlState],
   )
@@ -638,16 +709,17 @@ function useSearchUIModel() {
     (path: string) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        if (!s.filter.userMeta || !s.filter.userMeta.children.has(path)) return s
-        const children = new Map(s.filter.userMeta.children)
+        const { userMeta } = s.filter.predicates
+        if (!userMeta?.children.has(path)) return s
+        const children = new Map(userMeta.children)
         children.delete(path)
-        return {
-          ...s,
-          filter: {
-            ...s.filter,
-            userMeta: { ...s.filter.userMeta, children },
-          },
-        }
+        const filter = children.size
+          ? PackagesSearchFilterIO.setFilter(s.filter, 'userMeta', {
+              ...userMeta,
+              children,
+            })
+          : PackagesSearchFilterIO.deactivateFilter(s.filter, 'userMeta')
+        return { ...s, filter }
       }),
     [updateUrlState],
   )
@@ -658,10 +730,7 @@ function useSearchUIModel() {
         invariant(s.resultType === ResultType.S3Object, 'wrong result type')
         return {
           ...s,
-          filter: {
-            ...s.filter,
-            [key]: ObjectsSearchFilterIO.children[key].initialState,
-          },
+          filter: ObjectsSearchFilterIO.activateFilter(s.filter, key),
         }
       }),
     [updateUrlState],
@@ -671,7 +740,7 @@ function useSearchUIModel() {
     (key: keyof PackagesSearchFilter) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        return { ...s, filter: { ...s.filter, [key]: null } }
+        return { ...s, filter: PackagesSearchFilterIO.deactivateFilter(s.filter, key) }
       }),
     [updateUrlState],
   )
@@ -680,7 +749,7 @@ function useSearchUIModel() {
     (key: keyof ObjectsSearchFilter) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.S3Object, 'wrong result type')
-        return { ...s, filter: { ...s.filter, [key]: null } }
+        return { ...s, filter: ObjectsSearchFilterIO.deactivateFilter(s.filter, key) }
       }),
     [updateUrlState],
   )
@@ -688,11 +757,11 @@ function useSearchUIModel() {
   const setPackagesFilter = React.useCallback(
     function setPackagesFilterInternal<K extends keyof PackagesSearchFilter>(
       key: K,
-      state: FilterState<typeof PackagesSearchFilterIO>[K],
+      state: FilterState<typeof PackagesSearchFilterIO>['predicates'][K],
     ) {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        return { ...s, filter: { ...s.filter, [key]: state } }
+        return { ...s, filter: PackagesSearchFilterIO.setFilter(s.filter, key, state) }
       })
     },
     [updateUrlState],
@@ -701,11 +770,11 @@ function useSearchUIModel() {
   const setObjectsFilter = React.useCallback(
     function setObjectsFilterInternal<K extends keyof ObjectsSearchFilter>(
       key: K,
-      state: FilterState<typeof ObjectsSearchFilterIO>[K],
+      state: FilterState<typeof ObjectsSearchFilterIO>['predicates'][K],
     ) {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.S3Object, 'wrong result type')
-        return { ...s, filter: { ...s.filter, [key]: state } }
+        return { ...s, filter: ObjectsSearchFilterIO.setFilter(s.filter, key, state) }
       })
     },
     [updateUrlState],
@@ -718,16 +787,15 @@ function useSearchUIModel() {
     ) {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        if (!s.filter.userMeta || !s.filter.userMeta.children.has(path)) return s
-        const children = new Map(s.filter.userMeta.children)
+        const { userMeta } = s.filter.predicates
+        if (!userMeta?.children.has(path)) return s
+        const children = new Map(userMeta.children)
         children.set(path, state)
-        return {
-          ...s,
-          filter: {
-            ...s.filter,
-            userMeta: { ...s.filter.userMeta, children },
-          },
-        }
+        const filter = PackagesSearchFilterIO.setFilter(s.filter, 'userMeta', {
+          ...userMeta,
+          children,
+        })
+        return { ...s, filter }
       })
     },
     [updateUrlState],
