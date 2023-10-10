@@ -42,7 +42,8 @@ export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
 }
 
 export interface BooleanSearchPredicate {
-  readonly value: Scalars['Boolean']
+  readonly true: Maybe<Scalars['Boolean']>
+  readonly false: Maybe<Scalars['Boolean']>
 }
 
 export interface BrowsingSession {

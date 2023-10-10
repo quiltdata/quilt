@@ -358,7 +358,8 @@ input KeywordSearchPredicate {
 }
 
 input BooleanSearchPredicate {
-  value: Boolean!
+  true: Boolean
+  false: Boolean
 }
 
 input PackageUserMetaPredicate {

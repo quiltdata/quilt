@@ -82,6 +82,8 @@ export function addTag<Tag extends string, T>(tag: Tag, t: T): Tagged<Tag, T> {
   return { _tag: tag, ...t }
 }
 
+export type Untag<T extends Tagged<any, any>> = T extends Tagged<any, infer U> ? U : never
+
 interface PredicateIO<Tag extends string, State, GQLType> {
   readonly _tag: Tag
   initialState: Tagged<Tag, State>
@@ -194,11 +196,19 @@ const KeywordWildcardPredicate = Predicate({
 
 const BooleanPredicate = Predicate({
   tag: 'Boolean',
-  init: { value: null as boolean | null },
-  fromString: (input: string) => ({ value: JSON.parse(input) as boolean | null }),
-  toString: (state) => JSON.stringify(state.value),
+  init: { true: false, false: false },
+  fromString: (input: string) => {
+    const values = input.split(',')
+    return { true: values.includes('true'), false: values.includes('false') }
+  },
+  toString: (state) => {
+    const values = []
+    if (state.true) values.push('true')
+    if (state.false) values.push('false')
+    return values.join(',')
+  },
   toGQL: ({ _tag, ...state }) =>
-    state.value == null ? null : (state as Model.GQLTypes.BooleanSearchPredicate),
+    state.true || state.false ? (state as Model.GQLTypes.BooleanSearchPredicate) : null,
 })
 
 const PrimitivePredicates = [

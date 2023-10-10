@@ -235,44 +235,35 @@ function TextFilterWidget({
   )
 }
 
+type BooleanFilterValue = SearchUIModel.Untag<
+  SearchUIModel.PredicateState<SearchUIModel.Predicates['Boolean']>
+>
+
 function BooleanFilterWidget({
   state,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Boolean']>) {
   const handleChange = React.useCallback(
-    (value: boolean) => {
-      onChange({ ...state, value })
+    (value: BooleanFilterValue) => {
+      onChange({ ...state, ...value })
     },
     [onChange, state],
   )
-  return (
-    <FiltersUI.Checkbox
-      onChange={handleChange}
-      label="LABEL TBD"
-      // label={`Show ${JSONPointer.stringify(path)}`}
-      value={!!state.value}
-    />
-  )
+  return <FiltersUI.BooleanFilter onChange={handleChange} value={state} />
+}
+
+const WIDGETS = {
+  Datetime: DatetimeFilterWidget,
+  Number: NumberFilterWidget,
+  Text: TextFilterWidget,
+  KeywordEnum: KeywordEnumFilterWidget,
+  KeywordWildcard: KeywordWildcardFilterWidget,
+  Boolean: BooleanFilterWidget,
 }
 
 function FilterWidget(props: FilterWidgetProps) {
-  // eslint-disable-next-line no-underscore-dangle
-  switch (props.state._tag) {
-    case 'Datetime':
-      return <DatetimeFilterWidget {...(props as $TSFixMe)} />
-    case 'Number':
-      return <NumberFilterWidget {...(props as $TSFixMe)} />
-    case 'Text':
-      return <TextFilterWidget {...(props as $TSFixMe)} />
-    case 'KeywordEnum':
-      return <KeywordEnumFilterWidget {...(props as $TSFixMe)} />
-    case 'KeywordWildcard':
-      return <KeywordWildcardFilterWidget {...(props as $TSFixMe)} />
-    case 'Boolean':
-      return <BooleanFilterWidget {...(props as $TSFixMe)} />
-    default:
-      assertNever(props.state)
-  }
+  const Widget = WIDGETS[props.state._tag]
+  return <Widget {...(props as $TSFixMe)} />
 }
 
 const packageFilterLabels = {
