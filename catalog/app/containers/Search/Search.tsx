@@ -493,6 +493,8 @@ function FilterGroup({ path, items }: FilterGroupProps) {
   )
 }
 
+const FACETS_THRESHOLD = 5
+
 const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   list: {
     background: t.palette.background.default,
@@ -526,24 +528,32 @@ function AvailablePackagesMetaFilters({
   const classes = useAvailablePackagesMetaFiltersStyles()
   const [query, setQuery] = React.useState('')
   const filtered = React.useMemo(
-    () => filters.filter((f) => f.path.toLowerCase().includes(query.toLowerCase())),
+    () =>
+      filters.length > FACETS_THRESHOLD
+        ? filters.filter((f) => f.path.toLowerCase().includes(query.toLowerCase()))
+        : filters,
     [filters, query],
   )
 
   const filteredNumber = filtered.length
   const hiddenNumber = filters.length - filteredNumber
 
-  const grouped = React.useMemo(() => SearchUIModel.groupFacets(filtered, 5), [filtered])
+  const grouped = React.useMemo(
+    () => SearchUIModel.groupFacets(filtered, FACETS_THRESHOLD),
+    [filtered],
+  )
 
   return (
     <div className={className}>
-      <FiltersUI.TinyTextField
-        placeholder="Find metadata filter"
-        fullWidth
-        value={query}
-        onChange={setQuery}
-        className={classes.input}
-      />
+      {filters.length > FACETS_THRESHOLD && (
+        <FiltersUI.TinyTextField
+          placeholder="Find metadata filter"
+          fullWidth
+          value={query}
+          onChange={setQuery}
+          className={classes.input}
+        />
+      )}
       <M.List dense disablePadding className={classes.list}>
         <FilterGroup items={grouped.children} />
       </M.List>
