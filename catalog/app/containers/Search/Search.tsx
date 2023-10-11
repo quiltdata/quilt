@@ -472,14 +472,6 @@ const FACETS_THRESHOLD = 5
 const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   list: {
     background: t.palette.background.default,
-    overflowY: 'auto',
-  },
-  listSection: {
-    background: 'inherit',
-  },
-  auxList: {
-    background: 'inherit',
-    padding: 0,
   },
   help: {
     ...t.typography.caption,
