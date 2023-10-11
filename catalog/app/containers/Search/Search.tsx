@@ -493,7 +493,11 @@ function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFilter
   const filtered = React.useMemo(
     () =>
       available.length > FACETS_THRESHOLD
-        ? available.filter((f) => f.path.toLowerCase().includes(query.toLowerCase()))
+        ? available.filter((f) =>
+            (f.path + PackageUserMetaFacetMap[f.__typename])
+              .toLowerCase()
+              .includes(query.toLowerCase()),
+          )
         : available,
     [available, query],
   )
