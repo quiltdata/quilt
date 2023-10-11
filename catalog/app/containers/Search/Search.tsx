@@ -535,7 +535,7 @@ function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFilter
     () =>
       available.length > FACETS_THRESHOLD
         ? available.filter((f) =>
-            (f.path + PackageUserMetaFacetMap[f.__typename])
+            (f.path + SearchUIModel.PackageUserMetaFacetMap[f.__typename])
               .toLowerCase()
               .includes(query.toLowerCase()),
           )
