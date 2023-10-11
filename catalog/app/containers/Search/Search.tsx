@@ -537,8 +537,8 @@ function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFilter
 
 const usePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   title: {
-    ...t.typography.h6,
-    fontWeight: 400,
+    ...t.typography.subtitle1,
+    fontWeight: 500,
     marginBottom: t.spacing(1),
   },
 }))
@@ -804,10 +804,15 @@ const useFiltersStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridRowGap: t.spacing(2),
     gridTemplateRows: 'auto',
+    // TODO: Make scroll for sidebar
+    // TODO: Also, consider that buckets filter disappears
+    // overflow: 'hidden auto',
+    // padding: t.spacing(0.5, 0, 0),
+    // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
   variable: {
     marginTop: t.spacing(1),
-    overflow: 'hidden',
+    overflow: 'hidden auto',
   },
 }))
 
