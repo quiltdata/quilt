@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import invariant from 'invariant'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -8,10 +7,10 @@ import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
 import * as GQL from 'utils/GraphQL'
+import * as JSONPointer from 'utils/JSONPointer'
 import MetaTitle from 'utils/MetaTitle'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
-// import * as JSONPointer from 'utils/JSONPointer'
 
 import * as SearchUIModel from './model'
 // import AvailableFacets from './AvailableFacets'
@@ -362,15 +361,6 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
   )
 }
 
-function getFacetLabel(facet: SearchUIModel.PackageUserMetaFacet) {
-  // XXX
-  return <>{facet.path}</>
-}
-
-interface PackagesMetaFilterActivatorProps {
-  facet: SearchUIModel.PackageUserMetaFacet
-}
-
 const PackageUserMetaFacetMap = {
   NumberPackageUserMetaFacet: 'Number' as const,
   DatetimePackageUserMetaFacet: 'Datetime' as const,
@@ -379,19 +369,29 @@ const PackageUserMetaFacetMap = {
   BooleanPackageUserMetaFacet: 'Boolean' as const,
 }
 
-function PackagesMetaFilterActivator({ facet }: PackagesMetaFilterActivatorProps) {
+interface PackagesMetaFilterActivatorProps {
+  typename: SearchUIModel.PackageUserMetaFacet['__typename']
+  path: SearchUIModel.PackageUserMetaFacet['path']
+  label: React.ReactNode
+}
+
+function PackagesMetaFilterActivator({
+  typename,
+  path,
+  label,
+}: PackagesMetaFilterActivatorProps) {
   const model = SearchUIModel.use()
   invariant(
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
     'Filter type mismatch',
   )
   const { activatePackagesMetaFilter } = model.actions
-  const type = PackageUserMetaFacetMap[facet.__typename]
+  const type = PackageUserMetaFacetMap[typename]
   const activate = React.useCallback(() => {
     // XXX: accept the whole facet object?
-    activatePackagesMetaFilter(facet.path, type)
-  }, [activatePackagesMetaFilter, facet.path, type])
-  return <FiltersUI.Activator title={getFacetLabel(facet)} onClick={activate} />
+    activatePackagesMetaFilter(path, type)
+  }, [activatePackagesMetaFilter, path, type])
+  return <FiltersUI.Activator title={label} onClick={activate} />
 }
 
 function getPackageUserMetaFacetExtents(
@@ -438,7 +438,7 @@ function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) 
     [setPackagesMetaFilter, path],
   )
 
-  // TODO: const title = getFacetLabel(path)
+  const title = React.useMemo(() => JSONPointer.parse(path).join(' / '), [path])
 
   const extents = getPackageUserMetaFacetExtents(facet)
 
@@ -447,10 +447,49 @@ function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) 
       className={className}
       defaultExpanded
       onDeactivate={deactivate}
-      title={path}
+      title={title}
     >
       <FilterWidget state={predicateState} extents={extents} onChange={change} />
     </FiltersUI.Container>
+  )
+}
+
+interface FilterGroupProps {
+  path?: string
+  items: ReturnType<typeof SearchUIModel.groupFacets>['children']
+}
+
+function FilterGroup({ path, items }: FilterGroupProps) {
+  function getLabel(key: string) {
+    const [type, rest] = key.split(':')
+    switch (type) {
+      case 'path':
+        return rest
+      case 'type':
+        return `Type: ${rest}`
+      case 'more':
+        return 'More ...'
+      default:
+        return key
+    }
+  }
+
+  return (
+    <M.Box border="1px solid" p={1}>
+      {!!path && <div>{getLabel(path)}</div>}
+      {Array.from(items).map(([p, node]) =>
+        node._tag === 'Tree' ? (
+          <FilterGroup key={p} path={p} items={node.children} />
+        ) : (
+          <PackagesMetaFilterActivator
+            key={p}
+            typename={node.value.__typename}
+            path={node.value.path}
+            label={getLabel(p)}
+          />
+        ),
+      )}
+    </M.Box>
   )
 }
 
@@ -487,17 +526,15 @@ function AvailablePackagesMetaFilters({
   const classes = useAvailablePackagesMetaFiltersStyles()
   const [query, setQuery] = React.useState('')
   const filtered = React.useMemo(
-    () =>
-      Object.values(
-        R.groupBy(
-          (f) => f.__typename,
-          filters.filter((f) => f.path.toLowerCase().includes(query.toLowerCase())),
-        ),
-      ),
+    () => filters.filter((f) => f.path.toLowerCase().includes(query.toLowerCase())),
     [filters, query],
   )
-  const filteredNumber = filtered.reduce((memo, list) => memo + list.length, 0)
+
+  const filteredNumber = filtered.length
   const hiddenNumber = filters.length - filteredNumber
+
+  const grouped = React.useMemo(() => SearchUIModel.groupFacets(filtered, 5), [filtered])
+
   return (
     <div className={className}>
       <FiltersUI.TinyTextField
@@ -508,21 +545,7 @@ function AvailablePackagesMetaFilters({
         className={classes.input}
       />
       <M.List dense disablePadding className={classes.list}>
-        {filtered.map((list) => (
-          <li key={list[0].__typename} className={classes.listSection}>
-            <ul className={classes.auxList}>
-              <M.ListSubheader disableGutters>
-                {PackageUserMetaFacetMap[list[0].__typename]}
-              </M.ListSubheader>
-              {list.map((f) => (
-                <PackagesMetaFilterActivator
-                  key={`${f.path}:${f.__typename}`}
-                  facet={f}
-                />
-              ))}
-            </ul>
-          </li>
-        ))}
+        <FilterGroup items={grouped.children} />
       </M.List>
       {!!hiddenNumber && (
         <p className={classes.help}>

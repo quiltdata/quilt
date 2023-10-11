@@ -6,6 +6,8 @@ import * as RR from 'react-router-dom'
 
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
+import * as JSONPointer from 'utils/JSONPointer'
+import * as KTree from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
 // import * as Types from 'utils/types'
@@ -618,6 +620,53 @@ export type PackageUserMetaFacet = Extract<
   GQL.DataForDoc<typeof BASE_SEARCH_QUERY>['searchPackages'],
   { __typename: 'PackagesSearchResultSet' }
 >['stats']['userMeta'][number]
+
+const PackageUserMetaFacetTypeDisplay = {
+  NumberPackageUserMetaFacet: 'Number' as const,
+  DatetimePackageUserMetaFacet: 'Date' as const,
+  KeywordPackageUserMetaFacet: 'Keyword' as const,
+  TextPackageUserMetaFacet: 'Text' as const,
+  BooleanPackageUserMetaFacet: 'Boolean' as const,
+}
+
+type FacetTree = KTree.Tree<PackageUserMetaFacet, string>
+type FacetNode = KTree.Node<PackageUserMetaFacet, string>
+
+function normalizeFacetNode(node: FacetNode): FacetTree {
+  return node._tag === 'Tree'
+    ? node
+    : KTree.fromLeaf(
+        [`type:${PackageUserMetaFacetTypeDisplay[node.value.__typename]}`],
+        node,
+      )
+}
+
+function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNode {
+  return KTree.merge(
+    normalizeFacetNode(existing),
+    normalizeFacetNode(conflict),
+    resolveFacetConflict,
+  )
+}
+
+export function groupFacets(facets: PackageUserMetaFacet[], visible?: number): FacetTree {
+  const grouped = facets.reduce(
+    (acc, f) =>
+      KTree.merge(
+        acc,
+        KTree.fromLeaf(
+          JSONPointer.parse(f.path).map((p) => `path:${p}`),
+          KTree.Leaf(f),
+        ),
+        resolveFacetConflict,
+      ),
+    KTree.Tree<PackageUserMetaFacet, string>([]),
+  )
+  if (!visible) return grouped
+  if (grouped.children.size <= visible) return grouped
+  const [topLevel, hidden] = R.splitAt(visible, Array.from(grouped.children))
+  return KTree.Tree([...topLevel, KTree.Pair('more', KTree.Tree(hidden))])
+}
 
 function useSearchUIModel() {
   const urlState = useUrlState()
