@@ -428,12 +428,33 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
   )
 }
 
+const useFilterGroupStyles = M.makeStyles((t) => ({
+  root: {
+    background: 'inherit',
+  },
+  auxList: {
+    background: 'inherit',
+    padding: 0,
+  },
+  nested: {
+    paddingLeft: t.spacing(4),
+  },
+  toggleIcon: {
+    minWidth: t.spacing(5),
+  },
+}))
+
 interface FilterGroupProps {
   path?: string
+  // TODO: in therory, every filter group can have "more" and it's own `expanded` state
+  //       though, it requires refactoring
+  onExpand: () => void
   items: ReturnType<typeof SearchUIModel.groupFacets>['children']
 }
 
-function FilterGroup({ path, items }: FilterGroupProps) {
+function FilterGroup({ path, items, onExpand }: FilterGroupProps) {
+  const classes = useFilterGroupStyles()
+
   function getLabel(key: string) {
     const [type, rest] = key.split(':')
     switch (type) {
@@ -448,22 +469,37 @@ function FilterGroup({ path, items }: FilterGroupProps) {
     }
   }
 
+  const [expanded, setExpanded] = React.useState(false)
+  if (path === 'more') return <MoreButton onClick={onExpand} />
+
   return (
-    <M.Box border="1px solid" p={1}>
-      {!!path && <div>{getLabel(path)}</div>}
-      {Array.from(items).map(([p, node]) =>
-        node._tag === 'Tree' ? (
-          <FilterGroup key={p} path={p} items={node.children} />
-        ) : (
-          <PackagesMetaFilterActivator
-            key={p}
-            typename={node.value.__typename}
-            path={node.value.path}
-            label={getLabel(p)}
-          />
-        ),
-      )}
-    </M.Box>
+    <li className={cx(classes.root)}>
+      <ul className={classes.auxList}>
+        {!!path && (
+          <M.ListItem button disableGutters onClick={() => setExpanded(!expanded)}>
+            <M.ListItemIcon className={classes.toggleIcon}>
+              <M.Icon>{expanded ? 'expand_less' : 'expand_more'}</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary={getLabel(path)} />
+          </M.ListItem>
+        )}
+        {Array.from(items).map(([p, node]) =>
+          node._tag === 'Tree' ? (
+            <FilterGroup path={p} items={node.children} onExpand={onExpand} key={p} />
+          ) : (
+            <div className={cx({ [classes.nested]: !!path })} key={p}>
+              <M.Collapse in={expanded || !path}>
+                <PackagesMetaFilterActivator
+                  typename={node.value.__typename}
+                  path={node.value.path}
+                  label={getLabel(p)}
+                />
+              </M.Collapse>
+            </div>
+          ),
+        )}
+      </ul>
+    </li>
   )
 }
 
@@ -479,6 +515,11 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   },
   input: {
     background: t.palette.background.paper,
+  },
+  expanded: {
+    height: t.spacing(FACETS_THRESHOLD * 5),
+    overflowY: 'auto',
+    resize: 'vertical',
   },
 }))
 
@@ -505,9 +546,10 @@ function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFilter
   const filteredNumber = filtered.length
   const hiddenNumber = available.length - filteredNumber
 
+  const [visibleCount, setVisibleCount] = React.useState(FACETS_THRESHOLD)
   const grouped = React.useMemo(
-    () => SearchUIModel.groupFacets(filtered, FACETS_THRESHOLD),
-    [filtered],
+    () => SearchUIModel.groupFacets(filtered, visibleCount),
+    [filtered, visibleCount],
   )
 
   return (
@@ -521,8 +563,12 @@ function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFilter
           className={classes.input}
         />
       )}
-      <M.List dense disablePadding className={classes.list}>
-        <FilterGroup items={grouped.children} />
+      <M.List
+        dense
+        disablePadding
+        className={cx(classes.list, { [classes.expanded]: !visibleCount })}
+      >
+        <FilterGroup items={grouped.children} onExpand={() => setVisibleCount(0)} />
       </M.List>
       {!!hiddenNumber && (
         <p className={classes.help}>
