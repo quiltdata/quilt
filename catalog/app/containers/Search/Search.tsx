@@ -86,6 +86,7 @@ function NumberFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
+  // XXX: query extents
   // const unit = React.useMemo(() => {
   //   switch (JSONPointer.stringify(path)) {
   //     case '/pkg/total_entries':
@@ -139,6 +140,7 @@ function DatetimeFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
+  // XXX: query extents
   const fixedExtents = React.useMemo(
     () => ({
       min: extents?.min ?? new Date(),
@@ -175,6 +177,7 @@ function KeywordEnumFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
+  // XXX: query extents
   const handleChange = React.useCallback(
     (value: string[]) => {
       onChange({ ...state, terms: value })
@@ -329,11 +332,7 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       }
     },
     fetching: () => undefined,
-    error: (e) => {
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return undefined
-    },
+    error: () => undefined,
   })
 
   const { deactivatePackagesFilter, setPackagesFilter } = model.actions
@@ -361,14 +360,6 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
   )
 }
 
-const PackageUserMetaFacetMap = {
-  NumberPackageUserMetaFacet: 'Number' as const,
-  DatetimePackageUserMetaFacet: 'Datetime' as const,
-  KeywordPackageUserMetaFacet: 'KeywordEnum' as const,
-  TextPackageUserMetaFacet: 'Text' as const,
-  BooleanPackageUserMetaFacet: 'Boolean' as const,
-}
-
 interface PackagesMetaFilterActivatorProps {
   typename: SearchUIModel.PackageUserMetaFacet['__typename']
   path: SearchUIModel.PackageUserMetaFacet['path']
@@ -386,36 +377,19 @@ function PackagesMetaFilterActivator({
     'Filter type mismatch',
   )
   const { activatePackagesMetaFilter } = model.actions
-  const type = PackageUserMetaFacetMap[typename]
+  const type = SearchUIModel.PackageUserMetaFacetMap[typename]
   const activate = React.useCallback(() => {
-    // XXX: accept the whole facet object?
     activatePackagesMetaFilter(path, type)
   }, [activatePackagesMetaFilter, path, type])
   return <FiltersUI.Activator title={label} onClick={activate} />
 }
 
-function getPackageUserMetaFacetExtents(
-  facet?: SearchUIModel.PackageUserMetaFacet,
-): SearchUIModel.Extents | undefined {
-  switch (facet?.__typename) {
-    case 'NumberPackageUserMetaFacet':
-      return facet.numberExtents
-    case 'DatetimePackageUserMetaFacet':
-      return facet.datetimeExtents
-    case 'KeywordPackageUserMetaFacet':
-      return facet.extents
-    default:
-      return
-  }
-}
-
 interface PackageMetaFilterProps {
   className?: string
   path: string
-  facet?: SearchUIModel.PackageUserMetaFacet
 }
 
-function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) {
+function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
   const model = SearchUIModel.use()
   invariant(
     model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
@@ -440,7 +414,7 @@ function PackagesMetaFilter({ className, path, facet }: PackageMetaFilterProps) 
 
   const title = React.useMemo(() => JSONPointer.parse(path).join(' / '), [path])
 
-  const extents = getPackageUserMetaFacetExtents(facet)
+  const extents = SearchUIModel.usePackageUserMetaFacetExtents(path)
 
   return (
     <FiltersUI.Container
@@ -517,26 +491,23 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
 }))
 
 interface AvailablePackagesMetaFiltersProps {
-  filters: SearchUIModel.PackageUserMetaFacet[]
   className?: string
 }
 
-function AvailablePackagesMetaFilters({
-  filters,
-  className,
-}: AvailablePackagesMetaFiltersProps) {
+function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
   const [query, setQuery] = React.useState('')
+  const { available } = SearchUIModel.usePackagesMetaFilters()
   const filtered = React.useMemo(
     () =>
-      filters.length > FACETS_THRESHOLD
-        ? filters.filter((f) => f.path.toLowerCase().includes(query.toLowerCase()))
-        : filters,
-    [filters, query],
+      available.length > FACETS_THRESHOLD
+        ? available.filter((f) => f.path.toLowerCase().includes(query.toLowerCase()))
+        : available,
+    [available, query],
   )
 
   const filteredNumber = filtered.length
-  const hiddenNumber = filters.length - filteredNumber
+  const hiddenNumber = available.length - filteredNumber
 
   const grouped = React.useMemo(
     () => SearchUIModel.groupFacets(filtered, FACETS_THRESHOLD),
@@ -545,7 +516,7 @@ function AvailablePackagesMetaFilters({
 
   return (
     <div className={className}>
-      {filters.length > FACETS_THRESHOLD && (
+      {available.length > FACETS_THRESHOLD && (
         <FiltersUI.TinyTextField
           placeholder="Find metadata filter"
           fullWidth
@@ -581,57 +552,21 @@ interface PackagesMetaFiltersProps {
 }
 
 function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
-  const model = SearchUIModel.use()
   const classes = usePackagesMetaFiltersStyles()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
-    'Filter type mismatch',
-  )
 
-  const activated = model.state.filter.predicates.userMeta?.children
+  const { activatedPaths, available } = SearchUIModel.usePackagesMetaFilters()
 
-  const facets = GQL.fold(model.baseSearchQuery, {
-    data: ({ searchPackages: r }) => {
-      switch (r.__typename) {
-        case 'EmptySearchResultSet':
-          return []
-        case 'InvalidInput':
-          return []
-        case 'PackagesSearchResultSet':
-          return r.stats.userMeta
-        default:
-          assertNever(r)
-      }
-    },
-    fetching: () => [],
-    error: (e) => {
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return []
-    },
-  })
-
-  const available = React.useMemo(
-    () => facets.filter((f) => !activated?.has(f.path)),
-    [facets, activated],
-  )
-
-  if (!available.length && !activated?.size) return null
+  if (!(available.length + activatedPaths.length)) return null
 
   return (
     <div className={className}>
       <div className={classes.title}>Metadata</div>
-      {Array.from(activated ?? []).map(([path, filter]) => {
-        const facet = facets.find(
-          (f) => f.path === path && filter._tag === PackageUserMetaFacetMap[f.__typename],
-        )
-        return (
-          <FilterSection key={path}>
-            <PackagesMetaFilter path={path} facet={facet} />
-          </FilterSection>
-        )
-      })}
-      {!!available.length && <AvailablePackagesMetaFilters filters={available} />}
+      {activatedPaths.map((path) => (
+        <FilterSection key={path}>
+          <PackagesMetaFilter path={path} />
+        </FilterSection>
+      ))}
+      {!!available.length && <AvailablePackagesMetaFilters />}
     </div>
   )
 }
@@ -1122,15 +1057,12 @@ function Results() {
 
   const r = fold()
 
-  // eslint-disable-next-line no-underscore-dangle
   switch (r._tag) {
     case 'fetching':
       return <ResultsSkeleton />
     case 'error':
-      // eslint-disable-next-line no-console
-      console.error(r.error)
       return (
-        <EmptyResults description={r.error.message} image="error" title="GQL error" />
+        <EmptyResults description={r.error.message} image="error" title="GraphQL Error" />
       )
     case 'data':
       switch (r.data.__typename) {

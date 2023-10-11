@@ -18,6 +18,7 @@ import FIRST_PAGE_OBJECTS_QUERY from './gql/FirstPageObjects.generated'
 import FIRST_PAGE_PACKAGES_QUERY from './gql/FirstPagePackages.generated'
 import NEXT_PAGE_OBJECTS_QUERY from './gql/NextPageObjects.generated'
 import NEXT_PAGE_PACKAGES_QUERY from './gql/NextPagePackages.generated'
+import META_FACETS_QUERY from './gql/PackageMetaFacets.generated'
 
 // function ifChanged<T>(newValue: T) {
 //   return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
@@ -305,7 +306,7 @@ type OrderedCombinedState<PM extends PredicateMap> = {
 }
 
 type CombinedGQLType<PM extends PredicateMap> = {
-  [K in keyof PM]: PredicateGQLType<PM[K]>
+  [K in keyof PM]: PredicateGQLType<PM[K]> | null
 }
 
 interface FilterIO<PM extends PredicateMap> {
@@ -604,6 +605,60 @@ export function useNextPagePackagesQuery(after: string) {
   return folded
 }
 
+interface MetaFacetsQueryProps {
+  searchString: SearchUrlState['searchString']
+  buckets: SearchUrlState['buckets']
+  filter: PackagesFilterState
+}
+
+function useMetaFacetsQuery({ searchString, buckets, filter }: MetaFacetsQueryProps) {
+  const gqlFilter = PackagesSearchFilterIO.toGQL(filter)
+  if (gqlFilter) {
+    gqlFilter.userMeta = null
+  }
+  return GQL.useQuery(META_FACETS_QUERY, { searchString, buckets, filter: gqlFilter })
+}
+
+const NO_FACETS: PackageUserMetaFacet[] = []
+
+export function usePackagesMetaFilters() {
+  const model = useSearchUIModel()
+  invariant(model.state.resultType === ResultType.QuiltPackage, 'Filter type mismatch')
+
+  const query = useMetaFacetsQuery(model.state)
+
+  const all = GQL.fold(query, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return NO_FACETS
+        case 'InvalidInput':
+          return NO_FACETS
+        case 'PackagesSearchResultSet':
+          return r.stats.userMeta
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => NO_FACETS,
+    error: () => NO_FACETS,
+  })
+  const userMetaChildren = model.state.filter.predicates.userMeta?.children
+  const activated = React.useMemo(
+    () => userMetaChildren ?? UserMetaPredicate.initialState.children,
+    [userMetaChildren],
+  )
+  const activatedPaths = React.useMemo(() => Array.from(activated.keys()), [activated])
+
+  const available = React.useMemo(
+    () => all.filter((f) => !activatedPaths.includes(f.path)),
+    [all, activatedPaths],
+  )
+
+  // XXX: expose fetching state
+  return { all, activated, activatedPaths, available }
+}
+
 export type SearhHitObject = Extract<
   GQL.DataForDoc<typeof FIRST_PAGE_OBJECTS_QUERY>['searchObjects'],
   { __typename: 'ObjectsSearchResultSet' }
@@ -666,6 +721,35 @@ export function groupFacets(facets: PackageUserMetaFacet[], visible?: number): F
   if (grouped.children.size <= visible) return grouped
   const [topLevel, hidden] = R.splitAt(visible, Array.from(grouped.children))
   return KTree.Tree([...topLevel, KTree.Pair('more', KTree.Tree(hidden))])
+}
+
+export const PackageUserMetaFacetMap = {
+  NumberPackageUserMetaFacet: 'Number' as const,
+  DatetimePackageUserMetaFacet: 'Datetime' as const,
+  KeywordPackageUserMetaFacet: 'KeywordEnum' as const,
+  TextPackageUserMetaFacet: 'Text' as const,
+  BooleanPackageUserMetaFacet: 'Boolean' as const,
+}
+
+export function usePackageUserMetaFacetExtents(path: string): Extents | undefined {
+  const { all, activated } = usePackagesMetaFilters()
+
+  // XXX: query extents
+  const facet = all.find(
+    (f) =>
+      f.path === path &&
+      activated.get(path)?._tag === PackageUserMetaFacetMap[f.__typename],
+  )
+  switch (facet?.__typename) {
+    case 'NumberPackageUserMetaFacet':
+      return facet.numberExtents
+    case 'DatetimePackageUserMetaFacet':
+      return facet.datetimeExtents
+    case 'KeywordPackageUserMetaFacet':
+      return facet.extents
+    default:
+      return
+  }
 }
 
 function useSearchUIModel() {
