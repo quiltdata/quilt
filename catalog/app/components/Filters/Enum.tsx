@@ -12,7 +12,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   input: {
     background: t.palette.background.paper,
-    paddingTop: '3px',
   },
 }))
 

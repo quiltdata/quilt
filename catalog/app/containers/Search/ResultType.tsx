@@ -13,8 +13,9 @@ const LABELS = {
 const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]
 
 const useResultTypeStyles = M.makeStyles((t) => ({
-  selected: {
-    fontWeight: 500,
+  root: {
+    border: `1px solid ${t.palette.divider}`,
+    borderRadius: t.shape.borderRadius,
   },
   item: {
     '&:first-child': {
@@ -29,14 +30,8 @@ const useResultTypeStyles = M.makeStyles((t) => ({
 export default function ResultType() {
   const classes = useResultTypeStyles()
   const model = SearchUIModel.use()
-  const textClasses = React.useCallback(
-    (selected: boolean) => ({
-      primary: selected ? classes.selected : '',
-    }),
-    [classes],
-  )
   return (
-    <M.List dense disablePadding>
+    <M.List dense disablePadding className={classes.root}>
       {VALUES.map((v) => {
         const selected = model.state.resultType === v
         return (
@@ -47,7 +42,7 @@ export default function ResultType() {
             selected={selected}
             onClick={() => model.actions.setResultType(v)}
           >
-            <M.ListItemText classes={textClasses(selected)} primary={getLabel(v)} />
+            <M.ListItemText primary={getLabel(v)} />
           </M.ListItem>
         )
       })}
