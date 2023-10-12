@@ -46,23 +46,16 @@ function FilterSection({
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
-const useMoreButtonStyles = M.makeStyles((t) => ({
-  icon: {
-    marginRight: t.spacing(1),
-  },
-}))
-
 interface MoreButtonProps {
   onClick: () => void
   className?: string
 }
 
 function MoreButton({ className, onClick }: MoreButtonProps) {
-  const classes = useMoreButtonStyles()
   return (
     <M.Button
       className={className}
-      startIcon={<M.Icon className={classes.icon}>expand_more</M.Icon>}
+      startIcon={<M.Icon>expand_more</M.Icon>}
       onClick={onClick}
       size="small"
     >

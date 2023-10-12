@@ -3,7 +3,7 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   icon: {
-    minWidth: t.spacing(5),
+    minWidth: t.spacing(4),
   },
 }))
 
