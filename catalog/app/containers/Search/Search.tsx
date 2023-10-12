@@ -516,11 +516,7 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   },
   input: {
     background: t.palette.background.paper,
-  },
-  expanded: {
-    height: t.spacing(FACETS_THRESHOLD * 8),
-    overflowY: 'auto',
-    resize: 'vertical',
+    marginBottom: t.spacing(0.5),
   },
 }))
 
@@ -570,11 +566,7 @@ function AvailablePackagesMetaFilters({
           className={classes.input}
         />
       )}
-      <M.List
-        dense
-        disablePadding
-        className={cx(classes.list, { [classes.expanded]: !visibleCount })}
-      >
+      <M.List dense disablePadding className={classes.list}>
         <FilterGroup items={grouped.children} onMore={() => setVisibleCount(0)} />
       </M.List>
       {!!hiddenNumber && (
