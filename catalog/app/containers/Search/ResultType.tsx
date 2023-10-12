@@ -35,16 +35,6 @@ export default function ResultType() {
     }),
     [classes],
   )
-  // return (
-  //   <Filters.RadioGroup
-  //     value={model.state.resultType}
-  //     onChange={(value) => model.actions.setResultType(value as SearchUIModel.ResultType)}
-  //     extents={VALUES.map((v) => ({
-  //       value: v,
-  //       title: getLabel(v),
-  //     }))}
-  //   />
-  // )
   return (
     <M.List dense disablePadding>
       {VALUES.map((v) => {

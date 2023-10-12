@@ -19,6 +19,20 @@ import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
+export type ComponentProps = React.PropsWithChildren<{ className?: string }>
+
+const useColumnTitleStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.h6,
+    lineHeight: 1.2,
+  },
+}))
+
+function ColumnTitle({ className, children }: ComponentProps) {
+  const classes = useColumnTitleStyles()
+  return <div className={cx(classes.root, className)}>{children}</div>
+}
+
 const useScrollToTopStyles = M.makeStyles((t) => ({
   root: {
     position: 'fixed',
@@ -72,10 +86,7 @@ const useFilterSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FilterSection({
-  children,
-  className,
-}: React.PropsWithChildren<{ className?: string }>) {
+function FilterSection({ children, className }: ComponentProps) {
   const classes = useFilterSectionStyles()
   return <div className={cx(classes.root, className)}>{children}</div>
 }
@@ -667,7 +678,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   return (
     <div className={className}>
       <div className={classes.title}>
-        User metadata
+        Metadata
         {fetching && <M.CircularProgress className={classes.spinner} size={12} />}
       </div>
       {activatedPaths.map((path) => (
@@ -695,8 +706,8 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(3),
   },
   title: {
-    ...t.typography.subtitle1,
-    fontWeight: 500,
+    ...t.typography.h6,
+    fontWeight: 400,
     marginBottom: t.spacing(1),
   },
   more: {
@@ -727,7 +738,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
 
   return (
     <div className={className}>
-      <div className={classes.title}>System metadata</div>
+      <div className={classes.title}>Filter by</div>
 
       {activeFilters.map(
         (f) =>
@@ -862,8 +873,8 @@ const useObjectFiltersStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(0.5),
   },
   title: {
-    ...t.typography.subtitle1,
-    fontWeight: 500,
+    ...t.typography.h6,
+    fontWeight: 400,
     marginBottom: t.spacing(1),
   },
 }))
@@ -891,7 +902,7 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
   return (
     <div className={className}>
-      <div className={classes.title}>System metadata</div>
+      <div className={classes.title}>Filter by</div>
 
       {activeFilters.map((f) => (
         <FilterSection key={f}>
@@ -940,8 +951,7 @@ const useFiltersStyles = M.makeStyles((t) => ({
     // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
   title: {
-    ...t.typography.h6,
-    marginBottom: t.spacing(0.5),
+    marginTop: t.spacing(1.5),
   },
   variable: {
     marginTop: t.spacing(1),
@@ -954,7 +964,7 @@ function Filters() {
   const model = SearchUIModel.use()
   return (
     <div className={classes.root}>
-      <div className={classes.title}>Filter by</div>
+      <ColumnTitle className={classes.title}>Search for</ColumnTitle>
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1215,13 +1225,13 @@ function ResultsCount() {
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           return (
-            <M.Typography variant="h6">
+            <ColumnTitle>
               <Format.Plural
                 value={r.data.stats.total}
                 one="1 result"
                 other={(n) => `${n > 0 ? n : 'Search'} results`}
               />
-            </M.Typography>
+            </ColumnTitle>
           )
         default:
           assertNever(r.data)
@@ -1236,7 +1246,7 @@ const useResultsStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
   },
   toolbar: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
     display: 'flex',
     minHeight: '36px',
   },
@@ -1267,7 +1277,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridColumnGap: t.spacing(2),
     gridTemplateColumns: `${t.spacing(40)}px auto`,
-    padding: t.spacing(3),
+    padding: t.spacing(2, 3),
   },
 }))
 
