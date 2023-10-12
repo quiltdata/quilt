@@ -609,7 +609,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   // TODO: progress indication: a spinner next to header?
   return (
     <div className={className}>
-      <div className={classes.title}>Metadata</div>
+      <div className={classes.title}>User metadata</div>
       {activatedPaths.map((path) => (
         <FilterSection key={path}>
           <PackagesMetaFilter path={path} />
@@ -634,13 +634,13 @@ const usePackageFiltersStyles = M.makeStyles((t) => ({
   metadata: {
     marginTop: t.spacing(3),
   },
+  title: {
+    ...t.typography.subtitle1,
+    fontWeight: 500,
+    marginBottom: t.spacing(1),
+  },
   more: {
     marginTop: t.spacing(0.5),
-  },
-  title: {
-    ...t.typography.h6,
-    fontWeight: 400,
-    marginBottom: t.spacing(1),
   },
 }))
 
@@ -666,7 +666,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
 
   return (
     <div className={className}>
-      <div className={classes.title}>Filter by</div>
+      <div className={classes.title}>System metadata</div>
 
       {activeFilters.map(
         (f) =>
@@ -795,8 +795,8 @@ const useObjectFiltersStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(0.5),
   },
   title: {
-    ...t.typography.h6,
-    fontWeight: 400,
+    ...t.typography.subtitle1,
+    fontWeight: 500,
     marginBottom: t.spacing(1),
   },
 }))
@@ -823,7 +823,7 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
 
   return (
     <div className={className}>
-      <div className={classes.title}>Filter by</div>
+      <div className={classes.title}>System metadata</div>
 
       {activeFilters.map((f) => (
         <FilterSection key={f}>
@@ -865,6 +865,10 @@ const useFiltersStyles = M.makeStyles((t) => ({
     // padding: t.spacing(0.5, 0, 0),
     // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
+  title: {
+    ...t.typography.h6,
+    marginBottom: t.spacing(0.5),
+  },
   variable: {
     marginTop: t.spacing(1),
     overflow: 'hidden auto',
@@ -876,6 +880,7 @@ function Filters() {
   const model = SearchUIModel.use()
   return (
     <div className={classes.root}>
+      <div className={classes.title}>Filter by</div>
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
