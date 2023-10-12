@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
-import * as Lab from '@material-ui/lab'
 
 import cfg from 'constants/config'
 import Delay from 'utils/Delay'
@@ -66,7 +65,7 @@ const useInputStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   input: {
-    paddingLeft: t.spacing(1),
+    paddingLeft: t.spacing(0.5),
     paddingTop: 8,
     paddingBottom: 9,
     textOverflow: 'ellipsis',
@@ -76,16 +75,8 @@ const useInputStyles = M.makeStyles((t) => ({
     },
   },
   inputIcon: {
-    cursor: 'pointer',
-    '$root$disabled &': {
-      cursor: 'not-allowed',
-    },
-  },
-  inputOptions: {
-    borderRadius: 0,
-    borderWidth: '0 1px 0 0',
-    paddingLeft: t.spacing(1.25),
-    paddingRight: t.spacing(0.25),
+    color: t.palette.text.hint,
+    margin: t.spacing(1, 0, 1, 1.5),
   },
 }))
 
@@ -101,27 +92,24 @@ type SearchInputBaseProps = Pick<
 
 interface SearchInputProps extends SearchProps, SearchInputBaseProps {
   expanded?: boolean
-  helpOpen?: boolean
-  onHelpToggle?: () => void
   focusTrigger?: number
 }
 
 function SearchInput({
   expanded = false,
-  helpOpen = false,
   hidden = false,
   iconized = false,
   focusTrigger = 0,
-  onHelpToggle,
   ...props
 }: SearchInputProps) {
   const classes = useInputStyles()
   const ref = React.useRef<HTMLInputElement>(null)
+  const focus = React.useCallback(() => ref.current?.focus(), [])
   React.useEffect(() => {
-    if (focusTrigger && ref.current && document.activeElement !== ref.current) {
-      ref.current.focus()
+    if (focusTrigger && document.activeElement !== ref.current) {
+      focus()
     }
-  }, [focusTrigger])
+  }, [focus, focusTrigger])
   return (
     <M.InputBase
       classes={{ root: classes.root, input: classes.input }}
@@ -135,25 +123,9 @@ function SearchInput({
       {...props}
       startAdornment={
         <M.InputAdornment position="start">
-          {iconized && !expanded ? (
-            <M.Icon className={classes.inputIcon} onClick={onHelpToggle}>
-              search
-            </M.Icon>
-          ) : (
-            <Lab.ToggleButton
-              className={classes.inputOptions}
-              size="small"
-              value="help"
-              selected={helpOpen}
-              onChange={onHelpToggle}
-              disabled={props.disabled}
-            >
-              <M.Icon fontSize="small">search</M.Icon>
-              <M.Icon fontSize="small">
-                {helpOpen ? 'arrow_drop_up' : 'arrow_drop_down'}
-              </M.Icon>
-            </Lab.ToggleButton>
-          )}
+          <M.Icon fontSize="small" className={classes.inputIcon} onClick={focus}>
+            search
+          </M.Icon>
         </M.InputAdornment>
       }
     />
