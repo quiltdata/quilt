@@ -50,22 +50,23 @@ function useSearchState(bucket?: string): SearchState {
     change(evt.target.value)
   }, [])
 
+  const handleHelpOpen = React.useCallback(() => {
+    setHelpOpen(true)
+    suggestions.setSelected(0)
+  }, [suggestions])
+
   const handleExpand = React.useCallback(() => {
+    handleHelpOpen()
     if (expanded) return
     change(query)
     setExpanded(true)
-  }, [expanded, query])
+  }, [expanded, query, handleHelpOpen])
 
   const handleCollapse = React.useCallback(() => {
     change(null)
     setExpanded(false)
     setHelpOpen(false)
   }, [])
-
-  const handleHelpOpen = React.useCallback(() => {
-    setHelpOpen(true)
-    suggestions.setSelected(0)
-  }, [suggestions])
 
   const handleHelpClose = React.useCallback(() => setHelpOpen(false), [])
 

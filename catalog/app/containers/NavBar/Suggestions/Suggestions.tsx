@@ -74,14 +74,12 @@ export default function SuggestionsContainer({
   const navbarModel = useNavBar()
   if (!navbarModel) return null
   const {
-    input: { value },
     suggestions: { items, selected },
   } = navbarModel
   if (!Array.isArray(items) || !items.length) return null
-  const isOpen = !!value && open
   return (
-    <PaperWrapper classes={classes} open={!!value && open}>
-      {isOpen && <SuggestionsList items={items} selected={selected} />}
+    <PaperWrapper classes={classes} open={open}>
+      {open && <SuggestionsList items={items} selected={selected} />}
     </PaperWrapper>
   )
 }

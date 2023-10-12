@@ -25,9 +25,13 @@ function useMakeUrl() {
 const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): Item[] => [
   {
     key: 'global-packages',
-    title: (
+    title: searchString ? (
       <>
         Search <b>packages</b> matching <b>"{searchString}"</b> in <b>all buckets</b>
+      </>
+    ) : (
+      <>
+        Search <b>packages</b> in <b>all buckets</b>
       </>
     ),
     url: makeUrl({
@@ -37,9 +41,13 @@ const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): I
   },
   {
     key: 'global-objects',
-    title: (
+    title: searchString ? (
       <>
         Search <b>objects</b> matching <b>"{searchString}"</b> in <b>all buckets</b>
+      </>
+    ) : (
+      <>
+        Search <b>objects</b> in <b>all buckets</b>
       </>
     ),
     url: makeUrl({
@@ -56,9 +64,13 @@ const inBucket = (
 ): Item[] => [
   {
     key: 'bucket-packages',
-    title: (
+    title: searchString ? (
       <>
         Search <b>packages</b> matching <b>"{searchString}"</b> in <b>s3://{bucket}</b>
+      </>
+    ) : (
+      <>
+        Search <b>packages</b> in <b>s3://{bucket}</b>
       </>
     ),
     url: makeUrl({
@@ -69,9 +81,13 @@ const inBucket = (
   },
   {
     key: 'bucket-objects',
-    title: (
+    title: searchString ? (
       <>
         Search <b>objects</b> matching <b>"{searchString}"</b> in <b>s3://{bucket}</b>
+      </>
+    ) : (
+      <>
+        Search <b>objects</b> in <b>s3://{bucket}</b>
       </>
     ),
     url: makeUrl({
@@ -97,30 +113,36 @@ const inSearch = (
 ): Item[] | string => {
   const filtersPristine = Object.values(model.state.filter).every((f) => f === null)
   if (filtersPristine) return makeUrl({ ...model.state, searchString })
-  return [
-    {
-      key: 'preserve-filters',
-      title: (
-        <>
-          Search <b>"{searchString}"</b> preserving filters state
-        </>
-      ),
-      url: makeUrl({ ...model.state, searchString }),
-    },
-    {
-      key: 'reset-filters',
-      title: (
-        <>
-          Reset filters and search <b>"{searchString}"</b>
-        </>
-      ),
-      url: makeUrl({
-        ...model.state,
-        searchString,
-        filter: getEmptyFilter(model.state.resultType),
-      } as SearchUIModel.SearchUrlState),
-    },
-  ]
+  return searchString
+    ? [
+        {
+          key: 'preserve-filters',
+          title: searchString ? (
+            <>
+              Search <b>"{searchString}"</b> preserving filters state
+            </>
+          ) : (
+            <>Clear search query preserving filters state</>
+          ),
+          url: makeUrl({ ...model.state, searchString }),
+        },
+        {
+          key: 'reset-filters',
+          title: searchString ? (
+            <>
+              Reset filters and search <b>"{searchString}"</b>
+            </>
+          ) : (
+            <>Reset filters</>
+          ),
+          url: makeUrl({
+            ...model.state,
+            searchString,
+            filter: getEmptyFilter(model.state.resultType),
+          } as SearchUIModel.SearchUrlState),
+        },
+      ]
+    : []
 }
 
 function useItems(
@@ -159,7 +181,7 @@ function useSuggestions(
     [items],
   )
   const url = React.useMemo(
-    () => (Array.isArray(items) ? items[selected].url : items),
+    () => (Array.isArray(items) ? items[selected]?.url || '' : items),
     [items, selected],
   )
   return React.useMemo(
