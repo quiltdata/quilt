@@ -1139,7 +1139,7 @@ function ResultsCount() {
               <Format.Plural
                 value={r.data.stats.total}
                 one="1 result"
-                other={(n) => `${n} results`}
+                other={(n) => `${n > 0 ? n : 'Search'} results`}
               />
             </M.Typography>
           )
@@ -1158,6 +1158,7 @@ const useResultsStyles = M.makeStyles((t) => ({
   toolbar: {
     alignItems: 'center',
     display: 'flex',
+    minHeight: '36px',
   },
   sort: {
     marginLeft: 'auto',
