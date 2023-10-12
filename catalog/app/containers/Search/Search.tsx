@@ -47,19 +47,20 @@ function FilterSection({
 }
 
 interface MoreButtonProps {
-  onClick: () => void
   className?: string
+  onClick: () => void
+  reverse?: boolean
 }
 
-function MoreButton({ className, onClick }: MoreButtonProps) {
+function MoreButton({ className, onClick, reverse }: MoreButtonProps) {
   return (
     <M.Button
       className={className}
-      startIcon={<M.Icon>expand_more</M.Icon>}
+      startIcon={<M.Icon>{reverse ? 'expand_less' : 'expand_more'}</M.Icon>}
       onClick={onClick}
       size="small"
     >
-      More filters
+      {reverse ? 'Less filters' : 'More filters'}
     </M.Button>
   )
 }
@@ -663,6 +664,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
   const moreFilters = packagesFiltersSecondary.filter((f) => !predicates[f])
 
   const [expanded, setExpanded] = React.useState(false)
+  const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
   return (
     <div className={className}>
@@ -685,16 +687,22 @@ function PackageFilters({ className }: PackageFiltersProps) {
         </M.List>
       )}
 
-      {!!moreFilters.length &&
-        (expanded ? (
-          <M.List dense disablePadding>
-            {moreFilters.map((f) => (
-              <PackagesFilterActivator key={f} field={f} />
-            ))}
-          </M.List>
-        ) : (
-          <MoreButton className={classes.more} onClick={() => setExpanded(true)} />
-        ))}
+      {!!moreFilters.length && (
+        <>
+          <M.Collapse in={expanded}>
+            <M.List dense disablePadding>
+              {moreFilters.map((f) => (
+                <PackagesFilterActivator key={f} field={f} />
+              ))}
+            </M.List>
+          </M.Collapse>
+          <MoreButton
+            className={classes.more}
+            onClick={toggleExpanded}
+            reverse={expanded}
+          />
+        </>
+      )}
 
       <PackagesMetaFilters className={classes.metadata} />
     </div>
@@ -820,6 +828,7 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
   const moreFilters = objectsFiltersSecondary.filter((f) => !predicates[f])
 
   const [expanded, setExpanded] = React.useState(false)
+  const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
   return (
     <div className={className}>
@@ -839,16 +848,22 @@ function ObjectFilters({ className }: ObjectFiltersProps) {
         </M.List>
       )}
 
-      {!!moreFilters.length &&
-        (expanded ? (
-          <M.List dense disablePadding>
-            {moreFilters.map((f) => (
-              <ObjectsFilterActivator key={f} field={f} />
-            ))}
-          </M.List>
-        ) : (
-          <MoreButton className={classes.more} onClick={() => setExpanded(true)} />
-        ))}
+      {!!moreFilters.length && (
+        <>
+          <M.Collapse in={expanded}>
+            <M.List dense disablePadding>
+              {moreFilters.map((f) => (
+                <ObjectsFilterActivator key={f} field={f} />
+              ))}
+            </M.List>
+          </M.Collapse>
+          <MoreButton
+            className={classes.more}
+            onClick={toggleExpanded}
+            reverse={expanded}
+          />
+        </>
+      )}
     </div>
   )
 }
