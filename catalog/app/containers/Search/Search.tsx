@@ -454,7 +454,7 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
 
 interface FilterGroupProps {
   path?: string
-  items: ReturnType<typeof SearchUIModel.groupFacets>['children']
+  items: ReturnType<typeof SearchUIModel.groupFacets>[number]['children']
 }
 
 function FilterGroup({ path, items }: FilterGroupProps) {
@@ -536,7 +536,7 @@ interface AvailablePackagesMetaFiltersProps {
 
 function AvailablePackagesMetaFilters({
   className,
-  // fetching,
+  fetching,
   filters,
 }: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
@@ -559,9 +559,9 @@ function AvailablePackagesMetaFilters({
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
-  const grouped = React.useMemo(
-    () => SearchUIModel.groupFacets(filtered, expanded ? undefined : FACETS_THRESHOLD),
-    [filtered, expanded],
+  const [head, tail] = React.useMemo(
+    () => SearchUIModel.groupFacets(filtered, FACETS_THRESHOLD),
+    [filtered],
   )
 
   // TODO: lock when fetching
@@ -574,12 +574,22 @@ function AvailablePackagesMetaFilters({
           value={query}
           onChange={setQuery}
           className={classes.input}
+          disabled={fetching}
         />
       )}
       <M.List dense disablePadding className={classes.list}>
-        <FilterGroup items={grouped.children} />
+        <FilterGroup items={head.children} />
+        <M.Collapse in={expanded}>
+          <FilterGroup items={tail.children} />
+        </M.Collapse>
       </M.List>
-      <MoreButton className={classes.more} onClick={toggleExpanded} reverse={expanded} />
+      {!!tail.children.size && (
+        <MoreButton
+          className={classes.more}
+          onClick={toggleExpanded}
+          reverse={expanded}
+        />
+      )}
       {!!hiddenNumber && (
         <p className={classes.help}>
           {filteredNumber

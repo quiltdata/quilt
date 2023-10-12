@@ -727,7 +727,10 @@ function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNo
   )
 }
 
-export function groupFacets(facets: PackageUserMetaFacet[], visible?: number): FacetTree {
+export function groupFacets(
+  facets: PackageUserMetaFacet[],
+  visible?: number,
+): [FacetTree, FacetTree] {
   const grouped = facets.reduce(
     (acc, f) =>
       KTree.merge(
@@ -740,10 +743,10 @@ export function groupFacets(facets: PackageUserMetaFacet[], visible?: number): F
       ),
     KTree.Tree<PackageUserMetaFacet, string>([]),
   )
-  if (!visible) return grouped
-  if (grouped.children.size <= visible) return grouped
-  const topLevel = Array.from(grouped.children).slice(0, visible)
-  return KTree.Tree(topLevel)
+  if (!visible) return [grouped, KTree.Tree([])]
+  if (grouped.children.size <= visible) return [grouped, KTree.Tree([])]
+  const [head, tail] = R.splitAt(visible, Array.from(grouped.children))
+  return [KTree.Tree(head), KTree.Tree(tail)]
 }
 
 export const PackageUserMetaFacetMap = {
