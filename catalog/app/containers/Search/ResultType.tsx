@@ -1,8 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Filters from 'components/Filters'
-
 import * as SearchUIModel from './model'
 
 const VALUES = [SearchUIModel.ResultType.QuiltPackage, SearchUIModel.ResultType.S3Object]
@@ -14,18 +12,55 @@ const LABELS = {
 
 const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]
 
+const useResultTypeStyles = M.makeStyles((t) => ({
+  selected: {
+    fontWeight: 500,
+  },
+  item: {
+    '&:first-child': {
+      borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0`,
+    },
+    '&:last-child': {
+      borderRadius: `0 0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px`,
+    },
+  },
+}))
+
 export default function ResultType() {
+  const classes = useResultTypeStyles()
   const model = SearchUIModel.use()
+  const textClasses = React.useCallback(
+    (selected: boolean) => ({
+      primary: selected ? classes.selected : '',
+    }),
+    [classes],
+  )
+  // return (
+  //   <Filters.RadioGroup
+  //     value={model.state.resultType}
+  //     onChange={(value) => model.actions.setResultType(value as SearchUIModel.ResultType)}
+  //     extents={VALUES.map((v) => ({
+  //       value: v,
+  //       title: getLabel(v),
+  //     }))}
+  //   />
+  // )
   return (
-    <M.FormControl variant="outlined" size="small">
-      <M.InputLabel>Search for</M.InputLabel>
-      <Filters.Select
-        extents={VALUES}
-        getOptionLabel={getLabel}
-        labelWidth={100}
-        onChange={model.actions.setResultType}
-        value={model.state.resultType}
-      />
-    </M.FormControl>
+    <M.List dense disablePadding>
+      {VALUES.map((v) => {
+        const selected = model.state.resultType === v
+        return (
+          <M.ListItem
+            className={classes.item}
+            button
+            key={v}
+            selected={selected}
+            onClick={() => model.actions.setResultType(v)}
+          >
+            <M.ListItemText classes={textClasses(selected)} primary={getLabel(v)} />
+          </M.ListItem>
+        )
+      })}
+    </M.List>
   )
 }
