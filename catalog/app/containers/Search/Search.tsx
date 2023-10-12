@@ -52,20 +52,17 @@ const useMoreButtonStyles = M.makeStyles({
   },
 })
 
-interface MoreButtonProps {
-  className?: string
-  onClick: () => void
+interface MoreButtonProps extends M.ButtonProps {
   reverse?: boolean
 }
 
-function MoreButton({ className, onClick, reverse }: MoreButtonProps) {
+function MoreButton({ reverse, ...props }: MoreButtonProps) {
   const classes = useMoreButtonStyles()
   return (
     <M.Button
-      className={className}
       startIcon={<M.Icon>{reverse ? 'expand_less' : 'expand_more'}</M.Icon>}
-      onClick={onClick}
       size="small"
+      {...props}
     >
       <span className={classes.title}>{reverse ? 'Less filters' : 'More filters'}</span>
     </M.Button>
@@ -365,12 +362,14 @@ interface PackagesMetaFilterActivatorProps {
   typename: SearchUIModel.PackageUserMetaFacet['__typename']
   path: SearchUIModel.PackageUserMetaFacet['path']
   label: React.ReactNode
+  disabled?: boolean
 }
 
 function PackagesMetaFilterActivator({
   typename,
   path,
   label,
+  disabled,
 }: PackagesMetaFilterActivatorProps) {
   const model = SearchUIModel.use()
   invariant(
@@ -382,7 +381,7 @@ function PackagesMetaFilterActivator({
   const activate = React.useCallback(() => {
     activatePackagesMetaFilter(path, type)
   }, [activatePackagesMetaFilter, path, type])
-  return <FiltersUI.Activator title={label} onClick={activate} />
+  return <FiltersUI.Activator title={label} onClick={activate} disabled={disabled} />
 }
 
 interface PackageMetaFilterProps {
@@ -453,11 +452,12 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
 }))
 
 interface FilterGroupProps {
+  disabled?: boolean
   path?: string
   items: ReturnType<typeof SearchUIModel.groupFacets>[number]['children']
 }
 
-function FilterGroup({ path, items }: FilterGroupProps) {
+function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   const classes = useFilterGroupStyles()
 
   function getLabel(key: string) {
@@ -479,7 +479,7 @@ function FilterGroup({ path, items }: FilterGroupProps) {
     <li className={cx(classes.root)}>
       <ul className={classes.auxList}>
         {!!path && (
-          <M.ListItem button disableGutters onClick={toggleExpanded}>
+          <M.ListItem disabled={disabled} button disableGutters onClick={toggleExpanded}>
             <M.ListItemIcon className={classes.iconWrapper}>
               <M.Icon className={cx(classes.icon, { [classes.expanded]: expanded })}>
                 chevron_right
@@ -492,13 +492,19 @@ function FilterGroup({ path, items }: FilterGroupProps) {
           <M.Collapse in={expanded || !path}>
             {Array.from(items).map(([p, node]) =>
               node._tag === 'Tree' ? (
-                <FilterGroup path={p} items={node.children} key={path + p} />
+                <FilterGroup
+                  disabled={disabled}
+                  items={node.children}
+                  key={path + p}
+                  path={p}
+                />
               ) : (
                 <PackagesMetaFilterActivator
+                  disabled={disabled}
                   key={path + p}
-                  typename={node.value.__typename}
-                  path={node.value.path}
                   label={getLabel(p)}
+                  path={node.value.path}
+                  typename={node.value.__typename}
                 />
               ),
             )}
@@ -578,14 +584,15 @@ function AvailablePackagesMetaFilters({
         />
       )}
       <M.List dense disablePadding className={classes.list}>
-        <FilterGroup items={head.children} />
+        <FilterGroup disabled={fetching} items={head.children} />
         <M.Collapse in={expanded}>
-          <FilterGroup items={tail.children} />
+          <FilterGroup disabled={fetching} items={tail.children} />
         </M.Collapse>
       </M.List>
       {!!tail.children.size && (
         <MoreButton
           className={classes.more}
+          disabled={fetching}
           onClick={toggleExpanded}
           reverse={expanded}
         />
@@ -607,6 +614,9 @@ const usePackagesMetaFiltersStyles = M.makeStyles((t) => ({
     fontWeight: 500,
     marginBottom: t.spacing(1),
   },
+  spinner: {
+    marginLeft: t.spacing(1),
+  },
 }))
 
 interface PackagesMetaFiltersProps {
@@ -620,10 +630,12 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
 
   const noFilters = !(available.length + activatedPaths.length)
 
-  // TODO: progress indication: a spinner next to header?
   return (
     <div className={className}>
-      <div className={classes.title}>User metadata</div>
+      <div className={classes.title}>
+        User metadata
+        {fetching && <M.CircularProgress className={classes.spinner} size={12} />}
+      </div>
       {activatedPaths.map((path) => (
         <FilterSection key={path}>
           <PackagesMetaFilter path={path} />
@@ -1220,7 +1232,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridColumnGap: t.spacing(2),
     gridTemplateColumns: `${t.spacing(40)}px auto`,
-    padding: t.spacing(4, 3),
+    padding: t.spacing(3),
   },
 }))
 

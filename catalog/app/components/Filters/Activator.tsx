@@ -8,17 +8,18 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface ActivatorProps {
-  title: React.ReactNode
+  disabled?: boolean
   onClick: () => void
+  title: React.ReactNode
 }
 
 export default React.forwardRef<HTMLDivElement, ActivatorProps>(function Activator(
-  { title, onClick },
+  { disabled, onClick, title },
   ref,
 ) {
   const classes = useStyles()
   return (
-    <M.ListItem button disableGutters onClick={onClick} ref={ref}>
+    <M.ListItem button disableGutters disabled={disabled} onClick={onClick} ref={ref}>
       <M.ListItemIcon className={classes.icon}>
         <M.Icon>add_circle_outline</M.Icon>
       </M.ListItemIcon>
