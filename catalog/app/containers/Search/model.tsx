@@ -742,8 +742,8 @@ export function groupFacets(facets: PackageUserMetaFacet[], visible?: number): F
   )
   if (!visible) return grouped
   if (grouped.children.size <= visible) return grouped
-  const [topLevel, hidden] = R.splitAt(visible, Array.from(grouped.children))
-  return KTree.Tree([...topLevel, KTree.Pair('more', KTree.Tree(hidden))])
+  const topLevel = Array.from(grouped.children).slice(0, visible)
+  return KTree.Tree(topLevel)
 }
 
 export const PackageUserMetaFacetMap = {
