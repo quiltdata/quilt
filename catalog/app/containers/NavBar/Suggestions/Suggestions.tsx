@@ -9,7 +9,7 @@ import type { Item } from './model'
 
 const useSuggestionsStyles = M.makeStyles((t) => ({
   item: {
-    paddingLeft: t.spacing(8.5),
+    paddingLeft: t.spacing(5.5),
   },
 }))
 

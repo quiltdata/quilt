@@ -1,13 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 // TODO: decouple NavBar layout/state from gql and auth calls
 //       and place it into components/SearchBar
 import { useNavBar } from 'containers/NavBar/Provider'
 import Suggestions from 'containers/NavBar/Suggestions'
 
-import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import img2x from 'utils/img2x'
 
@@ -17,16 +15,7 @@ import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'
 
 const useHelpStyles = M.makeStyles((t) => ({
-  help: {
-    maxHeight: '490px',
-    overflowY: 'auto',
-    padding: t.spacing(0, 2),
-    [t.breakpoints.down('xs')]: {
-      maxHeight: '400px',
-      padding: t.spacing(0, 2),
-    },
-  },
-  helpWrapper: {
+  paper: {
     borderRadius: t.spacing(0.5),
     marginTop: t.spacing(8),
     maxWidth: 690,
@@ -77,7 +66,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   inputInput: {
     height: 'auto',
-    padding: t.spacing(0, 4, 0, 15),
+    padding: t.spacing(0, 4, 0, 9.5),
   },
   inputOptions: {
     borderColor: t.palette.grey[300],
@@ -135,6 +124,10 @@ const useStyles = M.makeStyles((t) => ({
       fontSize: t.typography.pxToRem(16),
     },
   },
+  icon: {
+    marginLeft: t.spacing(3.5),
+    opacity: 0.5,
+  },
 }))
 
 export default function Search() {
@@ -145,6 +138,8 @@ export default function Search() {
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
   const { input, onClickAway } = useNavBar()
+  const ref = React.useRef(null)
+  const focus = React.useCallback(() => ref.current?.focus(), [])
 
   return (
     <div className={classes.root}>
@@ -157,27 +152,14 @@ export default function Search() {
                 {...input}
                 startAdornment={
                   <M.InputAdornment className={classes.adornment}>
-                    <M.MuiThemeProvider theme={style.appTheme}>
-                      <Lab.ToggleButton
-                        className={classes.inputOptions}
-                        size="large"
-                        value="help"
-                        selected={input.helpOpen}
-                        onChange={input.onHelpToggle}
-                        classes={{
-                          selected: classes.inputOptionsSelected,
-                        }}
-                      >
-                        <M.Icon fontSize="large">search</M.Icon>
-                        <M.Icon fontSize="large">
-                          {input.helpOpen ? 'arrow_drop_up' : 'arrow_drop_down'}
-                        </M.Icon>
-                      </Lab.ToggleButton>
-                    </M.MuiThemeProvider>
+                    <M.Icon className={classes.icon} onClick={focus}>
+                      search
+                    </M.Icon>
                   </M.InputAdornment>
                 }
                 classes={{ root: classes.inputRoot, input: classes.inputInput }}
                 placeholder="Search"
+                ref={ref}
               />
               <Suggestions classes={helpClasses} open={input.helpOpen} />
             </div>
