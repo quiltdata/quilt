@@ -46,6 +46,12 @@ function FilterSection({
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
+const useMoreButtonStyles = M.makeStyles({
+  title: {
+    paddingLeft: '3px',
+  },
+})
+
 interface MoreButtonProps {
   className?: string
   onClick: () => void
@@ -53,6 +59,7 @@ interface MoreButtonProps {
 }
 
 function MoreButton({ className, onClick, reverse }: MoreButtonProps) {
+  const classes = useMoreButtonStyles()
   return (
     <M.Button
       className={className}
@@ -60,7 +67,7 @@ function MoreButton({ className, onClick, reverse }: MoreButtonProps) {
       onClick={onClick}
       size="small"
     >
-      {reverse ? 'Less filters' : 'More filters'}
+      <span className={classes.title}>{reverse ? 'Less filters' : 'More filters'}</span>
     </M.Button>
   )
 }
@@ -432,10 +439,16 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
     padding: 0,
   },
   nested: {
-    paddingLeft: t.spacing(4),
+    paddingLeft: t.spacing(3),
   },
-  toggleIcon: {
-    minWidth: t.spacing(5),
+  iconWrapper: {
+    minWidth: t.spacing(4),
+  },
+  icon: {
+    transition: 'ease .15s transform',
+  },
+  expanded: {
+    transform: 'rotate(90deg)',
   },
 }))
 
@@ -467,8 +480,10 @@ function FilterGroup({ path, items }: FilterGroupProps) {
       <ul className={classes.auxList}>
         {!!path && (
           <M.ListItem button disableGutters onClick={toggleExpanded}>
-            <M.ListItemIcon className={classes.toggleIcon}>
-              <M.Icon>{expanded ? 'expand_less' : 'expand_more'}</M.Icon>
+            <M.ListItemIcon className={classes.iconWrapper}>
+              <M.Icon className={cx(classes.icon, { [classes.expanded]: expanded })}>
+                chevron_right
+              </M.Icon>
             </M.ListItemIcon>
             <M.ListItemText primary={getLabel(path)} />
           </M.ListItem>
