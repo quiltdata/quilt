@@ -181,6 +181,9 @@ TEST_EVENT = "s3:TestEvent"
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
+logger = get_quilt_logger()
+
+
 def now_like_boto3():
     """ensure timezone UTC for consistency with boto3:
     Example of what boto3 returns on head_object:
@@ -338,7 +341,7 @@ def _get_metadata_fields(path: tuple, d: dict):
                     continue
                 type_ = "keyword" if all(len(x) <= MAX_KEYWORD_LEN for x in v) else "text"
             else:
-                print("ignoring value of type %s" % type(v))
+                logger.warning("ignoring value of type %s", type(v))
                 continue
 
             yield path + (k,), type_, raw_value, v
@@ -386,7 +389,7 @@ def _prepare_workflow_for_es(workflow, bucket):
             ],
         }
     except Exception:
-        get_quilt_logger().exception("Bad workflow object: %s", json.dumps(workflow, indent=2))
+        logger.exception("Bad workflow object: %s", json.dumps(workflow, indent=2))
         return None
 
 
