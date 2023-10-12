@@ -77,13 +77,11 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Datetime(value) {
             return new Date(value)
           },
-          // TODO: instantiate/validate other scalars (related to faceted search)
         },
       }),
     [],
   )
 
-  // TODO: instantly resolve BoundedSearch(id).facet from BoundedSearch(id).facets
   const cacheExchange = React.useMemo(
     () =>
       GraphCache.cacheExchange({

@@ -532,26 +532,31 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
 
 interface AvailablePackagesMetaFiltersProps {
   className?: string
+  fetching: boolean
+  filters: SearchUIModel.PackageUserMetaFacet[]
 }
 
-function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFiltersProps) {
+function AvailablePackagesMetaFilters({
+  className,
+  // fetching,
+  filters,
+}: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
   const [query, setQuery] = React.useState('')
-  const { available } = SearchUIModel.usePackagesMetaFilters()
   const filtered = React.useMemo(
     () =>
-      available.length > FACETS_THRESHOLD
-        ? available.filter((f) =>
+      filters.length > FACETS_THRESHOLD
+        ? filters.filter((f) =>
             (f.path + SearchUIModel.PackageUserMetaFacetMap[f.__typename])
               .toLowerCase()
               .includes(query.toLowerCase()),
           )
-        : available,
-    [available, query],
+        : filters,
+    [filters, query],
   )
 
   const filteredNumber = filtered.length
-  const hiddenNumber = available.length - filteredNumber
+  const hiddenNumber = filters.length - filteredNumber
 
   const [visibleCount, setVisibleCount] = React.useState(FACETS_THRESHOLD)
   const grouped = React.useMemo(
@@ -559,9 +564,10 @@ function AvailablePackagesMetaFilters({ className }: AvailablePackagesMetaFilter
     [filtered, visibleCount],
   )
 
+  // TODO: lock when fetching
   return (
     <div className={className}>
-      {available.length > FACETS_THRESHOLD && (
+      {filters.length > FACETS_THRESHOLD && (
         <FiltersUI.TinyTextField
           placeholder="Find metadata filter"
           fullWidth
@@ -603,10 +609,11 @@ interface PackagesMetaFiltersProps {
 function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   const classes = usePackagesMetaFiltersStyles()
 
-  const { activatedPaths, available } = SearchUIModel.usePackagesMetaFilters()
+  const { activatedPaths, available, fetching } = SearchUIModel.usePackagesMetaFilters()
 
-  if (!(available.length + activatedPaths.length)) return null
+  const noFilters = !(available.length + activatedPaths.length)
 
+  // TODO: progress indication: a spinner next to header?
   return (
     <div className={className}>
       <div className={classes.title}>Metadata</div>
@@ -615,7 +622,13 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
           <PackagesMetaFilter path={path} />
         </FilterSection>
       ))}
-      {!!available.length && <AvailablePackagesMetaFilters />}
+      {!!available.length && (
+        <AvailablePackagesMetaFilters filters={available} fetching={fetching} />
+      )}
+      {noFilters && (
+        // XXX: nicer display
+        <M.Typography>No metadata found</M.Typography>
+      )}
     </div>
   )
 }
@@ -752,11 +765,7 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
       }
     },
     fetching: () => undefined,
-    error: (e) => {
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return undefined
-    },
+    error: () => undefined,
   })
 
   const { deactivateObjectsFilter, setObjectsFilter } = model.actions
@@ -1025,8 +1034,6 @@ function NextPage({ after, className, resultType }: NextPageProps) {
           case 'fetching':
             return <LoadNextPage className={className} loading />
           case 'error':
-            // eslint-disable-next-line no-console
-            console.error(r.error)
             return (
               <EmptyResults
                 className={className}
@@ -1068,7 +1075,88 @@ function NextPage({ after, className, resultType }: NextPageProps) {
   )
 }
 
-const { addTag } = SearchUIModel
+interface ResultsInnerProps {
+  className?: string
+}
+
+function ResultsInner({ className }: ResultsInnerProps) {
+  const model = SearchUIModel.use()
+  const r = model.firstPageQuery
+
+  switch (r._tag) {
+    case 'fetching':
+      return <ResultsSkeleton className={className} />
+    case 'error':
+      return (
+        <EmptyResults
+          className={className}
+          description={r.error.message}
+          image="error"
+          title="GraphQL Error"
+        />
+      )
+    case 'data':
+      switch (r.data.__typename) {
+        case 'EmptySearchResultSet':
+          return <EmptyResults className={className} />
+        case 'InvalidInput':
+          return (
+            <EmptyResults
+              className={className}
+              description={r.data.errors[0].message}
+              image="error"
+              title="Invalid input"
+            />
+          )
+        case 'ObjectsSearchResultSet':
+        case 'PackagesSearchResultSet':
+          return (
+            <ResultsPage
+              className={className}
+              key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
+              resultType={model.state.resultType}
+              hits={r.data.firstPage.hits}
+              cursor={r.data.firstPage.cursor}
+            />
+          )
+        default:
+          assertNever(r.data)
+      }
+    default:
+      assertNever(r)
+  }
+}
+
+function ResultsCount() {
+  const r = SearchUIModel.use().firstPageQuery
+  switch (r._tag) {
+    case 'fetching':
+      return <M.CircularProgress size={24} />
+    case 'error':
+      return null
+    case 'data':
+      switch (r.data.__typename) {
+        case 'EmptySearchResultSet':
+        case 'InvalidInput':
+          return null
+        case 'ObjectsSearchResultSet':
+        case 'PackagesSearchResultSet':
+          return (
+            <M.Typography variant="h6">
+              <Format.Plural
+                value={r.data.stats.total}
+                one="1 result"
+                other={(n) => `${n} results`}
+              />
+            </M.Typography>
+          )
+        default:
+          assertNever(r.data)
+      }
+    default:
+      assertNever(r)
+  }
+}
 
 const useResultsStyles = M.makeStyles((t) => ({
   root: {
@@ -1088,76 +1176,15 @@ const useResultsStyles = M.makeStyles((t) => ({
 
 function Results() {
   const classes = useResultsStyles()
-  const model = SearchUIModel.use()
-
-  function fold() {
-    switch (model.state.resultType) {
-      case SearchUIModel.ResultType.S3Object:
-        return GQL.fold(model.firstPageObjectsQuery, {
-          data: ({ searchObjects: data }) => addTag('data', { data }),
-          fetching: () => addTag('fetching', {}),
-          error: (error) => addTag('error', { error }),
-        })
-      case SearchUIModel.ResultType.QuiltPackage:
-        return GQL.fold(model.firstPagePackagesQuery, {
-          data: ({ searchPackages: data }) => addTag('data', { data }),
-          fetching: () => addTag('fetching', {}),
-          error: (error) => addTag('error', { error }),
-        })
-      default:
-        assertNever(model.state)
-    }
-  }
-
-  const r = fold()
-
-  switch (r._tag) {
-    case 'fetching':
-      return <ResultsSkeleton />
-    case 'error':
-      return (
-        <EmptyResults description={r.error.message} image="error" title="GraphQL Error" />
-      )
-    case 'data':
-      switch (r.data.__typename) {
-        case 'EmptySearchResultSet':
-          return <EmptyResults />
-        case 'InvalidInput':
-          return (
-            <EmptyResults
-              description={r.data.errors[0].message}
-              image="error"
-              title="Invalid input"
-            />
-          )
-        case 'ObjectsSearchResultSet':
-        case 'PackagesSearchResultSet':
-          return (
-            <div className={classes.root}>
-              <div className={classes.toolbar}>
-                <M.Typography variant="h6">
-                  <Format.Plural
-                    value={r.data.stats.total}
-                    one="1 result"
-                    other={(n) => `${n} results`}
-                  />
-                </M.Typography>
-                <SortSelector className={classes.sort} />
-              </div>
-              <ResultsPage
-                key={`${model.state.resultType}:${r.data.firstPage.cursor}`}
-                resultType={model.state.resultType}
-                hits={r.data.firstPage.hits}
-                cursor={r.data.firstPage.cursor}
-              />
-            </div>
-          )
-        default:
-          assertNever(r.data)
-      }
-    default:
-      assertNever(r)
-  }
+  return (
+    <div className={classes.root}>
+      <div className={classes.toolbar}>
+        <ResultsCount />
+        <SortSelector className={classes.sort} />
+      </div>
+      <ResultsInner className={classes.results} />
+    </div>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({

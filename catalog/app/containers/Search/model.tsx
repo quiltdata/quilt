@@ -585,6 +585,30 @@ function useFirstPagePackagesQuery({
   )
 }
 
+function useFirstPageQuery(state: SearchUrlState) {
+  const firstPageObjectsQuery = useFirstPageObjectsQuery(state)
+  const firstPagePackagesQuery = useFirstPagePackagesQuery(state)
+
+  switch (state.resultType) {
+    case ResultType.S3Object:
+      return GQL.fold(firstPageObjectsQuery, {
+        data: ({ searchObjects: data }, { fetching }) =>
+          fetching ? addTag('fetching', {}) : addTag('data', { data }),
+        fetching: () => addTag('fetching', {}),
+        error: (error) => addTag('error', { error }),
+      })
+    case ResultType.QuiltPackage:
+      return GQL.fold(firstPagePackagesQuery, {
+        data: ({ searchPackages: data }, { fetching }) =>
+          fetching ? addTag('fetching', {}) : addTag('data', { data }),
+        fetching: () => addTag('fetching', {}),
+        error: (error) => addTag('error', { error }),
+      })
+    default:
+      assertNever(state)
+  }
+}
+
 export function useNextPageObjectsQuery(after: string) {
   const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after })
   const folded = GQL.fold(result, {
@@ -655,8 +679,7 @@ export function usePackagesMetaFilters() {
     [all, activatedPaths],
   )
 
-  // XXX: expose fetching state
-  return { all, activated, activatedPaths, available }
+  return { all, activated, activatedPaths, available, fetching: query.fetching }
 }
 
 export type SearhHitObject = Extract<
@@ -755,8 +778,7 @@ export function usePackageUserMetaFacetExtents(path: string): Extents | undefine
 function useSearchUIModel() {
   const urlState = useUrlState()
   const baseSearchQuery = useBaseSearchQuery(urlState)
-  const firstPageObjectsQuery = useFirstPageObjectsQuery(urlState)
-  const firstPagePackagesQuery = useFirstPagePackagesQuery(urlState)
+  const firstPageQuery = useFirstPageQuery(urlState)
 
   const makeUrl = useMakeUrl()
 
@@ -983,8 +1005,7 @@ function useSearchUIModel() {
         clearFilter,
       },
       baseSearchQuery,
-      firstPageObjectsQuery,
-      firstPagePackagesQuery,
+      firstPageQuery,
     },
     R.identity,
   )

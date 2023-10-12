@@ -3,6 +3,8 @@ import * as M from '@material-ui/core'
 
 import SelectDropdown from 'components/SelectDropdown'
 import * as Model from 'model'
+import * as GQL from 'utils/GraphQL'
+import assertNever from 'utils/assertNever'
 
 import * as SearchUIModel from './model'
 
@@ -71,6 +73,31 @@ export default function Sort({ className }: SortProps) {
     },
     [setOrder],
   )
+
+  const visible = GQL.fold(model.baseSearchQuery, {
+    data: (data, { fetching }) => {
+      if (fetching) return false
+      const r =
+        model.state.resultType === SearchUIModel.ResultType.QuiltPackage
+          ? data.searchPackages
+          : data.searchObjects
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+        case 'InvalidInput':
+          return false
+        case 'ObjectsSearchResultSet':
+        case 'PackagesSearchResultSet':
+          return true
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => false,
+    error: () => false,
+  })
+
+  if (!visible) return null
+
   return (
     <SelectDropdown
       className={className}
