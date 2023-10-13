@@ -1908,6 +1908,14 @@ KEYWORD_VALUE = "a"
                 "date": datetime.datetime(2023, 10, 13, 9, 10, 23, 873434),
             },
         ),
+        (
+            True,
+            {
+                "type": "boolean",
+                "text": json.dumps(True),
+                "boolean": True,
+            },
+        ),
     ],
 )
 def test_get_metadata_fields_values(src_value, expected_field):
@@ -1923,6 +1931,24 @@ def test_get_metadata_fields_values(src_value, expected_field):
             **expected_field,
         }
     ]
+
+
+@pytest.mark.parametrize(
+    "src_value",
+    [
+        None,
+        [1, TEXT_VALUE],
+    ],
+)
+def test_get_metadata_fields_values_ignored(src_value):
+    field_name = "a"
+
+    assert index.get_metadata_fields(
+        {
+            field_name: src_value,
+        }
+    ) == []
+
 
 
 @pytest.mark.parametrize(
