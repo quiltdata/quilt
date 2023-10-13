@@ -19,10 +19,6 @@ import NEXT_PAGE_OBJECTS_QUERY from './gql/NextPageObjects.generated'
 import NEXT_PAGE_PACKAGES_QUERY from './gql/NextPagePackages.generated'
 import META_FACETS_QUERY from './gql/PackageMetaFacets.generated'
 
-// function ifChanged<T>(newValue: T) {
-//   return (oldValue: T) => (R.equals(newValue, oldValue) ? oldValue : newValue)
-// }
-
 export enum ResultType {
   QuiltPackage = 'p',
   S3Object = 'o',
@@ -125,133 +121,115 @@ function Predicate<Tag extends string, State, GQLType>(input: {
   }
 }
 
-const DatetimePredicate = Predicate({
-  tag: 'Datetime',
-  init: {
-    gte: null as Date | null,
-    lte: null as Date | null,
-  },
-  fromString: (input: string) => {
-    const json = JSON.parse(input)
-    return {
-      gte: parseDate(json.gte),
-      lte: parseDate(json.lte),
-    }
-  },
-  toString: ({ _tag, ...state }) => JSON.stringify(state),
-  toGQL: ({ _tag, ...state }) =>
-    state.gte == null && state.lte === null
-      ? null
-      : (state as Model.GQLTypes.DatetimeSearchPredicate),
-})
+export const Predicates = {
+  Datetime: Predicate({
+    tag: 'Datetime',
+    init: {
+      gte: null as Date | null,
+      lte: null as Date | null,
+    },
+    fromString: (input: string) => {
+      const json = JSON.parse(input)
+      return {
+        gte: parseDate(json.gte),
+        lte: parseDate(json.lte),
+      }
+    },
+    toString: ({ _tag, ...state }) => JSON.stringify(state),
+    toGQL: ({ _tag, ...state }) =>
+      state.gte == null && state.lte === null
+        ? null
+        : (state as Model.GQLTypes.DatetimeSearchPredicate),
+  }),
 
-const NumberPredicate = Predicate({
-  tag: 'Number',
-  init: {
-    gte: null as number | null,
-    lte: null as number | null,
-  },
-  fromString: (input: string) => {
-    const json = JSON.parse(input)
-    return {
-      gte: (json.gte as number) ?? null,
-      lte: (json.lte as number) ?? null,
-    }
-  },
-  toString: ({ _tag, ...state }) => JSON.stringify(state),
-  toGQL: ({ _tag, ...state }) =>
-    state.gte == null && state.lte === null
-      ? null
-      : (state as Model.GQLTypes.NumberSearchPredicate),
-})
+  Number: Predicate({
+    tag: 'Number',
+    init: {
+      gte: null as number | null,
+      lte: null as number | null,
+    },
+    fromString: (input: string) => {
+      const json = JSON.parse(input)
+      return {
+        gte: (json.gte as number) ?? null,
+        lte: (json.lte as number) ?? null,
+      }
+    },
+    toString: ({ _tag, ...state }) => JSON.stringify(state),
+    toGQL: ({ _tag, ...state }) =>
+      state.gte == null && state.lte === null
+        ? null
+        : (state as Model.GQLTypes.NumberSearchPredicate),
+  }),
 
-const TextPredicate = Predicate({
-  tag: 'Text',
-  init: { queryString: '' },
-  fromString: (input: string) => ({ queryString: input }),
-  toString: ({ _tag, ...state }) => state.queryString.trim(),
-  toGQL: ({ _tag, ...state }) => {
-    const queryString = state.queryString.trim()
-    return queryString ? ({ queryString } as Model.GQLTypes.TextSearchPredicate) : null
-  },
-})
+  Text: Predicate({
+    tag: 'Text',
+    init: { queryString: '' },
+    fromString: (input: string) => ({ queryString: input }),
+    toString: ({ _tag, ...state }) => state.queryString.trim(),
+    toGQL: ({ _tag, ...state }) => {
+      const queryString = state.queryString.trim()
+      return queryString ? ({ queryString } as Model.GQLTypes.TextSearchPredicate) : null
+    },
+  }),
 
-const KeywordEnumPredicate = Predicate({
-  tag: 'KeywordEnum',
-  init: { terms: [] as string[] },
-  fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
-  toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
-  toGQL: ({ terms }) =>
-    terms.length
-      ? ({ terms, wildcard: null } as Model.GQLTypes.KeywordSearchPredicate)
-      : null,
-})
+  KeywordEnum: Predicate({
+    tag: 'KeywordEnum',
+    init: { terms: [] as string[] },
+    fromString: (input: string) => ({ terms: JSON.parse(`[${input}]`) as string[] }),
+    toString: ({ terms }) => JSON.stringify(terms).slice(1, -1),
+    toGQL: ({ terms }) =>
+      terms.length
+        ? ({ terms, wildcard: null } as Model.GQLTypes.KeywordSearchPredicate)
+        : null,
+  }),
 
-const KeywordWildcardPredicate = Predicate({
-  tag: 'KeywordWildcard',
-  init: {
-    wildcard: '' as string,
-  },
-  fromString: (wildcard: string) => ({ wildcard }),
-  toString: ({ wildcard }) => wildcard,
-  toGQL: ({ wildcard }) =>
-    wildcard
-      ? ({ wildcard, terms: null } as Model.GQLTypes.KeywordSearchPredicate)
-      : null,
-})
+  KeywordWildcard: Predicate({
+    tag: 'KeywordWildcard',
+    init: {
+      wildcard: '' as string,
+    },
+    fromString: (wildcard: string) => ({ wildcard }),
+    toString: ({ wildcard }) => wildcard,
+    toGQL: ({ wildcard }) =>
+      wildcard
+        ? ({ wildcard, terms: null } as Model.GQLTypes.KeywordSearchPredicate)
+        : null,
+  }),
 
-const BooleanPredicate = Predicate({
-  tag: 'Boolean',
-  init: { true: false, false: false },
-  fromString: (input: string) => {
-    const values = input.split(',')
-    return { true: values.includes('true'), false: values.includes('false') }
-  },
-  toString: (state) => {
-    const values = []
-    if (state.true) values.push('true')
-    if (state.false) values.push('false')
-    return values.join(',')
-  },
-  toGQL: ({ _tag, ...state }) =>
-    state.true || state.false ? (state as Model.GQLTypes.BooleanSearchPredicate) : null,
-})
+  Boolean: Predicate({
+    tag: 'Boolean',
+    init: { true: false, false: false },
+    fromString: (input: string) => {
+      const values = input.split(',')
+      return { true: values.includes('true'), false: values.includes('false') }
+    },
+    toString: (state) => {
+      const values = []
+      if (state.true) values.push('true')
+      if (state.false) values.push('false')
+      return values.join(',')
+    },
+    toGQL: ({ _tag, ...state }) =>
+      state.true || state.false ? (state as Model.GQLTypes.BooleanSearchPredicate) : null,
+  }),
+}
 
-const PrimitivePredicates = [
-  DatetimePredicate,
-  NumberPredicate,
-  TextPredicate,
-  KeywordEnumPredicate,
-  KeywordWildcardPredicate,
-  BooleanPredicate,
-]
-
-export type PrimitivePredicate = (typeof PrimitivePredicates)[number]
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type Predicates = typeof Predicates
 
 export type Extents =
   | Model.GQLTypes.DatetimeExtents
   | Model.GQLTypes.NumberExtents
   | Model.GQLTypes.KeywordExtents
 
-export type ExtentsForPredicate<P> = P extends typeof DatetimePredicate
+export type ExtentsForPredicate<P> = P extends Predicates['Datetime']
   ? Model.GQLTypes.DatetimeExtents
-  : P extends typeof NumberPredicate
+  : P extends Predicates['Number']
   ? Model.GQLTypes.NumberExtents
-  : P extends typeof KeywordEnumPredicate
+  : P extends Predicates['KeywordEnum']
   ? Model.GQLTypes.KeywordExtents
   : never
-
-export const Predicates = {
-  Datetime: DatetimePredicate,
-  Number: NumberPredicate,
-  Text: TextPredicate,
-  KeywordEnum: KeywordEnumPredicate,
-  KeywordWildcard: KeywordWildcardPredicate,
-  Boolean: BooleanPredicate,
-}
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type Predicates = typeof Predicates
 
 export type KnownPredicate = Predicates[keyof Predicates]
 
@@ -419,12 +397,12 @@ export const PackagesSearchFilterIO = Filter({
   workflow: Predicates.KeywordEnum,
 })
 
-type UserMetaFilterMap = Map<string, PredicateState<PrimitivePredicate>>
+type UserMetaFilterMap = Map<string, PredicateState<KnownPredicate>>
 
 class UserMetaFilters {
   filters: UserMetaFilterMap
 
-  static typeMap: Record<string, PrimitivePredicate> = {
+  static typeMap: Record<string, KnownPredicate> = {
     d: Predicates.Datetime,
     n: Predicates.Number,
     t: Predicates.Text,
@@ -507,7 +485,7 @@ class UserMetaFilters {
     return predicates.length ? predicates : null
   }
 
-  activateFilter(path: string, type: PrimitivePredicate['_tag']): UserMetaFilters {
+  activateFilter(path: string, type: KnownPredicate['_tag']): UserMetaFilters {
     if (this.filters.has(path)) return this
     const copy = this.copy()
     copy.filters.set(path, Predicates[type].initialState)
@@ -521,7 +499,7 @@ class UserMetaFilters {
     return copy
   }
 
-  setFilter(path: string, state: PredicateState<PrimitivePredicate>): UserMetaFilters {
+  setFilter(path: string, state: PredicateState<KnownPredicate>): UserMetaFilters {
     if (!this.filters.has(path)) return this
     const copy = this.copy()
     copy.filters.set(path, state)
@@ -941,7 +919,7 @@ function useSearchUIModel() {
   )
 
   const activatePackagesMetaFilter = React.useCallback(
-    (path: string, type: PrimitivePredicate['_tag']) =>
+    (path: string, type: KnownPredicate['_tag']) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
         return { ...s, userMetaFilters: s.userMetaFilters.activateFilter(path, type) }
@@ -1015,7 +993,7 @@ function useSearchUIModel() {
   )
 
   const setPackagesMetaFilter = React.useCallback(
-    (path: string, state: PredicateState<PrimitivePredicate>) => {
+    (path: string, state: PredicateState<KnownPredicate>) => {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
         return { ...s, userMetaFilters: s.userMetaFilters.setFilter(path, state) }

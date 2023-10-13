@@ -118,7 +118,7 @@ function MoreButton({ reverse, ...props }: MoreButtonProps) {
 // const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
 interface FilterWidgetProps<
-  P extends SearchUIModel.PrimitivePredicate = SearchUIModel.PrimitivePredicate,
+  P extends SearchUIModel.KnownPredicate = SearchUIModel.KnownPredicate,
 > {
   state: SearchUIModel.PredicateState<P>
   extents?: SearchUIModel.ExtentsForPredicate<P>
@@ -452,7 +452,7 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
   }, [deactivatePackagesMetaFilter, path])
 
   const change = React.useCallback(
-    (state: SearchUIModel.PredicateState<SearchUIModel.PrimitivePredicate>) => {
+    (state: SearchUIModel.PredicateState<SearchUIModel.KnownPredicate>) => {
       setPackagesMetaFilter(path, state)
     },
     [setPackagesMetaFilter, path],
