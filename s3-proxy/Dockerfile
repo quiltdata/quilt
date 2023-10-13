@@ -1,4 +1,4 @@
-FROM amazonlinux:2023.2.20230920.1
+FROM amazonlinux:2023.2.20231011.0
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 # Based on:
