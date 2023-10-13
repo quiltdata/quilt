@@ -306,7 +306,6 @@ def do_index(
 
 def _try_parse_date(s: str) -> Optional[datetime.datetime]:
     # XXX: do we need to support more formats?
-    # XXX: do we need to preserve UTC timezone?
     if s[-1:] == "Z":
         s = s[:-1]
     try:
