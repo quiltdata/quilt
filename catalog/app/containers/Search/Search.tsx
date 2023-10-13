@@ -656,7 +656,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   return (
     <div className={className}>
       <div className={classes.title}>
-        Package-level Metadata
+        Package-level metadata
         {fetching && <M.CircularProgress className={classes.spinner} size={12} />}
       </div>
       {activatedPaths.map((path) => (
