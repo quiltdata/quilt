@@ -1,6 +1,11 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+
+function withoutOnDeleteWhen(condition: boolean, props: M.ChipProps) {
+  return condition ? R.dissoc('onDelete', props) : props
+}
 
 const useStyles = M.makeStyles((t) => ({
   checkbox: {
@@ -19,23 +24,58 @@ interface EnumFilterProps {
   extents: string[]
   onChange: (v: string[]) => void
   value: string[]
+  selectAll?: string
 }
 
 interface EnumProps
   extends Omit<M.TextFieldProps, keyof EnumFilterProps>,
     EnumFilterProps {}
 
-export default function Enum({ extents, value, onChange, ...props }: EnumProps) {
+export default function Enum({
+  selectAll,
+  extents,
+  value,
+  onChange,
+  ...props
+}: EnumProps) {
   const classes = useStyles()
+  const allExtents = React.useMemo(
+    () => (selectAll ? [selectAll, ...extents] : extents),
+    [extents, selectAll],
+  )
+  const handleChange = React.useCallback(
+    (event, newValue: string[]) => {
+      if (!selectAll) {
+        onChange(newValue)
+        return
+      }
+
+      if (value.length && newValue.includes(selectAll)) {
+        onChange([])
+        return
+      }
+      onChange(newValue.filter((b) => b !== selectAll))
+    },
+    [onChange, selectAll, value],
+  )
   return (
     <Lab.Autocomplete
       fullWidth
       multiple
-      onChange={(event, newValue) => onChange(newValue as string[])}
-      options={extents}
+      onChange={handleChange}
+      options={allExtents}
       renderInput={(params) => (
         <M.TextField {...props} {...params} className={classes.input} size="small" />
       )}
+      renderTags={(tagValue, getTagProps) =>
+        tagValue.map((option, index) => (
+          // eslint-disable-next-line react/jsx-key
+          <M.Chip
+            label={option}
+            {...withoutOnDeleteWhen(option === selectAll, getTagProps({ index }))}
+          />
+        ))
+      }
       renderOption={(option, { selected }) => (
         <>
           <M.Checkbox
@@ -50,7 +90,7 @@ export default function Enum({ extents, value, onChange, ...props }: EnumProps) 
           </M.Typography>
         </>
       )}
-      value={value}
+      value={selectAll && !value.length ? [selectAll] : value}
     />
   )
 }

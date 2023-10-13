@@ -29,6 +29,7 @@ export default function Buckets({ className }: { className?: string }) {
         size="small"
         value={model.state.buckets}
         variant="outlined"
+        selectAll={'All buckets'}
       />
     </div>
   )
