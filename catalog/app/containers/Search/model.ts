@@ -554,7 +554,7 @@ export function parseSearchParams(qs: string): SearchUrlState {
 
   const resultType = parseResultType(params.get('t'), params.get('mode'))
 
-  const bucketsInput = params.get('b')
+  const bucketsInput = params.get('buckets') || params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
 
   const order = parseOrder(params.get('o'))
