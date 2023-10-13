@@ -51,12 +51,14 @@ import json
 import os
 import pathlib
 import re
+import urllib.parse
 from os.path import split
 from typing import Optional, Tuple
 from urllib.parse import unquote_plus
 
 import boto3
 import botocore
+import jsonpointer
 import nbformat
 from dateutil.tz import tzutc
 from document_queue import (
@@ -179,6 +181,9 @@ TEST_EVENT = "s3:TestEvent"
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
+logger = get_quilt_logger()
+
+
 def now_like_boto3():
     """ensure timezone UTC for consistency with boto3:
     Example of what boto3 returns on head_object:
@@ -299,6 +304,94 @@ def do_index(
         logger_.debug("%s indexed as package (%s)", key, event_type)
 
 
+def _try_parse_date(s: str) -> Optional[datetime.datetime]:
+    # XXX: do we need to support more formats?
+    if s[-1:] == "Z":
+        s = s[:-1]
+    try:
+        return datetime.datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+MAX_KEYWORD_LEN = 256
+
+
+def _get_metadata_fields(path: tuple, d: dict):
+    for k, raw_value in d.items():
+        if isinstance(raw_value, dict):
+            yield from _get_metadata_fields(path + (k,), raw_value)
+        else:
+            v = raw_value
+            if isinstance(v, str):
+                date = _try_parse_date(v)
+                if date is not None:
+                    type_ = "date"
+                    v = date
+                else:
+                    type_ = "keyword" if len(v) <= MAX_KEYWORD_LEN else "text"
+            elif isinstance(v, bool):
+                type_ = "boolean"
+            elif isinstance(v, (int, float)):
+                # XXX: do something on ints that can't be converted to float without loss?
+                type_ = "double"
+            elif isinstance(v, list):
+                if not (v and all(isinstance(x, str) for x in v)):
+                    continue
+                type_ = "keyword" if all(len(x) <= MAX_KEYWORD_LEN for x in v) else "text"
+            else:
+                logger.warning("ignoring value of type %s", type(v))
+                continue
+
+            yield path + (k,), type_, raw_value, v
+
+
+def get_metadata_fields(meta):
+    if not isinstance(meta, dict):
+        # XXX: can we do something better?
+        return None
+    return [
+        {
+            "json_pointer": jsonpointer.JsonPointer.from_parts(path).path,
+            "type": type_,
+            "text": json.dumps(raw_value, ensure_ascii=False),
+            type_: value,
+        }
+        for path, type_, raw_value, value in _get_metadata_fields((), meta)
+    ]
+
+
+def _prepare_workflow_for_es(workflow, bucket):
+    if workflow is None:
+        return None
+
+    try:
+        config_url = workflow["config"]
+        if not config_url.startswith(f"s3://{bucket}/.quilt/workflows/config.yml"):
+            raise Exception(f"Bad workflow config URL {config_url}")
+
+        config_url_parsed = urllib.parse.urlparse(config_url)
+        query = urllib.parse.parse_qs(config_url_parsed.query)
+        version_id = query.pop('versionId', [None])[0]
+        if query:
+            raise Exception(f"Unexpected S3 query string: {config_url_parsed.query!r}")
+
+        return {
+            "config_version_id": version_id,  # XXX: how to handle None?
+            "id": workflow["id"],
+            "schemas": [
+                {
+                    "id": k,
+                    "url": v,
+                }
+                for k, v in workflow.get("schemas", {}).items()
+            ],
+        }
+    except Exception:
+        logger.exception("Bad workflow object: %s", json.dumps(workflow, indent=2))
+        return None
+
+
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
@@ -351,7 +444,6 @@ def index_if_package(
             return
 
         user_meta = first.get("user_meta")
-        user_meta = json.dumps(user_meta) if user_meta else None
 
         return {
             "key": key,
@@ -363,8 +455,10 @@ def index_if_package(
             "pointer_file": pointer_file,
             "hash": package_hash,
             "package_stats": stats,
-            "metadata": user_meta,
+            "metadata": json.dumps(user_meta) if user_meta else None,
+            "metadata_fields": get_metadata_fields(user_meta),
             "comment": str(first.get("message", "")),
+            "workflow": _prepare_workflow_for_es(first.get("workflow"), bucket),
         }
 
     data = get_pkg_data() or {}
