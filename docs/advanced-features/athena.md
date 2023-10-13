@@ -13,20 +13,25 @@ the table must contain the columns `logical_key`, `physical_keys` and `size` as 
 (See also [Mental Model](https://docs.quiltdata.com/mentalmodel))
 
 ## Defining package tables and views in Athena
+
+> This step is not required for users of Quilt enterprise, since tables and views
+are managed by Quilt. Check the value of `UserAthenaDatabaseName` output in your
+CloudFormation stack to know the name of the Athena database it created.
+
 The first step in configuring Athena to query the package contents and metadata
 is to define a set of tables and views that represent the metadata fields as columns.
 The easiest way to do this is using the pre-built CloudFormation templates
 available in the [examples repository](https://github.com/quiltdata/examples/tree/master/athena_cfn/).
 
-## Example: query package-level metadata
+## Example: query object-level metadata
 
 Suppose we wish to find all .tiff files produced by algorithm version 1.3
 with a cell index of 5.
 
 ```sql
-SELECT * FROM  "quilt_package_objects_YOUR_BUCKET_view"
-WHERE substr(logical_key, -5)='.tiff'
--- extract and query package-level metadata
+SELECT * FROM "YOUR-BUCKET_objects-view"
+WHERE substr(logical_key, -5) = '.tiff'
+-- extract and query object-level metadata
 AND json_extract_scalar(meta, '$.user_meta.nucmembsegmentationalgorithmversion') LIKE '1.3%'
 AND json_array_contains(json_extract(meta, '$.user_meta.cellindex'), '5');
 ```

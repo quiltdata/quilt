@@ -15,43 +15,12 @@ import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 
 import imageArch from 'website/pages/Landing/Assets/quilt-architecture.png'
-import logoAllencell from 'website/pages/Landing/Logos/logo-allencell.png'
-import logoCelsius from 'website/pages/Landing/Logos/logo-celsius.png'
-import logoNeumora from 'website/pages/Landing/Logos/logo-neumora.png'
-import logoObsidian from 'website/pages/Landing/Logos/logo-obsidian.png'
-import logoStemson from 'website/pages/Landing/Logos/logo-stemson.png'
-import logoVir from 'website/pages/Landing/Logos/logo-vir.png'
+import logos from 'website/pages/Landing/Logos/list'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://quilt-web-public.s3.amazonaws.com/docs/Quilt+%26+Nextflow+for+trusted+cloud+datasets%E2%80%94Case+Study+at+Tessera+Therapeutics.pdf'
 
-const logos = [
-  {
-    src: logoCelsius,
-    title: 'Celsius Therapeutics',
-  },
-  {
-    src: logoVir,
-    title: 'Vir Bio',
-  },
-  {
-    src: logoNeumora,
-    title: 'Neumora Therapeutics',
-  },
-  {
-    src: logoObsidian,
-    title: 'Obsidian Therapeutics',
-  },
-  {
-    src: logoStemson,
-    title: 'Stemson Therapeutics',
-  },
-  {
-    src: logoAllencell,
-    title: 'Allen Institute for Cell Science',
-  },
-]
 const useVideoStyles = M.makeStyles({
   wrapper: {
     maxWidth: '900px',

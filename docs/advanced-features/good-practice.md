@@ -710,7 +710,7 @@ Quilt Stack provisions the following resources:
 - **Audit Trail Table**: a Glue table named `audit_trail` in
   **Audit Trail Database**.
 
-- **Audit Workgroup**: an Athena workgroup named `${AWS::StackName}-audit"`,
+- **Audit Workgroup**: an Athena workgroup named `${AWS::StackName}-audit`,
   exposed as `AuditTrailWorkgroup` stack resource.
 
 - **Audit Trail Bucket**: an S3 bucket storing all the audit trail data and
@@ -754,7 +754,7 @@ which has the following fields (schema version 1.0):
 The data is partitioned by `date`, which has `YYYY/mm/dd` format.
 [Partitioning](https://docs.aws.amazon.com/athena/latest/ug/ctas-partitioning-and-bucketing.html#ctas-partitioning-and-bucketing-what-is-partitioning)
 helps to make the queries faster and cheaper by reducing the amount of data scanned,
-so it's adviced to always filter by the partition key when possible.
+so it's advised to always filter by the partition key when possible.
 
 All the JSON objects from an event record are exposed to Athena as strings,
 so you can leverage athena JSON querying capabilities.

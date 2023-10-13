@@ -59,7 +59,7 @@ typing-extensions==4.1.1
     #   aiohttp
     #   async-timeout
     #   yarl
-urllib3==1.26.8
+urllib3==1.26.17
     # via requests
 xlrd==2.0.1
     # via t4-lambda-tabular-preview (setup.py)
