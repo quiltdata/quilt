@@ -1,117 +1,56 @@
 """Provides admin-only functions for Quilt."""
+import typing as T
+
 from .session import get_registry_url, get_session
 
 
-def create_role(name, arn):
+def create_user(*, username: str, email: str):
     """
-    Create a new role in your registry. Admins only.
+    Create a new user in your registry.
 
-    Required Parameters:
-        name(string): name of role to create
-        arn(string): ARN of IAM role to associate with the Quilt role you are creating
+    Required parameters:
+        username (str): Username of user to create.
+        email (str): Email of user to create.
     """
     session = get_session()
     response = session.post(
-        "{url}/api/roles".format(
-            url=get_registry_url()
-            ),
+        get_registry_url() + "/api/users/create",
         json={
-            'name': name,
-            'arn': arn
-        }
+            "username": username,
+            "email": email,
+        },
     )
 
-    return response.json()
 
-
-def edit_role(role_id, new_name=None, new_arn=None):
+def delete_user(*, username: str):
     """
-    Edit an existing role in your registry. Admins only.
+    Delete user from your registry.
 
     Required parameters:
-        role_id(string): ID of role you want to operate on.
-
-    Optional paramters:
-        new_name(string): new name for role
-        new_arn(string): new ARN for IAM role attached to Quilt role
+        username (str): Username of user to delete.
     """
     session = get_session()
-    old_data = get_role(role_id)
-    data = {}
-    data['name'] = new_name or old_data['name']
-    data['arn'] = new_arn or old_data['arn']
-
-    response = session.put(
-        "{url}/api/roles/{role_id}".format(
-            url=get_registry_url(),
-            role_id=role_id
-            ),
-        json=data
+    response = session.post(
+        get_registry_url() + "/api/users/delete",
+        json={
+            "username": username,
+        },
     )
 
-    return response.json()
 
-
-def delete_role(role_id):
-    """
-    Delete a role in your registry. Admins only.
-
-    Required parameters:
-        role_id(string): ID of role you want to delete.
-    """
-    session = get_session()
-    session.delete(
-        "{url}/api/roles/{role_id}".format(
-            url=get_registry_url(),
-            role_id=role_id
-            )
-        )
-
-
-def get_role(role_id):
-    """
-    Get info on a role based on its ID. Admins only.
-
-    Required parameters:
-        role_id(string): ID of role you want to get details on.
-    """
-    session = get_session()
-    response = session.get(
-        "{url}/api/roles/{role_id}".format(
-            url=get_registry_url(),
-            role_id=role_id
-            )
-        )
-
-    return response.json()
-
-
-def list_roles():
-    """
-    List configured roles. Admins only.
-    """
-    session = get_session()
-    response = session.get(
-        "{url}/api/roles".format(
-            url=get_registry_url()
-        ))
-
-    return response.json()['results']
-
-
-def set_role(username, role_name=''):
+def set_role(*, username: str, role_name: T.Optional[str]):
     """
     Set which role is associated with a user.
-    Admins only.
+
+    Required parameters:
+        username (str): Username of user to update.
+        role_name (str): Role name to set for the user. Use `None` to unset role.
     """
     session = get_session()
-    data = {
-        'username': username,
-        'role': role_name
-    }
     session.post(
-        "{url}/api/users/set_role".format(
-            url=get_registry_url()
-        ),
-        json=data
+        get_registry_url() + "/api/users/set_role",
+        json={
+            "username": username,
+            "role": role_name or "",
+        },
     )

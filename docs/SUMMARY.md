@@ -20,6 +20,7 @@
 * [quilt3](api-reference/api.md)
 * [quilt3.Package](api-reference/Package.md)
 * [quilt3.Bucket](api-reference/Bucket.md)
+* [quilt3.admin](api-reference/Admin.md)
 * [CLI, environment](api-reference/cli.md)
 * [Known limitations](api-reference/limitations.md)
 * [Custom SSL certificates](api-reference/custom-ssl-certificates.md)
