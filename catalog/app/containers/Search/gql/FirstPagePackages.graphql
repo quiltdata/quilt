@@ -2,9 +2,15 @@ query (
   $buckets: [String!]
   $searchString: String
   $filter: PackagesSearchFilter
+  $userMetaFilters: [PackageUserMetaPredicate!]
   $order: SearchResultOrder
 ) {
-  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+  searchPackages(
+    buckets: $buckets
+    searchString: $searchString
+    filter: $filter
+    userMetaFilters: $userMetaFilters
+  ) {
     __typename
     ... on PackagesSearchResultSet {
       stats {

@@ -691,7 +691,6 @@ export interface PackagesSearchFilter {
   readonly entries: Maybe<NumberSearchPredicate>
   readonly comment: Maybe<TextSearchPredicate>
   readonly workflow: Maybe<KeywordSearchPredicate>
-  readonly userMeta: Maybe<ReadonlyArray<PackageUserMetaPredicate>>
 }
 
 export type PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
@@ -803,6 +802,7 @@ export interface QuerysearchPackagesArgs {
   buckets: Maybe<ReadonlyArray<Scalars['String']>>
   searchString: Maybe<Scalars['String']>
   filter: Maybe<PackagesSearchFilter>
+  userMetaFilters: Maybe<ReadonlyArray<PackageUserMetaPredicate>>
 }
 
 export interface QuerysearchMoreObjectsArgs {

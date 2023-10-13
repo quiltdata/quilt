@@ -3539,6 +3539,19 @@ export default {
                   name: 'Any',
                 },
               },
+              {
+                name: 'userMetaFilters',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'Any',
+                    },
+                  },
+                },
+              },
             ],
           },
           {

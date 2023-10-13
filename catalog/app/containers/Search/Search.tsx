@@ -319,7 +319,6 @@ const packageFilterLabels = {
   entries: 'Total number of entries',
   comment: 'Package revision comment',
   workflow: 'Workflow',
-  userMeta: 'User metadata',
 }
 
 interface PackagesFilterActivatorProps {
@@ -341,7 +340,7 @@ function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
 
 interface PackagesFilterProps {
   className?: string
-  field: Exclude<keyof SearchUIModel.PackagesSearchFilter, 'userMeta'>
+  field: keyof SearchUIModel.PackagesSearchFilter
 }
 
 function PackagesFilter({ className, field }: PackagesFilterProps) {
@@ -441,7 +440,7 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
     'Filter type mismatch',
   )
 
-  const predicateState = model.state.filter.predicates.userMeta?.children?.get(path)
+  const predicateState = model.state.userMetaFilters.filters.get(path)
   invariant(predicateState, 'Filter not active')
 
   const { deactivatePackagesMetaFilter, setPackagesMetaFilter } = model.actions
@@ -740,14 +739,11 @@ function PackageFilters({ className }: PackageFiltersProps) {
     <div className={className}>
       <div className={classes.title}>Filter by</div>
 
-      {activeFilters.map(
-        (f) =>
-          f !== 'userMeta' && (
-            <FilterSection key={f}>
-              <PackagesFilter field={f} />
-            </FilterSection>
-          ),
-      )}
+      {activeFilters.map((f) => (
+        <FilterSection key={f}>
+          <PackagesFilter field={f} />
+        </FilterSection>
+      ))}
 
       {!!availableFilters.length && (
         <M.List dense disablePadding>

@@ -6,6 +6,7 @@ export type containers_Search_gql_FirstPagePackagesQueryVariables = Types.Exact<
   buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
   searchString: Types.Maybe<Types.Scalars['String']>
   filter: Types.Maybe<Types.PackagesSearchFilter>
+  userMetaFilters: Types.Maybe<ReadonlyArray<Types.PackageUserMetaPredicate>>
   order: Types.Maybe<Types.SearchResultOrder>
 }>
 
@@ -84,6 +85,23 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
         },
         {
           kind: 'VariableDefinition',
+          variable: {
+            kind: 'Variable',
+            name: { kind: 'Name', value: 'userMetaFilters' },
+          },
+          type: {
+            kind: 'ListType',
+            type: {
+              kind: 'NonNullType',
+              type: {
+                kind: 'NamedType',
+                name: { kind: 'Name', value: 'PackageUserMetaPredicate' },
+              },
+            },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
           variable: { kind: 'Variable', name: { kind: 'Name', value: 'order' } },
           type: { kind: 'NamedType', name: { kind: 'Name', value: 'SearchResultOrder' } },
         },
@@ -112,6 +130,14 @@ export const containers_Search_gql_FirstPagePackagesDocument = {
                 kind: 'Argument',
                 name: { kind: 'Name', value: 'filter' },
                 value: { kind: 'Variable', name: { kind: 'Name', value: 'filter' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'userMetaFilters' },
+                value: {
+                  kind: 'Variable',
+                  name: { kind: 'Name', value: 'userMetaFilters' },
+                },
               },
             ],
             selectionSet: {

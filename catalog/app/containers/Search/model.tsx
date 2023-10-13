@@ -10,7 +10,6 @@ import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
-// import * as Types from 'utils/types'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
@@ -54,20 +53,24 @@ export type FilterStateForResultType<T extends ResultType> = T extends ResultTyp
 export type ObjectsSearchFilter = Model.GQLTypes.ObjectsSearchFilter
 export type PackagesSearchFilter = Model.GQLTypes.PackagesSearchFilter
 
-interface ResultTypeAndFilter<T extends ResultType> {
-  resultType: T
-  filter: FilterStateForResultType<T>
-}
-
-interface SearchUrlStateBase<T extends ResultType> extends ResultTypeAndFilter<T> {
+interface SearchUrlStateBase {
   searchString: string | null
   buckets: string[]
   order: Model.GQLTypes.SearchResultOrder
 }
 
-export type SearchUrlState =
-  | SearchUrlStateBase<ResultType.S3Object>
-  | SearchUrlStateBase<ResultType.QuiltPackage>
+interface ObjectsSearchUrlState extends SearchUrlStateBase {
+  resultType: ResultType.S3Object
+  filter: FilterStateForResultType<ResultType.S3Object>
+}
+
+interface PackagesSearchUrlState extends SearchUrlStateBase {
+  resultType: ResultType.QuiltPackage
+  filter: FilterStateForResultType<ResultType.QuiltPackage>
+  userMetaFilters: UserMetaFilters
+}
+
+export type SearchUrlState = ObjectsSearchUrlState | PackagesSearchUrlState
 
 function parseOrder(input: string | null): Model.GQLTypes.SearchResultOrder {
   return Object.values(Model.GQLTypes.SearchResultOrder).includes(input as any)
@@ -238,47 +241,6 @@ export type ExtentsForPredicate<P> = P extends typeof DatetimePredicate
   ? Model.GQLTypes.KeywordExtents
   : never
 
-const UserMetaPredicateMap = {
-  Datetime: 'datetime' as const,
-  Number: 'number' as const,
-  Text: 'text' as const,
-  KeywordEnum: 'keyword' as const,
-  KeywordWildcard: 'keyword' as const,
-  Boolean: 'boolean' as const,
-}
-
-const UserMetaPredicate = Predicate({
-  tag: 'UserMeta',
-  init: {
-    children: new Map<string, PredicateState<PrimitivePredicate>>(),
-  },
-  fromString: (input: string) => ({
-    children: new Map<string, PredicateState<PrimitivePredicate>>(
-      input ? JSON.parse(input) : [],
-    ),
-  }),
-  toString: ({ children }) => JSON.stringify(Array.from(children)),
-  toGQL: ({ children }) => {
-    const userMeta = Array.from(children).reduce((acc, [path, predicate]) => {
-      const gql = Predicates[predicate._tag].toGQL(
-        predicate as any,
-      ) as PredicateGQLType<PrimitivePredicate>
-      if (!gql) return acc
-      const obj = {
-        path,
-        datetime: null,
-        number: null,
-        text: null,
-        keyword: null,
-        boolean: null,
-        [UserMetaPredicateMap[predicate._tag]]: gql,
-      }
-      return [...acc, obj]
-    }, [] as Model.GQLTypes.PackageUserMetaPredicate[])
-    return userMeta.length ? userMeta : null
-  },
-})
-
 export const Predicates = {
   Datetime: DatetimePredicate,
   Number: NumberPredicate,
@@ -286,7 +248,6 @@ export const Predicates = {
   KeywordEnum: KeywordEnumPredicate,
   KeywordWildcard: KeywordWildcardPredicate,
   Boolean: BooleanPredicate,
-  UserMeta: UserMetaPredicate,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -456,8 +417,119 @@ export const PackagesSearchFilterIO = Filter({
   entries: Predicates.Number,
   comment: Predicates.Text,
   workflow: Predicates.KeywordEnum,
-  userMeta: Predicates.UserMeta,
 })
+
+type UserMetaFilterMap = Map<string, PredicateState<PrimitivePredicate>>
+
+class UserMetaFilters {
+  filters: UserMetaFilterMap
+
+  static typeMap: Record<string, PrimitivePredicate> = {
+    d: Predicates.Datetime,
+    n: Predicates.Number,
+    t: Predicates.Text,
+    e: Predicates.KeywordEnum,
+    w: Predicates.KeywordWildcard,
+    b: Predicates.Boolean,
+  }
+
+  static reverseTypeMap = {
+    [Predicates.Datetime._tag]: 'd',
+    [Predicates.Number._tag]: 'n',
+    [Predicates.Text._tag]: 't',
+    [Predicates.KeywordEnum._tag]: 'e',
+    [Predicates.KeywordWildcard._tag]: 'w',
+    [Predicates.Boolean._tag]: 'b',
+  }
+
+  static predicateMap = {
+    Datetime: 'datetime' as const,
+    Number: 'number' as const,
+    Text: 'text' as const,
+    KeywordEnum: 'keyword' as const,
+    KeywordWildcard: 'keyword' as const,
+    Boolean: 'boolean' as const,
+  }
+
+  static fromURLSearchParams(params: URLSearchParams, prefix: string): UserMetaFilters {
+    const filters: UserMetaFilterMap = new Map()
+    // key format: $prefix$type$path
+    params.forEach((v, k) => {
+      if (!k.startsWith(prefix)) return
+      const withoutPrefix = k.slice(prefix.length)
+      const idx = withoutPrefix.indexOf('/')
+      if (idx === -1) return
+      const type = withoutPrefix.slice(0, idx)
+      const predicate = UserMetaFilters.typeMap[type]
+      if (!predicate) return
+      const path = withoutPrefix.slice(idx)
+      filters.set(path, predicate.fromString(v))
+    })
+    return new this(filters)
+  }
+
+  constructor(filters?: UserMetaFilterMap) {
+    this.filters = filters || new Map()
+  }
+
+  copy(): UserMetaFilters {
+    return new UserMetaFilters(new Map(this.filters))
+  }
+
+  toURLSearchParams(prefix: string): [string, string][] {
+    return Array.from(this.filters).reduce(
+      (params, [k, v]) => {
+        if (v == null) return params
+        const s = Predicates[v._tag].toString(v as any)
+        if (s == null) return params
+        const t = UserMetaFilters.reverseTypeMap[v._tag]
+        return [...params, [`${prefix}${t}${k}` as string, s]]
+      },
+      [] as [string, string][],
+    )
+  }
+
+  toGQL(): Model.GQLTypes.PackageUserMetaPredicate[] | null {
+    const predicates = Array.from(this.filters).reduce((acc, [path, predicate]) => {
+      const gql = Predicates[predicate._tag].toGQL(predicate as any)
+      if (!gql) return acc
+      const obj = {
+        path,
+        datetime: null,
+        number: null,
+        text: null,
+        keyword: null,
+        boolean: null,
+        [UserMetaFilters.predicateMap[predicate._tag]]: gql,
+      }
+      return [...acc, obj]
+    }, [] as Model.GQLTypes.PackageUserMetaPredicate[])
+    return predicates.length ? predicates : null
+  }
+
+  activateFilter(path: string, type: PrimitivePredicate['_tag']): UserMetaFilters {
+    if (this.filters.has(path)) return this
+    const copy = this.copy()
+    copy.filters.set(path, Predicates[type].initialState)
+    return copy
+  }
+
+  deactivateFilter(path: string): UserMetaFilters {
+    if (!this.filters.has(path)) return this
+    const copy = this.copy()
+    copy.filters.delete(path)
+    return copy
+  }
+
+  setFilter(path: string, state: PredicateState<PrimitivePredicate>): UserMetaFilters {
+    if (!this.filters.has(path)) return this
+    const copy = this.copy()
+    copy.filters.set(path, state)
+    return copy
+  }
+}
+
+const META_PREFIX = 'meta.'
 
 // XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
 export function parseSearchParams(qs: string): SearchUrlState {
@@ -475,7 +547,6 @@ export function parseSearchParams(qs: string): SearchUrlState {
 
   const order = parseOrder(params.get('o'))
 
-  // XXX: try to make this less awkward
   const base = { searchString, buckets, order }
   switch (resultType) {
     case ResultType.S3Object:
@@ -489,6 +560,7 @@ export function parseSearchParams(qs: string): SearchUrlState {
         ...base,
         resultType,
         filter: PackagesSearchFilterIO.fromURLSearchParams(params),
+        userMetaFilters: UserMetaFilters.fromURLSearchParams(params, META_PREFIX),
       }
     default:
       assertNever(resultType)
@@ -518,6 +590,7 @@ function serializeSearchUrlState(state: SearchUrlState): URLSearchParams {
       break
     case ResultType.QuiltPackage:
       appendParams(PackagesSearchFilterIO.toURLSearchParams(state.filter))
+      appendParams(state.userMetaFilters.toURLSearchParams(META_PREFIX))
       break
     default:
       assertNever(state)
@@ -567,21 +640,26 @@ function useFirstPageObjectsQuery({
   )
 }
 
-function useFirstPagePackagesQuery({
-  searchString,
-  buckets,
-  order,
-  resultType,
-  filter,
-}: SearchUrlState) {
-  const gqlFilter = PackagesSearchFilterIO.toGQL(
-    resultType === ResultType.QuiltPackage ? filter : PackagesSearchFilterIO.initialState,
-  )
-  const pause = resultType !== ResultType.QuiltPackage
+function useFirstPagePackagesQuery(state: SearchUrlState) {
   return GQL.useQuery(
     FIRST_PAGE_PACKAGES_QUERY,
-    { searchString, buckets, order, filter: gqlFilter },
-    { pause },
+    {
+      searchString: state.searchString,
+      buckets: state.buckets,
+      order: state.order,
+      filter: PackagesSearchFilterIO.toGQL(
+        state.resultType === ResultType.QuiltPackage
+          ? state.filter
+          : PackagesSearchFilterIO.initialState,
+      ),
+      userMetaFilters:
+        state.resultType === ResultType.QuiltPackage
+          ? state.userMetaFilters.toGQL()
+          : null,
+    },
+    {
+      pause: state.resultType !== ResultType.QuiltPackage,
+    },
   )
 }
 
@@ -637,9 +715,6 @@ interface MetaFacetsQueryProps {
 
 function useMetaFacetsQuery({ searchString, buckets, filter }: MetaFacetsQueryProps) {
   const gqlFilter = PackagesSearchFilterIO.toGQL(filter)
-  if (gqlFilter) {
-    gqlFilter.userMeta = null
-  }
   return GQL.useQuery(META_FACETS_QUERY, { searchString, buckets, filter: gqlFilter })
 }
 
@@ -667,11 +742,7 @@ export function usePackagesMetaFilters() {
     fetching: () => NO_FACETS,
     error: () => NO_FACETS,
   })
-  const userMetaChildren = model.state.filter.predicates.userMeta?.children
-  const activated = React.useMemo(
-    () => userMetaChildren ?? UserMetaPredicate.initialState.children,
-    [userMetaChildren],
-  )
+  const activated = model.state.userMetaFilters.filters
   const activatedPaths = React.useMemo(() => Array.from(activated.keys()), [activated])
 
   const available = React.useMemo(
@@ -821,6 +892,7 @@ function useSearchUIModel() {
               ...s,
               resultType,
               filter: PackagesSearchFilterIO.initialState,
+              userMetaFilters: new UserMetaFilters(),
             }
           case ResultType.S3Object:
             return {
@@ -860,15 +932,7 @@ function useSearchUIModel() {
     (path: string, type: PrimitivePredicate['_tag']) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        let filter = PackagesSearchFilterIO.activateFilter(s.filter, 'userMeta')
-        let { userMeta } = filter.predicates
-        invariant(userMeta, 'userMeta filter must not be null at this point')
-        if (userMeta.children.has(path)) return s
-        const children = new Map(userMeta.children)
-        children.set(path, Predicates[type].initialState)
-        userMeta = { ...userMeta, children }
-        filter = PackagesSearchFilterIO.setFilter(filter, 'userMeta', userMeta)
-        return { ...s, filter }
+        return { ...s, userMetaFilters: s.userMetaFilters.activateFilter(path, type) }
       }),
     [updateUrlState],
   )
@@ -877,17 +941,7 @@ function useSearchUIModel() {
     (path: string) =>
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        const { userMeta } = s.filter.predicates
-        if (!userMeta?.children.has(path)) return s
-        const children = new Map(userMeta.children)
-        children.delete(path)
-        const filter = children.size
-          ? PackagesSearchFilterIO.setFilter(s.filter, 'userMeta', {
-              ...userMeta,
-              children,
-            })
-          : PackagesSearchFilterIO.deactivateFilter(s.filter, 'userMeta')
-        return { ...s, filter }
+        return { ...s, userMetaFilters: s.userMetaFilters.deactivateFilter(path) }
       }),
     [updateUrlState],
   )
@@ -949,21 +1003,10 @@ function useSearchUIModel() {
   )
 
   const setPackagesMetaFilter = React.useCallback(
-    function setPackagesMetaFilterInternal(
-      path: string,
-      state: PredicateState<PrimitivePredicate>,
-    ) {
+    (path: string, state: PredicateState<PrimitivePredicate>) => {
       updateUrlState((s) => {
         invariant(s.resultType === ResultType.QuiltPackage, 'wrong result type')
-        const { userMeta } = s.filter.predicates
-        if (!userMeta?.children.has(path)) return s
-        const children = new Map(userMeta.children)
-        children.set(path, state)
-        const filter = PackagesSearchFilterIO.setFilter(s.filter, 'userMeta', {
-          ...userMeta,
-          children,
-        })
-        return { ...s, filter }
+        return { ...s, userMetaFilters: s.userMetaFilters.setFilter(path, state) }
       })
     },
     [updateUrlState],
@@ -981,9 +1024,6 @@ function useSearchUIModel() {
         }) as SearchUrlState,
     )
   }, [updateUrlState])
-
-  // eslint-disable-next-line no-console
-  // console.log('URL STATE', urlState)
 
   return useMemoEq(
     {
@@ -1020,6 +1060,7 @@ export const Context = React.createContext<SearchUIModel | null>(null)
 
 export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
   const state = useSearchUIModel()
+  // TODO: use plain js and disable jsx
   return <Context.Provider value={state}>{children}</Context.Provider>
 }
 
