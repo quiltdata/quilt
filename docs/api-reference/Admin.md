@@ -1,10 +1,10 @@
 
 # quilt3.admin
-Admin APIs for Quilt stacks.
+APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management.
 
 ## create\_user(\*, username: str, email: str)  {#create\_user}
 
-Create a new user in your registry.
+Create a new user in the registry.
 
 Required parameters:
     username (str): Username of user to create.
@@ -13,7 +13,7 @@ Required parameters:
 
 ## delete\_user(\*, username: str)  {#delete\_user}
 
-Delete user from your registry.
+Delete user from the registry.
 
 Required parameters:
     username (str): Username of user to delete.
@@ -21,9 +21,9 @@ Required parameters:
 
 ## set\_role(\*, username: str, role\_name: Union[str, NoneType])  {#set\_role}
 
-Set which role is associated with a user.
+Set the named Quilt role for a user.
 
 Required parameters:
     username (str): Username of user to update.
-    role_name (str): Role name to set for the user. Use `None` to unset role.
+    role_name (str): Quilt role name assign to the user. Set a `None` value to unassign the role.
 
