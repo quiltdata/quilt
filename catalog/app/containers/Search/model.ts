@@ -1072,8 +1072,7 @@ export const Context = React.createContext<SearchUIModel | null>(null)
 
 export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>) {
   const state = useSearchUIModel()
-  // TODO: use plain js and disable jsx
-  return <Context.Provider value={state}>{children}</Context.Provider>
+  return React.createElement(Context.Provider, { value: state }, children)
 }
 
 export function useSearchUIModelContext(): SearchUIModel {
