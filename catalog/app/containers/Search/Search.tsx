@@ -235,6 +235,7 @@ function KeywordEnumFilterWidget({
       extents={availableValues}
       onChange={handleChange}
       value={state.terms}
+      placeholder="Find"
     />
   )
 }
