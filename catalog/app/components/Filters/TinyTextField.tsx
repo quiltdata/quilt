@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    border: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${M.fade(t.palette.text.primary, 0.23)}`,
     borderRadius: t.shape.borderRadius,
     fontSize: t.typography.body2.fontSize,
     padding: t.spacing(0, 1),

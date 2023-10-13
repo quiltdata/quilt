@@ -41,7 +41,7 @@ const useStyles = M.makeStyles((t) => ({
     padding: 0,
   },
   scrollArea: {
-    border: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${M.fade(t.palette.text.primary, 0.23)}`,
     flexGrow: 1,
     overflow: 'hidden auto',
     borderRadius: t.shape.borderRadius,

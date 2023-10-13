@@ -14,7 +14,7 @@ const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]
 
 const useResultTypeStyles = M.makeStyles((t) => ({
   root: {
-    border: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${M.fade(t.palette.text.primary, 0.23)}`,
     borderRadius: t.shape.borderRadius,
   },
   item: {
