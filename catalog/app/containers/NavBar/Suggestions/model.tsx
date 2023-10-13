@@ -29,11 +29,11 @@ const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): I
     key: 'global-packages',
     title: searchString ? (
       <>
-        Search <b>packages</b> matching <b>"{searchString}"</b> in <b>all buckets</b>
+        Search <b>"{searchString}"</b> in <b>packages</b> in <b>all buckets</b>
       </>
     ) : (
       <>
-        Search any <b>package</b> in <b>all buckets</b>
+        Search <b>all packages</b> in <b>all buckets</b>
       </>
     ),
     url: makeUrl({
@@ -45,11 +45,11 @@ const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): I
     key: 'global-objects',
     title: searchString ? (
       <>
-        Search <b>objects</b> matching <b>"{searchString}"</b> in <b>all buckets</b>
+        Search <b>"{searchString}"</b> in <b>objects</b> in <b>all buckets</b>
       </>
     ) : (
       <>
-        Search any <b>object</b> in <b>all buckets</b>
+        Search <b>all object</b> in <b>all buckets</b>
       </>
     ),
     url: makeUrl({
@@ -68,11 +68,11 @@ const inBucket = (
     key: 'bucket-packages',
     title: searchString ? (
       <>
-        Search <b>packages</b> matching <b>"{searchString}"</b> in <b>s3://{bucket}</b>
+        Search <b>"{searchString}"</b> in <b>packages</b> in <b>s3://{bucket}</b>
       </>
     ) : (
       <>
-        Search any <b>package</b> in <b>s3://{bucket}</b>
+        Search <b>all packages</b> in <b>s3://{bucket}</b>
       </>
     ),
     url: makeUrl({
@@ -85,11 +85,11 @@ const inBucket = (
     key: 'bucket-objects',
     title: searchString ? (
       <>
-        Search <b>objects</b> matching <b>"{searchString}"</b> in <b>s3://{bucket}</b>
+        Search <b>"{searchString}"</b> in <b>objects</b> in <b>s3://{bucket}</b>
       </>
     ) : (
       <>
-        Search any <b>object</b> in <b>s3://{bucket}</b>
+        Search <b>all objects</b> in <b>s3://{bucket}</b>
       </>
     ),
     url: makeUrl({
@@ -118,7 +118,7 @@ const inSearch = (
         key: 'preserve-filters',
         title: (
           <>
-            Search <b>"{searchString}"</b> preserving filters state
+            Search <b>"{searchString}"</b> with current settings
           </>
         ),
         url: makeUrl({ ...model.state, searchString }),
