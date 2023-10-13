@@ -296,7 +296,7 @@ const packageFilterLabels = {
   size: 'Cumulative package size',
   name: 'Package name',
   hash: 'Package hash',
-  entries: 'Total number of entries',
+  entries: 'Total number of files in the package',
   comment: 'Package revision comment',
   workflow: 'Workflow',
 }
@@ -656,7 +656,7 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   return (
     <div className={className}>
       <div className={classes.title}>
-        Metadata
+        Package-level Metadata
         {fetching && <M.CircularProgress className={classes.spinner} size={12} />}
       </div>
       {activatedPaths.map((path) => (
