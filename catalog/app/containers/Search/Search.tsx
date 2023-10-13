@@ -14,7 +14,6 @@ import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
 import * as SearchUIModel from './model'
-// import AvailableFacets from './AvailableFacets'
 import BucketSelector from './Buckets'
 import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
@@ -131,24 +130,14 @@ function NumberFilterWidget({
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
   // XXX: query extents
-  // const unit = React.useMemo(() => {
-  //   switch (JSONPointer.stringify(path)) {
-  //     case '/pkg/total_entries':
-  //       return 'Entries'
-  //     case '/pkg/total_size':
-  //       return 'Bytes'
-  //     // no-default
-  //   }
-  // }, [path])
-  // const hasExtents = isNumber(extents.min) && isNumber(extents.max)
-  // const hasSingleExtent = extents.min === extents.max
   const handleChange = React.useCallback(
     (value: { min: number | null; max: number | null }) => {
       onChange({ ...state, gte: value.min, lte: value.max })
     },
     [onChange, state],
   )
-  // XXX
+
+  // XXX: revisit this logic
   const extentsComputed = React.useMemo(
     () => ({
       min: extents?.min ?? state.gte ?? 0,
@@ -158,21 +147,10 @@ function NumberFilterWidget({
   )
 
   return (
-    // {hasExtents &&
-    //   (hasSingleExtent ? (
-    //     <FiltersUI.Checkbox
-    //       label={`${extents.min} ${unit || ''}`}
-    //       onChange={(checked) =>
-    //         checked
-    //           ? onChange({ min: extents.min, max: extents.max })
-    //           : onChange({ min: null, max: null })
-    //       }
-    //       value={value.min === extents.min && value.max === extents.max}
-    //     />
-    //   ) : (
     <FiltersUI.NumbersRange
       extents={extentsComputed}
       onChange={handleChange}
+      // XXX: add units for known filters
       // unit={unit}
       value={{ min: state.gte, max: state.lte }}
     />
@@ -255,7 +233,7 @@ function KeywordWildcardFilterWidget({
   return (
     <FiltersUI.TextField
       onChange={handleChange}
-      placeholder="Match against"
+      placeholder="Match against (wildcards supproted)"
       value={state.wildcard}
     />
   )
@@ -276,7 +254,7 @@ function TextFilterWidget({
   return (
     <FiltersUI.TextField
       onChange={handleChange}
-      placeholder="Match against"
+      placeholder="Search for"
       value={state.queryString}
     />
   )
@@ -616,7 +594,6 @@ function AvailablePackagesMetaFilters({
     [filtered],
   )
 
-  // TODO: lock when fetching
   return (
     <div className={className}>
       {filters.length > FACETS_THRESHOLD && (
