@@ -10,6 +10,10 @@ import * as Suggestions from './Suggestions/model'
 
 export const expandAnimationDuration = 200
 
+function nextTick(callback: () => void) {
+  setTimeout(callback, 0)
+}
+
 function useUrlQuery() {
   const { paths } = NamedRoutes.use()
   const location = useLocation()
@@ -68,21 +72,6 @@ function useSearchState(bucket?: string): SearchState {
     setHelpOpen(false)
   }, [])
 
-  const handleHelpClose = React.useCallback(() => setHelpOpen(false), [])
-
-  const onHelpToggle = React.useCallback(() => {
-    if (helpOpen) {
-      handleHelpClose()
-      return
-    }
-    if (expanded) {
-      handleHelpOpen()
-    } else {
-      handleExpand()
-      setTimeout(handleHelpOpen, expandAnimationDuration + 100)
-    }
-  }, [expanded, helpOpen, handleExpand, handleHelpClose, handleHelpOpen])
-
   const handleSubmit = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       event.preventDefault()
@@ -138,20 +127,21 @@ function useSearchState(bucket?: string): SearchState {
 
   const reset = React.useCallback(() => {
     change('')
-    setFocusTrigger((n) => n + 1)
+    // NOTE: wait for location change (making help closed),
+    //       then focus
+    // FIXME: find out better solution
+    nextTick(() => setFocusTrigger((n) => n + 1))
   }, [])
 
   const isExpanded = expanded || !!searchUIModel
-  const isSuggestionsOpened = helpOpen && Array.isArray(suggestions.items)
   const focusTriggeredCount = isExpanded ? focusTrigger : 0
   return {
     input: {
       expanded: isExpanded,
       focusTrigger: focusTriggeredCount,
-      helpOpen: isSuggestionsOpened,
+      helpOpen,
       onChange,
       onFocus: handleExpand,
-      onHelpToggle,
       onKeyDown,
       value: value === null ? query : value,
     },
