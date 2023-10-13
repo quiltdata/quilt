@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
+import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import MetaTitle from 'utils/MetaTitle'
@@ -1210,7 +1211,7 @@ function ResultsCount() {
   const r = SearchUIModel.use().firstPageQuery
   switch (r._tag) {
     case 'fetching':
-      return <M.CircularProgress size={24} />
+      return <Skeleton width={140} height={24} />
     case 'error':
       return null
     case 'data':
