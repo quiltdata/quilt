@@ -3006,27 +3006,6 @@ export default {
               },
             ],
           },
-          {
-            name: 'userMetaFacet',
-            type: {
-              kind: 'UNION',
-              name: 'PackageUserMetaFacet',
-              ofType: null,
-            },
-            args: [
-              {
-                name: 'path',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'String',
-                    ofType: null,
-                  },
-                },
-              },
-            ],
-          },
         ],
         interfaces: [],
       },

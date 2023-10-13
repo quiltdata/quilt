@@ -704,16 +704,11 @@ export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
   readonly stats: PackagesSearchStats
   readonly firstPage: PackagesSearchResultSetPage
-  readonly userMetaFacet: Maybe<PackageUserMetaFacet>
 }
 
 export interface PackagesSearchResultSetfirstPageArgs {
   size?: Maybe<Scalars['Int']>
   order: Maybe<SearchResultOrder>
-}
-
-export interface PackagesSearchResultSetuserMetaFacetArgs {
-  path: Scalars['String']
 }
 
 export interface PackagesSearchResultSetPage {
