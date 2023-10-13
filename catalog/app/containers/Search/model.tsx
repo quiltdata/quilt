@@ -529,6 +529,22 @@ class UserMetaFilters {
   }
 }
 
+function parseResultType(t: string | null, legacy: string | null): ResultType {
+  switch (legacy) {
+    case 'packages':
+      return ResultType.QuiltPackage
+    case 'objects':
+      return ResultType.S3Object
+  }
+  switch (t) {
+    case ResultType.QuiltPackage:
+      return ResultType.QuiltPackage
+    case ResultType.S3Object:
+      return ResultType.S3Object
+  }
+  return DEFAULT_RESULT_TYPE
+}
+
 const META_PREFIX = 'meta.'
 
 // XXX: use io-ts or @effect/schema for morphisms between url (querystring) and search state
@@ -536,11 +552,7 @@ export function parseSearchParams(qs: string): SearchUrlState {
   const params = new URLSearchParams(qs)
   const searchString = params.get('q')
 
-  // XXX: support legacy "mode" param
-  const resultTypeInput = params.get('t')
-  const resultType = Object.values(ResultType).includes(resultTypeInput as any)
-    ? (resultTypeInput as ResultType)
-    : DEFAULT_RESULT_TYPE
+  const resultType = parseResultType(params.get('t'), params.get('mode'))
 
   const bucketsInput = params.get('b')
   const buckets = bucketsInput ? bucketsInput.split(',').sort() : []
