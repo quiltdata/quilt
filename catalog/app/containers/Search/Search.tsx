@@ -1202,7 +1202,7 @@ function ResultsCount() {
               <Format.Plural
                 value={r.data.stats.total}
                 one="1 result"
-                other={(n) => `${n > 0 ? n : 'Search'} results`}
+                other={(n) => (n > 0 ? `${n} results` : 'Results')}
               />
             </ColumnTitle>
           )
