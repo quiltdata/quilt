@@ -1,4 +1,4 @@
-"""Provides admin-only functions for Quilt."""
+"""APIs for Quilt administrators. 'Registry' refers to Quilt stack backend services, including identity management."""
 import typing as T
 
 from .session import get_registry_url, get_session
@@ -6,7 +6,7 @@ from .session import get_registry_url, get_session
 
 def create_user(*, username: str, email: str):
     """
-    Create a new user in your registry.
+    Create a new user in the registry.
 
     Required parameters:
         username (str): Username of user to create.
@@ -24,7 +24,7 @@ def create_user(*, username: str, email: str):
 
 def delete_user(*, username: str):
     """
-    Delete user from your registry.
+    Delete user from the registry.
 
     Required parameters:
         username (str): Username of user to delete.
@@ -40,11 +40,11 @@ def delete_user(*, username: str):
 
 def set_role(*, username: str, role_name: T.Optional[str]):
     """
-    Set which role is associated with a user.
+    Set the named Quilt role for a user.
 
     Required parameters:
         username (str): Username of user to update.
-        role_name (str): Role name to set for the user. Use `None` to unset role.
+        role_name (str): Quilt role name assign to the user. Set a `None` value to unassign the role.
     """
     session = get_session()
     session.post(

@@ -1,6 +1,6 @@
 
 # quilt3.admin
-Provides admin-only functions for Quilt.
+Admin APIs for Quilt stacks.
 
 ## create\_user(\*, username: str, email: str)  {#create\_user}
 
