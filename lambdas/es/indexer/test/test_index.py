@@ -1950,7 +1950,6 @@ def test_get_metadata_fields_values_ignored(src_value):
     ) == []
 
 
-
 @pytest.mark.parametrize(
     "metadata, expected_json_pointer",
     [
