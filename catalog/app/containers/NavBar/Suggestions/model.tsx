@@ -31,7 +31,7 @@ const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): I
       </>
     ) : (
       <>
-        Search <b>packages</b> in <b>all buckets</b>
+        Search any <b>package</b> in <b>all buckets</b>
       </>
     ),
     url: makeUrl({
@@ -47,7 +47,7 @@ const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): I
       </>
     ) : (
       <>
-        Search <b>objects</b> in <b>all buckets</b>
+        Search any <b>object</b> in <b>all buckets</b>
       </>
     ),
     url: makeUrl({
@@ -70,7 +70,7 @@ const inBucket = (
       </>
     ) : (
       <>
-        Search <b>packages</b> in <b>s3://{bucket}</b>
+        Search any <b>package</b> in <b>s3://{bucket}</b>
       </>
     ),
     url: makeUrl({
@@ -87,7 +87,7 @@ const inBucket = (
       </>
     ) : (
       <>
-        Search <b>objects</b> in <b>s3://{bucket}</b>
+        Search any <b>object</b> in <b>s3://{bucket}</b>
       </>
     ),
     url: makeUrl({
