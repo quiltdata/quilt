@@ -25,7 +25,7 @@ export type ComponentProps = React.PropsWithChildren<{ className?: string }>
 const useColumnTitleStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.h6,
-    lineHeight: 1.2,
+    lineHeight: `${t.spacing(4.5)}px`,
   },
 }))
 
@@ -949,9 +949,6 @@ const useFiltersStyles = M.makeStyles((t) => ({
     // padding: t.spacing(0.5, 0, 0),
     // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
-  title: {
-    marginTop: t.spacing(1.5),
-  },
   variable: {
     marginTop: t.spacing(1),
     overflow: 'hidden auto',
@@ -963,7 +960,7 @@ function Filters() {
   const model = SearchUIModel.use()
   return (
     <div className={classes.root}>
-      <ColumnTitle className={classes.title}>Search for</ColumnTitle>
+      <ColumnTitle>Search for</ColumnTitle>
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -1276,7 +1273,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridColumnGap: t.spacing(2),
     gridTemplateColumns: `${t.spacing(40)}px auto`,
-    padding: t.spacing(2, 3),
+    padding: t.spacing(3),
   },
 }))
 
