@@ -941,6 +941,7 @@ const useFiltersStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridRowGap: t.spacing(2),
     gridTemplateRows: 'auto',
+    paddingBottom: t.spacing(12), // space reserved for "Scroll to top"
     // TODO: Make scroll for sidebar
     // TODO: Also, consider that buckets filter disappears
     // overflow: 'hidden auto',
