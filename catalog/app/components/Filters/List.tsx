@@ -48,6 +48,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   filter: {
     background: t.palette.background.paper,
+    borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0 `,
     '& + $scrollArea': {
       borderWidth: '0 1px 1px',
       borderRadius: `0 0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px`,
