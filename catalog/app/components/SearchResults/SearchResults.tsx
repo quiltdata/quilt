@@ -1,3 +1,4 @@
+// XXX: revisit: remove obsolete, merge into containers/Search
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
