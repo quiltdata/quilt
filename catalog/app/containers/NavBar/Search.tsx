@@ -149,11 +149,14 @@ function Search(props: SearchProps) {
   const helpClasses = useHelpStyles()
   const navbarState = useNavBar()
   if (!navbarState) return <SearchNotAvailable />
-  const { input, onClickAway } = navbarState
+  const {
+    input: { helpOpen, ...input },
+    onClickAway,
+  } = navbarState
 
   return (
     <Container onClickAway={onClickAway}>
-      <Suggestions classes={helpClasses} open={input.helpOpen} />
+      <Suggestions classes={helpClasses} open={helpOpen} />
       <SearchInput placeholder="Search" {...input} {...props} />
     </Container>
   )
