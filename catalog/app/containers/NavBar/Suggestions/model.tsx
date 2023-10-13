@@ -2,13 +2,14 @@ import * as React from 'react'
 
 import * as SearchUIModel from 'containers/Search/model'
 
-export type Item =
-  | {
-      key: string
-      title: React.ReactNode
-      url: string
-    }
-  | string
+const { QuiltPackage, S3Object } = SearchUIModel.ResultType
+
+export interface Suggestion {
+  key: string
+  what: React.ReactNode
+  where: React.ReactNode
+  url: string
+}
 
 function useMakeUrl() {
   const makeUrl = SearchUIModel.useMakeUrl()
@@ -24,18 +25,40 @@ function useMakeUrl() {
   )
 }
 
-const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): Item[] => [
+function what(searchString: string, resultType: SearchUIModel.ResultType) {
+  const typeDisplay =
+    resultType === SearchUIModel.ResultType.QuiltPackage ? 'packages' : 'objects'
+  return searchString ? (
+    <>
+      <b>"{searchString}"</b> in <b>{typeDisplay}</b>
+    </>
+  ) : (
+    <b>all {typeDisplay}</b>
+  )
+}
+
+const inAllBuckets = (
+  <>
+    in <b>all buckets</b>
+  </>
+)
+const inSelectedBuckets = (buckets: string[]) => {
+  const bucketsDisplay = buckets.length === 1 ? `s3://${buckets[0]}` : 'selected buckets'
+  return (
+    <>
+      in <b>{bucketsDisplay}</b>
+    </>
+  )
+}
+
+const global = (
+  searchString: string,
+  makeUrl: ReturnType<typeof useMakeUrl>,
+): Suggestion[] => [
   {
     key: 'global-packages',
-    title: searchString ? (
-      <>
-        Search <b>"{searchString}"</b> in <b>packages</b> in <b>all buckets</b>
-      </>
-    ) : (
-      <>
-        Search <b>all packages</b> in <b>all buckets</b>
-      </>
-    ),
+    what: what(searchString, QuiltPackage),
+    where: inAllBuckets,
     url: makeUrl({
       searchString,
       resultType: SearchUIModel.ResultType.QuiltPackage,
@@ -43,15 +66,8 @@ const global = (searchString: string, makeUrl: ReturnType<typeof useMakeUrl>): I
   },
   {
     key: 'global-objects',
-    title: searchString ? (
-      <>
-        Search <b>"{searchString}"</b> in <b>objects</b> in <b>all buckets</b>
-      </>
-    ) : (
-      <>
-        Search <b>all object</b> in <b>all buckets</b>
-      </>
-    ),
+    what: what(searchString, S3Object),
+    where: inAllBuckets,
     url: makeUrl({
       searchString,
       resultType: SearchUIModel.ResultType.S3Object,
@@ -63,18 +79,11 @@ const inBucket = (
   searchString: string,
   makeUrl: ReturnType<typeof useMakeUrl>,
   bucket: string,
-): Item[] => [
+): Suggestion[] => [
   {
     key: 'bucket-packages',
-    title: searchString ? (
-      <>
-        Search <b>"{searchString}"</b> in <b>packages</b> in <b>s3://{bucket}</b>
-      </>
-    ) : (
-      <>
-        Search <b>all packages</b> in <b>s3://{bucket}</b>
-      </>
-    ),
+    what: what(searchString, QuiltPackage),
+    where: inSelectedBuckets([bucket]),
     url: makeUrl({
       searchString,
       buckets: [bucket],
@@ -83,15 +92,8 @@ const inBucket = (
   },
   {
     key: 'bucket-objects',
-    title: searchString ? (
-      <>
-        Search <b>"{searchString}"</b> in <b>objects</b> in <b>s3://{bucket}</b>
-      </>
-    ) : (
-      <>
-        Search <b>all objects</b> in <b>s3://{bucket}</b>
-      </>
-    ),
+    what: what(searchString, S3Object),
+    where: inSelectedBuckets([bucket]),
     url: makeUrl({
       searchString,
       buckets: [bucket],
@@ -101,45 +103,60 @@ const inBucket = (
   ...global(searchString, makeUrl),
 ]
 
-function getEmptyFilter(resultType: SearchUIModel.ResultType) {
-  const empty = new URLSearchParams()
-  return resultType === SearchUIModel.ResultType.S3Object
-    ? SearchUIModel.ObjectsSearchFilterIO.fromURLSearchParams(empty)
-    : SearchUIModel.PackagesSearchFilterIO.fromURLSearchParams(empty)
-}
-
 const inSearch = (
   searchString: string,
   makeUrl: ReturnType<typeof useMakeUrl>,
   model: SearchUIModel.SearchUIModel,
-): Item[] => [
-  searchString
-    ? {
-        key: 'preserve-filters',
-        title: (
-          <>
-            Search <b>"{searchString}"</b> with current settings
-          </>
-        ),
-        url: makeUrl({ ...model.state, searchString }),
-      }
-    : makeUrl({ ...model.state, searchString }),
-  {
-    key: 'reset-filters',
-    title: searchString ? (
-      <>
-        Reset filters and search <b>"{searchString}"</b>
-      </>
-    ) : (
-      <>Reset filters</>
-    ),
-    url: makeUrl({
-      ...model.state,
-      searchString,
-      filter: getEmptyFilter(model.state.resultType),
-    } as SearchUIModel.SearchUrlState),
-  },
-]
+): Suggestion[] => {
+  const otherType = model.state.resultType === QuiltPackage ? S3Object : QuiltPackage
+  const items = [
+    {
+      key: 'current-settings',
+      what: what(searchString, model.state.resultType),
+      where: (
+        <>
+          with <b>current settings</b>
+        </>
+      ),
+      url: makeUrl({ ...model.state, searchString }),
+    },
+  ]
+  if (model.state.buckets.length)
+    items.push({
+      key: 'same-type-selected-buckets',
+      what: what(searchString, model.state.resultType),
+      where: inSelectedBuckets(model.state.buckets),
+      url: makeUrl({
+        searchString,
+        resultType: model.state.resultType,
+        buckets: model.state.buckets,
+      }),
+    })
+  items.push({
+    key: 'same-type-all-buckets',
+    what: what(searchString, model.state.resultType),
+    where: inAllBuckets,
+    url: makeUrl({ searchString, resultType: model.state.resultType }),
+  })
+  if (model.state.buckets.length)
+    items.push({
+      key: 'other-type-selected-buckets',
+      what: what(searchString, otherType),
+      where: inSelectedBuckets(model.state.buckets),
+      url: makeUrl({
+        searchString,
+        resultType: otherType,
+        buckets: model.state.buckets,
+      }),
+    })
+  items.push({
+    key: 'other-type-all-buckets',
+    what: what(searchString, otherType),
+    where: inAllBuckets,
+    url: makeUrl({ searchString, resultType: otherType }),
+  })
+  return items
+}
 
 function useItems(
   searchString: string,

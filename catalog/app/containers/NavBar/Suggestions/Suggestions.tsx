@@ -5,7 +5,13 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 
 import { useNavBar } from '../Provider'
-import type { Item } from './model'
+import type { Suggestion } from './model'
+
+const displaySuggestion = (s: Suggestion) => (
+  <>
+    Search {s.what} {s.where}
+  </>
+)
 
 const useSuggestionsStyles = M.makeStyles((t) => ({
   item: {
@@ -14,7 +20,7 @@ const useSuggestionsStyles = M.makeStyles((t) => ({
 }))
 
 interface SuggestionsProps {
-  items: Item[]
+  items: Suggestion[]
   selected: number
 }
 
@@ -22,22 +28,18 @@ function SuggestionsList({ items, selected }: SuggestionsProps) {
   const classes = useSuggestionsStyles()
   return (
     <M.List>
-      {items.map((item, index) => {
-        if (typeof item === 'string') return null
-        const { key, title, url } = item
-        return (
-          <M.MenuItem
-            button
-            className={classes.item}
-            component={Link}
-            key={key}
-            selected={selected === index}
-            to={url}
-          >
-            <M.ListItemText primary={title} />
-          </M.MenuItem>
-        )
-      })}
+      {items.map((item, index) => (
+        <M.MenuItem
+          button
+          className={classes.item}
+          component={Link}
+          key={item.key}
+          selected={selected === index}
+          to={item.url}
+        >
+          <M.ListItemText primary={displaySuggestion(item)} />
+        </M.MenuItem>
+      ))}
     </M.List>
   )
 }
