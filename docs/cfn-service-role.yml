@@ -1,3 +1,7 @@
+Outputs:
+  Role:
+    Value: !GetAtt 'CloudFormationServiceRole.Arn'
+
 Resources:
   QuiltCloudFormationServiceRole:
     Type: AWS::IAM::Role
@@ -82,6 +86,7 @@ Resources:
                   - ecs:DescribeClusters
                   - ecs:DescribeServices
                   - ecs:RegisterTaskDefinition
+                  - ecs:UpdateService
                   - elasticloadbalancing:CreateListener
                   - elasticloadbalancing:CreateLoadBalancer
                   - elasticloadbalancing:CreateRule
@@ -99,6 +104,8 @@ Resources:
                   - es:CreateElasticsearchDomain
                   - es:DeleteElasticsearchDomain
                   - es:DescribeElasticsearchDomain
+                  - es:UpdateDomainConfig
+                  - es:UpdateElasticsearchDomainConfig
                   - events:DeleteRule
                   - events:DescribeRule
                   - events:PutRule
@@ -108,10 +115,12 @@ Resources:
                   - glue:CreateTable
                   - glue:DeleteDatabase
                   - glue:DeleteTable
+                  - kms:*
                   - iam:AddRoleToInstanceProfile
                   - iam:AttachRolePolicy
                   - iam:CreateInstanceProfile
                   - iam:CreatePolicy
+                  - iam:CreatePolicyVersion
                   - iam:CreateRole
                   - iam:DeleteInstanceProfile
                   - iam:DeletePolicy
@@ -160,17 +169,30 @@ Resources:
                   - s3:CreateBucket
                   - s3:DeleteBucket
                   - s3:DeleteBucketPolicy
+                  - s3:GetBucketOwnershipControls
                   - s3:GetBucketPolicy
                   - s3:GetObject
                   - s3:PutBucketCORS
+                  - s3:PutBucketOwnershipControls
                   - s3:PutBucketPolicy
+                  - s3:PutBucketPublicAccessBlock
                   - s3:PutBucketVersioning
                   - s3:PutLifecycleConfiguration
+                  - sns:CreateTopic
+                  - sns:DeleteTopic
+                  - sns:GetTopicAttributes
                   - sns:Publish  # To publish to CFN notification topic.
+                  - sns:SetTopicAttributes
                   - sqs:CreateQueue
                   - sqs:DeleteQueue
                   - sqs:GetQueueAttributes
+                  - sqs:GetQueueUrl
+                  - sqs:ListDeadLetterSourceQueues
+                  - sqs:ListQueues
+                  - sqs:ListQueueTags
+                  - sqs:SetQueueAttributes
                   - ssm:DeleteParameter
                   - ssm:GetParameters
                   - ssm:PutParameter
+                  - synthetics:*
                 Resource: '*'
