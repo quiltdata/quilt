@@ -29,7 +29,7 @@ export function useCreateFileInBucket(bucket: string, path: string) {
   )
 
   const createFile = React.useCallback(
-    (name: string) => {
+    (_e, name: string) => {
       if (!name) return
       history.push(toFile(name))
     },
@@ -62,7 +62,7 @@ export function useCreateFileInPackage({ bucket, name }: PackageHandle, prefix?:
   )
 
   const createFile = React.useCallback(
-    (fileName: string) => {
+    (_e, fileName: string) => {
       if (!fileName) return
       history.push(toFile(fileName))
     },

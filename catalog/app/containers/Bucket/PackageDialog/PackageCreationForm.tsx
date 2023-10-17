@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
@@ -75,6 +74,7 @@ function filesStateToEntries(files: FI.FilesState): PD.ValidationEntry[] {
     R.omit(Object.keys(files.deleted)),
     Object.entries,
     R.map(([path, file]) => ({
+      conflict: file.conflict,
       logical_key: path,
       meta: file.meta?.user_meta || {},
       size: file.size,
@@ -222,9 +222,8 @@ function PackageCreationForm({
 
   const dialogs = Dialogs.use()
 
-  const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
-    null,
-  )
+  const [entriesError, setEntriesError] =
+    React.useState<PD.EntriesValidationErrors | null>(null)
 
   const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
 
@@ -324,7 +323,7 @@ function PackageCreationForm({
     if (error?.length) {
       setEntriesError(error)
       return {
-        files: 'schema',
+        files: error[0] instanceof PD.EntryNameError ? 'conflict' : 'schema',
       }
     }
 
@@ -457,7 +456,7 @@ function PackageCreationForm({
       setEntriesError(errors || null)
       setFilesDisabled(false)
       if (errors?.length) {
-        return 'schema'
+        return errors[0] instanceof PD.EntryNameError ? 'conflict' : 'schema'
       }
     },
     [delayHashing, validateEntries],
@@ -611,6 +610,8 @@ function PackageCreationForm({
                       validate={validateFiles as FF.FieldValidator<$TSFixMe>}
                       validateFields={['files']}
                       errors={{
+                        conflict:
+                          'There are files with identical names. Rename or remove them please',
                         schema: 'Files should match schema',
                         [FI.HASHING]: 'Please wait while we hash the files',
                         [FI.HASHING_ERROR]:
