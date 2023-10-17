@@ -13,6 +13,7 @@ then
     exit 1
 fi
 
+cp /etc/ssl/cert.pem /etc/nginx/certs.pem
 if [ $CERTIFICATE_ARN ]
 then
     aws --region $(echo $CERTIFICATE_ARN | cut -d ":" -f 4) acm get-certificate --certificate-arn $CERTIFICATE_ARN --output text --query "join('', [Certificate, CertificateChain])" >> /etc/nginx/certs.pem

@@ -1,0 +1,27 @@
+query ($after: String!) {
+  searchMoreObjects(after: $after) {
+    __typename
+    ... on ObjectsSearchResultSetPage {
+      cursor
+      hits {
+        __typename
+        id
+        bucket
+        score
+        size
+        modified
+        key
+        version
+        deleted
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

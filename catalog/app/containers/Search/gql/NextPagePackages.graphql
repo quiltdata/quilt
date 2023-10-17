@@ -1,0 +1,29 @@
+query ($after: String!) {
+  searchMorePackages(after: $after) {
+    __typename
+    ... on PackagesSearchResultSetPage {
+      cursor
+      hits {
+        __typename
+        id
+        bucket
+        score
+        size
+        modified
+        name
+        hash
+        comment
+        meta
+        workflow
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@ import * as BucketConfig from 'utils/BucketConfig'
 import BucketSelect from './BucketSelect'
 import Collaborators from './Collaborators'
 import Search from './Search'
+import { useNavBar } from './Provider'
 
 const useBucketDisplayStyles = M.makeStyles((t) => ({
   root: {
@@ -68,11 +69,22 @@ function GlobalControls({ iconized }) {
   const cancel = React.useCallback(() => {
     setState(null)
   }, [setState])
+  const model = useNavBar()
+  React.useEffect(() => {
+    if (model?.input.expanded === undefined) return
+    if (model.input.expanded) {
+      search()
+    } else {
+      cancel()
+    }
+  }, [model?.input.expanded, cancel, search])
 
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
-      <BucketSelect display={state === 'search' ? 'none' : undefined} />
-      <Search onFocus={search} onBlur={cancel} iconized={iconized} />
+      <M.Fade in={state !== 'search'}>
+        <BucketSelect />
+      </M.Fade>
+      <Search iconized={iconized} />
     </Container>
   )
 }
@@ -88,6 +100,15 @@ function BucketControls({ bucket, iconized }) {
   const cancel = React.useCallback(() => {
     setState(null)
   }, [setState])
+  const model = useNavBar()
+  React.useEffect(() => {
+    if (model?.input.expanded === undefined) return
+    if (model.input.expanded) {
+      search()
+    } else {
+      cancel()
+    }
+  }, [model?.input.expanded, cancel, search])
 
   const selectRef = React.useRef()
   const focusSelect = React.useCallback(() => {
@@ -100,13 +121,7 @@ function BucketControls({ bucket, iconized }) {
       {cfg.mode === 'PRODUCT' && (
         <Collaborators bucket={bucket} hidden={state === 'search'} />
       )}
-      <Search
-        bucket={bucket}
-        onFocus={search}
-        onBlur={cancel}
-        hidden={state === 'select'}
-        iconized={iconized}
-      />
+      <Search hidden={state === 'select'} iconized={iconized} />
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
       </M.Fade>

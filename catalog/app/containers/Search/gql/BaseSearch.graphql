@@ -1,0 +1,83 @@
+query ($buckets: [String!], $searchString: String) {
+  searchPackages(buckets: $buckets, searchString: $searchString) {
+    __typename
+    ... on PackagesSearchResultSet {
+      stats {
+        total
+        modified {
+          min
+          max
+        }
+        size {
+          min
+          max
+        }
+        entries {
+          min
+          max
+        }
+        workflow {
+          values
+        }
+        userMeta {
+          __typename
+          ... on IPackageUserMetaFacet {
+            path
+          }
+          ... on NumberPackageUserMetaFacet {
+            numberExtents: extents {
+              min
+              max
+            }
+          }
+          ... on DatetimePackageUserMetaFacet {
+            datetimeExtents: extents {
+              min
+              max
+            }
+          }
+          ... on KeywordPackageUserMetaFacet {
+            extents {
+              values
+            }
+          }
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+  searchObjects(buckets: $buckets, searchString: $searchString) {
+    __typename
+    ... on ObjectsSearchResultSet {
+      stats {
+        total
+        modified {
+          min
+          max
+        }
+        size {
+          min
+          max
+        }
+        ext {
+          values
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

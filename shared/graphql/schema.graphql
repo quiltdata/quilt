@@ -11,6 +11,11 @@ scalar PackageContentsFlatMap
 # bucket + key + version (aka physical key)
 scalar S3ObjectLocation
 
+enum SortDirection {
+  ASC
+  DESC
+}
+
 type OperationError {
   message: String!
   name: String!
@@ -269,6 +274,196 @@ type BrowsingSession {
   expires: Datetime!
 }
 
+enum SearchResultOrder {
+  BEST_MATCH
+  NEWEST
+  OLDEST
+}
+
+type DatetimeExtents {
+  min: Datetime!
+  max: Datetime!
+}
+
+type NumberExtents {
+  min: Float!
+  max: Float!
+}
+
+type KeywordExtents {
+  values: [String!]!
+}
+
+interface IPackageUserMetaFacet {
+  path: String!
+}
+
+type NumberPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: NumberExtents!
+}
+
+type DatetimePackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: DatetimeExtents!
+}
+
+type KeywordPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+  extents: KeywordExtents!
+}
+
+type TextPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+}
+
+type BooleanPackageUserMetaFacet implements IPackageUserMetaFacet {
+  path: String!
+}
+
+union PackageUserMetaFacet =
+  | NumberPackageUserMetaFacet
+  | DatetimePackageUserMetaFacet
+  | KeywordPackageUserMetaFacet
+  | TextPackageUserMetaFacet
+  | BooleanPackageUserMetaFacet
+
+type PackagesSearchResultSetPage {
+  cursor: String
+  hits: [SearchHitPackage!]!
+}
+
+type ObjectsSearchResultSetPage {
+  cursor: String
+  hits: [SearchHitObject!]!
+}
+
+input DatetimeSearchPredicate {
+  gte: Datetime
+  lte: Datetime
+}
+
+input NumberSearchPredicate {
+  gte: Float
+  lte: Float
+}
+
+input TextSearchPredicate {
+  queryString: String!
+}
+
+input KeywordSearchPredicate {
+  terms: [String!]
+  wildcard: String
+}
+
+input BooleanSearchPredicate {
+  true: Boolean
+  false: Boolean
+}
+
+input PackageUserMetaPredicate {
+  path: String!
+  # one of the following
+  datetime: DatetimeSearchPredicate
+  number: NumberSearchPredicate
+  text: TextSearchPredicate
+  keyword: KeywordSearchPredicate
+  boolean: BooleanSearchPredicate
+}
+
+input ObjectsSearchFilter {
+  modified: DatetimeSearchPredicate
+  size: NumberSearchPredicate
+  ext: KeywordSearchPredicate
+  key: KeywordSearchPredicate
+  content: TextSearchPredicate
+  deleted: BooleanSearchPredicate
+}
+
+input PackagesSearchFilter {
+  modified: DatetimeSearchPredicate
+  size: NumberSearchPredicate
+  name: KeywordSearchPredicate
+  hash: KeywordSearchPredicate
+  entries: NumberSearchPredicate
+  comment: TextSearchPredicate
+  workflow: KeywordSearchPredicate
+}
+
+type ObjectsSearchStats {
+  total: Int!
+  modified: DatetimeExtents!
+  size: NumberExtents!
+  ext: KeywordExtents!
+}
+
+type PackagesSearchStats {
+  total: Int!
+  modified: DatetimeExtents!
+  size: NumberExtents!
+  entries: NumberExtents!
+  workflow: KeywordExtents!
+  userMeta: [PackageUserMetaFacet!]!
+}
+
+type ObjectsSearchResultSet {
+  stats: ObjectsSearchStats!
+  firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
+}
+
+type PackagesSearchResultSet {
+  stats: PackagesSearchStats!
+  firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
+  # XXX: do we need this at all? do we need to accept type here?
+  # userMetaFacet(path: String!): PackageUserMetaFacet
+}
+
+type EmptySearchResultSet {
+  _: Boolean
+}
+
+union PackagesSearchResult = PackagesSearchResultSet | EmptySearchResultSet | InvalidInput
+
+union ObjectsSearchResult = ObjectsSearchResultSet | EmptySearchResultSet | InvalidInput
+
+union PackagesSearchMoreResult = PackagesSearchResultSetPage | InvalidInput
+
+union ObjectsSearchMoreResult = ObjectsSearchResultSetPage | InvalidInput
+
+type SearchHitObject {
+  id: ID!
+  bucket: String!
+  score: Float!
+  size: Float!
+  modified: Datetime!
+
+  key: String!
+  version: String!
+
+  deleted: Boolean!
+  # meta: JsonRecord! # String?
+  # tags
+}
+
+# TODO: reuse package types?
+type SearchHitPackage {
+  id: ID!
+  bucket: String!
+  score: Float!
+  size: Float!
+  modified: Datetime!
+
+  name: String!
+  hash: String!
+
+  # specific props
+  comment: String
+  meta: JsonRecord # user_meta
+  workflow: JsonRecord
+  # tags: [String!]! // TODO: currently not provided
+}
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -276,6 +471,19 @@ type Query {
   potentialCollaborators: [Collaborator!]!
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
+  searchObjects(
+    buckets: [String!]
+    searchString: String
+    filter: ObjectsSearchFilter
+  ): ObjectsSearchResult!
+  searchPackages(
+    buckets: [String!]
+    searchString: String
+    filter: PackagesSearchFilter
+    userMetaFilters: [PackageUserMetaPredicate!]
+  ): PackagesSearchResult!
+  searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
+  searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
@@ -551,10 +759,7 @@ union PackageConstructResult =
   | InvalidInput
   | OperationError
 
-union PackagePromoteResult =
-    PackagePushSuccess
-  | InvalidInput
-  | OperationError
+union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
 
 union PackageFromFolderResult =
     PackagePushSuccess
@@ -604,7 +809,8 @@ type Mutation {
   policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
   policyCreateUnmanaged(input: UnmanagedPolicyInput!): PolicyResult! @admin
   policyUpdateManaged(id: ID!, input: ManagedPolicyInput!): PolicyResult! @admin
-  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult! @admin
+  policyUpdateUnmanaged(id: ID!, input: UnmanagedPolicyInput!): PolicyResult!
+    @admin
   policyDelete(id: ID!): PolicyDeleteResult! @admin
 
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
@@ -615,7 +821,13 @@ type Mutation {
   roleDelete(id: ID!): RoleDeleteResult! @admin
   roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
 
-  browsingSessionCreate(scope: String!, ttl: Int! = 180): BrowsingSessionCreateResult!
-  browsingSessionRefresh(id: ID!, ttl: Int! = 180): BrowsingSessionRefreshResult!
+  browsingSessionCreate(
+    scope: String!
+    ttl: Int! = 180
+  ): BrowsingSessionCreateResult!
+  browsingSessionRefresh(
+    id: ID!
+    ttl: Int! = 180
+  ): BrowsingSessionRefreshResult!
   browsingSessionDispose(id: ID!): BrowsingSessionDisposeResult!
 }
