@@ -28,11 +28,20 @@ SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
 ![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
 
 ### Network
-![](imgs/aws-diagram-network.png)
-> The above diagram is for _general guidance only_. See below for details.
+
+<p float="left">
+  <img src="imgs/network_public.png" width="100" />
+  <img src="imgs/network_private.png" width="295" /> 
+</p>
+
 
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
-create its own subnets. In both cases Quilt uses subnets and security groups
+create its own subnets.
+
+> If you provide the VPC you are free to reuse subnets across parameters. For example:
+> `UserSubnets` and `PrivateSubnets` may refer to the same two subnets
+
+In both cases Quilt uses subnets and security groups
 to isolate network services. You may optionally provide your own VPC CIDR block
 with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
 peered VPC services.
