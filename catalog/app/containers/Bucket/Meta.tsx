@@ -21,10 +21,6 @@ interface MetaData {
   version?: string
 }
 
-const errorHandler = (error: Error) => (
-  <Lab.Alert severity="error">{error.message}</Lab.Alert>
-)
-
 const noop = () => null
 
 const useHeadCellStyles = M.makeStyles((t) => ({
@@ -168,7 +164,7 @@ export function ObjectMeta({ handle }: ObjectMetaProps) {
   })
   return metaData.case({
     Ok: (meta?: JsonRecord) => <ObjectMetaSection meta={meta} title="S3 Metadata" />,
-    Err: errorHandler,
+    Err: (e: Error) => <Lab.Alert severity="error">S3 Metadata: {e.message}</Lab.Alert>,
     _: noop,
   })
 }
@@ -199,7 +195,9 @@ export function ObjectTags({ handle }: ObjectTagsProps) {
   })
   return tagsData.case({
     Ok: (tags: Record<string, string>) => <ObjectTagsSection tags={tags} />,
-    Err: errorHandler,
+    Err: (e: Error) => (
+      <Lab.Alert severity="error">S3 Object Tags: {e.message}</Lab.Alert>
+    ),
     _: noop,
   })
 }
