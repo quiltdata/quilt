@@ -32,7 +32,7 @@ services within the VPC.
 
 > You can use a combination of interface endpoints and gateway endpoints to
 > restrict the data plane traffic shown above to your VPC.
-> See [Private endpoint access][advanced-features/private-endpoint-access.md] for more.
+> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
 
 ### Network
 
@@ -49,7 +49,7 @@ create its own network.
 > you can use the same subnets for "Private subnets (services)" as "Private intra
 > subnets (no Internet)" at the cost of a weaker security posture.
 
-In both cases You may optionally provide your own VPC CIDR block
+You may optionally provide your own VPC CIDR block
 with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
 peered VPC services.
 
