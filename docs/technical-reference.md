@@ -72,12 +72,6 @@ OpenSearch domain
 (1/8 of the VPC CIDR)
 - (1/8 of the VPC CIDR is free)
 
-> Your Quilt instance contains _exactly one_ application load balancer that is
-> either inward or internet-facing.
-
-> If you provide the private subnets they are expected to route outbound
-> requests to AWS services via a NAT Gateway.
-
 > For cost-sensitive deployments, Quilt ECS services can be configured to use
 > a single AZ.
 
