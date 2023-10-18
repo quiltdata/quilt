@@ -36,7 +36,7 @@ services within the VPC.
 
 ### Network
 
-A private stack with an inward-facing load balancer is shown above.
+A private stack with an inward load balancer is shown above.
 For an internet-facing load balancer the data plane remains the same and the network
 is similar to the following.
 
