@@ -25,10 +25,15 @@ Each instance consists of a CloudFormation stack that is privately hosted in you
 AWS account. The stack includes backend services for the web catalog, single sign-on,
 user identification and access, an ElasticSearch cluster, and more.
 
-Quilt uses subnets and security groups to isolate network services and runs most
+Quilt uses subnets and security groups to isolate network services and runs key
 services within the VPC.
 
-![Architecture Diagram](imgs/arch_private.png)
+![Architecture (private ELBv2)](imgs/network_private.png)
+
+A private stack with an inward load balancer is shown above.
+For an internet-facing load balancer the data plane remains the same, as shown below.
+
+![Architecture (public ELBv2)](imgs/network_public.png)
 
 > You can use a combination of interface endpoints and gateway endpoints to
 > restrict the data plane traffic shown above to your VPC.
@@ -36,11 +41,6 @@ services within the VPC.
 
 ### Network
 
-A private stack with an inward load balancer is shown above.
-For an internet-facing load balancer the data plane remains the same and the network
-is similar to the following.
-
-![](imgs/network_public.png)
 
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
 create its own network.
