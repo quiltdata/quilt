@@ -29,7 +29,7 @@ SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
 
 ### Network
 
-#### Privtate load balancer
+#### Private load balancer
 ![](imgs/network_private.png)
 
 #### Public load balancer
