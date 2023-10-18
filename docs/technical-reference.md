@@ -40,7 +40,7 @@ create its own network.
 
 > If you provide the VPC you are free to reuse subnets across parameters. For example
 > you can use the same subnets for "Private subnets (services)" as "Private intra
-> subnets (no Internet) at the cost of a weaker security posture.
+> subnets (no Internet)" at the cost of a weaker security posture.
 
 In both cases Quilt uses subnets and security groups
 to isolate network services. You may optionally provide your own VPC CIDR block
@@ -49,8 +49,8 @@ peered VPC services.
 
 > Run Quilt in a VPC with at least 1024 addresses (/22) to ensure sufficient
 > IPs for concurrent Lambdas and other services. If you wish to conserve
-> routable IP addresses you can place the Quilt load balancer in custom
-> "UserSubnets".
+> routable IP addresses you can place the Quilt load balancer in custom "UserSubnets"
+> of your choosing.
 
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
