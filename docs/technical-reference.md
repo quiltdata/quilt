@@ -29,22 +29,28 @@ SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
 
 ### Network
 
-<p float="left">
-  <img src="imgs/network_public.png" width="100" />
-  <img src="imgs/network_private.png" width="295" /> 
-</p>
+#### Privtate load balancer
+![](imgs/network_private.png)
 
+#### Public load balancer
+![](imgs/network_public.png)
 
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
-create its own subnets.
+create its own network.
 
-> If you provide the VPC you are free to reuse subnets across parameters. For example:
-> `UserSubnets` and `PrivateSubnets` may refer to the same two subnets
+> If you provide the VPC you are free to reuse subnets across parameters. For example
+> you can use the same subnets for "Private subnets (services)" as "Private intra
+> subnets (no Internet) at the cost of a weaker security posture.
 
 In both cases Quilt uses subnets and security groups
 to isolate network services. You may optionally provide your own VPC CIDR block
 with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
 peered VPC services.
+
+> Run Quilt in a VPC with at least 1024 addresses (/22) to ensure sufficient
+> IPs for concurrent Lambdas and other services. If you wish to conserve
+> routable IP addresses you can place the Quilt load balancer in custom
+> "UserSubnets".
 
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
