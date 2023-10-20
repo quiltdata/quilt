@@ -13,14 +13,13 @@ ENV NGINX_VERSION=1.24.0
 # Download and compile Nginx.
 # Dependencies:
 # - pcre: runtime dependency for nginx
-# - awscli: aws used by run-nginx.sh
 # - gettext: envsubst used by run-nginx.sh
 # - shadow-utils: useradd
 # - tar, gzip: download the source
 # - gcc, make, *-devel: compile nginx
 RUN set -x \
     && dnf -y upgrade \
-    && dnf -y install --setopt=install_weak_deps=False pcre awscli gettext shadow-utils tar gzip gcc make openssl-devel pcre-devel zlib-devel \
+    && dnf -y install --setopt=install_weak_deps=False pcre gettext shadow-utils tar gzip gcc make openssl-devel pcre-devel zlib-devel \
     && cd /root \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
