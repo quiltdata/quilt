@@ -817,7 +817,8 @@ type Mutation {
   ): PackageRevisionDeleteResult!
 
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
-  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult! @admin
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
+    @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
 
   policyCreateManaged(input: ManagedPolicyInput!): PolicyResult! @admin
@@ -830,7 +831,8 @@ type Mutation {
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
   roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
   roleUpdateManaged(id: ID!, input: ManagedRoleInput!): RoleUpdateResult! @admin
-  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult! @admin
+  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
+    @admin
   roleDelete(id: ID!): RoleDeleteResult! @admin
   roleSetDefault(id: ID!): RoleSetDefaultResult! @admin
 
