@@ -1,4 +1,5 @@
 aiobotocore==2.5.0
+botocore==1.29.133
 pydantic==1.10.7
 tenacity==6.2.0
 types-aiobotocore[s3]==2.5.0.post1
