@@ -51,7 +51,7 @@ module.exports = {
     'max-classes-per-file': 0,
     'no-console': 2,
     'no-nested-ternary': 1,
-    'no-underscore-dangle': [2, { allow: ['_', '__', '__typename'] }],
+    'no-underscore-dangle': [2, { allow: ['_', '__', '__typename', '_tag'] }],
     'prefer-arrow-callback': [2, { allowNamedFunctions: true }],
     'prefer-template': 2,
     'react-hooks/exhaustive-deps': 2,

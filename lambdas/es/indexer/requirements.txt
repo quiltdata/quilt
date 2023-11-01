@@ -18,6 +18,7 @@ importlib-metadata==6.6.0
 ipython-genutils==0.2.0
 jmespath==0.9.4
 jsonschema==3.2.0
+jsonpointer==2.4
 jupyter-core==4.11.2
 lxml==4.9.2
 nbformat==5.1.3

@@ -127,8 +127,8 @@ export default function PreviewDisplay({
           }),
         Expired: ({ retry }) =>
           renderMessage({
-            heading: 'Session is expired',
-            body: 'Try to reload the page',
+            heading: 'Session expired',
+            body: !retry && 'Try to reload the page',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
         Unexpected: ({ retry }) =>
