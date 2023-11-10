@@ -22,20 +22,41 @@ connect with other users
 
 ## Architecture
 Each instance consists of a CloudFormation stack that is privately hosted in your 
-AWS account. The stack includes backend services for the catalog, S3 proxy,
-SSO, user identities and IAM policies, an ElasticSearch cluster, and more.
+AWS account. The stack includes backend services for the web catalog, single sign-on,
+user identification and access, an ElasticSearch cluster, and more.
 
-![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+Quilt uses subnets and security groups to isolate network services and runs key
+services within the VPC.
+
+![Architecture (private ELBv2)](imgs/network_private.png)
+
+A private stack with an inward load balancer is shown above.
+For an internet-facing load balancer the data plane remains the same, as shown below.
+
+![Architecture (public ELBv2)](imgs/network_public.png)
+
+> You can use a combination of interface endpoints and gateway endpoints to
+> restrict the data plane traffic shown above to your VPC.
+> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
 
 ### Network
-![](imgs/aws-diagram-network.png)
-> The above diagram is for _general guidance only_. See below for details.
+
 
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
-create its own subnets. In both cases Quilt uses subnets and security groups
-to isolate network services. You may optionally provide your own VPC CIDR block
+create its own network.
+
+> If you provide the VPC you are free to reuse subnets across parameters. For example
+> you can use the same subnets for "Private subnets (services)" as "Private intra
+> subnets (no Internet)" at the cost of a weaker security posture.
+
+You may optionally provide your own VPC CIDR block
 with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
 peered VPC services.
+
+> Run Quilt in a VPC with at least 1024 addresses (/22) to ensure sufficient
+> IPs for concurrent Lambdas and other services. If you wish to conserve
+> routable IP addresses you can place the Quilt load balancer in custom "UserSubnets"
+> of your choosing.
 
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
@@ -49,13 +70,7 @@ application load balancer
 - 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
 OpenSearch domain
 (1/8 of the VPC CIDR)
-- (1/8 of the VPC CIDR is free)
-
-> Your Quilt instance contains _exactly one_ application load balancer that is
-> either inward or internet-facing.
-
-> If you provide the private subnets they are expected to route outbound
-> requests to AWS services via a NAT Gateway.
+- Unused (1/8 of the VPC CIDR)
 
 > For cost-sensitive deployments, Quilt ECS services can be configured to use
 > a single AZ.
