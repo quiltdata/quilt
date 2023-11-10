@@ -70,7 +70,7 @@ application load balancer
 - 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
 OpenSearch domain
 (1/8 of the VPC CIDR)
-- Unused
+- Unused (1/8 of the VPC CIDR)
 
 > For cost-sensitive deployments, Quilt ECS services can be configured to use
 > a single AZ.
