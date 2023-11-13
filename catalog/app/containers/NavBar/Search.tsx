@@ -1,17 +1,13 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
-import * as Lab from '@material-ui/lab'
 
-import SearchHelp from 'components/SearchHelp'
 import cfg from 'constants/config'
-import * as BucketConfig from 'utils/BucketConfig'
-import * as CatalogSettings from 'utils/CatalogSettings'
 import Delay from 'utils/Delay'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import parse from 'utils/parseSearch'
+
+import { useNavBar, expandAnimationDuration } from './Provider'
+import Suggestions from './Suggestions'
 
 const useContainerStyles = M.makeStyles({
   root: {
@@ -33,8 +29,6 @@ function Container({ children, onClickAway }: ContainerProps) {
   if (!onClickAway) return el
   return <M.ClickAwayListener onClickAway={onClickAway}>{el}</M.ClickAwayListener>
 }
-
-const expandAnimationDuration = 200
 
 const useInputStyles = M.makeStyles((t) => ({
   root: {
@@ -71,7 +65,7 @@ const useInputStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   input: {
-    paddingLeft: t.spacing(1),
+    paddingLeft: t.spacing(0.5),
     paddingTop: 8,
     paddingBottom: 9,
     textOverflow: 'ellipsis',
@@ -81,20 +75,12 @@ const useInputStyles = M.makeStyles((t) => ({
     },
   },
   inputIcon: {
-    cursor: 'pointer',
-    '$root$disabled &': {
-      cursor: 'not-allowed',
-    },
-  },
-  inputOptions: {
-    borderRadius: 0,
-    borderWidth: '0 1px 0 0',
-    paddingLeft: t.spacing(1.25),
-    paddingRight: t.spacing(0.25),
+    color: t.palette.text.hint,
+    margin: t.spacing(1, 0, 1, 1.5),
   },
 }))
 
-interface SearchInputExternalProps {
+interface SearchProps {
   hidden?: boolean
   iconized?: boolean
 }
@@ -104,21 +90,26 @@ type SearchInputBaseProps = Pick<
   'disabled' | 'value' | 'placeholder' | 'onFocus' | 'onKeyDown' | 'onChange'
 >
 
-interface SearchInputProps extends SearchInputExternalProps, SearchInputBaseProps {
+interface SearchInputProps extends SearchProps, SearchInputBaseProps {
   expanded?: boolean
-  helpOpen?: boolean
-  onHelpToggle?: () => void
+  focusTrigger?: number
 }
 
 function SearchInput({
   expanded = false,
-  helpOpen = false,
   hidden = false,
   iconized = false,
-  onHelpToggle,
+  focusTrigger = 0,
   ...props
 }: SearchInputProps) {
   const classes = useInputStyles()
+  const ref = React.useRef<HTMLInputElement>(null)
+  const focus = React.useCallback(() => ref.current?.focus(), [])
+  React.useEffect(() => {
+    if (focusTrigger && document.activeElement !== ref.current) {
+      focus()
+    }
+  }, [focus, focusTrigger])
   return (
     <M.InputBase
       classes={{ root: classes.root, input: classes.input }}
@@ -128,184 +119,20 @@ function SearchInput({
         [classes.iconized]: iconized,
         [classes.hidden]: hidden,
       })}
+      inputRef={ref}
       {...props}
       startAdornment={
         <M.InputAdornment position="start">
-          {iconized && !expanded ? (
-            <M.Icon className={classes.inputIcon} onClick={onHelpToggle}>
-              search
-            </M.Icon>
-          ) : (
-            <Lab.ToggleButton
-              className={classes.inputOptions}
-              size="small"
-              value="help"
-              selected={helpOpen}
-              onChange={onHelpToggle}
-              disabled={props.disabled}
-            >
-              <M.Icon fontSize="small">search</M.Icon>
-              <M.Icon fontSize="small">
-                {helpOpen ? 'arrow_drop_up' : 'arrow_drop_down'}
-              </M.Icon>
-            </Lab.ToggleButton>
-          )}
+          <M.Icon fontSize="small" className={classes.inputIcon} onClick={focus}>
+            search
+          </M.Icon>
         </M.InputAdornment>
       }
     />
   )
 }
 
-function useSearchUrlState(bucket?: string) {
-  const { paths, urls } = NamedRoutes.use()
-  const location = useLocation()
-  const match = useRouteMatch(paths.search)
-  const isInStack = BucketConfig.useIsInStack()
-  const settings = CatalogSettings.use()
-
-  const qs = match && parse(location.search, true)
-
-  const query = qs?.q ?? ''
-  const mode = qs?.mode ?? settings?.search?.mode
-  // if not in stack, search all buckets
-  const buckets = qs?.buckets ?? (bucket && isInStack(bucket) ? bucket : undefined)
-
-  const makeUrl = React.useCallback(
-    (q: string | null) => urls.search({ q, buckets, mode }),
-    [urls, buckets, mode],
-  )
-
-  const bucketList = React.useMemo(() => buckets?.split(',') ?? [], [buckets])
-
-  return { query, makeUrl, buckets: bucketList }
-}
-
-interface SearchState {
-  buckets: string[]
-  input: SearchInputProps
-  help: Pick<Parameters<typeof SearchHelp>[0], 'open' | 'onQuery'>
-  onClickAway: () => void
-}
-
-interface SearchProps extends SearchInputExternalProps {
-  bucket?: string
-  onFocus?: () => void
-  onBlur?: () => void
-}
-
-function useSearchState({ bucket, onFocus, onBlur, ...props }: SearchProps): SearchState {
-  const history = useHistory()
-
-  const { query, makeUrl, buckets } = useSearchUrlState(bucket)
-
-  const [value, change] = React.useState<string | null>(null)
-  const [expanded, setExpanded] = React.useState(false)
-  const [helpOpen, setHelpOpen] = React.useState(false)
-
-  const onChange = React.useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
-    change(evt.target.value)
-  }, [])
-
-  const handleExpand = React.useCallback(() => {
-    if (expanded) return
-    change(query)
-    setExpanded(true)
-    onFocus?.()
-  }, [expanded, query, onFocus])
-
-  const handleCollapse = React.useCallback(() => {
-    change(null)
-    setExpanded(false)
-    setHelpOpen(false)
-    onBlur?.()
-  }, [onBlur])
-
-  const handleHelpOpen = React.useCallback(() => setHelpOpen(true), [])
-
-  const handleHelpClose = React.useCallback(() => setHelpOpen(false), [])
-
-  const onQuery = React.useCallback(
-    (strPart: string) => change((v) => (v ? `${v} ${strPart}` : strPart)),
-    [],
-  )
-
-  const onHelpToggle = React.useCallback(() => {
-    if (helpOpen) {
-      handleHelpClose()
-      return
-    }
-    if (expanded) {
-      handleHelpOpen()
-    } else {
-      handleExpand()
-      setTimeout(handleHelpOpen, expandAnimationDuration + 100)
-    }
-  }, [expanded, helpOpen, handleExpand, handleHelpClose, handleHelpOpen])
-
-  const onKeyDown = React.useCallback(
-    (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      switch (evt.key) {
-        case 'Enter':
-          // suppress onSubmit
-          evt.preventDefault()
-          if (query !== value) {
-            history.push(makeUrl(value))
-          }
-          handleCollapse()
-          evt.currentTarget.blur()
-          break
-        case 'Tab':
-        case 'Escape':
-          handleCollapse()
-          evt.currentTarget.blur()
-          break
-        case 'ArrowDown':
-          handleHelpOpen()
-          break
-      }
-    },
-    [history, makeUrl, value, query, handleCollapse, handleHelpOpen],
-  )
-
-  const onClickAway = React.useCallback(() => {
-    if (expanded || helpOpen) handleCollapse()
-  }, [expanded, helpOpen, handleCollapse])
-
-  return {
-    buckets,
-    input: {
-      expanded,
-      helpOpen,
-      onChange,
-      onFocus: handleExpand,
-      onHelpToggle,
-      onKeyDown,
-      value: value === null ? query : value,
-      ...props,
-    },
-    help: {
-      onQuery,
-      open: helpOpen,
-    },
-    onClickAway,
-  }
-}
-
-function displayBucketNames(names: string[]) {
-  if (names.length > 1) return `${names.length} buckets`
-  if (names.length === 1) return `s3://${names[0]}`
-  return 'all buckets'
-}
-
 const useHelpStyles = M.makeStyles((t) => ({
-  contents: {
-    maxHeight: t.spacing(50),
-    overflowY: 'auto',
-    padding: t.spacing(0, 4),
-    [t.breakpoints.down('xs')]: {
-      padding: t.spacing(0, 1),
-    },
-  },
   paper: {
     left: 0,
     position: 'absolute',
@@ -320,13 +147,17 @@ const useHelpStyles = M.makeStyles((t) => ({
 
 function Search(props: SearchProps) {
   const helpClasses = useHelpStyles()
-  const { buckets, onClickAway, input, help } = useSearchState(props)
-  const placeholder = input.expanded ? `Search ${displayBucketNames(buckets)}` : 'Search'
+  const navbarState = useNavBar()
+  if (!navbarState) return <SearchNotAvailable />
+  const {
+    input: { helpOpen, ...input },
+    onClickAway,
+  } = navbarState
 
   return (
     <Container onClickAway={onClickAway}>
-      <SearchHelp classes={helpClasses} {...help} />
-      <SearchInput placeholder={placeholder} {...input} />
+      <Suggestions classes={helpClasses} open={helpOpen} />
+      <SearchInput placeholder="Search" {...input} {...props} />
     </Container>
   )
 }
