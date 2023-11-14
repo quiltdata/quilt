@@ -30,6 +30,8 @@ generate:
   - quilt3.Package+   # All *documented* members, except _private_members.
   - quilt3.packages.PackageEntry+
 
+- Admin.md:
+  - quilt3.admin+
 
 # MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
 # that allows you to use an external Markdown file (eg. your project's README)
