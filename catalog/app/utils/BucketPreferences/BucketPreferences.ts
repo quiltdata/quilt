@@ -133,7 +133,7 @@ const defaultPreferences: BucketPreferences = {
       copyPackage: true,
       createPackage: true,
       deleteRevision: false,
-      openInDesktop: false,
+      openInDesktop: true,
       revisePackage: true,
     },
     athena: {},
