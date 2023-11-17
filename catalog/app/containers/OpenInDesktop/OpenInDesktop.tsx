@@ -34,11 +34,13 @@ export function Dialog({ onClose, onConfirm, open, size }: OpenInDesktopProps) {
   }, [onClose, onConfirm])
   return (
     <M.Dialog open={open} onClose={onClose}>
-      <M.DialogTitle>Open in Teleport</M.DialogTitle>
+      <M.DialogTitle>Open in desktop</M.DialogTitle>
       <M.DialogContent>
-        <M.Typography>Download package and open in desktop application</M.Typography>
+        <M.Typography>Open in desktop application and download the file</M.Typography>
         {isNumber(size) && (
-          <M.Typography>Total size of package is {readableBytes(size)}</M.Typography>
+          <M.Typography>
+            Total size of downloaded assets is {readableBytes(size)}
+          </M.Typography>
         )}
         <M.Typography>It could take a while</M.Typography>
         {error && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
@@ -58,7 +60,7 @@ export function Dialog({ onClose, onConfirm, open, size }: OpenInDesktopProps) {
   )
 }
 
-function useOpenInDesktop(packageHandle: PackageHandle, size?: number) {
+function useOpenInDesktop(packageHandle: PackageHandle, path?: string, size?: number) {
   const ipc = IPC.use()
 
   const [confirming, setConfirming] = React.useState(false)
@@ -66,13 +68,13 @@ function useOpenInDesktop(packageHandle: PackageHandle, size?: number) {
     if (cfg.desktop) {
       await ipc.invoke(IPC.EVENTS.DOWNLOAD_PACKAGE, packageHandle)
     } else {
-      const deepLink = TeleportUri.stringify(packageHandle)
+      const deepLink = TeleportUri.stringify(packageHandle, path)
       window.location.assign(deepLink)
     }
-  }, [ipc, packageHandle])
+  }, [ipc, packageHandle, path])
   const unconfirm = React.useCallback(() => setConfirming(false), [])
   const confirm = React.useCallback(() => {
-    if (!size || size > SIZE_THRESHOLD) {
+    if (size && size > SIZE_THRESHOLD) {
       setConfirming(true)
     } else {
       openInDesktop()

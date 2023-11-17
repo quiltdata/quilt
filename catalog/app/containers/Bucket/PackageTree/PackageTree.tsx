@@ -24,6 +24,7 @@ import * as GQL from 'utils/GraphQL'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { PackageHandle } from 'utils/packageHandle'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -216,7 +217,7 @@ function DirDisplay({
     [bucket, name, hash],
   )
 
-  const openInDesktopState = OpenInDesktop.use(packageHandle, size)
+  const openInDesktopState = OpenInDesktop.use(packageHandle, path, size)
 
   const prompt = FileEditor.useCreateFileInPackage(packageHandle, path)
 
@@ -517,7 +518,12 @@ function FileDisplayQuery({
         )
       }
 
-      return <FileDisplay {...{ bucket, name, hash, path, crumbs, file }} {...props} />
+      return (
+        <FileDisplayContainer
+          {...{ bucket, name, hash, path, crumbs, file }}
+          {...props}
+        />
+      )
     },
   })
 }
@@ -542,11 +548,11 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FileDisplayProps extends FileDisplayQueryProps {
+interface FileDisplayContainerProps extends FileDisplayQueryProps {
   file: Model.GQLTypes.PackageFile
 }
 
-function FileDisplay({
+function FileDisplayContainer({
   bucket,
   mode,
   name,
@@ -555,37 +561,13 @@ function FileDisplay({
   path,
   crumbs,
   file,
-}: FileDisplayProps) {
+}: FileDisplayContainerProps) {
   const s3 = AWS.S3.use()
-  const history = RRDom.useHistory()
-  const { urls } = NamedRoutes.use<RouteMap>()
-  const classes = useFileDisplayStyles()
-  const prefs = BucketPreferences.use()
 
   const packageHandle = React.useMemo(
     () => ({ bucket, name, hash }),
     [bucket, name, hash],
   )
-
-  const viewModes = useViewModes(mode)
-
-  const onViewModeChange = React.useCallback(
-    (m) => {
-      history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
-    },
-    [bucket, history, name, path, hashOrTag, urls],
-  )
-
-  const handleEdit = React.useCallback(() => {
-    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
-    const physicalHandle = s3paths.parseS3Url(file.physicalKey)
-    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
-      add: path,
-      edit: true,
-      next,
-    })
-    history.push(editUrl)
-  }, [file, bucket, history, name, path, urls])
 
   const handle: LogicalKeyResolver.S3SummarizeHandle = React.useMemo(
     () => ({
@@ -623,82 +605,161 @@ function FileDisplay({
         },
         Ok: requests.ObjectExistence.case({
           Exists: ({ archived, deleted, lastModified, size }: ObjectAttrs) => (
-            <>
-              <TopBar crumbs={crumbs}>
-                <FileProperties
-                  className={classes.fileProperties}
-                  lastModified={lastModified}
-                  size={size}
-                />
-                {BucketPreferences.Result.match(
-                  {
-                    Ok: ({ ui: { actions } }) =>
-                      FileEditor.isSupportedFileType(path) &&
-                      hashOrTag === 'latest' &&
-                      actions.revisePackage && (
-                        <Buttons.Iconized
-                          className={classes.button}
-                          icon="edit"
-                          label="Edit"
-                          onClick={handleEdit}
-                        />
-                      ),
-                    Pending: () => (
-                      <Buttons.Skeleton className={classes.button} size="small" />
-                    ),
-                    Init: () => null,
-                  },
-                  prefs,
-                )}
-                {!!viewModes.modes.length && (
-                  <FileView.ViewModeSelector
-                    className={classes.button}
-                    // @ts-expect-error
-                    options={viewModes.modes.map(viewModeToSelectOption)}
-                    // @ts-expect-error
-                    value={viewModeToSelectOption(viewModes.mode)}
-                    onChange={onViewModeChange}
-                  />
-                )}
-                {!cfg.noDownload && !deleted && !archived && (
-                  <FileView.DownloadButton className={classes.button} handle={handle} />
-                )}
-              </TopBar>
-              {BucketPreferences.Result.match(
-                {
-                  Ok: ({ ui: { blocks } }) => (
-                    <>
-                      {blocks.code && (
-                        <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
-                      )}
-                      {blocks.meta && (
-                        <>
-                          <FileView.ObjectMetaSection meta={file.metadata} />
-                          <FileView.ObjectTags handle={handle} />
-                        </>
-                      )}
-                    </>
-                  ),
-                  _: () => null,
-                },
-                prefs,
-              )}
-              <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                <div className={classes.preview}>
-                  {withPreview(
-                    { archived, deleted },
-                    handle,
-                    viewModes.mode,
-                    renderPreview(viewModes.handlePreviewResult),
-                  )}
-                </div>
-              </Section>
-            </>
+            <FileDisplay
+              {...{
+                bucket,
+                mode,
+                name,
+                hash,
+                hashOrTag,
+                path,
+                crumbs,
+                file,
+
+                size,
+                archived,
+                deleted,
+                lastModified,
+                packageHandle,
+                handle,
+              }}
+            />
           ),
           _: () => <FileDisplayError headline="No Such Object" crumbs={crumbs} />,
         }),
       })}
     </Data>
+  )
+}
+
+interface FileDisplayProps extends FileDisplayContainerProps {
+  archived: boolean
+  deleted: boolean
+  handle: LogicalKeyResolver.S3SummarizeHandle
+  lastModified?: Date
+  packageHandle: PackageHandle
+  size?: number
+}
+
+function FileDisplay({
+  bucket,
+  crumbs,
+  file,
+  hashOrTag,
+  mode,
+  name,
+  path,
+
+  archived,
+  deleted,
+  handle,
+  lastModified,
+  packageHandle,
+  size,
+}: FileDisplayProps) {
+  const history = RRDom.useHistory()
+  const { urls } = NamedRoutes.use<RouteMap>()
+  const classes = useFileDisplayStyles()
+  const prefs = BucketPreferences.use()
+
+  const viewModes = useViewModes(mode)
+
+  const onViewModeChange = React.useCallback(
+    (m) => {
+      history.push(urls.bucketPackageTree(bucket, name, hashOrTag, path, m.valueOf()))
+    },
+    [bucket, history, name, path, hashOrTag, urls],
+  )
+
+  const handleEdit = React.useCallback(() => {
+    const next = urls.bucketPackageDetail(bucket, name, { action: 'revisePackage' })
+    const physicalHandle = s3paths.parseS3Url(file.physicalKey)
+    const editUrl = urls.bucketFile(physicalHandle.bucket, physicalHandle.key, {
+      add: path,
+      edit: true,
+      next,
+    })
+    history.push(editUrl)
+  }, [file, bucket, history, name, path, urls])
+  const openInDesktopState = OpenInDesktop.use(packageHandle, path, size)
+  return (
+    <>
+      <OpenInDesktop.Dialog
+        open={openInDesktopState.confirming}
+        onClose={openInDesktopState.unconfirm}
+        onConfirm={openInDesktopState.openInDesktop}
+        size={size}
+      />
+
+      <TopBar crumbs={crumbs}>
+        <FileProperties
+          className={classes.fileProperties}
+          lastModified={lastModified}
+          size={size}
+        />
+        {BucketPreferences.Result.match(
+          {
+            Ok: ({ ui: { actions } }) =>
+              FileEditor.isSupportedFileType(path) &&
+              hashOrTag === 'latest' &&
+              actions.revisePackage && (
+                <Buttons.Iconized
+                  className={classes.button}
+                  icon="edit"
+                  label="Edit"
+                  onClick={handleEdit}
+                />
+              ),
+            Pending: () => <Buttons.Skeleton className={classes.button} size="small" />,
+            Init: () => null,
+          },
+          prefs,
+        )}
+        {!!viewModes.modes.length && (
+          <FileView.ViewModeSelector
+            className={classes.button}
+            // @ts-expect-error
+            options={viewModes.modes.map(viewModeToSelectOption)}
+            // @ts-expect-error
+            value={viewModeToSelectOption(viewModes.mode)}
+            onChange={onViewModeChange}
+          />
+        )}
+        {!cfg.noDownload && !deleted && !archived && (
+          <FileView.DownloadButton className={classes.button} handle={handle} />
+        )}
+        <RevisionMenu className={classes.button} onDesktop={openInDesktopState.confirm} />
+      </TopBar>
+      {BucketPreferences.Result.match(
+        {
+          Ok: ({ ui: { blocks } }) => (
+            <>
+              {blocks.code && (
+                <PackageCodeSamples {...{ ...packageHandle, hashOrTag, path }} />
+              )}
+              {blocks.meta && (
+                <>
+                  <FileView.ObjectMetaSection meta={file.metadata} />
+                  <FileView.ObjectTags handle={handle} />
+                </>
+              )}
+            </>
+          ),
+          _: () => null,
+        },
+        prefs,
+      )}
+      <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+        <div className={classes.preview}>
+          {withPreview(
+            { archived, deleted },
+            handle,
+            viewModes.mode,
+            renderPreview(viewModes.handlePreviewResult),
+          )}
+        </div>
+      </Section>
+    </>
   )
 }
 
