@@ -16,6 +16,7 @@ Entries inside each section should be ordered by type:
 !-->
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Added] `create_user()`, `delete_user()`, `set_role()` in `quilt3.admin` ([#3764](https://github.com/quiltdata/quilt/pull/3764))
 
 ## CLI
 

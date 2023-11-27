@@ -51,7 +51,7 @@ simplejson==3.17.2
     # via awslambdaric
 tifffile==0.15.1
     # via aicsimageio
-urllib3==1.26.17
+urllib3==1.26.18
     # via requests
 xlsxwriter==3.0.7
     # via python-pptx
