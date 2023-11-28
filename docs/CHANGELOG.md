@@ -14,11 +14,9 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+# 5.4.0 - 2023-11-29
 ## Python API
 * [Added] `create_user()`, `delete_user()`, `set_role()` in `quilt3.admin` ([#3764](https://github.com/quiltdata/quilt/pull/3764))
-
-## CLI
 
 ## Catalog, Lambdas
 * [Fixed] Fixed file preview header layout ([#3454](https://github.com/quiltdata/quilt/pull/3454))
