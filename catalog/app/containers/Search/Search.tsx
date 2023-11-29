@@ -19,6 +19,11 @@ import ResultTypeSelector from './ResultType'
 import { EmptyResults, ResultsSkeleton } from './Results'
 import SortSelector from './Sort'
 
+function useMobileView() {
+  const t = M.useTheme()
+  return M.useMediaQuery(t.breakpoints.down('sm'))
+}
+
 export type ComponentProps = React.PropsWithChildren<{ className?: string }>
 
 const useColumnTitleStyles = M.makeStyles((t) => ({
@@ -31,6 +36,31 @@ const useColumnTitleStyles = M.makeStyles((t) => ({
 function ColumnTitle({ className, children }: ComponentProps) {
   const classes = useColumnTitleStyles()
   return <div className={cx(classes.root, className)}>{children}</div>
+}
+
+const useFiltersButtonStyles = M.makeStyles({
+  root: {
+    background: '#fff',
+  },
+})
+
+interface FiltersButtonProps {
+  className: string
+  onClick: () => void
+}
+
+function FiltersButton({ className, onClick }: FiltersButtonProps) {
+  const classes = useFiltersButtonStyles()
+  return (
+    <M.Button
+      startIcon={<M.Icon fontSize="inherit">filter_list</M.Icon>}
+      variant="contained"
+      className={cx(classes.root, className)}
+      onClick={onClick}
+    >
+      Filters
+    </M.Button>
+  )
 }
 
 const useScrollToTopStyles = M.makeStyles((t) => ({
@@ -932,11 +962,15 @@ const useFiltersStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Filters() {
+interface FiltersProps {
+  className?: string
+}
+
+function Filters({ className }: FiltersProps) {
   const classes = useFiltersStyles()
   const model = SearchUIModel.use()
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       <ColumnTitle>Search for</ColumnTitle>
       <ResultTypeSelector />
       <BucketSelector />
@@ -1218,26 +1252,40 @@ const useResultsStyles = M.makeStyles((t) => ({
   root: {
     overflow: 'hidden',
   },
-  toolbar: {
-    alignItems: 'flex-end',
-    display: 'flex',
-    minHeight: '36px',
+  button: {
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
   },
-  sort: {
+  controls: {
+    display: 'flex',
     marginLeft: 'auto',
   },
   results: {
     marginTop: t.spacing(2),
   },
+  toolbar: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    minHeight: '36px',
+  },
 }))
 
-function Results() {
+interface ResultsProps {
+  onFilters: () => void
+}
+
+function Results({ onFilters }: ResultsProps) {
   const classes = useResultsStyles()
+  const isMobile = useMobileView()
   return (
     <div className={classes.root}>
       <div className={classes.toolbar}>
         <ResultsCount />
-        <SortSelector className={classes.sort} />
+        <div className={classes.controls}>
+          {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
+          <SortSelector className={classes.button} />
+        </div>
       </div>
       <ResultsInner className={classes.results} />
     </div>
@@ -1246,22 +1294,47 @@ function Results() {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    alignItems: 'start',
-    display: 'grid',
-    gridColumnGap: t.spacing(2),
-    gridTemplateColumns: `${t.spacing(40)}px auto`,
+    [t.breakpoints.up('md')]: {
+      alignItems: 'start',
+      display: 'grid',
+      gridColumnGap: t.spacing(2),
+      gridTemplateColumns: `${t.spacing(40)}px auto`,
+    },
     padding: t.spacing(3),
+  },
+  filtersMobile: {
+    padding: t.spacing(2),
+    minWidth: `min(${t.spacing(40)}px, 100vw)`,
+  },
+  filtersClose: {
+    position: 'absolute',
+    right: '2px',
+    top: '10px',
   },
 }))
 
 function SearchLayout() {
   const model = SearchUIModel.use()
   const classes = useStyles()
+  const isMobile = useMobileView()
+  const [showFilters, setShowFilters] = React.useState(false)
   return (
     <M.Container maxWidth="lg" className={classes.root}>
       <MetaTitle>{model.state.searchString || 'Search'}</MetaTitle>
-      <Filters />
-      <Results />
+      {isMobile ? (
+        <M.Drawer anchor="left" open={showFilters} onClose={() => setShowFilters(false)}>
+          <Filters className={classes.filtersMobile} />
+          <M.IconButton
+            className={classes.filtersClose}
+            onClick={() => setShowFilters(false)}
+          >
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </M.Drawer>
+      ) : (
+        <Filters />
+      )}
+      <Results onFilters={() => setShowFilters((x) => !x)} />
     </M.Container>
   )
 }
