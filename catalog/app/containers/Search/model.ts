@@ -3,6 +3,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
+import * as Sentry from '@sentry/react'
 
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
@@ -780,7 +781,26 @@ function normalizeFacetNode(node: FacetNode): FacetTree {
       )
 }
 
+const facetId = (f: PackageUserMetaFacet) => `${f.path}:${f.__typename}`
+
 function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNode {
+  if (existing._tag === 'Leaf' && conflict._tag === 'Leaf') {
+    const existingId = facetId(existing.value)
+    const conflictId = facetId(conflict.value)
+    // duplicate facet, should not happen
+    // this would cause an infinite recursion if not handled
+    if (existingId === conflictId) {
+      Sentry.withScope((scope) => {
+        const depth = JSONPointer.parse(existing.value.path).length
+        const type = PackageUserMetaFacetTypeDisplay[existing.value.__typename]
+        scope.setExtras({ depth, type })
+        Sentry.captureMessage('Duplicate facet', 'warning')
+      })
+      // keep the facet encountered first
+      return existing
+    }
+  }
+
   return KTree.merge(
     normalizeFacetNode(existing),
     normalizeFacetNode(conflict),

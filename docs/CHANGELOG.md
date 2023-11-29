@@ -25,6 +25,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
 * [Fixed] Make bookmarks optional (and fix Embed listings broken in #3697) ([#3705](https://github.com/quiltdata/quilt/pull/3705))
 * [Fixed] Disable opening file picker on metadata click, and fix dropping JSON as metadata ([#3707](https://github.com/quiltdata/quilt/pull/3707))
+* [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
