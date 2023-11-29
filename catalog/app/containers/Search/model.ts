@@ -791,7 +791,9 @@ function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNo
     // this would cause an infinite recursion if not handled
     if (existingId === conflictId) {
       Sentry.withScope((scope) => {
-        scope.setExtras({ existingId, conflictId })
+        const depth = JSONPointer.parse(existing.value.path).length
+        const type = PackageUserMetaFacetTypeDisplay[existing.value.__typename]
+        scope.setExtras({ depth, type })
         Sentry.captureMessage('Duplicate facet', 'warning')
       })
       // keep the facet encountered first
