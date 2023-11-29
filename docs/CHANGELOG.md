@@ -26,6 +26,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Make bookmarks optional (and fix Embed listings broken in #3697) ([#3705](https://github.com/quiltdata/quilt/pull/3705))
 * [Fixed] Disable opening file picker on metadata click, and fix dropping JSON as metadata ([#3707](https://github.com/quiltdata/quilt/pull/3707))
 * [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
+* [Fixed] Hide filters in a sidebar drawer on mobile ([#3801](https://github.com/quiltdata/quilt/pull/3801))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
