@@ -538,8 +538,8 @@ create an IAM policy that explicitly enables KMS access.
   "Statement": {
     "Effect": "Allow",
     "Action": [
-      "kms:Encrypt",
-      "kms:Decrypt"
+      "kms:Decrypt",
+      "kms:GenerateDataKey"
     ],
     "Resource": "arn:aws:kms:us-west-2:111122223333:key/*"
   }
@@ -601,8 +601,8 @@ that gives a Quilt role access to the keys for specific buckets, e.g:
   "Statement": {
     "Effect": "Allow",
     "Action": [
-      "kms:Encrypt",
-      "kms:Decrypt"
+      "kms:Decrypt",
+      "kms:GenerateDataKey"
     ],
     "Resource": [
       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
