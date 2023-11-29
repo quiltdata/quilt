@@ -108,27 +108,36 @@ export default function List({
       )}
       <div className={classes.scrollArea}>
         <M.List dense disablePadding>
-          {filteredExtents.map((extent) => (
-            <M.ListItem key={extent} disableGutters className={classes.listItem} button>
+          {extents.length ? (
+            filteredExtents.map((extent) => (
+              <M.ListItem key={extent} disableGutters className={classes.listItem} button>
+                <M.ListItemIcon className={classes.checkboxWrapper}>
+                  <M.Checkbox
+                    checked={!!valueMap[extent]}
+                    id={`list_${extent}`}
+                    onChange={(_event, checked) => handleChange(extent, checked)}
+                    size="small"
+                  />
+                </M.ListItemIcon>
+                <M.ListItemText>
+                  <label
+                    className={classes.label}
+                    htmlFor={`list_${extent}`}
+                    title={extent}
+                  >
+                    {extent || <i>EMPTY STRING</i>}
+                  </label>
+                </M.ListItemText>
+              </M.ListItem>
+            ))
+          ) : (
+            <M.ListItem>
               <M.ListItemIcon className={classes.checkboxWrapper}>
-                <M.Checkbox
-                  checked={!!valueMap[extent]}
-                  id={`list_${extent}`}
-                  onChange={(event, checked) => handleChange(extent, checked)}
-                  size="small"
-                />
+                <M.Icon fontSize="small">not_interested</M.Icon>
               </M.ListItemIcon>
-              <M.ListItemText>
-                <label
-                  className={classes.label}
-                  htmlFor={`list_${extent}`}
-                  title={extent}
-                >
-                  {extent || <i>EMPTY STRING</i>}
-                </label>
-              </M.ListItemText>
+              <M.ListItemText primary={<i>No available items</i>} />
             </M.ListItem>
-          ))}
+          )}
         </M.List>
       </div>
       {!!hiddenNumber && (
