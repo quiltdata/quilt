@@ -703,7 +703,12 @@ export type PackagesSearchResult =
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
   readonly stats: PackagesSearchStats
+  readonly filteredUserMetaFacets: ReadonlyArray<PackageUserMetaFacet>
   readonly firstPage: PackagesSearchResultSetPage
+}
+
+export interface PackagesSearchResultSetfilteredUserMetaFacetsArgs {
+  filter: Scalars['String']
 }
 
 export interface PackagesSearchResultSetfirstPageArgs {

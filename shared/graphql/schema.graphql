@@ -414,6 +414,7 @@ type ObjectsSearchResultSet {
 
 type PackagesSearchResultSet {
   stats: PackagesSearchStats!
+  filteredUserMetaFacets(filter: String!): [PackageUserMetaFacet!]!
   firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
   # XXX: do we need this at all? do we need to accept type here?
   # userMetaFacet(path: String!): PackageUserMetaFacet

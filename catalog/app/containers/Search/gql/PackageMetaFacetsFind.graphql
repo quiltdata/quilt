@@ -1,0 +1,43 @@
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: PackagesSearchFilter
+  $find: String!
+) {
+  searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
+    __typename
+    ... on PackagesSearchResultSet {
+      filteredUserMetaFacets(filter: $find) {
+        __typename
+        ... on IPackageUserMetaFacet {
+          path
+        }
+        ... on NumberPackageUserMetaFacet {
+          numberExtents: extents {
+            min
+            max
+          }
+        }
+        ... on DatetimePackageUserMetaFacet {
+          datetimeExtents: extents {
+            min
+            max
+          }
+        }
+        ... on KeywordPackageUserMetaFacet {
+          extents {
+            values
+          }
+        }
+      }
+    }
+    ... on InvalidInput {
+      errors {
+        path
+        message
+        name
+        context
+      }
+    }
+  }
+}

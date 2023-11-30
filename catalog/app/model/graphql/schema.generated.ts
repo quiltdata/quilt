@@ -2979,6 +2979,36 @@ export default {
             args: [],
           },
           {
+            name: 'filteredUserMetaFacets',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'PackageUserMetaFacet',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'filter',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
             name: 'firstPage',
             type: {
               kind: 'NON_NULL',

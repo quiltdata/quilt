@@ -590,51 +590,46 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
 
 interface AvailablePackagesMetaFiltersProps {
   className?: string
+  filtering: SearchUIModel.FacetsFilteringStateInstance
+  facets: readonly SearchUIModel.PackageUserMetaFacet[]
   fetching: boolean
-  filters: SearchUIModel.PackageUserMetaFacet[]
 }
 
 function AvailablePackagesMetaFilters({
   className,
+  filtering,
+  facets,
   fetching,
-  filters,
 }: AvailablePackagesMetaFiltersProps) {
   const classes = useAvailablePackagesMetaFiltersStyles()
-  const [query, setQuery] = React.useState('')
-  const filtered = React.useMemo(
-    () =>
-      filters.length > FACETS_THRESHOLD
-        ? filters.filter((f) =>
-            (f.path + SearchUIModel.PackageUserMetaFacetMap[f.__typename])
-              .toLowerCase()
-              .includes(query.toLowerCase()),
-          )
-        : filters,
-    [filters, query],
-  )
-
-  const filteredNumber = filtered.length
-  const hiddenNumber = filters.length - filteredNumber
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
+  // XXX: move grouping to the model?
   const [head, tail] = React.useMemo(
-    () => SearchUIModel.groupFacets(filtered, FACETS_THRESHOLD),
-    [filtered],
+    () => SearchUIModel.groupFacets(facets, FACETS_THRESHOLD),
+    [facets],
   )
 
+  // TODO: lock when fetching
   return (
     <div className={className}>
-      {filters.length > FACETS_THRESHOLD && (
-        <FiltersUI.TinyTextField
-          placeholder="Find metadata filter"
-          fullWidth
-          value={query}
-          onChange={setQuery}
-          className={classes.input}
-          disabled={fetching}
-        />
+      {SearchUIModel.FacetsFilteringState.match(
+        {
+          Enabled: ({ value, set }) => (
+            <FiltersUI.TinyTextField
+              placeholder="Find metadata filter"
+              fullWidth
+              value={value}
+              onChange={set}
+              className={classes.input}
+              // disabled={fetching}
+            />
+          ),
+          Disabled: () => null,
+        },
+        filtering,
       )}
       <M.List dense disablePadding className={classes.list}>
         <FilterGroup disabled={fetching} items={head.children} />
@@ -650,12 +645,19 @@ function AvailablePackagesMetaFilters({
           reverse={expanded}
         />
       )}
-      {!!hiddenNumber && (
-        <p className={classes.help}>
-          {filteredNumber
-            ? `There are ${hiddenNumber} more filters available. Loosen search query to see more.`
-            : `${hiddenNumber} filters are hidden. Clear search query to see them.`}
-        </p>
+      {SearchUIModel.FacetsFilteringState.match(
+        {
+          Enabled: ({ isFiltered }) =>
+            isFiltered && (
+              <p className={classes.help}>
+                Loosen search query to see
+                {!!facets.length && ' more'}
+                <> available filters.</>
+              </p>
+            ),
+          Disabled: () => null,
+        },
+        filtering,
       )}
     </div>
   )
@@ -679,9 +681,18 @@ interface PackagesMetaFiltersProps {
 function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   const classes = usePackagesMetaFiltersStyles()
 
-  const { activatedPaths, available, fetching } = SearchUIModel.usePackagesMetaFilters()
+  // const { activatedPaths, available, fetching } = SearchUIModel.usePackagesMetaFilters()
+  const { activatedPaths, available } = SearchUIModel.usePackagesMetaFiltersFind()
+  // TODO: move facet find input state here
 
-  const noFilters = !(available.length + activatedPaths.length)
+  const fetching = SearchUIModel.AvailableFiltersState.match(
+    {
+      Loading: () => true,
+      Empty: () => false,
+      Ready: (r) => r.fetching,
+    },
+    available,
+  )
 
   return (
     <div className={className}>
@@ -694,12 +705,20 @@ function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
           <PackagesMetaFilter path={path} />
         </FilterSection>
       ))}
-      {!!available.length && (
-        <AvailablePackagesMetaFilters filters={available} fetching={fetching} />
-      )}
-      {noFilters && (
-        // XXX: nicer display
-        <M.Typography>No metadata found</M.Typography>
+      {SearchUIModel.AvailableFiltersState.match(
+        {
+          Loading: () => (
+            // TODO: progress indicator
+            <>Loading facets</>
+          ),
+          Empty: () =>
+            activatedPaths.length ? null : (
+              // XXX: nicer display
+              <M.Typography>No metadata found</M.Typography>
+            ),
+          Ready: (ready) => <AvailablePackagesMetaFilters {...ready} />,
+        },
+        available,
       )}
     </div>
   )

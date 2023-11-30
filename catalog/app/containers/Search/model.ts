@@ -11,6 +11,7 @@ import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
+import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
@@ -19,6 +20,7 @@ import FIRST_PAGE_PACKAGES_QUERY from './gql/FirstPagePackages.generated'
 import NEXT_PAGE_OBJECTS_QUERY from './gql/NextPageObjects.generated'
 import NEXT_PAGE_PACKAGES_QUERY from './gql/NextPagePackages.generated'
 import META_FACETS_QUERY from './gql/PackageMetaFacets.generated'
+import META_FACETS_FIND_QUERY from './gql/PackageMetaFacetsFind.generated'
 
 export enum ResultType {
   QuiltPackage = 'p',
@@ -709,6 +711,62 @@ function useMetaFacetsQuery({ searchString, buckets, filter }: MetaFacetsQueryPr
   return GQL.useQuery(META_FACETS_QUERY, { searchString, buckets, filter: gqlFilter })
 }
 
+function useMetaFacetsFindQuery(
+  { searchString, buckets, filter }: MetaFacetsQueryProps,
+  find: string,
+  activatedPaths: string[],
+) {
+  const gqlFilter = PackagesSearchFilterIO.toGQL(filter)
+
+  // TODO: debounce
+  const findDebounced = find.trim()
+
+  const pause = !findDebounced
+
+  const query = GQL.useQuery(
+    META_FACETS_FIND_QUERY,
+    { searchString, buckets, filter: gqlFilter, find },
+    { pause },
+  )
+
+  const all = GQL.fold(query, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return NO_FACETS
+        case 'InvalidInput':
+          return NO_FACETS
+        case 'PackagesSearchResultSet':
+          return r.filteredUserMetaFacets
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: ({ data }) => {
+      if (!data) return NO_FACETS
+      const { searchPackages: r } = data
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+          return NO_FACETS
+        case 'InvalidInput':
+          return NO_FACETS
+        case 'PackagesSearchResultSet':
+          return r.filteredUserMetaFacets
+        default:
+          assertNever(r)
+      }
+    },
+    error: () => NO_FACETS,
+  })
+
+  const available = React.useMemo(
+    () => all.filter((f) => !activatedPaths.includes(f.path)),
+    [all, activatedPaths],
+  )
+
+  return pause ? null : { available, fetching: query.fetching }
+}
+
 const NO_FACETS: PackageUserMetaFacet[] = []
 
 export function usePackagesMetaFilters() {
@@ -742,6 +800,124 @@ export function usePackagesMetaFilters() {
   )
 
   return { all, activated, activatedPaths, available, fetching: query.fetching }
+}
+
+export const FacetsFilteringState = tagged.create(
+  'app/containers/Search:FacetsFilteringState' as const,
+  {
+    Disabled: () => {},
+    Enabled: (value: string, set: (value: string) => void, isFiltered: boolean) => ({
+      value,
+      set,
+      isFiltered,
+    }),
+  },
+)
+
+export type FacetsFilteringStateInstance = tagged.InstanceOf<typeof FacetsFilteringState>
+
+export const AvailableFiltersState = tagged.create(
+  'app/containers/Search:AvailableFiltersState' as const,
+  {
+    Loading: () => {},
+    Empty: () => {},
+    Ready: (
+      filtering: tagged.InstanceOf<typeof FacetsFilteringState>,
+      facets: readonly PackageUserMetaFacet[],
+      fetching: boolean,
+    ) => ({
+      filtering,
+      facets,
+      fetching,
+      // error?
+    }),
+    // Error: (e: Error) => e,
+  },
+)
+
+export interface FiltersState {
+  available: tagged.InstanceOf<typeof AvailableFiltersState>
+  activatedPaths: string[]
+}
+
+export function usePackagesMetaFiltersFind(): FiltersState {
+  const model = useSearchUIModel()
+  invariant(model.state.resultType === ResultType.QuiltPackage, 'Filter type mismatch')
+
+  const filtersState = usePackagesMetaFilters()
+
+  const [find, setFind] = React.useState('')
+
+  const foundQuery = useMetaFacetsFindQuery(
+    model.state,
+    find,
+    filtersState.activatedPaths,
+  )
+
+  const clientFiltered = React.useMemo(() => {
+    // TODO: use proper constants for the thresholds
+    if (filtersState.all.length < 10 || filtersState.all.length >= 100)
+      return filtersState.all
+
+    const query = find.trim().toLowerCase()
+    if (!query) return filtersState.all
+    return filtersState.all.filter((f) =>
+      (f.path + PackageUserMetaFacetMap[f.__typename]).toLowerCase().includes(query),
+    )
+  }, [filtersState.all, find])
+
+  if (filtersState.fetching)
+    return {
+      available: AvailableFiltersState.Loading(),
+      activatedPaths: filtersState.activatedPaths,
+    }
+
+  if (!filtersState.all.length) {
+    return {
+      available: AvailableFiltersState.Empty(),
+      activatedPaths: filtersState.activatedPaths,
+    }
+  }
+
+  // no need for filtering at all
+  // TODO: use proper constant for the threshold
+  if (filtersState.all.length < 10) {
+    return {
+      available: AvailableFiltersState.Ready(
+        FacetsFilteringState.Disabled(),
+        filtersState.all,
+        false,
+      ),
+      activatedPaths: filtersState.activatedPaths,
+    }
+  }
+
+  // safe to use client-side filtering, since we have all the facets
+  // TODO: use proper constant for the threshold
+  if (filtersState.all.length < 100) {
+    return {
+      available: AvailableFiltersState.Ready(
+        FacetsFilteringState.Enabled(
+          find,
+          setFind,
+          clientFiltered.length !== filtersState.all.length,
+        ),
+        clientFiltered,
+        false,
+      ),
+      activatedPaths: filtersState.activatedPaths,
+    }
+  }
+
+  // use server-side filtering
+  return {
+    available: AvailableFiltersState.Ready(
+      FacetsFilteringState.Enabled(find, setFind, !!foundQuery),
+      foundQuery?.available ?? filtersState.all,
+      foundQuery?.fetching ?? false,
+    ),
+    activatedPaths: filtersState.activatedPaths,
+  }
 }
 
 export type SearhHitObject = Extract<
@@ -809,7 +985,7 @@ function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNo
 }
 
 export function groupFacets(
-  facets: PackageUserMetaFacet[],
+  facets: readonly PackageUserMetaFacet[],
   visible?: number,
 ): [FacetTree, FacetTree] {
   const grouped = facets.reduce(
