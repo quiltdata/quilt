@@ -7,8 +7,8 @@ import { formatQuantity } from 'utils/string'
 const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
 const valueLabelFormat = (number: number) =>
-  // @ts-expect-error
   formatQuantity(number, {
+    fallback: 'Not a number',
     suffixes: ['', 'K', 'M', 'B', 'T', 'P', 'E', 'Z', 'Y'],
   })
 
@@ -33,9 +33,15 @@ interface NumbersRangeProps {
   extents: { min: number; max: number }
   onChange: (v: { min: number | null; max: number | null }) => void
   value: { min: number | null; max: number | null }
+  valueLabelFormat?: (number: number) => number
 }
 
-export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
+export default function NumbersRange({
+  extents,
+  onChange,
+  value,
+  valueLabelFormat: customValueLabelFormat,
+}: NumbersRangeProps) {
   const [invalidId, setInvalidId] = React.useState('')
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
@@ -90,7 +96,7 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
           min={extents.min}
           onChange={handleSlider}
           value={sliderValue}
-          valueLabelFormat={valueLabelFormat}
+          valueLabelFormat={customValueLabelFormat || valueLabelFormat}
           valueLabelDisplay="auto"
         />
       </div>

@@ -10,8 +10,9 @@ import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import MetaTitle from 'utils/MetaTitle'
-import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
+import assertNever from 'utils/assertNever'
+import { formatQuantity } from 'utils/string'
 
 import * as SearchUIModel from './model'
 import BucketSelector from './Buckets'
@@ -149,15 +150,17 @@ function MoreButton({ reverse, ...props }: MoreButtonProps) {
 interface FilterWidgetProps<
   P extends SearchUIModel.KnownPredicate = SearchUIModel.KnownPredicate,
 > {
-  state: SearchUIModel.PredicateState<P>
   extents?: SearchUIModel.ExtentsForPredicate<P>
+  field?: keyof SearchUIModel.PackagesSearchFilter
   onChange: (state: SearchUIModel.PredicateState<P>) => void
+  state: SearchUIModel.PredicateState<P>
 }
 
 function NumberFilterWidget({
-  state,
   extents,
+  field,
   onChange,
+  state,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
   // XXX: query extents
   const handleChange = React.useCallback(
@@ -176,13 +179,24 @@ function NumberFilterWidget({
     [extents?.min, extents?.max, state.gte, state.lte],
   )
 
+  const valueLabelFormat = React.useMemo(
+    () =>
+      field === 'size'
+        ? (number: number) =>
+            formatQuantity(number, {
+              fallback: 'Not a number',
+              suffixes: ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+            })
+        : undefined,
+    [field],
+  )
+
   return (
     <FiltersUI.NumbersRange
       extents={extentsComputed}
       onChange={handleChange}
-      // XXX: add units for known filters
-      // unit={unit}
       value={{ min: state.gte, max: state.lte }}
+      valueLabelFormat={valueLabelFormat}
     />
   )
 }
@@ -323,7 +337,7 @@ function FilterWidget(props: FilterWidgetProps) {
 
 const packageFilterLabels = {
   modified: 'Last modified',
-  size: 'Cumulative package size',
+  size: 'Cumulative package size, in bytes',
   name: 'Package name',
   hash: 'Package hash',
   entries: 'Total number of files in the package',
@@ -407,7 +421,12 @@ function PackagesFilter({ className, field }: PackagesFilterProps) {
       onDeactivate={deactivate}
       title={packageFilterLabels[field]}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      <FilterWidget
+        extents={extents}
+        field={field}
+        onChange={change}
+        state={predicateState}
+      />
     </FiltersUI.Container>
   )
 }
