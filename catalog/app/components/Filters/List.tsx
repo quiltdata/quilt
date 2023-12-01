@@ -24,8 +24,6 @@ function fuzzySearchExtents(extents: string[], searchStr: string): string[] {
 const useMoreButtonStyles = M.makeStyles({
   root: {
     alignSelf: 'flex-start',
-    paddingLeft: '13px',
-    paddingRight: '13px',
   },
   title: {
     paddingLeft: '3px',
@@ -55,15 +53,17 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
   },
+  checkbox: {
+    marginLeft: '-2px',
+    padding: t.spacing(0.5),
+  },
   filter: {
     background: t.palette.background.paper,
     borderRadius: t.shape.borderRadius,
   },
   icon: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: t.spacing(5),
-    minWidth: t.spacing(5),
+    minHeight: t.spacing(4),
+    minWidth: t.spacing(4),
   },
   hasMore: {
     paddingBottom: t.spacing(0.5),
@@ -78,7 +78,6 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   listItem: {
-    padding: 0,
     animation: `$showTop 150ms ease-out`,
   },
   '@keyframes showTop': {
@@ -149,12 +148,17 @@ export default function List({
           className={classes.filter}
         />
       )}
-      <M.List dense className={cx({ [classes.hasMore]: showMore })}>
+      <M.List
+        className={cx({ [classes.hasMore]: showMore })}
+        dense
+        disablePadding={extents.length <= searchThreshold}
+      >
         {extents.length ? (
           displayedExtents.map((extent) => (
-            <M.ListItem key={extent} disableGutters className={classes.listItem} button>
+            <M.ListItem disableGutters key={extent} className={classes.listItem} button>
               <M.ListItemIcon className={classes.icon}>
                 <M.Checkbox
+                  className={classes.checkbox}
                   checked={!!valueMap[extent]}
                   id={`list_${extent}`}
                   onChange={(_event, checked) => handleChange(extent, checked)}
