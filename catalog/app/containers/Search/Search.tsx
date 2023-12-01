@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 import * as FiltersUI from 'components/Filters'
 import Layout from 'components/Layout'
+import ScrollArea from 'components/ScrollArea'
 import * as SearchResults from 'components/SearchResults'
 import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
@@ -112,6 +113,15 @@ const useFilterSectionStyles = M.makeStyles((t) => ({
       position: 'absolute',
       right: '25%',
       bottom: 0,
+    },
+    animation: `$show 150ms ease-out`,
+  },
+  '@keyframes show': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: 1,
     },
   },
 }))
@@ -949,16 +959,12 @@ const useFiltersStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridRowGap: t.spacing(2),
     gridTemplateRows: 'auto',
-    paddingBottom: t.spacing(12), // space reserved for "Scroll to top"
-    // TODO: Make scroll for sidebar
-    // TODO: Also, consider that buckets filter disappears
-    // overflow: 'hidden auto',
-    // padding: t.spacing(0.5, 0, 0),
-    // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
   variable: {
     marginTop: t.spacing(1),
-    overflow: 'hidden auto',
+  },
+  scrollArea: {
+    height: `calc(100vh - ${t.spacing(21)}px)`, // app header + filters header
   },
 }))
 
@@ -972,13 +978,15 @@ function Filters({ className }: FiltersProps) {
   return (
     <div className={cx(classes.root, className)}>
       <ColumnTitle>Search for</ColumnTitle>
-      <ResultTypeSelector />
-      <BucketSelector />
-      {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
-        <PackageFilters className={classes.variable} />
-      ) : (
-        <ObjectFilters className={classes.variable} />
-      )}
+      <ScrollArea className={classes.scrollArea} hideScroll>
+        <ResultTypeSelector />
+        <BucketSelector />
+        {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
+          <PackageFilters className={classes.variable} />
+        ) : (
+          <ObjectFilters className={classes.variable} />
+        )}
+      </ScrollArea>
       <ScrollToTop />
     </div>
   )
@@ -988,11 +996,22 @@ interface SearchHitProps {
   hit: SearchUIModel.SearchHit
 }
 
+const useSearchHitStyles = M.makeStyles((t) => ({
+  hit: {
+    marginTop: 0,
+    '& + &': {
+      marginTop: t.spacing(2),
+    },
+  },
+}))
+
 function SearchHit({ hit }: SearchHitProps) {
+  const classes = useSearchHitStyles()
   switch (hit.__typename) {
     case 'SearchHitObject':
       return (
         <SearchResults.Hit
+          className={classes.hit}
           showBucket
           hit={{
             type: 'object',
@@ -1005,6 +1024,7 @@ function SearchHit({ hit }: SearchHitProps) {
     case 'SearchHitPackage':
       return (
         <SearchResults.Hit
+          className={classes.hit}
           showBucket
           hit={{
             type: 'package',
@@ -1261,8 +1281,9 @@ const useResultsStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginLeft: 'auto',
   },
-  results: {
+  scrollArea: {
     marginTop: t.spacing(2),
+    height: `calc(100vh - ${t.spacing(21)}px)`, // app header + filters header
   },
   toolbar: {
     alignItems: 'flex-end',
@@ -1287,7 +1308,9 @@ function Results({ onFilters }: ResultsProps) {
           <SortSelector className={classes.button} />
         </div>
       </div>
-      <ResultsInner className={classes.results} />
+      <ScrollArea className={classes.scrollArea} step={264}>
+        <ResultsInner />
+      </ScrollArea>
     </div>
   )
 }
