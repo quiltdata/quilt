@@ -422,7 +422,7 @@ function ObjectHit({ hit, ...props }: $TSFixMe) {
   return <Component {...{ hit, ...props }} />
 }
 
-function FileHit({ showBucket, hit: { path, versions, bucket } }: $TSFixMe) {
+function FileHit({ className, showBucket, hit: { path, versions, bucket } }: $TSFixMe) {
   const s3 = AWS.S3.use()
 
   const v = versions[0]
@@ -452,6 +452,7 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }: $TSFixMe) {
 
   return (
     <Section
+      className={className}
       data-testid="search-hit"
       data-search-hit-type="file"
       data-search-hit-bucket={bucket}
@@ -468,6 +469,7 @@ function FileHit({ showBucket, hit: { path, versions, bucket } }: $TSFixMe) {
 }
 
 function DirHit({
+  className,
   showBucket,
   hit: {
     path,
@@ -478,6 +480,7 @@ function DirHit({
   const handle = React.useMemo(() => ({ bucket, key: path }), [bucket, path])
   return (
     <Section
+      className={className}
       data-testid="search-hit"
       data-search-hit-type="dir"
       data-search-hit-bucket={bucket}
@@ -490,11 +493,13 @@ function DirHit({
 }
 
 function PackageHit({
+  className,
   showBucket,
   hit: { bucket, handle, hash, lastModified, meta, tags, comment },
 }: $TSFixMe) {
   return (
     <Section
+      className={className}
       data-testid="search-hit"
       data-search-hit-type="package"
       data-search-hit-bucket={bucket}

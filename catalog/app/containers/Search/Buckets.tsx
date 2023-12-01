@@ -9,7 +9,6 @@ import * as SearchUIModel from './model'
 
 const useStyles = M.makeStyles({
   root: {
-    overflow: 'hidden',
     paddingTop: '6px',
   },
 })

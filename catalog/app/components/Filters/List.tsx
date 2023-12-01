@@ -9,6 +9,9 @@ import TinyTextField from './TinyTextField'
 // Number of items, when we show search text field
 const TEXT_FIELD_VISIBLE_THRESHOLD = 8
 
+// Number of items, above which we collapse
+const SHOW_MORE_THRESHOLD = 6
+
 function fuzzySearchExtents(extents: string[], searchStr: string): string[] {
   if (!searchStr) return extents
   const fuse = new Fuse(extents, { includeScore: true })
@@ -18,15 +21,52 @@ function fuzzySearchExtents(extents: string[], searchStr: string): string[] {
     .map(({ item }) => item)
 }
 
+const useMoreButtonStyles = M.makeStyles({
+  root: {
+    alignSelf: 'flex-start',
+  },
+  title: {
+    paddingLeft: '3px',
+  },
+})
+
+interface MoreButtonProps extends M.ButtonProps {
+  reverse?: boolean
+}
+
+function MoreButton({ reverse, ...props }: MoreButtonProps) {
+  const classes = useMoreButtonStyles()
+  return (
+    <M.Button
+      className={classes.root}
+      size="small"
+      startIcon={<M.Icon>{reverse ? 'expand_less' : 'expand_more'}</M.Icon>}
+      {...props}
+    >
+      <span className={classes.title}>{reverse ? 'Show less' : 'Show more'}</span>
+    </M.Button>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    maxHeight: t.spacing(40),
   },
-  checkboxWrapper: {
+  checkbox: {
+    marginLeft: '-2px',
+    padding: t.spacing(0.5),
+  },
+  filter: {
+    background: t.palette.background.paper,
+    borderRadius: t.shape.borderRadius,
+  },
+  icon: {
+    minHeight: t.spacing(4),
     minWidth: t.spacing(4),
-    paddingLeft: '2px',
+  },
+  hasMore: {
+    paddingBottom: t.spacing(0.5),
   },
   help: {
     marginTop: t.spacing(1),
@@ -38,26 +78,21 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
   },
   listItem: {
-    padding: 0,
+    animation: `$showTop 150ms ease-out`,
   },
-  scrollArea: {
-    border: `1px solid ${M.fade(t.palette.text.primary, 0.23)}`,
-    flexGrow: 1,
-    overflow: 'hidden auto',
-    borderRadius: t.shape.borderRadius,
-  },
-  filter: {
-    background: t.palette.background.paper,
-    borderRadius: `${t.shape.borderRadius}px ${t.shape.borderRadius}px 0 0 `,
-    '& + $scrollArea': {
-      borderWidth: '0 1px 1px',
-      borderRadius: `0 0 ${t.shape.borderRadius}px ${t.shape.borderRadius}px`,
+  '@keyframes showTop': {
+    '0%': {
+      transform: 'translateY(-2px)',
+    },
+    '100%': {
+      transform: 'translateY(0)',
     },
   },
 }))
 
 interface ListProps {
   className?: string
+  expandThreshold?: number
   extents: readonly string[]
   onChange: (v: string[]) => void
   placeholder?: string
@@ -67,11 +102,12 @@ interface ListProps {
 
 export default function List({
   className,
+  expandThreshold = SHOW_MORE_THRESHOLD,
   extents: rawExtents,
   onChange,
   placeholder,
-  value,
   searchThreshold = TEXT_FIELD_VISIBLE_THRESHOLD,
+  value,
 }: ListProps) {
   const extents = React.useMemo(
     () => R.uniq([...value, ...rawExtents]),
@@ -87,6 +123,11 @@ export default function List({
     () => fuzzySearchExtents(extents, filter),
     [filter, extents],
   )
+  const [expanded, setExpanded] = React.useState(false)
+  const displayedExtents = React.useMemo(
+    () => (expanded ? filteredExtents : filteredExtents.slice(0, expandThreshold)),
+    [expanded, filteredExtents, expandThreshold],
+  )
   const handleChange = React.useCallback(
     (extent, checked) => {
       const newValue = checked ? [...value, extent] : value.filter((v) => v !== extent)
@@ -95,6 +136,7 @@ export default function List({
     [onChange, value],
   )
   const hiddenNumber = extents.length - filteredExtents.length
+  const showMore = filteredExtents.length > expandThreshold
   return (
     <div className={cx(classes.root, className)}>
       {extents.length > searchThreshold && (
@@ -106,40 +148,46 @@ export default function List({
           className={classes.filter}
         />
       )}
-      <div className={classes.scrollArea}>
-        <M.List dense disablePadding>
-          {extents.length ? (
-            filteredExtents.map((extent) => (
-              <M.ListItem key={extent} disableGutters className={classes.listItem} button>
-                <M.ListItemIcon className={classes.checkboxWrapper}>
-                  <M.Checkbox
-                    checked={!!valueMap[extent]}
-                    id={`list_${extent}`}
-                    onChange={(_event, checked) => handleChange(extent, checked)}
-                    size="small"
-                  />
-                </M.ListItemIcon>
-                <M.ListItemText>
-                  <label
-                    className={classes.label}
-                    htmlFor={`list_${extent}`}
-                    title={extent}
-                  >
-                    {extent || <i>EMPTY STRING</i>}
-                  </label>
-                </M.ListItemText>
-              </M.ListItem>
-            ))
-          ) : (
-            <M.ListItem>
-              <M.ListItemIcon className={classes.checkboxWrapper}>
-                <M.Icon fontSize="small">not_interested</M.Icon>
+      <M.List
+        className={cx({ [classes.hasMore]: showMore })}
+        dense
+        disablePadding={extents.length <= searchThreshold}
+      >
+        {extents.length ? (
+          displayedExtents.map((extent) => (
+            <M.ListItem disableGutters key={extent} className={classes.listItem} button>
+              <M.ListItemIcon className={classes.icon}>
+                <M.Checkbox
+                  className={classes.checkbox}
+                  checked={!!valueMap[extent]}
+                  id={`list_${extent}`}
+                  onChange={(_event, checked) => handleChange(extent, checked)}
+                  size="small"
+                />
               </M.ListItemIcon>
-              <M.ListItemText primary={<i>No available items</i>} />
+              <M.ListItemText>
+                <label
+                  className={classes.label}
+                  htmlFor={`list_${extent}`}
+                  title={extent}
+                >
+                  {extent || <i>EMPTY STRING</i>}
+                </label>
+              </M.ListItemText>
             </M.ListItem>
-          )}
-        </M.List>
-      </div>
+          ))
+        ) : (
+          <M.ListItem>
+            <M.ListItemIcon className={classes.icon}>
+              <M.Icon fontSize="small">not_interested</M.Icon>
+            </M.ListItemIcon>
+            <M.ListItemText primary={<i>No available items</i>} />
+          </M.ListItem>
+        )}
+      </M.List>
+      {showMore && (
+        <MoreButton reverse={expanded} onClick={() => setExpanded((x) => !x)} />
+      )}
       {!!hiddenNumber && (
         <M.Typography variant="caption" className={classes.help}>
           {filteredExtents.length

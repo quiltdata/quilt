@@ -63,40 +63,6 @@ function FiltersButton({ className, onClick }: FiltersButtonProps) {
   )
 }
 
-const useScrollToTopStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'fixed',
-    left: '50%',
-    bottom: t.spacing(3),
-    transform: `translateX(-50%)`,
-  },
-  button: {
-    background: t.palette.background.paper,
-  },
-  icon: {
-    marginRight: t.spacing(1),
-  },
-}))
-
-function ScrollToTop() {
-  const trigger = M.useScrollTrigger({ disableHysteresis: true })
-  const classes = useScrollToTopStyles()
-  const onClick = React.useCallback(
-    () => window.scrollTo({ top: 0, left: 0, behavior: 'smooth' }),
-    [],
-  )
-  return (
-    <M.Fade in={!!trigger}>
-      <M.Container className={classes.root} maxWidth="lg">
-        <M.Fab className={classes.button} onClick={onClick} variant="extended">
-          <M.Icon className={classes.icon}>expand_less</M.Icon>
-          Scroll to the top
-        </M.Fab>
-      </M.Container>
-    </M.Fade>
-  )
-}
-
 const useFilterSectionStyles = M.makeStyles((t) => ({
   root: {
     marginBottom: t.spacing(2),
@@ -112,6 +78,15 @@ const useFilterSectionStyles = M.makeStyles((t) => ({
       position: 'absolute',
       right: '25%',
       bottom: 0,
+    },
+    animation: `$show 150ms ease-out`,
+  },
+  '@keyframes show': {
+    '0%': {
+      opacity: 0.3,
+    },
+    '100%': {
+      opacity: 1,
     },
   },
 }))
@@ -949,16 +924,9 @@ const useFiltersStyles = M.makeStyles((t) => ({
     display: 'grid',
     gridRowGap: t.spacing(2),
     gridTemplateRows: 'auto',
-    paddingBottom: t.spacing(12), // space reserved for "Scroll to top"
-    // TODO: Make scroll for sidebar
-    // TODO: Also, consider that buckets filter disappears
-    // overflow: 'hidden auto',
-    // padding: t.spacing(0.5, 0, 0),
-    // height: `calc(100vh - ${t.spacing(4 + 8)}px)` // -padding -header
   },
   variable: {
     marginTop: t.spacing(1),
-    overflow: 'hidden auto',
   },
 }))
 
@@ -969,9 +937,16 @@ interface FiltersProps {
 function Filters({ className }: FiltersProps) {
   const classes = useFiltersStyles()
   const model = SearchUIModel.use()
+  const isMobile = useMobileView()
   return (
     <div className={cx(classes.root, className)}>
-      <ColumnTitle>Search for</ColumnTitle>
+      {isMobile ? (
+        <ColumnTitle>Search for</ColumnTitle>
+      ) : (
+        <FixedToolbar>
+          <ColumnTitle>Search for</ColumnTitle>
+        </FixedToolbar>
+      )}
       <ResultTypeSelector />
       <BucketSelector />
       {model.state.resultType === SearchUIModel.ResultType.QuiltPackage ? (
@@ -979,7 +954,6 @@ function Filters({ className }: FiltersProps) {
       ) : (
         <ObjectFilters className={classes.variable} />
       )}
-      <ScrollToTop />
     </div>
   )
 }
@@ -988,11 +962,22 @@ interface SearchHitProps {
   hit: SearchUIModel.SearchHit
 }
 
+const useSearchHitStyles = M.makeStyles((t) => ({
+  hit: {
+    marginTop: 0,
+    '& + &': {
+      marginTop: t.spacing(2),
+    },
+  },
+}))
+
 function SearchHit({ hit }: SearchHitProps) {
+  const classes = useSearchHitStyles()
   switch (hit.__typename) {
     case 'SearchHitObject':
       return (
         <SearchResults.Hit
+          className={classes.hit}
           showBucket
           hit={{
             type: 'object',
@@ -1005,6 +990,7 @@ function SearchHit({ hit }: SearchHitProps) {
     case 'SearchHitPackage':
       return (
         <SearchResults.Hit
+          className={classes.hit}
           showBucket
           hit={{
             type: 'package',
@@ -1248,10 +1234,42 @@ function ResultsCount() {
   }
 }
 
-const useResultsStyles = M.makeStyles((t) => ({
+const useFixedToolbarStyles = M.makeStyles((t) => ({
   root: {
-    overflow: 'hidden',
+    left: '50%',
+    position: 'fixed',
+    top: t.spacing(8),
+    transform: 'translateX(-50%)',
+    zIndex: 1,
   },
+  container: {
+    background: () => {
+      const from = t.palette.background.default
+      const to = M.fade(t.palette.background.default, 0.3)
+      return `linear-gradient(to bottom, ${from} 0, ${from} 50%, ${to} 100%)`
+    },
+    padding: t.spacing(2, 1, 1),
+    [t.breakpoints.up('md')]: {
+      padding: t.spacing(3, 0, 2),
+    },
+  },
+}))
+
+interface FixedToolbarProps {
+  children: React.ReactNode
+  className?: string
+}
+
+function FixedToolbar({ children, className }: FixedToolbarProps) {
+  const classes = useFixedToolbarStyles()
+  return (
+    <M.Container className={classes.root} maxWidth="lg">
+      <div className={cx(classes.container, className)}>{children}</div>
+    </M.Container>
+  )
+}
+
+const useResultsStyles = M.makeStyles((t) => ({
   button: {
     '& + &': {
       marginLeft: t.spacing(1),
@@ -1261,55 +1279,74 @@ const useResultsStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginLeft: 'auto',
   },
-  results: {
-    marginTop: t.spacing(2),
-  },
   toolbar: {
     alignItems: 'flex-end',
     display: 'flex',
-    minHeight: '36px',
+    [t.breakpoints.up('md')]: {
+      marginLeft: t.spacing(41.5),
+      marginRight: t.spacing(-0.5),
+      paddingLeft: t.spacing(0.5),
+      paddingRight: t.spacing(0.5),
+    },
   },
 }))
 
 interface ResultsProps {
+  className: string
   onFilters: () => void
 }
 
-function Results({ onFilters }: ResultsProps) {
+function Results({ className, onFilters }: ResultsProps) {
   const classes = useResultsStyles()
   const isMobile = useMobileView()
   return (
-    <div className={classes.root}>
-      <div className={classes.toolbar}>
+    <div className={className}>
+      <FixedToolbar className={classes.toolbar}>
         <ResultsCount />
         <div className={classes.controls}>
           {isMobile && <FiltersButton className={classes.button} onClick={onFilters} />}
           <SortSelector className={classes.button} />
         </div>
-      </div>
-      <ResultsInner className={classes.results} />
+      </FixedToolbar>
+
+      <ResultsInner />
     </div>
   )
 }
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    [t.breakpoints.up('md')]: {
-      alignItems: 'start',
-      display: 'grid',
-      gridColumnGap: t.spacing(2),
-      gridTemplateColumns: `${t.spacing(40)}px auto`,
-    },
     padding: t.spacing(3),
   },
   filtersMobile: {
-    padding: t.spacing(2),
     minWidth: `min(${t.spacing(40)}px, 100vw)`,
+    padding: t.spacing(2),
+  },
+  filtersDesktop: {
+    bottom: 0,
+    overflowY: 'auto',
+    padding: t.spacing(9.5, 0.5, 0, 0),
+    position: 'fixed',
+    top: t.spacing(8),
+    width: t.spacing(40.5),
   },
   filtersClose: {
     position: 'absolute',
     right: '2px',
     top: '10px',
+  },
+  toolbar: {
+    left: '50%',
+    position: 'fixed',
+    top: t.spacing(8),
+    transform: 'translateX(-50%)',
+  },
+  results: {
+    marginTop: t.spacing(6),
+    [t.breakpoints.up('md')]: {
+      marginTop: t.spacing(6.5),
+      marginLeft: t.spacing(42),
+    },
   },
 }))
 
@@ -1332,9 +1369,9 @@ function SearchLayout() {
           </M.IconButton>
         </M.Drawer>
       ) : (
-        <Filters />
+        <Filters className={classes.filtersDesktop} />
       )}
-      <Results onFilters={() => setShowFilters((x) => !x)} />
+      <Results className={classes.results} onFilters={() => setShowFilters((x) => !x)} />
     </M.Container>
   )
 }
@@ -1342,7 +1379,7 @@ function SearchLayout() {
 export default function Search() {
   return (
     <SearchUIModel.Provider>
-      <Layout pre={<SearchLayout />} />
+      <Layout stickyHeader pre={<SearchLayout />} />
     </SearchUIModel.Provider>
   )
 }
