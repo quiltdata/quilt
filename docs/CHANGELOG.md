@@ -41,6 +41,7 @@ Entries inside each section should be ordered by type:
 * [Changed] Unify per-bucket and global search ([#3613](https://github.com/quiltdata/quilt/pull/3613))
 * [Changed] Allow use of <br /> in Markdown ([#3720](https://github.com/quiltdata/quilt/pull/3720))
 * [Changed] Faceted search ([#3712](https://github.com/quiltdata/quilt/pull/3712))
+* [Changed] Filters and results have separate scroll areas ([#3808](https://github.com/quiltdata/quilt/pull/3808))
 
 # 5.3.1 - 2023-05-02
 ## Python API
