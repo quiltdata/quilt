@@ -1,15 +1,55 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as d3Scale from 'd3-scale'
 
 import * as Notifications from 'containers/Notifications'
 import { formatQuantity } from 'utils/string'
 
 const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
-const valueLabelFormat = (number: number) =>
-  // @ts-expect-error
-  formatQuantity(number, {
-    suffixes: ['', 'K', 'M', 'B', 'T', 'P', 'E', 'Z', 'Y'],
+type Scale = d3Scale.ScalePower<number, number> | d3Scale.ScaleLinear<number, number>
+
+export function createNonLinearScale({ min, max }: { min: number; max: number }): {
+  marks: M.Mark[]
+  scale: d3Scale.ScalePower<number, number>
+} {
+  const scale = d3Scale.scalePow().exponent(10).domain([0, 100]).range([min, max])
+  const marks: M.Mark[] = scale
+    .ticks(101) // from 0 to 100, including 0
+    .map((value) => ({ value }))
+  return { marks, scale }
+}
+
+export function createLinearScale({ min, max }: { min: number; max: number }): {
+  marks: M.Mark[]
+  scale: d3Scale.ScaleLinear<number, number>
+} {
+  const scale = d3Scale.scaleLinear().domain([0, 100]).range([min, max])
+  const marks: M.Mark[] = scale
+    .ticks(Math.round(max - min + 1))
+    .map((value) => ({ value }))
+  return { marks, scale }
+}
+
+const createValueLabelFormat = (scale: Scale) => (number: number) => {
+  const scaled = scale(number)
+  return formatQuantity(scaled > 100 ? Math.round(scaled) : scaled, {
+    fallback: (n: number) => Math.round(n * 100) / 100,
+  })
+}
+
+const convertValuesToDomain =
+  (scale: Scale) =>
+  ({ min, max }: { min: number | null; max: number | null }) => [
+    min ? scale.invert(min) : 0,
+    max ? scale.invert(max) : 100,
+  ]
+
+const convertDomainToValues =
+  (scale: Scale) =>
+  ([min, max]: [number, number]) => ({
+    min: scale(min),
+    max: scale(max),
   })
 
 const useStyles = M.makeStyles((t) => {
@@ -36,6 +76,13 @@ interface NumbersRangeProps {
 }
 
 export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
+  const { marks, scale } = React.useMemo(
+    () =>
+      extents.max - extents.min > 100
+        ? createNonLinearScale(extents)
+        : createLinearScale(extents),
+    [extents],
+  )
   const [invalidId, setInvalidId] = React.useState('')
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
@@ -56,8 +103,8 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
     [dismiss, invalidId, notify],
   )
   const handleSlider = React.useCallback(
-    (event, [min, max]) => onChange({ min, max }),
-    [onChange],
+    (_event, [min, max]) => onChange(convertDomainToValues(scale)([min, max])),
+    [onChange, scale],
   )
   const min = value.min || extents.min
   const max = value.max || extents.max
@@ -81,13 +128,16 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
     },
     [onChange, min, validate],
   )
-  const sliderValue = React.useMemo(() => [min, max], [min, max])
+  const sliderValue = React.useMemo(
+    () => convertValuesToDomain(scale)(value),
+    [value, scale],
+  )
+  const valueLabelFormat = React.useMemo(() => createValueLabelFormat(scale), [scale])
   return (
     <div>
       <div className={classes.slider}>
         <M.Slider
-          max={extents.max}
-          min={extents.min}
+          marks={marks}
           onChange={handleSlider}
           value={sliderValue}
           valueLabelFormat={valueLabelFormat}
