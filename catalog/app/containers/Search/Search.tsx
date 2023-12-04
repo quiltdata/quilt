@@ -1365,7 +1365,7 @@ function SearchLayout() {
 export default function Search() {
   return (
     <SearchUIModel.Provider>
-      <Layout pre={<SearchLayout />} />
+      <Layout stickyHeader pre={<SearchLayout />} />
     </SearchUIModel.Provider>
   )
 }
