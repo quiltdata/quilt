@@ -723,7 +723,6 @@ interface UsePackageCreationDialogProps {
   initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
-  currentBucketCanBeSuccessor?: boolean
 }
 
 // TODO: package can be created from some `src`:
@@ -738,7 +737,6 @@ export function usePackageCreationDialog({
   s3Path,
   delayHashing = false,
   disableStateDisplay = false,
-  currentBucketCanBeSuccessor = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
@@ -747,6 +745,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
+  const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()

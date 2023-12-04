@@ -619,7 +619,6 @@ function PackageList({ bucket, sort, filter, page }: PackageListProps) {
 
   const createDialog = PD.usePackageCreationDialog({
     bucket,
-    currentBucketCanBeSuccessor: true,
     delayHashing: true,
     disableStateDisplay: true,
   })
