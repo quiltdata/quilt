@@ -181,6 +181,7 @@ interface PackageCreationFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   sourceBuckets: BucketPreferences.SourceBuckets
   workflowsConfig: workflows.WorkflowsConfig
+  currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
   ui?: {
@@ -206,6 +207,7 @@ function PackageCreationForm({
   sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
+  currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
   ui = {},
@@ -495,6 +497,7 @@ function PackageCreationForm({
             {ui.title || 'Create package'} in{' '}
             <Successors.Dropdown
               bucket={bucket || ''}
+              currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
               successor={successor}
               onChange={onSuccessor}
             />{' '}
@@ -720,6 +723,7 @@ interface UsePackageCreationDialogProps {
   initialOpen?: boolean
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  currentBucketCanBeSuccessor?: boolean
 }
 
 // TODO: package can be created from some `src`:
@@ -734,6 +738,7 @@ export function usePackageCreationDialog({
   s3Path,
   delayHashing = false,
   disableStateDisplay = false,
+  currentBucketCanBeSuccessor = false,
 }: UsePackageCreationDialogProps) {
   const [isOpen, setOpen] = React.useState(initialOpen || false)
   const [exited, setExited] = React.useState(!isOpen)
@@ -914,6 +919,7 @@ export function usePackageCreationDialog({
                       name: src?.name,
                       ...manifest,
                     },
+                    currentBucketCanBeSuccessor,
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,

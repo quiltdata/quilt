@@ -8,7 +8,7 @@ import { docs } from 'constants/urls'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import StyledLink from 'utils/StyledLink'
-import type * as workflows from 'utils/workflows'
+import * as workflows from 'utils/workflows'
 
 import WorkflowsConfigLink from './WorkflowsConfigLink'
 import * as ERRORS from './errors'
@@ -90,18 +90,24 @@ function MenuPlaceholder() {
 
 function useSuccessors(
   bucket: string,
-  { noAutoFetch = false },
+  {
+    currentBucketCanBeSuccessor,
+    noAutoFetch = false,
+  }: { currentBucketCanBeSuccessor: boolean; noAutoFetch?: boolean },
 ): workflows.Successor[] | Error | undefined {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch })
   return React.useMemo(
     () =>
       data.case({
-        Ok: ({ successors }: { successors: workflows.Successor[] }) => successors,
+        Ok: ({ successors }: { successors: workflows.Successor[] }) =>
+          currentBucketCanBeSuccessor && !successors.find(({ slug }) => slug === bucket)
+            ? [workflows.bucketToSuccessor(bucket), ...successors]
+            : successors,
         Err: (error: Error) => error,
         _: () => undefined,
       }),
-    [data],
+    [bucket, currentBucketCanBeSuccessor, data],
   )
 }
 
@@ -152,14 +158,21 @@ const useButtonStyles = M.makeStyles({
 interface InputProps {
   bucket: string
   className?: string
+  currentBucketCanBeSuccessor: boolean
   onChange?: (value: workflows.Successor) => void
   successor: workflows.Successor
 }
 
-export function Dropdown({ bucket, className, onChange, successor }: InputProps) {
+export function Dropdown({
+  bucket,
+  className,
+  currentBucketCanBeSuccessor,
+  onChange,
+  successor,
+}: InputProps) {
   const [open, setOpen] = React.useState(false)
   const [noAutoFetch, setNoAutoFetch] = React.useState(true)
-  const successors = useSuccessors(bucket, { noAutoFetch })
+  const successors = useSuccessors(bucket, { currentBucketCanBeSuccessor, noAutoFetch })
   const options = React.useMemo(
     () =>
       Array.isArray(successors)
