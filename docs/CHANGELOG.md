@@ -28,6 +28,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
 * [Fixed] Hide filters in a sidebar drawer on mobile ([#3801](https://github.com/quiltdata/quilt/pull/3801))
 * [Fixed] Fix copying selected text in code samples ([#3803](https://github.com/quiltdata/quilt/pull/3803))
+* [Fixed] Add current bucket as a succesor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
