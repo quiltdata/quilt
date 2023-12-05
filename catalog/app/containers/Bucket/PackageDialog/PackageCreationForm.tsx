@@ -181,6 +181,7 @@ interface PackageCreationFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   sourceBuckets: BucketPreferences.SourceBuckets
   workflowsConfig: workflows.WorkflowsConfig
+  currentBucketCanBeSuccessor: boolean
   delayHashing: boolean
   disableStateDisplay: boolean
   ui?: {
@@ -206,6 +207,7 @@ function PackageCreationForm({
   sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
+  currentBucketCanBeSuccessor,
   delayHashing,
   disableStateDisplay,
   ui = {},
@@ -495,6 +497,7 @@ function PackageCreationForm({
             {ui.title || 'Create package'} in{' '}
             <Successors.Dropdown
               bucket={bucket || ''}
+              currentBucketCanBeSuccessor={currentBucketCanBeSuccessor}
               successor={successor}
               onChange={onSuccessor}
             />{' '}
@@ -742,6 +745,7 @@ export function usePackageCreationDialog({
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
   // TODO: move to props: { dst: { successor }, onSuccessorChange }
   const [successor, setSuccessor] = React.useState(workflows.bucketToSuccessor(bucket))
+  const currentBucketCanBeSuccessor = s3Path !== undefined
   const addToPackage = AddToPackage.use()
 
   const s3 = AWS.S3.use()
@@ -914,6 +918,7 @@ export function usePackageCreationDialog({
                       name: src?.name,
                       ...manifest,
                     },
+                    currentBucketCanBeSuccessor,
                     delayHashing,
                     disableStateDisplay,
                     onSuccessor: setSuccessor,
