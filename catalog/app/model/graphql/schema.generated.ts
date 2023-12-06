@@ -2996,7 +2996,7 @@ export default {
             },
             args: [
               {
-                name: 'filter',
+                name: 'path',
                 type: {
                   kind: 'NON_NULL',
                   ofType: {
@@ -3004,6 +3004,13 @@ export default {
                     name: 'String',
                     ofType: null,
                   },
+                },
+              },
+              {
+                name: 'type',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
                 },
               },
             ],
@@ -3151,6 +3158,18 @@ export default {
                     ofType: null,
                   },
                 },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'userMetaTruncated',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
               },
             },
             args: [],

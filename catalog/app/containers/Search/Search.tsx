@@ -336,11 +336,7 @@ interface PackagesFilterActivatorProps {
 }
 
 function PackagesFilterActivator({ field }: PackagesFilterActivatorProps) {
-  const model = SearchUIModel.use()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
-    'Filter type mismatch',
-  )
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const { activatePackagesFilter } = model.actions
   const activate = React.useCallback(() => {
     activatePackagesFilter(field)
@@ -354,11 +350,7 @@ interface PackagesFilterProps {
 }
 
 function PackagesFilter({ className, field }: PackagesFilterProps) {
-  const model = SearchUIModel.use()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
-    'Filter type mismatch',
-  )
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const predicateState = model.state.filter.predicates[field]
   invariant(predicateState, 'Filter not active')
 
@@ -425,11 +417,7 @@ function PackagesMetaFilterActivator({
   label,
   disabled,
 }: PackagesMetaFilterActivatorProps) {
-  const model = SearchUIModel.use()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
-    'Filter type mismatch',
-  )
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const { activatePackagesMetaFilter } = model.actions
   const type = SearchUIModel.PackageUserMetaFacetMap[typename]
   const activate = React.useCallback(() => {
@@ -444,11 +432,7 @@ interface PackageMetaFilterProps {
 }
 
 function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
-  const model = SearchUIModel.use()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
-    'Filter type mismatch',
-  )
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
 
   const predicateState = model.state.userMetaFilters.filters.get(path)
   invariant(predicateState, 'Filter not active')
@@ -468,7 +452,7 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
 
   const title = React.useMemo(() => JSONPointer.parse(path).join(' / '), [path])
 
-  const extents = SearchUIModel.usePackageUserMetaFacetExtents(path)
+  const { fetching, extents } = SearchUIModel.usePackageUserMetaFacetExtents(path)
 
   return (
     <FiltersUI.Container
@@ -477,7 +461,14 @@ function PackagesMetaFilter({ className, path }: PackageMetaFilterProps) {
       onDeactivate={deactivate}
       title={title}
     >
-      <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      {fetching ? (
+        <>
+          <Skeleton height={32} />
+          <Skeleton height={32} mt={1} />
+        </>
+      ) : (
+        <FilterWidget state={predicateState} extents={extents} onChange={change} />
+      )}
     </FiltersUI.Container>
   )
 }
@@ -508,7 +499,7 @@ const useFilterGroupStyles = M.makeStyles((t) => ({
 interface FilterGroupProps {
   disabled?: boolean
   path?: string
-  items: ReturnType<typeof SearchUIModel.groupFacets>[number]['children']
+  items: SearchUIModel.FacetTree['children']
 }
 
 function FilterGroup({ disabled, path, items }: FilterGroupProps) {
@@ -569,8 +560,6 @@ function FilterGroup({ disabled, path, items }: FilterGroupProps) {
   )
 }
 
-const FACETS_THRESHOLD = 5
-
 const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   list: {
     background: t.palette.background.default,
@@ -591,7 +580,11 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
 interface AvailablePackagesMetaFiltersProps {
   className?: string
   filtering: SearchUIModel.FacetsFilteringStateInstance
-  facets: readonly SearchUIModel.PackageUserMetaFacet[]
+  facets: {
+    available: readonly SearchUIModel.PackageUserMetaFacet[]
+    visible: SearchUIModel.FacetTree
+    hidden: SearchUIModel.FacetTree
+  }
   fetching: boolean
 }
 
@@ -606,38 +599,30 @@ function AvailablePackagesMetaFilters({
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
-  // XXX: move grouping to the model?
-  const [head, tail] = React.useMemo(
-    () => SearchUIModel.groupFacets(facets, FACETS_THRESHOLD),
-    [facets],
-  )
+  // XXX: discrete states?
 
-  // TODO: lock when fetching
   return (
     <div className={className}>
-      {SearchUIModel.FacetsFilteringState.match(
-        {
-          Enabled: ({ value, set }) => (
-            <FiltersUI.TinyTextField
-              placeholder="Find metadata filter"
-              fullWidth
-              value={value}
-              onChange={set}
-              className={classes.input}
-              // disabled={fetching}
-            />
-          ),
-          Disabled: () => null,
-        },
-        filtering,
-      )}
+      {SearchUIModel.FacetsFilteringState.match({
+        // TODO: show progress indicator while fetching
+        Enabled: ({ value, set }) => (
+          <FiltersUI.TinyTextField
+            placeholder="Find metadata"
+            fullWidth
+            value={value}
+            onChange={set}
+            className={classes.input}
+          />
+        ),
+        Disabled: () => null,
+      })(filtering)}
       <M.List dense disablePadding className={classes.list}>
-        <FilterGroup disabled={fetching} items={head.children} />
+        <FilterGroup disabled={fetching} items={facets.visible.children} />
         <M.Collapse in={expanded}>
-          <FilterGroup disabled={fetching} items={tail.children} />
+          <FilterGroup disabled={fetching} items={facets.hidden.children} />
         </M.Collapse>
       </M.List>
-      {!!tail.children.size && (
+      {!!facets.hidden.children.size && (
         <MoreButton
           className={classes.more}
           disabled={fetching}
@@ -645,20 +630,29 @@ function AvailablePackagesMetaFilters({
           reverse={expanded}
         />
       )}
-      {SearchUIModel.FacetsFilteringState.match(
-        {
-          Enabled: ({ isFiltered }) =>
-            isFiltered && (
-              <p className={classes.help}>
-                Loosen search query to see
-                {!!facets.length && ' more'}
-                <> available filters.</>
-              </p>
-            ),
-          Disabled: () => null,
-        },
-        filtering,
-      )}
+      {SearchUIModel.FacetsFilteringState.match({
+        Enabled: ({ isFiltered }) =>
+          isFiltered &&
+          !facets.available.length && (
+            <p className={classes.help}>No metadata found matching your query</p>
+          ),
+        Disabled: () => null,
+      })(filtering)}
+      {/*
+      // TODO: figure out states
+      !facets.available.length && SearchUIModel.FacetsFilteringState.match({
+        // no (more) initial facets available
+        Enabled: ({ isFiltered, serverSide }) =>
+          // client-side and not filtered
+          // client-side and filtered
+          // server-side and not filtered
+          // server-side and filtered
+          isFiltered && (
+            <p className={classes.help}>No metadata found matching your query</p>
+          ),
+        // no (more) facets available
+        Disabled: () => null,
+      })(filtering)*/}
     </div>
   )
 }
@@ -681,52 +675,34 @@ interface PackagesMetaFiltersProps {
 function PackagesMetaFilters({ className }: PackagesMetaFiltersProps) {
   const classes = usePackagesMetaFiltersStyles()
 
-  // const { activatedPaths, available, fetching } = SearchUIModel.usePackagesMetaFilters()
-  const { activatedPaths, available } = SearchUIModel.usePackagesMetaFiltersFind()
-  // TODO: move facet find input state here
+  const activated = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage).state
+    .userMetaFilters.filters
 
-  const fetching = SearchUIModel.AvailableFiltersState.match(
-    {
-      Loading: () => true,
-      Empty: () => false,
-      Ready: (r) => r.fetching,
-    },
-    available,
-  )
+  const activatedPaths = React.useMemo(() => Array.from(activated.keys()), [activated])
 
   return (
     <div className={className}>
-      <div className={classes.title}>
-        Package-level metadata
-        {fetching && <M.CircularProgress className={classes.spinner} size={12} />}
-      </div>
+      <div className={classes.title}>Package-level metadata</div>
       {activatedPaths.map((path) => (
         <FilterSection key={path}>
           <PackagesMetaFilter path={path} />
         </FilterSection>
       ))}
-      {SearchUIModel.AvailableFiltersState.match(
-        {
-          Loading: () => (
-            // TODO: progress indicator
-            <>Loading facets</>
-          ),
+      <SearchUIModel.AvailablePackagesMetaFilters>
+        {SearchUIModel.AvailableFiltersState.match({
+          Loading: () => <M.Typography>Analyzing metadata&hellip;</M.Typography>,
           Empty: () =>
-            activatedPaths.length ? null : (
-              // XXX: nicer display
-              <M.Typography>No metadata found</M.Typography>
-            ),
+            activatedPaths.length ? null : <M.Typography>No metadata found</M.Typography>,
           Ready: (ready) => <AvailablePackagesMetaFilters {...ready} />,
-        },
-        available,
-      )}
+        })}
+      </SearchUIModel.AvailablePackagesMetaFilters>
     </div>
   )
 }
 
-const packagesFiltersPrimary = ['workflow', 'modified'] as const
+const PACKAGES_FILTERS_PRIMARY = ['workflow', 'modified'] as const
 
-const packagesFiltersSecondary = ['size', 'name', 'hash', 'entries', 'comment'] as const
+const PACKAGES_FILTERS_SECONDARY = ['size', 'name', 'hash', 'entries', 'comment'] as const
 
 const usePackageFiltersStyles = M.makeStyles((t) => ({
   metadata: {
@@ -747,18 +723,13 @@ interface PackageFiltersProps {
 }
 
 function PackageFilters({ className }: PackageFiltersProps) {
-  const model = SearchUIModel.use()
+  const model = SearchUIModel.use(SearchUIModel.ResultType.QuiltPackage)
   const classes = usePackageFiltersStyles()
-
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.QuiltPackage,
-    'wrong result type',
-  )
 
   const { order: activeFilters, predicates } = model.state.filter
 
-  const availableFilters = packagesFiltersPrimary.filter((f) => !predicates[f])
-  const moreFilters = packagesFiltersSecondary.filter((f) => !predicates[f])
+  const availableFilters = PACKAGES_FILTERS_PRIMARY.filter((f) => !predicates[f])
+  const moreFilters = PACKAGES_FILTERS_SECONDARY.filter((f) => !predicates[f])
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
@@ -803,7 +774,7 @@ function PackageFilters({ className }: PackageFiltersProps) {
   )
 }
 
-const objectFilterLabels = {
+const OBJECT_FILTER_LABELS = {
   modified: 'Last modified',
   size: 'Object size',
   ext: 'Extension',
@@ -817,16 +788,12 @@ interface ObjectsFilterActivatorProps {
 }
 
 function ObjectsFilterActivator({ field }: ObjectsFilterActivatorProps) {
-  const model = SearchUIModel.use()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.S3Object,
-    'Filter type mismatch',
-  )
+  const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
   const { activateObjectsFilter } = model.actions
   const activate = React.useCallback(() => {
     activateObjectsFilter(field)
   }, [activateObjectsFilter, field])
-  return <FiltersUI.Activator title={objectFilterLabels[field]} onClick={activate} />
+  return <FiltersUI.Activator title={OBJECT_FILTER_LABELS[field]} onClick={activate} />
 }
 
 interface ObjectsFilterProps {
@@ -835,11 +802,7 @@ interface ObjectsFilterProps {
 }
 
 function ObjectsFilter({ className, field }: ObjectsFilterProps) {
-  const model = SearchUIModel.use()
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.S3Object,
-    'Filter type mismatch',
-  )
+  const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
   const predicateState = model.state.filter.predicates[field]
   invariant(predicateState, 'Filter not active')
 
@@ -881,16 +844,16 @@ function ObjectsFilter({ className, field }: ObjectsFilterProps) {
       className={className}
       defaultExpanded
       onDeactivate={deactivate}
-      title={objectFilterLabels[field]}
+      title={OBJECT_FILTER_LABELS[field]}
     >
       <FilterWidget state={predicateState} extents={extents} onChange={change} />
     </FiltersUI.Container>
   )
 }
 
-const objectsFiltersPrimary = ['modified', 'ext'] as const
+const OBJECTS_FILTERS_PRIMARY = ['modified', 'ext'] as const
 
-const objectsFiltersSecondary = ['size', 'key', 'content', 'deleted'] as const
+const OBJECTS_FILTERS_SECONDARY = ['size', 'key', 'content', 'deleted'] as const
 
 const useObjectFiltersStyles = M.makeStyles((t) => ({
   more: {
@@ -908,18 +871,13 @@ interface ObjectFiltersProps {
 }
 
 function ObjectFilters({ className }: ObjectFiltersProps) {
-  const model = SearchUIModel.use()
+  const model = SearchUIModel.use(SearchUIModel.ResultType.S3Object)
   const classes = useObjectFiltersStyles()
-
-  invariant(
-    model.state.resultType === SearchUIModel.ResultType.S3Object,
-    'wrong result type',
-  )
 
   const { order: activeFilters, predicates } = model.state.filter
 
-  const availableFilters = objectsFiltersPrimary.filter((f) => !predicates[f])
-  const moreFilters = objectsFiltersSecondary.filter((f) => !predicates[f])
+  const availableFilters = OBJECTS_FILTERS_PRIMARY.filter((f) => !predicates[f])
+  const moreFilters = OBJECTS_FILTERS_SECONDARY.filter((f) => !predicates[f])
 
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
@@ -1108,23 +1066,6 @@ function ResultsPage({ className, hits, cursor, resultType }: ResultsPageProps) 
   )
 }
 
-type NextPageQueryResult =
-  | ReturnType<typeof SearchUIModel.useNextPagePackagesQuery>
-  | ReturnType<typeof SearchUIModel.useNextPageObjectsQuery>
-
-interface NextPageQueryProps {
-  after: string
-  children: (result: NextPageQueryResult) => React.ReactElement
-}
-
-function NextPageObjectsQuery({ after, children }: NextPageQueryProps) {
-  return children(SearchUIModel.useNextPageObjectsQuery(after))
-}
-
-function NextPagePackagesQuery({ after, children }: NextPageQueryProps) {
-  return children(SearchUIModel.useNextPagePackagesQuery(after))
-}
-
 interface NextPageProps {
   after: string
   resultType: SearchUIModel.ResultType
@@ -1134,8 +1075,8 @@ interface NextPageProps {
 function NextPage({ after, className, resultType }: NextPageProps) {
   const NextPageQuery =
     resultType === SearchUIModel.ResultType.S3Object
-      ? NextPageObjectsQuery
-      : NextPagePackagesQuery
+      ? SearchUIModel.NextPageObjectsQuery
+      : SearchUIModel.NextPagePackagesQuery
   return (
     <NextPageQuery after={after}>
       {(r) => {

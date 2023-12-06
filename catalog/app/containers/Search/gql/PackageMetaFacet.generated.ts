@@ -2,14 +2,15 @@
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
 import * as Types from '../../../model/graphql/types.generated'
 
-export type containers_Search_gql_PackageMetaFacetsFindQueryVariables = Types.Exact<{
+export type containers_Search_gql_PackageMetaFacetQueryVariables = Types.Exact<{
   buckets: Types.Maybe<ReadonlyArray<Types.Scalars['String']>>
   searchString: Types.Maybe<Types.Scalars['String']>
   filter: Types.Maybe<Types.PackagesSearchFilter>
   path: Types.Scalars['String']
+  type: Types.PackageUserMetaFacetType
 }>
 
-export type containers_Search_gql_PackageMetaFacetsFindQuery = {
+export type containers_Search_gql_PackageMetaFacetQuery = {
   readonly __typename: 'Query'
 } & {
   readonly searchPackages:
@@ -62,13 +63,13 @@ export type containers_Search_gql_PackageMetaFacetsFindQuery = {
       })
 }
 
-export const containers_Search_gql_PackageMetaFacetsFindDocument = {
+export const containers_Search_gql_PackageMetaFacetDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Search_gql_PackageMetaFacetsFind' },
+      name: { kind: 'Name', value: 'containers_Search_gql_PackageMetaFacet' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -100,6 +101,17 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
           type: {
             kind: 'NonNullType',
             type: { kind: 'NamedType', name: { kind: 'Name', value: 'String' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'type' } },
+          type: {
+            kind: 'NonNullType',
+            type: {
+              kind: 'NamedType',
+              name: { kind: 'Name', value: 'PackageUserMetaFacetType' },
+            },
           },
         },
       ],
@@ -152,6 +164,14 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
                             value: {
                               kind: 'Variable',
                               name: { kind: 'Name', value: 'path' },
+                            },
+                          },
+                          {
+                            kind: 'Argument',
+                            name: { kind: 'Name', value: 'type' },
+                            value: {
+                              kind: 'Variable',
+                              name: { kind: 'Name', value: 'type' },
                             },
                           },
                         ],
@@ -311,8 +331,8 @@ export const containers_Search_gql_PackageMetaFacetsFindDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Search_gql_PackageMetaFacetsFindQuery,
-  containers_Search_gql_PackageMetaFacetsFindQueryVariables
+  containers_Search_gql_PackageMetaFacetQuery,
+  containers_Search_gql_PackageMetaFacetQueryVariables
 >
 
-export { containers_Search_gql_PackageMetaFacetsFindDocument as default }
+export { containers_Search_gql_PackageMetaFacetDocument as default }

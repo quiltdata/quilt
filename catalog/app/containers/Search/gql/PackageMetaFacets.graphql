@@ -3,6 +3,7 @@ query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter
     __typename
     ... on PackagesSearchResultSet {
       stats {
+        userMetaTruncated
         userMeta {
           __typename
           ... on IPackageUserMetaFacet {
