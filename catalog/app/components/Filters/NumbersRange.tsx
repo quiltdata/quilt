@@ -5,35 +5,36 @@ import * as d3Scale from 'd3-scale'
 import * as Notifications from 'containers/Notifications'
 import { formatQuantity } from 'utils/string'
 
-const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
+const MAX_TICKS = 100
+const SCALE_CURVE = 2
+const ROUNDING_THRESHOLD = 100
 
-type Scale = d3Scale.ScalePower<number, number> | d3Scale.ScaleLinear<number, number>
+const roundAboveThreshold = (n: number) => (n > ROUNDING_THRESHOLD ? Math.round(n) : n)
 
-export function createNonLinearScale({ min, max }: { min: number; max: number }): {
-  marks: M.Mark[]
-  scale: d3Scale.ScalePower<number, number>
-} {
-  const scale = d3Scale.scalePow().exponent(10).domain([0, 100]).range([min, max])
-  const marks: M.Mark[] = scale
-    .ticks(101) // from 0 to 100, including 0
-    .map((value) => ({ value }))
-  return { marks, scale }
-}
+type Scale = d3Scale.ScaleContinuousNumeric<number, number>
 
-export function createLinearScale({ min, max }: { min: number; max: number }): {
-  marks: M.Mark[]
-  scale: d3Scale.ScaleLinear<number, number>
-} {
-  const scale = d3Scale.scaleLinear().domain([0, 100]).range([min, max])
-  const marks: M.Mark[] = scale
-    .ticks(Math.round(max - min + 1))
-    .map((value) => ({ value }))
+function useScale(min: number, max: number) {
+  const range = Math.min(Math.ceil(max - min), MAX_TICKS)
+
+  const scale: Scale = React.useMemo(() => {
+    let s =
+      max - min > MAX_TICKS
+        ? d3Scale.scalePow().exponent(SCALE_CURVE)
+        : d3Scale.scaleLinear()
+    return s.domain([0, range]).range([min, max]).nice()
+  }, [min, max, range])
+
+  const marks: M.Mark[] = React.useMemo(
+    () => scale.ticks(range + 1).map((value) => ({ value })),
+    [scale, range],
+  )
+
   return { marks, scale }
 }
 
 const createValueLabelFormat = (scale: Scale) => (number: number) => {
   const scaled = scale(number)
-  return formatQuantity(scaled > 100 ? Math.round(scaled) : scaled, {
+  return formatQuantity(roundAboveThreshold(scaled), {
     fallback: (n: number) => Math.round(n * 100) / 100,
   })
 }
@@ -41,16 +42,18 @@ const createValueLabelFormat = (scale: Scale) => (number: number) => {
 const convertValuesToDomain =
   (scale: Scale) =>
   ({ min, max }: { min: number | null; max: number | null }) => [
-    min ? scale.invert(min) : 0,
-    max ? scale.invert(max) : 100,
+    min != null ? scale.invert(min) : 0,
+    max != null ? scale.invert(max) : 100,
   ]
 
 const convertDomainToValues =
   (scale: Scale) =>
   ([min, max]: [number, number]) => ({
-    min: scale(min),
-    max: scale(max),
+    min: roundAboveThreshold(scale(min)),
+    max: roundAboveThreshold(scale(max)),
   })
+
+const isNumber = (v: unknown): v is number => typeof v === 'number' && !Number.isNaN(v)
 
 const useStyles = M.makeStyles((t) => {
   const gap = t.spacing(1)
@@ -76,13 +79,7 @@ interface NumbersRangeProps {
 }
 
 export default function NumbersRange({ extents, value, onChange }: NumbersRangeProps) {
-  const { marks, scale } = React.useMemo(
-    () =>
-      extents.max - extents.min > 100
-        ? createNonLinearScale(extents)
-        : createLinearScale(extents),
-    [extents],
-  )
+  const { marks, scale } = useScale(extents.min, extents.max)
   const [invalidId, setInvalidId] = React.useState('')
   const { push: notify, dismiss } = Notifications.use()
   const classes = useStyles()
@@ -102,10 +99,12 @@ export default function NumbersRange({ extents, value, onChange }: NumbersRangeP
     },
     [dismiss, invalidId, notify],
   )
+  // XXX: it would be nice to debounce high-frequency URL changes, but it's not that trivial
   const handleSlider = React.useCallback(
     (_event, [min, max]) => onChange(convertDomainToValues(scale)([min, max])),
     [onChange, scale],
   )
+
   const min = value.min || extents.min
   const max = value.max || extents.max
   const handleFrom = React.useCallback(
