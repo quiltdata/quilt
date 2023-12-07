@@ -9,23 +9,6 @@ query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter
           ... on IPackageUserMetaFacet {
             path
           }
-          ... on NumberPackageUserMetaFacet {
-            numberExtents: extents {
-              min
-              max
-            }
-          }
-          ... on DatetimePackageUserMetaFacet {
-            datetimeExtents: extents {
-              min
-              max
-            }
-          }
-          ... on KeywordPackageUserMetaFacet {
-            extents {
-              values
-            }
-          }
         }
       }
     }

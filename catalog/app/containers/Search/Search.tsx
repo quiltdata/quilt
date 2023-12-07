@@ -159,7 +159,6 @@ function NumberFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Number']>) {
-  // XXX: query extents
   const handleChange = React.useCallback(
     (value: { min: number | null; max: number | null }) => {
       onChange({ ...state, gte: value.min, lte: value.max })
@@ -192,7 +191,6 @@ function DatetimeFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['Datetime']>) {
-  // XXX: query extents
   const fixedExtents = React.useMemo(
     () => ({
       min: extents?.min ?? new Date(),
@@ -229,7 +227,6 @@ function KeywordEnumFilterWidget({
   extents,
   onChange,
 }: FilterWidgetProps<SearchUIModel.Predicates['KeywordEnum']>) {
-  // XXX: query extents
   const handleChange = React.useCallback(
     (value: string[]) => {
       onChange({ ...state, terms: value })
@@ -566,6 +563,7 @@ const useAvailablePackagesMetaFiltersStyles = M.makeStyles((t) => ({
   },
   help: {
     ...t.typography.caption,
+    marginBottom: t.spacing(1),
     marginTop: t.spacing(1),
   },
   input: {
@@ -599,12 +597,9 @@ function AvailablePackagesMetaFilters({
   const [expanded, setExpanded] = React.useState(false)
   const toggleExpanded = React.useCallback(() => setExpanded((x) => !x), [])
 
-  // XXX: discrete states?
-
   return (
     <div className={className}>
       {SearchUIModel.FacetsFilteringState.match({
-        // TODO: show progress indicator while fetching
         Enabled: ({ value, set }) => (
           <FiltersUI.TinyTextField
             placeholder="Find metadata"
@@ -614,6 +609,23 @@ function AvailablePackagesMetaFilters({
             className={classes.input}
           />
         ),
+        Disabled: () => null,
+      })(filtering)}
+      {SearchUIModel.FacetsFilteringState.match({
+        Enabled: ({ isFiltered, serverSide }) => {
+          if (serverSide && !isFiltered) {
+            return (
+              <p className={classes.help}>
+                Some metadata not displayed.
+                <br />
+                Enter search query to see more.
+              </p>
+            )
+          }
+          if (isFiltered && !facets.available.length) {
+            return <p className={classes.help}>No metadata found matching your query</p>
+          }
+        },
         Disabled: () => null,
       })(filtering)}
       <M.List dense disablePadding className={classes.list}>
@@ -630,29 +642,6 @@ function AvailablePackagesMetaFilters({
           reverse={expanded}
         />
       )}
-      {SearchUIModel.FacetsFilteringState.match({
-        Enabled: ({ isFiltered }) =>
-          isFiltered &&
-          !facets.available.length && (
-            <p className={classes.help}>No metadata found matching your query</p>
-          ),
-        Disabled: () => null,
-      })(filtering)}
-      {/*
-      // TODO: figure out states
-      !facets.available.length && SearchUIModel.FacetsFilteringState.match({
-        // no (more) initial facets available
-        Enabled: ({ isFiltered, serverSide }) =>
-          // client-side and not filtered
-          // client-side and filtered
-          // server-side and not filtered
-          // server-side and filtered
-          isFiltered && (
-            <p className={classes.help}>No metadata found matching your query</p>
-          ),
-        // no (more) facets available
-        Disabled: () => null,
-      })(filtering)*/}
     </div>
   )
 }
