@@ -260,7 +260,7 @@ function KeywordWildcardFilterWidget({
   return (
     <FiltersUI.TextField
       onChange={handleChange}
-      placeholder="Match against (wildcards supproted)"
+      placeholder="Match against (wildcards supported)"
       value={state.wildcard}
     />
   )
