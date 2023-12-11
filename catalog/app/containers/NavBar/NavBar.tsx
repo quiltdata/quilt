@@ -447,10 +447,11 @@ const useHeaderStyles = M.makeStyles((t) => ({
 }))
 
 interface HeaderProps {
-  children?: React.ReactNode
+  children: React.ReactNode
+  sticky: boolean
 }
 
-export function Header({ children }: HeaderProps) {
+export function Header({ children, sticky }: HeaderProps) {
   const trigger = M.useScrollTrigger()
   const settings = CatalogSettings.use()
   const classes = useHeaderStyles({
@@ -459,7 +460,7 @@ export function Header({ children }: HeaderProps) {
   return (
     <M.Box>
       <M.Toolbar />
-      <M.Slide appear={false} direction="down" in={!trigger}>
+      <M.Slide appear={false} direction="down" in={sticky || !trigger}>
         <AppBar>
           <M.Toolbar disableGutters>
             <M.Container className={classes.container} maxWidth="lg">
@@ -475,12 +476,13 @@ export function Header({ children }: HeaderProps) {
 
 interface ContainerProps {
   children?: React.ReactNode
+  sticky?: boolean
 }
 
-export function Container({ children }: ContainerProps) {
+export function Container({ children, sticky = false }: ContainerProps) {
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
-      <Header>{children}</Header>
+      <Header sticky={sticky}>{children}</Header>
     </M.MuiThemeProvider>
   )
 }
@@ -581,7 +583,11 @@ const useNavBarStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function NavBar() {
+interface NavBarProps {
+  sticky?: boolean
+}
+
+export function NavBar({ sticky = false }: NavBarProps) {
   const settings = CatalogSettings.use()
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRouteMatch({ path: paths.signIn, exact: true })
@@ -592,7 +598,7 @@ export function NavBar() {
   const intercom = Intercom.use()
   const classes = useNavBarStyles()
   return (
-    <Container>
+    <Container sticky={sticky}>
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <div className={classes.spacer} />
       ) : (
