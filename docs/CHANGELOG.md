@@ -22,6 +22,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
+* [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
 
 # 5.4.0 - 2023-11-29
 ## Python API

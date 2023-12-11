@@ -668,6 +668,14 @@ export type PackageUserMetaFacet =
   | TextPackageUserMetaFacet
   | BooleanPackageUserMetaFacet
 
+export enum PackageUserMetaFacetType {
+  NUMBER = 'NUMBER',
+  DATETIME = 'DATETIME',
+  KEYWORD = 'KEYWORD',
+  TEXT = 'TEXT',
+  BOOLEAN = 'BOOLEAN',
+}
+
 export interface PackageUserMetaPredicate {
   readonly path: Scalars['String']
   readonly datetime: Maybe<DatetimeSearchPredicate>
@@ -703,7 +711,13 @@ export type PackagesSearchResult =
 export interface PackagesSearchResultSet {
   readonly __typename: 'PackagesSearchResultSet'
   readonly stats: PackagesSearchStats
+  readonly filteredUserMetaFacets: ReadonlyArray<PackageUserMetaFacet>
   readonly firstPage: PackagesSearchResultSetPage
+}
+
+export interface PackagesSearchResultSetfilteredUserMetaFacetsArgs {
+  path: Scalars['String']
+  type: Maybe<PackageUserMetaFacetType>
 }
 
 export interface PackagesSearchResultSetfirstPageArgs {
@@ -725,6 +739,7 @@ export interface PackagesSearchStats {
   readonly entries: NumberExtents
   readonly workflow: KeywordExtents
   readonly userMeta: ReadonlyArray<PackageUserMetaFacet>
+  readonly userMetaTruncated: Scalars['Boolean']
 }
 
 export interface PermissionInput {
