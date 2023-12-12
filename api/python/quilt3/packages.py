@@ -619,6 +619,10 @@ class Package:
 
             pkg = cls._from_path(local_pkg_manifest)
             pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
+
+            if pkg.top_hash != top_hash:
+                raise QuiltException(f"Invalid package hash: expected {top_hash}, got {pkg.top_hash}")
+
             return pkg
 
     @classmethod

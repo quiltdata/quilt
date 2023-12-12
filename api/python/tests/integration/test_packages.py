@@ -37,6 +37,7 @@ from ..utils import QuiltTestCase
 DATA_DIR = Path(__file__).parent / 'data'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
+REMOTE_MANIFEST_HASH = '4cf8b52e3647c21207c1f60394f394f7dbf1a04a89d94aeb6c28a9bf09688f2b'
 
 SERIALIZATION_DIR = Path('serialization_dir')
 
@@ -51,8 +52,6 @@ class PackageTest(QuiltTestCase):
     default_registry_version = 1
     S3PackageRegistryDefault = S3PackageRegistryV1
     LocalPackageRegistryDefault = LocalPackageRegistryV1
-
-    default_test_top_hash = 'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'
 
     def setUp(self):
         super().setUp()
@@ -116,9 +115,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-    def setup_s3_stubber_pkg_install(self, pkg_registry, pkg_name, *, top_hash=None, manifest=None, entries=()):
-        top_hash = top_hash or self.default_test_top_hash
-
+    def setup_s3_stubber_pkg_install(self, pkg_registry, pkg_name, top_hash, *, manifest=None, entries=()):
         self.setup_s3_stubber_resolve_pointer(pkg_registry, pkg_name, pointer='latest', top_hash=top_hash)
 
         if manifest:
@@ -331,17 +328,17 @@ class PackageTest(QuiltTestCase):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
         pkg_name = 'Quilt/test'
 
-        top_hash = 'abcdefgh' * 8
+        top_hash = REMOTE_MANIFEST_HASH
 
         # Make the first request.
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, top_hash=top_hash, manifest=REMOTE_MANIFEST.read_bytes())
+            pkg_registry, pkg_name, top_hash, manifest=REMOTE_MANIFEST.read_bytes())
 
         pkg = Package.browse('Quilt/test', registry=registry)
         assert 'foo' in pkg
 
         # Make the second request. Gets "latest" - but the rest should be cached.
-        self.setup_s3_stubber_pkg_install(pkg_registry, pkg_name, top_hash=top_hash)
+        self.setup_s3_stubber_pkg_install(pkg_registry, pkg_name, top_hash)
 
         pkg2 = Package.browse(pkg_name, registry=registry)
         assert 'foo' in pkg2
@@ -353,7 +350,7 @@ class PackageTest(QuiltTestCase):
 
         # Make a request with a short hash.
         self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
-        pkg3 = Package.browse(pkg_name, top_hash='abcdef', registry=registry)
+        pkg3 = Package.browse(pkg_name, top_hash=REMOTE_MANIFEST_HASH[:6], registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a bad short hash.
@@ -960,36 +957,34 @@ class PackageTest(QuiltTestCase):
 
     def test_local_delete_package_revision(self):
         pkg_name = 'Quilt/Test'
-        top_hash1 = 'top_hash1'
-        top_hash2 = 'top_hash2'
-        top_hash3 = 'top_hash3'
-        top_hashes = (top_hash1, top_hash2, top_hash3)
+        top_hashes = []
 
-        for i, top_hash in enumerate(top_hashes):
-            with patch('quilt3.Package.top_hash', top_hash), \
-                 patch('time.time', return_value=i):
-                Path(top_hash).write_text(top_hash)
-                Package().set(top_hash, top_hash).build(pkg_name)
+        for i in range(3):
+            pkg = Package().set("idx", i)
+            with patch('time.time', return_value=i):
+                top_hash = pkg.build(pkg_name)
+            Path(top_hash).write_text(top_hash)
+            top_hashes.append(top_hash)
 
         # All is set up correctly.
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == set(top_hashes)
-        assert Package.browse(pkg_name)[top_hash3].get_as_string() == top_hash3
+        assert Package.browse(pkg_name)['idx'].deserialize() == 2
 
         # Remove latest revision, latest now points to the previous one.
-        quilt3.delete_package(pkg_name, top_hash=top_hash3)
+        quilt3.delete_package(pkg_name, top_hash=top_hashes[2])
         assert pkg_name in quilt3.list_packages()
-        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1, top_hash2}
-        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hashes[0], top_hashes[1]}
+        assert Package.browse(pkg_name)['idx'].deserialize() == 1
 
         # Remove non-latest revision, latest stays the same.
-        quilt3.delete_package(pkg_name, top_hash=top_hash1)
+        quilt3.delete_package(pkg_name, top_hash=top_hashes[0])
         assert pkg_name in quilt3.list_packages()
-        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash2}
-        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hashes[1]}
+        assert Package.browse(pkg_name)['idx'].deserialize() == 1
 
         # Remove the last revision, package is not listed anymore.
-        quilt3.delete_package(pkg_name, top_hash=top_hash2)
+        quilt3.delete_package(pkg_name, top_hash=top_hashes[1])
         assert pkg_name not in quilt3.list_packages()
         assert not list(quilt3.list_package_versions(pkg_name))
 
@@ -1387,7 +1382,7 @@ class PackageTest(QuiltTestCase):
         pkg_name = 'Quilt/Foo'
 
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+            pkg_registry, pkg_name, REMOTE_MANIFEST_HASH, manifest=REMOTE_MANIFEST.read_bytes(),
             entries=(
                 ('s3://my_bucket/my_data_pkg/bar.csv', b'a,b,c'),
                 ('s3://my_bucket/my_data_pkg/baz/bat', b'Hello World!'),
@@ -1425,7 +1420,7 @@ class PackageTest(QuiltTestCase):
 
         # Check that installing the package again reuses the cached manifest and two objects - but not "foo".
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name,
+            pkg_registry, pkg_name, REMOTE_MANIFEST_HASH,
             entries=(
                 ('s3://my_bucket/my_data_pkg/foo', '💩'.encode()),
             ),
@@ -1445,12 +1440,13 @@ class PackageTest(QuiltTestCase):
         # make sure import works for an installed named package
         pkg_name2 = 'test/foo'
         same_manifest_path = (
-            pkg_registry.manifest_pk(pkg_name2, self.default_test_top_hash) ==
-            pkg_registry.manifest_pk(pkg_name, self.default_test_top_hash)
+            pkg_registry.manifest_pk(pkg_name2, REMOTE_MANIFEST_HASH) ==
+            pkg_registry.manifest_pk(pkg_name, REMOTE_MANIFEST_HASH)
         )
         self.setup_s3_stubber_pkg_install(
             pkg_registry,
             pkg_name2,
+            REMOTE_MANIFEST_HASH,
             # Manifest is cached on PackageRegistryV1, since it's on the same path.
             manifest=None if same_manifest_path else REMOTE_MANIFEST.read_bytes(),
         )
@@ -1491,7 +1487,7 @@ class PackageTest(QuiltTestCase):
         # Install a package twice and make sure cache functions weren't called.
         for x in range(2):
             self.setup_s3_stubber_pkg_install(
-                pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+                pkg_registry, pkg_name, REMOTE_MANIFEST_HASH, manifest=REMOTE_MANIFEST.read_bytes(),
                 entries=(
                     ('s3://my_bucket/my_data_pkg/bar.csv', b'a,b,c'),
                     ('s3://my_bucket/my_data_pkg/baz/bat', b'Hello World!'),
@@ -1512,7 +1508,7 @@ class PackageTest(QuiltTestCase):
         pkg_name = 'Quilt/Foo'
 
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+            pkg_registry, pkg_name, REMOTE_MANIFEST_HASH, manifest=REMOTE_MANIFEST.read_bytes(),
         )
         pkg = Package.browse(pkg_name, registry=registry)
         for lk, entry in pkg.walk():
@@ -1534,7 +1530,7 @@ class PackageTest(QuiltTestCase):
         )
         dest = 'package'
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+            pkg_registry, pkg_name, REMOTE_MANIFEST_HASH, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
         Package.install(pkg_name, registry=registry, dest=dest, path=path)
 
@@ -1560,7 +1556,7 @@ class PackageTest(QuiltTestCase):
         )
         dest = 'package'
         self.setup_s3_stubber_pkg_install(
-            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+            pkg_registry, pkg_name, REMOTE_MANIFEST_HASH, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
         Package.install(pkg_name, registry=registry, dest=dest, path=path)
 
@@ -1949,6 +1945,13 @@ class PackageTest(QuiltTestCase):
 
                 # This would fail if non-ASCII chars were encoded using escape sequences.
                 Package().set_meta({'a': '💩' * 2_000}).dump(buf)
+
+    def test_bad_hash(self):
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url("s3://bucket"))
+        self.setup_s3_stubber_pkg_install(pkg_registry, "test/bad_hash", "a" * 64, manifest=REMOTE_MANIFEST.read_bytes())
+        with pytest.raises(QuiltException) as excinfo:
+            Package.browse("test/bad_hash", registry="s3://bucket")
+        assert "Invalid package hash" in str(excinfo.value)
 
 
 class PackageTestV2(PackageTest):
