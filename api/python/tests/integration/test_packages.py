@@ -1948,9 +1948,9 @@ class PackageTest(QuiltTestCase):
 
     def test_bad_hash(self):
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url("s3://bucket"))
-        self.setup_s3_stubber_pkg_install(pkg_registry, "test/bad_hash", "a" * 64, manifest=REMOTE_MANIFEST.read_bytes())
+        self.setup_s3_stubber_pkg_install(pkg_registry, "test/bad", "a" * 64, manifest=REMOTE_MANIFEST.read_bytes())
         with pytest.raises(QuiltException) as excinfo:
-            Package.browse("test/bad_hash", registry="s3://bucket")
+            Package.browse("test/bad", registry="s3://bucket")
         assert "Invalid package hash" in str(excinfo.value)
 
 
