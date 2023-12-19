@@ -112,7 +112,7 @@ const useEmptyResultsStyles = M.makeStyles((t) => ({
 interface EmptyResultsProps {
   className?: string
   clearTitle?: string
-  description?: string
+  description?: string | React.ReactNode
   image?: 'not-found' | 'error'
   title?: string
 }

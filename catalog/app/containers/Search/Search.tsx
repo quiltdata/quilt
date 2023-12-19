@@ -10,6 +10,7 @@ import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import MetaTitle from 'utils/MetaTitle'
+import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
@@ -1139,12 +1140,38 @@ function ResultsInner({ className }: ResultsInnerProps) {
         case 'EmptySearchResultSet':
           return <EmptyResults className={className} />
         case 'InvalidInput':
+          const [err] = r.data.errors
+          const title =
+            err.name === 'QuerySyntaxError' ? 'Query syntax error' : `Invalid input`
+          const description =
+            err.name === 'QuerySyntaxError' ? (
+              <>
+                Oops, couldn&apos;t parse that search.
+                <br />
+                Try quoting your query or read about{' '}
+                <StyledLink href={SearchResults.ES_REF_SYNTAX} target="_blank">
+                  supported query syntax
+                </StyledLink>
+                .
+                <br />
+                <br />
+                Error details:
+                <br />
+                {err.message}
+              </>
+            ) : (
+              <>
+                Invalid input at <code>{err.path}</code>: {err.name}
+                <br />
+                {err.message}
+              </>
+            )
           return (
             <EmptyResults
               className={className}
-              description={r.data.errors[0].message}
+              description={description}
               image="error"
-              title="Invalid input"
+              title={title}
             />
           )
         case 'ObjectsSearchResultSet':
