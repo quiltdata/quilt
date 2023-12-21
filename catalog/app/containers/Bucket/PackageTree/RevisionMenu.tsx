@@ -7,8 +7,8 @@ import Menu from '../Menu'
 
 interface RevisionMenuProps {
   className: string
-  onCreateFile: () => void
-  onDelete: () => void
+  onCreateFile?: () => void
+  onDelete?: () => void
   onDesktop: () => void
 }
 
@@ -26,13 +26,13 @@ export default function RevisionMenu({
         {
           Ok: ({ ui: { actions } }) => {
             const menu = []
-            if (actions.revisePackage) {
+            if (actions.revisePackage && onCreateFile) {
               menu.push({
                 onClick: onCreateFile,
                 title: 'Create file',
               })
             }
-            if (actions.deleteRevision) {
+            if (actions.deleteRevision && onDelete) {
               menu.push({
                 onClick: onDelete,
                 title: 'Delete revision',
@@ -41,7 +41,7 @@ export default function RevisionMenu({
             if (actions.openInDesktop && !cfg.desktop) {
               menu.push({
                 onClick: onDesktop,
-                title: 'Open in Teleport',
+                title: 'Open in desktop',
               })
             }
             return menu
