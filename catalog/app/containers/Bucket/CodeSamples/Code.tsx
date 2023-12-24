@@ -32,14 +32,12 @@ const useLineOfCodeStyles = M.makeStyles((t) => ({
     overflowY: 'hidden',
     whiteSpace: 'pre',
     minHeight: t.typography.body2.fontSize,
-    display: 'flex',
-    alignItems: 'flex-end',
     '&:hover $help': {
       opacity: 1,
     },
   },
   help: {
-    display: 'inline-flex',
+    display: 'inline-block',
     marginLeft: t.spacing(0.5),
     opacity: 0.3,
   },

@@ -30,7 +30,7 @@ simplejson==3.17.2
     # via awslambdaric
 typing-extensions==4.2.0
     # via jsonschema
-urllib3==1.26.17
+urllib3==1.26.18
     # via requests
 zipp==3.8.0
     # via

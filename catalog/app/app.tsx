@@ -5,6 +5,7 @@ import { createBrowserHistory as createHistory } from 'history'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { Router } from 'react-router-dom'
+import { createSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
 // initialize config from window.QUILT_CATALOG_CONFIG
@@ -38,6 +39,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as GraphQL from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
+import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
@@ -57,26 +59,30 @@ globalApi.attach(window)
 const GlobalAPIProvider = globalApi.getProvider()
 
 // listen for Roboto fonts
-fontLoader('Roboto', 'Roboto Mono').then(() => {
-  // reload doc when we have all custom fonts
-  document.body.classList.add('fontLoaded')
-})
+fontLoader('Roboto', 'Roboto Mono')
+  .then(() => {
+    // reload doc when we have all custom fonts
+    document.body.classList.add('fontLoaded')
+  })
+  .catch((error) => {
+    log.log('Failed to load fonts')
+    log.error(error)
+  })
 
 const MOUNT_NODE = document.getElementById('app')
 
 // TODO: make storage injectable
 const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
 
-const intercomUserSelector = (state: $TSFixMe) => {
-  const { user: u } = Auth.selectors.domain(state)
-  return (
+const intercomUserSelector = createSelector(
+  Auth.selectors.domain,
+  ({ user: u }) =>
     u && {
       user_id: u.current_user,
       name: u.current_user,
       email: u.email,
-    }
-  )
-}
+    },
+)
 
 const render = () => {
   ReactDOM.render(

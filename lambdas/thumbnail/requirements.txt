@@ -33,7 +33,7 @@ numpy==1.24.1
     #   tifffile
 pdf2image==1.16.2
     # via t4-lambda-thumbnail (pyproject.toml)
-pillow==9.4.0
+pillow==10.0.1
     # via
     #   imageio
     #   pdf2image
@@ -51,7 +51,7 @@ simplejson==3.17.2
     # via awslambdaric
 tifffile==0.15.1
     # via aicsimageio
-urllib3==1.26.17
+urllib3==1.26.18
     # via requests
 xlsxwriter==3.0.7
     # via python-pptx

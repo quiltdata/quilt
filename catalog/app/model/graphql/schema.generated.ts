@@ -84,6 +84,38 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'BooleanPackageUserMetaFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'IPackageUserMetaFacet',
+          },
+        ],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Boolean',
+      },
+      {
+        kind: 'OBJECT',
         name: 'BrowsingSession',
         fields: [
           {
@@ -166,14 +198,6 @@ export default {
             name: 'OperationError',
           },
         ],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'String',
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Boolean',
       },
       {
         kind: 'UNION',
@@ -907,6 +931,130 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'DatetimeExtents',
+        fields: [
+          {
+            name: 'min',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'max',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'DatetimePackageUserMetaFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'extents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'DatetimeExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'IPackageUserMetaFacet',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'EmptySearchResultSet',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'INTERFACE',
+        name: 'IPackageUserMetaFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'BooleanPackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'DatetimePackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'KeywordPackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'NumberPackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'TextPackageUserMetaFacet',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
         name: 'IndexingInProgress',
         fields: [
           {
@@ -1018,6 +1166,67 @@ export default {
       {
         kind: 'SCALAR',
         name: 'JsonRecord',
+      },
+      {
+        kind: 'OBJECT',
+        name: 'KeywordExtents',
+        fields: [
+          {
+            name: 'values',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'KeywordPackageUserMetaFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'extents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'IPackageUserMetaFacet',
+          },
+        ],
       },
       {
         kind: 'OBJECT',
@@ -1759,6 +1968,245 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'NumberExtents',
+        fields: [
+          {
+            name: 'min',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'max',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'Float',
+      },
+      {
+        kind: 'OBJECT',
+        name: 'NumberPackageUserMetaFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'extents',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'NumberExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'IPackageUserMetaFacet',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'ObjectsSearchMoreResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'ObjectsSearchResultSetPage',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'ObjectsSearchResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'ObjectsSearchResultSet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'EmptySearchResultSet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'ObjectsSearchResultSet',
+        fields: [
+          {
+            name: 'stats',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'ObjectsSearchStats',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'firstPage',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'ObjectsSearchResultSetPage',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'size',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'order',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'ObjectsSearchResultSetPage',
+        fields: [
+          {
+            name: 'cursor',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'hits',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'SearchHitObject',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'ObjectsSearchStats',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'DatetimeExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'NumberExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'ext',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Ok',
         fields: [
           {
@@ -1903,10 +2351,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'SCALAR',
-        name: 'Float',
       },
       {
         kind: 'UNION',
@@ -2433,6 +2877,32 @@ export default {
         interfaces: [],
       },
       {
+        kind: 'UNION',
+        name: 'PackageUserMetaFacet',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'NumberPackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'DatetimePackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'KeywordPackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'TextPackageUserMetaFacet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BooleanPackageUserMetaFacet',
+          },
+        ],
+      },
+      {
         kind: 'OBJECT',
         name: 'PackageWorkflow',
         fields: [
@@ -2454,6 +2924,253 @@ export default {
               kind: 'SCALAR',
               name: 'String',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'PackagesSearchMoreResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSetPage',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
+        kind: 'UNION',
+        name: 'PackagesSearchResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackagesSearchResultSet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'EmptySearchResultSet',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'InvalidInput',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackagesSearchResultSet',
+        fields: [
+          {
+            name: 'stats',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackagesSearchStats',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'filteredUserMetaFacets',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'PackageUserMetaFacet',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'path',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'type',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+          {
+            name: 'firstPage',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackagesSearchResultSetPage',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'size',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'order',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackagesSearchResultSetPage',
+        fields: [
+          {
+            name: 'cursor',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'hits',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'SearchHitPackage',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackagesSearchStats',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'DatetimeExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'NumberExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'entries',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'NumberExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'KeywordExtents',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'userMeta',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'PackageUserMetaFacet',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'userMetaTruncated',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -2764,6 +3481,167 @@ export default {
                     name: 'String',
                     ofType: null,
                   },
+                },
+              },
+            ],
+          },
+          {
+            name: 'searchObjects',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'ObjectsSearchResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'buckets',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'String',
+                      ofType: null,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'searchString',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'filter',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+            ],
+          },
+          {
+            name: 'searchPackages',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackagesSearchResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'buckets',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'String',
+                      ofType: null,
+                    },
+                  },
+                },
+              },
+              {
+                name: 'searchString',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'filter',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
+              {
+                name: 'userMetaFilters',
+                type: {
+                  kind: 'LIST',
+                  ofType: {
+                    kind: 'NON_NULL',
+                    ofType: {
+                      kind: 'SCALAR',
+                      name: 'Any',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'searchMoreObjects',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'ObjectsSearchMoreResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'after',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'size',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'searchMorePackages',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'PackagesSearchMoreResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'after',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'size',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
                 },
               },
             ],
@@ -3234,6 +4112,227 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'SearchHitObject',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'score',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'key',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'version',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'deleted',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SearchHitPackage',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'score',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'size',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Float',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'hash',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'comment',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'meta',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'workflow',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'SnsInvalid',
         fields: [
           {
@@ -3556,6 +4655,30 @@ export default {
           },
         ],
         interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'TextPackageUserMetaFacet',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [
+          {
+            kind: 'INTERFACE',
+            name: 'IPackageUserMetaFacet',
+          },
+        ],
       },
       {
         kind: 'OBJECT',

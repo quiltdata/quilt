@@ -14,10 +14,20 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+
 # unreleased - YYYY-MM-DD
 ## Python API
 
 ## CLI
+
+## Catalog, Lambdas
+* [Fixed] Faceted Search: show helpful message in case of search query syntax errors ([#3821](https://github.com/quiltdata/quilt/pull/3821))
+* [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
+* [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
+
+# 5.4.0 - 2023-11-29
+## Python API
+* [Added] `create_user()`, `delete_user()`, `set_role()` in `quilt3.admin` ([#3764](https://github.com/quiltdata/quilt/pull/3764))
 
 ## Catalog, Lambdas
 * [Fixed] Fixed file preview header layout ([#3454](https://github.com/quiltdata/quilt/pull/3454))
@@ -26,6 +36,10 @@ Entries inside each section should be ordered by type:
 * [Fixed] Fix code sample for package push ([#3499](https://github.com/quiltdata/quilt/pull/3499))
 * [Fixed] Make bookmarks optional (and fix Embed listings broken in #3697) ([#3705](https://github.com/quiltdata/quilt/pull/3705))
 * [Fixed] Disable opening file picker on metadata click, and fix dropping JSON as metadata ([#3707](https://github.com/quiltdata/quilt/pull/3707))
+* [Fixed] Faceted Search: crash due to infinite recursion on duplicate facets ([#3799](https://github.com/quiltdata/quilt/pull/3799))
+* [Fixed] Hide filters in a sidebar drawer on mobile ([#3801](https://github.com/quiltdata/quilt/pull/3801))
+* [Fixed] Fix copying selected text in code samples ([#3803](https://github.com/quiltdata/quilt/pull/3803))
+* [Fixed] Add current bucket as a succesor if it's missed from config ([#3811](https://github.com/quiltdata/quilt/pull/3811))
 * [Added] Add filter for users and buckets tables in Admin dashboards ([#3480](https://github.com/quiltdata/quilt/pull/3480))
 * [Added] Add links to documentation and re-use code samples ([#3496](https://github.com/quiltdata/quilt/pull/3496))
 * [Added] Show S3 Object tags ([#3515](https://github.com/quiltdata/quilt/pull/3515))
@@ -38,6 +52,8 @@ Entries inside each section should be ordered by type:
 * [Changed] Allow users select files and directories and keep selection whenever they navigate to multiple directories or use filter ([#3527](https://github.com/quiltdata/quilt/pull/3527))
 * [Changed] Unify per-bucket and global search ([#3613](https://github.com/quiltdata/quilt/pull/3613))
 * [Changed] Allow use of <br /> in Markdown ([#3720](https://github.com/quiltdata/quilt/pull/3720))
+* [Changed] Faceted search ([#3712](https://github.com/quiltdata/quilt/pull/3712))
+* [Changed] Specify condition for rendering Quilt manifests, allowing to render other types of files in `.quilt/packages/` ([#3816](https://github.com/quiltdata/quilt/pull/3816))
 
 # 5.3.1 - 2023-05-02
 ## Python API

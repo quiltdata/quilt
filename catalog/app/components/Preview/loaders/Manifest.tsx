@@ -1,3 +1,5 @@
+import { extname } from 'path'
+
 import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -10,7 +12,9 @@ import { PreviewData, PreviewError } from '../types'
 import * as Text from './Text'
 import * as utils from './utils'
 
-export const detect = R.startsWith('.quilt/packages/')
+const hasNoExt = (key: string) => !extname(key)
+
+export const detect = R.allPass([R.startsWith('.quilt/packages/'), hasNoExt])
 
 const hl = (language: string) => (contents: string) =>
   hljs.highlight(contents, { language }).value
