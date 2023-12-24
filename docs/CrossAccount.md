@@ -77,40 +77,6 @@ to the topic resource policy:
 }
 ```
 
-The complete access policy will then look like this example:
-```
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowBucketToPushNotificationEffect",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "s3.amazonaws.com"
-      },
-      "Action": "sns:Publish",
-      "Resource": "*",
-      "Condition": {
-        "ArnLike": {
-          "aws:SourceArn": "arn:aws:s3:*:*:bucket-in-data-account"
-        }
-      }
-    },
-    {
-      "Sid": "AWSConfigSNSPolicy",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::CONTROL_ACCOUNT:root"
-      },
-      "Action": 
-        "sns:GetTopicAttributes",
-        "sns:Subscribe"
-      ],
-      "Resource": SNS_TOPIC_ARN
-    }
-  ]
-}
-```
 
 You can now set the SNS topic in the [Catalog Admin Panel](catalog/Admin.md) in bucket
 properties under "Indexing and notifications".
