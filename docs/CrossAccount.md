@@ -57,7 +57,10 @@ following to buckets in your *DataAccount*.
 ```
 ## Notifications
 
-To add a cross-account bucket to Quilt that already has object notifications enabled, add the following statement to the SNS topic access policy.
+In order for *ControlAccount* to use an existing and
+[correctly configured SNS topic](EventBridge.md#the-workarounds)
+for a single bucket in *DataAccount*, add a statement similar to the following
+to the topic resource policy:
 
 ```json
 {
