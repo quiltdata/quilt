@@ -111,7 +111,9 @@ The complete access policy will then look like this example:
   ]
 }
 ```
-Once the access policy has been updated, add the bucket in your Quilt stack. Specify the SNS Topic ARN in the "Indexing and Metadata" parameters.
+
+You can now set the SNS topic in the [Catalog Admin Panel](catalog/Admin.md) in bucket
+properties under "Indexing and notifications".
 
 ## CloudTrail
 
