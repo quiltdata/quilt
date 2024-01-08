@@ -1462,14 +1462,6 @@ class Package:
         pkg._meta = self._meta
         pkg._set_commit_message(message)
 
-        # if dedupe and top_hash == latest_hash:
-        #     if print_info:
-        #         print(
-        #             f"Skipping since package with hash {latest_hash} already exists "
-        #             "at the destination and dedupe parameter is true."
-        #         )
-        #     return self
-
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
         entries = []
@@ -1507,6 +1499,15 @@ class Package:
         pkg._fix_sha256()
 
         top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())
+
+        if dedupe and top_hash == latest_hash:
+            if print_info:
+                print(
+                    f"Skipping since package with hash {latest_hash} already exists "
+                    "at the destination and dedupe parameter is true."
+                )
+            return self
+
         pkg._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         def physical_key_is_temp_file(pk):
