@@ -1696,8 +1696,10 @@ class Package:
             entry_url = src.join(logical_key)
             hash_type = entry.hash['type']
             hash_value = entry.hash['value']
-            if (hash_type == MULTI_PART_HASH_NAME or
-                (hash_type == SIMPLE_HASH_NAME and src_size < CHECKSUM_MULTIPART_THRESHOLD)):
+            if (
+                hash_type == MULTI_PART_HASH_NAME or
+                (hash_type == SIMPLE_HASH_NAME and src_size < CHECKSUM_MULTIPART_THRESHOLD)
+            ):
                 expected_hash_list.append(hash_value)
                 url_list.append(entry_url)
                 size_list.append(src_size)
