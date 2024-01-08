@@ -352,7 +352,14 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
             ctx.run(upload_part, i, start, end)
 
 
-def _download_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: str, src_version: Optional[str], dest_path: str):
+def _download_file(
+    ctx: WorkerContext,
+    size: int,
+    src_bucket: str,
+    src_key: str,
+    src_version: Optional[str],
+    dest_path: str
+):
     dest_file = pathlib.Path(dest_path)
     if dest_file.is_reserved():
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
@@ -1036,7 +1043,10 @@ def _calculate_sha256_internal(src_list, sizes, results):
                     results[idx] = (SIMPLE_HASH_NAME, binascii.b2a_hex(future_results[0]).decode())
                 else:
                     hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
-                    results[idx] = (MULTI_PART_HASH_NAME, f'{binascii.b2a_base64(hashes_hash).decode()}-{len(future_results)}')
+                    results[idx] = (
+                        MULTI_PART_HASH_NAME,
+                        f'{binascii.b2a_base64(hashes_hash).decode()}-{len(future_results)}',
+                    )
         finally:
             stopped = True
             for _, future_list in futures:
