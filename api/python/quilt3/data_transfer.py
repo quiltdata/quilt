@@ -1,6 +1,5 @@
 import binascii
 import concurrent
-from dataclasses import dataclass
 import functools
 import hashlib
 import itertools
@@ -17,6 +16,7 @@ import warnings
 from codecs import iterdecode
 from collections import defaultdict, deque
 from concurrent.futures import Future, ThreadPoolExecutor
+from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
@@ -533,14 +533,13 @@ def _upload_or_copy_file(ctx: WorkerContext, size: int, src_path: str, dest_buck
                     # Nothing more to do. We should not attempt to copy the object because
                     # that would cause the "copy object to itself" error.
                     checksum = resp.get('ChecksumSHA256')
-                    if checksum is not None:
-                        if '-' in checksum:
-                            checksum_type = MULTI_PART_HASH_NAME
-                        else:
-                            checksum_type = SIMPLE_HASH_NAME
-                            checksum = binascii.b2a_hex(binascii.a2b_base64(checksum)).decode()
-                    else:
+                    if checksum is None:
                         checksum_type = None
+                    elif '-' in checksum:
+                        checksum_type = MULTI_PART_HASH_NAME
+                    else:
+                        checksum_type = SIMPLE_HASH_NAME
+                        checksum = binascii.b2a_hex(binascii.a2b_base64(checksum)).decode()
                     ctx.progress(size)
                     ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum_type, checksum)
                     return  # Optimization succeeded.
