@@ -63,7 +63,6 @@ Entries inside each section should be ordered by type:
 * [Changed] Specify condition for rendering Quilt manifests, allowing to render other types of files in `.quilt/packages/` ([#3816](https://github.com/quiltdata/quilt/pull/3816))
 
 # 5.3.1 - 2023-05-02
-
 ## Python API
 * [Fixed] `Package.verify()` now raises exception if unsupported hash type is encountered ([#3401](https://github.com/quiltdata/quilt/pull/3401))
 
