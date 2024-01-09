@@ -390,6 +390,7 @@ function PackageCreationForm({
               : workflow.slug,
         },
         src: {
+          // @ts-expect-error
           entries: allEntries,
         },
       })

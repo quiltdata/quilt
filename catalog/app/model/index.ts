@@ -59,7 +59,7 @@ export interface PackageEntry {
   // TODO: replace with { address: { physicalKey: string }}
   //       so, you can merge PackageEntry and S3File
   physicalKey: string
-  hash: Checksum
+  hash: Checksum | string
   meta?: EntryMeta
   size: number
 }

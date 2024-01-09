@@ -26,7 +26,11 @@ function getPartSize(fileSize: number): number | null {
 }
 
 const singlepart = (value: ArrayBuffer): Model.Checksum => ({
-  value: Buffer.from(value).toString('hex'),
+  value: cfg.multipartChecksums
+    ? Buffer.from(value).toString('hex')
+    : Array.from(new Uint8Array(value))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join(''),
   type: Model.CHECKSUM_TYPE_SP,
 })
 

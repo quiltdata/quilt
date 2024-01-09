@@ -4,6 +4,7 @@ import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import cfg from 'constants/config'
 import type * as Model from 'model'
 import AsyncResult from 'utils/AsyncResult'
 
@@ -52,8 +53,14 @@ export const Loader = function ManifestLoader({ gated, handle, children }: Loade
           R.pipe(JSON.parse, ({ hash, ...e }) => ({
             ...e,
             physical_keys: e.physical_keys.join(', '),
-            'hash.type': hash.type,
-            'hash.value': hash.value,
+            ...(cfg.multipartChecksums
+              ? {
+                  'hash.type': hash.type,
+                  'hash.value': hash.value,
+                }
+              : {
+                  hash: hash.value,
+                }),
             meta: JSON.stringify(e.meta),
           })),
           entries,

@@ -6,6 +6,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import cfg from 'constants/config'
 import * as urls from 'constants/urls'
 import type * as Model from 'model'
 import StyledLink from 'utils/StyledLink'
@@ -294,7 +295,7 @@ const computeEntries = ({
           // eslint-disable-next-line no-nested-ternary
           state = !a.hash.ready
             ? ('hashing' as const)
-            : R.equals(a.hash.value, hash)
+            : R.equals(cfg.multipartChecksums ? a.hash.value : a.hash.value?.value, hash)
             ? ('unchanged' as const)
             : ('modified' as const)
         }
