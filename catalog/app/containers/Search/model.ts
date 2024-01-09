@@ -3,6 +3,8 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RR from 'react-router-dom'
+import { useDebounce } from 'use-debounce'
+import * as Sentry from '@sentry/react'
 
 import * as Model from 'model'
 import * as GQL from 'utils/GraphQL'
@@ -10,6 +12,7 @@ import * as JSONPointer from 'utils/JSONPointer'
 import * as KTree from 'utils/KeyedTree'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import assertNever from 'utils/assertNever'
+import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
 import BASE_SEARCH_QUERY from './gql/BaseSearch.generated'
@@ -18,6 +21,8 @@ import FIRST_PAGE_PACKAGES_QUERY from './gql/FirstPagePackages.generated'
 import NEXT_PAGE_OBJECTS_QUERY from './gql/NextPageObjects.generated'
 import NEXT_PAGE_PACKAGES_QUERY from './gql/NextPagePackages.generated'
 import META_FACETS_QUERY from './gql/PackageMetaFacets.generated'
+import META_FACETS_FIND_QUERY from './gql/PackageMetaFacetsFind.generated'
+import META_FACET_QUERY from './gql/PackageMetaFacet.generated'
 
 export enum ResultType {
   QuiltPackage = 'p',
@@ -27,6 +32,10 @@ export enum ResultType {
 export const DEFAULT_RESULT_TYPE = ResultType.QuiltPackage
 
 export const DEFAULT_ORDER = Model.GQLTypes.SearchResultOrder.BEST_MATCH
+
+const FACETS_VISIBLE = 5
+// don't show facet filter if under this threshold
+const FACETS_FILTER_THRESHOLD = 10
 
 const parseDate = (x: unknown) => {
   if (typeof x !== 'string') return null
@@ -677,7 +686,7 @@ function useFirstPageQuery(state: SearchUrlState) {
   }
 }
 
-export function useNextPageObjectsQuery(after: string) {
+function useNextPageObjectsQuery(after: string) {
   const result = GQL.useQuery(NEXT_PAGE_OBJECTS_QUERY, { after })
   const folded = GQL.fold(result, {
     data: ({ searchMoreObjects: data }) => addTag('data', { data }),
@@ -687,7 +696,7 @@ export function useNextPageObjectsQuery(after: string) {
   return folded
 }
 
-export function useNextPagePackagesQuery(after: string) {
+function useNextPagePackagesQuery(after: string) {
   const result = GQL.useQuery(NEXT_PAGE_PACKAGES_QUERY, { after })
   const folded = GQL.fold(result, {
     data: ({ searchMorePackages: data }) => addTag('data', { data }),
@@ -697,50 +706,328 @@ export function useNextPagePackagesQuery(after: string) {
   return folded
 }
 
-interface MetaFacetsQueryProps {
-  searchString: SearchUrlState['searchString']
-  buckets: SearchUrlState['buckets']
-  filter: PackagesFilterState
+export type NextPageQueryResult =
+  | ReturnType<typeof useNextPagePackagesQuery>
+  | ReturnType<typeof useNextPageObjectsQuery>
+
+interface NextPageQueryProps {
+  after: string
+  children: RenderFn<NextPageQueryResult>
 }
 
-function useMetaFacetsQuery({ searchString, buckets, filter }: MetaFacetsQueryProps) {
-  const gqlFilter = PackagesSearchFilterIO.toGQL(filter)
-  return GQL.useQuery(META_FACETS_QUERY, { searchString, buckets, filter: gqlFilter })
+export function NextPageObjectsQuery({ after, children }: NextPageQueryProps) {
+  return children(useNextPageObjectsQuery(after))
+}
+
+export function NextPagePackagesQuery({ after, children }: NextPageQueryProps) {
+  return children(useNextPagePackagesQuery(after))
 }
 
 const NO_FACETS: PackageUserMetaFacet[] = []
 
-export function usePackagesMetaFilters() {
-  const model = useSearchUIModel()
-  invariant(model.state.resultType === ResultType.QuiltPackage, 'Filter type mismatch')
+export const FacetsFilteringState = tagged.create(
+  'app/containers/Search:FacetsFilteringState' as const,
+  {
+    Disabled: () => {},
+    Enabled: (x: {
+      value: string
+      set: (value: string) => void
+      isFiltered: boolean
+      serverSide: boolean
+    }) => x,
+  },
+)
 
-  const query = useMetaFacetsQuery(model.state)
+export type FacetsFilteringStateInstance = tagged.InstanceOf<typeof FacetsFilteringState>
 
-  const all = GQL.fold(query, {
+export const AvailableFiltersState = tagged.create(
+  'app/containers/Search:AvailableFiltersState' as const,
+  {
+    Loading: () => {},
+    Empty: () => {},
+    Ready: (x: {
+      filtering: FacetsFilteringStateInstance
+      facets: {
+        available: readonly PackageUserMetaFacet[]
+        visible: FacetTree
+        hidden: FacetTree
+      }
+      fetching: boolean
+    }) => x,
+  },
+)
+
+export type AvailableFiltersStateInstance = tagged.InstanceOf<
+  typeof AvailableFiltersState
+>
+
+type RenderFn<T> = (arg: T) => JSX.Element | null
+
+interface RenderProps<T> {
+  children: RenderFn<T>
+}
+
+export function AvailablePackagesMetaFilters({
+  children,
+}: RenderProps<AvailableFiltersStateInstance>) {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+
+  const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
+
+  const query = GQL.useQuery(META_FACETS_QUERY, {
+    searchString: model.state.searchString,
+    buckets: model.state.buckets,
+    filter,
+  })
+
+  return GQL.fold(query, {
     data: ({ searchPackages: r }) => {
       switch (r.__typename) {
         case 'EmptySearchResultSet':
-          return NO_FACETS
         case 'InvalidInput':
-          return NO_FACETS
+          return children(AvailableFiltersState.Empty())
         case 'PackagesSearchResultSet':
-          return r.stats.userMeta
+          return React.createElement(AvailablePackagesMetaFiltersReady, {
+            facets: r.stats.userMeta,
+            truncated: r.stats.userMetaTruncated,
+            children,
+          })
         default:
           assertNever(r)
       }
     },
-    fetching: () => NO_FACETS,
-    error: () => NO_FACETS,
+    fetching: () => children(AvailableFiltersState.Loading()),
+    error: () => children(AvailableFiltersState.Empty()),
   })
-  const activated = model.state.userMetaFilters.filters
-  const activatedPaths = React.useMemo(() => Array.from(activated.keys()), [activated])
+}
+
+function AvailablePackagesMetaFiltersReady({
+  facets,
+  truncated,
+  children,
+}: RenderProps<AvailableFiltersStateInstance> & {
+  facets: readonly PackageUserMetaFacet[]
+  truncated: boolean
+}) {
+  const { filters } = useSearchUIModelContext(ResultType.QuiltPackage).state
+    .userMetaFilters
 
   const available = React.useMemo(
-    () => all.filter((f) => !activatedPaths.includes(f.path)),
-    [all, activatedPaths],
+    () => facets.filter((f) => !filters.has(f.path)),
+    [facets, filters],
   )
 
-  return { all, activated, activatedPaths, available, fetching: query.fetching }
+  // server-side filtering required
+  if (truncated) {
+    return React.createElement(AvailablePackagesMetaFiltersServerFilter, {
+      available,
+      children,
+    })
+  }
+
+  // client-side filtering required
+  if (available.length >= FACETS_FILTER_THRESHOLD) {
+    return React.createElement(AvailablePackagesMetaFiltersClientFilter, {
+      available,
+      children,
+    })
+  }
+
+  if (!available.length) {
+    return children(AvailableFiltersState.Empty())
+  }
+
+  // no filtering required
+  return React.createElement(AvailablePackagesMetaFiltersGroup, {
+    state: AvailableFiltersState.Ready({
+      filtering: FacetsFilteringState.Disabled(),
+      facets: {
+        available,
+        visible: EMPTY_FACET_TREE,
+        hidden: EMPTY_FACET_TREE,
+      },
+      fetching: false,
+    }),
+    children,
+  })
+}
+
+function AvailablePackagesMetaFiltersServerFilter({
+  children,
+  available,
+}: RenderProps<AvailableFiltersStateInstance> & {
+  available: readonly PackageUserMetaFacet[]
+}) {
+  const [path, setPath] = React.useState('')
+  let pathNorm = path.trim().toLowerCase()
+  // add wildcards to use substring matching by default
+  if (pathNorm && !pathNorm.includes('*') && !pathNorm.includes('?')) {
+    pathNorm = `*${pathNorm}*`
+  }
+  const [pathDebounced] = useDebounce(pathNorm, 500)
+
+  if (pathDebounced) {
+    return React.createElement(AvailablePackagesMetaFiltersServerFilterQuery, {
+      path: pathDebounced,
+      initial: available,
+      pathState: { value: path, set: setPath },
+      children,
+    })
+  }
+
+  const state = AvailableFiltersState.Ready({
+    filtering: FacetsFilteringState.Enabled({
+      value: path,
+      set: setPath,
+      isFiltered: false,
+      serverSide: true,
+    }),
+    facets: {
+      available,
+      visible: EMPTY_FACET_TREE,
+      hidden: EMPTY_FACET_TREE,
+    },
+    fetching: false,
+  })
+
+  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+}
+
+function AvailablePackagesMetaFiltersServerFilterQuery({
+  path,
+  initial,
+  pathState: { value, set },
+  children,
+}: RenderProps<AvailableFiltersStateInstance> & {
+  path: string
+  initial: readonly PackageUserMetaFacet[]
+  pathState: { value: string; set: (value: string) => void }
+}) {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+
+  const filter = PackagesSearchFilterIO.toGQL(model.state.filter)
+
+  const query = GQL.useQuery(META_FACETS_FIND_QUERY, {
+    searchString: model.state.searchString,
+    buckets: model.state.buckets,
+    filter,
+    path,
+  })
+
+  const facets = React.useMemo(() => {
+    const r = query.data?.searchPackages
+    if (!r) return null
+    switch (r.__typename) {
+      case 'EmptySearchResultSet':
+      case 'InvalidInput':
+        return NO_FACETS
+      case 'PackagesSearchResultSet':
+        return r.filteredUserMetaFacets
+      default:
+        assertNever(r)
+    }
+  }, [query])
+
+  const { filters } = model.state.userMetaFilters
+  const available = React.useMemo(
+    () => (facets ? facets.filter((f) => !filters.has(f.path)) : initial),
+    [facets, filters, initial],
+  )
+
+  const state = AvailableFiltersState.Ready({
+    filtering: FacetsFilteringState.Enabled({
+      value,
+      set,
+      isFiltered: true,
+      serverSide: true,
+    }),
+    facets: {
+      available,
+      visible: EMPTY_FACET_TREE,
+      hidden: EMPTY_FACET_TREE,
+    },
+    fetching: query.fetching,
+  })
+
+  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+}
+
+function AvailablePackagesMetaFiltersClientFilter({
+  children,
+  available,
+}: RenderProps<AvailableFiltersStateInstance> & {
+  available: readonly PackageUserMetaFacet[]
+}) {
+  const [path, setPath] = React.useState('')
+  const pathNorm = path.trim().toLowerCase()
+
+  const filtered = React.useMemo(
+    () =>
+      pathNorm
+        ? available.filter((f) =>
+            (f.path + PackageUserMetaFacetMap[f.__typename])
+              .toLowerCase()
+              .includes(pathNorm),
+          )
+        : available,
+    [pathNorm, available],
+  )
+
+  const state = AvailableFiltersState.Ready({
+    filtering: FacetsFilteringState.Enabled({
+      value: path,
+      set: setPath,
+      isFiltered: filtered.length !== available.length,
+      serverSide: false,
+    }),
+    facets: {
+      available: filtered,
+      visible: EMPTY_FACET_TREE,
+      hidden: EMPTY_FACET_TREE,
+    },
+    fetching: false,
+  })
+
+  return React.createElement(AvailablePackagesMetaFiltersGroup, { state, children })
+}
+
+function AvailablePackagesMetaFiltersGroup({
+  children,
+  state,
+}: RenderProps<AvailableFiltersStateInstance> & {
+  state: AvailableFiltersStateInstance
+}) {
+  const available = AvailableFiltersState.match({
+    Ready: (r) => r.facets.available,
+    _: () => null,
+  })(state)
+
+  const grouped = React.useMemo(
+    () => (available ? groupFacets(available, FACETS_VISIBLE) : null),
+    [available],
+  )
+
+  const stateOut = React.useMemo(
+    () =>
+      AvailableFiltersState.match({
+        Ready: ({ facets, ...r }) => {
+          if (!grouped) return state
+          const [visible, hidden] = grouped
+          return AvailableFiltersState.Ready({
+            ...r,
+            facets: {
+              ...facets,
+              visible,
+              hidden,
+            },
+          })
+        },
+        _: (s) => s,
+      })(state),
+    [state, grouped],
+  )
+
+  return children(stateOut)
 }
 
 export type SearhHitObject = Extract<
@@ -768,8 +1055,10 @@ const PackageUserMetaFacetTypeDisplay = {
   BooleanPackageUserMetaFacet: 'Boolean' as const,
 }
 
-type FacetTree = KTree.Tree<PackageUserMetaFacet, string>
+export type FacetTree = KTree.Tree<PackageUserMetaFacet, string>
 type FacetNode = KTree.Node<PackageUserMetaFacet, string>
+
+export const EMPTY_FACET_TREE = KTree.Tree<PackageUserMetaFacet, string>([])
 
 function normalizeFacetNode(node: FacetNode): FacetTree {
   return node._tag === 'Tree'
@@ -780,7 +1069,26 @@ function normalizeFacetNode(node: FacetNode): FacetTree {
       )
 }
 
+const facetId = (f: PackageUserMetaFacet) => `${f.path}:${f.__typename}`
+
 function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNode {
+  if (existing._tag === 'Leaf' && conflict._tag === 'Leaf') {
+    const existingId = facetId(existing.value)
+    const conflictId = facetId(conflict.value)
+    // duplicate facet, should not happen
+    // this would cause an infinite recursion if not handled
+    if (existingId === conflictId) {
+      Sentry.withScope((scope) => {
+        const depth = JSONPointer.parse(existing.value.path).length
+        const type = PackageUserMetaFacetTypeDisplay[existing.value.__typename]
+        scope.setExtras({ depth, type })
+        Sentry.captureMessage('Duplicate facet', 'warning')
+      })
+      // keep the facet encountered first
+      return existing
+    }
+  }
+
   return KTree.merge(
     normalizeFacetNode(existing),
     normalizeFacetNode(conflict),
@@ -789,7 +1097,7 @@ function resolveFacetConflict(existing: FacetNode, conflict: FacetNode): FacetNo
 }
 
 export function groupFacets(
-  facets: PackageUserMetaFacet[],
+  facets: readonly PackageUserMetaFacet[],
   visible?: number,
 ): [FacetTree, FacetTree] {
   const grouped = facets.reduce(
@@ -802,10 +1110,9 @@ export function groupFacets(
         ),
         resolveFacetConflict,
       ),
-    KTree.Tree<PackageUserMetaFacet, string>([]),
+    EMPTY_FACET_TREE,
   )
-  if (!visible) return [grouped, KTree.Tree([])]
-  if (grouped.children.size <= visible) return [grouped, KTree.Tree([])]
+  if (!visible || grouped.children.size <= visible) return [grouped, EMPTY_FACET_TREE]
   const [head, tail] = R.splitAt(visible, Array.from(grouped.children))
   return [KTree.Tree(head), KTree.Tree(tail)]
 }
@@ -818,29 +1125,93 @@ export const PackageUserMetaFacetMap = {
   BooleanPackageUserMetaFacet: 'Boolean' as const,
 }
 
-export function usePackageUserMetaFacetExtents(path: string): Extents | undefined {
-  const { all, activated } = usePackagesMetaFilters()
+export const PackageUserMetaFacetTypeInfo = {
+  Number: {
+    hasExtents: true,
+    inputType: Model.GQLTypes.PackageUserMetaFacetType.NUMBER,
+  },
+  Datetime: {
+    hasExtents: true,
+    inputType: Model.GQLTypes.PackageUserMetaFacetType.DATETIME,
+  },
+  KeywordEnum: {
+    hasExtents: true,
+    inputType: Model.GQLTypes.PackageUserMetaFacetType.KEYWORD,
+  },
+  KeywordWildcard: {
+    hasExtents: false,
+    inputType: Model.GQLTypes.PackageUserMetaFacetType.KEYWORD,
+  },
+  Text: {
+    hasExtents: false,
+    inputType: Model.GQLTypes.PackageUserMetaFacetType.TEXT,
+  },
+  Boolean: {
+    hasExtents: false,
+    inputType: Model.GQLTypes.PackageUserMetaFacetType.BOOLEAN,
+  },
+}
 
-  // XXX: query extents
-  const facet = all.find(
-    (f) =>
-      f.path === path &&
-      activated.get(path)?._tag === PackageUserMetaFacetMap[f.__typename],
+export function usePackageUserMetaFacetExtents(path: string): {
+  fetching: boolean
+  extents: Extents | undefined
+} {
+  const model = useSearchUIModelContext(ResultType.QuiltPackage)
+  const activated = model.state.userMetaFilters.filters.get(path)
+  invariant(activated, 'Requesting extents for inactive filter')
+
+  const typeInfo = PackageUserMetaFacetTypeInfo[activated._tag]
+
+  const query = GQL.useQuery(
+    META_FACET_QUERY,
+    {
+      searchString: model.state.searchString,
+      buckets: model.state.buckets,
+      filter: PackagesSearchFilterIO.toGQL(model.state.filter),
+      path,
+      type: typeInfo.inputType,
+    },
+    { pause: !typeInfo.hasExtents },
   )
-  switch (facet?.__typename) {
-    case 'NumberPackageUserMetaFacet':
-      return facet.numberExtents
-    case 'DatetimePackageUserMetaFacet':
-      return facet.datetimeExtents
-    case 'KeywordPackageUserMetaFacet':
-      return facet.extents
-    default:
-      return
+
+  if (!typeInfo.hasExtents) {
+    return { fetching: false, extents: undefined }
   }
+
+  return GQL.fold(query, {
+    data: ({ searchPackages: r }) => {
+      switch (r.__typename) {
+        case 'EmptySearchResultSet':
+        case 'InvalidInput':
+          return { fetching: false, extents: undefined }
+        case 'PackagesSearchResultSet':
+          const facet = r.filteredUserMetaFacets[0]
+          let extents: Extents | undefined = undefined
+          switch (facet?.__typename) {
+            case 'NumberPackageUserMetaFacet':
+              extents = facet.numberExtents
+              break
+            case 'DatetimePackageUserMetaFacet':
+              extents = facet.datetimeExtents
+              break
+            case 'KeywordPackageUserMetaFacet':
+              extents = facet.extents
+              break
+          }
+          return { fetching: false, extents }
+
+        default:
+          assertNever(r)
+      }
+    },
+    fetching: () => ({ fetching: true, extents: undefined }),
+    error: () => ({ fetching: false, extents: undefined }),
+  })
 }
 
 function useSearchUIModel() {
   const urlState = useUrlState()
+
   const baseSearchQuery = useBaseSearchQuery(urlState)
   const firstPageQuery = useFirstPageQuery(urlState)
 
@@ -1053,9 +1424,20 @@ export function SearchUIModelProvider({ children }: React.PropsWithChildren<{}>)
   return React.createElement(Context.Provider, { value: state }, children)
 }
 
-export function useSearchUIModelContext(): SearchUIModel {
+export function useSearchUIModelContext(
+  type: ResultType.QuiltPackage,
+): SearchUIModel & { state: PackagesSearchUrlState }
+export function useSearchUIModelContext(
+  type: ResultType.S3Object,
+): SearchUIModel & { state: ObjectsSearchUrlState }
+export function useSearchUIModelContext(): SearchUIModel
+export function useSearchUIModelContext(type?: ResultType) {
   const model = React.useContext(Context)
   invariant(model, 'SearchUIModel accessed outside of provider')
+  if (type) {
+    invariant(model.state.resultType === type, `Expected result type ${type}`)
+  }
+
   return model
 }
 

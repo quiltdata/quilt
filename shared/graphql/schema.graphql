@@ -405,6 +405,7 @@ type PackagesSearchStats {
   entries: NumberExtents!
   workflow: KeywordExtents!
   userMeta: [PackageUserMetaFacet!]!
+  userMetaTruncated: Boolean!
 }
 
 type ObjectsSearchResultSet {
@@ -412,11 +413,18 @@ type ObjectsSearchResultSet {
   firstPage(size: Int = 30, order: SearchResultOrder): ObjectsSearchResultSetPage!
 }
 
+enum PackageUserMetaFacetType {
+  NUMBER
+  DATETIME
+  KEYWORD
+  TEXT
+  BOOLEAN
+}
+
 type PackagesSearchResultSet {
   stats: PackagesSearchStats!
+  filteredUserMetaFacets(path: String!, type: PackageUserMetaFacetType): [PackageUserMetaFacet!]!
   firstPage(size: Int = 30, order: SearchResultOrder): PackagesSearchResultSetPage!
-  # XXX: do we need this at all? do we need to accept type here?
-  # userMetaFacet(path: String!): PackageUserMetaFacet
 }
 
 type EmptySearchResultSet {

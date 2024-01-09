@@ -1,14 +1,16 @@
-query ($buckets: [String!], $searchString: String, $filter: PackagesSearchFilter) {
+query (
+  $buckets: [String!]
+  $searchString: String
+  $filter: PackagesSearchFilter
+  $path: String!
+) {
   searchPackages(buckets: $buckets, searchString: $searchString, filter: $filter) {
     __typename
     ... on PackagesSearchResultSet {
-      stats {
-        userMetaTruncated
-        userMeta {
-          __typename
-          ... on IPackageUserMetaFacet {
-            path
-          }
+      filteredUserMetaFacets(path: $path) {
+        __typename
+        ... on IPackageUserMetaFacet {
+          path
         }
       }
     }

@@ -4,7 +4,7 @@
 #
 #    pip-compile setup.py
 #
-aiohttp==3.8.5
+aiohttp==3.8.6
     # via fsspec
 aiosignal==1.2.0
     # via aiohttp
@@ -59,7 +59,7 @@ typing-extensions==4.1.1
     #   aiohttp
     #   async-timeout
     #   yarl
-urllib3==1.26.17
+urllib3==1.26.18
     # via requests
 xlrd==2.0.1
     # via t4-lambda-tabular-preview (setup.py)
