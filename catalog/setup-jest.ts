@@ -16,3 +16,9 @@
 // It's required for jsdom
 ;(window as any).TextEncoder = require('util').TextEncoder
 ;(window as any).TextDecoder = require('util').TextDecoder
+
+Object.defineProperty(globalThis, 'crypto', {
+  value: new (require('@peculiar/webcrypto').Crypto)(),
+})
+
+require('blob-polyfill')

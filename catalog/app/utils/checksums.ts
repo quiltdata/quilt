@@ -52,13 +52,13 @@ const blobLimit = pLimit(8)
 
 async function hashBlob(blob: Blob) {
   const buf = await blob.arrayBuffer()
-  return window.crypto.subtle.digest('SHA-256', buf)
+  return crypto.subtle.digest('SHA-256', buf)
 }
 
 const hashBlobLimit = (blob: Blob) => blobLimit(hashBlob, blob)
 
 async function computeFileChecksum(f: File): Promise<Model.Checksum> {
-  if (!window.crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
+  if (!crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
 
   const partSize = getPartSize(f.size)
 
@@ -75,7 +75,7 @@ async function computeFileChecksum(f: File): Promise<Model.Checksum> {
   }
 
   const checksums = await Promise.all(parts.map(hashBlobLimit))
-  const value = await window.crypto.subtle.digest('SHA-256', mergeBuffers(checksums))
+  const value = await crypto.subtle.digest('SHA-256', mergeBuffers(checksums))
   return multipart(value, parts.length)
 }
 
