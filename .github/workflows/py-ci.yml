@@ -166,6 +166,12 @@ jobs:
           - transcode
         python-version: ['3.7']
         include:
+          - path: pkgpush
+            python-version: '3.8'
+        include:
+          - path: s3hash
+            python-version: '3.8'
+        include:
           - path: thumbnail
             python-version: '3.9'
     runs-on: ubuntu-latest
