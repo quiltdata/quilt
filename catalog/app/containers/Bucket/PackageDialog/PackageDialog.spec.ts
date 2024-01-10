@@ -1,5 +1,12 @@
 import * as PD from './PackageDialog'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    registryUrl: '',
+  })),
+)
+
 describe('containers/Bucket/PackageDialog/PackageDialog', () => {
   describe('getUsernamePrefix', () => {
     test('should return string anyway', () => {
