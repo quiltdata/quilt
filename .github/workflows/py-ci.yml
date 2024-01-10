@@ -155,10 +155,10 @@ jobs:
           - es/indexer
           - molecule
           - pkgevents
-          - pkgpush
+          # - pkgpush
           - pkgselect
           - preview
-          - s3hash
+          # - s3hash
           - s3select
           - shared
           - status_reports
@@ -166,14 +166,12 @@ jobs:
           - transcode
         python-version: ['3.7']
         include:
-          - path: pkgpush
-            python-version: '3.8'
-        include:
-          - path: s3hash
-            python-version: '3.8'
-        include:
           - path: thumbnail
             python-version: '3.9'
+          - path: pkgpush
+            python-version: '3.8'
+          - path: s3hash
+            python-version: '3.8'
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
