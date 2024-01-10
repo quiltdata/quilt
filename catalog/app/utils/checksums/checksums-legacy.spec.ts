@@ -15,7 +15,7 @@ describe('utils/checksums', () => {
   describe('computeFileChecksumLimit, legacy and singlepart hashing', () => {
     it('Hashes using singlepart', async () => {
       // Package manifest: https://open.quiltdata.com/b/allencell/tree/.quilt/packages/7acdd948d565d1f22c10f0d5ec4ae99742f04a4849c5e1498f252a0ac1ddeb04
-      // File in that package: https://open.quiltdata.com/b/allencell/tree/aics/wtc11_short_read_genome_sequence/README.md?version=qt7oZnXdqJ0vokH1MpXksOiwgqOPPHV2
+      // File in that package: https://open.quiltdata.com/b/allencell/packages/aics/wtc11_short_read_genome_sequence/tree/7acdd948d565d1f22c10f0d5ec4ae99742f04a4849c5e1498f252a0ac1ddeb04/README.md
       const fileContents = '# This is a test package\n'
       const file = new File([Buffer.from(fileContents)], 'junk/s3.js')
       await expect(computeFileChecksumLimit(file)).resolves.toEqual({
@@ -25,7 +25,7 @@ describe('utils/checksums', () => {
     })
     it('Hashes >8Mb file using legacy algorithm', async () => {
       // Package manifest: https://open.quiltdata.com/b/allencell/tree/.quilt/packages/38886848f1bad99396b96157101dd52520fa6aae0479adb9de4bde2b12997d92
-      // File in that package: https://open.quiltdata.com/b/allencell/tree/.quilt/packages/38886848f1bad99396b96157101dd52520fa6aae0479adb9de4bde2b12997d92
+      // File in that package: https://open.quiltdata.com/b/allencell/packages/aics/actk/tree/38886848f1bad99396b96157101dd52520fa6aae0479adb9de4bde2b12997d92/master/diagnosticsheets/diagnostic_sheets/ProteinDisplayName_Alpha-actinin-1_1.png
       const readFile = util.promisify(fs.readFile)
       const contents = await readFile(path.join(__dirname, './checksums-11mb-test.png'))
       const file = new File(
