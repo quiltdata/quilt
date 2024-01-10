@@ -13,7 +13,7 @@ jest.mock(
 
 describe('utils/checksums', () => {
   describe('computeFileChecksumLimit, multipart hashing', () => {
-    test('Test singlepart hashing', async () => {
+    it('Hashes using singlepart', async () => {
       // Package manifest: https://open.quiltdata.com/b/allencell/tree/.quilt/packages/7acdd948d565d1f22c10f0d5ec4ae99742f04a4849c5e1498f252a0ac1ddeb04
       // File in that package: https://open.quiltdata.com/b/allencell/tree/aics/wtc11_short_read_genome_sequence/README.md?version=qt7oZnXdqJ0vokH1MpXksOiwgqOPPHV2
       const fileContents = '# This is a test package\n'
@@ -23,7 +23,7 @@ describe('utils/checksums', () => {
         type: 'SHA256',
       })
     })
-    test('Test multipart >8Mb hashing', async () => {
+    it('Hashes >8Mb file', async () => {
       const readFile = util.promisify(fs.readFile)
       const contents = await readFile(path.join(__dirname, './checksums-11mb-test.png'))
       const file = new File(
