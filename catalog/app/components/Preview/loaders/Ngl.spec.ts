@@ -1,5 +1,12 @@
 import { parseResponse } from './Ngl'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    apiGatewayEndpoint: '',
+  })),
+)
+
 const fileA = `fileA.sdf
 Molecule A description
 
