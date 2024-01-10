@@ -4,6 +4,13 @@ import util from 'util'
 
 import computeFileChecksumLimit from './checksums'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    multipartChecksums: false,
+  })),
+)
+
 describe('utils/checksums', () => {
   describe('computeFileChecksumLimit, legacy and singlepart hashing', () => {
     test('Test singlepart hashing', async () => {
