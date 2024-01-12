@@ -2,7 +2,7 @@
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 
-# Quilt is a self-organizing data hub
+# Quilt is a data mesh for connecting people with actionable data
 
 ## Python Quick start, tutorials
 If you have Python and an S3 bucket, you're ready to create versioned datasets with Quilt.
