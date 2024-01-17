@@ -39,6 +39,7 @@ from t4_lambda_shared.utils import LAMBDA_TMP_SPACE, get_quilt_logger
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ["PROMOTE_PKG_MAX_MANIFEST_SIZE"])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ["PROMOTE_PKG_MAX_PKG_SIZE"])
 PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
+# TODO: rename to MAX_FILES/BYTES_TO_HASH ?
 PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ["PKG_FROM_FOLDER_MAX_PKG_SIZE"])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ["PKG_FROM_FOLDER_MAX_FILES"])
 # To dispatch separate, stack-created lambda function.
@@ -486,41 +487,6 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
         get_pkg=get_pkg,
         pkg_max_size=PROMOTE_PKG_MAX_PKG_SIZE,
         pkg_max_files=PROMOTE_PKG_MAX_FILES,
-    )
-
-
-class PackageFromFolderEntry(pydantic.BaseModel):
-    logical_key: NonEmptyStr
-    path: NonEmptyStr
-    is_dir: bool
-
-
-class PackageFromFolderParams(PackagePushParams):
-    src_bucket: NonEmptyStr
-    entries: T.List[PackageFromFolderEntry]
-
-
-@exception_handler
-@auth
-@setup_telemetry
-@pydantic.validate_arguments
-def package_from_folder(params: PackageFromFolderParams) -> PackagePushResult:
-    logger.info("package_from_folder(%s)", params)
-
-    def get_pkg(src_registry: S3PackageRegistryV1):
-        p = quilt3.Package()
-        for entry in params.entries:
-            set_entry = p.set_dir if entry.is_dir else p.set
-            set_entry(entry.logical_key, str(src_registry.base.join(entry.path)))
-        calculate_pkg_hashes(p)
-        return p
-
-    return _push_pkg_to_successor(
-        params,
-        src_bucket=params.src_bucket,
-        get_pkg=get_pkg,
-        pkg_max_size=PKG_FROM_FOLDER_MAX_PKG_SIZE,
-        pkg_max_files=PKG_FROM_FOLDER_MAX_FILES,
     )
 
 
