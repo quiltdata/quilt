@@ -320,7 +320,6 @@ export interface Mutation {
   readonly __typename: 'Mutation'
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
-  readonly packageFromFolder: PackageFromFolderResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
   readonly bucketAdd: BucketAddResult
   readonly bucketUpdate: BucketUpdateResult
@@ -349,11 +348,6 @@ export interface MutationpackageConstructArgs {
 export interface MutationpackagePromoteArgs {
   params: PackagePushParams
   src: PackagePromoteSource
-}
-
-export interface MutationpackageFromFolderArgs {
-  params: PackagePushParams
-  src: PackageFromFolderSource
 }
 
 export interface MutationpackageRevisionDeleteArgs {
@@ -570,19 +564,6 @@ export interface PackageFile {
   readonly metadata: Maybe<Scalars['JsonRecord']>
   readonly size: Scalars['Float']
   readonly physicalKey: Scalars['String']
-}
-
-export interface PackageFromFolderEntry {
-  readonly isDir: Scalars['Boolean']
-  readonly logicalKey: Scalars['String']
-  readonly path: Scalars['String']
-}
-
-export type PackageFromFolderResult = PackagePushSuccess | InvalidInput | OperationError
-
-export interface PackageFromFolderSource {
-  readonly bucket: Scalars['String']
-  readonly entries: ReadonlyArray<PackageFromFolderEntry>
 }
 
 export interface PackageList {

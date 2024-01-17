@@ -1423,39 +1423,6 @@ export default {
             ],
           },
           {
-            name: 'packageFromFolder',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'UNION',
-                name: 'PackageFromFolderResult',
-                ofType: null,
-              },
-            },
-            args: [
-              {
-                name: 'params',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
-              {
-                name: 'src',
-                type: {
-                  kind: 'NON_NULL',
-                  ofType: {
-                    kind: 'SCALAR',
-                    name: 'Any',
-                  },
-                },
-              },
-            ],
-          },
-          {
             name: 'packageRevisionDelete',
             type: {
               kind: 'NON_NULL',
@@ -2542,24 +2509,6 @@ export default {
           },
         ],
         interfaces: [],
-      },
-      {
-        kind: 'UNION',
-        name: 'PackageFromFolderResult',
-        possibleTypes: [
-          {
-            kind: 'OBJECT',
-            name: 'PackagePushSuccess',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'InvalidInput',
-          },
-          {
-            kind: 'OBJECT',
-            name: 'OperationError',
-          },
-        ],
       },
       {
         kind: 'OBJECT',

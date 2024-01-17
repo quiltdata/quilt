@@ -757,17 +757,6 @@ input PackagePromoteSource {
   hash: String!
 }
 
-input PackageFromFolderEntry {
-  isDir: Boolean!
-  logicalKey: String!
-  path: String!
-}
-
-input PackageFromFolderSource {
-  bucket: String!
-  entries: [PackageFromFolderEntry!]!
-}
-
 type PackagePushSuccess {
   package: Package!
   revision: PackageRevision!
@@ -783,11 +772,6 @@ union PackageConstructResult =
   | OperationError
 
 union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
-
-union PackageFromFolderResult =
-    PackagePushSuccess
-  | InvalidInput
-  | OperationError
 
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
@@ -814,10 +798,6 @@ type Mutation {
     params: PackagePushParams!
     src: PackagePromoteSource!
   ): PackagePromoteResult!
-  packageFromFolder(
-    params: PackagePushParams!
-    src: PackageFromFolderSource!
-  ): PackageFromFolderResult!
   packageRevisionDelete(
     bucket: String!
     name: String!

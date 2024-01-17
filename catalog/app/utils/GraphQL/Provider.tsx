@@ -304,9 +304,6 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             packagePromote: (result, _vars, cache) => {
               handlePackageCreation(result.packagePromote, cache)
             },
-            packageFromFolder: (result, _vars, cache) => {
-              handlePackageCreation(result.packageFromFolder, cache)
-            },
           },
         },
         optimistic: {
