@@ -198,7 +198,6 @@ async def get_existing_checksum(
 
     num_parts = object_parts["TotalPartsCount"]
     assert len(object_parts["Parts"]) == num_parts
-    part_size = get_part_size(resp["ObjectSize"])
     if all(part["Size"] == part_size for part in object_parts["Parts"][:-1]):
         return Checksum(
             type=ChecksumType.MP,
