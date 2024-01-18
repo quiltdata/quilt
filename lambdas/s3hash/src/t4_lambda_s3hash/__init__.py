@@ -171,12 +171,40 @@ def get_part_size(file_size: int) -> T.Optional[int]:
 
 async def get_existing_checksum(
     location: S3ObjectSource,
-    parts: T.Sequence[PartDef],
 ) -> T.Optional[Checksum]:
-    # XXX
-    # get object attributes and see if part sizes and checksum algo matches our standard
-    # return the existing checksum if it's compliant
-    # otherwise return None
+    try:
+        resp = await S3.get().get_object_attributes(
+            **location.boto_args,
+            ObjectAttributes=["Checksum", "ObjectParts", "ObjectSize"],
+            MaxParts=MAX_PARTS,
+        )
+    except botocore.exceptions.ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "AccessDenied":
+            # Don't fail because it needs new permission.
+            return None
+        raise
+
+    checksum_value = resp.get("Checksum", {}).get("ChecksumSHA256")
+    if checksum_value is None:
+        return None
+
+    part_size = get_part_size(resp["ObjectSize"])
+    object_parts = resp.get("ObjectParts")
+    if object_parts is None:
+        if not MULTIPART_CHECKSUMS or part_size is None:
+            return Checksum.singlepart(base64.b64decode(checksum_value))
+        else:
+            return None
+
+    num_parts = object_parts["TotalPartsCount"]
+    assert len(object_parts["Parts"]) == num_parts
+    part_size = get_part_size(resp["ObjectSize"])
+    if all(part["Size"] == part_size for part in object_parts["Parts"][:-1]):
+        return Checksum(
+            type=ChecksumType.MP,
+            value=f"{checksum_value}-{num_parts}",
+        )
+
     return None
 
 
@@ -350,6 +378,11 @@ async def lambda_handler(
     logger.info("MULTIPART_CHECKSUMS: %s", MULTIPART_CHECKSUMS)
 
     async with aio_context(credentials, concurrency):
+        checksum = await get_existing_checksum(location)
+        if checksum is not None:
+            logger.info("got existing checksum")
+            return ChecksumResult(checksum=checksum)
+
         part_defs = (
             await get_parts_for_location(location)
             if MULTIPART_CHECKSUMS
@@ -357,11 +390,6 @@ async def lambda_handler(
         )
 
         logger.info("parts: %s", len(part_defs))
-
-        checksum = await get_existing_checksum(location, part_defs)
-        if checksum is not None:
-            logger.info("got existing checksum")
-            return ChecksumResult(checksum=checksum)
 
         mpu = await create_mpu(location, target)
 
