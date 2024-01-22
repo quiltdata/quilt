@@ -40,12 +40,11 @@ setup(
     packages=find_packages(exclude=("tests", "tests.*")),
     description='Quilt: where data comes together',
     long_description=readme(),
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
@@ -67,7 +66,6 @@ setup(
         'tqdm>=4.32',
         'requests_futures==1.0.0',
         'jsonschema>=3,<5',
-        'importlib_metadata; python_version < "3.8"',
     ],
     extras_require={
         'pyarrow': [
