@@ -4,11 +4,11 @@ import cfg from 'constants/config'
 import * as Model from 'model'
 
 // 8 MiB -- boto3 default: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
-const MIN_PART_SIZE = 1024 ** 2 * 8
+export const MIN_PART_SIZE = 1024 ** 2 * 8
 
 const MAX_PARTS = 10000 // Maximum number of parts per upload supported by S3
 
-function getPartSize(fileSize: number): number | null {
+export function getPartSize(fileSize: number): number | null {
   // use single-part upload (and plain SHA256 hash)
   if (!cfg.multipartChecksums || fileSize < MIN_PART_SIZE) return null
 
