@@ -48,11 +48,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.7'
+          # on newer versions it crashes with
+          # TypeError: <classmethod(<function Package.install at 0x105219f30>)> is not a callable object
+          python-version: '3.9'
       - name: install deps
         run: |
           python -m pip install --upgrade pip setuptools
-          python -m pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+          python -m pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
       - name: generate docs
         run: cd gendocs && python build.py
       - name: show invisible changes via cat
@@ -80,7 +82,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
     runs-on: ${{ matrix.os }}
     env:
       QUILT_DISABLE_USAGE_METRICS: true

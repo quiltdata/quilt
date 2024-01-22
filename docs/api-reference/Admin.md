@@ -19,7 +19,7 @@ Required parameters:
     username (str): Username of user to delete.
 
 
-## set\_role(\*, username: str, role\_name: Union[str, NoneType])  {#set\_role}
+## set\_role(\*, username: str, role\_name: Optional[str])  {#set\_role}
 
 Set the named Quilt role for a user.
 
