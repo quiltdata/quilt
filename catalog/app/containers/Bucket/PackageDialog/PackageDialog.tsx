@@ -8,6 +8,7 @@ import * as redux from 'react-redux'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
+import cfg from 'constants/config'
 import * as authSelectors from 'containers/Auth/selectors'
 import { useData } from 'utils/Data'
 import * as APIConnector from 'utils/APIConnector'
@@ -31,7 +32,10 @@ import SelectWorkflow from './SelectWorkflow'
 import PACKAGE_EXISTS_QUERY from './gql/PackageExists.generated'
 
 export const MAX_UPLOAD_SIZE = 20 * 1000 * 1000 * 1000 // 20GB
-export const MAX_S3_SIZE = 50 * 1000 * 1000 * 1000 // 50GB
+// XXX: keep in sync w/ the backend
+export const MAX_S3_SIZE = cfg.multipartChecksums
+  ? 50 * 2 ** 40 // 100 TiB
+  : 50 * 10 ** 9 // 50GB
 export const MAX_FILE_COUNT = 1000
 
 export const ERROR_MESSAGES = {
@@ -337,8 +341,8 @@ export function WorkflowInput({
   )
 }
 
-export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
-  cfg && cfg.workflows.find((item) => item.isDefault)
+export const defaultWorkflowFromConfig = (wcfg?: workflows.WorkflowsConfig) =>
+  wcfg?.workflows.find((item) => item.isDefault)
 
 export function useWorkflowValidator(workflowsConfig?: workflows.WorkflowsConfig) {
   return React.useMemo(
