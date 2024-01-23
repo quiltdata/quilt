@@ -91,7 +91,6 @@ export function useUploads() {
             Bucket: bucket,
             Key: `${prefix}/${path}`,
             Body: file,
-            ChecksumAlgorithm: 'SHA256',
           },
           {
             partSize: getPartSize(file.size) || MIN_PART_SIZE,
