@@ -60,8 +60,10 @@ async def aio_context(credentials: AWSCredentials, concurrency: pydantic.Positiv
 
     async with session.create_client("s3", config=config) as s3:
         s3_token = S3.set(s3)
-        yield
-        S3.reset(s3_token)
+        try:
+            yield
+        finally:
+            S3.reset(s3_token)
 
 
 class S3hashException(Exception):
