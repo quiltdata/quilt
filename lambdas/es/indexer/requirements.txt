@@ -28,7 +28,7 @@ pandas==1.3.5
 pdfminer.six==20201018
 Pillow==9.5.0
 psutil==5.7.0
-pyarrow==7.0.0
+pyarrow==14.0.1
 pycparser==2.21
 pyrsistent==0.15.4
 python-dateutil==2.8.0
