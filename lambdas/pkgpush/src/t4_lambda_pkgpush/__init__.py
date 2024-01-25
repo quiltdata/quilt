@@ -4,7 +4,7 @@ limited by lambda's network throughput. Max network thoughput in
 benchmarks was about 75 MiB/s. To overcome this limitation this function
 concurrently invokes dedicated hash lambda for multiple files.
 """
-# TODO: adjust the decsription above
+# TODO: adjust the description above
 from __future__ import annotations
 
 import concurrent.futures
