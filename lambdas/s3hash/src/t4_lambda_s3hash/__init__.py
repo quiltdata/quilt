@@ -31,6 +31,8 @@ SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 SCRATCH_KEY_SERVICE = "user-requests/checksum-upload-tmp"
 SCRATCH_KEY_PER_BUCKET = ".quilt/.checksum-upload-tmp"
 
+# How much seconds before lambda is supposed to timeout we give up.
+SECONDS_TO_CLEANUP = 1
 
 S3: contextvars.ContextVar[S3Client] = contextvars.ContextVar("s3")
 
@@ -347,7 +349,7 @@ def lambda_wrapper(f):
         logger.info("event: %s", event)
         logger.info("context: %s", context)
         try:
-            result = asyncio.run(f(**event))
+            result = asyncio.run(asyncio.wait_for(f(**event), SECONDS_TO_CLEANUP))
             logger.info("result: %s", result)
             return {"result": result.dict()}
         except S3hashException as e:
