@@ -304,20 +304,32 @@ def get_mpu_dsts(src: S3ObjectSource, target: T.Optional[S3ObjectDestination]) -
 MPUDstError = T.Tuple[S3ObjectDestination, botocore.exceptions.ClientError]
 
 
-async def create_mpu(src: S3ObjectSource, target: T.Optional[S3ObjectDestination]) -> MPURef:
+@contextlib.asynccontextmanager
+async def create_mpu(src: S3ObjectSource, target: T.Optional[S3ObjectDestination]):
     dsts = get_mpu_dsts(src, target)
 
     errors: T.List[T.Tuple[S3ObjectDestination, botocore.exceptions.ClientError]] = []
 
     for dst in dsts:
         try:
-            return await _create_mpu(dst)
+            mpu = await _create_mpu(dst)
+            break
         except botocore.exceptions.ClientError as ex:
             errors.append((dst, ex))
+    else:
+        raise S3hashException("MPUError", {
+            "errors": [{"dst": dst.dict(), "error": str(ex)} for dst, ex in errors],
+        })
 
-    raise S3hashException("MPUError", {
-        "errors": [{"dst": dst.dict(), "error": str(ex)} for dst, ex in errors],
-    })
+    try:
+        logger.info("MPU created: %s", mpu)
+        yield mpu
+    finally:
+        try:
+            await S3.get().abort_multipart_upload(**mpu.boto_args)
+        except Exception:
+            # XXX: send to sentry
+            logger.exception("Error aborting MPU")
 
 
 class ChecksumResult(pydantic.BaseModel):
@@ -391,25 +403,16 @@ async def lambda_handler(
 
         logger.info("parts: %s", len(part_defs))
 
-        mpu = await create_mpu(location, target)
-
-        logger.info("MPU created: %s", mpu)
-
-        part_checksums, retry_stats = await compute_part_checksums(
-            mpu,
-            location,
-            part_defs,
-        )
+        async with create_mpu(location, target) as mpu:
+            part_checksums, retry_stats = await compute_part_checksums(
+                mpu,
+                location,
+                part_defs,
+            )
 
         logger.info("got checksums. retry stats: %s", retry_stats)
 
         checksum = Checksum.for_parts(part_checksums, part_defs)
-
-        try:
-            await S3.get().abort_multipart_upload(**mpu.boto_args)
-        except Exception:
-            # XXX: send to sentry
-            logger.exception("Error aborting MPU")
 
         # TODO: expose perf (timing) stats
         stats = {"retry": retry_stats}
