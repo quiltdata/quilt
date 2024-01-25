@@ -24,12 +24,6 @@ RUN pip install --target /lambda --no-deps /src/shared/ /src/s3hash/
 
 FROM base-image
 
-# RUN apt-get update && \
-#     apt-get install -y --no-install-recommends \
-#        openbabel \
-#     && \
-#     apt-get clean
-
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 # Set working directory to function root directory
