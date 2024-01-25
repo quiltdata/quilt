@@ -147,7 +147,8 @@ class MPURef(pydantic.BaseModel):
         }
 
 
-# 8 MiB -- boto3 default: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
+# 8 MiB -- boto3 default:
+# https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
 MIN_PART_SIZE = 1024**2 * 8
 MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
