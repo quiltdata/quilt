@@ -237,6 +237,8 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
 
     logger.info("calculate_pkg_hashes: %s entries to hash", len(entries))
 
+    # Schedule longer tasks first so we don't end up waiting for a single long task.
+    entries.sort(key=lambda entry: entry.size, reverse=True)
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
     ) as pool:
