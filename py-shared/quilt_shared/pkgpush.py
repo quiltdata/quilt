@@ -10,6 +10,7 @@ from .types import NonEmptyStr
 
 if T.TYPE_CHECKING:
     from quilt3.util import PhysicalKey
+    from types_aiobotocore_s3.type_defs import CopySourceTypeDef
 
 
 class TopHash(pydantic.ConstrainedStr):
@@ -23,11 +24,21 @@ class TopHash(pydantic.ConstrainedStr):
 class S3ObjectSource(pydantic.BaseModel):
     bucket: str
     key: str
-    version: str
+    version: T.Optional[str]
 
     @classmethod
     def from_pk(cls, pk: PhysicalKey):
         return S3ObjectSource(bucket=pk.bucket, key=pk.path, version=pk.version_id)
+
+    @property
+    def boto_args(self) -> CopySourceTypeDef:
+        boto_args: CopySourceTypeDef = {
+            "Bucket": self.bucket,
+            "Key": self.key,
+        }
+        if self.version is not None:
+            boto_args["VersionId"] = self.version
+        return boto_args
 
 
 class S3ObjectDestination(pydantic.BaseModel):
