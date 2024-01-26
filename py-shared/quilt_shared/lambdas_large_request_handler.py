@@ -1,3 +1,4 @@
+from __future__ import annotations
 import contextlib
 import functools
 import tempfile
@@ -8,8 +9,9 @@ import pydantic
 from . import const
 
 if T.TYPE_CHECKING:
-    from mypy_boto3_s3 import S3Client
     import logging
+
+    from mypy_boto3_s3 import S3Client
 
 
 class VersionId(pydantic.ConstrainedStr):
@@ -68,6 +70,9 @@ def request_from_file(
                 logger.exception("Error while removing user request file from S3")
 
 
+FnReturn = T.TypeVar("FnReturn")
+
+
 def large_request_handler(
     request_type: str,
     *,
@@ -76,10 +81,10 @@ def large_request_handler(
     max_size: int = const.LAMBDA_TMP_SPACE,
     logger: T.Optional[logging.Logger] = None,
 ):
-    def inner(f: T.Callable[[T.IO[bytes]], T.Any]):
+    def inner(f: T.Callable[[T.IO[bytes]], FnReturn]):
         @functools.wraps(f)
         @pydantic.validate_arguments
-        def wrapper(version_id: VersionId):
+        def wrapper(version_id: VersionId) -> FnReturn:
             with request_from_file(
                 bucket=bucket,
                 request_type=request_type,
