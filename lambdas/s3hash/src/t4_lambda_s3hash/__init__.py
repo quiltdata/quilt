@@ -114,15 +114,17 @@ class Checksum(pydantic.BaseModel):
 class S3ObjectSource(pydantic.BaseModel):
     bucket: str
     key: str
-    version: str
+    version: T.Optional[str]
 
     @property
     def boto_args(self) -> T_S3TypeDefs.CopySourceTypeDef:
-        return {
+        boto_args = {
             "Bucket": self.bucket,
             "Key": self.key,
-            "VersionId": self.version,
         }
+        if self.version is not None:
+            boto_args["VersionId"] = self.version
+        return boto_args
 
 
 class S3ObjectDestination(pydantic.BaseModel):

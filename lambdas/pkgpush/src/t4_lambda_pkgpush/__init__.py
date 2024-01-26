@@ -146,7 +146,7 @@ class AWSCredentials(pydantic.BaseModel):
 class S3ObjectSource(pydantic.BaseModel):
     bucket: str
     key: str
-    version: str
+    version: T.Optional[str]
 
     @classmethod
     def from_pk(cls, pk: PhysicalKey):
