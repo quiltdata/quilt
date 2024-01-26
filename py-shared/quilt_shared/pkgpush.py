@@ -9,8 +9,9 @@ from .aws import AWSCredentials
 from .types import NonEmptyStr
 
 if T.TYPE_CHECKING:
-    from quilt3.util import PhysicalKey
     from types_aiobotocore_s3.type_defs import CopySourceTypeDef
+
+    from quilt3.util import PhysicalKey
 
 
 class TopHash(pydantic.ConstrainedStr):
