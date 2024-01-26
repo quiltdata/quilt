@@ -22,23 +22,6 @@ import botocore.credentials
 import botocore.exceptions
 import pydantic
 
-from quilt_shared.aws import AWSCredentials
-from quilt_shared.pkgpush import (
-    S3ObjectSource,
-    S3HashLambdaParams,
-    Checksum,
-    ChecksumResult,
-    PackagePushParams,
-    PackagePushResult,
-    PackagePromoteParams,
-    PackageConstructEntry,
-    TopHash,
-)
-from quilt_shared.lambdas_large_request_handler import (
-    large_request_handler,
-    RequestTooLarge,
-)
-
 # Must be done before importing quilt3.
 os.environ["QUILT_DISABLE_CACHE"] = "true"  # noqa: E402
 import quilt3
@@ -49,6 +32,23 @@ import quilt3.workflows
 from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
+
+from quilt_shared.aws import AWSCredentials
+from quilt_shared.lambdas_large_request_handler import (
+    RequestTooLarge,
+    large_request_handler,
+)
+from quilt_shared.pkgpush import (
+    Checksum,
+    ChecksumResult,
+    PackageConstructEntry,
+    PackagePromoteParams,
+    PackagePushParams,
+    PackagePushResult,
+    S3HashLambdaParams,
+    S3ObjectSource,
+    TopHash,
+)
 
 # XXX: use pydantic to manage settings
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ["PROMOTE_PKG_MAX_MANIFEST_SIZE"])
