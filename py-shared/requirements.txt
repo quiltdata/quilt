@@ -23,7 +23,9 @@ botocore==1.34.28
     #   boto3
     #   s3transfer
 botocore-stubs==1.34.28
-    # via boto3-stubs
+    # via
+    #   boto3-stubs
+    #   types-aiobotocore
 certifi==2023.11.17
     # via requests
 charset-normalizer==3.3.2
@@ -95,6 +97,10 @@ tomli==2.0.1
     # via black
 tqdm==4.66.1
     # via quilt3
+types-aiobotocore[s3]==2.11.0
+    # via quilt-shared (pyproject.toml)
+types-aiobotocore-s3==2.11.0
+    # via types-aiobotocore
 types-awscrt==0.20.2
     # via botocore-stubs
 types-s3transfer==0.10.0
@@ -107,6 +113,8 @@ typing-extensions==4.9.0
     #   mypy-boto3-s3
     #   pydantic
     #   quilt-shared (pyproject.toml)
+    #   types-aiobotocore
+    #   types-aiobotocore-s3
 urllib3==1.26.18
     # via
     #   botocore
