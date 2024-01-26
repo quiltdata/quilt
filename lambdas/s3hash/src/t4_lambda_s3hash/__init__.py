@@ -281,8 +281,15 @@ async def compute_part_checksums(
     mpu: MPURef,
     location: S3ObjectSource,
     parts: T.Sequence[PartDef],
+    concurrency: int,
 ) -> T.Tuple[T.List[bytes], T.Any]:
-    uploads = [upload_part(mpu, location, p) for p in parts]
+    s = asyncio.Semaphore(concurrency)
+
+    async def _upload_part(*args, **kwargs):
+        async with s:
+            return await upload_part(*args, **kwargs)
+
+    uploads = [_upload_part(mpu, location, p) for p in parts]
     checksums: T.List[bytes] = await asyncio.gather(*uploads)
     return checksums, upload_part.retry.statistics
 
@@ -417,6 +424,7 @@ async def lambda_handler(
                 mpu,
                 location,
                 part_defs,
+                concurrency,
             )
 
         logger.info("got checksums. retry stats: %s", retry_stats)
