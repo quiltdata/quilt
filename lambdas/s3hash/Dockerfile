@@ -15,13 +15,12 @@ RUN apt-get update && \
         gcc \
         libc6-dev
 
-COPY s3hash/requirements.txt /requirements/s3hash.txt
+COPY s3hash/requirements.txt /requirements.txt
 RUN pip install -U pip setuptools
-RUN pip install --target /deps -r /requirements/s3hash.txt
+RUN pip install --target /deps -r /requirements.txt
 
-COPY shared/ /src/shared/
 COPY s3hash/ /src/s3hash/
-RUN pip install --target /lambda --no-deps /src/shared/ /src/s3hash/
+RUN pip install --target /lambda --no-deps /src/s3hash/
 
 FROM base-image
 
