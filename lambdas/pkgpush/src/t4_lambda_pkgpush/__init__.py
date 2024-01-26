@@ -32,7 +32,6 @@ import quilt3.workflows
 from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
-
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
