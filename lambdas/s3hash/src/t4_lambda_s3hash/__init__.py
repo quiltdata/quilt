@@ -4,9 +4,9 @@ import asyncio
 import base64
 import contextlib
 import contextvars
-import enum
 import functools
 import hashlib
+import logging
 import math
 import os
 import typing as T
@@ -17,12 +17,23 @@ import aiobotocore.session
 import botocore.exceptions
 import pydantic
 import tenacity
-import types_aiobotocore_s3.type_defs as T_S3TypeDefs
-from types_aiobotocore_s3.client import S3Client
 
-from t4_lambda_shared.utils import get_quilt_logger
+from quilt_shared.aws import AWSCredentials
+from quilt_shared.pkgpush import (
+    Checksum as ChecksumBase,
+    ChecksumResult,
+    ChecksumType,
+    MPURef,
+    S3ObjectDestination,
+    S3ObjectSource,
+)
 
-logger = get_quilt_logger()
+if T.TYPE_CHECKING:
+    from types_aiobotocore_s3.client import S3Client
+
+
+logger = logging.getLogger("quilt-lambda-s3hash")
+logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
 DEFAULT_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 MULTIPART_CHECKSUMS = os.environ["MULTIPART_CHECKSUMS"] == "true"
@@ -35,15 +46,6 @@ SCRATCH_KEY_PER_BUCKET = ".quilt/.checksum-upload-tmp"
 SECONDS_TO_CLEANUP = 1
 
 S3: contextvars.ContextVar[S3Client] = contextvars.ContextVar("s3")
-
-
-NonEmptyStr = pydantic.constr(min_length=1, strip_whitespace=True)
-
-
-class AWSCredentials(pydantic.BaseModel):
-    key: NonEmptyStr
-    secret: NonEmptyStr
-    token: NonEmptyStr
 
 
 # Isolated for test-ability.
@@ -78,15 +80,7 @@ class S3hashException(Exception):
         return {"name": self.name, "context": self.context}
 
 
-class ChecksumType(str, enum.Enum):
-    MP = "QuiltMultipartSHA256"
-    SP = "SHA256"
-
-
-class Checksum(pydantic.BaseModel):
-    type: ChecksumType
-    value: str
-
+class Checksum(ChecksumBase):
     @classmethod
     def singlepart(cls, value: bytes):
         return cls(value=value.hex(), type=ChecksumType.SP)
@@ -103,54 +97,6 @@ class Checksum(pydantic.BaseModel):
         if defs == PARTS_SINGLE:
             return cls.singlepart(checksums[0])
         return cls.multipart(checksums)
-
-    def __str__(self):
-        return f"{self.type}:{self.value}"
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self!s})"
-
-
-class S3ObjectSource(pydantic.BaseModel):
-    bucket: str
-    key: str
-    version: T.Optional[str]
-
-    @property
-    def boto_args(self) -> T_S3TypeDefs.CopySourceTypeDef:
-        boto_args = {
-            "Bucket": self.bucket,
-            "Key": self.key,
-        }
-        if self.version is not None:
-            boto_args["VersionId"] = self.version
-        return boto_args
-
-
-class S3ObjectDestination(pydantic.BaseModel):
-    bucket: str
-    key: str
-
-    @property
-    def boto_args(self):
-        return {
-            "Bucket": self.bucket,
-            "Key": self.key,
-        }
-
-
-class MPURef(pydantic.BaseModel):
-    bucket: str
-    key: str
-    id: str
-
-    @property
-    def boto_args(self):
-        return {
-            "Bucket": self.bucket,
-            "Key": self.key,
-            "UploadId": self.id,
-        }
 
 
 # 8 MiB -- boto3 default:
@@ -176,9 +122,7 @@ def get_part_size(file_size: int) -> T.Optional[int]:
     return part_size
 
 
-async def get_existing_checksum(
-    location: S3ObjectSource,
-) -> T.Optional[Checksum]:
+async def get_existing_checksum(location: S3ObjectSource) -> T.Optional[Checksum]:
     try:
         resp = await S3.get().get_object_attributes(
             **location.boto_args,
@@ -203,9 +147,11 @@ async def get_existing_checksum(
         else:
             return None
 
+    assert "TotalPartsCount" in object_parts
     num_parts = object_parts["TotalPartsCount"]
+    assert "Parts" in object_parts
     assert len(object_parts["Parts"]) == num_parts
-    if all(part["Size"] == part_size for part in object_parts["Parts"][:-1]):
+    if all(part.get("Size") == part_size for part in object_parts["Parts"][:-1]):
         return Checksum(
             type=ChecksumType.MP,
             value=f"{checksum_value}-{num_parts}",
@@ -306,6 +252,7 @@ async def _create_mpu(target: S3ObjectDestination) -> MPURef:
 
 def get_mpu_dsts(src: S3ObjectSource, target: T.Optional[S3ObjectDestination]) -> T.List[S3ObjectDestination]:
     dsts = [
+        # TODO: don't use per-bucket dst
         S3ObjectDestination(bucket=src.bucket, key=SCRATCH_KEY_PER_BUCKET),
         S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE),
     ]
@@ -335,7 +282,7 @@ async def create_mpu(src: S3ObjectSource, target: T.Optional[S3ObjectDestination
         })
 
     try:
-        logger.info("MPU created: %s", mpu)
+        logger.debug("MPU created: %s", mpu)
         yield mpu
     finally:
         try:
@@ -345,18 +292,13 @@ async def create_mpu(src: S3ObjectSource, target: T.Optional[S3ObjectDestination
             logger.exception("Error aborting MPU")
 
 
-class ChecksumResult(pydantic.BaseModel):
-    checksum: Checksum
-    stats: T.Optional[dict] = None
-
-
 # XXX: need a consistent way to serialize / deserialize exceptions
 def lambda_wrapper(f):
     @functools.wraps(f)
     def wrapper(event, context):
         # XXX: make sure to disable in production to avoid leaking credentials
-        logger.info("event: %s", event)
-        logger.info("context: %s", context)
+        logger.debug("event: %s", event)
+        logger.debug("context: %s", context)
         try:
             result = asyncio.run(
                 asyncio.wait_for(
@@ -364,7 +306,7 @@ def lambda_wrapper(f):
                     context.get_remaining_time_in_millis() / 1000 - SECONDS_TO_CLEANUP,
                 )
             )
-            logger.info("result: %s", result)
+            logger.debug("result: %s", result)
             return {"result": result.dict()}
         except S3hashException as e:
             logger.exception("S3hashException")
@@ -384,7 +326,6 @@ def lambda_wrapper(f):
 
 
 # XXX: move decorators to shared?
-# XXX: move reusable types/models to shared?
 @lambda_wrapper
 @pydantic.validate_arguments
 async def lambda_handler(
@@ -397,7 +338,7 @@ async def lambda_handler(
     if concurrency is None:
         concurrency = DEFAULT_CONCURRENCY
 
-    logger.info(
+    logger.debug(
         "arguments: %s",
         {
             "location": location,
@@ -405,12 +346,12 @@ async def lambda_handler(
             "concurrency": concurrency,
         },
     )
-    logger.info("MULTIPART_CHECKSUMS: %s", MULTIPART_CHECKSUMS)
+    logger.debug("MULTIPART_CHECKSUMS: %s", MULTIPART_CHECKSUMS)
 
     async with aio_context(credentials, concurrency):
         checksum = await get_existing_checksum(location)
         if checksum is not None:
-            logger.info("got existing checksum")
+            logger.debug("got existing checksum")
             return ChecksumResult(checksum=checksum)
 
         part_defs = (
@@ -419,7 +360,7 @@ async def lambda_handler(
             else PARTS_SINGLE
         )
 
-        logger.info("parts: %s", len(part_defs))
+        logger.debug("parts: %s", len(part_defs))
 
         async with create_mpu(location, target) as mpu:
             part_checksums, retry_stats = await compute_part_checksums(
@@ -429,7 +370,7 @@ async def lambda_handler(
                 concurrency,
             )
 
-        logger.info("got checksums. retry stats: %s", retry_stats)
+        logger.debug("got checksums. retry stats: %s", retry_stats)
 
         checksum = Checksum.for_parts(part_checksums, part_defs)
 
