@@ -46,6 +46,13 @@ class S3ObjectDestination(pydantic.BaseModel):
     bucket: str
     key: str
 
+    @property
+    def boto_args(self):
+        return {
+            "Bucket": self.bucket,
+            "Key": self.key,
+        }
+
 
 class S3HashLambdaParams(pydantic.BaseModel):
     credentials: AWSCredentials
@@ -63,11 +70,26 @@ class Checksum(pydantic.BaseModel):
     type: ChecksumType
     value: str
 
+    def __str__(self):
+        return f"{self.type}:{self.value}"
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self!s})"
+
+
+# XXX: maybe it doesn't make sense outside of s3hash lambda
 class MPURef(pydantic.BaseModel):
     bucket: str
     key: str
     id: str
+
+    @property
+    def boto_args(self):
+        return {
+            "Bucket": self.bucket,
+            "Key": self.key,
+            "UploadId": self.id,
+        }
 
 
 class ChecksumResult(pydantic.BaseModel):
