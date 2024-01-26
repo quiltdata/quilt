@@ -349,7 +349,12 @@ def lambda_wrapper(f):
         logger.info("event: %s", event)
         logger.info("context: %s", context)
         try:
-            result = asyncio.run(asyncio.wait_for(f(**event), SECONDS_TO_CLEANUP))
+            result = asyncio.run(
+                asyncio.wait_for(
+                    f(**event),
+                    context.get_remaining_time_in_millis() / 1000 - SECONDS_TO_CLEANUP,
+                )
+            )
             logger.info("result: %s", result)
             return {"result": result.dict()}
         except S3hashException as e:
