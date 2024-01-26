@@ -15,13 +15,12 @@ RUN apt-get update && \
         gcc \
         libc6-dev
 
-COPY pkgpush/requirements.txt /requirements/pkgpush.txt
+COPY pkgpush/requirements.txt /requirements.txt
 RUN pip install -U pip setuptools
-RUN pip install --target /deps -r /requirements/pkgpush.txt
+RUN pip install --target /deps -r /requirements.txt
 
-COPY shared/ /src/shared/
 COPY pkgpush/ /src/pkgpush/
-RUN pip install --target /lambda --no-deps /src/shared/ /src/pkgpush/
+RUN pip install --target /lambda --no-deps /src/pkgpush/
 
 FROM base-image
 
