@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import contextlib
 import functools
 import tempfile
@@ -21,7 +22,11 @@ class VersionId(pydantic.ConstrainedStr):
 
 
 class RequestTooLarge(Exception):
+    size: int
+    max_size: int
+
     def __init__(self, *, size: int, max_size: int):
+        super().__init__(self.size, self.max_size)
         self.size = size
         self.max_size = max_size
 
