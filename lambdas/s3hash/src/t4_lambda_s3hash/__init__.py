@@ -102,6 +102,7 @@ class Checksum(ChecksumBase):
 # 8 MiB -- boto3 default:
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
 MIN_PART_SIZE = 1024**2 * 8
+MAX_PART_SIZE = 5 * 2 ** 30
 MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
 
@@ -186,8 +187,7 @@ class PartDef(pydantic.BaseModel):
 PARTS_SINGLE = [PartDef(part_number=1, range=None)]
 
 
-async def get_parts_for_location(location: S3ObjectSource) -> T.List[PartDef]:
-    total_size = (await S3.get().head_object(**location.boto_args))["ContentLength"]
+async def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     part_size = get_part_size(total_size)
 
     # single-part upload
@@ -325,6 +325,17 @@ def lambda_wrapper(f):
     return wrapper
 
 
+async def compute_checksum_legacy(location: S3ObjectSource):
+    resp = await S3.get().get_object(**location.boto_args)
+    hashobj = hashlib.sha256()
+    async with resp["Body"] as stream:
+        chunk = await stream.read(128 * 2 ** 10)
+        if chunk == b'':
+            hashobj.update(chunk)
+
+    return Checksum.singlepart(hashobj.digest())
+
+
 # XXX: move decorators to shared?
 @lambda_wrapper
 @pydantic.validate_arguments
@@ -354,25 +365,31 @@ async def lambda_handler(
             logger.debug("got existing checksum")
             return ChecksumResult(checksum=checksum)
 
-        part_defs = (
-            await get_parts_for_location(location)
-            if MULTIPART_CHECKSUMS
-            else PARTS_SINGLE
-        )
+        total_size = (await S3.get().head_object(**location.boto_args))["ContentLength"]
+        if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
+            checksum = compute_checksum_legacy(location)
+            retry_stats = None
+        else:
 
-        logger.debug("parts: %s", len(part_defs))
-
-        async with create_mpu(location, target) as mpu:
-            part_checksums, retry_stats = await compute_part_checksums(
-                mpu,
-                location,
-                part_defs,
-                concurrency,
+            part_defs = (
+                await get_parts_for_size(total_size)
+                if MULTIPART_CHECKSUMS
+                else PARTS_SINGLE
             )
 
-        logger.debug("got checksums. retry stats: %s", retry_stats)
+            logger.debug("parts: %s", len(part_defs))
 
-        checksum = Checksum.for_parts(part_checksums, part_defs)
+            async with create_mpu(location, target) as mpu:
+                part_checksums, retry_stats = await compute_part_checksums(
+                    mpu,
+                    location,
+                    part_defs,
+                    concurrency,
+                )
+
+            logger.debug("got checksums. retry stats: %s", retry_stats)
+
+            checksum = Checksum.for_parts(part_checksums, part_defs)
 
         # TODO: expose perf (timing) stats
         stats = {"retry": retry_stats}
