@@ -6,13 +6,13 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "awslambdaric>=2,<3",
-        "boto3~=1.28",
-        "pydantic~=1.10",
-        "quilt3~=5.4",
+        "awslambdaric ~= 2.0",
+        "boto3 ~= 1.28",
+        "pydantic ~= 1.10",
+        "quilt3 ~= 5.4",
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
-            "2bf2da9499541eecd1fc57defafb309883af561e"
+            "1859e66b10006bb814895dc5cc12c7ac98b80864"
             "#subdirectory=py-shared"
         ),
     ],

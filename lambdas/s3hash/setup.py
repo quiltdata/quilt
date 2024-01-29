@@ -7,13 +7,14 @@ setup(
     package_dir={"": "src"},
     install_requires=[
         "aiobotocore ~= 2.11",
+        "awslambdaric ~= 2.0",
         "botocore ~= 1.31",
         "pydantic ~= 1.10",
         "tenacity ~= 6.2",
         "types-aiobotocore[s3] ~= 2.11",
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
-            "2bf2da9499541eecd1fc57defafb309883af561e"
+            "1859e66b10006bb814895dc5cc12c7ac98b80864"
             "#subdirectory=py-shared"
         ),
     ],
