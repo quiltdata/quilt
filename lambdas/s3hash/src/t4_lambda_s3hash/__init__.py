@@ -329,8 +329,7 @@ async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
     resp = await S3.get().get_object(**location.boto_args)
     hashobj = hashlib.sha256()
     async with resp["Body"] as stream:
-        chunk = await stream.read(128 * 2 ** 10)
-        if chunk == b'':
+        async for chunk in stream.content.iter_any():
             hashobj.update(chunk)
 
     return Checksum.singlepart(hashobj.digest())
