@@ -1,0 +1,2 @@
+USER_REQUESTS_PREFIX = "user-requests/"
+LAMBDA_TMP_SPACE = 512 * 2 ** 20
