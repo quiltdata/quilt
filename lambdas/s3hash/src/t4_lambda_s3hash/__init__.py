@@ -325,7 +325,7 @@ def lambda_wrapper(f):
     return wrapper
 
 
-async def compute_checksum_legacy(location: S3ObjectSource):
+async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
     resp = await S3.get().get_object(**location.boto_args)
     hashobj = hashlib.sha256()
     async with resp["Body"] as stream:
@@ -367,10 +367,9 @@ async def lambda_handler(
 
         total_size = (await S3.get().head_object(**location.boto_args))["ContentLength"]
         if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
-            checksum = compute_checksum_legacy(location)
+            checksum = await compute_checksum_legacy(location)
             retry_stats = None
         else:
-
             part_defs = (
                 await get_parts_for_size(total_size)
                 if MULTIPART_CHECKSUMS
