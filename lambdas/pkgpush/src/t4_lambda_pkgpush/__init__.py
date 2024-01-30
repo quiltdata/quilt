@@ -1,10 +1,3 @@
-"""
-Overall performance of this function is mostly limited by hashing rate which is
-limited by lambda's network throughput. Max network thoughput in
-benchmarks was about 75 MiB/s. To overcome this limitation this function
-concurrently invokes dedicated hash lambda for multiple files.
-"""
-# TODO: adjust the description above
 from __future__ import annotations
 
 import concurrent.futures
@@ -53,16 +46,13 @@ from quilt_shared.pkgpush import (
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ["PROMOTE_PKG_MAX_MANIFEST_SIZE"])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ["PROMOTE_PKG_MAX_PKG_SIZE"])
 PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
-# TODO: rename to MAX_FILES/BYTES_TO_HASH ?
-PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ["PKG_FROM_FOLDER_MAX_PKG_SIZE"])
-PKG_FROM_FOLDER_MAX_FILES = int(os.environ["PKG_FROM_FOLDER_MAX_FILES"])
+MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH "])
+MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
 # To dispatch separate, stack-created lambda function.
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
 # CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
-S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(
-    os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"]
-)
+S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
 
 S3_HASH_LAMBDA_READ_TIMEOUT = 15 * 60  # Max lambda duration.
 
@@ -217,7 +207,6 @@ def auth(f):
 def exception_handler(f):
     @functools.wraps(f)
     def wrapper(event, context):
-        # XXX: make sure to disable in production to avoid leaking credentials
         logger.debug("event: %s", event)
         logger.debug("context: %s", context)
         try:
@@ -461,22 +450,22 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
 
                 assert isinstance(pkg_entry.size, int)
                 size_to_hash += pkg_entry.size
-                if size_to_hash > PKG_FROM_FOLDER_MAX_PKG_SIZE:
+                if size_to_hash > MAX_BYTES_TO_HASH:
                     raise PkgpushException(
                         "PackageTooLargeToHash",
                         {
                             "size": size_to_hash,
-                            "max_size": PKG_FROM_FOLDER_MAX_PKG_SIZE,
+                            "max_size": MAX_BYTES_TO_HASH,
                         },
                     )
 
                 files_to_hash += 1
-                if files_to_hash > PKG_FROM_FOLDER_MAX_FILES:
+                if files_to_hash > MAX_FILES_TO_HASH:
                     raise PkgpushException(
                         "TooManyFilesToHash",
                         {
                             "num_files": files_to_hash,
-                            "max_files": PKG_FROM_FOLDER_MAX_FILES,
+                            "max_files": MAX_FILES_TO_HASH,
                         },
                     )
 
