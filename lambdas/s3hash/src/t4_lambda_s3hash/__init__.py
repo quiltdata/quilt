@@ -201,7 +201,7 @@ def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     return parts
 
 
-@tenacity.retry
+@tenacity.retry(before_sleep=tenacity.before_sleep.before_sleep_log(logger, logging.DEBUG))
 async def upload_part(mpu: MPURef, src: S3ObjectSource, part: PartDef) -> bytes:
     res = await S3.get().upload_part_copy(
         **mpu.boto_args,
