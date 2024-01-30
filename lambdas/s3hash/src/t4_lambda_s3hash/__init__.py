@@ -114,11 +114,8 @@ def get_part_size(file_size: int) -> T.Optional[int]:
     # NOTE: in the case where file_size is exactly equal to MIN_PART_SIZE,
     # boto creates a 1-part multipart upload :shrug:
     part_size = MIN_PART_SIZE
-    num_parts = math.ceil(file_size / part_size)
-
-    while num_parts > MAX_PARTS:
+    while math.ceil(file_size / part_size) > MAX_PARTS:
         part_size *= 2
-        num_parts = math.ceil(file_size / part_size)
 
     return part_size
 
