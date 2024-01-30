@@ -274,21 +274,16 @@ def lambda_wrapper(f):
                 )
             except asyncio.TimeoutError:
                 raise LambdaError("Timeout")
+            except pydantic.ValidationError as e:
+                # XXX: make it .info()?
+                logger.exception("ValidationError")
+                # TODO: expose advanced pydantic error reporting capabilities
+                raise LambdaError("InvalidInputParameters", {"details": str(e)})
             logger.debug("result: %s", result)
             return {"result": result.dict()}
         except LambdaError as e:
             logger.exception("LambdaError")
             return {"error": e.dict()}
-        except pydantic.ValidationError as e:
-            # XXX: make it .info()?
-            logger.exception("ValidationError")
-            # TODO: expose advanced pydantic error reporting capabilities
-            return {
-                "error": {
-                    "name": "InvalidInputParameters",
-                    "context": {"details": str(e)},
-                },
-            }
 
     return wrapper
 
