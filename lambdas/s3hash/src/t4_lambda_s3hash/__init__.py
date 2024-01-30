@@ -19,6 +19,7 @@ import pydantic
 import tenacity
 
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import Checksum as ChecksumBase
 from quilt_shared.pkgpush import (
     ChecksumResult,
@@ -68,16 +69,6 @@ async def aio_context(credentials: AWSCredentials, concurrency: pydantic.Positiv
             yield
         finally:
             S3.reset(s3_token)
-
-
-class S3hashException(Exception):
-    def __init__(self, name, context=None):
-        super().__init__(name, context)
-        self.name = name
-        self.context = context
-
-    def dict(self):
-        return {"name": self.name, "context": self.context}
 
 
 class Checksum(ChecksumBase):
@@ -254,9 +245,7 @@ async def create_mpu():
     try:
         mpu = await _create_mpu(dst)
     except botocore.exceptions.ClientError as ex:
-        raise S3hashException("MPUError", {
-            "errors": [{"dst": dst.dict(), "error": str(ex)}],
-        })
+        raise LambdaError("MPUError", {"dst": dst.dict(), "error": str(ex)})
 
     try:
         logger.debug("MPU created: %s", mpu)
@@ -273,7 +262,6 @@ async def create_mpu():
 def lambda_wrapper(f):
     @functools.wraps(f)
     def wrapper(event, context):
-        # XXX: make sure to disable in production to avoid leaking credentials
         logger.debug("event: %s", event)
         logger.debug("context: %s", context)
         try:
@@ -288,8 +276,8 @@ def lambda_wrapper(f):
                 raise S3hashException("Timeout")
             logger.debug("result: %s", result)
             return {"result": result.dict()}
-        except S3hashException as e:
-            logger.exception("S3hashException")
+        except LambdaError as e:
+            logger.exception("LambdaError")
             return {"error": e.dict()}
         except pydantic.ValidationError as e:
             # XXX: make it .info()?
