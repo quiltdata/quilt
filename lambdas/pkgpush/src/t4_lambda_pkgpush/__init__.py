@@ -26,6 +26,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
     large_request_handler,
@@ -80,30 +81,7 @@ def quilt_get_boto_session(self):
 quilt3.data_transfer.S3ClientProvider.get_boto_session = quilt_get_boto_session
 
 
-class PkgpushException(Exception):
-    def __init__(self, name, context=None):
-        super().__init__(name, context)
-        self.name = name
-        self.context = context
-
-    def dict(self):
-        return {"name": self.name, "context": self.context}
-
-    @classmethod
-    def from_boto_error(cls, boto_error: botocore.exceptions.ClientError):
-        boto_response = boto_error.response
-        status_code = boto_response.get("ResponseMetadata", {}).get("HTTPStatusCode")
-        error_code = boto_response.get("Error", {}).get("Code")
-        error_message = boto_response.get("Error", {}).get("Message")
-        return cls(
-            "AWSError",
-            {
-                "status_code": status_code,
-                "error_code": error_code,
-                "error_message": error_message,
-            },
-        )
-
+class PkgpushException(LambdaError):
     @classmethod
     def from_quilt_exception(cls, qe: quilt3.util.QuiltException):
         name = (
