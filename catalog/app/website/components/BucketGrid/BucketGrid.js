@@ -18,6 +18,7 @@ const useBucketStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     padding: t.spacing(4),
     position: 'relative',
+    overflow: 'hidden',
   },
   title: {
     ...t.typography.h6,
@@ -27,6 +28,8 @@ const useBucketStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     color: t.palette.text.hint,
     lineHeight: t.typography.pxToRem(24),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   desc: {
     ...t.typography.body2,
@@ -94,7 +97,11 @@ function Bucket({ bucket, onTagClick, tagIsMatching }) {
           {bucket.title}
         </Link>
       </div>
-      <Link className={classes.name} to={urls.bucketRoot(bucket.name)}>
+      <Link
+        className={classes.name}
+        to={urls.bucketRoot(bucket.name)}
+        title={`s3://${bucket.name}`}
+      >
         s3://{bucket.name}
       </Link>
       {!!bucket.description && <p className={classes.desc}>{bucket.description}</p>}
