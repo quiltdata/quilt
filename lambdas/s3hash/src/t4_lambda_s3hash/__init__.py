@@ -250,35 +250,15 @@ async def _create_mpu(target: S3ObjectDestination) -> MPURef:
     return MPURef(bucket=target.bucket, key=target.key, id=upload_data["UploadId"])
 
 
-def get_mpu_dsts(src: S3ObjectSource, target: T.Optional[S3ObjectDestination]) -> T.List[S3ObjectDestination]:
-    dsts = [
-        # TODO: don't use per-bucket dst
-        S3ObjectDestination(bucket=src.bucket, key=SCRATCH_KEY_PER_BUCKET),
-        S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE),
-    ]
-    if target is not None:
-        dsts.insert(0, target)
-    return dsts
-
-
-MPUDstError = T.Tuple[S3ObjectDestination, botocore.exceptions.ClientError]
-
-
 @contextlib.asynccontextmanager
-async def create_mpu(src: S3ObjectSource, target: T.Optional[S3ObjectDestination]):
-    dsts = get_mpu_dsts(src, target)
+async def create_mpu():
+    dst = S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE)
 
-    errors: T.List[T.Tuple[S3ObjectDestination, botocore.exceptions.ClientError]] = []
-
-    for dst in dsts:
-        try:
-            mpu = await _create_mpu(dst)
-            break
-        except botocore.exceptions.ClientError as ex:
-            errors.append((dst, ex))
-    else:
+    try:
+        mpu = await _create_mpu(dst)
+    except botocore.exceptions.ClientError as ex:
         raise S3hashException("MPUError", {
-            "errors": [{"dst": dst.dict(), "error": str(ex)} for dst, ex in errors],
+            "errors": [{"dst": dst.dict(), "error": str(ex)}],
         })
 
     try:
@@ -377,7 +357,7 @@ async def lambda_handler(
 
             logger.debug("parts: %s", len(part_defs))
 
-            async with create_mpu(location, target) as mpu:
+            async with create_mpu() as mpu:
                 part_checksums, retry_stats = await compute_part_checksums(
                     mpu,
                     location,
