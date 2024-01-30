@@ -175,7 +175,7 @@ class PartDef(pydantic.BaseModel):
 PARTS_SINGLE = [PartDef(part_number=1, range=None)]
 
 
-async def get_parts_for_size(total_size: int) -> T.List[PartDef]:
+def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     part_size = get_part_size(total_size)
 
     # single-part upload
@@ -333,7 +333,7 @@ async def lambda_handler(
             retry_stats = None
         else:
             part_defs = (
-                await get_parts_for_size(total_size)
+                get_parts_for_size(total_size)
                 if MULTIPART_CHECKSUMS
                 else PARTS_SINGLE
             )
