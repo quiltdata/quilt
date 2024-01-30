@@ -273,7 +273,7 @@ def lambda_wrapper(f):
                     )
                 )
             except asyncio.TimeoutError:
-                raise S3hashException("Timeout")
+                raise LambdaError("Timeout")
             logger.debug("result: %s", result)
             return {"result": result.dict()}
         except LambdaError as e:
