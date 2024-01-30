@@ -19,8 +19,8 @@ import pydantic
 import tenacity
 
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.pkgpush import Checksum as ChecksumBase
 from quilt_shared.pkgpush import (
-    Checksum as ChecksumBase,
     ChecksumResult,
     ChecksumType,
     MPURef,
