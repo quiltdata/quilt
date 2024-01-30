@@ -35,8 +35,10 @@ following to buckets in your *DataAccount*.
             },
             "Action": [
                 "s3:GetObject",
+                "s3:GetObjectAttributes",
                 "s3:GetObjectTagging",
                 "s3:GetObjectVersion",
+                "s3:GetObjectVersionAttributes",
                 "s3:GetObjectVersionTagging",
                 "s3:ListBucket",
                 "s3:ListBucketVersions",
