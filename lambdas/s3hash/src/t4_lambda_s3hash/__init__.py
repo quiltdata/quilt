@@ -16,7 +16,6 @@ import aiobotocore.response
 import aiobotocore.session
 import botocore.exceptions
 import pydantic
-import tenacity
 
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
@@ -201,7 +200,6 @@ def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     return parts
 
 
-@tenacity.retry(before_sleep=tenacity.before_sleep.before_sleep_log(logger, logging.DEBUG))
 async def upload_part(mpu: MPURef, src: S3ObjectSource, part: PartDef) -> bytes:
     res = await S3.get().upload_part_copy(
         **mpu.boto_args,
@@ -227,7 +225,7 @@ async def compute_part_checksums(
 
     uploads = [_upload_part(mpu, location, p) for p in parts]
     checksums: T.List[bytes] = await asyncio.gather(*uploads)
-    return checksums, upload_part.retry.statistics
+    return checksums, None
 
 
 async def _create_mpu(target: S3ObjectDestination) -> MPURef:

@@ -10,7 +10,6 @@ setup(
         "awslambdaric ~= 2.0",
         "botocore ~= 1.31",
         "pydantic ~= 1.10",
-        "tenacity ~= 6.2",
         "types-aiobotocore[s3] ~= 2.11",
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
