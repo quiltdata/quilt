@@ -60,7 +60,7 @@ We recommend a CIDR block no smaller than /25 (128 addresses) for production
 deployments. Larger CIDR blocks are easier to upgrade to new Quilt versions
 with expanded services.
 
-#### Production, multi-AZ subnet division for private ELBv2 (you bring the network)
+#### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
 
 | Type       | AZ | Description            | Services | IPs needed† |
 |------------|----|------------------------|----------|--------------|
