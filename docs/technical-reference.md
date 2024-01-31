@@ -104,7 +104,7 @@ application load balancer
 - 2 private subnets for intra-VPC traffic to and from the Quilt RDS database and
 OpenSearch domain
 (1/8 of the VPC CIDR)
-- 2 user subnets (same subnet as for the load balancer)
+- 2 user subnets (same subnets as for the load balancer)
 - Unused (1/8 of the VPC CIDR)
 
 ### Sizing
