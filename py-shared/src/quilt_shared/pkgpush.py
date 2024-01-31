@@ -57,8 +57,7 @@ class S3ObjectDestination(pydantic.BaseModel):
 class S3HashLambdaParams(pydantic.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
-    target: T.Optional[S3ObjectDestination] = None
-    concurrency: T.Optional[pydantic.PositiveInt] = None
+    concurrency: pydantic.PositiveInt
 
 
 class ChecksumType(str, enum.Enum):
@@ -131,6 +130,11 @@ class PackagePromoteSource(pydantic.BaseModel):
 
 class PackagePromoteParams(PackagePushParams):
     src: PackagePromoteSource
+
+
+class PackageConstructParams(PackagePushParams):
+    concurrency_s3hash: pydantic.PositiveInt
+    concurrency_mpu: pydantic.PositiveInt
 
 
 class PackageConstructEntry(pydantic.BaseModel):
