@@ -21,6 +21,7 @@ connect with other users
 * [Email Quilt](mailto:contact@quiltdata.io)
 
 ## Architecture
+
 Each instance consists of a CloudFormation stack that is privately hosted in your 
 AWS account. The stack includes backend services for the web catalog, single sign-on,
 user identification and access, an ElasticSearch cluster, and more.
@@ -28,39 +29,56 @@ user identification and access, an ElasticSearch cluster, and more.
 Quilt uses subnets and security groups to isolate network services and runs key
 services within the VPC.
 
+A private stack with an inward load balancer is shown below.
+
 ![Architecture (private ELBv2)](imgs/network_private.png)
 
-A private stack with an inward load balancer is shown above.
 For an internet-facing load balancer the data plane remains the same, as shown below.
 
 ![Architecture (public ELBv2)](imgs/network_public.png)
 
-> You can use a combination of interface endpoints and gateway endpoints to
-> restrict the data plane traffic shown above to your VPC.
-> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
-
 ### Network
-
 
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
 create its own network.
 
-> If you provide the VPC you are free to reuse subnets across parameters. For example
-> you can use the same subnets for "Private subnets (services)" as "Private intra
-> subnets (no Internet)" at the cost of a weaker security posture.
+> If you provide the subnets you may choose to reuse subnets across parameters.
+> For example you can use the same subnets for the Private and User subnet parameters.
 
 You may optionally provide your own VPC CIDR block
-with a /16 prefix if the default block of 10.0.0.0/16 conflicts with shared or
-peered VPC services.
+if the default block of 10.0.0.0/16 conflicts with shared or
+peered VPC services. We recommend a CIDR block no smaller than /24 (256 addresses)
+for production, multi-AZ deployments. Larger CIDR blocks are easier to upgrade to
+new Quilt versions with expanded services.
 
-> Run Quilt in a VPC with at least 1024 addresses (/22) to ensure sufficient
-> IPs for concurrent Lambdas and other services. If you wish to conserve
-> routable IP addresses you can place the Quilt load balancer in custom "UserSubnets"
-> of your choosing.
+> For cost-sensitive deployments, Quilt ECS services can be configured to use
+> a single AZ.
+
+> You may use a combination of interface endpoints and gateway endpoints to
+> restrict the data plane traffic shown above to your VPC.
+> See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
+
+#### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
+
+| Type       | AZ | Description            | Services | IPs needed† |
+|------------|----|------------------------|----------|--------------|
+| Private    | a  | Routes to Internet     | ECS, Lambda | 32 |
+| Private    | b  | " | " | 32 |
+| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 32 |
+| Intra      | b  | " | " | 32 |
+| User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 16 |
+| User       | b  | " | " | 16 |
+
+> \* One IP per master node, one IP per data node
+
+> †  Includes 5 IPs for AWS (network, routing, DNS, reserved, broadcast) plus room
+> for new services in future updates.
 
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
 [AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
+
+#### Subnet division when Quilt creates the VPC
 
 - 2 public subnets for NAT gateways and an internet-facing application load balancer
 (1/4 the VPC CIDR)
@@ -71,12 +89,6 @@ application load balancer
 OpenSearch domain
 (1/8 of the VPC CIDR)
 - Unused (1/8 of the VPC CIDR)
-
-> For cost-sensitive deployments, Quilt ECS services can be configured to use
-> a single AZ.
-
-For further details on private IPs and Quilt see
-[Private endpoints](advanced-features/private-endpoint-access.md).
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
