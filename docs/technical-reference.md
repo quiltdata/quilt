@@ -42,9 +42,8 @@ For an internet-facing load balancer the data plane remains the same, as shown b
 You may provide your own VPC and subnets to a Quilt stack or have the Quilt stack
 create its own network.
 
-> If you provide the VPC you are free to reuse subnets across parameters. For example
-> you can use the same subnets for "Private subnets (services)" as "Private intra
-> subnets (no Internet)" at the cost of a weaker security posture.
+> If you provide the subnets you may choose to reuse subnets across parameters.
+> For example you can use the same subnets for Private and User subnet parameters.
 
 You may optionally provide your own VPC CIDR block
 if the default block of 10.0.0.0/16 conflicts with shared or
@@ -91,15 +90,9 @@ with expanded services.
 
 > † Excludes the 5 IPs per subnet AWS consumes (network, routing, DNS, reserved, broadcast). Includes room for service expansion.
 
-> Run Quilt in a VPC with at least 1024 addresses (/22) to ensure sufficient
-> IPs for concurrent Lambdas and other services. If you wish to conserve
-> routable IP addresses you can place the Quilt load balancer in custom "UserSubnets"
-> of your choosing.
-
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
 [AWS Quick Start VPC](https://aws-quickstart.github.io/quickstart-aws-vpc/).
-
 
 #### Subnet division when Quilt creates the VPC
 
