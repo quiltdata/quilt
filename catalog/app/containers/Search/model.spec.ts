@@ -2,6 +2,13 @@ import * as KTree from 'utils/KeyedTree'
 
 import * as model from './model'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    registryUrl: '',
+  })),
+)
+
 describe('containers/Search/model', () => {
   describe('groupFacets', () => {
     it('should group the facets without exceeding recursion limit', () => {
