@@ -47,7 +47,9 @@ create its own network.
 
 You may optionally provide your own VPC CIDR block
 if the default block of 10.0.0.0/16 conflicts with shared or
-peered VPC services.
+peered VPC services. We recommend a CIDR block no smaller than /24 (256 addresses)
+for production, multi-AZ deployments. Larger CIDR blocks are easier to upgrade to
+new Quilt versions with expanded services.
 
 > For cost-sensitive deployments, Quilt ECS services can be configured to use
 > a single AZ.
@@ -56,39 +58,21 @@ peered VPC services.
 > restrict the data plane traffic shown above to your VPC.
 > See [Private endpoint access](advanced-features/private-endpoint-access.md) for more.
 
-We recommend a CIDR block no smaller than /25 (128 addresses) for production
-deployments. Larger CIDR blocks are easier to upgrade to new Quilt versions
-with expanded services.
-
 #### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
 
 | Type       | AZ | Description            | Services | IPs needed† |
 |------------|----|------------------------|----------|--------------|
-| Private    | a  | Routes to Internet     | ECS, Lambda | 16 |
-| Private    | b  | " | " | 16 |
-| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 16 |
-| Intra      | b  | " | " | 16 |
-| User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 4 |
-| User       | b  | " | " | 4 |
+| Private    | a  | Routes to Internet     | ECS, Lambda | 32 |
+| Private    | b  | " | " | 32 |
+| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 32 |
+| Intra      | b  | " | " | 32 |
+| User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 16 |
+| User       | b  | " | " | 16 |
 
 > \* One IP per master node, one IP per data node
 
-> † Excludes the 5 IPs per subnet AWS consumes (network, routing, DNS, reserved, broadcast). Includes room for service expansion.
-
-#### Production, multi-AZ subnet division for private ELBv2 (you provide the network)
-
-| Type       | AZ | Description            | Services | IPs needed† |
-|------------|----|------------------------|----------|--------------|
-| Private    | a  | Routes to Internet     | ECS, Lambda | 16 |
-| Private    | b  | " | " | 16 |
-| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 16 |
-| Intra      | b  | " | " | 16 |
-| User (public) | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 4 |
-| User (public) | b  | " | " | 4 |
-
-> \* One IP per master node, one IP per data node
-
-> † Excludes the 5 IPs per subnet AWS consumes (network, routing, DNS, reserved, broadcast). Includes room for service expansion.
+> †  Includes 5 IPs for AWS (network, routing, DNS, reserved, broadcast) plus room
+> for new services in future updates.
 
 Below are the subnet configurations and sizes for Quilt version 2.0 networks,
 new as of June 2023. The configuration is similar to the
