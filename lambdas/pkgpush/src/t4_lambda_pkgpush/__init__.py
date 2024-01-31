@@ -26,6 +26,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
+from quilt_shared.const import LAMBDA_READ_TIMEOUT
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.lambdas_large_request_handler import (
     RequestTooLarge,
@@ -47,7 +48,7 @@ from quilt_shared.pkgpush import (
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ["PROMOTE_PKG_MAX_MANIFEST_SIZE"])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ["PROMOTE_PKG_MAX_PKG_SIZE"])
 PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
-MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH "])
+MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH"])
 MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
 # To dispatch separate, stack-created lambda function.
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
@@ -55,10 +56,7 @@ S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
 
-S3_HASH_LAMBDA_READ_TIMEOUT = 15 * 60  # Max lambda duration.
-
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
-USER_REQUESTS_PREFIX = "user-requests/"
 
 logger = logging.getLogger("quilt-lambda-pkgpush")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
@@ -66,7 +64,7 @@ logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 s3 = boto3.client("s3")
 lambda_ = boto3.client(
     "lambda",
-    config=botocore.client.Config(read_timeout=S3_HASH_LAMBDA_READ_TIMEOUT),
+    config=botocore.client.Config(read_timeout=LAMBDA_READ_TIMEOUT),
 )
 
 
@@ -93,7 +91,6 @@ class PkgpushException(LambdaError):
 
 
 def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum:
-    logger.debug("invoke hash lambda")
     resp = lambda_.invoke(
         FunctionName=S3_HASH_LAMBDA,
         Payload=S3HashLambdaParams(
@@ -103,7 +100,6 @@ def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum
     )
 
     parsed = json.load(resp["Payload"])
-    logger.debug("response from hash lambda: %s", parsed)
 
     if "FunctionError" in resp:
         raise PkgpushException("S3HashLambdaUnhandledError", parsed)
@@ -118,9 +114,7 @@ def calculate_pkg_entry_hash(
     pkg_entry: quilt3.packages.PackageEntry,
     credentials: AWSCredentials,
 ):
-    logger.debug("calculate_pkg_entry_hash(%s): start", pkg_entry.physical_key)
     pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials).dict()
-    logger.debug("calculate_pkg_entry_hash(%s): done", pkg_entry.physical_key)
 
 
 def calculate_pkg_hashes(pkg: quilt3.Package):
@@ -141,8 +135,6 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
 
         entries.append(entry)
 
-    logger.debug("calculate_pkg_hashes: %s entries to hash", len(entries))
-
     # Schedule longer tasks first so we don't end up waiting for a single long task.
     entries.sort(key=lambda entry: entry.size, reverse=True)
     with concurrent.futures.ThreadPoolExecutor(
@@ -155,8 +147,6 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
-
-    logger.debug("calculate_pkg_hashes: done")
 
 
 # Isolated for test-ability.
@@ -185,11 +175,8 @@ def auth(f):
 def exception_handler(f):
     @functools.wraps(f)
     def wrapper(event, context):
-        logger.debug("event: %s", event)
-        logger.debug("context: %s", context)
         try:
             result = f(event)
-            logger.debug("result: %s", result)
             return {"result": result.dict()}
         except RequestTooLarge as e:
             logger.exception("RequestTooLarge")
@@ -267,8 +254,6 @@ def _push_pkg_to_successor(
     pkg_max_size: int,
     pkg_max_files: int,
 ) -> PackagePushResult:
-    logger.debug("_push_pkg_to_successor: %s -> %s", src_bucket, params)
-
     dst_registry_url = f"s3://{params.bucket}"
     dst_registry = get_registry(dst_registry_url)
     src_registry = get_registry(f"s3://{src_bucket}")
@@ -330,8 +315,6 @@ def _push_pkg_to_successor(
 @setup_telemetry
 @pydantic.validate_arguments
 def promote_package(params: PackagePromoteParams) -> PackagePushResult:
-    logger.debug("promote_package(%s)", params)
-
     def get_pkg(src_registry: S3PackageRegistryV1):
         quilt3.util.validate_package_name(params.src.name)
 
@@ -383,8 +366,6 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
 )
 def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     params = PackagePushParams.parse_raw(next(req_file))
-    logger.debug("create_package(%s)", params)
-
     registry_url = f"s3://{params.bucket}"
     try:
         package_registry = get_registry(registry_url)
@@ -446,8 +427,6 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
                             "max_files": MAX_FILES_TO_HASH,
                         },
                     )
-
-        logger.debug("pkg._validate_with_workflow")
 
         pkg._validate_with_workflow(
             registry=package_registry,
