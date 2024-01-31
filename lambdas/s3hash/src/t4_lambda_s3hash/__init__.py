@@ -36,12 +36,11 @@ if T.TYPE_CHECKING:
 logger = logging.getLogger("quilt-lambda-s3hash")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
-DEFAULT_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
+MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 MULTIPART_CHECKSUMS = os.environ["MULTIPART_CHECKSUMS"] == "true"
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
 SCRATCH_KEY_SERVICE = "user-requests/checksum-upload-tmp"
-SCRATCH_KEY_PER_BUCKET = ".quilt/.checksum-upload-tmp"
 
 # How much seconds before lambda is supposed to timeout we give up.
 SECONDS_TO_CLEANUP = 1
@@ -50,18 +49,16 @@ S3: contextvars.ContextVar[S3Client] = contextvars.ContextVar("s3")
 
 
 # Isolated for test-ability.
-def get_user_boto_session(
-    credentials: AWSCredentials,
-) -> aiobotocore.session.AioSession:
+def get_user_boto_session(credentials: AWSCredentials) -> aiobotocore.session.AioSession:
     s = aiobotocore.session.get_session()
     s.set_credentials(credentials.key, credentials.secret, credentials.token)
     return s
 
 
 @contextlib.asynccontextmanager
-async def aio_context(credentials: AWSCredentials, concurrency: pydantic.PositiveInt):
+async def aio_context(credentials: AWSCredentials):
     session = get_user_boto_session(credentials)
-    config = aiobotocore.config.AioConfig(max_pool_connections=concurrency)
+    config = aiobotocore.config.AioConfig(max_pool_connections=MPU_CONCURRENCY)
 
     async with session.create_client("s3", config=config) as s3:
         s3_token = S3.set(s3)
@@ -93,7 +90,7 @@ class Checksum(ChecksumBase):
 # 8 MiB -- boto3 default:
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
 MIN_PART_SIZE = 1024**2 * 8
-MAX_PART_SIZE = 5 * 2 ** 30
+MAX_PART_SIZE = 5 * 2**30
 MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
 
@@ -223,9 +220,8 @@ async def compute_part_checksums(
     location: S3ObjectSource,
     etag: str,
     parts: T.Sequence[PartDef],
-    concurrency: int,
-) -> T.Tuple[T.List[bytes], T.Any]:
-    s = asyncio.Semaphore(concurrency)
+) -> T.List[bytes]:
+    s = asyncio.Semaphore(MPU_CONCURRENCY)
 
     async def _upload_part(*args, **kwargs):
         async with s:
@@ -233,7 +229,7 @@ async def compute_part_checksums(
 
     uploads = [_upload_part(mpu, location, etag, p) for p in parts]
     checksums: T.List[bytes] = await asyncio.gather(*uploads)
-    return checksums, None
+    return checksums
 
 
 async def _create_mpu(target: S3ObjectDestination) -> MPURef:
@@ -254,7 +250,6 @@ async def create_mpu():
         raise LambdaError("MPUError", {"dst": dst.dict(), "error": str(ex)})
 
     try:
-        logger.debug("MPU created: %s", mpu)
         yield mpu
     finally:
         try:
@@ -268,8 +263,6 @@ async def create_mpu():
 def lambda_wrapper(f):
     @functools.wraps(f)
     def wrapper(event, context):
-        logger.debug("event: %s", event)
-        logger.debug("context: %s", context)
         try:
             try:
                 result = asyncio.run(
@@ -285,7 +278,6 @@ def lambda_wrapper(f):
                 logger.exception("ValidationError")
                 # TODO: expose advanced pydantic error reporting capabilities
                 raise LambdaError("InvalidInputParameters", {"details": str(e)})
-            logger.debug("result: %s", result)
             return {"result": result.dict()}
         except LambdaError as e:
             logger.exception("LambdaError")
@@ -311,28 +303,12 @@ async def lambda_handler(
     *,
     credentials: AWSCredentials,
     location: S3ObjectSource,
-    target: T.Optional[S3ObjectDestination] = None,
-    concurrency: T.Optional[pydantic.PositiveInt] = None,
 ) -> ChecksumResult:
-    if concurrency is None:
-        concurrency = DEFAULT_CONCURRENCY
-
-    logger.debug(
-        "arguments: %s",
-        {
-            "location": location,
-            "target": target,
-            "concurrency": concurrency,
-        },
-    )
-    logger.debug("MULTIPART_CHECKSUMS: %s", MULTIPART_CHECKSUMS)
-
-    async with aio_context(credentials, concurrency):
+    async with aio_context(credentials):
         obj_attrs = await get_obj_attributes(location)
         if obj_attrs:
             checksum = await get_compliant_checksum(obj_attrs)
             if checksum is not None:
-                logger.debug("got existing checksum")
                 return ChecksumResult(checksum=checksum)
 
             etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
@@ -342,29 +318,17 @@ async def lambda_handler(
 
         if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
             checksum = await compute_checksum_legacy(location)
-            retry_stats = None
         else:
-            part_defs = (
-                get_parts_for_size(total_size)
-                if MULTIPART_CHECKSUMS
-                else PARTS_SINGLE
-            )
-
-            logger.debug("parts: %s", len(part_defs))
+            part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
 
             async with create_mpu() as mpu:
-                part_checksums, retry_stats = await compute_part_checksums(
+                part_checksums = await compute_part_checksums(
                     mpu,
                     location,
                     etag,
                     part_defs,
-                    concurrency,
                 )
-
-            logger.debug("got checksums. retry stats: %s", retry_stats)
 
             checksum = Checksum.for_parts(part_checksums, part_defs)
 
-        # TODO: expose perf (timing) stats
-        stats = {"retry": retry_stats}
-        return ChecksumResult(checksum=checksum, stats=stats)
+        return ChecksumResult(checksum=checksum)
