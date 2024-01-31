@@ -7,7 +7,6 @@ setup(
     package_dir={"": "src"},
     install_requires=[
         "aiobotocore ~= 2.11",
-        "awslambdaric ~= 2.0",
         "botocore ~= 1.31",
         "pydantic ~= 1.10",
         "types-aiobotocore[s3] ~= 2.11",

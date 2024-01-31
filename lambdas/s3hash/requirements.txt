@@ -21,8 +21,6 @@ attrs==23.1.0
     #   referencing
 aws-requests-auth==0.4.3
     # via quilt3
-awslambdaric==2.0.8
-    # via t4_lambda_s3hash (setup.py)
 boto3==1.34.27
     # via
     #   quilt-shared
@@ -106,8 +104,6 @@ rpds-py==0.17.1
     #   referencing
 s3transfer==0.10.0
     # via boto3
-simplejson==3.17.2
-    # via awslambdaric
 six==1.16.0
     # via
     #   jsonlines

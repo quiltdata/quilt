@@ -6,7 +6,6 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        "awslambdaric ~= 2.0",
         "boto3 ~= 1.28",
         "pydantic ~= 1.10",
         "quilt3 ~= 5.4",
