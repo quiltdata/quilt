@@ -43,7 +43,7 @@ You may provide your own VPC and subnets to a Quilt stack or have the Quilt stac
 create its own network.
 
 > If you provide the subnets you may choose to reuse subnets across parameters.
-> For example you can use the same subnets for Private and User subnet parameters.
+> For example you can use the same subnets for the Private and User subnet parameters.
 
 You may optionally provide your own VPC CIDR block
 if the default block of 10.0.0.0/16 conflicts with shared or
