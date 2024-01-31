@@ -44,11 +44,11 @@ const expectedDefaults = {
 
 describe('utils/BucketPreferences', () => {
   describe('parse', () => {
-    test('Empty config returns default preferences', () => {
+    it('Empty config returns default preferences', () => {
       expect(parse('')).toMatchObject(expectedDefaults)
     })
 
-    test('If one action is overwritten, others should be default', () => {
+    it('If one action is overwritten, others should be default', () => {
       const config = dedent`
             ui:
                 actions:
@@ -60,7 +60,7 @@ describe('utils/BucketPreferences', () => {
       })
     })
 
-    test('If one block is overwritten, others should be default', () => {
+    it('If one block is overwritten, others should be default', () => {
       const config = dedent`
             ui:
                 blocks:
@@ -72,7 +72,7 @@ describe('utils/BucketPreferences', () => {
       })
     })
 
-    test('If one nav is overwritten, others should be default', () => {
+    it('If one nav is overwritten, others should be default', () => {
       const config = dedent`
             ui:
                 nav:
@@ -84,7 +84,7 @@ describe('utils/BucketPreferences', () => {
       })
     })
 
-    test('Additional config structures returns defaults', () => {
+    it('Additional config structures returns defaults', () => {
       const config = dedent`
             ui:
                 blocks:
@@ -93,7 +93,7 @@ describe('utils/BucketPreferences', () => {
       expect(parse(config)).toMatchObject(expectedDefaults)
     })
 
-    test('Invalid config values throws error', () => {
+    it('Invalid config values throws error', () => {
       const config = dedent`
             ui:
                 nav:
@@ -104,11 +104,11 @@ describe('utils/BucketPreferences', () => {
   })
 
   describe('extendDefaults', () => {
-    test('Empty config returns default preferences', () => {
+    it('Empty config returns default preferences', () => {
       expect(extendDefaults({})).toMatchObject(expectedDefaults)
     })
 
-    test('If one action is overwritten, others should be default', () => {
+    it('If one action is overwritten, others should be default', () => {
       const config = {
         ui: {
           actions: {
@@ -122,7 +122,7 @@ describe('utils/BucketPreferences', () => {
       })
     })
 
-    test('If one block is overwritten, others should be default', () => {
+    it('If one block is overwritten, others should be default', () => {
       const config = {
         ui: {
           blocks: {
@@ -136,7 +136,7 @@ describe('utils/BucketPreferences', () => {
       })
     })
 
-    test('If one nav is overwritten, others should be default', () => {
+    it('If one nav is overwritten, others should be default', () => {
       const config = {
         ui: {
           nav: {

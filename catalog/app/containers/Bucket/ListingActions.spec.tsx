@@ -6,6 +6,14 @@ import { bucketFile, bucketDir, bucketPackageTree } from 'constants/routes'
 
 import { RowActions } from './ListingActions'
 
+jest.mock(
+  'constants/config',
+  jest.fn(() => ({
+    noDownload: false,
+    s3Proxy: '',
+  })),
+)
+
 function TestBucket({ children }: React.PropsWithChildren<{}>) {
   return (
     <Bookmarks.Provider>
