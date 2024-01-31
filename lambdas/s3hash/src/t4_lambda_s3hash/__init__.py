@@ -30,6 +30,7 @@ from quilt_shared.pkgpush import (
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
+    from types_aiobotocore_s3.type_defs import GetObjectAttributesOutputTypeDef
 
 
 logger = logging.getLogger("quilt-lambda-s3hash")
@@ -110,11 +111,11 @@ def get_part_size(file_size: int) -> T.Optional[int]:
     return part_size
 
 
-async def get_existing_checksum(location: S3ObjectSource) -> T.Optional[Checksum]:
+async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAttributesOutputTypeDef]:
     try:
-        resp = await S3.get().get_object_attributes(
+        return await S3.get().get_object_attributes(
             **location.boto_args,
-            ObjectAttributes=["Checksum", "ObjectParts", "ObjectSize"],
+            ObjectAttributes=["ETag", "Checksum", "ObjectParts", "ObjectSize"],
             MaxParts=MAX_PARTS,
         )
     except botocore.exceptions.ClientError as e:
@@ -123,12 +124,14 @@ async def get_existing_checksum(location: S3ObjectSource) -> T.Optional[Checksum
             return None
         raise
 
-    checksum_value = resp.get("Checksum", {}).get("ChecksumSHA256")
+
+async def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optional[Checksum]:
+    checksum_value = attrs.get("Checksum", {}).get("ChecksumSHA256")
     if checksum_value is None:
         return None
 
-    part_size = get_part_size(resp["ObjectSize"])
-    object_parts = resp.get("ObjectParts")
+    part_size = get_part_size(attrs["ObjectSize"])
+    object_parts = attrs.get("ObjectParts")
     if object_parts is None:
         if not MULTIPART_CHECKSUMS or part_size is None:
             return Checksum.singlepart(base64.b64decode(checksum_value))
@@ -200,11 +203,15 @@ def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     return parts
 
 
-async def upload_part(mpu: MPURef, src: S3ObjectSource, part: PartDef) -> bytes:
+async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef) -> bytes:
     res = await S3.get().upload_part_copy(
         **mpu.boto_args,
         **part.boto_args,
         CopySource=src.boto_args,
+        # In case we don't have version ID (e.g. non-versioned bucket)
+        # we have to use ETag to make sure object is not modified during copy,
+        # otherwise we can end up with invalid checksum.
+        CopySourceIfMatch=etag,
     )
     cs = res["CopyPartResult"].get("ChecksumSHA256")  # base64-encoded
     assert cs is not None
@@ -214,6 +221,7 @@ async def upload_part(mpu: MPURef, src: S3ObjectSource, part: PartDef) -> bytes:
 async def compute_part_checksums(
     mpu: MPURef,
     location: S3ObjectSource,
+    etag: str,
     parts: T.Sequence[PartDef],
     concurrency: int,
 ) -> T.Tuple[T.List[bytes], T.Any]:
@@ -223,7 +231,7 @@ async def compute_part_checksums(
         async with s:
             return await upload_part(*args, **kwargs)
 
-    uploads = [_upload_part(mpu, location, p) for p in parts]
+    uploads = [_upload_part(mpu, location, etag, p) for p in parts]
     checksums: T.List[bytes] = await asyncio.gather(*uploads)
     return checksums, None
 
@@ -320,12 +328,18 @@ async def lambda_handler(
     logger.debug("MULTIPART_CHECKSUMS: %s", MULTIPART_CHECKSUMS)
 
     async with aio_context(credentials, concurrency):
-        checksum = await get_existing_checksum(location)
-        if checksum is not None:
-            logger.debug("got existing checksum")
-            return ChecksumResult(checksum=checksum)
+        obj_attrs = await get_obj_attributes(location)
+        if obj_attrs:
+            checksum = await get_compliant_checksum(obj_attrs)
+            if checksum is not None:
+                logger.debug("got existing checksum")
+                return ChecksumResult(checksum=checksum)
 
-        total_size = (await S3.get().head_object(**location.boto_args))["ContentLength"]
+            etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
+        else:
+            resp = await S3.get().head_object(**location.boto_args)
+            etag, total_size = resp["ETag"], resp["ContentLength"]
+
         if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
             checksum = await compute_checksum_legacy(location)
             retry_stats = None
@@ -342,6 +356,7 @@ async def lambda_handler(
                 part_checksums, retry_stats = await compute_part_checksums(
                     mpu,
                     location,
+                    etag,
                     part_defs,
                     concurrency,
                 )
