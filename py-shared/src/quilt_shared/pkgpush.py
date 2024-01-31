@@ -58,6 +58,7 @@ class S3HashLambdaParams(pydantic.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
     concurrency: pydantic.PositiveInt
+    multipart: bool
 
 
 class ChecksumType(str, enum.Enum):
@@ -135,6 +136,7 @@ class PackagePromoteParams(PackagePushParams):
 class PackageConstructParams(PackagePushParams):
     concurrency_s3hash: pydantic.PositiveInt
     concurrency_mpu: pydantic.PositiveInt
+    multipart_checksums: bool
 
 
 class PackageConstructEntry(pydantic.BaseModel):
