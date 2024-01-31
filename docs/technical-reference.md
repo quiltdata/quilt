@@ -66,7 +66,7 @@ with expanded services.
 |------------|----|------------------------|----------|--------------|
 | Private    | a  | Routes to Internet     | ECS, Lambda | 16 |
 | Private    | b  | " | " | 16 |
-| Intra      | a  | No routes to Internet  | RDS , OpenSearch* | 16 |
+| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 16 |
 | Intra      | b  | " | " | 16 |
 | User       | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 4 |
 | User       | b  | " | " | 4 |
@@ -81,7 +81,7 @@ with expanded services.
 |------------|----|------------------------|----------|--------------|
 | Private    | a  | Routes to Internet     | ECS, Lambda | 16 |
 | Private    | b  | " | " | 16 |
-| Intra      | a  | No routes to Internet  | RDS , OpenSearch* | 16 |
+| Intra      | a  | Does not route to Internet  | RDS, OpenSearch* | 16 |
 | Intra      | b  | " | " | 16 |
 | User (public) | a  | Reachable by GUI catalog users | App load balancer, API Gateway Endpoint | 4 |
 | User (public) | b  | " | " | 4 |
