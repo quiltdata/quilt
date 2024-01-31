@@ -198,14 +198,6 @@ export interface Canary {
   readonly lastRun: Maybe<Scalars['Datetime']>
 }
 
-export interface Checksum {
-  readonly __typename: 'Checksum'
-  readonly type: Scalars['String']
-  readonly value: Scalars['String']
-}
-
-export type ChecksumResult = Checksum | OperationError
-
 export interface Collaborator {
   readonly __typename: 'Collaborator'
   readonly email: Scalars['String']
@@ -774,7 +766,6 @@ export interface Query {
   readonly searchPackages: PackagesSearchResult
   readonly searchMoreObjects: ObjectsSearchMoreResult
   readonly searchMorePackages: PackagesSearchMoreResult
-  readonly checksum: ChecksumResult
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
   readonly roles: ReadonlyArray<Role>
@@ -818,12 +809,6 @@ export interface QuerysearchMoreObjectsArgs {
 export interface QuerysearchMorePackagesArgs {
   after: Scalars['String']
   size?: Maybe<Scalars['Int']>
-}
-
-export interface QuerychecksumArgs {
-  bucket: Scalars['String']
-  key: Scalars['String']
-  version: Scalars['String']
 }
 
 export interface QuerypolicyArgs {

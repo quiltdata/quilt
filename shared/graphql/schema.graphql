@@ -472,13 +472,6 @@ type SearchHitPackage {
   # tags: [String!]! // TODO: currently not provided
 }
 
-type Checksum {
-  type: String!
-  value: String!
-}
-
-union ChecksumResult = Checksum | OperationError
-
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -499,7 +492,6 @@ type Query {
   ): PackagesSearchResult!
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
-  checksum(bucket: String!, key: String!, version: String!): ChecksumResult!
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
