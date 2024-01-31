@@ -16,7 +16,9 @@ boto3==1.34.31
     #   quilt3
     #   t4_lambda_pkgpush (setup.py)
 boto3-stubs[s3]==1.34.31
-    # via quilt-shared
+    # via
+    #   boto3-stubs
+    #   quilt-shared
 botocore==1.34.31
     # via
     #   boto3
@@ -59,8 +61,10 @@ python-dateutil==2.8.2
     # via botocore
 pyyaml==6.0.1
     # via quilt3
-quilt-shared[boto,pydantic,quilt] @ git+https://github.com/quiltdata/quilt@1cc60dd1c5ac423b9e737bd723f454f8a72633db#subdirectory=py-shared
-    # via t4_lambda_pkgpush (setup.py)
+quilt-shared[boto,pydantic,quilt] @ git+https://github.com/quiltdata/quilt@30d7a1b7ab3a5918720dd528683d7a79210be488#subdirectory=py-shared
+    # via
+    #   quilt-shared
+    #   t4_lambda_pkgpush (setup.py)
 quilt3==5.4.0
     # via
     #   quilt-shared
@@ -91,7 +95,9 @@ tenacity==8.2.3
 tqdm==4.66.1
     # via quilt3
 types-aiobotocore[s3]==2.11.1
-    # via quilt-shared
+    # via
+    #   quilt-shared
+    #   types-aiobotocore
 types-aiobotocore-s3==2.11.1
     # via types-aiobotocore
 types-awscrt==0.20.3
