@@ -92,7 +92,6 @@ class MPURef(pydantic.BaseModel):
 
 class ChecksumResult(pydantic.BaseModel):
     checksum: Checksum
-    stats: T.Optional[dict] = None
 
 
 class PackagePushParams(pydantic.BaseModel):
