@@ -55,7 +55,7 @@ def test_no_sha256(obj_attrs):
                 "ObjectSize": 8388608,
             },
             Checksum.singlepart(base64.b64decode("La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=")),
-            Checksum(type=ChecksumType.MP, value="MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1")
+            Checksum(type=ChecksumType.MP, value="MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1"),
         ),
         (
             {
@@ -109,7 +109,7 @@ def test_no_sha256(obj_attrs):
                 "ObjectSize": 13631488,
             },
             None,
-            Checksum(type=ChecksumType.MP, value="bGeobZC1xyakKeDkOLWP9khl+vuOditELvPQhrT/R9M=-2")
+            Checksum(type=ChecksumType.MP, value="bGeobZC1xyakKeDkOLWP9khl+vuOditELvPQhrT/R9M=-2"),
         ),
     ],
 )
