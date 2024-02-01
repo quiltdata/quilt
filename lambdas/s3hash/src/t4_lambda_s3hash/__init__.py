@@ -122,22 +122,30 @@ async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAt
         raise
 
 
-async def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optional[Checksum]:
+def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optional[Checksum]:
     checksum_value = attrs.get("Checksum", {}).get("ChecksumSHA256")
     if checksum_value is None:
         return None
 
     part_size = get_part_size(attrs["ObjectSize"])
     object_parts = attrs.get("ObjectParts")
-    if object_parts is None:
-        if not MULTIPART_CHECKSUMS or part_size is None:
-            return Checksum.singlepart(base64.b64decode(checksum_value))
-        else:
-            return None
+    if not MULTIPART_CHECKSUMS or part_size is None:
+        if object_parts is not None:
+            assert "TotalPartsCount" in object_parts
+            if object_parts["TotalPartsCount"] != 1:
+                return None
+            assert "Parts" in object_parts
+            assert "ChecksumSHA256" in object_parts["Parts"][0]
+            checksum_value = object_parts["Parts"][0]["ChecksumSHA256"]
 
+        return Checksum.singlepart(base64.b64decode(checksum_value))
+
+    if object_parts is None:
+        return None
     assert "TotalPartsCount" in object_parts
     num_parts = object_parts["TotalPartsCount"]
     assert "Parts" in object_parts
+    # Make sure we have _all_ parts.
     assert len(object_parts["Parts"]) == num_parts
     if all(part.get("Size") == part_size for part in object_parts["Parts"][:-1]):
         return Checksum(
@@ -307,7 +315,7 @@ async def lambda_handler(
     async with aio_context(credentials):
         obj_attrs = await get_obj_attributes(location)
         if obj_attrs:
-            checksum = await get_compliant_checksum(obj_attrs)
+            checksum = get_compliant_checksum(obj_attrs)
             if checksum is not None:
                 return ChecksumResult(checksum=checksum)
 
