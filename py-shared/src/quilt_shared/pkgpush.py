@@ -123,7 +123,7 @@ class PackagePushResult(pydantic.BaseModel):
 class PackagePromoteSource(pydantic.BaseModel):
     bucket: NonEmptyStr
     name: NonEmptyStr
-    top_hash: TopHash
+    hash: TopHash
 
 
 class PackagePromoteParams(PackagePushParams):
