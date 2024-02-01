@@ -1,8 +1,9 @@
 import base64
-import pytest
 from unittest import mock
 
-from t4_lambda_s3hash import get_compliant_checksum, Checksum, ChecksumType
+import pytest
+
+from t4_lambda_s3hash import Checksum, ChecksumType, get_compliant_checksum
 
 
 @pytest.mark.parametrize(
