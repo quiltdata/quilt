@@ -318,7 +318,7 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
     def get_pkg(src_registry: S3PackageRegistryV1):
         quilt3.util.validate_package_name(params.src.name)
 
-        manifest_pk = src_registry.manifest_pk(params.src.name, params.src.top_hash)
+        manifest_pk = src_registry.manifest_pk(params.src.name, params.src.hash)
         manifest_size, version = quilt3.data_transfer.get_size_and_version(manifest_pk)
         if manifest_size > PROMOTE_PKG_MAX_MANIFEST_SIZE:
             raise PkgpushException(
