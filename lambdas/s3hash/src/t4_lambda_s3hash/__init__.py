@@ -96,6 +96,10 @@ MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
 # XXX: import this logic from quilt3 when it's available
 def get_part_size(file_size: int) -> T.Optional[int]:
+    # XXX: do we need this?
+    if not 0 <= file_size <= 5 * 2**40:
+        raise ValueError("size must be non-negative and less than 5 TiB")
+
     if file_size < MIN_PART_SIZE:
         return None  # use single-part upload (and plain SHA256 hash)
 
