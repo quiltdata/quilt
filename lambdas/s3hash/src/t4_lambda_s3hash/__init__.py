@@ -271,10 +271,13 @@ async def create_mpu():
             logger.exception("Error aborting MPU")
 
 
+AnyDict = T.Dict[str, T.Any]
+LambdaContext = T.Any
+
 # XXX: need a consistent way to serialize / deserialize exceptions
-def lambda_wrapper(f):
+def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
     @functools.wraps(f)
-    def wrapper(event, context):
+    def wrapper(event: AnyDict, context: LambdaContext) -> AnyDict:
         try:
             try:
                 result = asyncio.run(
@@ -308,6 +311,36 @@ async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
     return Checksum.singlepart(hashobj.digest())
 
 
+async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
+    obj_attrs = await get_obj_attributes(location)
+    if obj_attrs:
+        checksum = get_compliant_checksum(obj_attrs)
+        if checksum is not None:
+            return ChecksumResult(checksum=checksum)
+
+        etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
+    else:
+        resp = await S3.get().head_object(**location.boto_args)
+        etag, total_size = resp["ETag"], resp["ContentLength"]
+
+    if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
+        checksum = await compute_checksum_legacy(location)
+    else:
+        part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
+
+        async with create_mpu() as mpu:
+            part_checksums = await compute_part_checksums(
+                mpu,
+                location,
+                etag,
+                part_defs,
+            )
+
+        checksum = Checksum.for_parts(part_checksums, part_defs)
+
+    return ChecksumResult(checksum=checksum)
+
+
 # XXX: move decorators to shared?
 @lambda_wrapper
 @pydantic.validate_arguments
@@ -317,30 +350,4 @@ async def lambda_handler(
     location: S3ObjectSource,
 ) -> ChecksumResult:
     async with aio_context(credentials):
-        obj_attrs = await get_obj_attributes(location)
-        if obj_attrs:
-            checksum = get_compliant_checksum(obj_attrs)
-            if checksum is not None:
-                return ChecksumResult(checksum=checksum)
-
-            etag, total_size = obj_attrs["ETag"], obj_attrs["ObjectSize"]
-        else:
-            resp = await S3.get().head_object(**location.boto_args)
-            etag, total_size = resp["ETag"], resp["ContentLength"]
-
-        if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
-            checksum = await compute_checksum_legacy(location)
-        else:
-            part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
-
-            async with create_mpu() as mpu:
-                part_checksums = await compute_part_checksums(
-                    mpu,
-                    location,
-                    etag,
-                    part_defs,
-                )
-
-            checksum = Checksum.for_parts(part_checksums, part_defs)
-
-        return ChecksumResult(checksum=checksum)
+        return await compute_checksum(location)
