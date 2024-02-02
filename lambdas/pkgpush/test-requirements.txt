@@ -4,6 +4,10 @@
 #
 #    pip-compile test-requirements.in
 #
+attrs==23.2.0
+    # via
+    #   -c requirements.txt
+    #   pytest-subtests
 exceptiongroup==1.2.0
     # via pytest
 iniconfig==2.0.0
@@ -13,6 +17,10 @@ packaging==23.2
 pluggy==1.4.0
     # via pytest
 pytest==8.0.0
+    # via
+    #   -r test-requirements.in
+    #   pytest-subtests
+pytest-subtests==0.11.0
     # via -r test-requirements.in
 tomli==2.0.1
     # via pytest
