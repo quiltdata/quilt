@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import concurrent.futures
-import contextvars
+import contextlib
 import functools
 import json
 import logging
@@ -68,15 +68,9 @@ lambda_ = boto3.client(
 )
 
 
-user_boto_session = contextvars.ContextVar[boto3.Session]("user_boto_session")
-
-
-def quilt_get_boto_session(self):
-    return user_boto_session.get()
-
-
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
-quilt3.data_transfer.S3ClientProvider.get_boto_session = quilt_get_boto_session
+user_boto_session = None
+quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: user_boto_session)
 
 
 class PkgpushException(LambdaError):
@@ -140,7 +134,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=S3_HASH_LAMBDA_CONCURRENCY
     ) as pool:
-        credentials = AWSCredentials.from_boto_session(user_boto_session.get())
+        credentials = AWSCredentials.from_boto_session(user_boto_session)
         fs = [
             pool.submit(calculate_pkg_entry_hash, entry, credentials)
             for entry in entries
@@ -158,16 +152,22 @@ class Event(pydantic.BaseModel):
     params: T.Any
 
 
+@contextlib.contextmanager
+def setup_user_boto_session(session):
+    global user_boto_session
+    user_boto_session = session
+    try:
+        yield user_boto_session
+    finally:
+        user_boto_session = None
+
+
 def auth(f):
     @functools.wraps(f)
     @pydantic.validate_arguments
     def wrapper(event: Event):
-        session = get_user_boto_session(**event.credentials.boto_args)
-        token = user_boto_session.set(session)
-        try:
+        with setup_user_boto_session(get_user_boto_session(**event.credentials.boto_args)):
             return f(event.params)
-        finally:
-            user_boto_session.reset(token)
 
     return wrapper
 

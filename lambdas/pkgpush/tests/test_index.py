@@ -898,9 +898,11 @@ class HashCalculationTest(unittest.TestCase):
 
     def test_calculate_pkg_hashes(self):
         with mock.patch.object(t4_lambda_pkgpush, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
-            t4_lambda_pkgpush.calculate_pkg_hashes(self.pkg)
+            session_mock = boto3.Session(**CREDENTIALS.boto_args)
+            with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
+                t4_lambda_pkgpush.calculate_pkg_hashes(self.pkg)
 
-        calculate_pkg_entry_hash_mock.assert_called_once_with(mock.ANY, self.entry_without_hash)
+        calculate_pkg_entry_hash_mock.assert_called_once_with(self.entry_without_hash, CREDENTIALS)
 
     @mock.patch.object(t4_lambda_pkgpush, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
     def test_calculate_pkg_hashes_too_large_file_error(self):
