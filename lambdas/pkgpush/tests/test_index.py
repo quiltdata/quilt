@@ -11,6 +11,8 @@ import pytest
 from botocore.stub import Stubber
 
 import t4_lambda_pkgpush
+import quilt_shared.aws
+from quilt_shared.pkgpush import Checksum, ChecksumType
 from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
@@ -23,12 +25,15 @@ def hash_data(data):
 calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
+CREDENTIALS = quilt_shared.aws.AWSCredentials(
+    key='test_aws_access_key_id',
+    secret='test_aws_secret_access_key',
+    token='test_aws_session_token',
+)
+
+
 class PackagePromoteTestBase(unittest.TestCase):
-    credentials = {
-        'aws_access_key_id': 'test_aws_access_key_id',
-        'aws_secret_access_key': 'test_aws_secret_access_key',
-        'aws_session_token': 'test_aws_session_token',
-    }
+    credentials = CREDENTIALS
     handler = staticmethod(t4_lambda_pkgpush.promote_package)
     parent_bucket = 'parent-bucket'
     src_registry = f's3://{parent_bucket}'
@@ -38,7 +43,7 @@ class PackagePromoteTestBase(unittest.TestCase):
     dst_registry = f's3://{dst_bucket}'
     dst_pkg_name = 'dest/pkg-name'
     dst_pkg_loc_params = {
-        'registry': dst_registry,
+        'bucket': dst_bucket,
         'name': dst_pkg_name,
     }
     mock_timestamp = 1600298935.9767091
@@ -99,10 +104,10 @@ class PackagePromoteTestBase(unittest.TestCase):
         cls.parent_manifest = manifest_buf.getvalue()
         cls.parent_top_hash = pkg.top_hash
         cls.src_params = {
-            'parent': {
-                'registry': cls.src_registry,
+            'src': {
+                'bucket': cls.parent_bucket,
                 'name': cls.parent_pkg_name,
-                'top_hash': cls.parent_top_hash,
+                'hash': cls.parent_top_hash,
             },
         }
 
@@ -135,7 +140,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
-        def calculate_pkg_hashes_side_effect(s3_client, pkg):
+        def calculate_pkg_hashes_side_effect(pkg):
             for lk, entry in pkg.walk():
                 if entry.hash is None:
                     entry.hash = {
@@ -193,7 +198,7 @@ class PackagePromoteTestBase(unittest.TestCase):
             response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
-            **self.credentials,
+            **self.credentials.boto_args,
         )
         reset_session_id_mock.assert_called_once_with()
 
@@ -344,7 +349,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
 
     def test_no_auth(self):
         resp = self.make_request_base({}, credentials={})
-        assert resp["error"]["name"] == "InvalidCredentials"
+        assert resp["error"]["name"] == "InvalidInputParameters"
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_dst_is_not_successor(self):
@@ -517,7 +522,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
         'logical_key': path,
         'physical_key': str(physical_key),
         'size': file_data_size,
-        'hash': file_data_hash,
+        'hash': {"type": "SHA256", "value": file_data_hash},
         "meta": {"some": "meta"},
     }
     package_entries = [package_entry]
@@ -541,9 +546,9 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
 
         cls.params = {
             'name': cls.dst_pkg_name,
-            'registry': cls.dst_registry,
+            'bucket': cls.dst_bucket,
             'message': cls.dst_commit_message,
-            'meta': cls.meta,
+            'user_meta': cls.meta,
         }
         cls.gen_params = staticmethod(cls.make_params_factory(cls.params))
         cls.gen_pkg_entry = staticmethod(cls.make_params_factory(cls.package_entry))
@@ -592,7 +597,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
         # Mock hashing package objects
         for entry in entries:
             pkey = PhysicalKey.from_url(entry['physical_key'])
-            hash_obj = {'type': 'SHA256', 'value': entry['hash']}
+            hash_obj = entry["hash"]
             test_entry = PackageEntry(pkey, entry['size'], hash_obj, entry.get('meta'))
             test_pkg.set(entry['logical_key'], entry=test_entry)
 
@@ -718,7 +723,7 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                 },
             ),
             (
-                self.gen_params(registry=...),
+                self.gen_params(bucket=...),
                 {
                     "name": "InvalidInputParameters",
                     "context": {"details": "'registry' is a required property"},
@@ -747,17 +752,15 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                 pkg_response = self.make_request([
                     {
                         'name': 'user/atestpackage',
-                        'registry': self.dst_registry,
+                        'bucket': self.dst_bucket,
                         'message': 'test package',
                     },
                     entry,
                 ])
-                assert pkg_response == {
-                    "error": {
-                        "name": "InvalidInputParameters",
-                        "context": {"details": f"'{prop_name}' is a required property"},
-                    },
-                }
+
+                error = pkg_response["error"]
+                assert error["name"] == "InvalidInputParameters"
+                assert prop_name in error["context"]["details"]
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_invalid_entries_non_url_pk(self):
@@ -894,83 +897,95 @@ class HashCalculationTest(unittest.TestCase):
         self.pkg.set('without-hash', self.entry_without_hash)
 
     def test_calculate_pkg_hashes(self):
-        boto_session = mock.MagicMock()
         with mock.patch.object(t4_lambda_pkgpush, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
-            t4_lambda_pkgpush.calculate_pkg_hashes(boto_session, self.pkg)
+            t4_lambda_pkgpush.calculate_pkg_hashes(self.pkg)
 
         calculate_pkg_entry_hash_mock.assert_called_once_with(mock.ANY, self.entry_without_hash)
 
     @mock.patch.object(t4_lambda_pkgpush, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
     def test_calculate_pkg_hashes_too_large_file_error(self):
-        s3_client = mock.MagicMock()
         with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-            t4_lambda_pkgpush.calculate_pkg_hashes(s3_client, self.pkg)
+            t4_lambda_pkgpush.calculate_pkg_hashes( self.pkg)
         assert excinfo.value.name == "FileTooLargeForHashing"
 
     def test_calculate_pkg_entry_hash(self):
-        get_s3_client_mock = mock.MagicMock()
-        s3_client_mock = get_s3_client_mock.return_value
-        s3_client_mock.generate_presigned_url.return_value = 'https://example.com'
-        with mock.patch("t4_lambda_pkgpush.invoke_hash_lambda", return_value='0' * 64) as invoke_hash_lambda_mock:
-            t4_lambda_pkgpush.calculate_pkg_entry_hash(get_s3_client_mock, self.entry_without_hash)
+        with mock.patch(
+            "t4_lambda_pkgpush.invoke_hash_lambda",
+            return_value=Checksum(type=ChecksumType.SP, value='0' * 64),
+        ) as invoke_hash_lambda_mock:
+            t4_lambda_pkgpush.calculate_pkg_entry_hash(self.entry_without_hash, CREDENTIALS)
 
-        get_s3_client_mock.assert_called_once_with(self.entry_without_hash.physical_key.bucket)
-        invoke_hash_lambda_mock.assert_called_once_with(s3_client_mock.generate_presigned_url.return_value)
-        s3_client_mock.generate_presigned_url.assert_called_once_with(
-            ClientMethod='get_object',
-            ExpiresIn=t4_lambda_pkgpush.S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN_SECONDS,
-            Params={
-                'Bucket': self.entry_without_hash.physical_key.bucket,
-                'Key': self.entry_without_hash.physical_key.path,
-                'VersionId': self.entry_without_hash.physical_key.version_id,
-            },
-        )
+        invoke_hash_lambda_mock.assert_called_once_with(self.entry_without_hash.physical_key, CREDENTIALS)
 
-        assert self.entry_without_hash.hash == {
-            'type': 'SHA256',
-            'value': invoke_hash_lambda_mock.return_value,
-        }
+        assert self.entry_without_hash.hash == invoke_hash_lambda_mock.return_value.dict()
 
     def test_invoke_hash_lambda(self):
         lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
         lambda_client_stubber.activate()
         self.addCleanup(lambda_client_stubber.deactivate)
-        test_hash = '0' * 64
-        test_url = 'https://example.com'
+        checksum = {"type": "SHA256", "value": "0" * 64}
+        pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
         lambda_client_stubber.add_response(
             'invoke',
             service_response={
-                'Payload': io.BytesIO(b'"%s"' % test_hash.encode()),
+                'Payload': io.BytesIO(
+                    b'{"result": {"checksum": %s}}' % json.dumps(checksum).encode()
+                ),
             },
             expected_params={
                 'FunctionName': t4_lambda_pkgpush.S3_HASH_LAMBDA,
-                'Payload': '"%s"' % test_url,
+                'Payload': json.dumps({
+                    "credentials": {
+                        "key": CREDENTIALS.key,
+                        "secret": CREDENTIALS.secret,
+                        "token": CREDENTIALS.token,
+                    },
+                    "location": {
+                        "bucket": pk.bucket,
+                        "key": pk.path,
+                        "version": pk.version_id,
+                    }
+                })
             },
         )
 
-        assert t4_lambda_pkgpush.invoke_hash_lambda(test_url) == test_hash
+        assert t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS) == checksum
         lambda_client_stubber.assert_no_pending_responses()
 
     def test_invoke_hash_lambda_error(self):
         lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
         lambda_client_stubber.activate()
         self.addCleanup(lambda_client_stubber.deactivate)
-        test_url = 'https://example.com'
+        pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
         lambda_client_stubber.add_response(
             'invoke',
             service_response={
                 'FunctionError': 'Unhandled',
-                'Payload': io.BytesIO(b'some error info'),
+                'Payload': io.BytesIO(
+                    b'{"errorMessage":"2024-02-02T14:33:39.754Z e0db9ea8-1329-44d5-a0dc-364ba2749b09'
+                    b' Task timed out after 1.00 seconds"}'
+                 ),
             },
             expected_params={
                 'FunctionName': t4_lambda_pkgpush.S3_HASH_LAMBDA,
-                'Payload': '"%s"' % test_url,
+                'Payload': json.dumps({
+                    "credentials": {
+                        "key": CREDENTIALS.key,
+                        "secret": CREDENTIALS.secret,
+                        "token": CREDENTIALS.token,
+                    },
+                    "location": {
+                        "bucket": pk.bucket,
+                        "key": pk.path,
+                        "version": pk.version_id,
+                    }
+                })
             },
         )
 
         with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-            t4_lambda_pkgpush.invoke_hash_lambda(test_url)
+            t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS)
         assert excinfo.value.name == "S3HashLambdaUnhandledError"
         lambda_client_stubber.assert_no_pending_responses()
