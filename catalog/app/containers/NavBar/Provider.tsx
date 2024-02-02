@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useHistory, useLocation, useRouteMatch } from 'react-router-dom'
+import * as M from '@material-ui/core'
 
 import * as SearchUIModel from 'containers/Search/model'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -26,9 +27,14 @@ function useSearchUIModel() {
   return React.useContext(SearchUIModel.Context)
 }
 
+interface InputState extends M.InputBaseProps {
+  expanded: boolean
+  focusTrigger: number
+  helpOpen: boolean
+}
+
 interface SearchState {
-  // input: SearchInputProps
-  input: $TSFixMe
+  input: InputState
   onClickAway: () => void
   reset: () => void
   suggestions: ReturnType<typeof Suggestions.use>
