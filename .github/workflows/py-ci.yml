@@ -100,6 +100,7 @@ jobs:
           pytest --cov=api/python api/python
       - uses: codecov/codecov-action@v4
         env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           OS: ${{ matrix.os }}
           PYTHON_VERSION: ${{ matrix.python-version }}
         with:
@@ -207,6 +208,7 @@ jobs:
           pytest --cov=lambdas lambdas/${{ matrix.path }}
       - uses: codecov/codecov-action@v4
         env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           LAMBDA: ${{ matrix.path }}
         with:
           flags: lambda
