@@ -695,7 +695,8 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
     def test_workflow_param(self):
         for params, expected_workflow in (
             (self.params, ...),
-            (self.gen_params(workflow=None), None),
+            (self.gen_params(workflow=None), ...),
+            (self.gen_params(workflow=""), None),
             (self.gen_params(workflow='some-workflow'), 'some-workflow'),
         ):
             with self.subTest(params=params, expected_workflow=expected_workflow):
