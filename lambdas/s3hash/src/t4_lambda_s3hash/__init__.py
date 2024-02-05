@@ -274,6 +274,7 @@ async def create_mpu():
 AnyDict = T.Dict[str, T.Any]
 LambdaContext = T.Any
 
+
 # XXX: need a consistent way to serialize / deserialize exceptions
 def lambda_wrapper(f) -> T.Callable[[AnyDict, LambdaContext], AnyDict]:
     @functools.wraps(f)

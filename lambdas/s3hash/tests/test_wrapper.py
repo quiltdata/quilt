@@ -47,7 +47,7 @@ def test_input_validation_error(mocker: MockerFixture):
     mock_compute_checksum.assert_not_called()
 
 
-def test_timeout(mocker: MockerFixture ):
+def test_timeout(mocker: MockerFixture):
     async def sleep(*_):
         await asyncio.sleep(1)
 
