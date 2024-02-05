@@ -128,10 +128,15 @@ export default function Input({
 
   const onBlur = React.useCallback(() => {
     if (R.is(String, value)) return onChange(value)
-    if (columnId === COLUMN_IDS.KEY) return onChange(valueStr)
+    if (
+      columnId === COLUMN_IDS.KEY &&
+      (typeof data.key !== 'number' || typeof value !== 'number')
+    ) {
+      return onChange(valueStr)
+    }
     if (willBeNullInJson(value)) return onChange(null)
     return onChange(value)
-  }, [onChange, columnId, value, valueStr])
+  }, [onChange, columnId, data.key, value, valueStr])
 
   const onKeyDown = React.useCallback(
     (event) => {
