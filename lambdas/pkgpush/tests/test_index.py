@@ -10,12 +10,12 @@ import boto3
 import pytest
 from botocore.stub import Stubber
 
-import t4_lambda_pkgpush
 import quilt_shared.aws
-from quilt_shared.pkgpush import Checksum, ChecksumType
+import t4_lambda_pkgpush
 from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
+from quilt_shared.pkgpush import Checksum, ChecksumType
 
 
 def hash_data(data):
