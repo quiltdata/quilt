@@ -5,7 +5,6 @@ from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
 
-
 AWS_CREDENTIALS = {
     "key": "test-key",
     "secret": "test-secret",
