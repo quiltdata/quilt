@@ -64,7 +64,11 @@ logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 s3 = boto3.client("s3")
 lambda_ = boto3.client(
     "lambda",
-    config=botocore.client.Config(read_timeout=LAMBDA_READ_TIMEOUT),
+    config=botocore.client.Config(
+        read_timeout=LAMBDA_READ_TIMEOUT,
+        # Prevent idle timeout on NAT gateway.
+        tcp_keepalive=True,
+    ),
 )
 
 
