@@ -30,6 +30,7 @@ class FakeContext:
 def test_input_validation_error(mocker: MockerFixture):
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum")
 
+    # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
         {"credentials": AWS_CREDENTIALS, "location": "s3://bucket/key"},
         None,
@@ -53,6 +54,7 @@ def test_timeout(mocker: MockerFixture ):
 
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", side_effect=sleep)
 
+    # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
         {"credentials": AWS_CREDENTIALS, "location": S3_SRC},
         FakeContext(1001),
@@ -79,6 +81,7 @@ def test_aws_wiring(mocker: MockerFixture):
 
     mock_compute_checksum = mocker.patch("t4_lambda_s3hash.compute_checksum", return_value=FakeResponse())
 
+    # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
         {"credentials": AWS_CREDENTIALS, "location": S3_SRC},
         FakeContext(2000),
