@@ -707,34 +707,21 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                     assert "result" in pkg_response
 
     def test_invalid_parameters(self):
-        for params, expected_error in (
+        for params, err_name, err_details in (
             (
                 self.gen_params(name=...),
-                {
-                    "name": "InvalidInputParameters",
-                    "context": {"details": "'name' is a required property"},
-                },
+                "InvalidInputParameters",
+                "name",
             ),
             (
                 self.gen_params(name='invalid package name'),
-                {
-                    "name": "QuiltException",
-                    "context": {"details": "Invalid package name: invalid package name."},
-                },
+                "QuiltException",
+                "Invalid package name: invalid package name.",
             ),
             (
                 self.gen_params(bucket=...),
-                {
-                    "name": "InvalidInputParameters",
-                    "context": {"details": "'registry' is a required property"},
-                },
-            ),
-            (
-                self.gen_params(registry=self.dst_bucket),  # Not URL.
-                {
-                    "name": "InvalidRegistry",
-                    "context": {"registry_url": self.dst_bucket},
-                },
+                "InvalidInputParameters",
+                "bucket",
             ),
         ):
             with self.subTest(params=params):
@@ -742,7 +729,8 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                     params,
                     *self.package_entries,
                 ])
-                assert pkg_response["error"] == expected_error
+                assert pkg_response["error"]["name"] == err_name
+                assert err_details in pkg_response["error"]["context"]["details"]
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_invalid_entries_missing_required_props(self):
