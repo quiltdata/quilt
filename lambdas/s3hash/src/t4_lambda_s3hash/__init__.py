@@ -326,19 +326,19 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
 
     if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
         checksum = await compute_checksum_legacy(location)
-    else:
-        part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
+        return ChecksumResult(checksum=checksum)
 
-        async with create_mpu() as mpu:
-            part_checksums = await compute_part_checksums(
-                mpu,
-                location,
-                etag,
-                part_defs,
-            )
+    part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
 
-        checksum = Checksum.for_parts(part_checksums, part_defs)
+    async with create_mpu() as mpu:
+        part_checksums = await compute_part_checksums(
+            mpu,
+            location,
+            etag,
+            part_defs,
+        )
 
+    checksum = Checksum.for_parts(part_checksums, part_defs)
     return ChecksumResult(checksum=checksum)
 
 
