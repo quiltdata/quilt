@@ -896,7 +896,7 @@ class HashCalculationTest(unittest.TestCase):
     @mock.patch.object(t4_lambda_pkgpush, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
     def test_calculate_pkg_hashes_too_large_file_error(self):
         with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-            t4_lambda_pkgpush.calculate_pkg_hashes( self.pkg)
+            t4_lambda_pkgpush.calculate_pkg_hashes(self.pkg)
         assert excinfo.value.name == "FileTooLargeForHashing"
 
     def test_calculate_pkg_entry_hash(self):
