@@ -9,39 +9,6 @@ from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
 
-"""
-stub S3:
-
-get_object_attributes(
-    **location.boto_args,
-    ObjectAttributes=["ETag", "Checksum", "ObjectParts", "ObjectSize"],
-    MaxParts=MAX_PARTS,
-)
-
-head_object(**location.boto_args)
-
-# for legacy
-get_object(**location.boto_args)
-
-# MPU
-create_multipart_upload(
-    **target.boto_args,
-    ChecksumAlgorithm="SHA256",
-)
-
-abort_multipart_upload(**mpu.boto_args)
-
-upload_part_copy(
-    **mpu.boto_args,
-    **part.boto_args,
-    CopySource=src.boto_args,
-    # In case we don't have version ID (e.g. non-versioned bucket)
-    # we have to use ETag to make sure object is not modified during copy,
-    # otherwise we can end up with invalid checksum.
-    CopySourceIfMatch=etag,
-)
-"""
-
 
 class RawStream(io.BytesIO):
     async def __aenter__(self):
@@ -83,6 +50,11 @@ EXPECTED_GETATTR_PARAMS = {
     "ObjectAttributes": ["ETag", "Checksum", "ObjectParts", "ObjectSize"],
 }
 
+EXPECTED_MPU_PARAMS = {
+    **s3hash.MPU_DST.boto_args,
+    "ChecksumAlgorithm": "SHA256",
+}
+
 
 # pytest's async fixtures don't propagate contextvars, so we have to set them manually in a sync fixture
 @pytest.fixture
@@ -97,6 +69,7 @@ def s3_stub():
     s3_token = s3hash.S3.set(s3)
     try:
         yield stubber
+        stubber.assert_no_pending_responses()
     finally:
         s3hash.S3.reset(s3_token)
 
@@ -118,7 +91,7 @@ async def test_compliant(s3_stub: Stubber):
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(base64.b64decode(checksum)))
 
 
-async def test_legacy(s3_stub: Stubber):
+async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
     s3_stub.add_client_error(
         "get_object_attributes",
         "AccessDenied",
@@ -140,7 +113,148 @@ async def test_legacy(s3_stub: Stubber):
         LOC.boto_args,
     )
 
+    mocker.patch("t4_lambda_s3hash.MULTIPART_CHECKSUMS", False)
+
     res = await s3hash.compute_checksum(LOC)
 
     checksum_hex = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(checksum_hex))
+
+
+async def test_mpu_fail(s3_stub: Stubber):
+    ETAG = "test-etag"
+    SIZE = 1048576
+    s3_stub.add_response(
+        "get_object_attributes",
+        {"ObjectSize": SIZE, "ETag": ETAG},
+        EXPECTED_GETATTR_PARAMS,
+    )
+
+    s3_stub.add_client_error(
+        "create_multipart_upload",
+        "TestError",
+        expected_params=EXPECTED_MPU_PARAMS,
+    )
+
+    error = None
+    res = None
+    try:
+        res = await s3hash.compute_checksum(LOC)
+    except s3hash.LambdaError as e:
+        error = e
+
+    assert res is None
+    assert error is not None
+    assert error.dict() == {
+        "name": "MPUError",
+        "context": {
+            "dst": s3hash.MPU_DST.dict(),
+            "error": "An error occurred (TestError) when calling the CreateMultipartUpload operation: ",
+        },
+    }
+
+
+async def test_mpu_single(s3_stub: Stubber):
+    ETAG = "test-etag"
+    SIZE = 1048576
+    s3_stub.add_response(
+        "get_object_attributes",
+        {"ObjectSize": SIZE, "ETag": ETAG},
+        EXPECTED_GETATTR_PARAMS,
+    )
+
+    MPU_ID = "test-upload-id"
+    s3_stub.add_response(
+        "create_multipart_upload",
+        {"UploadId": MPU_ID},
+        EXPECTED_MPU_PARAMS,
+    )
+
+    CHECKSUM = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    s3_stub.add_response(
+        "upload_part_copy",
+        {
+            "CopyPartResult": {
+                "ChecksumSHA256": base64.b64encode(CHECKSUM).decode(),
+            },
+        },
+        {
+            **s3hash.MPU_DST.boto_args,
+            "UploadId": MPU_ID,
+            "PartNumber": 1,
+            "CopySource": LOC.boto_args,
+            "CopySourceIfMatch": ETAG,
+        },
+    )
+
+    s3_stub.add_response(
+        "abort_multipart_upload",
+        {},
+        {**s3hash.MPU_DST.boto_args, "UploadId": MPU_ID},
+    )
+
+    res = await s3hash.compute_checksum(LOC)
+
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(CHECKSUM))
+
+
+async def test_mpu_multi(s3_stub: Stubber):
+    ETAG = "test-etag"
+    SIZE = s3hash.MIN_PART_SIZE + 1
+    s3_stub.add_response(
+        "get_object_attributes",
+        {"ObjectSize": SIZE, "ETag": ETAG},
+        EXPECTED_GETATTR_PARAMS,
+    )
+
+    MPU_ID = "test-upload-id"
+    s3_stub.add_response(
+        "create_multipart_upload",
+        {"UploadId": MPU_ID},
+        EXPECTED_MPU_PARAMS,
+    )
+
+    CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    s3_stub.add_response(
+        "upload_part_copy",
+        {
+            "CopyPartResult": {
+                "ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(),
+            },
+        },
+        {
+            **s3hash.MPU_DST.boto_args,
+            "UploadId": MPU_ID,
+            "PartNumber": 1,
+            "CopySourceRange": "bytes=0-8388607",
+            "CopySource": LOC.boto_args,
+            "CopySourceIfMatch": ETAG,
+        },
+    )
+    s3_stub.add_response(
+        "upload_part_copy",
+        {
+            "CopyPartResult": {
+                "ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(),
+            },
+        },
+        {
+            **s3hash.MPU_DST.boto_args,
+            "UploadId": MPU_ID,
+            "PartNumber": 2,
+            "CopySourceRange": "bytes=8388608-8388608",
+            "CopySource": LOC.boto_args,
+            "CopySourceIfMatch": ETAG,
+        },
+    )
+
+    s3_stub.add_response(
+        "abort_multipart_upload",
+        {},
+        {**s3hash.MPU_DST.boto_args, "UploadId": MPU_ID},
+    )
+
+    res = await s3hash.compute_checksum(LOC)
+
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.multipart([CHECKSUM_1, CHECKSUM_2]))
