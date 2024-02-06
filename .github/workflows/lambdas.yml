@@ -1,0 +1,90 @@
+on:
+    push:
+      paths:
+        - '.github/workflows/lambdas.yml'
+        - 'lambdas/**'
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.7'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install 'pylint==2.10.2' 'pycodestyle>=2.6.1' isort
+      - name: Run pylint
+        run: |
+          pylint $(find ./lambdas/ -name '*.py')
+      - name: Run pycodestyle
+        run: |
+          pycodestyle $(find ./lambdas/ -name '*.py')
+      - name: Run isort
+        run: |
+          isort --check --diff ./lambdas/
+
+  test-lambda:
+    strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - access_counts
+          - es/indexer
+          - molecule
+          - pkgevents
+          - pkgpush
+          - pkgselect
+          - preview
+          - s3hash
+          - s3select
+          - shared
+          - status_reports
+          - tabular_preview
+          - transcode
+        python-version: ['3.8']
+        include:
+          - path: thumbnail
+            python-version: '3.9'
+    runs-on: ubuntu-latest
+    env:
+      QUILT_DISABLE_USAGE_METRICS: true
+      PYTHONPATH: deps
+      JUPYTER_PATH: deps/share/jupyter  # Jupyter is not smart enough to handle custom Python paths
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          # Due to behavior change in pip>=23.1 installing tifffile==0.15.1
+          # from thumbnail lambda fails whithout installed wheel.
+          # See https://github.com/pypa/pip/issues/8559.
+          python -m pip install wheel
+          if [ ${{ matrix.path }} == "shared" ]
+            python -m pip install -e lambdas/shared[tests]
+          then
+            python -m pip install -e lambdas/shared
+            python -m pip install -e lambdas/${{ matrix.path }}
+          fi
+          python -m pip install -r lambdas/${{ matrix.path }}/test-requirements.txt
+
+          # Try to simulate the lambda .zip file:
+          # - Use --no-deps to ensure that second-order dependencies are included in the requirements file
+          # - Remove "tests" directories
+          # - Run "strip" on shared libraries
+          python -m pip install -t deps --no-deps -r lambdas/${{ matrix.path }}/requirements.txt
+          find deps -name tests -type d -exec rm -r \{} \+
+          find deps \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
+      - name: Pytest
+        run: |
+          pytest --cov=lambdas lambdas/${{ matrix.path }}
+      - uses: codecov/codecov-action@v3
+        env:
+          LAMBDA: ${{ matrix.path }}
+        with:
+          flags: lambda
+          name: ${{ github.job }}
+          env_vars: LAMBDA

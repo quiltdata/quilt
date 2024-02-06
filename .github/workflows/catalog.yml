@@ -1,4 +1,9 @@
-on: [push]
+on:
+  push:
+    paths:
+      - '.github/workflows/catalog.yml'
+      - 'catalog/**'
+      - 'shared/**'
 jobs:
   test-catalog:
     runs-on: ubuntu-latest
