@@ -89,8 +89,8 @@ class Checksum(ChecksumBase):
 
 # 8 MiB -- boto3 default:
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/customizations/s3.html#boto3.s3.transfer.TransferConfig
-MIN_PART_SIZE = 1024**2 * 8
-MAX_PART_SIZE = 5 * 2**30
+MIN_PART_SIZE = 8 * 2**20  # 8 MiB
+MAX_PART_SIZE = 5 * 2**30  # 5 GiB
 MAX_PARTS = 10000  # Maximum number of parts per upload supported by S3
 
 
@@ -244,22 +244,19 @@ async def compute_part_checksums(
     return checksums
 
 
-async def _create_mpu(target: S3ObjectDestination) -> MPURef:
-    upload_data = await S3.get().create_multipart_upload(
-        **target.boto_args,
-        ChecksumAlgorithm="SHA256",
-    )
-    return MPURef(bucket=target.bucket, key=target.key, id=upload_data["UploadId"])
+MPU_DST = S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE)
 
 
 @contextlib.asynccontextmanager
 async def create_mpu():
-    dst = S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE)
-
     try:
-        mpu = await _create_mpu(dst)
+        upload_data = await S3.get().create_multipart_upload(
+            **MPU_DST.boto_args,
+            ChecksumAlgorithm="SHA256",
+        )
+        mpu = MPURef(bucket=MPU_DST.bucket, key=MPU_DST.key, id=upload_data["UploadId"])
     except botocore.exceptions.ClientError as ex:
-        raise LambdaError("MPUError", {"dst": dst.dict(), "error": str(ex)})
+        raise LambdaError("MPUError", {"dst": MPU_DST.dict(), "error": str(ex)})
 
     try:
         yield mpu
