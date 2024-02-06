@@ -110,3 +110,10 @@ export function stringify({ bucket, name, hash, tag, path }: PackageUri) {
   const pathPart = path ? `&path=${encodeURIComponent(path)}` : ''
   return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}`
 }
+
+// TODO: make `referrer` a part of "Standard", or use another approach
+/** @deprecated */
+export function stringifyAndAddReferrer(uri: PackageUri, referrer?: string) {
+  const referrerPart = referrer ? `&referrer=${encodeURIComponent(referrer)}` : ''
+  return `${stringify(uri)}${referrerPart}`
+}

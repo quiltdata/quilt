@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as Notifications from 'containers/Notifications'
+import * as PackageUri from 'utils/PackageUri'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 
@@ -24,8 +25,15 @@ function highlight(str: string, lang?: string) {
   return str
 }
 
-const useLineOfCodeStyles = M.makeStyles((t) => ({
-  root: {
+type AnyCodeItem = { label: string; contents: string; hl?: string }
+
+type UriCodeItem = { label: string; contents: PackageUri.PackageUri; hl?: string }
+
+const isUriCodeItem = (x: AnyCodeItem | UriCodeItem): x is UriCodeItem =>
+  typeof x.contents !== 'string'
+
+const useLinesOfCodeStyles = M.makeStyles((t) => ({
+  loc: {
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
     overflowX: 'auto',
@@ -43,28 +51,56 @@ const useLineOfCodeStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface LineOfCodeProps {
-  lang?: string
-  text: string
-  help?: string
+interface UriProps {
+  uri: PackageUri.PackageUri
 }
-function LineOfCode({ lang, text, help }: LineOfCodeProps) {
-  const classes = useLineOfCodeStyles()
+
+function Uri({ uri }: UriProps) {
+  const classes = useLinesOfCodeStyles()
   return (
-    <div className={classes.root}>
-      {lang === 'uri' ? (
-        <StyledLink href={text} target={text.startsWith('http') ? '_blank' : '_self'}>
-          {text}
-        </StyledLink>
-      ) : (
-        highlight(text, lang)
-      )}
-      {help && (
-        <StyledLink href={help} className={classes.help} target="_blank">
-          [?]
-        </StyledLink>
-      )}
+    <div className={classes.loc}>
+      <StyledLink href={PackageUri.stringifyAndAddReferrer(uri, location.host)}>
+        {PackageUri.stringify(uri)}
+      </StyledLink>
     </div>
+  )
+}
+
+function LinesOfCode({ label, contents, hl }: AnyCodeItem) {
+  const classes = useLinesOfCodeStyles()
+  const lines = React.useMemo(
+    () =>
+      contents.split('\n').map((line, index) => {
+        // Find [[ URL ]] and put it to help prop
+        const matched = line.match(/(.*) \[\[(.*)\]\]/)
+        const key = label + index
+        if (!matched || !matched[1] || !matched[2]) {
+          return {
+            key,
+            text: line,
+          }
+        }
+        return {
+          help: matched[2],
+          key,
+          text: matched[1],
+        }
+      }),
+    [contents, label],
+  )
+  return (
+    <>
+      {lines.map(({ help, key, text }) => (
+        <div className={classes.loc} key={key}>
+          {highlight(text, hl)}
+          {help && (
+            <StyledLink href={help} className={classes.help} target="_blank">
+              [?]
+            </StyledLink>
+          )}
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -85,7 +121,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface CodeProps extends Partial<SectionProps> {
-  children: { label: string; contents: string; hl?: string }[]
+  children: (AnyCodeItem | UriCodeItem)[]
   defaultSelected?: number
 }
 
@@ -108,31 +144,14 @@ export default function Code({ defaultSelected = 0, children, ...props }: CodePr
   const handleCopy = React.useCallback(
     (e) => {
       e.stopPropagation()
-      copyToClipboard(selected.contents)
+      copyToClipboard(
+        isUriCodeItem(selected)
+          ? PackageUri.stringify(selected.contents)
+          : selected.contents,
+      )
       push('Code has been copied to clipboard')
     },
-    [selected.contents, push],
-  )
-
-  const lines = React.useMemo(
-    () =>
-      selected.contents.split('\n').map((line, index) => {
-        // Find [[ URL ]] and put it to help prop
-        const matched = line.match(/(.*) \[\[(.*)\]\]/)
-        const key = selected.label + index
-        if (!matched || !matched[1] || !matched[2]) {
-          return {
-            key,
-            text: line,
-          }
-        }
-        return {
-          help: matched[2],
-          key,
-          text: matched[1],
-        }
-      }),
-    [selected.contents, selected.label],
+    [selected, push],
   )
 
   return (
@@ -164,14 +183,11 @@ export default function Code({ defaultSelected = 0, children, ...props }: CodePr
       {...props}
     >
       <div className={classes.code}>
-        {lines.map((line) => (
-          <LineOfCode
-            help={line.help}
-            key={line.key}
-            lang={selected.hl}
-            text={line.text}
-          />
-        ))}
+        {isUriCodeItem(selected) ? (
+          <Uri uri={selected.contents} />
+        ) : (
+          <LinesOfCode {...selected} />
+        )}
       </div>
     </Section>
   )

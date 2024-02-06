@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import { docs } from 'constants/urls'
-import * as PackageUri from 'utils/PackageUri'
 import * as s3paths from 'utils/s3paths'
 
 import type { SectionProps } from '../Section'
@@ -84,8 +83,7 @@ export default function PackageCodeSamples({
       },
       {
         label: 'URI',
-        hl: 'uri',
-        contents: PackageUri.stringify({ bucket, name, hash, path }),
+        contents: { bucket, name, hash, path },
       },
     ],
     [bucket, name, hashDisplay, hash, path],
