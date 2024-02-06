@@ -2,9 +2,9 @@ import asyncio
 import base64
 import io
 
+import pytest
 from aiobotocore.response import StreamingBody
 from botocore.stub import Stubber
-import pytest
 from pytest_mock import MockerFixture
 
 import t4_lambda_s3hash as s3hash
