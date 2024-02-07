@@ -155,7 +155,7 @@ jobs:
       matrix:
         path:
           - access_counts
-          - es/indexer
+          - indexer
           - molecule
           - pkgevents
           - pkgpush
