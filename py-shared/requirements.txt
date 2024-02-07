@@ -16,8 +16,10 @@ boto3==1.34.28
     # via
     #   quilt-shared (pyproject.toml)
     #   quilt3
-boto3-stubs[s3]==1.34.28
-    # via quilt-shared (pyproject.toml)
+boto3-stubs[s3,sts]==1.34.28
+    # via
+    #   boto3-stubs
+    #   quilt-shared (pyproject.toml)
 botocore==1.34.28
     # via
     #   boto3
@@ -49,6 +51,8 @@ jsonschema==4.21.1
 jsonschema-specifications==2023.12.1
     # via jsonschema
 mypy-boto3-s3==1.34.14
+    # via boto3-stubs
+mypy-boto3-sts==1.34.0
     # via boto3-stubs
 mypy-extensions==1.0.0
     # via black
@@ -98,7 +102,9 @@ tomli==2.0.1
 tqdm==4.66.1
     # via quilt3
 types-aiobotocore[s3]==2.11.0
-    # via quilt-shared (pyproject.toml)
+    # via
+    #   quilt-shared (pyproject.toml)
+    #   types-aiobotocore
 types-aiobotocore-s3==2.11.0
     # via types-aiobotocore
 types-awscrt==0.20.2
@@ -111,6 +117,7 @@ typing-extensions==4.9.0
     #   boto3-stubs
     #   botocore-stubs
     #   mypy-boto3-s3
+    #   mypy-boto3-sts
     #   pydantic
     #   quilt-shared (pyproject.toml)
     #   types-aiobotocore
