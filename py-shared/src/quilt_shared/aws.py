@@ -8,6 +8,7 @@ from .types import NonEmptyStr
 
 if T.TYPE_CHECKING:
     import boto3
+    from mypy_boto3_sts.type_defs import CredentialsTypeDef
 
 
 class AWSCredentials(pydantic.BaseModel):
@@ -31,4 +32,12 @@ class AWSCredentials(pydantic.BaseModel):
             key=NonEmptyStr(credentials.access_key),
             secret=NonEmptyStr(credentials.secret_key),
             token=NonEmptyStr(credentials.token),
+        )
+
+    @classmethod
+    def from_sts_response(cls, response: CredentialsTypeDef):
+        return cls(
+            key=NonEmptyStr(response["AccessKeyId"]),
+            secret=NonEmptyStr(response["SecretAccessKey"]),
+            token=NonEmptyStr(response["SessionToken"]),
         )
