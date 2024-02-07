@@ -170,22 +170,23 @@ class S3ClientProvider:
                 event_name, signal_transferring,
                 unique_id='datatransfer-transferring')
 
-    def _build_client(self, get_config):
+    def _build_client(self, is_unsigned):
         session = self.get_boto_session()
-        return session.client('s3', config=get_config(session))
+        conf_kwargs = {
+            "max_pool_connections": MAX_CONCURRENCY,
+        }
+        if is_unsigned(session):
+            conf_kwargs["signature_version"] = UNSIGNED
+
+        return session.client('s3', config=Config(**conf_kwargs))
 
     def _build_standard_client(self):
-        s3_client = self._build_client(
-            lambda session:
-                Config(signature_version=UNSIGNED)
-                if session.get_credentials() is None
-                else None
-        )
+        s3_client = self._build_client(lambda session: session.get_credentials() is None)
         self.register_signals(s3_client)
         self._standard_client = s3_client
 
     def _build_unsigned_client(self):
-        s3_client = self._build_client(lambda session: Config(signature_version=UNSIGNED))
+        s3_client = self._build_client(lambda session: True)
         self.register_signals(s3_client)
         self._unsigned_client = s3_client
 
