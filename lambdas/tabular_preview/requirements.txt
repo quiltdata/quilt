@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt ../shared/setup.py setup.py
 #
-aiohttp==3.9.0
+aiohttp==3.9.2
     # via fsspec
 aiosignal==1.2.0
     # via aiohttp
