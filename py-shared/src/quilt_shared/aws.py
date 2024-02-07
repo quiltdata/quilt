@@ -27,7 +27,9 @@ class AWSCredentials(pydantic.BaseModel):
     @classmethod
     def from_boto_session(cls, session: boto3.Session):
         credentials = session.get_credentials()
-        assert credentials
+        if credentials is None:
+            raise ValueError("No credentials found in provided boto3 session")
+
         return cls(
             key=NonEmptyStr(credentials.access_key),
             secret=NonEmptyStr(credentials.secret_key),
