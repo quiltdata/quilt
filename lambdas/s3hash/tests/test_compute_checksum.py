@@ -136,16 +136,10 @@ async def test_mpu_fail(s3_stub: Stubber):
         expected_params=EXPECTED_MPU_PARAMS,
     )
 
-    error = None
-    res = None
-    try:
-        res = await s3hash.compute_checksum(LOC)
-    except s3hash.LambdaError as e:
-        error = e
+    with pytest.raises(s3hash.LambdaError) as excinfo:
+        await s3hash.compute_checksum(LOC)
 
-    assert res is None
-    assert error is not None
-    assert error.dict() == {
+    assert excinfo.value.dict() == {
         "name": "MPUError",
         "context": {
             "dst": s3hash.MPU_DST.dict(),
