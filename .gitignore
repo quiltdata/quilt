@@ -47,3 +47,5 @@ testdocs/notebooks
 testdocs/scripts
 
 .env
+
+.venv
