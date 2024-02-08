@@ -6,6 +6,7 @@ build
 dist
 node_modules
 tmp_*
+.venv
 
 **/.DS_Store
 
