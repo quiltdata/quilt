@@ -11,7 +11,7 @@ setup(
         "quilt3 ~= 5.4",
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
-            "4f7690f92465db7d5186c502dd04abe41ce49393"
+            "33b7e601baee6dff4ef32342b493f55d3dd16210"
             "#subdirectory=py-shared"
         ),
     ],
