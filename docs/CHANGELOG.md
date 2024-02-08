@@ -23,6 +23,7 @@ Entries inside each section should be ordered by type:
 ## CLI
 
 ## Catalog, Lambdas
+* [Added] Support multipart checksums ([#3403](https://github.com/quiltdata/quilt/pull/3403))
 * [Fixed] Faceted Search: show helpful message in case of search query syntax errors ([#3821](https://github.com/quiltdata/quilt/pull/3821))
 * [Fixed] JsonEditor: fix changing collections items, that have `.additionalProperties` or `.items` JSON Schema ([#3860](https://github.com/quiltdata/quilt/pull/3860))
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
