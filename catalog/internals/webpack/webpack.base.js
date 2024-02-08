@@ -149,6 +149,7 @@ module.exports = (options) => ({
 
     new webpack.ProvidePlugin({
       process: 'process/browser.js',
+      Buffer: ['buffer', 'Buffer'],
     }),
 
     new PerspectivePlugin(),

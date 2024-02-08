@@ -723,12 +723,19 @@ input PackagePushParams {
   name: String!
 }
 
+input PackageEntryHash {
+  type: String!
+  value: String!
+}
+
 input PackageConstructEntry {
   logicalKey: String!
   physicalKey: String!
-  hash: String
+  hash: PackageEntryHash
   # 32-bit Int may be too small to represent file size which may exceed several GB
   size: Float
+  # `meta` is the full metadata dict for entry that includes optional `user_meta` property,
+  # see PackageEntry._meta vs PackageEntry.meta.
   meta: JsonRecord
 }
 
@@ -740,17 +747,6 @@ input PackagePromoteSource {
   bucket: String!
   name: String!
   hash: String!
-}
-
-input PackageFromFolderEntry {
-  isDir: Boolean!
-  logicalKey: String!
-  path: String!
-}
-
-input PackageFromFolderSource {
-  bucket: String!
-  entries: [PackageFromFolderEntry!]!
 }
 
 type PackagePushSuccess {
@@ -768,11 +764,6 @@ union PackageConstructResult =
   | OperationError
 
 union PackagePromoteResult = PackagePushSuccess | InvalidInput | OperationError
-
-union PackageFromFolderResult =
-    PackagePushSuccess
-  | InvalidInput
-  | OperationError
 
 union PackageRevisionDeleteResult =
     PackageRevisionDeleteSuccess
@@ -799,10 +790,6 @@ type Mutation {
     params: PackagePushParams!
     src: PackagePromoteSource!
   ): PackagePromoteResult!
-  packageFromFolder(
-    params: PackagePushParams!
-    src: PackageFromFolderSource!
-  ): PackageFromFolderResult!
   packageRevisionDelete(
     bucket: String!
     name: String!
