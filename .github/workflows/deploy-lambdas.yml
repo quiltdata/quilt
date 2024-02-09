@@ -35,8 +35,6 @@ jobs:
         run: |
           BUILDER_IMAGE=quiltdata/lambda:build-3.8
 
-          docker pull "$BUILDER_IMAGE"
-
           touch ./out.zip
 
           docker run --rm \
@@ -82,7 +80,7 @@ jobs:
         working-directory: ./lambdas/${{ matrix.path }}
         run: |
           image_name=quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}
-          docker buildx build --pull --platform=linux/amd64 -t "$image_name" -f Dockerfile ..
+          docker buildx build --platform=linux/amd64 -t "$image_name" -f Dockerfile ..
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
