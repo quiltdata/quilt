@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - '.github/workflows/deploy-lambdas.yml'
+      - '.github/workflows/deploy-lambdas.yaml'
       - 'lambdas/**'
 
 jobs:
