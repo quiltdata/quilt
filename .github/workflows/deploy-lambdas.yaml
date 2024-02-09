@@ -78,20 +78,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Docker image
         working-directory: ./lambdas/${{ matrix.path }}
-        run: |
-          image_name=quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}
-          docker buildx build --platform=linux/amd64 -t "$image_name" -f Dockerfile ..
+        run: docker build -t "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}" -f Dockerfile ..
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::730278974607:role/github/GitHub-Quilt
           aws-region: us-east-1
       - name: Push Docker image to Prod ECR
-        run: ./lambdas/scripts/upload_ecr.sh 730278974607 quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}
+        run: ./lambdas/scripts/upload_ecr.sh 730278974607 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
       - name: Configure AWS credentials from GovCloud account
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws-us-gov:iam::313325871032:role/github/GitHub-Quilt
           aws-region: us-gov-east-1
       - name: Push Docker image to GovCloud ECR
-        run: ./lambdas/scripts/upload_ecr.sh 313325871032 quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}
+        run: ./lambdas/scripts/upload_ecr.sh 313325871032 "quiltdata/lambdas/${{ matrix.path }}:${{ github.sha }}"
