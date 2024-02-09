@@ -2,8 +2,8 @@ name: Deploy lambdas to S3 and ECR
 
 on:
   push:
-    branches:
-      - master
+    # branches:
+    #   - master
     paths:
       - '.github/workflows/deploy-lambdas.yml'
       - 'lambdas/**'
@@ -15,15 +15,15 @@ jobs:
         path:
           - access_counts
           - indexer
-          - pkgevents
-          - pkgpush
-          - pkgselect
-          - preview
-          - s3hash
-          - s3select
-          - status_reports
-          - tabular_preview
-          - transcode
+          # - pkgevents
+          # - pkgpush
+          # - pkgselect
+          # - preview
+          # - s3hash
+          # - s3select
+          # - status_reports
+          # - tabular_preview
+          # - transcode
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
@@ -51,6 +51,9 @@ jobs:
           aws-region: us-east-1
       - name: Upload zips to Prod S3
         run: |
+          git config --get remote.origin.url
+          git diff-index HEAD --
+          git rev-parse HEAD
           s3_key="${{ matrix.path }}/${{ github.sha }}.zip"
           ./lambdas/scripts/upload_zip.sh ./out.zip "$AWS_REGION" "$s3_key"
       - name: Configure AWS credentials from GovCloud account
