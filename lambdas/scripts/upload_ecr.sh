@@ -16,11 +16,6 @@ regions=$(aws ec2 describe-regions --query "Regions[].{Name:RegionName}" --outpu
 
 for region in $regions
 do
-    if [[ $region == "eu-south-2" ]]
-    then
-        continue
-    fi
-
     docker_url=$account_id.dkr.ecr.$region.amazonaws.com
     echo "Logging in to $docker_url..."
     aws ecr get-login-password --region $region | docker login -u AWS --password-stdin "$docker_url"
