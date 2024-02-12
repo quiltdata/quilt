@@ -17,13 +17,8 @@ cd out
 
 pip3 install -U pip setuptools
 
-# remove pre-installed lambda packages from requirements.txt
-preinstalled=$(pip freeze | cut -d '=' -f 1)
-preinstalled_regex=${preinstalled//$'\n'/|}
-grep -v -E -i "^(${preinstalled_regex})==" /lambda/function/requirements.txt > filtered_requirements.txt || true
-
 # install everything into a temporary directory
-pip3 install --no-compile --no-deps -t . /lambda/shared/ -r filtered_requirements.txt /lambda/function/
+pip3 install --no-compile --no-deps -t . /lambda/shared/ -r /lambda/function/requirements.txt /lambda/function/
 python3 -m compileall -b .
 
 # add binaries
@@ -49,6 +44,6 @@ find . \( -name '*.so.*' -o -name '*.so' \) -type f -exec strip \{} \+
 
 MAX_SIZE=262144000
 size=$(du -b -s . | cut -f 1)
-[[ $size -lt $MAX_SIZE ]] || error "The package size is too large: $size; must be smaller than $MAX_SIZE."
+[[ $size -lt $MAX_SIZE ]] || error "The package size is too large: $size; must be smaller than $MAX_SIZE. Consider using docker-based deployment."
 
 zip -r - . > /out.zip
