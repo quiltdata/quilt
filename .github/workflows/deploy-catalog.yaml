@@ -48,7 +48,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
       - name: Build and push Docker image to Prod and GovCloud ECR
         run: |
-          docker build \
+          docker buildx build \
             -t ${{ steps.login-prod-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }} \
             -t ${{ steps.login-govcloud-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }} \
             .
