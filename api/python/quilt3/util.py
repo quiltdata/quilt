@@ -292,12 +292,7 @@ def write_yaml(data, yaml_path, keep_backup=False):
     :param keep_backup: If set, a timestamped backup will be kept in the same dir.
     """
     path = pathlib.Path(yaml_path)
-    now = str(datetime.datetime.now())
-
-    # XXX unicode colon for Windows/NTFS -- looks prettier, but could be confusing. We could use '_' instead.
-    if os.name == 'nt':
-        now = now.replace(':', '\ua789')
-
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")  # ISO 8601 'basic format'
     backup_path = path.with_name(path.name + '.backup.' + now)
 
     try:
