@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build zip
         run: |
-          BUILDER_IMAGE=quiltdata/lambda:build-3.8
+          BUILDER_IMAGE=quiltdata/lambda:build-$(cat lambdas/${{ matrix.path }}/.python-version)
 
           touch ./out.zip
 
