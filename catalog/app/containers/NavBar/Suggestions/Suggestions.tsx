@@ -3,9 +3,13 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
+import { docs } from 'constants/urls'
+import StyledLink from 'utils/StyledLink'
 
 import { useNavBar } from '../Provider'
 import type { Suggestion } from './model'
+
+const ES_V = '6.7'
 
 const displaySuggestion = (s: Suggestion) => (
   <>
@@ -16,6 +20,17 @@ const displaySuggestion = (s: Suggestion) => (
 const useSuggestionsStyles = M.makeStyles((t) => ({
   item: {
     paddingLeft: t.spacing(5.5),
+  },
+  help: {
+    ...t.typography.caption,
+    borderTop: `1px solid ${t.palette.divider}`,
+    marginTop: t.spacing(1),
+    padding: t.spacing(2, 5.5, 1),
+    color: t.palette.text.hint,
+  },
+  helpExample: {
+    borderBottom: `1px dotted ${t.palette.text.primary}`,
+    cursor: 'help',
   },
 }))
 
@@ -40,6 +55,13 @@ function SuggestionsList({ items, selected }: SuggestionsProps) {
           <M.ListItemText primary={displaySuggestion(item)} />
         </M.MenuItem>
       ))}
+      <div className={classes.help}>
+        Learn the{' '}
+        <StyledLink href={`${docs}/catalog/searchquery#search-bar`} target="_blank">
+          advanced search syntax
+        </StyledLink>{' '}
+        for query string queries in ElasticSearch {ES_V}.
+      </div>
     </M.List>
   )
 }

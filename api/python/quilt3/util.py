@@ -292,26 +292,18 @@ def write_yaml(data, yaml_path, keep_backup=False):
     :param keep_backup: If set, a timestamped backup will be kept in the same dir.
     """
     path = pathlib.Path(yaml_path)
-    now = str(datetime.datetime.now())
-
-    # XXX unicode colon for Windows/NTFS -- looks prettier, but could be confusing. We could use '_' instead.
-    if os.name == 'nt':
-        now = now.replace(':', '\ua789')
-
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")  # ISO 8601 'basic format'
     backup_path = path.with_name(path.name + '.backup.' + now)
 
     try:
         if path.exists():
             path.rename(backup_path)
-        if not path.parent.exists():
-            path.parent.mkdir(parents=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
     except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
-            if path.exists():
-                path.unlink()
-            backup_path.rename(path)
+            backup_path.replace(path)
         raise
 
     if backup_path.exists() and not keep_backup:
