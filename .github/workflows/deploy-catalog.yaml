@@ -25,6 +25,7 @@ jobs:
         with:
           node-version: '16.11'
           cache: 'npm'
+          cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
       - run: npm run build
       - name: Configure AWS credentials from Prod account
