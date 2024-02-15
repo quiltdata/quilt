@@ -1360,7 +1360,8 @@ class Package:
 
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow, print_info, force: bool, dedupe: bool
+        workflow, print_info, force: bool, dedupe: bool,
+        copy_file_list_fn=copy_file_list,
     ):
         if selector_fn is None:
             def selector_fn(*args):
@@ -1490,7 +1491,7 @@ class Package:
                 entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
-        results = copy_file_list(file_list, message="Copying objects")
+        results = copy_file_list_fn(file_list, message="Copying objects")
 
         for (logical_key, entry), versioned_key in zip(entries, results):
             # Create a new package entry pointing to the new remote key.

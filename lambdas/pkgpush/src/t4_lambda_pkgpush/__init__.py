@@ -53,7 +53,7 @@ MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
 # To dispatch separate, stack-created lambda function.
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
 # CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
-S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
+S3_COPY_LAMBDA_CONCURRENCY = S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
@@ -145,6 +145,42 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
+
+
+# TODO: implement
+def invoke_copy_lambda(credentials: AWSCredentials, src, dst) -> str:
+    return "version-id)))"
+
+
+def copy_pkg_entry_data(
+    credentials: AWSCredentials,
+    src: PhysicalKey,
+    dst: PhysicalKey,
+    idx: int,
+) -> T.Tuple[int, PhysicalKey]:
+    version_id = invoke_copy_lambda(credentials, src, dst)
+    return idx, PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+
+
+def copy_file_list(file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]]) -> T.List[PhysicalKey]:
+    # Schedule longer tasks first so we don't end up waiting for a single long task.
+    file_list_enumerated = list(enumerate(file_list))
+    file_list_enumerated.sort(key=lambda x: x[1][2], reverse=True)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=S3_COPY_LAMBDA_CONCURRENCY) as pool:
+        credentials = AWSCredentials.from_boto_session(user_boto_session)
+        fs = [
+            pool.submit(copy_pkg_entry_data, credentials, src, dst, idx)
+            for idx, (src, dst, size) in file_list_enumerated
+        ]
+        results = [
+            f.result()
+            for f in concurrent.futures.as_completed(fs)
+        ]
+        # Sort by idx to restore original order.
+        results.sort(key=lambda x: x[0])
+
+    return [x[1] for x in results]
 
 
 # Isolated for test-ability.
@@ -303,6 +339,7 @@ def _push_pkg_to_successor(
             # TODO: we use force=True to keep the existing behavior,
             #       but it should be re-considered.
             force=True,
+            copy_file_list_fn=copy_file_list,
         )
         assert result._origin is not None
         return PackagePushResult(top_hash=result._origin.top_hash)
