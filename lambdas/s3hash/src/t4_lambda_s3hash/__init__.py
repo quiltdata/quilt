@@ -19,11 +19,10 @@ import pydantic
 
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
-from quilt_shared.pkgpush import Checksum as ChecksumBase
+from quilt_shared.pkgpush import Checksum as ChecksumBase, MPURef as MPURefBase
 from quilt_shared.pkgpush import (
     ChecksumResult,
     ChecksumType,
-    MPURef,
     S3ObjectDestination,
     S3ObjectSource,
 )
@@ -212,7 +211,7 @@ def get_parts_for_size(total_size: int) -> T.List[PartDef]:
     return parts
 
 
-async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef) -> bytes:
+async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef) -> PartUploadResult:
     res = await S3.get().upload_part_copy(
         **mpu.boto_args,
         **part.boto_args,
@@ -222,9 +221,29 @@ async def upload_part(mpu: MPURef, src: S3ObjectSource, etag: str, part: PartDef
         # otherwise we can end up with invalid checksum.
         CopySourceIfMatch=etag,
     )
-    cs = res["CopyPartResult"].get("ChecksumSHA256")  # base64-encoded
-    assert cs is not None
-    return base64.b64decode(cs)
+    copy_result = res["CopyPartResult"]
+    assert "ETag" in copy_result
+    assert "ChecksumSHA256" in copy_result
+    return PartUploadResult(
+        etag=copy_result["ETag"],
+        sha256=copy_result["ChecksumSHA256"],
+    )
+
+
+async def upload_parts(
+    mpu: MPURef,
+    location: S3ObjectSource,
+    etag: str,
+    parts: T.Sequence[PartDef],
+) -> T.List[PartUploadResult]:
+    s = asyncio.Semaphore(MPU_CONCURRENCY)
+
+    async def _upload_part(*args, **kwargs):
+        async with s:
+            return await upload_part(*args, **kwargs)
+
+    uploads = [_upload_part(mpu, location, etag, p) for p in parts]
+    return await asyncio.gather(*uploads)
 
 
 async def compute_part_checksums(
@@ -233,18 +252,61 @@ async def compute_part_checksums(
     etag: str,
     parts: T.Sequence[PartDef],
 ) -> T.List[bytes]:
-    s = asyncio.Semaphore(MPU_CONCURRENCY)
-
-    async def _upload_part(*args, **kwargs):
-        async with s:
-            return await upload_part(*args, **kwargs)
-
-    uploads = [_upload_part(mpu, location, etag, p) for p in parts]
-    checksums: T.List[bytes] = await asyncio.gather(*uploads)
+    part_upload_results = await upload_parts(
+        mpu,
+        location,
+        etag,
+        parts,
+    )
+    checksums = [base64.b64decode(part_upload_result.sha256) for part_upload_result in part_upload_results]
     return checksums
 
 
 MPU_DST = S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE)
+
+
+class PartUploadResult(pydantic.BaseModel):
+    etag: str
+    sha256: str  # base64-encoded
+
+    @property
+    def boto_args(self):
+        return {
+            "ETag": self.etag,
+            "ChecksumSHA256": self.sha256,
+        }
+
+
+class MPURef(MPURefBase):
+    _completed = False
+
+    @property
+    def completed(self):
+        return self._completed
+
+    async def complete(self, parts: T.Sequence[PartUploadResult]):
+        if self.completed:
+            # XXX: better exception type
+            raise Exception("MPU is already completed.")
+
+        result = await S3.get().complete_multipart_upload(
+            **self.boto_args,
+            MultipartUpload={
+                "Parts": [
+                    {
+                        **part.boto_args,
+                        "PartNumber": n,
+                    }
+                    for n, part in enumerate(parts, 1)
+                ],
+            },
+        )
+        self._completed = True
+        return result
+
+    async def abort(self):
+        if not self.completed:
+            await S3.get().abort_multipart_upload(**self.boto_args)
 
 
 @contextlib.asynccontextmanager
@@ -262,7 +324,7 @@ async def create_mpu():
         yield mpu
     finally:
         try:
-            await S3.get().abort_multipart_upload(**mpu.boto_args)
+            await mpu.abort()
         except Exception:
             # XXX: send to sentry
             logger.exception("Error aborting MPU")
@@ -339,6 +401,18 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
     return ChecksumResult(checksum=checksum)
 
 
+class S3Destination(pydantic.BaseModel):
+    bucket: str
+    key: str
+
+    @property
+    def boto_args(self):
+        return {
+            "Bucket": self.bucket,
+            "Key": self.key,
+        }
+
+
 # XXX: move decorators to shared?
 @lambda_wrapper
 @pydantic.validate_arguments
@@ -349,3 +423,43 @@ async def lambda_handler(
 ) -> ChecksumResult:
     async with aio_context(credentials):
         return await compute_checksum(location)
+
+
+async def copy(location: S3ObjectSource, target: S3Destination):
+    resp = await S3.get().head_object(**location.boto_args)
+    etag, total_size = resp["ETag"], resp["ContentLength"]
+
+    part_defs = get_parts_for_size(total_size)
+    if part_defs == PARTS_SINGLE:
+        logger.warning("Consider using copy_object() directly instead of invoking this lambda.")
+        resp = await S3.get().copy_object(
+            **target.boto_args,
+            CopySource=location.boto_args,
+            CopySourceIfMatch=etag,
+        )
+        # XXX: return something else?
+        return resp["VersionId"]
+
+    async with create_mpu() as mpu:
+        part_upload_results = await upload_parts(
+            mpu,
+            location,
+            etag,
+            part_defs,
+        )
+        resp = await mpu.complete(part_upload_results)
+        # XXX: return something else?
+        return resp["VersionId"]
+
+
+# XXX: move decorators to shared?
+@lambda_wrapper
+@pydantic.validate_arguments
+async def lambda_handler_copy(
+    *,
+    credentials: AWSCredentials,
+    location: S3ObjectSource,
+    target: S3Destination,
+) -> str:
+    async with aio_context(credentials):
+        return await copy(location, target)
