@@ -188,6 +188,9 @@ def copy_file_list(
     message=None,
     callback=None,
 ) -> T.List[PhysicalKey]:
+    # TODO: Copy single part files directly, because using lambda for that just adds overhead,
+    #       this can be done is a separate thread pool providing higher concurrency.
+    # TODO: Use checksums to deduplicate?
     # Schedule longer tasks first so we don't end up waiting for a single long task.
     file_list_enumerated = list(enumerate(file_list))
     file_list_enumerated.sort(key=lambda x: x[1][2], reverse=True)
