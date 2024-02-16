@@ -151,7 +151,6 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
             f.result()
 
 
-# TODO: implement
 def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> str:
     resp = lambda_.invoke(
         FunctionName=S3_COPY_LAMBDA,
