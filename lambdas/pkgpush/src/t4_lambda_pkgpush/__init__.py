@@ -53,7 +53,8 @@ PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ["PROMOTE_PKG_MAX_PKG_SIZE"])
 PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
 MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH"])
 MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
-# To dispatch separate, stack-created lambda function.
+# To dispatch separate, stack-created lambda functions.
+S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
 # CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
 S3_COPY_LAMBDA_CONCURRENCY = S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
@@ -153,7 +154,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
 # TODO: implement
 def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> str:
     resp = lambda_.invoke(
-        FunctionName=S3_HASH_LAMBDA,
+        FunctionName=S3_COPY_LAMBDA,
         Payload=S3CopyLambdaParams(
             credentials=credentials,
             location=S3ObjectSource.from_pk(src),
