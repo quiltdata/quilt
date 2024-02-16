@@ -11,8 +11,8 @@ import shutil
 import sys
 import tempfile
 import textwrap
-import typing as T
 import time
+import typing as T
 import uuid
 import warnings
 from collections import deque
@@ -69,6 +69,9 @@ if MANIFEST_MAX_RECORD_SIZE is None:
 SUPPORTED_HASH_TYPES = (
     "SHA256",
 )
+
+
+CopyFileListFn = T.Callable[[T.List[T.Tuple[PhysicalKey, PhysicalKey, int]]], T.List[PhysicalKey]]
 
 
 def _fix_docstring(**kwargs):
@@ -1362,7 +1365,7 @@ class Package:
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
         workflow, print_info, force: bool, dedupe: bool,
-        copy_file_list_fn: T.Optional[T.Callable[[T.List[T.Tuple[PhysicalKey, PhysicalKey, int]], T.List[PhysicalKey]]]]=None,
+        copy_file_list_fn: T.Optional[CopyFileListFn] = None,
     ):
         if selector_fn is None:
             def selector_fn(*args):
