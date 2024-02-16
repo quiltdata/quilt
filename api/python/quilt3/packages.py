@@ -71,7 +71,14 @@ SUPPORTED_HASH_TYPES = (
 )
 
 
-CopyFileListFn = T.Callable[[T.List[T.Tuple[PhysicalKey, PhysicalKey, int]]], T.List[PhysicalKey]]
+class CopyFileListFn(T.Protocol):
+    def __call__(
+        self,
+        file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
+        message: T.Optional[str] = None,
+        callback: T.Optional[T.Callable] = None,
+    ) -> T.List[PhysicalKey]:
+        ...
 
 
 def _fix_docstring(**kwargs):
