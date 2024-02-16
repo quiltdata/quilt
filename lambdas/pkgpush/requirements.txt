@@ -61,7 +61,7 @@ python-dateutil==2.8.2
     # via botocore
 pyyaml==6.0.1
     # via quilt3
-quilt-shared[boto,pydantic,quilt] @ git+https://github.com/quiltdata/quilt@9af37a30d526230120c72656653ed28d6dec98c5#subdirectory=py-shared
+quilt-shared[boto,pydantic,quilt] @ git+https://github.com/quiltdata/quilt@dd2372979c70828cf8b89977c6eb254308f51013#subdirectory=py-shared
     # via t4_lambda_pkgpush (setup.py)
 quilt3 @ git+https://github.com/quiltdata/quilt@1037bd88613278c3aa44b37a9741c6c720fb57dd#subdirectory=api/python
     # via
