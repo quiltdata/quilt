@@ -275,7 +275,7 @@ class PartUploadResult(pydantic.BaseModel):
 
 
 class MPURef(MPURefBase):
-    _completed = False
+    _completed: bool = pydantic.PrivateAttr(default=False)
 
     @property
     def completed(self):
