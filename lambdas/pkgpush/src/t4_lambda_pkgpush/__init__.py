@@ -182,7 +182,11 @@ def copy_pkg_entry_data(
     return idx, PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
 
 
-def copy_file_list(file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]]) -> T.List[PhysicalKey]:
+def copy_file_list(
+    file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
+    message=None,
+    callback=None,
+) -> T.List[PhysicalKey]:
     # Schedule longer tasks first so we don't end up waiting for a single long task.
     file_list_enumerated = list(enumerate(file_list))
     file_list_enumerated.sort(key=lambda x: x[1][2], reverse=True)
