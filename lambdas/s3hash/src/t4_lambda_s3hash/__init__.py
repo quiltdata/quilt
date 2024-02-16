@@ -19,13 +19,10 @@ import pydantic
 
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
-from quilt_shared.pkgpush import Checksum as ChecksumBase, MPURef as MPURefBase
-from quilt_shared.pkgpush import (
-    ChecksumResult,
-    ChecksumType,
-    S3ObjectDestination,
-    S3ObjectSource,
-)
+from quilt_shared.pkgpush import Checksum as ChecksumBase
+from quilt_shared.pkgpush import ChecksumResult, ChecksumType
+from quilt_shared.pkgpush import MPURef as MPURefBase
+from quilt_shared.pkgpush import S3ObjectDestination, S3ObjectSource
 
 if T.TYPE_CHECKING:
     from types_aiobotocore_s3.client import S3Client
