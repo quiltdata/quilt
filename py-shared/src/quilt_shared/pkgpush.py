@@ -69,7 +69,7 @@ class S3HashLambdaParams(pydantic.BaseModel):
 class S3CopyLambdaParams(pydantic.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
-    target = S3ObjectDestination
+    target: S3ObjectDestination
 
 
 class ChecksumType(str, enum.Enum):
