@@ -11,7 +11,7 @@ setup(
         (
             "quilt3 @ git+https://github.com/quiltdata/quilt@"
             # TODO: update to master hash
-            "9af37a30d526230120c72656653ed28d6dec98c5"
+            "1037bd88613278c3aa44b37a9741c6c720fb57dd"
             "#subdirectory=api/python"
         ),
         (
