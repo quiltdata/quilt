@@ -11,6 +11,7 @@ import shutil
 import sys
 import tempfile
 import textwrap
+import typing as T
 import time
 import uuid
 import warnings
@@ -1361,11 +1362,14 @@ class Package:
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
         workflow, print_info, force: bool, dedupe: bool,
-        copy_file_list_fn=copy_file_list,
+        copy_file_list_fn: T.Optional[T.Callable[[T.List[T.Tuple[PhysicalKey, PhysicalKey, int]], T.List[PhysicalKey]]]]=None,
     ):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
+
+        if copy_file_list_fn is None:
+            copy_file_list_fn = copy_file_list
 
         validate_package_name(name)
 
