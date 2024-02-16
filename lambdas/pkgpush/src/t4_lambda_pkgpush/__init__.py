@@ -35,11 +35,14 @@ from quilt_shared.lambdas_large_request_handler import (
 from quilt_shared.pkgpush import (
     Checksum,
     ChecksumResult,
+    CopyResult,
     PackageConstructEntry,
     PackagePromoteParams,
     PackagePushParams,
     PackagePushResult,
+    S3CopyLambdaParams,
     S3HashLambdaParams,
+    S3ObjectDestination,
     S3ObjectSource,
     TopHash,
 )
@@ -148,8 +151,25 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
 
 
 # TODO: implement
-def invoke_copy_lambda(credentials: AWSCredentials, src, dst) -> str:
-    return "version-id)))"
+def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> str:
+    resp = lambda_.invoke(
+        FunctionName=S3_HASH_LAMBDA,
+        Payload=S3CopyLambdaParams(
+            credentials=credentials,
+            location=S3ObjectSource.from_pk(src),
+            target=S3ObjectDestination.from_pk(dst),
+        ).json(exclude_defaults=True),
+    )
+
+    parsed = json.load(resp["Payload"])
+
+    if "FunctionError" in resp:
+        raise PkgpushException("S3CopyLambdaUnhandledError", parsed)
+
+    if "error" in parsed:
+        raise PkgpushException("S3CopyLambdaError", parsed["error"])
+
+    return CopyResult(**parsed["result"]).version
 
 
 def copy_pkg_entry_data(
@@ -171,7 +191,7 @@ def copy_file_list(file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]]) ->
         credentials = AWSCredentials.from_boto_session(user_boto_session)
         fs = [
             pool.submit(copy_pkg_entry_data, credentials, src, dst, idx)
-            for idx, (src, dst, size) in file_list_enumerated
+            for idx, (src, dst, _) in file_list_enumerated
         ]
         results = [
             f.result()

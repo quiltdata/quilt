@@ -20,7 +20,7 @@ import pydantic
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.lambdas_errors import LambdaError
 from quilt_shared.pkgpush import Checksum as ChecksumBase
-from quilt_shared.pkgpush import ChecksumResult, ChecksumType
+from quilt_shared.pkgpush import ChecksumResult, ChecksumType, CopyResult
 from quilt_shared.pkgpush import MPURef as MPURefBase
 from quilt_shared.pkgpush import S3ObjectDestination, S3ObjectSource
 
@@ -307,15 +307,15 @@ class MPURef(MPURefBase):
 
 
 @contextlib.asynccontextmanager
-async def create_mpu():
+async def create_mpu(target: S3ObjectDestination):
     try:
         upload_data = await S3.get().create_multipart_upload(
-            **MPU_DST.boto_args,
+            **target.boto_args,
             ChecksumAlgorithm="SHA256",
         )
-        mpu = MPURef(bucket=MPU_DST.bucket, key=MPU_DST.key, id=upload_data["UploadId"])
+        mpu = MPURef(bucket=target.bucket, key=target.key, id=upload_data["UploadId"])
     except botocore.exceptions.ClientError as ex:
-        raise LambdaError("MPUError", {"dst": MPU_DST.dict(), "error": str(ex)})
+        raise LambdaError("MPUError", {"dst": target.dict(), "error": str(ex)})
 
     try:
         yield mpu
@@ -386,7 +386,7 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
 
     part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
 
-    async with create_mpu() as mpu:
+    async with create_mpu(MPU_DST) as mpu:
         part_checksums = await compute_part_checksums(
             mpu,
             location,
@@ -396,18 +396,6 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
 
     checksum = Checksum.for_parts(part_checksums, part_defs)
     return ChecksumResult(checksum=checksum)
-
-
-class S3Destination(pydantic.BaseModel):
-    bucket: str
-    key: str
-
-    @property
-    def boto_args(self):
-        return {
-            "Bucket": self.bucket,
-            "Key": self.key,
-        }
 
 
 # XXX: move decorators to shared?
@@ -422,7 +410,7 @@ async def lambda_handler(
         return await compute_checksum(location)
 
 
-async def copy(location: S3ObjectSource, target: S3Destination):
+async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyResult:
     resp = await S3.get().head_object(**location.boto_args)
     etag, total_size = resp["ETag"], resp["ContentLength"]
 
@@ -434,19 +422,12 @@ async def copy(location: S3ObjectSource, target: S3Destination):
             CopySource=location.boto_args,
             CopySourceIfMatch=etag,
         )
-        # XXX: return something else?
-        return resp["VersionId"]
+        return CopyResult(version=resp["VersionId"])
 
-    async with create_mpu() as mpu:
-        part_upload_results = await upload_parts(
-            mpu,
-            location,
-            etag,
-            part_defs,
-        )
+    async with create_mpu(target) as mpu:
+        part_upload_results = await upload_parts(mpu, location, etag, part_defs)
         resp = await mpu.complete(part_upload_results)
-        # XXX: return something else?
-        return resp["VersionId"]
+        return CopyResult(version=resp["VersionId"])
 
 
 # XXX: move decorators to shared?
@@ -456,7 +437,7 @@ async def lambda_handler_copy(
     *,
     credentials: AWSCredentials,
     location: S3ObjectSource,
-    target: S3Destination,
+    target: S3ObjectDestination,
 ) -> str:
     async with aio_context(credentials):
         return await copy(location, target)
