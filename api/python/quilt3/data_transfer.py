@@ -268,7 +268,7 @@ def get_checksum_chunksize(file_size: int) -> int:
 
     while num_parts > CHECKSUM_MAX_PARTS:
         chunksize *= 2
-        num_parts = int(math.ceil(file_size / float(chunksize)))
+        num_parts = math.ceil(file_size / chunksize)
 
     return chunksize
 
