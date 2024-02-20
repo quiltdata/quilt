@@ -6,7 +6,7 @@
 
 This variant of sha2-256 is designed to enable very large files
 to be uploaded and hashed in parallel using fixed size blocks
-(8MiB to start with), with the final result being a "top_hash"
+(8MiB to start with), with the final result being a "top hash"
 that is an order-independent hash of the individual hashes.
 
 The algorithm has an upper limit of 10,000 hashes;
