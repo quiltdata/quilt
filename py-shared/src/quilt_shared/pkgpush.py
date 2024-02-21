@@ -60,8 +60,8 @@ class S3HashLambdaParams(pydantic.BaseModel):
 
 
 class ChecksumType(str, enum.Enum):
-    MP = "QuiltMultipartSHA256"
-    SP = "SHA256"
+    MODERN = "QuiltChecksumSHA256"
+    LEGACY = "SHA256"
 
 
 class Checksum(pydantic.BaseModel):
