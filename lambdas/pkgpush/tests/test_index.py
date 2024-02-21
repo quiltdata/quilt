@@ -902,7 +902,7 @@ class HashCalculationTest(unittest.TestCase):
     def test_calculate_pkg_entry_hash(self):
         with mock.patch(
             "t4_lambda_pkgpush.invoke_hash_lambda",
-            return_value=Checksum(type=ChecksumType.SP, value='0' * 64),
+            return_value=Checksum(type=ChecksumType.MODERN, value="base64hash"),
         ) as invoke_hash_lambda_mock:
             t4_lambda_pkgpush.calculate_pkg_entry_hash(self.entry_without_hash, CREDENTIALS)
 
@@ -914,7 +914,7 @@ class HashCalculationTest(unittest.TestCase):
         lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
         lambda_client_stubber.activate()
         self.addCleanup(lambda_client_stubber.deactivate)
-        checksum = {"type": "SHA256", "value": "0" * 64}
+        checksum = {"type": "QuiltChecksumSHA256", "value": "base64hash"}
         pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
         lambda_client_stubber.add_response(
