@@ -18,22 +18,22 @@ def test_no_sha256(obj_attrs):
 
 
 @pytest.mark.parametrize(
-    "obj_attrs, sp, mp",
+    "obj_attrs, legacy, modern",
     [
         (
             {
                 "Checksum": {"ChecksumSHA256": "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="},
-                "ObjectSize": 1048576,
+                "ObjectSize": 1048576,  # below the threshold
             },
-            Checksum.singlepart(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=")),
-            Checksum.singlepart(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=")),
+            Checksum.legacy(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=")),
+            Checksum.modern(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=")),
         ),
         (
             {
                 "Checksum": {"ChecksumSHA256": "La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ="},
-                "ObjectSize": 8388608,
+                "ObjectSize": 8388608,  # above the threshold
             },
-            Checksum.singlepart(base64.b64decode("La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=")),
+            Checksum.legacy(base64.b64decode("La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=")),
             None,
         ),
         (
@@ -53,10 +53,10 @@ def test_no_sha256(obj_attrs):
                         }
                     ],
                 },
-                "ObjectSize": 8388608,
+                "ObjectSize": 8388608,  # above the threshold
             },
-            Checksum.singlepart(base64.b64decode("La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=")),
-            Checksum(type=ChecksumType.MP, value="MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=-1"),
+            Checksum.legacy(base64.b64decode("La6x82CVtEsxhBCz9Oi12Yncx7sCPRQmxJLasKMFPnQ=")),
+            Checksum.modern(base64.b64decode("MIsGKY+ykqN4CPj3gGGu4Gv03N7OWKWpsZqEf+OrGJs=")),
         ),
         (
             {
@@ -80,7 +80,7 @@ def test_no_sha256(obj_attrs):
                         },
                     ],
                 },
-                "ObjectSize": 13631488,
+                "ObjectSize": 13631488,  # above the threshold
             },
             None,
             None,
@@ -107,16 +107,16 @@ def test_no_sha256(obj_attrs):
                         },
                     ],
                 },
-                "ObjectSize": 13631488,
+                "ObjectSize": 13631488,  # above the threshold
             },
             None,
-            Checksum(type=ChecksumType.MP, value="bGeobZC1xyakKeDkOLWP9khl+vuOditELvPQhrT/R9M=-2"),
+            Checksum.modern(base64.b64decode("bGeobZC1xyakKeDkOLWP9khl+vuOditELvPQhrT/R9M=")),
         ),
     ],
 )
-def test_single_part(obj_attrs, sp, mp):
-    with mock.patch("t4_lambda_s3hash.MULTIPART_CHECKSUMS", False):
-        assert get_compliant_checksum(obj_attrs) == sp
+def test_single_part(obj_attrs, legacy, modern):
+    with mock.patch("t4_lambda_s3hash.MODERN_CHECKSUMS", False):
+        assert get_compliant_checksum(obj_attrs) == legacy
 
-    with mock.patch("t4_lambda_s3hash.MULTIPART_CHECKSUMS", True):
-        assert get_compliant_checksum(obj_attrs) == mp
+    with mock.patch("t4_lambda_s3hash.MODERN_CHECKSUMS", True):
+        assert get_compliant_checksum(obj_attrs) == modern

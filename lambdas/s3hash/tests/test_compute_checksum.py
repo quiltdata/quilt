@@ -81,14 +81,14 @@ async def test_compliant(s3_stub: Stubber):
         "get_object_attributes",
         {
             "Checksum": {"ChecksumSHA256": checksum},
-            "ObjectSize": 1048576,
+            "ObjectSize": 1048576,  # below the threshold
         },
         EXPECTED_GETATTR_PARAMS,
     )
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(base64.b64decode(checksum)))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(base64.b64decode(checksum)))
 
 
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
@@ -113,12 +113,12 @@ async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
         LOC.boto_args,
     )
 
-    mocker.patch("t4_lambda_s3hash.MULTIPART_CHECKSUMS", False)
+    mocker.patch("t4_lambda_s3hash.MODERN_CHECKSUMS", False)
 
     res = await s3hash.compute_checksum(LOC)
 
     checksum_hex = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(checksum_hex))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.legacy(checksum_hex))
 
 
 async def test_mpu_fail(s3_stub: Stubber):
@@ -189,7 +189,7 @@ async def test_mpu_single(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(CHECKSUM))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(CHECKSUM))
 
 
 async def test_mpu_multi(s3_stub: Stubber):
@@ -210,6 +210,7 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
     CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_TOP = s3hash.hash_parts([CHECKSUM_1, CHECKSUM_2])
     s3_stub.add_response(
         "upload_part_copy",
         {
@@ -251,4 +252,4 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.multipart([CHECKSUM_1, CHECKSUM_2]))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(CHECKSUM_TOP))
