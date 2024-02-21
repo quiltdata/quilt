@@ -44,7 +44,7 @@ LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
 
 def _mock_copy_file_list(file_list, callback=None, message=None):
-    return [(key, None, None) for _, key, _ in file_list]
+    return [(key, None) for _, key, _ in file_list]
 
 
 class PackageTest(QuiltTestCase):
@@ -476,7 +476,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '3789f2ababda373b6b8bb7f81f0691dd2a967b2a94c22f1b70112e5db7c7da0e',
+            '08b3327c1ccaba57e055746c9c8d15db8852eba1243911a55d33249f62aadcfa',
             pointer_name=str(timestamp1),
         )
         with patch('time.time', return_value=timestamp1), \
@@ -490,7 +490,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '3789f2ababda373b6b8bb7f81f0691dd2a967b2a94c22f1b70112e5db7c7da0e',
+            '08b3327c1ccaba57e055746c9c8d15db8852eba1243911a55d33249f62aadcfa',
             pointer_name=str(timestamp2),
         )
         with patch('time.time', return_value=timestamp2), \
@@ -1674,33 +1674,33 @@ class PackageTest(QuiltTestCase):
         _test_verify_fails('test')
         _test_verify_fails('test', extra_files_ok=True)
 
-    @patch('quilt3.packages.calculate_sha256')
-    def test_fix_sha256_fail(self, mocked_calculate_sha256):
+    @patch('quilt3.packages.calculate_checksum')
+    def test_fix_sha256_fail(self, mocked_calculate_checksum):
         data = b'Hello, World!'
         pkg = Package()
         pkg.set('foo', data)
         _, entry = next(pkg.walk())
 
         exc = Exception('test exception')
-        mocked_calculate_sha256.return_value = [exc]
+        mocked_calculate_checksum.return_value = [exc]
         with pytest.raises(quilt3.exceptions.PackageException) as excinfo:
             pkg._fix_sha256()
-        mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
+        mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash is None
         assert excinfo.value.__cause__ == exc
 
-    @patch('quilt3.packages.calculate_sha256')
-    def test_fix_sha256(self, mocked_calculate_sha256):
+    @patch('quilt3.packages.calculate_checksum')
+    def test_fix_sha256(self, mocked_calculate_checksum):
         data = b'Hello, World!'
         pkg = Package()
         pkg.set('foo', data)
         _, entry = next(pkg.walk())
 
         hash_ = object()
-        mocked_calculate_sha256.return_value = [('SHA256', hash_)]
+        mocked_calculate_checksum.return_value = [(hash_)]
         pkg._fix_sha256()
-        mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
-        assert entry.hash == {'type': 'SHA256', 'value': hash_}
+        mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
+        assert entry.hash == {'type': 'QuiltChecksumSHA256', 'value': hash_}
 
     def test_resolve_hash_invalid_pkg_name(self):
         with pytest.raises(QuiltException, match='Invalid package name'):
@@ -1884,7 +1884,7 @@ class PackageTest(QuiltTestCase):
         selector_fn = mock.MagicMock(return_value=False)
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_sha256', return_value=[('SHA256', "a" * 64)]):
+        with patch('quilt3.packages.calculate_checksum', return_value=[('SHA256', "a" * 64)]):
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
@@ -1930,7 +1930,7 @@ class PackageTest(QuiltTestCase):
         )
         push_manifest_mock = self.patch_s3_registry('push_manifest')
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
-        with patch('quilt3.packages.calculate_sha256', return_value=["a" * 64]):
+        with patch('quilt3.packages.calculate_checksum', return_value=["a" * 64]):
             pkg.push(pkg_name, registry=f's3://{dst_bucket}', selector_fn=selector_fn, force=True)
 
         selector_fn.assert_called_once_with(lk, pkg[lk])
