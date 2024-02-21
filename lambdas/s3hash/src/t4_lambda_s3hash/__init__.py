@@ -329,7 +329,9 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
             part_defs,
         )
 
-    checksum = Checksum.for_parts(part_checksums, part_defs) if MODERN_CHECKSUMS else Checksum.legacy(part_checksums[0])
+    checksum = (
+        Checksum.for_parts(part_checksums, part_defs) if MODERN_CHECKSUMS else Checksum.legacy(part_checksums[0])
+    )
     return ChecksumResult(checksum=checksum)
 
 
