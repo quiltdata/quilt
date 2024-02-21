@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from t4_lambda_s3hash import Checksum, ChecksumType, get_compliant_checksum
+from t4_lambda_s3hash import Checksum, get_compliant_checksum
 
 
 @pytest.mark.parametrize(
