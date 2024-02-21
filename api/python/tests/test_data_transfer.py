@@ -730,7 +730,8 @@ class S3HashingTest(QuiltTestCase):
             hash1 = data_transfer.calculate_sha256([self.src], [size])[0]
             hash2 = data_transfer.calculate_sha256_bytes(data)
             assert hash1 == hash2
-            assert '-' not in hash1[1]
+            assert hash1[0] == 'SHA256'
+            assert hash1[1] == '9f9f5111f7b27a781f1f1ddde5ebc2dd2b796bfc7365c9c28b548e564176929f'
 
     def test_multipart(self):
         data = b'1234567890abcdefgh' * 1024 * 1024
@@ -750,7 +751,8 @@ class S3HashingTest(QuiltTestCase):
             hash1 = data_transfer.calculate_sha256([self.src], [size])[0]
             hash2 = data_transfer.calculate_sha256_bytes(data)
             assert hash1 == hash2
-            assert hash1[1].endswith('-3')
+            assert hash1[0] == 'QuiltMultipartSHA256'
+            assert hash1[1] == 'T+rt/HKRJOiAkEGXKvc+DhCwRcrZiDrFkjKonDT1zgs=-3'
 
     def test_one_part(self):
         # Edge case: file length is exactly the threshold, resulting in a 1-part multipart upload.
@@ -769,4 +771,5 @@ class S3HashingTest(QuiltTestCase):
             hash1 = data_transfer.calculate_sha256([self.src], [size])[0]
             hash2 = data_transfer.calculate_sha256_bytes(data)
             assert hash1 == hash2
-            assert hash1[1].endswith('-1')
+            assert hash1[0] == 'QuiltMultipartSHA256'
+            assert hash1[1] == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg=-1'
