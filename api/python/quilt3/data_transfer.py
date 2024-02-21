@@ -1045,7 +1045,7 @@ def _calculate_sha256_internal(src_list, sizes, results):
                     hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
                     results[idx] = (
                         MULTI_PART_HASH_NAME,
-                        f'{binascii.b2a_base64(hashes_hash).decode()}-{len(future_results)}',
+                        f'{binascii.b2a_base64(hashes_hash, newline=False).decode()}-{len(future_results)}',
                     )
         finally:
             stopped = True
@@ -1236,7 +1236,7 @@ def calculate_sha256_bytes(data: bytes):
             hashes.append(hashlib.sha256(data[start:end]).digest())
 
         hashes_hash = hashlib.sha256(b''.join(hashes)).digest()
-        result = (MULTI_PART_HASH_NAME, f'{binascii.b2a_base64(hashes_hash).decode()}-{len(hashes)}')
+        result = (MULTI_PART_HASH_NAME, f'{binascii.b2a_base64(hashes_hash, newline=False).decode()}-{len(hashes)}')
 
     return result
 
