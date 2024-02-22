@@ -150,6 +150,7 @@ async def test_mpu_fail(s3_stub: Stubber):
 
 async def test_mpu_single(s3_stub: Stubber):
     ETAG = "test-etag"
+    PART_ETAG = "part-etag"
     SIZE = 1048576
     s3_stub.add_response(
         "get_object_attributes",
@@ -170,6 +171,7 @@ async def test_mpu_single(s3_stub: Stubber):
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM).decode(),
+                "ETag": ETAG + "-1",
             },
         },
         {
@@ -215,6 +217,7 @@ async def test_mpu_multi(s3_stub: Stubber):
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(),
+                "ETag": ETAG + "-1",
             },
         },
         {
@@ -231,6 +234,7 @@ async def test_mpu_multi(s3_stub: Stubber):
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(),
+                "ETag": ETAG + "-2",
             },
         },
         {
