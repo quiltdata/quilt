@@ -1,7 +1,7 @@
 from unittest import mock
 
 from quilt3.util import PhysicalKey
-from t4_lambda_pkgpush import copy_file_list, AWSCredentials
+from t4_lambda_pkgpush import AWSCredentials, copy_file_list
 
 
 @mock.patch("t4_lambda_pkgpush.S3_COPY_LAMBDA_CONCURRENCY", 1)
@@ -20,7 +20,7 @@ def test_copy_file_list():
     ]
     ENTRIES = {
         key: {
-            "src": PhysicalKey(BUCKET, key, f"src-key"),
+            "src": PhysicalKey(BUCKET, key, "src-version"),
             "dst": PhysicalKey(BUCKET, key, None),
             "result": PhysicalKey(BUCKET, key, VERSION_ID),
             "size": size,
