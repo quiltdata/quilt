@@ -914,7 +914,7 @@ class HashCalculationTest(unittest.TestCase):
         lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
         lambda_client_stubber.activate()
         self.addCleanup(lambda_client_stubber.deactivate)
-        checksum = {"type": "QuiltChecksumSHA256", "value": "base64hash"}
+        checksum = {"type": "sha2-256-chunked", "value": "base64hash"}
         pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
 
         lambda_client_stubber.add_response(
