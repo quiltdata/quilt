@@ -138,12 +138,13 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
             checksum_value = object_parts["Parts"][0]["ChecksumSHA256"]
 
         checksum_bytes = base64.b64decode(checksum_value)
-        if not MODERN_CHECKSUMS:
-            return Checksum.legacy(checksum_bytes)
 
-        # double-hash
-        checksum_bytes = hashlib.sha256(checksum_bytes).digest()
-        return Checksum.modern(checksum_bytes)
+        return (
+            # double-hash
+            Checksum.modern(hashlib.sha256(checksum_bytes).digest())
+            if MODERN_CHECKSUMS
+            else Checksum.legacy(checksum_bytes)
+        )
 
     if object_parts is None:
         return None
