@@ -10,8 +10,7 @@ setup(
         "pydantic ~= 1.10",
         (
             "quilt3 @ git+https://github.com/quiltdata/quilt@"
-            # TODO: update to master hash
-            "1037bd88613278c3aa44b37a9741c6c720fb57dd"
+            "5c2b79128fe4d5d1e6093ff6a7d11d09d3315843"
             "#subdirectory=api/python"
         ),
         (
