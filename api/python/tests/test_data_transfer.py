@@ -218,13 +218,11 @@ class DataTransferTest(QuiltTestCase):
 
             assert urls[0] == (
                 PhysicalKey.from_url('s3://example1/foo.csv'),
-                'SHA256',
-                '0123456789abcdef0123456789abcdef',
+                'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
             )
             assert urls[1] == (
                 PhysicalKey.from_url('s3://example2/foo.txt?versionId=v123'),
-                'SHA256',
-                '0123456789abcdef0123456789abcdef',
+                'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
             )
 
     def test_upload_large_file(self):
@@ -259,8 +257,7 @@ class DataTransferTest(QuiltTestCase):
         ])
         assert urls[0] == (
             PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
-            'SHA256',
-            '0123456789abcdef0123456789abcdef',
+            'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
         )
 
     def test_upload_large_file_etag_match(self):
@@ -283,7 +280,7 @@ class DataTransferTest(QuiltTestCase):
         urls = data_transfer.copy_file_list([
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == (PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'), None, None)
+        assert urls[0] == (PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'), None)
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'
@@ -306,6 +303,7 @@ class DataTransferTest(QuiltTestCase):
             method='put_object',
             service_response={
                 'VersionId': 'v2',
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
                 'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
@@ -321,8 +319,7 @@ class DataTransferTest(QuiltTestCase):
         ])
         assert urls[0] == (
             PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2'),
-            'SHA256',
-            '0123456789abcdef0123456789abcdef',
+            'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
         )
 
     def test_multipart_upload(self):
@@ -381,7 +378,7 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='complete_multipart_upload',
             service_response={
-                'ChecksumSHA256': '123456',
+                'ChecksumSHA256': f'123456-{chunks}',
             },
             expected_params={
                 'Bucket': 'example',
@@ -454,7 +451,7 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='complete_multipart_upload',
             service_response={
-                'ChecksumSHA256': '123456',
+                'ChecksumSHA256': f'123456-{chunks}',
             },
             expected_params={
                 'Bucket': 'example2',
@@ -494,7 +491,7 @@ class DataTransferTest(QuiltTestCase):
         pk = PhysicalKey(bucket, key, vid)
         exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
         mocked_api_call.side_effect = exc
-        results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+        results = data_transfer.calculate_checksum([pk], [len(a_contents)])
         assert mocked_api_call.call_count == data_transfer.MAX_FIX_HASH_RETRIES
         assert results == [exc]
 
@@ -727,11 +724,10 @@ class S3HashingTest(QuiltTestCase):
         with self.s3_test_multi_thread_download(
                 self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
         ):
-            hash1 = data_transfer.calculate_sha256([self.src], [size])[0]
-            hash2 = data_transfer.calculate_sha256_bytes(data)
+            hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+            hash2 = data_transfer.calculate_checksum_bytes(data)
             assert hash1 == hash2
-            assert hash1[0] == 'SHA256'
-            assert hash1[1] == '9f9f5111f7b27a781f1f1ddde5ebc2dd2b796bfc7365c9c28b548e564176929f'
+            assert hash1 == 'Xb1PbjJeWof4zD7zuHc9PI7sLiz/Ykj4gphlaZEt3xA='
 
     def test_multipart(self):
         data = b'1234567890abcdefgh' * 1024 * 1024
@@ -748,11 +744,10 @@ class S3HashingTest(QuiltTestCase):
         with self.s3_test_multi_thread_download(
                 self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
         ):
-            hash1 = data_transfer.calculate_sha256([self.src], [size])[0]
-            hash2 = data_transfer.calculate_sha256_bytes(data)
+            hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+            hash2 = data_transfer.calculate_checksum_bytes(data)
             assert hash1 == hash2
-            assert hash1[0] == 'QuiltMultipartSHA256'
-            assert hash1[1] == 'T+rt/HKRJOiAkEGXKvc+DhCwRcrZiDrFkjKonDT1zgs=-3'
+            assert hash1 == 'T+rt/HKRJOiAkEGXKvc+DhCwRcrZiDrFkjKonDT1zgs='
 
     def test_one_part(self):
         # Edge case: file length is exactly the threshold, resulting in a 1-part multipart upload.
@@ -768,8 +763,7 @@ class S3HashingTest(QuiltTestCase):
         with self.s3_test_multi_thread_download(
                 self.bucket, self.key, ranges, threshold=chunksize, chunksize=chunksize
         ):
-            hash1 = data_transfer.calculate_sha256([self.src], [size])[0]
-            hash2 = data_transfer.calculate_sha256_bytes(data)
+            hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+            hash2 = data_transfer.calculate_checksum_bytes(data)
             assert hash1 == hash2
-            assert hash1[0] == 'QuiltMultipartSHA256'
-            assert hash1[1] == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg=-1'
+            assert hash1 == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg='

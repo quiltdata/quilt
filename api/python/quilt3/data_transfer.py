@@ -240,15 +240,12 @@ CHECKSUM_MULTIPART_THRESHOLD = 8 * 1024 * 1024
 # Maximum number of parts supported by S3
 CHECKSUM_MAX_PARTS = 10_000
 
-SIMPLE_HASH_NAME = 'SHA256'
-MULTI_PART_HASH_NAME = 'QuiltMultipartSHA256'
-
 
 @dataclass
 class WorkerContext:
     s3_client_provider: S3ClientProvider
     progress: Callable[[int], None]
-    done: Callable[[PhysicalKey, Optional[str], Optional[str]], None]
+    done: Callable[[PhysicalKey, Optional[str]], None]
     run: Callable[..., None]
 
 
@@ -261,8 +258,6 @@ def get_checksum_chunksize(file_size: int) -> int:
     `ChunksizeAdjuster().adjust_chunksize(s3_transfer_config.multipart_chunksize, file_size)`,
     but hard-coded to guarantee it won't change and make the current behavior a part of the API.
     """
-    assert file_size >= CHECKSUM_MULTIPART_THRESHOLD, "file_size too small for multi-part"
-
     chunksize = 8 * 1024 * 1024
     num_parts = math.ceil(file_size / chunksize)
 
@@ -273,6 +268,12 @@ def get_checksum_chunksize(file_size: int) -> int:
     return chunksize
 
 
+def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
+    s3_checksum_bytes = binascii.a2b_base64(s3_checksum)
+    quilt_checksum_bytes = hashlib.sha256(s3_checksum_bytes).digest()
+    return binascii.b2a_base64(quilt_checksum_bytes, newline=False).decode()
+
+
 def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: str):
     pathlib.Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -281,7 +282,7 @@ def _copy_local_file(ctx: WorkerContext, size: int, src_path: str, dest_path: st
     ctx.progress(size)
     shutil.copymode(src_path, dest_path)
 
-    ctx.done(PhysicalKey.from_path(dest_path), None, None)
+    ctx.done(PhysicalKey.from_path(dest_path), None)
 
 
 def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_key: str):
@@ -297,8 +298,8 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
             )
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        checksum = binascii.b2a_hex(binascii.a2b_base64(resp['ChecksumSHA256'])).decode()
-        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), SIMPLE_HASH_NAME, checksum)
+        checksum = _simple_s3_to_quilt_checksum(resp['ChecksumSHA256'])
+        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -344,8 +345,8 @@ def _upload_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str,
                     MultipartUpload={'Parts': parts},
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                checksum = resp['ChecksumSHA256']
-                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), MULTI_PART_HASH_NAME, checksum)
+                checksum, _ = resp['ChecksumSHA256'].split('-', 1)
+                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -425,7 +426,7 @@ def _download_file(
             remaining_counter -= 1
             done = remaining_counter == 0
         if done:
-            ctx.done(PhysicalKey.from_path(dest_path), None, None)
+            ctx.done(PhysicalKey.from_path(dest_path), None)
 
     for part_number in part_numbers:
         ctx.run(download_part, part_number)
@@ -458,8 +459,8 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
         resp = s3_client.copy_object(**params)
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        checksum = binascii.b2a_hex(binascii.a2b_base64(resp['CopyObjectResult']['ChecksumSHA256'])).decode()
-        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), SIMPLE_HASH_NAME, checksum)
+        checksum = _simple_s3_to_quilt_checksum(resp['CopyObjectResult']['ChecksumSHA256'])
+        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -506,8 +507,8 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
                     MultipartUpload={'Parts': parts},
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                checksum = resp['ChecksumSHA256']
-                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), MULTI_PART_HASH_NAME, checksum)
+                checksum, _ = resp['ChecksumSHA256'].split('-', 1)
+                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id), checksum)
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -539,16 +540,15 @@ def _upload_or_copy_file(ctx: WorkerContext, size: int, src_path: str, dest_buck
                 if src_etag == dest_etag:
                     # Nothing more to do. We should not attempt to copy the object because
                     # that would cause the "copy object to itself" error.
-                    checksum = resp.get('ChecksumSHA256')
-                    if checksum is None:
-                        checksum_type = None
-                    elif '-' in checksum:
-                        checksum_type = MULTI_PART_HASH_NAME
+                    s3_checksum = resp.get('ChecksumSHA256')
+                    if s3_checksum is None:
+                        checksum = None
+                    elif '-' in s3_checksum:
+                        checksum, _ = s3_checksum.split('-', 1)
                     else:
-                        checksum_type = SIMPLE_HASH_NAME
-                        checksum = binascii.b2a_hex(binascii.a2b_base64(checksum)).decode()
+                        checksum = _simple_s3_to_quilt_checksum(s3_checksum)
                     ctx.progress(size)
-                    ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum_type, checksum)
+                    ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum)
                     return  # Optimization succeeded.
 
     # If the optimization didn't happen, do the normal upload.
@@ -610,11 +610,11 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
             if stopped:
                 raise Exception("Interrupted")
 
-            def done_callback(value, checksum_type, checksum):
+            def done_callback(value, checksum):
                 assert value is not None
                 with lock:
                     assert results[idx] is None
-                    results[idx] = (value, checksum_type, checksum)
+                    results[idx] = (value, checksum)
                 if callback is not None:
                     callback(src, dest, size)
 
@@ -936,12 +936,12 @@ def get_size_and_version(src: PhysicalKey):
     return size, version
 
 
-def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
+def calculate_checksum(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
     assert len(src_list) == len(sizes)
 
     if not src_list:
         return []
-    return _calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
+    return _calculate_checksum_internal(src_list, sizes, [None] * len(src_list))
 
 
 def with_lock(f):
@@ -959,7 +959,7 @@ def with_lock(f):
        retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
        retry_error_callback=lambda retry_state: retry_state.outcome.result(),
        )
-def _calculate_sha256_internal(src_list, sizes, results):
+def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
     total_size = sum(
         size
         for size, result in zip(sizes, results)
@@ -1017,9 +1017,6 @@ def _calculate_sha256_internal(src_list, sizes, results):
         for src, size, result in zip(src_list, sizes, results):
             if result is not None and not isinstance(result, Exception):
                 futures.append((False, []))
-            elif size < CHECKSUM_MULTIPART_THRESHOLD:
-                future = executor.submit(_process_url_part, src, 0, size)
-                futures.append((False, [future]))
             else:
                 chunksize = get_checksum_chunksize(size)
 
@@ -1029,39 +1026,34 @@ def _calculate_sha256_internal(src_list, sizes, results):
                     future = executor.submit(_process_url_part, src, start, end-start)
                     src_future_list.append(future)
 
-                futures.append((True, src_future_list))
+                futures.append(src_future_list)
 
         try:
-            for idx, (is_multipart, future_list) in enumerate(futures):
+            for idx, future_list in enumerate(futures):
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
                 if exceptions:
                     results[idx] = exceptions[0]
                 elif not future_results:
                     assert results[idx] is not None and not isinstance(results[idx], Exception)
-                elif not is_multipart:
-                    results[idx] = (SIMPLE_HASH_NAME, binascii.b2a_hex(future_results[0]).decode())
                 else:
                     hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
-                    results[idx] = (
-                        MULTI_PART_HASH_NAME,
-                        f'{binascii.b2a_base64(hashes_hash, newline=False).decode()}-{len(future_results)}',
-                    )
+                    results[idx] = binascii.b2a_base64(hashes_hash, newline=False).decode()
         finally:
             stopped = True
-            for _, future_list in futures:
+            for future_list in futures:
                 for future in future_list:
                     future.cancel()
 
     return results
 
 
-def legacy_calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
+def legacy_calculate_checksum(src_list: List[PhysicalKey], sizes: List[int]) -> List[bytes]:
     assert len(src_list) == len(sizes)
 
     if not src_list:
         return []
-    return _legacy_calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
+    return _legacy_calculate_checksum_internal(src_list, sizes, [None] * len(src_list))
 
 
 def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
@@ -1142,7 +1134,7 @@ def _legacy_calculate_hash_get_s3_chunks(ctx, src, size):
        retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
        retry_error_callback=lambda retry_state: retry_state.outcome.result(),
        )
-def _legacy_calculate_sha256_internal(src_list, sizes, results):
+def _legacy_calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
     total_size = sum(
         size
         for size, result in zip(sizes, results)
@@ -1223,22 +1215,21 @@ def _legacy_calculate_sha256_internal(src_list, sizes, results):
     return results
 
 
-def calculate_sha256_bytes(data: bytes):
+def calculate_checksum_bytes(data: bytes) -> str:
     size = len(data)
-    if size < CHECKSUM_MULTIPART_THRESHOLD:
-        result = (SIMPLE_HASH_NAME, hashlib.sha256(data).hexdigest())
-    else:
-        chunksize = get_checksum_chunksize(size)
+    chunksize = get_checksum_chunksize(size)
 
-        hashes = []
-        for start in range(0, size, chunksize):
-            end = min(start + chunksize, size)
-            hashes.append(hashlib.sha256(data[start:end]).digest())
+    hashes = []
+    for start in range(0, size, chunksize):
+        end = min(start + chunksize, size)
+        hashes.append(hashlib.sha256(data[start:end]).digest())
 
-        hashes_hash = hashlib.sha256(b''.join(hashes)).digest()
-        result = (MULTI_PART_HASH_NAME, f'{binascii.b2a_base64(hashes_hash, newline=False).decode()}-{len(hashes)}')
+    hashes_hash = hashlib.sha256(b''.join(hashes)).digest()
+    return binascii.b2a_base64(hashes_hash, newline=False).decode()
 
-    return result
+
+def legacy_calculate_checksum_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 
 def select(src, query, meta=None, raw=False, **kwargs):
