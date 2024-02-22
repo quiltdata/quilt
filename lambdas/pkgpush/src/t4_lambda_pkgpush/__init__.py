@@ -72,6 +72,7 @@ lambda_ = boto3.client(
         read_timeout=LAMBDA_READ_TIMEOUT,
         # Prevent idle timeout on NAT gateway.
         tcp_keepalive=True,
+        max_pool_connections=S3_HASH_LAMBDA_CONCURRENCY,
     ),
 )
 
