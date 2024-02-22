@@ -13,7 +13,7 @@ import botocore
 import botocore.client
 import pandas as pd
 import pytest
-from botocore.exceptions import ClientError, ReadTimeoutError
+from botocore.exceptions import ClientError, ConnectionError, ReadTimeoutError
 from botocore.stub import ANY
 
 from quilt3 import data_transfer
@@ -549,6 +549,44 @@ class DataTransferTest(QuiltTestCase):
             with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, size)])
 
+    def test_calculate_checksum_retry(self):
+        src = PhysicalKey('test-bucket', 'dir/a', None)
+
+        # TODO: copy_file_list also retries ClientError. Should calculate_checksum do that?
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=ConnectionError(error='foo')) as mocked_api_call:
+            result = data_transfer.calculate_checksum([src], [1])
+            assert isinstance(result[0], ConnectionError)
+            self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_FIX_HASH_RETRIES)
+
+    def test_calculate_checksum_partial_retry(self):
+        src1 = PhysicalKey('test-bucket', 'dir/a', None)
+        src2 = PhysicalKey('test-bucket', 'dir/b', None)
+
+        def side_effect(operation_name, *args, **kwargs):
+            if args[0]['Key'] == 'dir/a':
+                # src1 succeeds
+                return {
+                    'Body': io.BytesIO(b'a'),
+                }
+            else:
+                # src2 fails twice, then succeeds
+                if side_effect.counter < 2:
+                    side_effect.counter += 1
+                    raise ConnectionError(error='foo')
+                return {
+                    'Body': io.BytesIO(b'b'),
+                }
+
+        side_effect.counter = 0
+
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=side_effect) as mocked_api_call:
+            result = data_transfer.calculate_checksum([src1, src2], [1, 2])
+            assert result[0] == 'v106/7c+/S7Gw2rTES3ZM+/tY8Thy//PqI4nWcFE8tg='
+            assert result[1] == 'OTYRYJA8ZpXGgEtxV8e9EAE+m6ibH5VCQ7yOOZCwjbk='
+            self.assertEqual(mocked_api_call.call_count, 4)
+
     @mock.patch.multiple(
         'quilt3.data_transfer.s3_transfer_config',
         multipart_threshold=1,
@@ -767,3 +805,12 @@ class S3HashingTest(QuiltTestCase):
             hash2 = data_transfer.calculate_checksum_bytes(data)
             assert hash1 == hash2
             assert hash1 == '7V3rZ3Q/AmAYax2wsQBZbc7N1EMIxlxRyMiMthGRdwg='
+
+    def test_empty(self):
+        data = b''
+        size = len(data)
+
+        hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
+        hash2 = data_transfer.calculate_checksum_bytes(data)
+        assert hash1 == hash2
+        assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='

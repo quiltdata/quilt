@@ -1012,12 +1012,10 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
 
             return hash_obj.digest()
 
-        futures: List[Tuple[bool, List[Future]]] = []
+        futures: List[Tuple[int, List[Future]]] = []
 
-        for src, size, result in zip(src_list, sizes, results):
-            if result is not None and not isinstance(result, Exception):
-                futures.append((False, []))
-            else:
+        for idx, (src, size, result) in enumerate(zip(src_list, sizes, results)):
+            if result is None or isinstance(result, Exception):
                 chunksize = get_checksum_chunksize(size)
 
                 src_future_list = []
@@ -1026,22 +1024,20 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                     future = executor.submit(_process_url_part, src, start, end-start)
                     src_future_list.append(future)
 
-                futures.append(src_future_list)
+                futures.append((idx, src_future_list))
 
         try:
-            for idx, future_list in enumerate(futures):
+            for idx, future_list in futures:
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
                 if exceptions:
                     results[idx] = exceptions[0]
-                elif not future_results:
-                    assert results[idx] is not None and not isinstance(results[idx], Exception)
                 else:
                     hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
                     results[idx] = binascii.b2a_base64(hashes_hash, newline=False).decode()
         finally:
             stopped = True
-            for future_list in futures:
+            for _, future_list in futures:
                 for future in future_list:
                     future.cancel()
 
