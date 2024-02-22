@@ -94,24 +94,33 @@ class PkgpushException(LambdaError):
         return cls(name, {"details": qe.message})
 
 
-def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum:
+def invoke_lambda(*, function_name: str, params: pydantic.BaseModel, err_prefix: str):
     resp = lambda_.invoke(
-        FunctionName=S3_HASH_LAMBDA,
-        Payload=S3HashLambdaParams(
-            credentials=credentials,
-            location=S3ObjectSource.from_pk(pk),
-        ).json(exclude_defaults=True),
+        FunctionName=function_name,
+        Payload=params.json(exclude_defaults=True),
     )
 
     parsed = json.load(resp["Payload"])
 
     if "FunctionError" in resp:
-        raise PkgpushException("S3HashLambdaUnhandledError", parsed)
+        raise PkgpushException(f"{err_prefix}UnhandledError", parsed)
 
     if "error" in parsed:
-        raise PkgpushException("S3HashLambdaError", parsed["error"])
+        raise PkgpushException(f"{err_prefix}rror", parsed["error"])
 
-    return ChecksumResult(**parsed["result"]).checksum
+    return parsed["result"]
+
+
+def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum:
+    result = invoke_lambda(
+        function_name=S3_HASH_LAMBDA,
+        params=S3HashLambdaParams(
+            credentials=credentials,
+            location=S3ObjectSource.from_pk(pk),
+        ),
+        err_prefix="S3HashLambda",
+    )
+    return ChecksumResult(**result).checksum
 
 
 def calculate_pkg_entry_hash(
@@ -154,24 +163,16 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
 
 
 def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> str:
-    resp = lambda_.invoke(
-        FunctionName=S3_COPY_LAMBDA,
-        Payload=S3CopyLambdaParams(
+    result = invoke_lambda(
+        function_name=S3_COPY_LAMBDA,
+        params=S3CopyLambdaParams(
             credentials=credentials,
             location=S3ObjectSource.from_pk(src),
             target=S3ObjectDestination.from_pk(dst),
-        ).json(exclude_defaults=True),
+        ),
+        err_prefix="S3CopyLambda",
     )
-
-    parsed = json.load(resp["Payload"])
-
-    if "FunctionError" in resp:
-        raise PkgpushException("S3CopyLambdaUnhandledError", parsed)
-
-    if "error" in parsed:
-        raise PkgpushException("S3CopyLambdaError", parsed["error"])
-
-    return CopyResult(**parsed["result"]).version
+    return CopyResult(**result).version
 
 
 def copy_pkg_entry_data(
