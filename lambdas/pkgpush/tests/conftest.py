@@ -21,4 +21,5 @@ def pytest_configure(config):
         S3_HASH_LAMBDA='s3-hash-lambda-name',
         S3_COPY_LAMBDA='s3-copy-lambda-name',
         S3_HASH_LAMBDA_CONCURRENCY='40',
+        S3_COPY_LAMBDA_CONCURRENCY='40',
     )

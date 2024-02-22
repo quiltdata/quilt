@@ -54,10 +54,11 @@ PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
 MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH"])
 MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
 # To dispatch separate, stack-created lambda functions.
-S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
+S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 # CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
-S3_COPY_LAMBDA_CONCURRENCY = S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
+S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
+S3_COPY_LAMBDA_CONCURRENCY = int(os.environ["S3_COPY_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
