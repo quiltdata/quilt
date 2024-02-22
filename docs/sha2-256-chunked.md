@@ -3,7 +3,7 @@
 ## DRAFT multihash codec 0xb510
 
 > Hash of concatenated SHA2-256 digests of 8*2^n MiB source chunks
-> where n = log(source_size / (10^4 * 8MiB))
+> where n = ceil(log2(source_size / (10^4 * 8MiB))
 
 This variant of sha2-256 is designed to enable large files
 to be efficiently uploaded and hashed in parallel using fixed size chunks
@@ -16,8 +16,8 @@ it will double the chunk size until the number of chunks
 is under that limit.
 
 ```pseudocode
-n = floor(log(source_size / (10_000 * 8 MiB)))
-chunk_size = 8*2^n MiB
+n = ceil(log2(source_size / (10_000 * 8 MiB)))
+chunk_size = 8 MiB * 2^n
 ```
 
 ## Inspiration
