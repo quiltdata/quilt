@@ -476,7 +476,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '08b3327c1ccaba57e055746c9c8d15db8852eba1243911a55d33249f62aadcfa',
+            'b8cc6e8caa93d1250afe3a4ae1d47bb4f03a900076d9d12bcb6797df57b273d0',
             pointer_name=str(timestamp1),
         )
         with patch('time.time', return_value=timestamp1), \
@@ -490,7 +490,7 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_push_manifest(
             pkg_registry,
             pkg_name,
-            '08b3327c1ccaba57e055746c9c8d15db8852eba1243911a55d33249f62aadcfa',
+            'b8cc6e8caa93d1250afe3a4ae1d47bb4f03a900076d9d12bcb6797df57b273d0',
             pointer_name=str(timestamp2),
         )
         with patch('time.time', return_value=timestamp2), \
@@ -1700,7 +1700,7 @@ class PackageTest(QuiltTestCase):
         mocked_calculate_checksum.return_value = [(hash_)]
         pkg._fix_sha256()
         mocked_calculate_checksum.assert_called_once_with([entry.physical_key], [len(data)])
-        assert entry.hash == {'type': 'QuiltChecksumSHA256', 'value': hash_}
+        assert entry.hash == {'type': 'sha2-256-chunked', 'value': hash_}
 
     def test_resolve_hash_invalid_pkg_name(self):
         with pytest.raises(QuiltException, match='Invalid package name'):

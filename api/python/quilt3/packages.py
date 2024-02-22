@@ -24,7 +24,6 @@ from tqdm import tqdm
 from . import util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
-    CHECKSUM_MULTIPART_THRESHOLD,
     calculate_checksum,
     calculate_checksum_bytes,
     copy_file,
@@ -70,7 +69,7 @@ if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
 
 LEGACY_HASH_NAME = 'SHA256'
-MODERN_HASH_NAME = 'QuiltChecksumSHA256'
+MODERN_HASH_NAME = 'sha2-256-chunked'
 
 SUPPORTED_HASH_TYPES = (
     LEGACY_HASH_NAME,
