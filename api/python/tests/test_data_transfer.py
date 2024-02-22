@@ -303,7 +303,8 @@ class DataTransferTest(QuiltTestCase):
             method='put_object',
             service_response={
                 'VersionId': 'v2',
-                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',  # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                # b2a_base64(a2b_hex(b'0123456789abcdef0123456789abcdef'))
+                'ChecksumSHA256': 'ASNFZ4mrze8BI0VniavN7w==',
             },
             expected_params={
                 'Body': ANY,
