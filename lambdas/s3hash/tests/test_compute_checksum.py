@@ -76,6 +76,7 @@ def s3_stub():
 
 async def test_compliant(s3_stub: Stubber):
     checksum = "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="
+    checksum_hash = "WZ1xAz1wCsiSoOSPphsSXS9ZlBu0XaGQlETUPG7gurI="
 
     s3_stub.add_response(
         "get_object_attributes",
@@ -88,7 +89,7 @@ async def test_compliant(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(base64.b64decode(checksum)))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(base64.b64decode(checksum_hash)))
 
 
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
@@ -165,6 +166,7 @@ async def test_mpu_single(s3_stub: Stubber):
     )
 
     CHECKSUM = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_HASH = bytes.fromhex("7eb12f7f901586f5c53fc5d8aaccd4a18177aa122c0bd166133372f42bc23880")
     s3_stub.add_response(
         "upload_part_copy",
         {
@@ -189,7 +191,7 @@ async def test_mpu_single(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(CHECKSUM))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(CHECKSUM_HASH))
 
 
 async def test_mpu_multi(s3_stub: Stubber):

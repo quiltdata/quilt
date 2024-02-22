@@ -26,7 +26,7 @@ def test_no_sha256(obj_attrs):
                 "ObjectSize": 1048576,  # below the threshold
             },
             Checksum.legacy(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=")),
-            Checksum.modern(base64.b64decode("MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g=")),
+            Checksum.modern(base64.b64decode("WZ1xAz1wCsiSoOSPphsSXS9ZlBu0XaGQlETUPG7gurI=")),
         ),
         (
             {

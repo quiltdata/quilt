@@ -78,9 +78,8 @@ class Checksum(ChecksumBase):
         return cls(value=base64.b64encode(value).decode(), type=ChecksumType.MODERN)
 
     @classmethod
-    def for_parts(cls, checksums: T.Sequence[bytes], defs: T.Sequence[PartDef]):
-        value = checksums[0] if defs == PARTS_SINGLE else hash_parts(checksums)
-        return cls.modern(value)
+    def for_parts(cls, checksums: T.Sequence[bytes]):
+        return cls.modern(hash_parts(checksums))
 
 
 # 8 MiB -- boto3 default:
@@ -139,7 +138,12 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
             checksum_value = object_parts["Parts"][0]["ChecksumSHA256"]
 
         checksum_bytes = base64.b64decode(checksum_value)
-        return Checksum.modern(checksum_bytes) if MODERN_CHECKSUMS else Checksum.legacy(checksum_bytes)
+        if not MODERN_CHECKSUMS:
+            return Checksum.legacy(checksum_bytes)
+
+        # double-hash
+        checksum_bytes = hashlib.sha256(checksum_bytes).digest()
+        return Checksum.modern(checksum_bytes)
 
     if object_parts is None:
         return None
@@ -329,9 +333,7 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
             part_defs,
         )
 
-    checksum = (
-        Checksum.for_parts(part_checksums, part_defs) if MODERN_CHECKSUMS else Checksum.legacy(part_checksums[0])
-    )
+    checksum = Checksum.for_parts(part_checksums) if MODERN_CHECKSUMS else Checksum.legacy(part_checksums[0])
     return ChecksumResult(checksum=checksum)
 
 
