@@ -197,5 +197,5 @@ def search(query, limit=10):
     """
     # force a call to configure_from_default if no config exists
     _config()
-    raw_results = search_api(query, '*', limit)
+    raw_results = search_api(query, '_all', limit)
     return raw_results['hits']['hits']
