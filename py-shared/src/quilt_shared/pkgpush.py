@@ -46,6 +46,12 @@ class S3ObjectDestination(pydantic.BaseModel):
     bucket: str
     key: str
 
+    @classmethod
+    def from_pk(cls, pk: PhysicalKey):
+        if pk.version_id is not None:
+            raise ValueError("version_id is expected to be None")
+        return S3ObjectDestination(bucket=pk.bucket, key=pk.path)
+
     @property
     def boto_args(self):
         return {
@@ -57,6 +63,12 @@ class S3ObjectDestination(pydantic.BaseModel):
 class S3HashLambdaParams(pydantic.BaseModel):
     credentials: AWSCredentials
     location: S3ObjectSource
+
+
+class S3CopyLambdaParams(pydantic.BaseModel):
+    credentials: AWSCredentials
+    location: S3ObjectSource
+    target: S3ObjectDestination
 
 
 class ChecksumType(str, enum.Enum):
@@ -92,6 +104,10 @@ class MPURef(pydantic.BaseModel):
 
 class ChecksumResult(pydantic.BaseModel):
     checksum: Checksum
+
+
+class CopyResult(pydantic.BaseModel):
+    version: str
 
 
 class PackagePushParams(pydantic.BaseModel):
