@@ -48,7 +48,6 @@ class S3ObjectDestination(pydantic.BaseModel):
 
     @classmethod
     def from_pk(cls, pk: PhysicalKey):
-        # XXX: do we need this?
         if pk.version_id is not None:
             raise ValueError("version_id is expected to be None")
         return S3ObjectDestination(bucket=pk.bucket, key=pk.path)
