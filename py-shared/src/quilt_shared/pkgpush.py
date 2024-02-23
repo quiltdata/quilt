@@ -72,8 +72,8 @@ class S3CopyLambdaParams(pydantic.BaseModel):
 
 
 class ChecksumType(str, enum.Enum):
-    MP = "QuiltMultipartSHA256"
-    SP = "SHA256"
+    SHA256 = "SHA256"  # legacy
+    SHA256_CHUNKED = "sha2-256-chunked"
 
 
 class Checksum(pydantic.BaseModel):
