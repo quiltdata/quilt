@@ -813,4 +813,4 @@ class S3HashingTest(QuiltTestCase):
         hash1 = data_transfer.calculate_checksum([self.src], [size])[0]
         hash2 = data_transfer.calculate_checksum_bytes(data)
         assert hash1 == hash2
-        assert hash1 == 'Xfbg4nYTWdMKgnUFjimfzAOBU0VF9Vz0PkGYP11MlFY='
+        assert hash1 == '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='

@@ -268,8 +268,22 @@ def get_checksum_chunksize(file_size: int) -> int:
     return chunksize
 
 
+_EMPTY_STRING_SHA256 = hashlib.sha256(b'').digest()
+
 def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
+    """
+    Converts a SHA256 hash from a regular (non-multipart) S3 upload into a multipart hash,
+    i.e., base64(sha256(bytes)) -> base64(sha256([sha256(bytes)])).
+
+    Edge case: a 0-byte upload is treated as an empty list of chunks, rather than a list of a 0-byte chunk.
+    Its checksum is sha256(''), NOT sha256(sha256('')).
+    """
     s3_checksum_bytes = binascii.a2b_base64(s3_checksum)
+
+    if s3_checksum_bytes == _EMPTY_STRING_SHA256:
+        # Do not hash it again.
+        return s3_checksum
+
     quilt_checksum_bytes = hashlib.sha256(s3_checksum_bytes).digest()
     return binascii.b2a_base64(quilt_checksum_bytes, newline=False).decode()
 
@@ -1033,9 +1047,6 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                 if exceptions:
                     results[idx] = exceptions[0]
                 else:
-                    # We treat an empty file as a single zero-sized block
-                    if not future_results:
-                        future_results.append(hashlib.sha256(b'').digest())
                     hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
                     results[idx] = binascii.b2a_base64(hashes_hash, newline=False).decode()
         finally:
@@ -1222,10 +1233,6 @@ def calculate_checksum_bytes(data: bytes) -> str:
     for start in range(0, size, chunksize):
         end = min(start + chunksize, size)
         hashes.append(hashlib.sha256(data[start:end]).digest())
-
-    # We treat an empty file as a single zero-sized block
-    if not hashes:
-        hashes.append(hashlib.sha256(b'').digest())
 
     hashes_hash = hashlib.sha256(b''.join(hashes)).digest()
     return binascii.b2a_base64(hashes_hash, newline=False).decode()
