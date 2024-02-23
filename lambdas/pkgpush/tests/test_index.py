@@ -902,7 +902,7 @@ class HashCalculationTest(unittest.TestCase):
     def test_calculate_pkg_entry_hash(self):
         with mock.patch(
             "t4_lambda_pkgpush.invoke_hash_lambda",
-            return_value=Checksum(type=ChecksumType.MODERN, value="base64hash"),
+            return_value=Checksum(type=ChecksumType.SHA256_CHUNKED, value="base64hash"),
         ) as invoke_hash_lambda_mock:
             t4_lambda_pkgpush.calculate_pkg_entry_hash(self.entry_without_hash, CREDENTIALS)
 
