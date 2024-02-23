@@ -94,7 +94,19 @@ async def test_compliant(s3_stub: Stubber):
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(base64.b64decode(checksum_hash)))
 
 
-async def test_empty(s3_stub: Stubber):
+SHA256_EMPTY = bytes.fromhex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+
+
+@pytest.mark.parametrize(
+    "chunked, expected",
+    [
+        (True, s3hash.Checksum.sha256_chunked(SHA256_EMPTY)),
+        (False, s3hash.Checksum.sha256(SHA256_EMPTY)),
+    ],
+)
+async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
+    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
+
     s3_stub.add_response(
         "get_object_attributes",
         {
@@ -107,10 +119,19 @@ async def test_empty(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty())
+    assert res == s3hash.ChecksumResult(checksum=expected)
 
 
-async def test_empty_no_access(s3_stub: Stubber):
+@pytest.mark.parametrize(
+    "chunked, expected",
+    [
+        (True, s3hash.Checksum.sha256_chunked(SHA256_EMPTY)),
+        (False, s3hash.Checksum.sha256(SHA256_EMPTY)),
+    ],
+)
+async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
+    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
+
     s3_stub.add_client_error(
         "get_object_attributes",
         service_error_code="AccessDenied",
@@ -125,9 +146,10 @@ async def test_empty_no_access(s3_stub: Stubber):
         },
         LOC.boto_args,
     )
+
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty())
+    assert res == s3hash.ChecksumResult(checksum=expected)
 
 
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
@@ -211,7 +233,7 @@ async def test_mpu_single(s3_stub: Stubber):
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM).decode(),
-                "ETag": ETAG + "-1",
+                "ETag": PART_ETAG,
             },
         },
         {
