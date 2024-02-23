@@ -141,12 +141,7 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
 
         checksum_bytes = base64.b64decode(checksum_value)
 
-        return (
-            # double-hash
-            Checksum.sha256_chunked(hashlib.sha256(checksum_bytes).digest())
-            if CHUNKED_CHECKSUMS
-            else Checksum.sha256(checksum_bytes)
-        )
+        return Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)
 
     if object_parts is None:
         return None
