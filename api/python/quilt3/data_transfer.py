@@ -1033,6 +1033,9 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                 if exceptions:
                     results[idx] = exceptions[0]
                 else:
+                    # We treat an empty file as a single zero-sized block
+                    if not future_results:
+                        future_results.append(hashlib.sha256(b'').digest())
                     hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
                     results[idx] = binascii.b2a_base64(hashes_hash, newline=False).decode()
         finally:
@@ -1219,6 +1222,10 @@ def calculate_checksum_bytes(data: bytes) -> str:
     for start in range(0, size, chunksize):
         end = min(start + chunksize, size)
         hashes.append(hashlib.sha256(data[start:end]).digest())
+
+    # We treat an empty file as a single zero-sized block
+    if not hashes:
+        hashes.append(hashlib.sha256(b'').digest())
 
     hashes_hash = hashlib.sha256(b''.join(hashes)).digest()
     return binascii.b2a_base64(hashes_hash, newline=False).decode()
