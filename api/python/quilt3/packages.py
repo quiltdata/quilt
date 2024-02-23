@@ -12,6 +12,7 @@ import sys
 import tempfile
 import textwrap
 import time
+import typing as T
 import uuid
 import warnings
 from collections import deque
@@ -68,6 +69,16 @@ if MANIFEST_MAX_RECORD_SIZE is None:
 SUPPORTED_HASH_TYPES = (
     "SHA256",
 )
+
+
+class CopyFileListFn(T.Protocol):
+    def __call__(
+        self,
+        file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
+        message: T.Optional[str] = None,
+        callback: T.Optional[T.Callable] = None,
+    ) -> T.List[PhysicalKey]:
+        ...
 
 
 def _fix_docstring(**kwargs):
@@ -1360,11 +1371,15 @@ class Package:
 
     def _push(
         self, name, registry=None, dest=None, message=None, selector_fn=None, *,
-        workflow, print_info, force: bool, dedupe: bool
+        workflow, print_info, force: bool, dedupe: bool,
+        copy_file_list_fn: T.Optional[CopyFileListFn] = None,
     ):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
+
+        if copy_file_list_fn is None:
+            copy_file_list_fn = copy_file_list
 
         validate_package_name(name)
 
@@ -1490,7 +1505,7 @@ class Package:
                 entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
-        results = copy_file_list(file_list, message="Copying objects")
+        results = copy_file_list_fn(file_list, message="Copying objects")
 
         for (logical_key, entry), versioned_key in zip(entries, results):
             # Create a new package entry pointing to the new remote key.

@@ -16,5 +16,6 @@ where verb is one of
 
 ## Changes
 
+- [Added] Lambda handler for file copy ([#3884](https://github.com/quiltdata/quilt/pull/3884))
 - [Changed] Compute multipart checksums ([#3402](https://github.com/quiltdata/quilt/pull/3402))
 - [Added] Bootstrap the change log ([#3402](https://github.com/quiltdata/quilt/pull/3402))

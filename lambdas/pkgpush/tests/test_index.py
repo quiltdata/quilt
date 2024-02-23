@@ -233,30 +233,12 @@ class PackagePromoteTestBase(unittest.TestCase):
             },
         )
 
-    def setup_s3(self, expected_pkg, *, copy_data):
+    def setup_s3(self, expected_pkg):
         manifest = io.BytesIO()
         expected_pkg.dump(manifest)
         top_hash = expected_pkg.top_hash
 
         self.setup_s3_load_pkg_source()
-
-        if copy_data:
-            for src, (lk, dst) in zip(self.entries.values(), expected_pkg.walk()):
-                self.s3_stubber.add_response(
-                    method='copy_object',
-                    service_response={
-                        'VersionId': 'dst_' + src.physical_key.version_id,
-                    },
-                    expected_params={
-                        'CopySource': {
-                            'Bucket': src.physical_key.bucket,
-                            'Key': src.physical_key.path,
-                            'VersionId': src.physical_key.version_id,
-                        },
-                        'Bucket': self.dst_bucket,
-                        'Key': f'{self.dst_pkg_name}/{lk}',
-                    }
-                )
 
         # Push new manifest.
         self.s3_stubber.add_response(
@@ -337,10 +319,27 @@ class PackagePromoteTest(PackagePromoteTestBase):
             with self.subTest(config_params=config_params, expected_copy_data=expected_copy_data):
                 expected_pkg = self.prepare_pkg(copy_data=expected_copy_data)
                 top_hash = expected_pkg.top_hash
-                self.setup_s3(expected_pkg=expected_pkg, copy_data=expected_copy_data)
+                self.setup_s3(expected_pkg=expected_pkg)
 
-                with self.mock_successors({self.dst_registry: config_params}):
+                with self.mock_successors({self.dst_registry: config_params}), \
+                     mock.patch("t4_lambda_pkgpush.copy_file_list") as copy_file_list_mock:
+                    copy_file_list_mock.return_value = [
+                        e.physical_key
+                        for lk, e in expected_pkg.walk()
+                    ]
                     response = self.make_request(params)
+                    if expected_copy_data:
+                        copy_file_list_mock.assert_called_once_with(
+                            [
+                                (
+                                    src.physical_key,
+                                    PhysicalKey(dst.physical_key.bucket, dst.physical_key.path, None),
+                                    src.size
+                                )
+                                for src, (lk, dst) in zip(self.entries.values(), expected_pkg.walk())
+                            ],
+                            message=mock.ANY,
+                        )
                     assert response == {
                         "result": {
                             'top_hash': top_hash,
@@ -404,7 +403,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
             **self.dst_pkg_loc_params,
         }
         expected_pkg = self.prepare_pkg(copy_data=True)
-        self.setup_s3(expected_pkg=expected_pkg, copy_data=True)
+        self.setup_s3(expected_pkg=expected_pkg)
 
         with self.mock_successors({self.dst_registry: {'copy_data': True}}), \
              mock.patch(f't4_lambda_pkgpush.{self.max_files_const}', 1):
@@ -464,7 +463,7 @@ class PackagePromoteTestSizeExceeded(PackagePromoteTestBase):
             **self.dst_pkg_loc_params,
         }
         expected_pkg = self.prepare_pkg(copy_data=True)
-        self.setup_s3(expected_pkg=expected_pkg, copy_data=True)
+        self.setup_s3(expected_pkg=expected_pkg)
 
         with self.mock_successors({self.dst_registry: {'copy_data': True}}):
             response = self.make_request(params)
@@ -486,7 +485,7 @@ class PackagePromoteTestSizeExceeded(PackagePromoteTestBase):
         }
         expected_pkg = self.prepare_pkg(copy_data=False)
         top_hash = expected_pkg.top_hash
-        self.setup_s3(expected_pkg=expected_pkg, copy_data=False)
+        self.setup_s3(expected_pkg=expected_pkg)
 
         with self.mock_successors({self.dst_registry: {'copy_data': False}}):
             response = self.make_request(params)
@@ -980,3 +979,30 @@ class HashCalculationTest(unittest.TestCase):
             t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS)
         assert excinfo.value.name == "S3HashLambdaUnhandledError"
         lambda_client_stubber.assert_no_pending_responses()
+
+
+def test_invoke_copy_lambda():
+    SRC_BUCKET = "src-bucket"
+    SRC_KEY = "src-key"
+    SRC_VERSION_ID = "src-version-id"
+    DST_BUCKET = "dst-bucket"
+    DST_KEY = "dst-key"
+    DST_VERSION_ID = "dst-version-id"
+
+    stubber = Stubber(t4_lambda_pkgpush.lambda_)
+    stubber.add_response(
+        "invoke",
+        {
+            "Payload": io.BytesIO(b'{"result": {"version": "%s"}}' % DST_VERSION_ID.encode())
+        }
+    )
+    stubber.activate()
+    try:
+        assert t4_lambda_pkgpush.invoke_copy_lambda(
+            CREDENTIALS,
+            PhysicalKey(SRC_BUCKET, SRC_KEY, SRC_VERSION_ID),
+            PhysicalKey(DST_BUCKET, DST_KEY, None),
+        ) == DST_VERSION_ID
+        stubber.assert_no_pending_responses()
+    finally:
+        stubber.deactivate()
