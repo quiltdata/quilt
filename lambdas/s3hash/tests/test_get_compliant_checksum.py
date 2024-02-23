@@ -22,6 +22,14 @@ def test_no_sha256(obj_attrs):
     [
         (
             {
+                "Checksum": {"ChecksumSHA256": "does not matter"},
+                "ObjectSize": 0,
+            },
+            None,
+            None,
+        ),
+        (
+            {
                 "Checksum": {"ChecksumSHA256": "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="},
                 "ObjectSize": 1048576,  # below the threshold
             },

@@ -100,6 +100,7 @@ async def test_empty(s3_stub: Stubber):
         {
             "Checksum": {"ChecksumSHA256": "doesnt matter"},
             "ObjectSize": 0,
+            "ETag": "any",
         },
         EXPECTED_GETATTR_PARAMS,
     )
