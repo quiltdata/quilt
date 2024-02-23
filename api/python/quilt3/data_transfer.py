@@ -270,6 +270,7 @@ def get_checksum_chunksize(file_size: int) -> int:
 
 _EMPTY_STRING_SHA256 = hashlib.sha256(b'').digest()
 
+
 def _simple_s3_to_quilt_checksum(s3_checksum: str) -> str:
     """
     Converts a SHA256 hash from a regular (non-multipart) S3 upload into a multipart hash,
