@@ -9,13 +9,8 @@ from t4_lambda_s3hash import Checksum, get_compliant_checksum
 @pytest.mark.parametrize(
     "obj_attrs",
     [
-        {
-            "ObjectSize": 1,
-        },
-        {
-            "ObjectSize": 1,
-            "Checksum": {"ChecksumSHA1": "X94czmA+ZWbSDagRyci8zLBE1K4="},
-        },
+        {},
+        {"Checksum": {"ChecksumSHA1": "X94czmA+ZWbSDagRyci8zLBE1K4="}},
     ],
 )
 def test_no_sha256(obj_attrs):
@@ -25,19 +20,6 @@ def test_no_sha256(obj_attrs):
 @pytest.mark.parametrize(
     "obj_attrs, legacy, modern",
     [
-        (
-            {"ObjectSize": 0},
-            Checksum.legacy(base64.b64decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=")),
-            Checksum.modern(base64.b64decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=")),
-        ),
-        (
-            {
-                "Checksum": {"ChecksumSHA256": "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="},
-                "ObjectSize": 0,
-            },
-            Checksum.legacy(base64.b64decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=")),
-            Checksum.modern(base64.b64decode("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=")),
-        ),
         (
             {
                 "Checksum": {"ChecksumSHA256": "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="},

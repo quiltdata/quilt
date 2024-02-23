@@ -128,9 +128,6 @@ async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAt
 
 
 def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optional[Checksum]:
-    if attrs["ObjectSize"] == 0:
-        return Checksum.empty()
-
     checksum_value = attrs.get("Checksum", {}).get("ChecksumSHA256")
     if checksum_value is None:
         return None
@@ -320,6 +317,9 @@ async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
 async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
     obj_attrs = await get_obj_attributes(location)
     if obj_attrs:
+        if obj_attrs["ObjectSize"] == 0:
+            return ChecksumResult(checksum=Checksum.empty())
+
         checksum = get_compliant_checksum(obj_attrs)
         if checksum is not None:
             return ChecksumResult(checksum=checksum)
@@ -328,6 +328,7 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
     else:
         resp = await S3.get().head_object(**location.boto_args)
         etag, total_size = resp["ETag"], resp["ContentLength"]
+
         if total_size == 0:
             return ChecksumResult(checksum=Checksum.empty())
 

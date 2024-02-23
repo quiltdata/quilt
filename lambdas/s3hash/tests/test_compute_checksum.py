@@ -107,6 +107,26 @@ async def test_empty(s3_stub: Stubber):
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty())
 
 
+async def test_empty_no_access(s3_stub: Stubber):
+    s3_stub.add_client_error(
+        "get_object_attributes",
+        service_error_code="AccessDenied",
+        expected_params=EXPECTED_GETATTR_PARAMS,
+    )
+
+    s3_stub.add_response(
+        "head_object",
+        {
+            "ETag": '"test-etag"',
+            "ContentLength": 0,
+        },
+        LOC.boto_args,
+    )
+    res = await s3hash.compute_checksum(LOC)
+
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty())
+
+
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
     s3_stub.add_client_error(
         "get_object_attributes",
