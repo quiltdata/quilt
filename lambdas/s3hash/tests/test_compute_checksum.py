@@ -92,6 +92,21 @@ async def test_compliant(s3_stub: Stubber):
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.modern(base64.b64decode(checksum_hash)))
 
 
+async def test_empty(s3_stub: Stubber):
+    s3_stub.add_response(
+        "get_object_attributes",
+        {
+            "Checksum": {"ChecksumSHA256": "doesnt matter"},
+            "ObjectSize": 0,
+        },
+        EXPECTED_GETATTR_PARAMS,
+    )
+
+    res = await s3hash.compute_checksum(LOC)
+
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.empty())
+
+
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
     s3_stub.add_client_error(
         "get_object_attributes",
