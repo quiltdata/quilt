@@ -15,8 +15,7 @@ setup(
         ),
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
-            # TODO: update to master hash
-            "dd2372979c70828cf8b89977c6eb254308f51013"
+            "7a82dfcd869035c5e71a5cc7cd912af35d72515c"
             "#subdirectory=py-shared"
         ),
     ],
