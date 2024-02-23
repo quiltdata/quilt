@@ -10,12 +10,12 @@ setup(
         "pydantic ~= 1.10",
         (
             "quilt3 @ git+https://github.com/quiltdata/quilt@"
-            "299b1da851004386ab43423172c4405997fd9c53"
+            "5c2b79128fe4d5d1e6093ff6a7d11d09d3315843"
             "#subdirectory=api/python"
         ),
         (
             "quilt_shared[pydantic,boto,quilt] @ git+https://github.com/quiltdata/quilt@"
-            "33b7e601baee6dff4ef32342b493f55d3dd16210"
+            "7a82dfcd869035c5e71a5cc7cd912af35d72515c"
             "#subdirectory=py-shared"
         ),
     ],
