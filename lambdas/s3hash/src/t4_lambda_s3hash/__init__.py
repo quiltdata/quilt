@@ -33,7 +33,7 @@ logger = logging.getLogger("quilt-lambda-s3hash")
 logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
 MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
-MULTIPART_CHECKSUMS = os.environ["MULTIPART_CHECKSUMS"] == "true"
+CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
 SCRATCH_KEY_SERVICE = "user-requests/checksum-upload-tmp"
@@ -66,21 +66,22 @@ async def aio_context(credentials: AWSCredentials):
 
 class Checksum(ChecksumBase):
     @classmethod
-    def singlepart(cls, value: bytes):
-        return cls(value=value.hex(), type=ChecksumType.SP)
+    def sha256(cls, value: bytes):
+        return cls(value=value.hex(), type=ChecksumType.SHA256)
 
     @classmethod
-    def multipart(cls, parts: T.Sequence[bytes]):
-        hash_list = hash_parts(parts)
-        b64 = base64.b64encode(hash_list).decode()
-        value = f"{b64}-{len(parts)}"
-        return cls(value=value, type=ChecksumType.MP)
+    def sha256_chunked(cls, value: bytes):
+        return cls(value=base64.b64encode(value).decode(), type=ChecksumType.SHA256_CHUNKED)
 
     @classmethod
-    def for_parts(cls, checksums: T.Sequence[bytes], defs: T.Sequence[PartDef]):
-        if defs == PARTS_SINGLE:
-            return cls.singlepart(checksums[0])
-        return cls.multipart(checksums)
+    def for_parts(cls, checksums: T.Sequence[bytes]):
+        return cls.sha256_chunked(hash_parts(checksums))
+
+    _EMPTY_HASH = hashlib.sha256().digest()
+
+    @classmethod
+    def empty(cls):
+        return cls.sha256_chunked(cls._EMPTY_HASH) if CHUNKED_CHECKSUMS else cls.sha256(cls._EMPTY_HASH)
 
 
 # 8 MiB -- boto3 default:
@@ -124,12 +125,12 @@ async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAt
 
 def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optional[Checksum]:
     checksum_value = attrs.get("Checksum", {}).get("ChecksumSHA256")
-    if checksum_value is None:
+    if checksum_value is None or attrs["ObjectSize"] == 0:
         return None
 
     part_size = get_part_size(attrs["ObjectSize"])
     object_parts = attrs.get("ObjectParts")
-    if not MULTIPART_CHECKSUMS or part_size is None:
+    if not CHUNKED_CHECKSUMS or part_size is None:
         if object_parts is not None:
             assert "TotalPartsCount" in object_parts
             if object_parts["TotalPartsCount"] != 1:
@@ -138,7 +139,9 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
             assert "ChecksumSHA256" in object_parts["Parts"][0]
             checksum_value = object_parts["Parts"][0]["ChecksumSHA256"]
 
-        return Checksum.singlepart(base64.b64decode(checksum_value))
+        checksum_bytes = base64.b64decode(checksum_value)
+
+        return Checksum.for_parts([checksum_bytes]) if CHUNKED_CHECKSUMS else Checksum.sha256(checksum_bytes)
 
     if object_parts is None:
         return None
@@ -148,10 +151,7 @@ def get_compliant_checksum(attrs: GetObjectAttributesOutputTypeDef) -> T.Optiona
     # Make sure we have _all_ parts.
     assert len(object_parts["Parts"]) == num_parts
     if all(part.get("Size") == part_size for part in object_parts["Parts"][:-1]):
-        return Checksum(
-            type=ChecksumType.MP,
-            value=f"{checksum_value}-{num_parts}",
-        )
+        return Checksum.sha256_chunked(base64.b64decode(checksum_value))
 
     return None
 
@@ -365,7 +365,7 @@ async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
         async for chunk in stream.content.iter_any():
             hashobj.update(chunk)
 
-    return Checksum.singlepart(hashobj.digest())
+    return Checksum.sha256(hashobj.digest())
 
 
 async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
@@ -380,11 +380,14 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
         resp = await S3.get().head_object(**location.boto_args)
         etag, total_size = resp["ETag"], resp["ContentLength"]
 
-    if not MULTIPART_CHECKSUMS and total_size > MAX_PART_SIZE:
+    if total_size == 0:
+        return ChecksumResult(checksum=Checksum.empty())
+
+    if not CHUNKED_CHECKSUMS and total_size > MAX_PART_SIZE:
         checksum = await compute_checksum_legacy(location)
         return ChecksumResult(checksum=checksum)
 
-    part_defs = get_parts_for_size(total_size) if MULTIPART_CHECKSUMS else PARTS_SINGLE
+    part_defs = get_parts_for_size(total_size) if CHUNKED_CHECKSUMS else PARTS_SINGLE
 
     async with create_mpu(MPU_DST) as mpu:
         part_checksums = await compute_part_checksums(
@@ -394,7 +397,7 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
             part_defs,
         )
 
-    checksum = Checksum.for_parts(part_checksums, part_defs)
+    checksum = Checksum.for_parts(part_checksums) if CHUNKED_CHECKSUMS else Checksum.sha256(part_checksums[0])
     return ChecksumResult(checksum=checksum)
 
 
