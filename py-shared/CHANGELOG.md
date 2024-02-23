@@ -16,5 +16,5 @@ where verb is one of
 
 ## Changes
 
-- [Changed] Use "modern" (chunked) checksums ([#3888](https://github.com/quiltdata/quilt/pull/3888))
+- [Changed] Tweak checksum types ([#3888](https://github.com/quiltdata/quilt/pull/3888))
 - [Added] Bootstrap `quilt_shared` package ([#3849](https://github.com/quiltdata/quilt/pull/3849))
