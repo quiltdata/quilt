@@ -979,3 +979,30 @@ class HashCalculationTest(unittest.TestCase):
             t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS)
         assert excinfo.value.name == "S3HashLambdaUnhandledError"
         lambda_client_stubber.assert_no_pending_responses()
+
+
+def test_invoke_copy_lambda():
+    SRC_BUCKET = "src-bucket"
+    SRC_KEY = "src-key"
+    SRC_VERSION_ID = "src-version-id"
+    DST_BUCKET = "dst-bucket"
+    DST_KEY = "dst-key"
+    DST_VERSION_ID = "dst-version-id"
+
+    stubber = Stubber(t4_lambda_pkgpush.lambda_)
+    stubber.add_response(
+        "invoke",
+        {
+            "Payload": io.BytesIO(b'{"result": {"version": "%s"}}' % DST_VERSION_ID.encode())
+        }
+    )
+    stubber.activate()
+    try:
+        assert t4_lambda_pkgpush.invoke_copy_lambda(
+            CREDENTIALS,
+            PhysicalKey(SRC_BUCKET, SRC_KEY, SRC_VERSION_ID),
+            PhysicalKey(DST_BUCKET, DST_KEY, None),
+        ) == DST_VERSION_ID
+        stubber.assert_no_pending_responses()
+    finally:
+        stubber.deactivate()

@@ -1,14 +1,14 @@
 from unittest import mock
 
+import t4_lambda_pkgpush
 from quilt3.util import PhysicalKey
-from t4_lambda_pkgpush import AWSCredentials, copy_file_list
 
 
 @mock.patch("t4_lambda_pkgpush.S3_COPY_LAMBDA_CONCURRENCY", 1)
 def test_copy_file_list():
     BUCKET = "bucket"
     VERSION_ID = "version-id"
-    CREDENTIALS = AWSCredentials(
+    CREDENTIALS = t4_lambda_pkgpush.AWSCredentials(
         key="a",
         secret="b",
         token="c",
@@ -31,7 +31,7 @@ def test_copy_file_list():
     with mock.patch("t4_lambda_pkgpush.invoke_copy_lambda", return_value=VERSION_ID) as invoke_copy_lambda_mock:
         with mock.patch("t4_lambda_pkgpush.AWSCredentials.from_boto_session", return_value=CREDENTIALS):
             # Check results has the same order as in supplied list.
-            assert copy_file_list([(e["src"], e["dst"], e["size"]) for e in ENTRIES.values()]) == [
+            assert t4_lambda_pkgpush.copy_file_list([(e["src"], e["dst"], e["size"]) for e in ENTRIES.values()]) == [
                 e["result"] for e in ENTRIES.values()
             ]
             # Check that larger files are processed first.
