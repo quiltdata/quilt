@@ -313,7 +313,7 @@ class PackagePromoteTest(PackagePromoteTestBase):
         test_params = (
             ({'copy_data': False}, False),
             ({'copy_data': True}, True),
-            # ({}, True),
+            ({}, True),
         )
         for config_params, expected_copy_data in test_params:
             with self.subTest(config_params=config_params, expected_copy_data=expected_copy_data):
