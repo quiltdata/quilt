@@ -555,6 +555,7 @@ def _upload_or_copy_file(ctx: WorkerContext, size: int, src_path: str, dest_buck
                 if src_etag == dest_etag:
                     # Nothing more to do. We should not attempt to copy the object because
                     # that would cause the "copy object to itself" error.
+                    # TODO: Check SHA256 before checking ETag?
                     s3_checksum = resp.get('ChecksumSHA256')
                     if s3_checksum is None:
                         checksum = None

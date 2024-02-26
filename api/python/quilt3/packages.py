@@ -69,12 +69,12 @@ MANIFEST_MAX_RECORD_SIZE = util.get_pos_int_from_env('QUILT_MANIFEST_MAX_RECORD_
 if MANIFEST_MAX_RECORD_SIZE is None:
     MANIFEST_MAX_RECORD_SIZE = DEFAULT_MANIFEST_MAX_RECORD_SIZE
 
-LEGACY_HASH_NAME = 'SHA256'
-MODERN_HASH_NAME = 'sha2-256-chunked'
+SHA256_HASH_NAME = 'SHA256'
+SHA256_CHUNKED_HASH_NAME = 'sha2-256-chunked'
 
 SUPPORTED_HASH_TYPES = (
-    LEGACY_HASH_NAME,
-    MODERN_HASH_NAME,
+    SHA256_HASH_NAME,
+    SHA256_CHUNKED_HASH_NAME,
 )
 
 
@@ -230,9 +230,9 @@ class PackageEntry:
         hash_type = self.hash.get('type')
         _check_hash_type_support(hash_type)
 
-        if hash_type == MODERN_HASH_NAME:
+        if hash_type == SHA256_CHUNKED_HASH_NAME:
             expected_value = calculate_checksum_bytes(read_bytes)
-        elif hash_type == LEGACY_HASH_NAME:
+        elif hash_type == SHA256_HASH_NAME:
             expected_value = legacy_calculate_checksum_bytes(read_bytes)
         else:
             assert False
@@ -990,7 +990,7 @@ class Package:
             if isinstance(result, Exception):
                 exc = result
             else:
-                entry.hash = dict(type=MODERN_HASH_NAME, value=result)
+                entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=result)
         if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
@@ -1514,7 +1514,7 @@ class Package:
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
             if checksum is not None:
-                new_entry.hash = dict(type=MODERN_HASH_NAME, value=checksum)
+                new_entry.hash = dict(type=SHA256_CHUNKED_HASH_NAME, value=checksum)
             pkg._set(logical_key, new_entry)
 
         # Needed if the files already exist in S3, but were uploaded without ChecksumAlgorithm='SHA256'.
@@ -1718,11 +1718,11 @@ class Package:
             entry_url = src.join(logical_key)
             hash_type = entry.hash['type']
             hash_value = entry.hash['value']
-            if hash_type == MODERN_HASH_NAME:
+            if hash_type == SHA256_CHUNKED_HASH_NAME:
                 expected_hash_list.append(hash_value)
                 url_list.append(entry_url)
                 size_list.append(src_size)
-            elif hash_type == LEGACY_HASH_NAME:
+            elif hash_type == SHA256_HASH_NAME:
                 legacy_expected_hash_list.append(hash_value)
                 legacy_url_list.append(entry_url)
                 legacy_size_list.append(src_size)
