@@ -8,19 +8,18 @@ The Quilt catalog can browse packages and S3 buckets of any size.
 ### Catalog push
 
 To ensure usability and quick package pushes, the Quilt web catalog imposes the
-following limits on pushes (which vary depending on whether the multipart checksums
+following limits on pushes (which vary depending on whether the chunked checksums
 are enabled on the stack). These limits do not apply to the `quilt3` Python API.
 
- Dimension                                                  | Max (classic / multipart checksums)
+ Dimension                                                  | Max (classic / chunked checksums)
 ------------------------------------------------------------|--------
  Package manifest size (metadata)                           | 100 MiB
- Package size (data; via promotion or from an S3 directory) | 100 GiB / 10 TiB
+ Package size (data; via promotion or from an S3 directory) | 100 GiB / 5 TiB
  Total size of uploaded files (soft limit)                  | 20 GB
- Total size of files from S3 (soft limit)                   | 50 GB / 10 TB
+ Total size of files from S3 (soft limit)                   | 50 GB / 5 TB
  Maximum file size                                          | 10 GiB / 5 TiB
  Maximum number of files per push (soft limit)              | 1,000
  Maximum number of files per push (hard limit)              | 5,000
-
 
 ### API
 
