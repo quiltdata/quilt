@@ -15,7 +15,7 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 6.0.0a1 - 2024-02-26
 ## Python API
 * [Removed] Drop Python 3.7 support ([#3841](https://github.com/quiltdata/quilt/pull/3841))
 * [Changed] Set S3 client `max_pool_connections` to `QUILT_TRANSFER_MAX_CONCURRENCY` ([#3867](https://github.com/quiltdata/quilt/pull/3867))
