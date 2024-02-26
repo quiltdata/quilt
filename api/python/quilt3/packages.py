@@ -84,7 +84,7 @@ class CopyFileListFn(T.Protocol):
         file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
         message: T.Optional[str] = None,
         callback: T.Optional[T.Callable] = None,
-    ) -> T.List[PhysicalKey]:
+    ) -> T.List[T.Tuple[PhysicalKey, str]]:
         ...
 
 
