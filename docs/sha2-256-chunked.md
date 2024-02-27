@@ -15,10 +15,7 @@ If the file is larger than 80,000 MiB,
 it will double the chunk size until the number of chunks
 is under that limit.
 
-```pseudocode
-n = ceil(log2(source_size / (10_000 * 8 MiB)))
-chunk_size = 8 MiB * 2^n
-```
+If the file is zero bytes, the top hash is the sha2-256 hash of the empty string.
 
 ## Inspiration
 
