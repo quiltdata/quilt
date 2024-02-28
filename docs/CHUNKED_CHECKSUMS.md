@@ -1,7 +1,7 @@
 # Chunked Checksums
 
 This variant of sha2-256 is designed to enable large files
-to be efficiently uploaded and hashed in parallel using fixed size chunks
+to be efficiently uploaded and hashed in parallel using uniform size chunks
 (8 MiB to start with), with the final result being a "top hash"
 that doesn't depend on the upload order.
 
