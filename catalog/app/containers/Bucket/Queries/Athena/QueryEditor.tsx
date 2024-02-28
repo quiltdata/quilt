@@ -201,7 +201,12 @@ export function Form({ bucket, className, onChange, value, workgroup }: FormProp
 
   const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
     () =>
-      value?.catalog && value?.db ? { catalog: value?.catalog, db: value?.db } : null,
+      value?.catalog && value?.db
+        ? {
+            catalogName: value.catalog,
+            database: value.db,
+          }
+        : null,
     [value],
   )
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, value?.id)
@@ -225,7 +230,9 @@ export function Form({ bucket, className, onChange, value, workgroup }: FormProp
 
       <div className={classes.actions}>
         <Database
-          onChange={(databaseContext) => onChange({ ...value, ...databaseContext })}
+          onChange={({ catalogName, database }) =>
+            onChange({ ...value, catalog: catalogName, db: database })
+          }
           value={executionContext}
         />
         <M.Button
