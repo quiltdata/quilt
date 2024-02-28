@@ -194,20 +194,22 @@ interface FormProps {
   onChange: (value: string) => void
   queryExecutionId?: string
   value: string | null
+  executionContext: requests.athena.ExecutionContext | null
   workgroup: requests.athena.Workgroup
+  onExecutionContextChange: (value: requests.athena.ExecutionContext) => void
 }
 
 export function Form({
   bucket,
   className,
+  executionContext,
   onChange,
+  onExecutionContextChange,
   queryExecutionId,
   value,
   workgroup,
 }: FormProps) {
   const classes = useFormStyles()
-  const [executionContext, setExecutionContext] =
-    React.useState<requests.athena.ExecutionContext | null>(null)
 
   const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
   const handleSubmit = React.useCallback(() => {
@@ -226,7 +228,7 @@ export function Form({
       )}
 
       <div className={classes.actions}>
-        <Database onChange={setExecutionContext} value={executionContext} />
+        <Database onChange={onExecutionContextChange} value={executionContext} />
         <M.Button
           variant="contained"
           color="primary"

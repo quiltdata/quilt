@@ -29,7 +29,7 @@ interface QueryConstructorProps {
   bucket: string
   className?: string
   queryExecutionId?: string
-  initialValue?: string
+  initialValue?: requests.athena.QueryExecution
   workgroup: requests.athena.Workgroup
 }
 
@@ -44,7 +44,13 @@ function QueryConstructor({
   const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
   const data = requests.athena.useQueries(workgroup, prev)
   const classes = useAthenaQueriesStyles()
-  const [value, setValue] = React.useState<string | null>(initialValue || null)
+  const [value, setValue] = React.useState<string | null>(initialValue?.query || null)
+  const [executionContext, setExecutionContext] =
+    React.useState<requests.athena.ExecutionContext | null>(
+      initialValue && initialValue?.db && initialValue?.catalog
+        ? { catalogName: initialValue?.catalog, database: initialValue?.db }
+        : null,
+    )
   const handleQueryBodyChange = React.useCallback((v: string) => {
     setValue(v)
     setQuery(null)
@@ -82,10 +88,12 @@ function QueryConstructor({
       <QueryEditor.Form
         bucket={bucket}
         className={classes.form}
-        queryExecutionId={queryExecutionId}
-        workgroup={workgroup}
+        executionContext={executionContext}
         onChange={handleQueryBodyChange}
+        onExecutionContextChange={setExecutionContext}
+        queryExecutionId={queryExecutionId}
         value={value}
+        workgroup={workgroup}
       />
     </div>
   )
@@ -357,7 +365,7 @@ function AthenaExecution({ bucket, workgroup, queryExecutionId }: AthenaExecutio
             bucket={bucket}
             className={classes.section}
             queryExecutionId={queryExecutionId}
-            initialValue={value?.queryExecution?.query}
+            initialValue={value?.queryExecution}
             workgroup={workgroup}
           />
         ),
