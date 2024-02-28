@@ -1,4 +1,4 @@
-# CHUNKED CHECKSUMS
+# Chunked Checksums
 
 This variant of sha2-256 is designed to enable large files
 to be efficiently uploaded and hashed in parallel using fixed size chunks
