@@ -29,6 +29,7 @@ Entries inside each section should be ordered by type:
 * [Added] Search: Help link to ElasticSearch docs ([#3861](https://github.com/quiltdata/quilt/pull/3861))
 * [Fixed] Faceted Search: show helpful message in case of search query syntax errors ([#3821](https://github.com/quiltdata/quilt/pull/3821))
 * [Fixed] JsonEditor: fix changing collections items, that have `.additionalProperties` or `.items` JSON Schema ([#3860](https://github.com/quiltdata/quilt/pull/3860))
+* [Fixed] Restore Catalog name / Database for Athena query execution ([#3902](https://github.com/quiltdata/quilt/pull/3902))
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
 * [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
 
