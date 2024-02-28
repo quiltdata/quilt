@@ -496,8 +496,8 @@ export function useDatabases(
 }
 
 export interface ExecutionContext {
-  catalogName: CatalogName
-  database: Database
+  catalog: CatalogName
+  db: Database
 }
 
 interface RunQueryArgs {
@@ -525,8 +525,8 @@ export async function runQuery({
     }
     if (executionContext) {
       options.QueryExecutionContext = {
-        Catalog: executionContext.catalogName,
-        Database: executionContext.database,
+        Catalog: executionContext.catalog,
+        Database: executionContext.db,
       }
     }
     const { QueryExecutionId } = await athena.startQueryExecution(options).promise()

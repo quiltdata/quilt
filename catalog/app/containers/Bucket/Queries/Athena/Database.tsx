@@ -131,26 +131,27 @@ interface DialogProps {
 
 function Dialog({ initialValue, open, onChange, onClose }: DialogProps) {
   const classes = useDialogStyles()
-  const [catalogName, setCatalogName] =
-    React.useState<requests.athena.CatalogName | null>(initialValue?.catalogName || null)
-  const [database, setDatabase] = React.useState<requests.athena.Database | null>(
-    initialValue?.database || null,
+  const [catalog, setCatalog] = React.useState<requests.athena.CatalogName | null>(
+    initialValue?.catalog || null,
+  )
+  const [db, setDb] = React.useState<requests.athena.Database | null>(
+    initialValue?.db || null,
   )
   const handleSubmit = React.useCallback(() => {
-    if (!catalogName || !database) return
-    onChange({ catalogName, database })
+    if (!catalog || !db) return
+    onChange({ catalog, db })
     onClose()
-  }, [catalogName, database, onChange, onClose])
+  }, [catalog, db, onChange, onClose])
   return (
     <M.Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <M.DialogTitle>Select data catalog and database</M.DialogTitle>
       <M.DialogContent>
         <div className={classes.select}>
-          <SelectCatalogName onChange={setCatalogName} />
+          <SelectCatalogName onChange={setCatalog} />
         </div>
-        {catalogName && (
+        {catalog && (
           <div className={classes.select}>
-            <SelectDatabase catalogName={catalogName} onChange={setDatabase} />
+            <SelectDatabase catalogName={catalog} onChange={setDb} />
           </div>
         )}
       </M.DialogContent>
@@ -160,7 +161,7 @@ function Dialog({ initialValue, open, onChange, onClose }: DialogProps) {
         </M.Button>
         <M.Button
           color="primary"
-          disabled={!catalogName || !database}
+          disabled={!catalog || !db}
           onClick={handleSubmit}
           variant="contained"
         >
@@ -223,7 +224,7 @@ export default function Database({ className, value, onChange }: DatabaseProps) 
       />
       <ChangeButton
         className={className}
-        database={value?.database}
+        database={value?.db}
         onClick={() => setOpen(true)}
       />
     </>
