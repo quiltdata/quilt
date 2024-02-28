@@ -191,35 +191,36 @@ const useFormStyles = M.makeStyles((t) => ({
 interface FormProps {
   bucket: string
   className?: string
-  onChange: (value: string) => void
-  queryExecutionId?: string
-  value: string | null
-  executionContext: requests.athena.ExecutionContext | null
+  onChange: (value: requests.athena.QueryExecution) => void
+  value: requests.athena.QueryExecution | null
   workgroup: requests.athena.Workgroup
-  onExecutionContextChange: (value: requests.athena.ExecutionContext) => void
 }
 
-export function Form({
-  bucket,
-  className,
-  executionContext,
-  onChange,
-  onExecutionContextChange,
-  queryExecutionId,
-  value,
-  workgroup,
-}: FormProps) {
+export function Form({ bucket, className, onChange, value, workgroup }: FormProps) {
   const classes = useFormStyles()
 
-  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, queryExecutionId)
+  const executionContext = React.useMemo<requests.athena.ExecutionContext | null>(
+    () =>
+      value?.catalog && value?.db
+        ? {
+            catalogName: value.catalog,
+            database: value.db,
+          }
+        : null,
+    [value],
+  )
+  const { loading, error, onSubmit } = useQueryRun(bucket, workgroup, value?.id)
   const handleSubmit = React.useCallback(() => {
-    if (!value) return
-    onSubmit(value, executionContext)
+    if (!value?.query) return
+    onSubmit(value?.query, executionContext)
   }, [executionContext, onSubmit, value])
 
   return (
     <div className={className}>
-      <EditorField onChange={onChange} query={value || ''} />
+      <EditorField
+        onChange={(query: string) => onChange({ ...value, query })}
+        query={value?.query || ''}
+      />
 
       {error && (
         <Lab.Alert className={classes.error} severity="error">
@@ -228,7 +229,12 @@ export function Form({
       )}
 
       <div className={classes.actions}>
-        <Database onChange={onExecutionContextChange} value={executionContext} />
+        <Database
+          onChange={({ catalogName, database }) =>
+            onChange({ ...value, catalog: catalogName, db: database })
+          }
+          value={executionContext}
+        />
         <M.Button
           variant="contained"
           color="primary"
