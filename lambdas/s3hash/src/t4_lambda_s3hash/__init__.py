@@ -383,11 +383,11 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
     if total_size == 0:
         return ChecksumResult(checksum=Checksum.empty())
 
-    if not CHUNKED_CHECKSUMS and total_size > MAX_PART_SIZE:
+    if not CHUNKED_CHECKSUMS:
         checksum = await compute_checksum_legacy(location)
         return ChecksumResult(checksum=checksum)
 
-    part_defs = get_parts_for_size(total_size) if CHUNKED_CHECKSUMS else PARTS_SINGLE
+    part_defs = get_parts_for_size(total_size)
 
     async with create_mpu(MPU_DST) as mpu:
         part_checksums = await compute_part_checksums(
@@ -397,7 +397,7 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
             part_defs,
         )
 
-    checksum = Checksum.for_parts(part_checksums) if CHUNKED_CHECKSUMS else Checksum.sha256(part_checksums[0])
+    checksum = Checksum.for_parts(part_checksums)
     return ChecksumResult(checksum=checksum)
 
 
