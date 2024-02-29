@@ -297,7 +297,8 @@ def write_yaml(data, yaml_path, keep_backup=False):
 
     try:
         if path.exists():
-            path.rename(backup_path)
+            # TODO: use something from tempfile to make sure backup_path doesn't exist.
+            path.replace(backup_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
