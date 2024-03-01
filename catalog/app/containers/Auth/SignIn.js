@@ -185,7 +185,7 @@ export default () => {
       )}
       {!!cfg.passwordAuth && ssoEnabled() && <Layout.Or />}
       {!!cfg.passwordAuth && <PasswordSignIn mutex={mutex} />}
-      {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+      {cfg.mode === 'OPEN' && (
         <Layout.Hint>
           <>
             Don&apos;t have an account? <Link to={urls.signUp(next)}>Sign up</Link>.
