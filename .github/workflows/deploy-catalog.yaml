@@ -3,7 +3,7 @@ name: Deploy catalog to ECR
 on:
   push:
     branches:
-      - master
+      - paygo
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
@@ -51,4 +51,3 @@ jobs:
             -t ${{ steps.login-govcloud-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }} \
             .
           docker push ${{ steps.login-prod-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }}
-          docker push ${{ steps.login-govcloud-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }}
