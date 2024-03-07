@@ -20,6 +20,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import bg from './bg.png'
 
 import Controls from './Controls'
+import Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
@@ -593,6 +594,8 @@ export function NavBar() {
   const classes = useNavBarStyles()
   return (
     <Container>
+      <Subscription />
+
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <div className={classes.spacer} />
       ) : (
