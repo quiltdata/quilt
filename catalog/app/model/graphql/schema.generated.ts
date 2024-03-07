@@ -3596,6 +3596,18 @@ export default {
             ],
           },
           {
+            name: 'subscription',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'SubscriptionState',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
             name: 'policies',
             type: {
               kind: 'NON_NULL',
@@ -4500,6 +4512,37 @@ export default {
             name: 'Unavailable',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SubscriptionState',
+        fields: [
+          {
+            name: 'active',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Boolean',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'timestamp',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',
