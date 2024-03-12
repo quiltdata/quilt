@@ -86,6 +86,7 @@ export type BucketAddResult =
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
+  | SubscriptionInvalid
 
 export interface BucketAddSuccess {
   readonly __typename: 'BucketAddSuccess'
@@ -1001,6 +1002,11 @@ export enum StatusReportListOrder {
 }
 
 export type StatusResult = Status | Unavailable
+
+export interface SubscriptionInvalid {
+  readonly __typename: 'SubscriptionInvalid'
+  readonly _: Maybe<Scalars['Boolean']>
+}
 
 export interface SubscriptionState {
   readonly __typename: 'SubscriptionState'

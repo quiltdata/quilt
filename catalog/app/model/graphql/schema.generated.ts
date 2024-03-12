@@ -239,6 +239,10 @@ export default {
             kind: 'OBJECT',
             name: 'SnsInvalid',
           },
+          {
+            kind: 'OBJECT',
+            name: 'SubscriptionInvalid',
+          },
         ],
       },
       {
@@ -4512,6 +4516,22 @@ export default {
             name: 'Unavailable',
           },
         ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'SubscriptionInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'OBJECT',
