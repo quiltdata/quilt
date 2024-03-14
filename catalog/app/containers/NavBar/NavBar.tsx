@@ -20,7 +20,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import bg from './bg.png'
 
 import Controls from './Controls'
-import Subscription from './Subscription'
+import * as Subscription from './Subscription'
 
 const useLogoLinkStyles = M.makeStyles((t) => ({
   bgQuilt: {
@@ -580,6 +580,10 @@ const useNavBarStyles = M.makeStyles((t) => ({
   spacer: {
     flexGrow: 1,
   },
+  licenseError: {
+    color: t.palette.error.light,
+    marginRight: t.spacing(0.5),
+  },
 }))
 
 export function NavBar() {
@@ -592,9 +596,10 @@ export function NavBar() {
   const links = useLinks()
   const intercom = Intercom.use()
   const classes = useNavBarStyles()
+  const sub = Subscription.useState()
   return (
     <Container>
-      <Subscription />
+      <Subscription.Display {...sub} />
 
       {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <div className={classes.spacer} />
@@ -617,6 +622,17 @@ export function NavBar() {
             <Intercom.Launcher className={classes.navItem} />
           )}
         </nav>
+      )}
+
+      {sub.invalid && (
+        <M.IconButton
+          className={classes.licenseError}
+          onClick={sub.restore}
+          size="small"
+          title="This Quilt stack in unlicensed. Please contact your Quilt administrator."
+        >
+          <M.Icon>error_outline</M.Icon>
+        </M.IconButton>
       )}
 
       {!cfg.disableNavigator &&
