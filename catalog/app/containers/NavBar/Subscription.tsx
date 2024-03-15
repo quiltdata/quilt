@@ -53,7 +53,6 @@ export function useState(): SubscriptionState {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  // TODO: mobile styles
   root: {
     alignItems: 'center',
     background: t.palette.error.main,
@@ -66,6 +65,28 @@ const useStyles = M.makeStyles((t) => ({
     top: 0,
     width: '100%',
     zIndex: 1,
+
+    [t.breakpoints.down('sm')]: {
+      justifyContent: 'space-between',
+      paddingLeft: t.spacing(1.5),
+      paddingRight: t.spacing(1.5),
+    },
+  },
+  msg: {
+    display: 'inline-block',
+    paddingRight: t.spacing(2),
+    ...t.typography.h6,
+
+    [t.breakpoints.down('sm')]: {
+      ...t.typography.body2,
+    },
+
+    '& br': {
+      display: 'none',
+      [t.breakpoints.down('sm')]: {
+        display: 'inline',
+      },
+    },
   },
 }))
 
@@ -79,10 +100,10 @@ export function Display(props: SubscriptionState) {
       unmountOnExit
     >
       <div className={classes.root}>
-        <M.Typography variant="h6" display="inline">
-          This Quilt stack in unlicensed. Please contact your Quilt administrator.
-        </M.Typography>
-        <M.Box pl={2} display="inline-block" />
+        <span className={classes.msg}>
+          This Quilt stack is unlicensed.
+          <br /> Contact your Quilt administrator.
+        </span>
         <M.Button onClick={props.dismiss} variant="outlined">
           Dismiss
         </M.Button>

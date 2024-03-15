@@ -583,6 +583,11 @@ const useNavBarStyles = M.makeStyles((t) => ({
   licenseError: {
     color: t.palette.error.light,
     marginRight: t.spacing(0.5),
+
+    [t.breakpoints.down('sm')]: {
+      marginLeft: t.spacing(1.5),
+      marginRight: 0,
+    },
   },
 }))
 
@@ -625,14 +630,15 @@ export function NavBar() {
       )}
 
       {sub.invalid && (
-        <M.IconButton
-          className={classes.licenseError}
-          onClick={sub.restore}
-          size="small"
-          title="This Quilt stack in unlicensed. Please contact your Quilt administrator."
-        >
-          <M.Icon>error_outline</M.Icon>
-        </M.IconButton>
+        <M.Tooltip title="This Quilt stack is unlicensed. Contact your Quilt administrator.">
+          <M.IconButton
+            className={classes.licenseError}
+            onClick={sub.restore}
+            size="small"
+          >
+            <M.Icon>error_outline</M.Icon>
+          </M.IconButton>
+        </M.Tooltip>
       )}
 
       {!cfg.disableNavigator &&
