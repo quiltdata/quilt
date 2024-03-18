@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - deploy-s3proxy
     paths:
       - .github/workflows/deploy-s3proxy.yaml
       - 's3-proxy/**'
