@@ -5,11 +5,11 @@ on:
     branches:
       - master
     paths:
-      - .github/workflows/deploy-s3proxy.yaml
+      - .github/workflows/deploy-s3-proxy.yaml
       - 's3-proxy/**'
 
 jobs:
-  deploy-s3proxy:
+  deploy-s3-proxy:
     runs-on: ubuntu-latest
     defaults:
       run:
