@@ -56,5 +56,7 @@ jobs:
             -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
             .
           docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
           docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          # push to MP last because it can't be re-pushed using the same tag
+          # so we can re-run the job in case something has failed
+          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG
