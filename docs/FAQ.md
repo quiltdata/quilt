@@ -65,6 +65,8 @@ a local machine or foreign region)—I/O is much faster.
 1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
 
+1. If you are using Quilt Catalog 1.51 (released Feb 2024), you can enable the `ChunkedChecksums` CloudFormation parameter so it will calculate the checksums in parallel, or reuse them if already existing in S3. Parallel checksums are also available by default in `quilt3` v6 or later (pre-released Feb 2024).
+
 ## Does Quilt work with R?
 
 In the scientific computing community, the [R Project](https://www.r-project.org/)

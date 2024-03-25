@@ -84,6 +84,9 @@ function* signUp(credentials) {
       if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
         throw new errors.SMTPError({ originalError: e })
       }
+      if (e.status === 400 && e.json?.error_code === 'SubscriptionInvalid') {
+        throw new errors.SubscriptionInvalid({ originalError: e })
+      }
     }
     throw new errors.AuthError({
       message: 'unable to sign up',
@@ -144,6 +147,9 @@ function* signIn(credentials) {
     }
     if (HTTPError.is(e, 400, 'Default role not set')) {
       throw new errors.NoDefaultRole({ originalError: e })
+    }
+    if (HTTPError.is(e, 400) && e.json?.error_code === 'SubscriptionInvalid') {
+      throw new errors.SubscriptionInvalid({ originalError: e })
     }
 
     throw new errors.AuthError({

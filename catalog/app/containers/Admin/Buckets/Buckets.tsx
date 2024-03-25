@@ -759,6 +759,8 @@ function Add({ close }: AddProps) {
             }
           case 'InsufficientPermissions':
             return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+          case 'SubscriptionInvalid':
+            return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
           case 'BucketIndexContentBytesInvalid':
             // shouldnt happen since we valide input
             return { indexContentBytes: 'integerInRange' }
@@ -802,6 +804,7 @@ function Add({ close }: AddProps) {
                       unexpected: 'Something went wrong',
                       notificationConfigurationError: 'Notification configuration error',
                       insufficientPermissions: 'Insufficient permissions',
+                      subscriptionInvalid: 'Subscription invalid',
                     }}
                   />
                 )}
