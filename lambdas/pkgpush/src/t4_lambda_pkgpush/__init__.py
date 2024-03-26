@@ -37,8 +37,8 @@ from quilt_shared.pkgpush import (
     ChecksumResult,
     CopyResult,
     PackageConstructEntry,
+    PackageConstructParams,
     PackagePromoteParams,
-    PackagePushParams,
     PackagePushResult,
     S3CopyLambdaParams,
     S3HashLambdaParams,
@@ -111,11 +111,16 @@ def invoke_lambda(*, function_name: str, params: pydantic.BaseModel, err_prefix:
     return parsed["result"]
 
 
-def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum:
+def invoke_hash_lambda(
+    pk: PhysicalKey,
+    credentials: AWSCredentials,
+    scratch_buckets: T.Dict[str, str],
+) -> Checksum:
     result = invoke_lambda(
         function_name=S3_HASH_LAMBDA,
         params=S3HashLambdaParams(
             credentials=credentials,
+            scratch_buckets=scratch_buckets,
             location=S3ObjectSource.from_pk(pk),
         ),
         err_prefix="S3HashLambda",
@@ -126,11 +131,12 @@ def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum
 def calculate_pkg_entry_hash(
     pkg_entry: quilt3.packages.PackageEntry,
     credentials: AWSCredentials,
+    scratch_buckets: T.Dict[str, str],
 ):
-    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials).dict()
+    pkg_entry.hash = invoke_hash_lambda(pkg_entry.physical_key, credentials, scratch_buckets).dict()
 
 
-def calculate_pkg_hashes(pkg: quilt3.Package):
+def calculate_pkg_hashes(pkg: quilt3.Package, scratch_buckets: T.Dict[str, str]):
     entries = []
     for lk, entry in pkg.walk():
         if entry.hash is not None:
@@ -155,7 +161,7 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
     ) as pool:
         credentials = AWSCredentials.from_boto_session(user_boto_session)
         fs = [
-            pool.submit(calculate_pkg_entry_hash, entry, credentials)
+            pool.submit(calculate_pkg_entry_hash, entry, credentials, scratch_buckets)
             for entry in entries
         ]
         for f in concurrent.futures.as_completed(fs):
@@ -317,7 +323,7 @@ def _get_successor_params(
 
 
 def _push_pkg_to_successor(
-    params: PackagePushParams,
+    params: PackagePromoteParams,
     *,
     src_bucket: str,
     get_pkg: T.Callable[[S3PackageRegistryV1], quilt3.Package],
@@ -436,7 +442,7 @@ def promote_package(params: PackagePromoteParams) -> PackagePushResult:
     logger=logger,
 )
 def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
-    params = PackagePushParams.parse_raw(next(req_file))
+    params = PackageConstructParams.parse_raw(next(req_file))
     registry_url = f"s3://{params.bucket}"
     try:
         package_registry = get_registry(registry_url)
@@ -509,7 +515,7 @@ def create_package(req_file: T.IO[bytes]) -> PackagePushResult:
     except quilt3.util.QuiltException as qe:
         raise PkgpushException.from_quilt_exception(qe)
 
-    calculate_pkg_hashes(pkg)
+    calculate_pkg_hashes(pkg, params.scratch_buckets)
     try:
         top_hash = pkg._build(
             name=params.name,

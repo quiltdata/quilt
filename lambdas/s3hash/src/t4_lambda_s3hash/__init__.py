@@ -34,9 +34,8 @@ logger.setLevel(os.environ.get("QUILT_LOG_LEVEL", "WARNING"))
 
 MPU_CONCURRENCY = int(os.environ["MPU_CONCURRENCY"])
 CHUNKED_CHECKSUMS = os.environ["CHUNKED_CHECKSUMS"] == "true"
-SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
 
-SCRATCH_KEY_SERVICE = "user-requests/checksum-upload-tmp"
+SCRATCH_KEY = "user-requests/checksum-upload-tmp"
 
 # How much seconds before lambda is supposed to timeout we give up.
 SECONDS_TO_CLEANUP = 1
@@ -107,6 +106,30 @@ def get_part_size(file_size: int) -> T.Optional[int]:
         part_size *= 2
 
     return part_size
+
+
+async def get_bucket_region(bucket: str) -> str:
+    """
+    Lookup the region for a given bucket.
+    """
+    try:
+        resp = await S3.get().head_bucket(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        resp = e.response
+        if resp["Error"]["Code"] == "404":
+            raise
+
+    return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
+
+
+async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.Dict[str, str]) -> S3ObjectDestination:
+    region = await get_bucket_region(location.bucket)
+    scratch_bucket = scratch_buckets.get(region)
+    if scratch_bucket is None:
+        # TODO: proper exception
+        raise Exception(f"Scratch bucket not found for {region}")
+
+    return S3ObjectDestination(bucket=scratch_bucket, key=SCRATCH_KEY)
 
 
 async def get_obj_attributes(location: S3ObjectSource) -> T.Optional[GetObjectAttributesOutputTypeDef]:
@@ -259,9 +282,6 @@ async def compute_part_checksums(
     return checksums
 
 
-MPU_DST = S3ObjectDestination(bucket=SERVICE_BUCKET, key=SCRATCH_KEY_SERVICE)
-
-
 class PartUploadResult(pydantic.BaseModel):
     etag: str
     sha256: str  # base64-encoded
@@ -368,7 +388,7 @@ async def compute_checksum_legacy(location: S3ObjectSource) -> Checksum:
     return Checksum.sha256(hashobj.digest())
 
 
-async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
+async def compute_checksum(location: S3ObjectSource, scratch_buckets: T.Dict[str, str]) -> ChecksumResult:
     obj_attrs = await get_obj_attributes(location)
     if obj_attrs:
         checksum = get_compliant_checksum(obj_attrs)
@@ -389,7 +409,9 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
 
     part_defs = get_parts_for_size(total_size)
 
-    async with create_mpu(MPU_DST) as mpu:
+    mpu_dst = await get_mpu_dst_for_location(location, scratch_buckets)
+
+    async with create_mpu(mpu_dst) as mpu:
         part_checksums = await compute_part_checksums(
             mpu,
             location,
@@ -407,10 +429,11 @@ async def compute_checksum(location: S3ObjectSource) -> ChecksumResult:
 async def lambda_handler(
     *,
     credentials: AWSCredentials,
+    scratch_buckets: T.Dict[str, str],
     location: S3ObjectSource,
 ) -> ChecksumResult:
     async with aio_context(credentials):
-        return await compute_checksum(location)
+        return await compute_checksum(location, scratch_buckets)
 
 
 async def copy(location: S3ObjectSource, target: S3ObjectDestination) -> CopyResult:
