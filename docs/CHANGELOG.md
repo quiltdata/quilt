@@ -15,6 +15,11 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
+# 6.1.0a2 - 2024-03-28
+## Python API
+* [Changed] Switch to always using Signature Version 4 for S3 requests
+
+
 # 6.0.0a1 - 2024-02-26
 ## Python API
 * [Removed] Drop Python 3.7 support ([#3841](https://github.com/quiltdata/quilt/pull/3841))
