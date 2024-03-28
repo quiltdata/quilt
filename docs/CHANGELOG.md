@@ -32,6 +32,7 @@ Entries inside each section should be ordered by type:
 * [Fixed] JsonEditor: fix changing collections items, that have `.additionalProperties` or `.items` JSON Schema ([#3860](https://github.com/quiltdata/quilt/pull/3860))
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
 * [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
+* [Changed] Athena: add docs link for empty state, remove "Queries" tab for guests ([#3885](https://github.com/quiltdata/quilt/pull/3885))
 
 # 5.4.0 - 2023-11-29
 ## Python API
