@@ -1,5 +1,5 @@
 
-test:
+test: install-local
 	pytest --disable-warnings
 
 install-local:

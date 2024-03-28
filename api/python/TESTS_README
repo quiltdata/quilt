@@ -1,1 +1,3 @@
 Use pytest during normal development.
+
+You may need to first `make install-local`.
