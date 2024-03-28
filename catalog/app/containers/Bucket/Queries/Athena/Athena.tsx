@@ -28,14 +28,12 @@ const useAthenaQueriesStyles = M.makeStyles((t) => ({
 interface QueryConstructorProps {
   bucket: string
   className?: string
-  queryExecutionId?: string
-  initialValue?: string
+  initialValue?: requests.athena.QueryExecution
   workgroup: requests.athena.Workgroup
 }
 
 function QueryConstructor({
   bucket,
-  queryExecutionId,
   className,
   initialValue,
   workgroup,
@@ -44,18 +42,25 @@ function QueryConstructor({
   const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
   const data = requests.athena.useQueries(workgroup, prev)
   const classes = useAthenaQueriesStyles()
-  const [value, setValue] = React.useState<string | null>(initialValue || null)
-  const handleQueryBodyChange = React.useCallback((v: string) => {
-    setValue(v)
-    setQuery(null)
-  }, [])
+  const [value, setValue] = React.useState<requests.athena.QueryExecution | null>(
+    initialValue || null,
+  )
   const handleNamedQueryChange = React.useCallback(
     (q: requests.athena.AthenaQuery | null) => {
       setQuery(q)
-      setValue(q?.body || null)
+      setValue((x) => ({
+        ...x,
+        query: q?.body,
+      }))
     },
     [],
   )
+
+  const handleChange = React.useCallback((x: requests.athena.QueryExecution) => {
+    setValue(x)
+    setQuery(null)
+  }, [])
+
   return (
     <div className={className}>
       {data.case({
@@ -82,10 +87,9 @@ function QueryConstructor({
       <QueryEditor.Form
         bucket={bucket}
         className={classes.form}
-        queryExecutionId={queryExecutionId}
-        workgroup={workgroup}
-        onChange={handleQueryBodyChange}
+        onChange={handleChange}
         value={value}
+        workgroup={workgroup}
       />
     </div>
   )
@@ -356,8 +360,7 @@ function AthenaExecution({ bucket, workgroup, queryExecutionId }: AthenaExecutio
           <QueryConstructor
             bucket={bucket}
             className={classes.section}
-            queryExecutionId={queryExecutionId}
-            initialValue={value?.queryExecution?.query}
+            initialValue={value?.queryExecution}
             workgroup={workgroup}
           />
         ),
