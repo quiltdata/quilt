@@ -10,7 +10,7 @@ const MAX_PARTS = 10000 // Maximum number of parts per upload supported by S3
 
 export function getPartSize(fileSize: number): number | null {
   // use single-part upload (and plain SHA256 hash)
-  if (!cfg.multipartChecksums || fileSize < MIN_PART_SIZE) return null
+  if (fileSize < MIN_PART_SIZE) return null
 
   // NOTE: in the case where fileSize is exactly equal to MIN_PART_SIZE
   // boto creates a 1-part multipart upload :shrug:
@@ -25,14 +25,14 @@ export function getPartSize(fileSize: number): number | null {
   return partSize
 }
 
-const singlepart = (value: ArrayBuffer): Model.Checksum => ({
+const plain = (value: ArrayBuffer): Model.Checksum => ({
   value: Buffer.from(value).toString('hex'),
-  type: Model.CHECKSUM_TYPE_SP,
+  type: Model.CHECKSUM_TYPE_SHA256,
 })
 
-const multipart = (value: ArrayBuffer, partCount: number): Model.Checksum => ({
-  value: `${Buffer.from(value).toString('base64')}-${partCount}`,
-  type: Model.CHECKSUM_TYPE_MP,
+const chunked = (value: ArrayBuffer): Model.Checksum => ({
+  value: Buffer.from(value).toString('base64'),
+  type: Model.CHECKSUM_TYPE_SHA256_CHUNKED,
 })
 
 function mergeBuffers(buffers: ArrayBuffer[]) {
@@ -60,13 +60,11 @@ const hashBlobLimit = (blob: Blob) => blobLimit(hashBlob, blob)
 async function computeFileChecksum(f: File): Promise<Model.Checksum> {
   if (!crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
 
-  const partSize = getPartSize(f.size)
+  if (!cfg.chunkedChecksums) return plain(await hashBlobLimit(f))
 
-  // single part
-  if (partSize === null) return singlepart(await hashBlobLimit(f))
-
-  // multipart
+  const partSize = getPartSize(f.size) ?? f.size
   const parts: Blob[] = []
+
   let offset = 0
   while (offset < f.size) {
     const end = Math.min(offset + partSize, f.size)
@@ -76,7 +74,7 @@ async function computeFileChecksum(f: File): Promise<Model.Checksum> {
 
   const checksums = await Promise.all(parts.map(hashBlobLimit))
   const value = await crypto.subtle.digest('SHA-256', mergeBuffers(checksums))
-  return multipart(value, parts.length)
+  return chunked(value)
 }
 
 const computeFileChecksumLimit = (f: File) => fileLimit(computeFileChecksum, f)

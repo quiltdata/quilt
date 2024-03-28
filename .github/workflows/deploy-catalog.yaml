@@ -23,8 +23,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '16.11'
+          node-version-file: 'catalog/package.json'
           cache: 'npm'
+          cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
       - run: npm run build
       - name: Configure AWS credentials from Prod account
@@ -35,6 +36,11 @@ jobs:
       - name: Login to Prod ECR
         id: login-prod-ecr
         uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to MP ECR
+        id: login-mp-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registries: 709825985650
       - name: Configure AWS credentials from GovCloud account
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -43,11 +49,20 @@ jobs:
       - name: Login to GovCloud ECR
         id: login-govcloud-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push Docker image to Prod and GovCloud ECR
+      - name: Build and push Docker image to Prod, MP and GovCloud ECR
+        env:
+          ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
+          ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
+          ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
+          ECR_REPOSITORY: quiltdata/catalog
+          ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker buildx build \
-            -t ${{ steps.login-prod-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }} \
-            -t ${{ steps.login-govcloud-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }} \
+            -t $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG \
             .
-          docker push ${{ steps.login-prod-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }}
-          docker push ${{ steps.login-govcloud-ecr.outputs.registry }}/quiltdata/catalog:${{ github.sha }}
+          docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG

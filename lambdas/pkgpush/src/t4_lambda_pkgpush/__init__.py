@@ -35,11 +35,14 @@ from quilt_shared.lambdas_large_request_handler import (
 from quilt_shared.pkgpush import (
     Checksum,
     ChecksumResult,
+    CopyResult,
     PackageConstructEntry,
     PackagePromoteParams,
     PackagePushParams,
     PackagePushResult,
+    S3CopyLambdaParams,
     S3HashLambdaParams,
+    S3ObjectDestination,
     S3ObjectSource,
     TopHash,
 )
@@ -50,10 +53,12 @@ PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ["PROMOTE_PKG_MAX_PKG_SIZE"])
 PROMOTE_PKG_MAX_FILES = int(os.environ["PROMOTE_PKG_MAX_FILES"])
 MAX_BYTES_TO_HASH = int(os.environ["MAX_BYTES_TO_HASH"])
 MAX_FILES_TO_HASH = int(os.environ["MAX_FILES_TO_HASH"])
-# To dispatch separate, stack-created lambda function.
+# To dispatch separate, stack-created lambda functions.
 S3_HASH_LAMBDA = os.environ["S3_HASH_LAMBDA"]
+S3_COPY_LAMBDA = os.environ["S3_COPY_LAMBDA"]
 # CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ["S3_HASH_LAMBDA_CONCURRENCY"])
+S3_COPY_LAMBDA_CONCURRENCY = int(os.environ["S3_COPY_LAMBDA_CONCURRENCY"])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ["S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES"])
 
 SERVICE_BUCKET = os.environ["SERVICE_BUCKET"]
@@ -68,6 +73,7 @@ lambda_ = boto3.client(
         read_timeout=LAMBDA_READ_TIMEOUT,
         # Prevent idle timeout on NAT gateway.
         tcp_keepalive=True,
+        max_pool_connections=S3_HASH_LAMBDA_CONCURRENCY,
     ),
 )
 
@@ -88,24 +94,33 @@ class PkgpushException(LambdaError):
         return cls(name, {"details": qe.message})
 
 
-def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum:
+def invoke_lambda(*, function_name: str, params: pydantic.BaseModel, err_prefix: str):
     resp = lambda_.invoke(
-        FunctionName=S3_HASH_LAMBDA,
-        Payload=S3HashLambdaParams(
-            credentials=credentials,
-            location=S3ObjectSource.from_pk(pk),
-        ).json(exclude_defaults=True),
+        FunctionName=function_name,
+        Payload=params.json(exclude_defaults=True),
     )
 
     parsed = json.load(resp["Payload"])
 
     if "FunctionError" in resp:
-        raise PkgpushException("S3HashLambdaUnhandledError", parsed)
+        raise PkgpushException(f"{err_prefix}UnhandledError", parsed)
 
     if "error" in parsed:
-        raise PkgpushException("S3HashLambdaError", parsed["error"])
+        raise PkgpushException(f"{err_prefix}rror", parsed["error"])
 
-    return ChecksumResult(**parsed["result"]).checksum
+    return parsed["result"]
+
+
+def invoke_hash_lambda(pk: PhysicalKey, credentials: AWSCredentials) -> Checksum:
+    result = invoke_lambda(
+        function_name=S3_HASH_LAMBDA,
+        params=S3HashLambdaParams(
+            credentials=credentials,
+            location=S3ObjectSource.from_pk(pk),
+        ),
+        err_prefix="S3HashLambda",
+    )
+    return ChecksumResult(**result).checksum
 
 
 def calculate_pkg_entry_hash(
@@ -145,6 +160,57 @@ def calculate_pkg_hashes(pkg: quilt3.Package):
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
+
+
+def invoke_copy_lambda(credentials: AWSCredentials, src: PhysicalKey, dst: PhysicalKey) -> str:
+    result = invoke_lambda(
+        function_name=S3_COPY_LAMBDA,
+        params=S3CopyLambdaParams(
+            credentials=credentials,
+            location=S3ObjectSource.from_pk(src),
+            target=S3ObjectDestination.from_pk(dst),
+        ),
+        err_prefix="S3CopyLambda",
+    )
+    return CopyResult(**result).version
+
+
+def copy_pkg_entry_data(
+    credentials: AWSCredentials,
+    src: PhysicalKey,
+    dst: PhysicalKey,
+    idx: int,
+) -> T.Tuple[int, PhysicalKey]:
+    version_id = invoke_copy_lambda(credentials, src, dst)
+    return idx, PhysicalKey(bucket=dst.bucket, path=dst.path, version_id=version_id)
+
+
+def copy_file_list(
+    file_list: T.List[T.Tuple[PhysicalKey, PhysicalKey, int]],
+    message=None,
+    callback=None,
+) -> T.List[PhysicalKey]:
+    # TODO: Copy single part files directly, because using lambda for that just adds overhead,
+    #       this can be done is a separate thread pool providing higher concurrency.
+    # TODO: Use checksums to deduplicate?
+    # Schedule longer tasks first so we don't end up waiting for a single long task.
+    file_list_enumerated = list(enumerate(file_list))
+    file_list_enumerated.sort(key=lambda x: x[1][2], reverse=True)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=S3_COPY_LAMBDA_CONCURRENCY) as pool:
+        credentials = AWSCredentials.from_boto_session(user_boto_session)
+        fs = [
+            pool.submit(copy_pkg_entry_data, credentials, src, dst, idx)
+            for idx, (src, dst, _) in file_list_enumerated
+        ]
+        results = [
+            f.result()
+            for f in concurrent.futures.as_completed(fs)
+        ]
+        # Sort by idx to restore original order.
+        results.sort(key=lambda x: x[0])
+
+    return [x[1] for x in results]
 
 
 # Isolated for test-ability.
@@ -303,6 +369,7 @@ def _push_pkg_to_successor(
             # TODO: we use force=True to keep the existing behavior,
             #       but it should be re-considered.
             force=True,
+            copy_file_list_fn=copy_file_list,
         )
         assert result._origin is not None
         return PackagePushResult(top_hash=result._origin.top_hash)
