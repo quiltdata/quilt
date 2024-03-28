@@ -17,7 +17,7 @@ Entries inside each section should be ordered by type:
 
 # 6.1.0a2 - 2024-03-28
 ## Python API
-* [Changed] Switch to always using Signature Version 4 for S3 requests
+* [Changed] Change standard_client to use Signature Version 4 for S3 requests
 
 
 # 6.0.0a1 - 2024-02-26

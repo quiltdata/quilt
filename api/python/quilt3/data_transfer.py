@@ -163,6 +163,7 @@ class S3ClientProvider:
         }
         if is_unsigned(session):
             conf_kwargs["signature_version"] = UNSIGNED
+#            conf_kwargs["signature_version"] = "s3v4"
 
         return session.client('s3', config=Config(**conf_kwargs))
 
