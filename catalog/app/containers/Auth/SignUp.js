@@ -104,6 +104,12 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             [FF.FORM_ERROR]: 'smtp',
           }
         }
+        if (e instanceof errors.SubscriptionInvalid) {
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'subscriptionInvalid',
+          }
+        }
         sentry('captureException', e)
         // eslint-disable-next-line consistent-return
         return {
@@ -202,9 +208,11 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
             errors={{
               unexpected: 'Something went wrong. Try again later.',
-              smtp: 'SMTP error: contact your administrator',
+              smtp: 'SMTP error: contact your Quilt administrator',
               noDefaultRole:
                 'Unable to assign role. Ask your Quilt administrator to set a default role.',
+              subscriptionInvalid:
+                'Unable to sign up because of invalid subscription. Contact your Quilt administrator.',
             }}
           />
           <Layout.Actions>

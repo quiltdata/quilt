@@ -83,6 +83,10 @@ function Invite({ close, roles, defaultRoleId }) {
         push('User invited')
         close()
       } catch (e) {
+        if (APIConnector.HTTPError.is(e, 400, /subscription is invalid/)) {
+          return { [FF.FORM_ERROR]: 'subscriptionInvalid' }
+        }
+
         if (APIConnector.HTTPError.is(e, 400, /Username is invalid/)) {
           return {
             username: 'invalid',
@@ -194,6 +198,7 @@ function Invite({ close, roles, defaultRoleId }) {
                   errors={{
                     unexpected: 'Something went wrong',
                     smtp: 'SMTP error: contact your administrator',
+                    subscriptionInvalid: 'Invalid subscription',
                   }}
                 />
               )}

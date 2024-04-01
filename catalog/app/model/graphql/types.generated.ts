@@ -86,6 +86,7 @@ export type BucketAddResult =
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
+  | SubscriptionInvalid
 
 export interface BucketAddSuccess {
   readonly __typename: 'BucketAddSuccess'
@@ -766,6 +767,7 @@ export interface Query {
   readonly searchPackages: PackagesSearchResult
   readonly searchMoreObjects: ObjectsSearchMoreResult
   readonly searchMorePackages: PackagesSearchMoreResult
+  readonly subscription: SubscriptionState
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
   readonly roles: ReadonlyArray<Role>
@@ -1000,6 +1002,17 @@ export enum StatusReportListOrder {
 }
 
 export type StatusResult = Status | Unavailable
+
+export interface SubscriptionInvalid {
+  readonly __typename: 'SubscriptionInvalid'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface SubscriptionState {
+  readonly __typename: 'SubscriptionState'
+  readonly active: Scalars['Boolean']
+  readonly timestamp: Scalars['Datetime']
+}
 
 export interface TestStats {
   readonly __typename: 'TestStats'

@@ -32,11 +32,13 @@ def make_body(contents: bytes) -> StreamingBody:
     )
 
 
-AWS_CREDENTIALS = s3hash.AWSCredentials.parse_obj({
-    "key": "test-key",
-    "secret": "test-secret",
-    "token": "test-token",
-})
+AWS_CREDENTIALS = s3hash.AWSCredentials.parse_obj(
+    {
+        "key": "test-key",
+        "secret": "test-secret",
+        "token": "test-token",
+    }
+)
 
 LOC = s3hash.S3ObjectSource(
     bucket="test-bucket",
@@ -76,19 +78,78 @@ def s3_stub():
 
 async def test_compliant(s3_stub: Stubber):
     checksum = "MOFJVevxNSJm3C/4Bn5oEEYH51CrudOzZYK4r5Cfy1g="
+    checksum_hash = "WZ1xAz1wCsiSoOSPphsSXS9ZlBu0XaGQlETUPG7gurI="
 
     s3_stub.add_response(
         "get_object_attributes",
         {
             "Checksum": {"ChecksumSHA256": checksum},
-            "ObjectSize": 1048576,
+            "ObjectSize": 1048576,  # below the threshold
         },
         EXPECTED_GETATTR_PARAMS,
     )
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(base64.b64decode(checksum)))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(base64.b64decode(checksum_hash)))
+
+
+SHA256_EMPTY = bytes.fromhex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+
+
+@pytest.mark.parametrize(
+    "chunked, expected",
+    [
+        (True, s3hash.Checksum.sha256_chunked(SHA256_EMPTY)),
+        (False, s3hash.Checksum.sha256(SHA256_EMPTY)),
+    ],
+)
+async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
+    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
+
+    s3_stub.add_response(
+        "get_object_attributes",
+        {
+            "Checksum": {"ChecksumSHA256": "doesnt matter"},
+            "ObjectSize": 0,
+            "ETag": "any",
+        },
+        EXPECTED_GETATTR_PARAMS,
+    )
+
+    res = await s3hash.compute_checksum(LOC)
+
+    assert res == s3hash.ChecksumResult(checksum=expected)
+
+
+@pytest.mark.parametrize(
+    "chunked, expected",
+    [
+        (True, s3hash.Checksum.sha256_chunked(SHA256_EMPTY)),
+        (False, s3hash.Checksum.sha256(SHA256_EMPTY)),
+    ],
+)
+async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber, mocker: MockerFixture):
+    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", chunked)
+
+    s3_stub.add_client_error(
+        "get_object_attributes",
+        service_error_code="AccessDenied",
+        expected_params=EXPECTED_GETATTR_PARAMS,
+    )
+
+    s3_stub.add_response(
+        "head_object",
+        {
+            "ETag": '"test-etag"',
+            "ContentLength": 0,
+        },
+        LOC.boto_args,
+    )
+
+    res = await s3hash.compute_checksum(LOC)
+
+    assert res == s3hash.ChecksumResult(checksum=expected)
 
 
 async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
@@ -113,12 +174,12 @@ async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
         LOC.boto_args,
     )
 
-    mocker.patch("t4_lambda_s3hash.MULTIPART_CHECKSUMS", False)
+    mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", False)
 
     res = await s3hash.compute_checksum(LOC)
 
     checksum_hex = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(checksum_hex))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256(checksum_hex))
 
 
 async def test_mpu_fail(s3_stub: Stubber):
@@ -150,6 +211,7 @@ async def test_mpu_fail(s3_stub: Stubber):
 
 async def test_mpu_single(s3_stub: Stubber):
     ETAG = "test-etag"
+    PART_ETAG = "part-etag"
     SIZE = 1048576
     s3_stub.add_response(
         "get_object_attributes",
@@ -165,11 +227,13 @@ async def test_mpu_single(s3_stub: Stubber):
     )
 
     CHECKSUM = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_HASH = bytes.fromhex("7eb12f7f901586f5c53fc5d8aaccd4a18177aa122c0bd166133372f42bc23880")
     s3_stub.add_response(
         "upload_part_copy",
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM).decode(),
+                "ETag": PART_ETAG,
             },
         },
         {
@@ -189,7 +253,7 @@ async def test_mpu_single(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.singlepart(CHECKSUM))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_HASH))
 
 
 async def test_mpu_multi(s3_stub: Stubber):
@@ -210,11 +274,13 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
     CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    CHECKSUM_TOP = s3hash.hash_parts([CHECKSUM_1, CHECKSUM_2])
     s3_stub.add_response(
         "upload_part_copy",
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(),
+                "ETag": ETAG + "-1",
             },
         },
         {
@@ -231,6 +297,7 @@ async def test_mpu_multi(s3_stub: Stubber):
         {
             "CopyPartResult": {
                 "ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(),
+                "ETag": ETAG + "-2",
             },
         },
         {
@@ -251,4 +318,89 @@ async def test_mpu_multi(s3_stub: Stubber):
 
     res = await s3hash.compute_checksum(LOC)
 
-    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.multipart([CHECKSUM_1, CHECKSUM_2]))
+    assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_TOP))
+
+
+async def test_mpu_multi_complete(s3_stub: Stubber):
+    ETAG = "test-etag"
+    SIZE = s3hash.MIN_PART_SIZE + 1
+    s3_stub.add_response(
+        "head_object",
+        {"ContentLength": SIZE, "ETag": ETAG},
+        LOC.boto_args,
+    )
+
+    MPU_ID = "test-upload-id"
+    DEST = s3hash.S3ObjectDestination(
+        bucket="dest-bucket",
+        key="dest-key",
+    )
+    s3_stub.add_response(
+        "create_multipart_upload",
+        {"UploadId": MPU_ID},
+        {
+            **DEST.boto_args,
+            "ChecksumAlgorithm": "SHA256",
+        },
+    )
+
+    CHECKSUM_1 = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    ETAG_1 = ETAG + "-a"
+    CHECKSUM_2 = bytes.fromhex("a9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
+    ETAG_2 = ETAG + "-b"
+    s3_stub.add_response(
+        "upload_part_copy",
+        {
+            "CopyPartResult": {
+                "ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(),
+                "ETag": ETAG_1,
+            },
+        },
+        {
+            **DEST.boto_args,
+            "UploadId": MPU_ID,
+            "PartNumber": 1,
+            "CopySourceRange": "bytes=0-8388607",
+            "CopySource": LOC.boto_args,
+            "CopySourceIfMatch": ETAG,
+        },
+    )
+    s3_stub.add_response(
+        "upload_part_copy",
+        {
+            "CopyPartResult": {
+                "ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(),
+                "ETag": ETAG_2,
+            },
+        },
+        {
+            **DEST.boto_args,
+            "UploadId": MPU_ID,
+            "PartNumber": 2,
+            "CopySourceRange": "bytes=8388608-8388608",
+            "CopySource": LOC.boto_args,
+            "CopySourceIfMatch": ETAG,
+        },
+    )
+
+    RESULT_VERSION_ID = "result-version-id"
+    s3_stub.add_response(
+        "complete_multipart_upload",
+        {
+            "VersionId": RESULT_VERSION_ID,
+        },
+        {
+            **DEST.boto_args,
+            "UploadId": MPU_ID,
+            "MultipartUpload": {
+                "Parts": [
+                    {"ChecksumSHA256": base64.b64encode(CHECKSUM_1).decode(), "ETag": ETAG_1, "PartNumber": 1},
+                    {"ChecksumSHA256": base64.b64encode(CHECKSUM_2).decode(), "ETag": ETAG_2, "PartNumber": 2},
+                ],
+            },
+        },
+    )
+
+    res = await s3hash.copy(LOC, DEST)
+
+    assert res == s3hash.CopyResult(version=RESULT_VERSION_ID)
