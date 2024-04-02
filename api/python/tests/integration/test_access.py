@@ -4,7 +4,7 @@ import pytest
 
 import boto3
 import quilt3 as q3
-from quilt3.data_transfer import S3ClientProvider
+from quilt3.data_transfer import S3ClientProvider, list_object_versions
 from tests.utils import QuiltTestCase
 
 NOW = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -31,7 +31,15 @@ class AccessTest(QuiltTestCase):
         list_bucket = self.s3.list_objects(Bucket=BKT, Prefix=FOLDER)
         print(f"list_bucket: {list_bucket}")
 
+    def test_list_object_versions(self):
+        print(f"test_list_object_versions for REG: {REG}")
+        versions = list_object_versions(REG, FOLDER+"/", False)
+        print(f"versions: {versions}")
+        assert versions
+
     def test_package(self):
+        # /Users/ernest/GitHub/quilt/api/python/quilt3/workflows/__init__.py:297: in validate
+
         uri = f"{REG}/{KEY}"
         split = FOLDER.split("/")
         pkg_name = f"{split[-2]}/{split[-1]}"
@@ -47,7 +55,9 @@ class AccessTest(QuiltTestCase):
         print(f"S3 URI: {uri} @ {msg}")
         pkg.set_dir("/", uri, meta={"timestamp": NOW})
 
-        pkg.push(pkg_name, registry=REG, message=msg)
+        print(f"Package.push: {pkg_name}")
+        rc = pkg.push(pkg_name, registry=REG, message=msg)
+        assert rc
 
         PKG_URI = f"quilt+{REG}#package={pkg_name}"
         print(f"Package {pkg_name} pushed to {REG}: {PKG_URI}")
