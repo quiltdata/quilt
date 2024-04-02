@@ -1,33 +1,25 @@
-name: Deploy catalog to ECR
+name: Deploy S3 Proxy to ECR
 
 on:
   push:
     branches:
       - master
     paths:
-      - '.github/workflows/deploy-catalog.yaml'
-      - 'catalog/**'
-      - 'shared/**'
+      - .github/workflows/deploy-s3-proxy.yaml
+      - 's3-proxy/**'
 
 jobs:
-  deploy-catalog-ecr:
+  deploy-s3-proxy:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: catalog
+        working-directory: s3-proxy
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     permissions:
       id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: 'catalog/package.json'
-          cache: 'npm'
-          cache-dependency-path: 'catalog/package-lock.json'
-      - run: npm ci
-      - run: npm run build
       - name: Configure AWS credentials from Prod account
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -49,13 +41,13 @@ jobs:
       - name: Login to GovCloud ECR
         id: login-govcloud-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push Docker image to Prod, MP and GovCloud ECR
+      - name: Build and push Docker image to ECR
         env:
           ECR_REGISTRY_PROD: ${{ steps.login-prod-ecr.outputs.registry }}
           ECR_REGISTRY_GOVCLOUD: ${{ steps.login-govcloud-ecr.outputs.registry }}
           ECR_REGISTRY_MP: ${{ steps.login-mp-ecr.outputs.registry }}
-          ECR_REPOSITORY: quiltdata/catalog
-          ECR_REPOSITORY_MP: quilt-data/quilt-payg-catalog
+          ECR_REPOSITORY: quiltdata/s3-proxy
+          ECR_REPOSITORY_MP: quilt-data/quilt-payg-s3-proxy
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker buildx build \
@@ -65,4 +57,6 @@ jobs:
             .
           docker push $ECR_REGISTRY_PROD/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY_GOVCLOUD/$ECR_REPOSITORY:$IMAGE_TAG
+          # push to MP last because it can't be re-pushed using the same tag
+          # so we can re-run the job in case something has failed
           docker push $ECR_REGISTRY_MP/$ECR_REPOSITORY_MP:$IMAGE_TAG

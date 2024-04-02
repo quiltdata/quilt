@@ -163,7 +163,6 @@ class S3ClientProvider:
         }
         if is_unsigned(session):
             conf_kwargs["signature_version"] = UNSIGNED
-#            conf_kwargs["signature_version"] = "s3v4"
 
         return session.client('s3', config=Config(**conf_kwargs))
 
@@ -1001,7 +1000,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                         chunk = fd.read(min(s3_transfer_config.io_chunksize, bytes_remaining))
                         if not chunk:
                             # Should not happen, but let's not get stuck in an infinite loop.
-                            break
+                            raise QuiltException("Unexpected end of file")
                         hash_obj.update(chunk)
                         progress_update(len(chunk))
                         bytes_remaining -= len(chunk)

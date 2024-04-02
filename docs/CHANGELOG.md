@@ -15,27 +15,26 @@ Entries inside each section should be ordered by type:
 ## Catalog, Lambdas
 !-->
 
-# 6.1.0a2 - 2024-03-28
-## Python API
-* [Changed] Change standard_client to use Signature Version 4 for S3 requests
-
-
-# 6.0.0a1 - 2024-02-26
+# unreleased - YYYY-MM-DD
 ## Python API
 * [Removed] Drop Python 3.7 support ([#3841](https://github.com/quiltdata/quilt/pull/3841))
 * [Changed] Set S3 client `max_pool_connections` to `QUILT_TRANSFER_MAX_CONCURRENCY` ([#3867](https://github.com/quiltdata/quilt/pull/3867))
-* [Changed] Switch from a regular SHA256 checksum to a hash list to match S3's built-in checksums ([#2782](https://github.com/quiltdata/quilt/pull/2782))
-* [Changed] Delay object hashing until package push to take advantage of S3's hashing; as a result, `dest` functions no longer receive a `top_hash` ([2782](https://github.com/quiltdata/quilt/pull/2782))
+* [Changed] **BREAKING:** Switch from a regular SHA256 checksum to a hash list (`sha2-256-chunked`) to match S3's built-in checksums ([#2782](https://github.com/quiltdata/quilt/pull/2782))
+* [Changed] **BREAKING:** Delay object hashing until package push to take advantage of S3's hashing; as a result, `dest` functions no longer receive a `top_hash` ([#2782](https://github.com/quiltdata/quilt/pull/2782))
 
 ## CLI
 
 ## Catalog, Lambdas
 * [Added] Support chunked checksums ([#3403](https://github.com/quiltdata/quilt/pull/3403), [#3887](https://github.com/quiltdata/quilt/pull/3887))
 * [Added] Search: Help link to ElasticSearch docs ([#3861](https://github.com/quiltdata/quilt/pull/3861))
+* [Added] Support MP PAYGO: track subscription state, handle related errors ([#3906](https://github.com/quiltdata/quilt/pull/3906))
 * [Fixed] Faceted Search: show helpful message in case of search query syntax errors ([#3821](https://github.com/quiltdata/quilt/pull/3821))
 * [Fixed] JsonEditor: fix changing collections items, that have `.additionalProperties` or `.items` JSON Schema ([#3860](https://github.com/quiltdata/quilt/pull/3860))
+* [Fixed] Restore Catalog name / Database for Athena query execution ([#3902](https://github.com/quiltdata/quilt/pull/3902))
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
 * [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
+* [Changed] Athena: add docs link for empty state, remove "Queries" tab for guests ([#3885](https://github.com/quiltdata/quilt/pull/3885))
+* [Changed] Updated supported node/npm version to v20 and v10 ([#3873](https://github.com/quiltdata/quilt/pull/3873))
 
 # 5.4.0 - 2023-11-29
 ## Python API

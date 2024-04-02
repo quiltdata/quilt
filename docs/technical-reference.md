@@ -265,9 +265,11 @@ You can monitor progress under Events. On completion you will see `CREATE_COMPLE
 
     ![](./imgs/outputs.png)
 
-In a separate browser window, open the DNS settings for your domain.
-Create the following `CNAME` records. **Replace italics** with the
-corresponding stack Outputs.
+### CNAMEs
+
+In order for your users to reach the Quilt catalog you must set three CNAMEs
+that point to the `LoadBalancerDNSName` as shown below and in the Outputs
+of your stack.
 
 | CNAME | Value |
 | ------ | ------- |
@@ -278,11 +280,20 @@ corresponding stack Outputs.
 Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
+### Terraform
+
+Refer to the [`quilt` module](https://github.com/quiltdata/iac) for guidance.
+
 ## Routine Maintenance and Upgrades
 
-Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
+Releases are sent to customers over email. We recommend that you apply new releases
+as soon as possible to benefit from the latest security updates and features.
+
+### CloudFormation updates
 
 To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
+
+> By default, previous parameter values carry over.
 
 1. Navigate to AWS Console > CloudFormation > Stacks
 1. Select your Quilt stack
@@ -291,19 +302,30 @@ To update your Quilt stack, apply the latest CloudFormation template in the Clou
 1. Enter the Amazon S3 URL for your template
 1. Click Next (several times) and proceed to apply the update
 
-Your previous settings should carry over.
+### Terraform updates
+
+> See above.
+
+## Upgrading from network 1.0 to network 2.0
+
+Upgrading to the Quilt 2.0 network configuration provides improved security by means
+of isolated subnets and a preference for private routing.
+
+An upgrade the 2.0 network, unlike routine Quilt upgrades, requires you to create
+a new stack with a new load balancer. You must therefore also update your
+[CNAMEs](#cnames) to point to the new load balancer.
 
 ## Create a new stack with an existing configuration
 
-You can create a new Quilt stack with the same configuration as an existing
-stack.
-> _Configuration_ here refers to the Quilt stack buckets, roles, policies,
-> and other administrative settings, all of which are stored in an RDS instance.
+Terraform users can create a new Quilt stack with the same configuration as an existing
+stack. This is typically useful when upgrading to the 2.0 network.
 
-Perform the following steps.
+> _Configuration_ refers to the Quilt stack buckets, roles, policies,
+> and other administrative settings, all of which are stored in RDS.
 
-1. Contact your Quilt account manager for a template that supports the "existing
-database", "existing search", and "existing vpc" options.
+Perform the following steps:
+
+1. Contact your Quilt account manager for a template that supports Terraform.
 
 1. Take a manual snapshot of the current Quilt database instance. For an existing
 Quilt stack this resource has the logical ID "DB". Note the snapshot identifier
