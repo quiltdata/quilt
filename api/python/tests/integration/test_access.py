@@ -31,6 +31,27 @@ class AccessTest(QuiltTestCase):
         list_bucket = self.s3.list_objects(Bucket=BKT, Prefix=FOLDER)
         print(f"list_bucket: {list_bucket}")
 
+    def test_package(self):
+        uri = f"{REG}/{KEY}"
+        split = FOLDER.split("/")
+        pkg_name = f"{split[-2]}/{split[-1]}"
+        msg = f"Today's Date: {NOW}"
+
+        pkg = q3.Package()
+        try:
+            pkg = pkg.browse(pkg_name, registry=REG)
+        except Exception as e:
+            print(f"Error browsing package: {e}")
+        print(f"Package: {pkg}")
+
+        print(f"S3 URI: {uri} @ {msg}")
+        pkg.set_dir("/", uri, meta={"timestamp": NOW})
+
+        pkg.push(pkg_name, registry=REG, message=msg)
+
+        PKG_URI = f"quilt+{REG}#package={pkg_name}"
+        print(f"Package {pkg_name} pushed to {REG}: {PKG_URI}")
+
     @pytest.mark.skip(reason="Not sure this is needed")
     def test_bucket(self):
         registry = REG
