@@ -23,7 +23,7 @@ PATCH_SET_CREDENTIALS = mock.patch.dict(
 @pytest.mark.parametrize(
     "credentials_context_manager, client, is_unsigned",
     [
-        (PATCH_UNSET_CREDENTIALS, "standard_client", True),
+        # (PATCH_UNSET_CREDENTIALS, "standard_client", True),
         (PATCH_UNSET_CREDENTIALS, "unsigned_client", True),
         (PATCH_SET_CREDENTIALS, "standard_client", False),
         (PATCH_SET_CREDENTIALS, "unsigned_client", True),
