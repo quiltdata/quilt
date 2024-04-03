@@ -914,6 +914,9 @@ class Package:
             try:
                 objects, _ = list_object_versions(src.bucket, src_path)
             except botocore.exceptions.ClientError as e:
+                if e.response["Error"]["Code"] != "AccessDenied":
+                    raise
+
                 # use list_objects instead
                 print(f"list_object_versions not available; using list_objects:\n{e}")
                 objects = list_objects(src.bucket, src_path, recursive=True)
