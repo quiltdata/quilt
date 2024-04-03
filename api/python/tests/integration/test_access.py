@@ -1,14 +1,16 @@
-from datetime import datetime
+from datetime import datetime, UTC
+import os
 import pytest
 
 import boto3
 import quilt3 as q3
 from quilt3.data_transfer import list_object_versions
 
-NOW = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+NOW = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
 BKT = "850787717197-1867753-fepwgrx9iujr5b9pkjudkhpgxwbuhuse1b-s3alias"
 SOURCE = f"s3://{BKT}"
-DEST = "s3://quilt-sales-staging"
+DBKT = "quilt-sales-staging"
+DEST = f"s3://{DBKT}"
 FOLDER = "850787717197/sequenceStore/1867753048/readSet/5447294294"
 FILE = "U0a_CGATGT_L001_R1_004.fastq.gz"
 KEY = f"{FOLDER}/{FILE}"
@@ -16,6 +18,7 @@ KEY = f"{FOLDER}/{FILE}"
 
 @pytest.fixture(autouse=True)
 def client():
+    os.environ["AWS_PROFILE"] = "sales"
     session = boto3.Session(profile_name="sales")
     return session.client("s3")
 
@@ -31,8 +34,8 @@ def test_boto3_access(client):
 
 
 def test_list_object_versions(client):
-    print(f"test_list_object_versions for SOURCE: {SOURCE}")
-    versions = list_object_versions(SOURCE, FOLDER+"/", False)
+    print(f"test_list_object_versions for BKT: {BKT}")
+    versions = list_object_versions(BKT, FOLDER + "/", False)
     print(f"versions: {versions}")
     assert versions
 
@@ -55,5 +58,6 @@ def test_package(client):
 
     PKG_URI = f"quilt+{DEST}#package={pkg_name}"
     print(f"Pushing {pkg_name} to {DEST}: {PKG_URI}")
-    rc = pkg.push(pkg_name, registry=DEST, message=msg, force=True)
-    assert rc
+    check = client.list_objects(Bucket=DBKT, Prefix=pkg_name)
+    assert check.get("Prefix") == pkg_name
+    pkg.push(pkg_name, registry=DEST, message=msg, force=True)
