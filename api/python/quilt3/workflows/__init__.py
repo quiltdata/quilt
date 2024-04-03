@@ -304,7 +304,7 @@ def validate(*, registry: PackageRegistry, workflow, name, pkg, message):
         if workflow in (None, ...):
             print(f"Ignoring missing workflow config[workflow={workflow}]:\n{e}")
             return
-        raise util.QuiltException("An error occurred while getting the workflow config.") from e
+        raise util.QuiltException(f"{workflow!r} workflow is specified, but no workflows config exist.")
 
     workflow_validator = workflow_config.get_workflow_validator(workflow)
     return workflow_validator.validate(name=name, pkg=pkg, message=message)
