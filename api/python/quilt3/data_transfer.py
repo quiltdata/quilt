@@ -752,9 +752,14 @@ def list_object_versions(bucket, prefix, recursive=True):
         else:
             return prefixes, versions, delete_markers
     except Exception as e:
-        # Handle the exception here
-        print(f"An error occurred: {e}")
-    return versions, delete_markers
+        print(f"Could not call `list_object_versions`:\n{e}")
+    if recursive:
+        objects = list_objects(bucket, prefix, recursive=True)
+        for obj in objects:
+            obj["IsLatest"] = True
+        return objects, delete_markers
+    prefixes, objects = list_objects(bucket, prefix, recursive=False)
+    return prefixes, objects, delete_markers
 
 
 def list_objects(bucket, prefix, recursive=True):

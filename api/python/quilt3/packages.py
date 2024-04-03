@@ -914,7 +914,7 @@ class Package:
             for obj in objects:
                 if not obj['IsLatest']:
                     continue
-                # Skip S3 pseduo directory files and Keys that end in /
+                # Skip S3 pseudo-directory files and Keys that end in /
                 if obj['Key'].endswith('/'):
                     if obj['Size'] != 0:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')

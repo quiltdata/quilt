@@ -36,12 +36,11 @@ def test_boto3_access(client):
 def test_list_object_versions(client):
     print(f"test_list_object_versions for BKT: {BKT}")
     versions = list_object_versions(BKT, FOLDER + "/", False)
-    print(f"versions: {versions}")
-    assert versions
+    assert versions  # should we destructure the call?
 
 
 def test_package(client):
-    uri = f"{SOURCE}/{KEY}"
+    dir = f"{SOURCE}/{FOLDER}"
     split = FOLDER.split("/")
     pkg_name = f"{split[-2]}/{split[-1]}"
     msg = f"Today's Date: {NOW}"
@@ -53,8 +52,10 @@ def test_package(client):
         print(f"Error browsing package: {e}")
     print(f"Package: {pkg}")
 
-    print(f"S3 URI: {uri} @ {msg}")
-    pkg.set_dir("/", uri, meta={"timestamp": NOW})
+    print(f"S3 URI: {dir} @ {msg}")
+    pkg.set_dir("/", dir, meta={"timestamp": NOW})
+    print(f"Package.set_dir: {pkg}")
+    assert pkg
 
     PKG_URI = f"quilt+{DEST}#package={pkg_name}"
     print(f"Pushing {pkg_name} to {DEST}: {PKG_URI}")
