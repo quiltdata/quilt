@@ -751,7 +751,7 @@ def list_object_versions(bucket, prefix, recursive=True):
             return versions, delete_markers
         else:
             return prefixes, versions, delete_markers
-    except Exception as e:
+    except ClientError as e:
         print(f"Could not call `list_object_versions`:\n{e}")
     if recursive:
         objects = list_objects(bucket, prefix, recursive=True)
