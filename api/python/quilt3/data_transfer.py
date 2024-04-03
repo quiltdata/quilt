@@ -741,25 +741,15 @@ def list_object_versions(bucket, prefix, recursive=True):
     s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECT_VERSIONS, bucket, list_obj_params)
     paginator = s3_client.get_paginator('list_object_versions')
 
-    try:
-        for response in paginator.paginate(**list_obj_params):
-            versions += response.get("Versions", [])
-            delete_markers += response.get("DeleteMarkers", [])
-            prefixes += response.get("CommonPrefixes", [])
+    for response in paginator.paginate(**list_obj_params):
+        versions += response.get('Versions', [])
+        delete_markers += response.get('DeleteMarkers', [])
+        prefixes += response.get('CommonPrefixes', [])
 
-        if recursive:
-            return versions, delete_markers
-        else:
-            return prefixes, versions, delete_markers
-    except ClientError as e:
-        print(f"Could not call `list_object_versions`:\n{e}")
     if recursive:
-        objects = list_objects(bucket, prefix, recursive=True)
-        for obj in objects:
-            obj["IsLatest"] = True
-        return objects, delete_markers
-    prefixes, objects = list_objects(bucket, prefix, recursive=False)
-    return prefixes, objects, delete_markers
+        return versions, delete_markers
+    else:
+        return prefixes, versions, delete_markers
 
 
 def list_objects(bucket, prefix, recursive=True):

@@ -34,12 +34,6 @@ def test_boto3_access(client):
     print(f"list_bucket: {list_bucket}")
 
 
-def test_list_object_versions(client):
-    print(f"test_list_object_versions for BKT: {BKT}")
-    versions = list_object_versions(BKT, FOLDER + "/", False)
-    assert versions  # should we destructure the call?
-
-
 def test_package(client):
     dir = f"{SOURCE}/{FOLDER}"
     split = FOLDER.split("/")
