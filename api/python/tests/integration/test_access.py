@@ -1,8 +1,9 @@
-from datetime import datetime, UTC
 import os
-import pytest
+from datetime import UTC, datetime
 
 import boto3
+import pytest
+
 import quilt3 as q3
 from quilt3.data_transfer import list_object_versions
 
