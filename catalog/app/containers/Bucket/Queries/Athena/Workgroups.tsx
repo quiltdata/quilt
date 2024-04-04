@@ -3,8 +3,10 @@ import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import Skeleton from 'components/Skeleton'
+import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import Skeleton from 'components/Skeleton'
+import StyledLink from 'utils/StyledLink'
 
 import * as requests from '../requests'
 import * as storage from '../requests/storage'
@@ -103,13 +105,13 @@ function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
         </Lab.Alert>
       )}
 
-      {/* <M.Typography> // TODO: uncomment on docs deploy
-        Check{' '}
-        <StyledLink href={`${urls.docs}/catalog/queries#athena`}>
-          Athena Queries docs
-        </StyledLink>{' '}
-        on correct usage
-      </M.Typography> */}
+      <M.Box mt={1}>
+        <M.Typography variant="body2">
+          Check{' '}
+          <StyledLink href={`${docs}/advanced/athena`}>Athena Queries docs</StyledLink> on
+          setup and correct usage
+        </M.Typography>
+      </M.Box>
     </>
   )
 }
