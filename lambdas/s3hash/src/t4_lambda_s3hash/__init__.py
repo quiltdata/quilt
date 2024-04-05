@@ -126,8 +126,10 @@ async def get_mpu_dst_for_location(location: S3ObjectSource, scratch_buckets: T.
     region = await get_bucket_region(location.bucket)
     scratch_bucket = scratch_buckets.get(region)
     if scratch_bucket is None:
-        # TODO: proper exception
-        raise Exception(f"Scratch bucket not found for {region}")
+        raise LambdaError(
+            "ScratchBucketNotFound",
+            {"region": region, "bucket": location.bucket, "scratch_buckets": scratch_buckets},
+        )
 
     return S3ObjectDestination(bucket=scratch_bucket, key=SCRATCH_KEY)
 
