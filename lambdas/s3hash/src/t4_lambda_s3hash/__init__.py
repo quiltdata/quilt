@@ -467,6 +467,6 @@ async def lambda_handler_copy(
     credentials: AWSCredentials,
     location: S3ObjectSource,
     target: S3ObjectDestination,
-) -> str:
+) -> CopyResult:
     async with aio_context(credentials):
         return await copy(location, target)
