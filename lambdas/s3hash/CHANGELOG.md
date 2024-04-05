@@ -16,6 +16,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Use per-region scratch buckets ([#3923](https://github.com/quiltdata/quilt/pull/3923))
 - [Changed] Always stream bytes in legacy mode ([#3903](https://github.com/quiltdata/quilt/pull/3903))
 - [Changed] Compute chunked checksums, adhere to the spec ([#3889](https://github.com/quiltdata/quilt/pull/3889))
 - [Added] Lambda handler for file copy ([#3884](https://github.com/quiltdata/quilt/pull/3884))
