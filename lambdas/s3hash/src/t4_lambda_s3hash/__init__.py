@@ -116,9 +116,10 @@ async def get_bucket_region(bucket: str) -> str:
         resp = await S3.get().head_bucket(Bucket=bucket)
     except botocore.exceptions.ClientError as e:
         resp = e.response
-        if resp["Error"]["Code"] == "404":
+        if resp.get("Error", {}).get("Code") == "404":
             raise
 
+    assert "ResponseMetadata" in resp
     return resp["ResponseMetadata"]["HTTPHeaders"]["x-amz-bucket-region"]
 
 
