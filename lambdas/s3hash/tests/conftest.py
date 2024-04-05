@@ -14,6 +14,7 @@ AWS_CREDENTIALS = s3hash.AWSCredentials.parse_obj(
     }
 )
 
+
 # pytest's async fixtures don't propagate contextvars, so we have to set them manually in a sync fixture
 @pytest.fixture
 def s3_stub():
