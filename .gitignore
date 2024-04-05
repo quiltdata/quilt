@@ -49,3 +49,4 @@ testdocs/scripts
 .env
 
 .venv
+.aider*
