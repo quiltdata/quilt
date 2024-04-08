@@ -1,10 +1,9 @@
 import asyncio
 
-from botocore.stub import Stubber
 import pytest
+from botocore.stub import Stubber
 
 import t4_lambda_s3hash as s3hash
-
 
 AWS_CREDENTIALS = s3hash.AWSCredentials.parse_obj(
     {

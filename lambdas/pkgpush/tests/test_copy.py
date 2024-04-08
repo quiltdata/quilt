@@ -7,7 +7,6 @@ from quilt3.util import PhysicalKey
 from quilt_shared.aws import AWSCredentials
 from quilt_shared.types import NonEmptyStr
 
-
 CREDENTIALS = AWSCredentials(
     key=NonEmptyStr("test_aws_access_key_id"),
     secret=NonEmptyStr("test_aws_secret_access_key"),
