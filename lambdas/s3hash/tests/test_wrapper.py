@@ -55,7 +55,7 @@ def test_timeout(mocker: MockerFixture):
 
     # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
-        {"credentials": AWS_CREDENTIALS, "location": S3_SRC},
+        {"credentials": AWS_CREDENTIALS, "location": S3_SRC, "scratch_buckets": {}},
         FakeContext(1001),
     )
 
@@ -82,7 +82,7 @@ def test_aws_wiring(mocker: MockerFixture):
 
     # pylint: disable-next=missing-kwoa
     res = s3hash.lambda_handler(
-        {"credentials": AWS_CREDENTIALS, "location": S3_SRC},
+        {"credentials": AWS_CREDENTIALS, "location": S3_SRC, "scratch_buckets": {"region": "bucket"}},
         FakeContext(2000),
     )
 
@@ -94,6 +94,7 @@ def test_aws_wiring(mocker: MockerFixture):
             key=S3_SRC["key"],
             version=S3_SRC["version"],
         ),
+        {"region": "bucket"},
     )
 
     aio_context_mock.assert_called_once_with(s3hash.AWSCredentials.parse_obj(AWS_CREDENTIALS))

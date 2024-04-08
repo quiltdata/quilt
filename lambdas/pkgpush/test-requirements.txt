@@ -19,7 +19,10 @@ pluggy==1.4.0
 pytest==8.0.0
     # via
     #   -r test-requirements.in
+    #   pytest-mock
     #   pytest-subtests
+pytest-mock==3.14.0
+    # via -r test-requirements.in
 pytest-subtests==0.11.0
     # via -r test-requirements.in
 tomli==2.0.1

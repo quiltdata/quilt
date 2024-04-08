@@ -16,6 +16,7 @@ where verb is one of
 
 ## Changes
 
+- [Changed] Use per-region scratch buckets ([#3923](https://github.com/quiltdata/quilt/pull/3923))
 - [Changed] Speed-up copying of large files during promotion ([#3884](https://github.com/quiltdata/quilt/pull/3884))
 - [Changed] Bump quilt3 to set max_pool_connections, this improves performance ([#3870](https://github.com/quiltdata/quilt/pull/3870))
 - [Changed] Compute multipart checksums ([#3402](https://github.com/quiltdata/quilt/pull/3402))

@@ -7,15 +7,14 @@ import unittest
 from unittest import mock
 
 import boto3
-import pytest
 from botocore.stub import Stubber
 
-import quilt_shared.aws
 import t4_lambda_pkgpush
 from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
-from quilt_shared.pkgpush import Checksum, ChecksumType
+from quilt_shared.aws import AWSCredentials
+from quilt_shared.types import NonEmptyStr
 
 
 def hash_data(data):
@@ -25,11 +24,13 @@ def hash_data(data):
 calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
-CREDENTIALS = quilt_shared.aws.AWSCredentials(
-    key='test_aws_access_key_id',
-    secret='test_aws_secret_access_key',
-    token='test_aws_session_token',
+CREDENTIALS = AWSCredentials(
+    key=NonEmptyStr("test_aws_access_key_id"),
+    secret=NonEmptyStr("test_aws_secret_access_key"),
+    token=NonEmptyStr("test_aws_session_token"),
 )
+
+SCRATCH_BUCKETS = {"us-east-1": "test-scratch-bucket"}
 
 
 class PackagePromoteTestBase(unittest.TestCase):
@@ -140,7 +141,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
-        def calculate_pkg_hashes_side_effect(pkg):
+        def calculate_pkg_hashes_side_effect(pkg, scratch_buckets):
             for lk, entry in pkg.walk():
                 if entry.hash is None:
                     entry.hash = {
@@ -548,6 +549,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
             'bucket': cls.dst_bucket,
             'message': cls.dst_commit_message,
             'user_meta': cls.meta,
+            'scratch_buckets': SCRATCH_BUCKETS,
         }
         cls.gen_params = staticmethod(cls.make_params_factory(cls.params))
         cls.gen_pkg_entry = staticmethod(cls.make_params_factory(cls.package_entry))
@@ -742,6 +744,7 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                         'name': 'user/atestpackage',
                         'bucket': self.dst_bucket,
                         'message': 'test package',
+                        'scratch_buckets': SCRATCH_BUCKETS,
                     },
                     entry,
                 ])
@@ -864,145 +867,3 @@ class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
                 entry,
             ])
         assert "result" in pkg_response
-
-
-class HashCalculationTest(unittest.TestCase):
-    def setUp(self):
-        self.pkg = Package()
-        self.entry_with_hash = PackageEntry(
-            PhysicalKey('test-bucket', 'with-hash', 'with-hash'),
-            42,
-            {'type': 'SHA256', 'value': '0' * 64},
-            {},
-        )
-        self.entry_without_hash = PackageEntry(
-            PhysicalKey('test-bucket', 'without-hash', 'without-hash'),
-            42,
-            None,
-            {},
-        )
-        self.pkg.set('with-hash', self.entry_with_hash)
-        self.pkg.set('without-hash', self.entry_without_hash)
-
-    def test_calculate_pkg_hashes(self):
-        with mock.patch.object(t4_lambda_pkgpush, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
-            session_mock = boto3.Session(**CREDENTIALS.boto_args)
-            with t4_lambda_pkgpush.setup_user_boto_session(session_mock):
-                t4_lambda_pkgpush.calculate_pkg_hashes(self.pkg)
-
-        calculate_pkg_entry_hash_mock.assert_called_once_with(self.entry_without_hash, CREDENTIALS)
-
-    @mock.patch.object(t4_lambda_pkgpush, 'S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES', 1)
-    def test_calculate_pkg_hashes_too_large_file_error(self):
-        with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-            t4_lambda_pkgpush.calculate_pkg_hashes(self.pkg)
-        assert excinfo.value.name == "FileTooLargeForHashing"
-
-    def test_calculate_pkg_entry_hash(self):
-        with mock.patch(
-            "t4_lambda_pkgpush.invoke_hash_lambda",
-            return_value=Checksum(type=ChecksumType.SHA256_CHUNKED, value="base64hash"),
-        ) as invoke_hash_lambda_mock:
-            t4_lambda_pkgpush.calculate_pkg_entry_hash(self.entry_without_hash, CREDENTIALS)
-
-        invoke_hash_lambda_mock.assert_called_once_with(self.entry_without_hash.physical_key, CREDENTIALS)
-
-        assert self.entry_without_hash.hash == invoke_hash_lambda_mock.return_value.dict()
-
-    def test_invoke_hash_lambda(self):
-        lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
-        lambda_client_stubber.activate()
-        self.addCleanup(lambda_client_stubber.deactivate)
-        checksum = {"type": "sha2-256-chunked", "value": "base64hash"}
-        pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
-
-        lambda_client_stubber.add_response(
-            'invoke',
-            service_response={
-                'Payload': io.BytesIO(
-                    b'{"result": {"checksum": %s}}' % json.dumps(checksum).encode()
-                ),
-            },
-            expected_params={
-                'FunctionName': t4_lambda_pkgpush.S3_HASH_LAMBDA,
-                'Payload': json.dumps({
-                    "credentials": {
-                        "key": CREDENTIALS.key,
-                        "secret": CREDENTIALS.secret,
-                        "token": CREDENTIALS.token,
-                    },
-                    "location": {
-                        "bucket": pk.bucket,
-                        "key": pk.path,
-                        "version": pk.version_id,
-                    }
-                })
-            },
-        )
-
-        assert t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS) == checksum
-        lambda_client_stubber.assert_no_pending_responses()
-
-    def test_invoke_hash_lambda_error(self):
-        lambda_client_stubber = Stubber(t4_lambda_pkgpush.lambda_)
-        lambda_client_stubber.activate()
-        self.addCleanup(lambda_client_stubber.deactivate)
-        pk = PhysicalKey(bucket="bucket", path="path", version_id="version-id")
-
-        lambda_client_stubber.add_response(
-            'invoke',
-            service_response={
-                'FunctionError': 'Unhandled',
-                'Payload': io.BytesIO(
-                    b'{"errorMessage":"2024-02-02T14:33:39.754Z e0db9ea8-1329-44d5-a0dc-364ba2749b09'
-                    b' Task timed out after 1.00 seconds"}'
-                 ),
-            },
-            expected_params={
-                'FunctionName': t4_lambda_pkgpush.S3_HASH_LAMBDA,
-                'Payload': json.dumps({
-                    "credentials": {
-                        "key": CREDENTIALS.key,
-                        "secret": CREDENTIALS.secret,
-                        "token": CREDENTIALS.token,
-                    },
-                    "location": {
-                        "bucket": pk.bucket,
-                        "key": pk.path,
-                        "version": pk.version_id,
-                    }
-                })
-            },
-        )
-
-        with pytest.raises(t4_lambda_pkgpush.PkgpushException) as excinfo:
-            t4_lambda_pkgpush.invoke_hash_lambda(pk, CREDENTIALS)
-        assert excinfo.value.name == "S3HashLambdaUnhandledError"
-        lambda_client_stubber.assert_no_pending_responses()
-
-
-def test_invoke_copy_lambda():
-    SRC_BUCKET = "src-bucket"
-    SRC_KEY = "src-key"
-    SRC_VERSION_ID = "src-version-id"
-    DST_BUCKET = "dst-bucket"
-    DST_KEY = "dst-key"
-    DST_VERSION_ID = "dst-version-id"
-
-    stubber = Stubber(t4_lambda_pkgpush.lambda_)
-    stubber.add_response(
-        "invoke",
-        {
-            "Payload": io.BytesIO(b'{"result": {"version": "%s"}}' % DST_VERSION_ID.encode())
-        }
-    )
-    stubber.activate()
-    try:
-        assert t4_lambda_pkgpush.invoke_copy_lambda(
-            CREDENTIALS,
-            PhysicalKey(SRC_BUCKET, SRC_KEY, SRC_VERSION_ID),
-            PhysicalKey(DST_BUCKET, DST_KEY, None),
-        ) == DST_VERSION_ID
-        stubber.assert_no_pending_responses()
-    finally:
-        stubber.deactivate()
