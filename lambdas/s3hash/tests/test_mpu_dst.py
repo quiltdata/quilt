@@ -82,6 +82,6 @@ async def test_get_mpu_dst_for_location_no_scratch_bucket(s3_stub: Stubber):
         },
     )
 
-    with pytest.raises(LambdaError) as exc_info:
+    with pytest.raises(s3hash.LambdaError) as exc_info:
         await s3hash.get_mpu_dst_for_location(src_loc, scratch_buckets)
     assert "ScratchBucketNotFound" in str(exc_info.value)
