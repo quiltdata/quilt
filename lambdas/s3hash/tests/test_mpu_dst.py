@@ -27,7 +27,7 @@ async def test_get_bucket_region_exist_error(s3_stub: Stubber):
         method="head_bucket",
         service_error_code="403",
         expected_params={"Bucket": bucket_name},
-        service_message="Not Found",
+        service_message="Not Found",  # we only care about the error code, not the message
         response_meta={
             "HTTPHeaders": {"x-amz-bucket-region": expected_region},
         },
