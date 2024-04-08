@@ -7,14 +7,14 @@ import unittest
 from unittest import mock
 
 import boto3
-import pytest
 from botocore.stub import Stubber
 
-import quilt_shared.aws
 import t4_lambda_pkgpush
 from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
+from quilt_shared.aws import AWSCredentials
+from quilt_shared.types import NonEmptyStr
 
 
 def hash_data(data):
@@ -24,11 +24,13 @@ def hash_data(data):
 calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
-CREDENTIALS = quilt_shared.aws.AWSCredentials(
-    key='test_aws_access_key_id',
-    secret='test_aws_secret_access_key',
-    token='test_aws_session_token',
+CREDENTIALS = AWSCredentials(
+    key=NonEmptyStr("test_aws_access_key_id"),
+    secret=NonEmptyStr("test_aws_secret_access_key"),
+    token=NonEmptyStr("test_aws_session_token"),
 )
+
+SCRATCH_BUCKETS = {"us-east-1": "test-scratch-bucket"}
 
 
 class PackagePromoteTestBase(unittest.TestCase):
@@ -139,7 +141,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
-        def calculate_pkg_hashes_side_effect(pkg):
+        def calculate_pkg_hashes_side_effect(pkg, scratch_buckets):
             for lk, entry in pkg.walk():
                 if entry.hash is None:
                     entry.hash = {
@@ -547,6 +549,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
             'bucket': cls.dst_bucket,
             'message': cls.dst_commit_message,
             'user_meta': cls.meta,
+            'scratch_buckets': SCRATCH_BUCKETS,
         }
         cls.gen_params = staticmethod(cls.make_params_factory(cls.params))
         cls.gen_pkg_entry = staticmethod(cls.make_params_factory(cls.package_entry))
@@ -741,6 +744,7 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
                         'name': 'user/atestpackage',
                         'bucket': self.dst_bucket,
                         'message': 'test package',
+                        'scratch_buckets': SCRATCH_BUCKETS,
                     },
                     entry,
                 ])
