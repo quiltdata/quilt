@@ -6,15 +6,15 @@ import pytest
 from botocore.stub import Stubber
 from pytest_mock import MockerFixture
 
-import quilt_shared.aws
 import t4_lambda_pkgpush
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
+from quilt_shared.aws import AWSCredentials
 from quilt_shared.pkgpush import Checksum, ChecksumType
 from quilt_shared.types import NonEmptyStr
 
 
-CREDENTIALS = quilt_shared.aws.AWSCredentials(
+CREDENTIALS = AWSCredentials(
     key=NonEmptyStr("test_aws_access_key_id"),
     secret=NonEmptyStr("test_aws_secret_access_key"),
     token=NonEmptyStr("test_aws_session_token"),
@@ -49,17 +49,6 @@ def pkg(entry_with_hash: PackageEntry, entry_without_hash: PackageEntry) -> Pack
     p.set("with-hash", entry_with_hash)
     p.set("without-hash", entry_without_hash)
     return p
-
-
-@pytest.fixture
-def lambda_stub():
-    stub = Stubber(t4_lambda_pkgpush.lambda_)
-    stub.activate()
-    try:
-        yield stub
-        stub.assert_no_pending_responses()
-    finally:
-        stub.deactivate()
 
 
 def test_calculate_pkg_hashes(
