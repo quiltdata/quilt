@@ -30,8 +30,11 @@ Entries inside each section should be ordered by type:
 * [Added] Support MP PAYGO: track subscription state, handle related errors ([#3906](https://github.com/quiltdata/quilt/pull/3906))
 * [Fixed] Faceted Search: show helpful message in case of search query syntax errors ([#3821](https://github.com/quiltdata/quilt/pull/3821))
 * [Fixed] JsonEditor: fix changing collections items, that have `.additionalProperties` or `.items` JSON Schema ([#3860](https://github.com/quiltdata/quilt/pull/3860))
+* [Fixed] Restore Catalog name / Database for Athena query execution ([#3902](https://github.com/quiltdata/quilt/pull/3902))
 * [Changed] Faceted Search: use non-linear scale for numeric range control ([#3805](https://github.com/quiltdata/quilt/pull/3805))
 * [Changed] Faceted Search: reliably find metadata facets ([#3809](https://github.com/quiltdata/quilt/pull/3809))
+* [Changed] Athena: add docs link for empty state, remove "Queries" tab for guests ([#3885](https://github.com/quiltdata/quilt/pull/3885))
+* [Changed] Updated supported node/npm version to v20 and v10 ([#3873](https://github.com/quiltdata/quilt/pull/3873))
 
 # 5.4.0 - 2023-11-29
 ## Python API

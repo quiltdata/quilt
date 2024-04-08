@@ -62,6 +62,7 @@ class S3ObjectDestination(pydantic.BaseModel):
 
 class S3HashLambdaParams(pydantic.BaseModel):
     credentials: AWSCredentials
+    scratch_buckets: T.Dict[str, str]
     location: S3ObjectSource
 
 
@@ -144,6 +145,10 @@ class PackagePromoteSource(pydantic.BaseModel):
 
 class PackagePromoteParams(PackagePushParams):
     src: PackagePromoteSource
+
+
+class PackageConstructParams(PackagePushParams):
+    scratch_buckets: T.Dict[str, str]
 
 
 class PackageConstructEntry(pydantic.BaseModel):
