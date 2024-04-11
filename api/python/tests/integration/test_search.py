@@ -4,7 +4,7 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 
 def search(body: dict = {}) -> dict:
-    es_host = "https://vpc-quilt-staging-g36hebl7hml3cekeznuy7mwdqe.us-east-1.es.amazonaws.com"
+    es_host = "vpc-quilt-staging-g36hebl7hml3cekeznuy7mwdqe.us-east-1.es.amazonaws.com"
 
     auth = BotoAWSRequestsAuth(aws_host=es_host, aws_region="us-east-1", aws_service="es")
 
