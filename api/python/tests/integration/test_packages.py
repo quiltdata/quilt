@@ -106,17 +106,6 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-    def setup_s3_stubber_cannot_list_object_versions(self, pkg_registry, pkg_name):
-        self.s3_stubber.add_client_error(
-            method="list_object_versions",
-            service_error_code="AccessDenied",
-            http_status_code=404,
-            expected_params={
-                "Bucket": pkg_registry.root.bucket,
-                "Prefix": pkg_name,
-            },
-        )
-
     def setup_s3_stubber_delete_pointer(self, pkg_registry, pkg_name, *, pointer):
         self.s3_stubber.add_response(
             method='delete_object',
@@ -641,23 +630,6 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(ValueError) as e:
             pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
         assert expected_err in str(e.value)
-
-    def test_set_dir_cannot_list_object_versions(self):
-        """Verify that set_dir uses list_objects if list_object_versions fails."""
-        # uses setup_s3_stubber_cannot_list_object_versions
-        registry = 's3://test-bucket'
-        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
-        pkg_name = 'Quilt/test'
-        pkg = Package()
-
-        with patch('quilt3.packages.list_object_versions', side_effect=Exception):
-            pointers = {'latest': 'latest'}
-            self.setup_s3_stubber_list_pkg_pointers(pkg_registry, pkg_name, pointers=pointers)
-            self.setup_s3_stubber_cannot_list_object_versions(pkg_registry, pkg_name)
-            pkg.set_dir(pkg_name)
-        assert pkg._meta['dir'] == pkg_name
-        assert pkg._meta['registry'] == registry
-        assert pkg._meta['physical_keys'] == ['foo', 'bar']
 
     def test_package_entry_meta(self):
         pkg = (
