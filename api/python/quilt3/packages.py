@@ -912,13 +912,10 @@ class Package:
             src_path = src.path
             if src.basename() != '':
                 src_path += '/'
-            try:
+            if not unversioned:
                 objects, _ = list_object_versions(src.bucket, src_path)
                 objects = filter(lambda obj: obj["IsLatest"], objects)
-            except botocore.exceptions.ClientError as e:
-                if not unversioned or e.response["Error"]["Code"] != "AccessDenied":
-                    raise e
-                print(f"Warning[s3://{src.bucket}/{src_path}]: {e}.")
+            else:
                 objects = list_objects(src.bucket, src_path, recursive=True)
 
             for obj in objects:
