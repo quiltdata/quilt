@@ -637,7 +637,7 @@ class PackageTest(QuiltTestCase):
         access_err = botocore.exceptions.ClientError(
             {'Error': {'Code': 'AccessDenied'}},
             operation_name='ListObjectVersions'
-        )    
+        )
         with patch('quilt3.packages.list_object_versions',
                    side_effect=access_err):
             # Expect set_dir to fail

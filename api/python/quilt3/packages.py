@@ -859,6 +859,8 @@ class Package:
                 If 'incoming', whenever logical keys match, always take the new entry from set_dir.
                 If 'existing', whenever logical keys match, retain existing entries
                 and ignore new entries from set_dir.
+            allow_unversioned(bool): if True, allows set_dir to work with S3 URIs
+                that don't allow `list_object_versions`, such as from HealthOmics.
 
         Returns:
             self
@@ -866,6 +868,8 @@ class Package:
         Raises:
             PackageException: When `path` doesn't exist.
             ValueError: When `update_policy` is invalid.
+            AccessDenied: When `path` is an S3 URI where the user doesn't have
+                permission to `list_object_versions`, and `allow_unversioned` is False.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")

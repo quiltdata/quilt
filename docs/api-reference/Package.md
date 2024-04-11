@@ -131,7 +131,7 @@ json decode error
 invalid package exception
 
 
-## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming')  {#Package.set\_dir}
+## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming', allow_unversioned=False)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
 
@@ -149,6 +149,8 @@ __Arguments__
     If 'incoming', whenever logical keys match, always take the new entry from set_dir.
     If 'existing', whenever logical keys match, retain existing entries
     and ignore new entries from set_dir.
+* __allow_unversioned(bool)__:  if True, allows set_dir to work with S3 URIs
+    that don't allow `list_object_versions`, such as from HealthOmics.
 
 __Returns__
 
@@ -158,6 +160,8 @@ __Raises__
 
 * `PackageException`:  When `path` doesn't exist.
 * `ValueError`:  When `update_policy` is invalid.
+* `AccessDenied`: When `path` is an S3 URI where the user doesn't have
+  permission to `list_object_versions`, and `allow_unversioned` is False.
 
 
 ## Package.get(self, logical\_key)  {#Package.get}
