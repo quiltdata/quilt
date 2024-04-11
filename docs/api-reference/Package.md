@@ -131,7 +131,7 @@ json decode error
 invalid package exception
 
 
-## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming', allow_unversioned=False)  {#Package.set\_dir}
+## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming', allow\_unversioned=False)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
 
@@ -160,8 +160,8 @@ __Raises__
 
 * `PackageException`:  When `path` doesn't exist.
 * `ValueError`:  When `update_policy` is invalid.
-* `AccessDenied`: When `path` is an S3 URI where the user doesn't have
-  permission to `list_object_versions`, and `allow_unversioned` is False.
+* `AccessDenied`:  When `path` is an S3 URI where the user doesn't have
+permission to `list_object_versions`, and `allow_unversioned` is False.
 
 
 ## Package.get(self, logical\_key)  {#Package.get}
