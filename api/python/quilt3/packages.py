@@ -910,11 +910,19 @@ class Package:
             src_path = src.path
             if src.basename() != '':
                 src_path += '/'
-            objects, _ = list_object_versions(src.bucket, src_path)
+            try:
+                objects, _ = list_object_versions(src.bucket, src_path)
+            except botocore.exceptions.ClientError as e:
+                if not allow_unversioned or e.response["Error"]["Code"] != "AccessDenied":
+                    raise e
+                url = f"s3://{src.bucket}/{src_path}"
+                print(f"Warning[{url}]: {e}.")
+                objects = []
+
             for obj in objects:
                 if not obj['IsLatest']:
                     continue
-                # Skip S3 pseduo directory files and Keys that end in /
+                # Skip S3 pseudo directory files and Keys that end in /
                 if obj['Key'].endswith('/'):
                     if obj['Size'] != 0:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')

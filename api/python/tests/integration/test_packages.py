@@ -13,6 +13,7 @@ from io import BytesIO
 from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
+import botocore
 
 import jsonlines
 import pandas as pd
@@ -633,10 +634,14 @@ class PackageTest(QuiltTestCase):
 
     def test_set_dir_allow_unversioned(self):
         """Test how set_dir handles unversioned buckets."""
+        access_err = botocore.exceptions.ClientError(
+            {'Error': {'Code': 'AccessDenied'}},
+            operation_name='ListObjectVersions'
+        )    
         with patch('quilt3.packages.list_object_versions',
-                   side_effect=Exception('AccessDenied')):
+                   side_effect=access_err):
             # Expect set_dir to fail
-            with pytest.raises(Exception):
+            with pytest.raises(botocore.exceptions.ClientError):
                 Package().set_dir('foo', 's3://bucket/foo')
             # Expect set_dir(allow_unversioned_bucket=True) to succeed
             rc = Package().set_dir("foo", "s3://bucket/foo", allow_unversioned=True)
