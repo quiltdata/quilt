@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import io
 
@@ -32,14 +31,6 @@ def make_body(contents: bytes) -> StreamingBody:
     )
 
 
-AWS_CREDENTIALS = s3hash.AWSCredentials.parse_obj(
-    {
-        "key": "test-key",
-        "secret": "test-secret",
-        "token": "test-token",
-    }
-)
-
 LOC = s3hash.S3ObjectSource(
     bucket="test-bucket",
     key="test-key",
@@ -52,28 +43,19 @@ EXPECTED_GETATTR_PARAMS = {
     "ObjectAttributes": ["ETag", "Checksum", "ObjectParts", "ObjectSize"],
 }
 
+REGION = "test-region"
+SCRATCH_BUCKET = "test-scratch-bucket"
+SCRATCH_BUCKETS = {REGION: SCRATCH_BUCKET}
+
+MPU_DST = s3hash.S3ObjectDestination(
+    bucket=SCRATCH_BUCKET,
+    key=s3hash.SCRATCH_KEY,
+)
+
 EXPECTED_MPU_PARAMS = {
-    **s3hash.MPU_DST.boto_args,
+    **MPU_DST.boto_args,
     "ChecksumAlgorithm": "SHA256",
 }
-
-
-# pytest's async fixtures don't propagate contextvars, so we have to set them manually in a sync fixture
-@pytest.fixture
-def s3_stub():
-    async def _get_s3():
-        async with s3hash.aio_context(AWS_CREDENTIALS):
-            return s3hash.S3.get()
-
-    s3 = asyncio.run(_get_s3())
-    stubber = Stubber(s3)
-    stubber.activate()
-    s3_token = s3hash.S3.set(s3)
-    try:
-        yield stubber
-        stubber.assert_no_pending_responses()
-    finally:
-        s3hash.S3.reset(s3_token)
 
 
 async def test_compliant(s3_stub: Stubber):
@@ -89,7 +71,7 @@ async def test_compliant(s3_stub: Stubber):
         EXPECTED_GETATTR_PARAMS,
     )
 
-    res = await s3hash.compute_checksum(LOC)
+    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(base64.b64decode(checksum_hash)))
 
@@ -117,7 +99,7 @@ async def test_empty(chunked: bool, expected: s3hash.Checksum, s3_stub: Stubber,
         EXPECTED_GETATTR_PARAMS,
     )
 
-    res = await s3hash.compute_checksum(LOC)
+    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     assert res == s3hash.ChecksumResult(checksum=expected)
 
@@ -147,7 +129,7 @@ async def test_empty_no_access(chunked: bool, expected: s3hash.Checksum, s3_stub
         LOC.boto_args,
     )
 
-    res = await s3hash.compute_checksum(LOC)
+    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     assert res == s3hash.ChecksumResult(checksum=expected)
 
@@ -176,10 +158,22 @@ async def test_legacy(s3_stub: Stubber, mocker: MockerFixture):
 
     mocker.patch("t4_lambda_s3hash.CHUNKED_CHECKSUMS", False)
 
-    res = await s3hash.compute_checksum(LOC)
+    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     checksum_hex = bytes.fromhex("d9d865cc54ec60678f1b119084ad79ae7f9357d1c4519c6457de3314b7fbba8a")
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256(checksum_hex))
+
+
+def stub_bucket_region(s3_stub: Stubber):
+    s3_stub.add_response(
+        "head_bucket",
+        expected_params={"Bucket": LOC.bucket},
+        service_response={
+            "ResponseMetadata": {
+                "HTTPHeaders": {"x-amz-bucket-region": REGION},
+            },
+        },
+    )
 
 
 async def test_mpu_fail(s3_stub: Stubber):
@@ -191,6 +185,8 @@ async def test_mpu_fail(s3_stub: Stubber):
         EXPECTED_GETATTR_PARAMS,
     )
 
+    stub_bucket_region(s3_stub)
+
     s3_stub.add_client_error(
         "create_multipart_upload",
         "TestError",
@@ -198,12 +194,12 @@ async def test_mpu_fail(s3_stub: Stubber):
     )
 
     with pytest.raises(s3hash.LambdaError) as excinfo:
-        await s3hash.compute_checksum(LOC)
+        await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     assert excinfo.value.dict() == {
         "name": "MPUError",
         "context": {
-            "dst": s3hash.MPU_DST.dict(),
+            "dst": MPU_DST.dict(),
             "error": "An error occurred (TestError) when calling the CreateMultipartUpload operation: ",
         },
     }
@@ -218,6 +214,8 @@ async def test_mpu_single(s3_stub: Stubber):
         {"ObjectSize": SIZE, "ETag": ETAG},
         EXPECTED_GETATTR_PARAMS,
     )
+
+    stub_bucket_region(s3_stub)
 
     MPU_ID = "test-upload-id"
     s3_stub.add_response(
@@ -237,7 +235,7 @@ async def test_mpu_single(s3_stub: Stubber):
             },
         },
         {
-            **s3hash.MPU_DST.boto_args,
+            **MPU_DST.boto_args,
             "UploadId": MPU_ID,
             "PartNumber": 1,
             "CopySource": LOC.boto_args,
@@ -248,10 +246,10 @@ async def test_mpu_single(s3_stub: Stubber):
     s3_stub.add_response(
         "abort_multipart_upload",
         {},
-        {**s3hash.MPU_DST.boto_args, "UploadId": MPU_ID},
+        {**MPU_DST.boto_args, "UploadId": MPU_ID},
     )
 
-    res = await s3hash.compute_checksum(LOC)
+    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_HASH))
 
@@ -264,6 +262,8 @@ async def test_mpu_multi(s3_stub: Stubber):
         {"ObjectSize": SIZE, "ETag": ETAG},
         EXPECTED_GETATTR_PARAMS,
     )
+
+    stub_bucket_region(s3_stub)
 
     MPU_ID = "test-upload-id"
     s3_stub.add_response(
@@ -284,7 +284,7 @@ async def test_mpu_multi(s3_stub: Stubber):
             },
         },
         {
-            **s3hash.MPU_DST.boto_args,
+            **MPU_DST.boto_args,
             "UploadId": MPU_ID,
             "PartNumber": 1,
             "CopySourceRange": "bytes=0-8388607",
@@ -301,7 +301,7 @@ async def test_mpu_multi(s3_stub: Stubber):
             },
         },
         {
-            **s3hash.MPU_DST.boto_args,
+            **MPU_DST.boto_args,
             "UploadId": MPU_ID,
             "PartNumber": 2,
             "CopySourceRange": "bytes=8388608-8388608",
@@ -313,10 +313,10 @@ async def test_mpu_multi(s3_stub: Stubber):
     s3_stub.add_response(
         "abort_multipart_upload",
         {},
-        {**s3hash.MPU_DST.boto_args, "UploadId": MPU_ID},
+        {**MPU_DST.boto_args, "UploadId": MPU_ID},
     )
 
-    res = await s3hash.compute_checksum(LOC)
+    res = await s3hash.compute_checksum(LOC, SCRATCH_BUCKETS)
 
     assert res == s3hash.ChecksumResult(checksum=s3hash.Checksum.sha256_chunked(CHECKSUM_TOP))
 
