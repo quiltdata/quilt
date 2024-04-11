@@ -631,13 +631,16 @@ class PackageTest(QuiltTestCase):
             pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
         assert expected_err in str(e.value)
 
-    def test_set_dir_cannot_list_object_versions(self):
-        """Verify that set_dir uses list_objects if list_object_versions fails."""
-        with patch('quilt3.packages.list_object_versions', side_effect=Exception('AccessDenied'):
-            with patch('quilt3.packages.list_objects') as list_objects_mock:
-                pkg = Package()
-                pkg.set_dir('bar', 's3://bucket/foo')
-                list_objects_mock.assert_called_with('bucket', 'foo/')
+    def test_set_dir_allow_unversioned(self):
+        """Test how set_dir handles unversioned buckets."""
+        with patch('quilt3.packages.list_object_versions',
+                   side_effect=Exception('AccessDenied')):
+            # Expect set_dir to fail
+            with pytest.raises(Exception):
+                Package().set_dir('foo', 's3://bucket/foo')
+            # Expect set_dir(allow_unversioned_bucket=True) to succeed
+            rc = Package().set_dir("foo", "s3://bucket/foo", allow_unversioned=True)
+            assert rc
 
     def test_package_entry_meta(self):
         pkg = (

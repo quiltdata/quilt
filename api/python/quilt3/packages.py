@@ -841,7 +841,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming"):
+    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming", allow_unversioned=False):
         """
         Adds all files from `path` to the package.
 
