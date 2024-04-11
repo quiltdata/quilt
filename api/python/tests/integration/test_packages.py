@@ -642,10 +642,20 @@ class PackageTest(QuiltTestCase):
                    side_effect=access_err):
             # Expect set_dir to fail
             with pytest.raises(botocore.exceptions.ClientError):
-                Package().set_dir('foo', 's3://bucket/foo')
+                Package().set_dir('/', 's3://bucket/foo')
             # Expect set_dir(allow_unversioned_bucket=True) to succeed
-            rc = Package().set_dir("foo", "s3://bucket/foo", allow_unversioned=True)
-            assert rc
+            with patch('quilt3.packages.list_objects',
+                       return_value=[{
+                           "Key": "foo/bar.txt",
+                           "Size": 123,
+                        }]):
+                pkg = Package().set_dir(".", "s3://bucket/foo",
+                                        allow_unversioned=True)
+                assert len(pkg) == 1
+                for item in pkg.walk():
+                    print(f"{item[0]}: {item[1]}")
+                    assert item[0] == 'bar.txt'
+                    assert item[1].get() == 's3://bucket/foo/bar.txt'
 
     def test_package_entry_meta(self):
         pkg = (

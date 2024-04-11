@@ -34,6 +34,7 @@ from .data_transfer import (
     legacy_calculate_checksum,
     legacy_calculate_checksum_bytes,
     list_object_versions,
+    list_objects,
     list_url,
     put_bytes,
 )
@@ -915,9 +916,10 @@ class Package:
             except botocore.exceptions.ClientError as e:
                 if not allow_unversioned or e.response["Error"]["Code"] != "AccessDenied":
                     raise e
-                url = f"s3://{src.bucket}/{src_path}"
-                print(f"Warning[{url}]: {e}.")
-                objects = []
+                print(f"Warning[s3://{src.bucket}/{src_path}]: {e}.")
+                objects = list_objects(src.bucket, src_path, recursive=True)
+                for obj in objects:
+                    obj["IsLatest"] = True
 
             for obj in objects:
                 if not obj['IsLatest']:
