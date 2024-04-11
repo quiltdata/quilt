@@ -631,6 +631,14 @@ class PackageTest(QuiltTestCase):
             pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
         assert expected_err in str(e.value)
 
+    def test_set_dir_cannot_list_object_versions(self):
+        """Verify that set_dir uses list_objects if list_object_versions fails."""
+        with patch('quilt3.packages.list_object_versions', side_effect=Exception('AccessDenied'):
+            with patch('quilt3.packages.list_objects') as list_objects_mock:
+                pkg = Package()
+                pkg.set_dir('bar', 's3://bucket/foo')
+                list_objects_mock.assert_called_with('bucket', 'foo/')
+
     def test_package_entry_meta(self):
         pkg = (
             Package()
