@@ -772,6 +772,20 @@ class PackageTest(QuiltTestCase):
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
+    @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
+    def test_set_package_entry_unversioned(self):
+        """Verify that the `unversioned` flag ignores VersionID."""
+        pkg = Package()
+        pkg.set('bar', 's3://bucket/bar')
+        key = pkg['bar'].physical_key
+        print(f"key[bar]: {key}")
+        assert key.version_id == 'v1'
+
+        pkg.set('foo', 's3://bucket/foo', unversioned=True)
+        key = pkg['foo'].physical_key
+        print(f"key[foo]: {key}")
+        assert key.version_id is None
+
     def test_tophash_changes(self):
         test_file = Path('test.txt')
         test_file.write_text('asdf', 'utf-8')

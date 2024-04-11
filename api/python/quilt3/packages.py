@@ -1175,9 +1175,10 @@ class Package:
                          entry=entry,
                          meta=meta,
                          serialization_location=serialization_location,
-                         serialization_format_opts=serialization_format_opts)
+                         serialization_format_opts=serialization_format_opts,
+                         unversioned=unversioned)
 
-    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None, unversioned: bool = False):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
@@ -1194,7 +1195,7 @@ class Package:
             size, version_id = get_size_and_version(src)
 
             # Determine if a new version needs to be appended.
-            if not src.is_local() and src.version_id is None and version_id is not None:
+            if not src.is_local() and src.version_id is None and version_id is not None: # and not unversioned:
                 src.version_id = version_id
             entry = PackageEntry(src, size, None, None)
         elif isinstance(entry, PackageEntry):
