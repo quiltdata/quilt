@@ -1178,7 +1178,15 @@ class Package:
                          serialization_format_opts=serialization_format_opts,
                          unversioned=unversioned)
 
-    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None, unversioned: bool = False):
+    def _set(
+        self,
+        logical_key,
+        entry=None,
+        meta=None,
+        serialization_location=None,
+        serialization_format_opts=None,
+        unversioned: bool = False
+    ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
