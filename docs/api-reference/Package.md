@@ -131,7 +131,7 @@ json decode error
 invalid package exception
 
 
-## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming', allow\_unversioned=False)  {#Package.set\_dir}
+## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming', unversioned: bool = False)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
 
@@ -149,8 +149,7 @@ __Arguments__
     If 'incoming', whenever logical keys match, always take the new entry from set_dir.
     If 'existing', whenever logical keys match, retain existing entries
     and ignore new entries from set_dir.
-* __allow_unversioned(bool)__:  if True, allows set_dir to work with S3 URIs
-    that don't allow `list_object_versions`, such as from HealthOmics.
+* __unversioned(bool)__:  when True, do not retrieve VersionId for S3 physical keys.
 
 __Returns__
 
@@ -160,8 +159,6 @@ __Raises__
 
 * `PackageException`:  When `path` doesn't exist.
 * `ValueError`:  When `update_policy` is invalid.
-* `AccessDenied`:  When `path` is an S3 URI where the user doesn't have
-    permission to `list_object_versions`, and `allow_unversioned` is False.
 
 
 ## Package.get(self, logical\_key)  {#Package.get}
@@ -234,7 +231,7 @@ fail to create file
 fail to finish write
 
 
-## Package.set(self, logical\_key, entry=None, meta=None, serialization\_location=None, serialization\_format\_opts=None)  {#Package.set}
+## Package.set(self, logical\_key, entry=None, meta=None, serialization\_location=None, serialization\_format\_opts=None, unversioned: bool = False)  {#Package.set}
 
 Returns self with the object at logical_key set to entry.
 
@@ -255,6 +252,7 @@ __Arguments__
 * __https__: //github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
 * __serialization_location(string)__:  Optional. If passed in, only used if entry is an object. Where the
     serialized object should be written, e.g. "./mydataframe.parquet"
+* __unversioned(bool)__:  when True, do not retrieve VersionId for S3 physical keys.
 
 __Returns__
 

@@ -632,7 +632,7 @@ class PackageTest(QuiltTestCase):
             pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
         assert expected_err in str(e.value)
 
-    def test_set_dir_allow_unversioned(self):
+    def test_set_dir_unversioned(self):
         """Test how set_dir handles unversioned buckets."""
         access_err = botocore.exceptions.ClientError(
             {'Error': {'Code': 'AccessDenied'}},
@@ -643,14 +643,14 @@ class PackageTest(QuiltTestCase):
             # Expect set_dir to fail
             with pytest.raises(botocore.exceptions.ClientError):
                 Package().set_dir('/', 's3://bucket/foo')
-            # Expect set_dir(allow_unversioned_bucket=True) to succeed
+            # Expect set_dir(unversioned_bucket=True) to succeed
             with patch('quilt3.packages.list_objects',
                        return_value=[{
                            "Key": "foo/bar.txt",
                            "Size": 123,
                         }]):
                 pkg = Package().set_dir(".", "s3://bucket/foo",
-                                        allow_unversioned=True)
+                                        unversioned=True)
                 assert len(pkg) == 1
                 for item in pkg.walk():
                     print(f"{item[0]}: {item[1]}")

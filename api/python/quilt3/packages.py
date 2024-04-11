@@ -842,7 +842,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming", allow_unversioned=False):
+    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming", unversioned: bool = False):
         """
         Adds all files from `path` to the package.
 
@@ -859,8 +859,7 @@ class Package:
                 If 'incoming', whenever logical keys match, always take the new entry from set_dir.
                 If 'existing', whenever logical keys match, retain existing entries
                 and ignore new entries from set_dir.
-            allow_unversioned(bool): if True, allows set_dir to work with S3 URIs
-                that don't allow `list_object_versions`, such as from HealthOmics.
+            unversioned(bool): when True, do not retrieve VersionId for S3 physical keys.
 
         Returns:
             self
@@ -868,8 +867,6 @@ class Package:
         Raises:
             PackageException: When `path` doesn't exist.
             ValueError: When `update_policy` is invalid.
-            AccessDenied: When `path` is an S3 URI where the user doesn't have
-                permission to `list_object_versions`, and `allow_unversioned` is False.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
@@ -918,7 +915,7 @@ class Package:
             try:
                 objects, _ = list_object_versions(src.bucket, src_path)
             except botocore.exceptions.ClientError as e:
-                if not allow_unversioned or e.response["Error"]["Code"] != "AccessDenied":
+                if not unversioned or e.response["Error"]["Code"] != "AccessDenied":
                     raise e
                 print(f"Warning[s3://{src.bucket}/{src_path}]: {e}.")
                 objects = list_objects(src.bucket, src_path, recursive=True)
@@ -1148,7 +1145,15 @@ class Package:
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+    def set(
+        self,
+        logical_key,
+        entry=None,
+        meta=None,
+        serialization_location=None,
+        serialization_format_opts=None,
+        unversioned: bool = False,
+    ):
         """
         Returns self with the object at logical_key set to entry.
 
@@ -1168,6 +1173,7 @@ class Package:
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
             serialization_location(string): Optional. If passed in, only used if entry is an object. Where the
                 serialized object should be written, e.g. "./mydataframe.parquet"
+            unversioned(bool): when True, do not retrieve VersionId for S3 physical keys.
 
         Returns:
             self
