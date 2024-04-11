@@ -13,8 +13,8 @@ from io import BytesIO
 from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
-import botocore
 
+import botocore
 import jsonlines
 import pandas as pd
 import pytest
