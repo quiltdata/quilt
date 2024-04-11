@@ -161,7 +161,7 @@ __Raises__
 * `PackageException`:  When `path` doesn't exist.
 * `ValueError`:  When `update_policy` is invalid.
 * `AccessDenied`:  When `path` is an S3 URI where the user doesn't have
-permission to `list_object_versions`, and `allow_unversioned` is False.
+    permission to `list_object_versions`, and `allow_unversioned` is False.
 
 
 ## Package.get(self, logical\_key)  {#Package.get}
