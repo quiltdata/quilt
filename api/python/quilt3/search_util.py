@@ -37,17 +37,13 @@ def search_api(query, index, limit=10):
     Sends a query to the search API (supports simple search
     queries only)
     """
-    api_gateway = get_from_config('apiGatewayEndpoint')
-    api_gateway_host = urlparse(api_gateway).hostname
-    match = re.match(r".*\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$", api_gateway_host)
-    region = match.groups()[0]
-    auth = search_credentials(api_gateway_host, region, 'execute-api')
+    registryUrl = get_from_config('registryUrl')
+    registry_host = urlparse(registryUrl).hostname
+    region = "us-east-1"
+    auth = search_credentials(registry_host, region, "execute-api")
     # Encode the parameters manually because AWS Auth requires spaces to be encoded as '%20' rather than '+'.
     encoded_params = urlencode(dict(index=index, action='search', query=query), quote_via=quote)
-    response = requests.get(
-        f"{api_gateway}/search?{encoded_params}",
-        auth=auth
-    )
+    response = requests.get(f"{registryUrl}/search?{encoded_params}", auth=auth)
 
     if not response.ok:
         raise QuiltException(response.text)

@@ -13,9 +13,8 @@ class ResponseMock:
 class SearchTestCase(QuiltTestCase):
 
     def test_all_bucket_search(self):
-        navigator_url = get_from_config('navigator_url')
-        api_gateway_url = get_from_config('apiGatewayEndpoint')
-        search_url = api_gateway_url + '/search'
+        registryUrl = get_from_config("registryUrl")
+        search_url = registryUrl + "/search"
         mock_search = {
             'hits': {
                 'hits': [{
