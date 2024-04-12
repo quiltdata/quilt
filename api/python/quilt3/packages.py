@@ -1185,7 +1185,7 @@ class Package:
         meta=None,
         serialization_location=None,
         serialization_format_opts=None,
-        unversioned: bool = False
+        unversioned: bool = False,
     ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
