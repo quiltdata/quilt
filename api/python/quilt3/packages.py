@@ -919,6 +919,7 @@ class Package:
                 objects = list_objects(src.bucket, src_path, recursive=True)
 
             for obj in objects:
+                # Skip S3 pseduo directory files and Keys that end in /
                 if obj['Key'].endswith('/'):
                     if obj['Size'] != 0:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
