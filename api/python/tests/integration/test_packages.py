@@ -14,7 +14,6 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import ANY, Mock, call, patch
 
-import botocore
 import jsonlines
 import pandas as pd
 import pytest
