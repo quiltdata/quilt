@@ -17,7 +17,7 @@ Entries inside each section should be ordered by type:
 
 # unreleased - YYYY-MM-DD
 ## Python API
-* [Added] New 'unversioned' parameter to `set_dir` for use with HealthOmics and other S3 URIs that lack permissions for `list_object_versions` ([#3927])
+* [Added] New 'unversioned' parameter to `Package.set_dir()` and `Package.set()` for use with HealthOmics and other S3 URIs that lack permissions for `ListBucketVersions` and/or `GetObjectVersion` ([#3927](https://github.com/quiltdata/quilt/pull/3927))
 * [Removed] Drop Python 3.7 support ([#3841](https://github.com/quiltdata/quilt/pull/3841))
 * [Changed] Set S3 client `max_pool_connections` to `QUILT_TRANSFER_MAX_CONCURRENCY` ([#3867](https://github.com/quiltdata/quilt/pull/3867))
 * [Changed] **BREAKING:** Switch from a regular SHA256 checksum to a hash list (`sha2-256-chunked`) to match S3's built-in checksums ([#2782](https://github.com/quiltdata/quilt/pull/2782))
