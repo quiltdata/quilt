@@ -30,7 +30,7 @@ fsspec[http]==2022.1.0
     # via
     #   fsspec
     #   t4_lambda_tabular_preview (setup.py)
-idna==3.3
+idna==3.7
     # via
     #   requests
     #   yarl
