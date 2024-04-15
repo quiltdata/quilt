@@ -631,6 +631,25 @@ class PackageTest(QuiltTestCase):
             pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
         assert expected_err in str(e.value)
 
+    @mock.patch("quilt3.packages.list_objects")
+    @mock.patch("quilt3.packages.list_object_versions")
+    def test_set_dir_unversioned(self, list_object_versions_mock, list_objects_mock):
+        list_objects_mock.return_value = [
+            {
+                "Key": "foo/bar.txt",
+                "Size": 123,
+            },
+        ]
+
+        pkg = Package().set_dir(".", "s3://bucket/foo", unversioned=True)
+
+        list_object_versions_mock.assert_not_called()
+        list_objects_mock.assert_called_once_with("bucket", "foo/", recursive=True)
+        assert [
+            (lk, e.get())
+            for lk, e in pkg.walk()
+        ] == [("bar.txt", "s3://bucket/foo/bar.txt")]
+
     def test_package_entry_meta(self):
         pkg = (
             Package()
@@ -745,6 +764,17 @@ class PackageTest(QuiltTestCase):
         for lk in ["mydataframe4.parquet", "mydataframe5.csv", "mydataframe6.tsv"]:
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
+
+    @patch("quilt3.packages.get_size_and_version", mock.Mock(return_value=(123, "v1")))
+    def test_set_package_entry_unversioned_flag(self):
+        for flag_value, version_id in {
+            True: None,
+            False: "v1",
+        }.items():
+            with self.subTest(flag_value=flag_value, version_id=version_id):
+                pkg = Package()
+                pkg.set("bar", "s3://bucket/bar", unversioned=flag_value)
+                assert pkg["bar"].physical_key == PhysicalKey("bucket", "bar", version_id)
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')

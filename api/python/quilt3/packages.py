@@ -34,6 +34,7 @@ from .data_transfer import (
     legacy_calculate_checksum,
     legacy_calculate_checksum_bytes,
     list_object_versions,
+    list_objects,
     list_url,
     put_bytes,
 )
@@ -841,7 +842,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming"):
+    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming", unversioned: bool = False):
         """
         Adds all files from `path` to the package.
 
@@ -858,6 +859,7 @@ class Package:
                 If 'incoming', whenever logical keys match, always take the new entry from set_dir.
                 If 'existing', whenever logical keys match, retain existing entries
                 and ignore new entries from set_dir.
+            unversioned(bool): when True, do not retrieve VersionId for S3 physical keys.
 
         Returns:
             self
@@ -910,10 +912,13 @@ class Package:
             src_path = src.path
             if src.basename() != '':
                 src_path += '/'
-            objects, _ = list_object_versions(src.bucket, src_path)
+            if not unversioned:
+                objects, _ = list_object_versions(src.bucket, src_path)
+                objects = filter(lambda obj: obj["IsLatest"], objects)
+            else:
+                objects = list_objects(src.bucket, src_path, recursive=True)
+
             for obj in objects:
-                if not obj['IsLatest']:
-                    continue
                 # Skip S3 pseduo directory files and Keys that end in /
                 if obj['Key'].endswith('/'):
                     if obj['Size'] != 0:
@@ -1134,7 +1139,15 @@ class Package:
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+    def set(
+        self,
+        logical_key,
+        entry=None,
+        meta=None,
+        serialization_location=None,
+        serialization_format_opts=None,
+        unversioned: bool = False,
+    ):
         """
         Returns self with the object at logical_key set to entry.
 
@@ -1154,6 +1167,7 @@ class Package:
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
             serialization_location(string): Optional. If passed in, only used if entry is an object. Where the
                 serialized object should be written, e.g. "./mydataframe.parquet"
+            unversioned(bool): when True, do not retrieve VersionId for S3 physical keys.
 
         Returns:
             self
@@ -1162,9 +1176,18 @@ class Package:
                          entry=entry,
                          meta=meta,
                          serialization_location=serialization_location,
-                         serialization_format_opts=serialization_format_opts)
+                         serialization_format_opts=serialization_format_opts,
+                         unversioned=unversioned)
 
-    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+    def _set(
+        self,
+        logical_key,
+        entry=None,
+        meta=None,
+        serialization_location=None,
+        serialization_format_opts=None,
+        unversioned: bool = False,
+    ):
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
@@ -1181,7 +1204,7 @@ class Package:
             size, version_id = get_size_and_version(src)
 
             # Determine if a new version needs to be appended.
-            if not src.is_local() and src.version_id is None and version_id is not None:
+            if not src.is_local() and src.version_id is None and version_id is not None and not unversioned:
                 src.version_id = version_id
             entry = PackageEntry(src, size, None, None)
         elif isinstance(entry, PackageEntry):
