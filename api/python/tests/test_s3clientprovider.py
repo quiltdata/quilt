@@ -6,7 +6,7 @@ import pytest
 
 from quilt3.data_transfer import S3ClientProvider
 
-PATCH_UNSET_CREDENTIALS = mock.patch.dict(os.environ, clear=True)
+PATCH_UNSET_CREDENTIALS = mock.patch.dict(os.environ, {"AWS_SHARED_CREDENTIALS_FILE": "/not-exist"}, clear=True)
 PATCH_SET_CREDENTIALS = mock.patch.dict(
     os.environ,
     dict.fromkeys(
