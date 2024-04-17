@@ -21,6 +21,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 * [Added] Sign URL in undocumented `compressedIndexURL` IGV property ([#3947](https://github.com/quiltdata/quilt/pull/3947))
+* [Changed] Pre-select first catalog and database for Athena ([#3949](https://github.com/quiltdata/quilt/pull/3949))
 
 # 6.0.0a2 - 2024-04-15
 ## Python API
