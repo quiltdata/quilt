@@ -21,6 +21,7 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 * [Added] Sign URL in undocumented `compressedIndexURL` IGV property ([#3947](https://github.com/quiltdata/quilt/pull/3947))
+* [Changed] Move pagination to the bottom ([#3950](https://github.com/quiltdata/quilt/pull/3950))
 
 # 6.0.0a2 - 2024-04-15
 ## Python API
