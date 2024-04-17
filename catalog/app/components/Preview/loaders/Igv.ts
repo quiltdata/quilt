@@ -20,6 +20,7 @@ const traverseUrls = (fn: (v: any) => any, json: JsonRecord) =>
       reference: R.evolve({
         fastaURL: fn,
         indexURL: fn,
+        compressedIndexURL: fn,
         cytobandURL: fn,
         aliasURL: fn,
       }),
