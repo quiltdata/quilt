@@ -753,7 +753,6 @@ interface FooterProps {
 
 function Footer({ truncated = false, locked = false, loadMore, items }: FooterProps) {
   const { state } = DG.useGridSlotComponentProps()
-  const t = M.useTheme()
   const classes = useFooterStyles()
 
   const apiRef = React.useContext(DG.GridApiContext)
@@ -762,14 +761,6 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
   const stats = React.useMemo(() => computeStats(items), [items])
 
   const paginationState = DG.useGridSelector(apiRef, DG.gridPaginationSelector)
-
-  const style = React.useMemo(() => {
-    const rowHeight = t.spacing(4.5)
-    const rowsToFillThisPage = (paginationState.page + 1) * paginationState.pageSize
-    const missingRows = rowsToFillThisPage - items.length
-    const marginTop = missingRows > 0 ? rowHeight * missingRows : 0
-    return { marginTop }
-  }, [items, t, paginationState])
 
   const filteredStats = React.useMemo(() => {
     if (!filterCount) return undefined
@@ -782,7 +773,7 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
   const modified = filteredStats ? filteredStats.modified : stats.modified
 
   return (
-    <div style={style}>
+    <>
       <div className={classes.section}>
         <div className={classes.cellFirst}>
           <M.Tooltip title="Directories" arrow enterDelay={TIP_DELAY}>
@@ -860,7 +851,7 @@ function Footer({ truncated = false, locked = false, loadMore, items }: FooterPr
           loadMore={loadMore}
         />
       </div>
-    </div>
+    </>
   )
 }
 
