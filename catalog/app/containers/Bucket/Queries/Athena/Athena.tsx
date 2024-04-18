@@ -19,6 +19,19 @@ import Results from './Results'
 import History from './History'
 import Workgroups from './Workgroups'
 
+interface QuerySelectSkeletonProps {
+  className?: string
+}
+
+function QuerySelectSkeleton({ className }: QuerySelectSkeletonProps) {
+  return (
+    <div className={className}>
+      <Skeleton height={24} width={128} animate />
+      <Skeleton height={48} mt={1} animate />
+    </div>
+  )
+}
+
 const useAthenaQueriesStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(3, 0, 0),
@@ -77,12 +90,7 @@ function QueryConstructor({
           </Section>
         ),
         Err: makeAsyncDataErrorHandler('Select query'),
-        _: () => (
-          <>
-            <Skeleton height={24} width={128} animate />
-            <Skeleton height={48} mt={1} animate />
-          </>
-        ),
+        _: () => <QuerySelectSkeleton />,
       })}
       <QueryEditor.Form
         bucket={bucket}
@@ -92,6 +100,16 @@ function QueryConstructor({
         workgroup={workgroup}
       />
     </div>
+  )
+}
+
+function QueryConstructorSkeleton() {
+  const classes = useStyles()
+  return (
+    <>
+      <QuerySelectSkeleton className={classes.section} />
+      <QueryEditor.Skeleton className={classes.section} />
+    </>
   )
 }
 
@@ -326,15 +344,22 @@ interface AthenaMainProps {
 
 function AthenaMain({ bucket, workgroup }: AthenaMainProps) {
   const classes = useStyles()
+  const data = requests.athena.useDefaultQueryExecution()
   return (
     <div className={classes.content}>
-      <QueryConstructor
-        bucket={bucket}
-        className={classes.section}
-        key={workgroup}
-        workgroup={workgroup}
-      />
-
+      {data.case({
+        Ok: (queryExecution) => (
+          <QueryConstructor
+            bucket={bucket}
+            className={classes.section}
+            key={workgroup}
+            workgroup={workgroup}
+            initialValue={queryExecution}
+          />
+        ),
+        Err: makeAsyncDataErrorHandler('Default catalog and database'),
+        _: () => <QueryConstructorSkeleton />,
+      })}
       <HistoryContainer
         bucket={bucket}
         className={classes.section}
@@ -364,15 +389,7 @@ function AthenaExecution({ bucket, workgroup, queryExecutionId }: AthenaExecutio
             workgroup={workgroup}
           />
         ),
-        _: () => (
-          <>
-            <div className={classes.section}>
-              <Skeleton height={24} width={128} animate />
-              <Skeleton height={48} mt={1} animate mb={3} />
-            </div>
-            <QueryEditor.Skeleton className={classes.section} />
-          </>
-        ),
+        _: () => <QueryConstructorSkeleton />,
       })}
 
       {results.data.case({

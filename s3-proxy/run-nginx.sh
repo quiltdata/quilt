@@ -1,12 +1,6 @@
 #!/bin/bash
 set -exo pipefail
 
-if [ -z "$REGISTRY_HOST" ]
-then
-    echo "REGISTRY_HOST not set"
-    exit 1
-fi
-
 if [ -z "$INTERNAL_REGISTRY_URL" ]
 then
     echo "INTERNAL_REGISTRY_URL not set"
