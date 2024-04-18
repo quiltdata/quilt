@@ -581,7 +581,7 @@ function Toolbar({
         </div>
       )}
       <div className={classes.summary}>
-        Showing {from}—{to} out of {items.length}
+        Showing {from}—{to} out of {truncated ? 'first' : ''} {items.length}
       </div>
       <FilterToolbarButton />
       {locked && <div className={classes.lock} />}
