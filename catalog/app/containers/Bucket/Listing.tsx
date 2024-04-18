@@ -581,7 +581,7 @@ function Toolbar({
         </div>
       )}
       <div className={classes.summary}>
-        You see {from}—{to} out of {items.length}
+        Showing {from}—{to} out of {items.length}
       </div>
       <FilterToolbarButton />
       {locked && <div className={classes.lock} />}
