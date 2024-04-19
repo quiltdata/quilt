@@ -2,8 +2,8 @@ name: Deploy S3 Proxy to ECR
 
 on:
   push:
-    branches:
-      - master
+    # branches:
+    #   - master
     paths:
       - .github/workflows/deploy-s3-proxy.yaml
       - 's3-proxy/**'

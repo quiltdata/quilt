@@ -80,6 +80,7 @@ RUN set -x \
 RUN mkdir /var/cache/nginx/
 COPY nginx.conf /root/nginx.conf.tmpl
 COPY run-nginx.sh /root/run-nginx.sh
+RUN ln -sf /tmp/nginx.conf /etc/nginx/nginx.conf
 
 # Use SIGQUIT for a "graceful" shutdown
 STOPSIGNAL SIGQUIT
