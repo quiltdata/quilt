@@ -150,7 +150,7 @@ export function EmptyResults({ className }: EmptyResultsProps) {
         )}
         {numFilters > 0 && (
           <li>
-            Reset <StyledLink onClick={clearFilters}>search filters</StyledLink>
+            Reset the <StyledLink onClick={clearFilters}>search filters</StyledLink>
           </li>
         )}
         <li>
