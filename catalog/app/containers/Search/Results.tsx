@@ -2,9 +2,10 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { ES_REF_SYNTAX } from 'components/SearchResults'
 import Skeleton from 'components/Skeleton'
-import sand from 'components/Error/sand.webp'
 import { useNavBar } from 'containers/NavBar'
+import StyledLink from 'utils/StyledLink'
 
 import * as SearchUIModel from './model'
 
@@ -74,92 +75,162 @@ export function ResultsSkeleton({ className }: ResultsSkeletonProps) {
   )
 }
 
+const LABELS = {
+  [SearchUIModel.ResultType.QuiltPackage]: 'packages',
+  [SearchUIModel.ResultType.S3Object]: 'objects',
+}
+
 const useEmptyResultsStyles = M.makeStyles((t) => ({
   root: {
-    textAlign: 'center',
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
   },
-  actions: {
-    marginTop: t.spacing(3),
+  body: {
+    maxWidth: '30rem',
   },
-  error: {
-    fontSize: '64px',
-    color: t.palette.error.dark,
-  },
-  title: {
-    ...t.typography.h4,
-  },
-  description: {
-    marginTop: t.spacing(2),
+  list: {
     ...t.typography.body1,
-  },
-  divider: {
-    display: 'inline-block',
-    margin: t.spacing(0, 2),
-    ...t.typography.body1,
-  },
-  sand: {
-    background: `url(${sand}) repeat`,
-    boxShadow: `
-      inset 0 0 4px ${t.palette.background.paper},
-      inset 0 0 10px ${t.palette.background.paper},
-      inset 0 0 20px ${t.palette.background.paper},
-      inset 0 0 50px ${t.palette.background.paper}`,
-    height: '195px',
-    marginBottom: t.spacing(4),
+    paddingLeft: 0,
   },
 }))
 
 interface EmptyResultsProps {
   className?: string
-  clearTitle?: string
-  description?: string | React.ReactNode
-  image?: 'not-found' | 'error'
-  title?: string
 }
 
-export function EmptyResults({
-  className,
-  clearTitle = 'Clear filters',
-  description = "Try adjusting your search or filter to find what you're looking for",
-  image,
-  title = 'Nothing found',
-}: EmptyResultsProps) {
+export function EmptyResults({ className }: EmptyResultsProps) {
   const classes = useEmptyResultsStyles()
   const {
-    actions: { clearFilter },
+    actions: { clearFilters, reset, setBuckets, setResultType },
+    state,
   } = SearchUIModel.use()
-  const navbarModel = useNavBar()
-  const handleClear = React.useCallback(
+  const focus = useNavBar()?.focus
+
+  const startNewSearch = React.useCallback(() => {
+    reset()
+    focus?.()
+  }, [focus, reset])
+
+  const resetBuckets = React.useCallback(() => {
+    setBuckets([])
+  }, [setBuckets])
+
+  const otherResultType =
+    state.resultType === SearchUIModel.ResultType.QuiltPackage
+      ? SearchUIModel.ResultType.S3Object
+      : SearchUIModel.ResultType.QuiltPackage
+
+  const switchResultType = React.useCallback(() => {
+    setResultType(otherResultType)
+  }, [setResultType, otherResultType])
+
+  let numFilters = state.filter.order.length
+  if (state.resultType === SearchUIModel.ResultType.QuiltPackage) {
+    numFilters += state.userMetaFilters.filters.size
+  }
+
+  return (
+    <div className={cx(classes.root, className)}>
+      <M.Typography variant="h4">No matching {LABELS[state.resultType]}</M.Typography>
+
+      <M.Box mt={3} />
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        Could not find any <b>{LABELS[state.resultType]}</b> matching your search
+        criteria.
+        <br />
+        Some suggestions to help you find what you're looking for:
+      </M.Typography>
+
+      <ul className={classes.list}>
+        {state.buckets.length > 0 && (
+          <li>
+            Search in <StyledLink onClick={resetBuckets}>all buckets</StyledLink>
+          </li>
+        )}
+        {numFilters > 0 && (
+          <li>
+            Reset <StyledLink onClick={clearFilters}>search filters</StyledLink>
+          </li>
+        )}
+        <li>
+          Search for{' '}
+          <StyledLink onClick={switchResultType}>{LABELS[otherResultType]}</StyledLink>{' '}
+          instead
+        </li>
+        <li>
+          Adjust your <StyledLink onClick={focus}>search query</StyledLink>
+        </li>
+        <li>
+          Start <StyledLink onClick={startNewSearch}>from scratch</StyledLink>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
+interface SearchErrorProps {
+  className?: string
+  kind?: 'unexpected' | 'syntax'
+  details: React.ReactNode
+}
+
+export function SearchError({
+  className,
+  kind = 'unexpected',
+  details,
+}: SearchErrorProps) {
+  const classes = useEmptyResultsStyles()
+  const {
+    actions: { reset },
+  } = SearchUIModel.use()
+  const focus = useNavBar()?.focus
+  const startNewSearch = React.useCallback(
     (event) => {
       event.stopPropagation()
-      clearFilter()
-      navbarModel?.reset()
+      reset()
+      focus?.()
     },
-    [navbarModel, clearFilter],
+    [reset, focus],
   )
   const tryAgain = React.useCallback(() => {
     // FIXME: retry GQL request
     window.location.reload()
   }, [])
+
   return (
     <div className={cx(classes.root, className)}>
-      {image === 'not-found' && <div className={classes.sand} />}
-      {image === 'error' && <M.Icon className={classes.error}>error_outline</M.Icon>}
-      <div className={classes.title}>{title}</div>
-      <div className={classes.description}>{description}</div>
-      <div className={classes.actions}>
-        {image === 'error' && (
+      <M.Typography variant="h4">
+        {kind === 'syntax' ? 'Query syntax error' : 'Unexpected error'}
+      </M.Typography>
+      <M.Box mt={3} />
+      <M.Typography variant="body1" align="center" className={classes.body}>
+        {kind === 'syntax' ? (
           <>
-            <M.Button variant="outlined" onClick={tryAgain}>
-              Try again
-            </M.Button>
-            <span className={classes.divider}>or</span>
+            Oops, couldn&apos;t parse that search.
+            <br />
+            Try quoting <StyledLink onClick={focus}>your query</StyledLink> or read about{' '}
+            <StyledLink href={ES_REF_SYNTAX} target="_blank">
+              supported query syntax
+            </StyledLink>
+            .
+          </>
+        ) : (
+          <>
+            Oops, something went wrong.
+            <br />
+            <StyledLink onClick={tryAgain}>Try again</StyledLink> or start a{' '}
+            <StyledLink onClick={startNewSearch}>new search</StyledLink>.
           </>
         )}
-        <M.Button variant="outlined" onClick={handleClear}>
-          {clearTitle}
-        </M.Button>
-      </div>
+      </M.Typography>
+
+      <M.Box mt={3} />
+      <M.Typography variant="h6">Error details</M.Typography>
+      <M.Box mt={1} />
+      <M.Typography variant="body2" className={classes.body}>
+        {details}
+      </M.Typography>
     </div>
   )
 }

@@ -1373,17 +1373,51 @@ function useSearchUIModel() {
     [updateUrlState],
   )
 
-  const clearFilter = React.useCallback(() => {
-    const defaultParams = parseSearchParams('')
-    updateUrlState(
-      (s) =>
-        ({
-          ...defaultParams,
-          buckets: s.buckets,
-          order: s.order,
-          resultType: s.resultType,
-        }) as SearchUrlState,
-    )
+  const clearFilters = React.useCallback(() => {
+    updateUrlState((s) => {
+      switch (s.resultType) {
+        case ResultType.QuiltPackage:
+          return {
+            ...s,
+            filter: PackagesSearchFilterIO.initialState,
+            userMetaFilters: new UserMetaFilters(),
+          }
+        case ResultType.S3Object:
+          return {
+            ...s,
+            filter: ObjectsSearchFilterIO.initialState,
+          }
+        default:
+          return assertNever(s)
+      }
+    })
+  }, [updateUrlState])
+
+  const reset = React.useCallback(() => {
+    updateUrlState(({ resultType, order }) => {
+      const base = {
+        searchString: null,
+        buckets: [],
+        order,
+      }
+      switch (resultType) {
+        case ResultType.QuiltPackage:
+          return {
+            ...base,
+            resultType,
+            filter: PackagesSearchFilterIO.initialState,
+            userMetaFilters: new UserMetaFilters(),
+          }
+        case ResultType.S3Object:
+          return {
+            ...base,
+            resultType,
+            filter: ObjectsSearchFilterIO.initialState,
+          }
+        default:
+          return assertNever(resultType)
+      }
+    })
   }, [updateUrlState])
 
   return useMemoEq(
@@ -1400,13 +1434,17 @@ function useSearchUIModel() {
         activateObjectsFilter,
         deactivateObjectsFilter,
         setObjectsFilter,
+
         activatePackagesFilter,
         deactivatePackagesFilter,
         setPackagesFilter,
+
         activatePackagesMetaFilter,
         deactivatePackagesMetaFilter,
         setPackagesMetaFilter,
-        clearFilter,
+
+        clearFilters,
+        reset,
       },
       baseSearchQuery,
       firstPageQuery,
