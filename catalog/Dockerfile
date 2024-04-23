@@ -24,7 +24,6 @@ COPY build $NGINX_STATIC_DIR
 # Copy config file
 COPY config.json.tmpl config.json.tmpl
 
-# XXX: use subdir in /tmp?
 RUN ln -s /tmp/config.json $NGINX_STATIC_DIR/config.json && \
     ln -s /tmp/config.js $NGINX_STATIC_DIR/config.js
 
