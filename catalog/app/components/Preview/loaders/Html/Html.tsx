@@ -10,6 +10,7 @@ import { useIsInStack } from 'utils/BucketConfig'
 import * as GQL from 'utils/GraphQL'
 import log from 'utils/Logging'
 import type * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import { useEnsurePFSCookie } from 'utils/PFSCookieManager'
 import * as PackageUri from 'utils/PackageUri'
 import { useStatusReportsBucket } from 'utils/StatusReportsBucket'
 import assertNever from 'utils/assertNever'
@@ -41,6 +42,7 @@ interface ErrorLike {
 }
 
 function mapPreviewError(retry: () => void, e?: ErrorLike) {
+  // TODO: handle PFS cookie error
   switch (e?.name) {
     case 'BucketNotBrowsable':
       return PreviewError.Forbidden()
@@ -123,6 +125,7 @@ function useSession(handle: FileHandle) {
   const createSession = useCreateSession()
   const disposeSession = useDisposeSession()
   const refreshSession = useRefreshSession()
+  const ensureCookie = useEnsurePFSCookie()
 
   const scope = PackageUri.stringify(handle.packageHandle)
 
@@ -134,6 +137,7 @@ function useSession(handle: FileHandle) {
     async function initSession() {
       try {
         setResult(AsyncResult.Pending())
+        await ensureCookie()
         const session = await createSession(scope, SESSION_TTL)
         if (ignore) return
         sessionId = session.id
@@ -169,7 +173,7 @@ function useSession(handle: FileHandle) {
       clearInterval(timer)
       disposeSession(sessionId)
     }
-  }, [key, createSession, disposeSession, refreshSession, retry, scope])
+  }, [key, createSession, disposeSession, refreshSession, retry, scope, ensureCookie])
 
   return result
 }
