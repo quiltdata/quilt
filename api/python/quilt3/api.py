@@ -166,21 +166,21 @@ def _disable_telemetry():
 
 
 @ApiTelemetry("api.search")
-def search(query: str, limit: int = 10) -> T.List[dict]:
+def search(query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
     """
     Execute a search against the configured search endpoint.
 
     Args:
-        query (str): query string to search
-        limit (number): maximum number of results to return. Defaults to 10
+        query: query string to search if passed as `str`, ES query body if passed as `dict`
+        limit: maximum number of results to return. Defaults to 10
 
     Query Syntax:
-        [simple query string query](
-            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
-
+        [Query String Query](
+            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+        [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
     Returns:
-        a list of dicts
+        search results
     """
     # force a call to configure_from_default if no config exists
     _config()

@@ -37,17 +37,18 @@ class Bucket:
         if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
 
-    def search(self, query: str, limit: int = 10) -> T.List[dict]:
+    def search(self, query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
         """
         Execute a search against the configured search endpoint.
 
         Args:
-            query: query string to search
+            query: query string to search if passed as `str`, ES query body if passed as `dict`
             limit: maximum number of results to return. Defaults to 10
 
         Query Syntax:
-            [simple query string query](
-                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+            [Query String Query](
+                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+            [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
         Returns:
             search results
