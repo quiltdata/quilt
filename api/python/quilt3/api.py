@@ -178,22 +178,7 @@ def search(query, limit=10):
 
 
     Returns:
-        a list of objects with the following structure:
-        ```
-        [{
-            "_id": <document unique id>
-            "_index": <source index>,
-            "_score": <relevance score>
-            "_source":
-                "key": <key of the object>,
-                "size": <size of object in bytes>,
-                "user_meta": <user metadata from meta= via quilt3>,
-                "last_modified": <timestamp from ElasticSearch>,
-                "updated": <object timestamp from S3>,
-                "version_id": <version_id of object version>
-            "_type": <document type>
-        }, ...]
-        ```
+        a list of dicts
     """
     # force a call to configure_from_default if no config exists
     _config()

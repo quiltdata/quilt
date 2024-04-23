@@ -51,19 +51,7 @@ class Bucket:
             The syntax for field match is `user_meta.$field_name:"exact_match"`.
 
         Returns:
-            a list of objects with the following structure:
-            ```
-            [{
-                "key": <key of the object>,
-                "version_id": <version_id of object version>,
-                "operation": <"Create" or "Delete">,
-                "meta": <metadata attached to object>,
-                "size": <size of object in bytes>,
-                "text": <indexed text of object>,
-                "source": <source document for object (what is actually stored in ElasticSeach)>,
-                "time": <timestamp for operation>,
-            }...]
-            ```
+            a list of dicts
         """
         return search_api(query, index=self._pk.bucket, limit=limit)
 
