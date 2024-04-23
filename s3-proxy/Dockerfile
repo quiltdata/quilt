@@ -34,11 +34,11 @@ RUN set -x \
         --error-log-path=/dev/stdout \
         --pid-path=/var/run/nginx.pid \
         --lock-path=/var/run/nginx.lock \
-        --http-client-body-temp-path=/var/cache/nginx/client_temp \
-        --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-        --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-        --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-        --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+        --http-client-body-temp-path=/var/lib/nginx/tmp/client_temp \
+        --http-proxy-temp-path=/var/lib/nginx/tmp/proxy_temp \
+        --http-fastcgi-temp-path=/var/lib/nginx/tmp/fastcgi_temp \
+        --http-uwsgi-temp-path=/var/lib/nginx/tmp/uwsgi_temp \
+        --http-scgi-temp-path=/var/lib/nginx/tmp/scgi_temp \
         --user=nginx \
         --group=nginx \
         --with-compat \
@@ -77,9 +77,10 @@ RUN set -x \
 RUN set -x \
     && useradd --system --user-group --no-create-home --home /nonexistent --shell /sbin/nologin nginx
 
-RUN mkdir /var/cache/nginx/
+RUN mkdir -p /var/lib/nginx/tmp/
 COPY nginx.conf /root/nginx.conf.tmpl
 COPY run-nginx.sh /root/run-nginx.sh
+RUN ln -sf /tmp/nginx.conf /etc/nginx/nginx.conf
 
 # Use SIGQUIT for a "graceful" shutdown
 STOPSIGNAL SIGQUIT

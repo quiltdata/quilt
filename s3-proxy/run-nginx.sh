@@ -20,6 +20,6 @@ fi
 
 export NAMESERVER=$nameserver
 
-envsubst '$INTERNAL_REGISTRY_URL $NAMESERVER' < /root/nginx.conf.tmpl > /etc/nginx/nginx.conf
+envsubst '$INTERNAL_REGISTRY_URL $NAMESERVER' < /root/nginx.conf.tmpl > /tmp/nginx.conf
 
 exec nginx -g 'daemon off;'
