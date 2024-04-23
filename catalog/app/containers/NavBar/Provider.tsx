@@ -36,6 +36,7 @@ interface InputState extends M.InputBaseProps {
 interface SearchState {
   input: InputState
   onClickAway: () => void
+  focus: () => void
   reset: () => void
   suggestions: ReturnType<typeof Suggestions.use>
 }
@@ -131,13 +132,17 @@ function useSearchState(bucket?: string): SearchState {
     if (expanded || helpOpen) handleCollapse()
   }, [expanded, helpOpen, handleCollapse])
 
-  const reset = React.useCallback(() => {
-    change('')
+  const focus = React.useCallback(() => {
     // NOTE: wait for location change (making help closed),
     //       then focus
     // FIXME: find out better solution
     nextTick(() => setFocusTrigger((n) => n + 1))
-  }, [])
+  }, [setFocusTrigger])
+
+  const reset = React.useCallback(() => {
+    change('')
+    focus()
+  }, [focus])
 
   const isExpanded = expanded || !!searchUIModel
   const focusTriggeredCount = isExpanded ? focusTrigger : 0
@@ -151,6 +156,7 @@ function useSearchState(bucket?: string): SearchState {
       onKeyDown,
       value: value === null ? query : value,
     },
+    focus,
     reset,
     onClickAway,
     suggestions,

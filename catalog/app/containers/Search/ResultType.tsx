@@ -6,8 +6,8 @@ import * as SearchUIModel from './model'
 const VALUES = [SearchUIModel.ResultType.QuiltPackage, SearchUIModel.ResultType.S3Object]
 
 const LABELS = {
-  [SearchUIModel.ResultType.QuiltPackage]: 'Quilt Packages',
-  [SearchUIModel.ResultType.S3Object]: 'S3 Objects',
+  [SearchUIModel.ResultType.QuiltPackage]: 'Packages',
+  [SearchUIModel.ResultType.S3Object]: 'Objects',
 }
 
 const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]

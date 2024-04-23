@@ -30,7 +30,7 @@ function what(searchString: string, resultType: SearchUIModel.ResultType) {
     resultType === SearchUIModel.ResultType.QuiltPackage ? 'packages' : 'objects'
   return searchString ? (
     <>
-      <b>"{searchString}"</b> in <b>{typeDisplay}</b>
+      &laquo;<b>{searchString}</b>&raquo; in <b>{typeDisplay}</b>
     </>
   ) : (
     <b>all {typeDisplay}</b>
