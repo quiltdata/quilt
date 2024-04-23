@@ -2,8 +2,8 @@ name: Deploy catalog to ECR
 
 on:
   push:
-    # branches:
-    #   - master
+    branches:
+      - master
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
