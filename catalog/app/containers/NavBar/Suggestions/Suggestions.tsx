@@ -20,6 +20,10 @@ const displaySuggestion = (s: Suggestion) => (
 const useSuggestionsStyles = M.makeStyles((t) => ({
   item: {
     paddingLeft: t.spacing(5.5),
+
+    '& b': {
+      fontWeight: t.typography.fontWeightMedium,
+    },
   },
   help: {
     ...t.typography.caption,
