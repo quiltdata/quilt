@@ -5,6 +5,7 @@ Contains the Bucket class, which provides several useful functions
     over an s3 bucket.
 """
 import pathlib
+import typing as T
 
 from .data_transfer import (
     copy_file,
@@ -36,24 +37,22 @@ class Bucket:
         if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
 
-    def search(self, query, limit=10):
+    def search(self, query: str, limit: int = 10) -> T.List[dict]:
         """
         Execute a search against the configured search endpoint.
 
         Args:
-            query (str): query string to search
-            limit (number): maximum number of results to return. Defaults to 10
+            query: query string to search
+            limit: maximum number of results to return. Defaults to 10
 
         Query Syntax:
-            By default, a normal plaintext search will be executed over the query string.
-            You can use field-match syntax to filter on exact matches for fields in
-                your metadata.
-            The syntax for field match is `user_meta.$field_name:"exact_match"`.
+            [simple query string query](
+                https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
 
         Returns:
-            a list of dicts
+            search results
         """
-        return search_api(query, index=self._pk.bucket, limit=limit)
+        return search_api(query, index=f"{self._pk.bucket},{self._pk.bucket}_packages", limit=limit)["hits"]["hits"]
 
     def put_file(self, key, path):
         """

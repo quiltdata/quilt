@@ -1,3 +1,5 @@
+import typing as T
+
 from .backends import get_package_registry
 from .data_transfer import copy_file
 from .search_util import search_api
@@ -164,7 +166,7 @@ def _disable_telemetry():
 
 
 @ApiTelemetry("api.search")
-def search(query, limit=10):
+def search(query: str, limit: int = 10) -> T.List[dict]:
     """
     Execute a search against the configured search endpoint.
 
