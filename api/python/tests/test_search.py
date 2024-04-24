@@ -12,7 +12,6 @@ class ResponseMock:
 
 
 class SearchTestCase(QuiltTestCase):
-
     def test_all_bucket_search(self):
         registry_url = "https://registry.example.com"
         mock_search = {
@@ -31,14 +30,27 @@ class SearchTestCase(QuiltTestCase):
             }
         }
 
-        self.requests_mock.get(
-            f"{registry_url}/api/search",
-            match=[responses.matchers.query_param_matcher(dict(action="search", index="_all", size=10, query="*"))],
-            json=mock_search,
-            status=200,
-        )
-        with mock.patch("quilt3.session.get_registry_url", return_value=registry_url) as get_registry_url_mock:
-            results = search("*")
+        for user_query, expected_query_param in (
+            ("*", dict(action="search", index="_all", size=10, query="*")),
+            (
+                {"query": {"query_string": {"query": "handle:test*"}}},
+                dict(
+                    action="freeform",
+                    index="_all",
+                    size=10,
+                    body='{"query": {"query_string": {"query": "handle:test*"}}}',
+                ),
+            ),
+        ):
+            with self.subTest(user_query=user_query, expected_query_param=expected_query_param):
+                self.requests_mock.get(
+                    f"{registry_url}/api/search",
+                    match=[responses.matchers.query_param_matcher(expected_query_param)],
+                    json=mock_search,
+                    status=200,
+                )
+                with mock.patch("quilt3.session.get_registry_url", return_value=registry_url) as get_registry_url_mock:
+                    results = search(user_query)
 
-        get_registry_url_mock.assert_called_with()
-        assert len(results) == 1
+                get_registry_url_mock.assert_called_with()
+                assert len(results) == 1
