@@ -31,8 +31,8 @@ export const detect = utils.extIn(['.htm', '.html'])
 
 export const FILE_TYPE = FileType.Html
 
-const SESSION_TTL = 60 * 3
-const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
+const SESSION_TTL = 60 * 3 // 3 minutes
+const REFRESH_INTERVAL = 60 * 1000 // 1 minute
 
 type SessionId = Model.GQLTypes.BrowsingSession['id']
 type CreateData = GQL.DataForDoc<typeof CREATE_BROWSING_SESSION>['browsingSessionCreate']
@@ -172,8 +172,8 @@ function useSession(handle: FileHandle) {
     async function initSession() {
       setResult(AsyncResult.Pending())
       try {
-        await ensureCookie()
         const session = await createSession(scope, SESSION_TTL)
+        await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
         if (ignore) return
         sessionId = session.id
         setResult(AsyncResult.Ok(sessionId))
@@ -181,9 +181,14 @@ function useSession(handle: FileHandle) {
         handleError(e)
       }
 
-      timer = setInterval(() => {
+      timer = setInterval(async () => {
         if (!sessionId) return
-        refreshSession(sessionId, SESSION_TTL).catch(handleError)
+        try {
+          await refreshSession(sessionId, SESSION_TTL)
+          await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
+        } catch (e) {
+          handleError(e)
+        }
       }, REFRESH_INTERVAL)
     }
 
