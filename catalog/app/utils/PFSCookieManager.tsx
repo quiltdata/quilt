@@ -2,14 +2,14 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { createSelector } from 'reselect'
+import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import { useApi } from 'utils/APIConnector'
-import log from 'utils/Logging'
 import usePrevious from 'utils/usePrevious'
 
-type Ensure = () => void
+type Ensure = () => Promise<void>
 
 const Ctx = React.createContext<Ensure | null>(null)
 
@@ -26,9 +26,7 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
   const token = redux.useSelector(selectToken)
 
   const setBrowseCookie = React.useCallback(async () => {
-    log.warn('Setting browse cookie', { token })
-    // TODO
-    if (!token) return
+    if (!token) throw new Error('Unable to set PFS cookie: not authenticated')
 
     try {
       await req({
@@ -37,10 +35,9 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
         method: 'POST',
         credentials: 'include',
       })
-    } catch (e) {
-      log.warn('Unable to set browse cookie:', e)
-      // Sentry.captureException(e)
-      // throw?
+    } catch (e: any) {
+      Sentry.captureException(e)
+      throw new Error(`Could not set PFS cookie: ${e.message}`)
     }
   }, [req, token])
 
@@ -51,9 +48,7 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
 
   // refresh on token change
   usePrevious(token, (prev) => {
-    if (!!token && token !== prev && promiseRef.current) {
-      promiseRef.current = setBrowseCookie()
-    }
+    if (token !== prev && promiseRef.current) promiseRef.current = setBrowseCookie()
   })
 
   return <Ctx.Provider value={ensure}>{children}</Ctx.Provider>
