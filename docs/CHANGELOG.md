@@ -14,10 +14,10 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+# 6.0.0a3 - 2024-04-25
 ## Python API
-
-## CLI
+* [Added] `quilt3.search()` and `quilt3.Bucket.search()` now accept custom Elasticsearch queries ([#3448](https://github.com/quiltdata/quilt/pull/3448))
+* [Fixed] `quilt3.search()` and `quilt3.Bucket.search()` now work with 2022+ Quilt stacks ([#3448](https://github.com/quiltdata/quilt/pull/3448))
 
 ## Catalog, Lambdas
 * [Added] Added "text" as a file type for quilt_summarize.json ([#3946](https://github.com/quiltdata/quilt/pull/3946))
