@@ -51,7 +51,7 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
             url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
             method: 'POST',
             credentials: 'include',
-            data: { ttl },
+            body: { ttl },
           }).catch((e: any) => {
             throw new Error(`Could not set PFS cookie: ${e.message}`)
           })
