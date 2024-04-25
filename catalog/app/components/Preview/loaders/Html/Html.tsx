@@ -31,8 +31,8 @@ export const detect = utils.extIn(['.htm', '.html'])
 
 export const FILE_TYPE = FileType.Html
 
-const SESSION_TTL = 60 * 3 // 3 minutes
-const REFRESH_INTERVAL = 60 * 1000 // 1 minute
+const SESSION_TTL = 60 * 3
+const REFRESH_INTERVAL = SESSION_TTL * 0.2 * 1000
 
 type SessionId = Model.GQLTypes.BrowsingSession['id']
 type CreateData = GQL.DataForDoc<typeof CREATE_BROWSING_SESSION>['browsingSessionCreate']
