@@ -1,4 +1,3 @@
-import * as dateFns from 'date-fns'
 import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -8,7 +7,7 @@ import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import { useApi } from 'utils/APIConnector'
 
-type Ensure = (ttl: number, histeresis: number) => Promise<void>
+type Ensure = () => Promise<void>
 
 const Ctx = React.createContext<Ensure | null>(null)
 
@@ -19,65 +18,62 @@ const selectToken = createSelector(
 
 interface State {
   token: string | undefined
-  expires: Date
-  promise: Promise<void>
-}
-
-function needsRefresh(
-  state: State | undefined,
-  params: {
-    token: string | undefined
-    expires: Date
-    histeresis: number
-  },
-): boolean {
-  if (!state) return true
-  if (state.token !== params.token) return true
-  if (state.expires.getTime() + params.histeresis < params.expires.getTime()) return true
-  return false
+  lastRequest: Promise<void>
+  state: 'pending' | 'success' | 'error'
 }
 
 export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
   const stateRef = React.useRef<State>()
 
-  const req = useApi()
+  const req: (opts: any) => Promise<void> = useApi()
 
   const setPFSCookie = React.useCallback(
-    (token: string | undefined, ttl: number): Promise<void> =>
-      token
+    (token: string | undefined) => {
+      const cookieRequest = token
         ? req({
             auth: { tokens: { token }, handleInvalidToken: false },
             url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
             method: 'POST',
             credentials: 'include',
-            body: { ttl },
           }).catch((e: any) => {
             throw new Error(`Could not set PFS cookie: ${e.message}`)
           })
-        : Promise.resolve(),
-    [req],
+        : Promise.resolve()
+
+      stateRef.current = { token, lastRequest: cookieRequest, state: 'pending' }
+
+      cookieRequest
+        .then(
+          () => 'success' as const,
+          () => 'error' as const,
+        )
+        .then((state) => {
+          // update the state only if it corresponds to this request
+          // (concurrent request has not been issued in the meantime)
+          if (stateRef.current?.lastRequest === cookieRequest) {
+            stateRef.current.state = state
+          }
+        })
+    },
+    [req, stateRef],
   )
 
   const store = redux.useStore()
 
-  const ensure = React.useCallback<Ensure>(
-    async (ttl: number, histeresis: number) => {
-      const expires = dateFns.addSeconds(new Date(), ttl)
+  const ensure = React.useCallback<Ensure>(async () => {
+    // issue a new request if not initialized or if previous request failed
+    if (!stateRef.current || stateRef.current.state === 'error') {
       const token = selectToken(store.getState())
-      if (needsRefresh(stateRef.current, { token, expires, histeresis })) {
-        const promise = setPFSCookie(token, ttl)
-        stateRef.current = { token, expires, promise }
-      }
-      while (true) {
-        // if a new request has been issued while waiting for the response,
-        // wait for it to complete
-        let promise = stateRef.current?.promise
-        if (promise) await promise
-        if (promise === stateRef.current?.promise) return
-      }
-    },
-    [store, stateRef, setPFSCookie],
-  )
+      setPFSCookie(token)
+    }
+
+    // wait for the state to stabilize in case another request(s)
+    // issued concurrently by the update logic
+    while (stateRef.current?.state === 'pending') {
+      await stateRef.current.lastRequest.catch(() => {})
+    }
+    return stateRef.current?.lastRequest
+  }, [store, stateRef, setPFSCookie])
 
   // refresh cookie on token change
   React.useEffect(
@@ -91,15 +87,8 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
         // bail if token hasn't changed
         if (state.token === token) return
 
-        const ttlLeft = Math.ceil((state.expires.getTime() - Date.now()) / 1000)
-        if (ttlLeft <= 0) {
-          // cookie expired (noone's using it) -- cleanup state and bail
-          stateRef.current = undefined
-          return
-        }
-
-        state.token = token
-        state.promise = setPFSCookie(token, ttlLeft)
+        // set new cookie and replace the stored request
+        setPFSCookie(token)
       }),
     [store, stateRef, setPFSCookie],
   )

@@ -105,7 +105,7 @@ function useCreateSession() {
       })
       switch (r.__typename) {
         case 'BrowsingSession':
-          await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
+          await ensureCookie()
           return r
         case 'OperationError':
         case 'InvalidInput':
@@ -120,14 +120,12 @@ function useCreateSession() {
 
 function useRefreshSession() {
   const refreshSession = GQL.useMutation(REFRESH_BROWSING_SESSION)
-  const ensureCookie = useEnsurePFSCookie()
   return React.useCallback(
     async (id: SessionId | null) => {
       if (!id) return
       const { browsingSessionRefresh: r } = await refreshSession({ id, ttl: SESSION_TTL })
       switch (r.__typename) {
         case 'BrowsingSession':
-          await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
           return
         case 'OperationError':
         case 'InvalidInput':
@@ -136,7 +134,7 @@ function useRefreshSession() {
           assertNever(r)
       }
     },
-    [refreshSession, ensureCookie],
+    [refreshSession],
   )
 }
 
