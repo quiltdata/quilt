@@ -20,7 +20,7 @@ Execute a search against the configured search endpoint.
 
 __Arguments__
 
-* __query__:  query string to search if passed as `str`, ES query body if passed as `dict`
+* __query__:  query string to query if passed as `str`, DSL query body if passed as `dict`
 * __limit__:  maximum number of results to return. Defaults to 10
 
 Query Syntax:
