@@ -92,8 +92,11 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
         if (state.token === token) return
 
         const ttlLeft = Math.ceil((state.expires.getTime() - Date.now()) / 1000)
-        // bail if cookie has expired (noone's using it)
-        if (ttlLeft <= 0) return
+        if (ttlLeft <= 0) {
+          // cookie expired (noone's using it) -- cleanup state and bail
+          stateRef.current = undefined
+          return
+        }
 
         state.token = token
         state.promise = setPFSCookie(token, ttlLeft)
