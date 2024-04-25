@@ -1,9 +1,9 @@
 # Package events
 
-Every time package revision is created in one of the Quilt stack buckets, Quilt stack
-emits event to default
+Every time a package revision is created in one of the Quilt stack buckets, the Quilt stack
+emits event to the default
 [EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
-bus. Event has the following structure:
+bus. The event has the following structure:
 
 ```json
 {
@@ -25,7 +25,7 @@ bus. Event has the following structure:
 }
 ```
 
-To handle such events you need to create
+To handle such events you need to create an
 [EventBridge rule](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html).
 
 ## Example: send email on package creation
