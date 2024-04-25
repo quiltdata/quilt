@@ -1,7 +1,7 @@
 # Package events
 
-Every time a package revision is created in one of the Quilt stack buckets, the Quilt stack
-emits event to the default
+Every time a package revision is created in one of the Quilt stack buckets, the
+Quilt stack emits event to the default
 [EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
 bus. The event has the following structure:
 
