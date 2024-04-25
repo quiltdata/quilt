@@ -96,11 +96,16 @@ function mapPreviewError(retry: () => void, e: any) {
 
 function useCreateSession() {
   const createSession = GQL.useMutation(CREATE_BROWSING_SESSION)
+  const ensureCookie = useEnsurePFSCookie()
   return React.useCallback(
-    async (scope: string, ttl) => {
-      const { browsingSessionCreate: r } = await createSession({ scope, ttl })
+    async (scope: string) => {
+      const { browsingSessionCreate: r } = await createSession({
+        scope,
+        ttl: SESSION_TTL,
+      })
       switch (r.__typename) {
         case 'BrowsingSession':
+          await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
           return r
         case 'OperationError':
         case 'InvalidInput':
@@ -109,18 +114,21 @@ function useCreateSession() {
           assertNever(r)
       }
     },
-    [createSession],
+    [createSession, ensureCookie],
   )
 }
 
 function useRefreshSession() {
   const refreshSession = GQL.useMutation(REFRESH_BROWSING_SESSION)
+  const ensureCookie = useEnsurePFSCookie()
   return React.useCallback(
-    async (id: string, ttl: number) => {
-      const { browsingSessionRefresh: r } = await refreshSession({ id, ttl })
+    async (id: SessionId | null) => {
+      if (!id) return
+      const { browsingSessionRefresh: r } = await refreshSession({ id, ttl: SESSION_TTL })
       switch (r.__typename) {
         case 'BrowsingSession':
-          return r
+          await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
+          return
         case 'OperationError':
         case 'InvalidInput':
           throw new GQLError('refresh', r)
@@ -128,14 +136,16 @@ function useRefreshSession() {
           assertNever(r)
       }
     },
-    [refreshSession],
+    [refreshSession, ensureCookie],
   )
 }
 
 function useDisposeSession() {
   const disposeSession = GQL.useMutation(DISPOSE_BROWSING_SESSION)
   return React.useCallback(
-    (id?: string) => (id ? disposeSession({ id }) : null),
+    (id: SessionId | null) => {
+      if (id) disposeSession({ id })
+    },
     [disposeSession],
   )
 }
@@ -152,54 +162,38 @@ function useSession(handle: FileHandle) {
   const createSession = useCreateSession()
   const disposeSession = useDisposeSession()
   const refreshSession = useRefreshSession()
-  const ensureCookie = useEnsurePFSCookie()
 
   const scope = PackageUri.stringify(handle.packageHandle)
 
   React.useEffect(() => {
-    let ignore = false
-    let sessionId: SessionId = ''
+    let disposed = false
+    let sessionId: SessionId | null = null
     let timer: NodeJS.Timer
 
     const handleError = (e: unknown) => {
-      clearInterval(timer)
+      if (disposed) return
       log.error(e)
       Sentry.captureException(e)
-      if (ignore) return
+      clearInterval(timer)
       setResult(AsyncResult.Err(mapPreviewError(retry, e)))
     }
 
-    async function initSession() {
-      setResult(AsyncResult.Pending())
-      try {
-        const session = await createSession(scope, SESSION_TTL)
-        await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
-        if (ignore) return
-        sessionId = session.id
-        setResult(AsyncResult.Ok(sessionId))
-      } catch (e) {
-        handleError(e)
-      }
-
-      timer = setInterval(async () => {
-        if (!sessionId) return
-        try {
-          await refreshSession(sessionId, SESSION_TTL)
-          await ensureCookie(SESSION_TTL, REFRESH_INTERVAL)
-        } catch (e) {
-          handleError(e)
-        }
-      }, REFRESH_INTERVAL)
-    }
-
-    initSession()
+    createSession(scope).then(({ id }) => {
+      if (disposed) return
+      sessionId = id
+      setResult(AsyncResult.Ok(sessionId))
+      timer = setInterval(
+        () => refreshSession(sessionId).catch(handleError),
+        REFRESH_INTERVAL,
+      )
+    }, handleError)
 
     return () => {
-      ignore = true
+      disposed = true
       clearInterval(timer)
       disposeSession(sessionId)
     }
-  }, [key, createSession, disposeSession, refreshSession, retry, scope, ensureCookie])
+  }, [key, createSession, disposeSession, refreshSession, retry, scope])
 
   return result
 }

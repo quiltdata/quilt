@@ -7,7 +7,6 @@ import { createSelector } from 'reselect'
 import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import { useApi } from 'utils/APIConnector'
-import usePrevious from 'utils/usePrevious'
 
 type Ensure = (ttl: number, histeresis: number) => Promise<void>
 
@@ -56,15 +55,15 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
             throw new Error(`Could not set PFS cookie: ${e.message}`)
           })
         : Promise.resolve(),
-
     [req],
   )
 
-  const token = redux.useSelector(selectToken)
+  const store = redux.useStore()
 
   const ensure = React.useCallback<Ensure>(
     async (ttl: number, histeresis: number) => {
       const expires = dateFns.addSeconds(new Date(), ttl)
+      const token = selectToken(store.getState())
       if (needsRefresh(stateRef.current, { token, expires, histeresis })) {
         const promise = setPFSCookie(token, ttl)
         stateRef.current = { token, expires, promise }
@@ -77,19 +76,30 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
         if (promise === stateRef.current?.promise) return
       }
     },
-    [token, stateRef, setPFSCookie],
+    [store, stateRef, setPFSCookie],
   )
 
-  // refresh on token change
-  usePrevious(token, (prev) => {
-    if (token === prev) return
-    if (!stateRef.current) return
-    const now = new Date()
-    const ttlLeft = Math.ceil((stateRef.current.expires.getTime() - now.getTime()) / 1000)
-    if (ttlLeft <= 0) return
-    stateRef.current.token = token
-    stateRef.current.promise = setPFSCookie(token, ttlLeft)
-  })
+  // refresh cookie on token change
+  React.useEffect(
+    () =>
+      store.subscribe(() => {
+        const state = stateRef.current
+        // bail if not initialized
+        if (!state) return
+
+        const token = selectToken(store.getState())
+        // bail if token hasn't changed
+        if (state.token === token) return
+
+        const ttlLeft = Math.ceil((state.expires.getTime() - Date.now()) / 1000)
+        // bail if cookie has expired (noone's using it)
+        if (ttlLeft <= 0) return
+
+        state.token = token
+        state.promise = setPFSCookie(token, ttlLeft)
+      }),
+    [store, stateRef, setPFSCookie],
+  )
 
   return <Ctx.Provider value={ensure}>{children}</Ctx.Provider>
 }
