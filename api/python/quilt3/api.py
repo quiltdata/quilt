@@ -171,7 +171,7 @@ def search(query: T.Union[str, dict], limit: int = 10) -> T.List[dict]:
     Execute a search against the configured search endpoint.
 
     Args:
-        query: query string to search if passed as `str`, ES query body if passed as `dict`
+        query: query string to query if passed as `str`, DSL query body if passed as `dict`
         limit: maximum number of results to return. Defaults to 10
 
     Query Syntax:
