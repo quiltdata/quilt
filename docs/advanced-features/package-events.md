@@ -2,8 +2,8 @@
 
 When a package is created or revised in a Quilt stack bucket,
 the stack emits a `package-revision` event on the default
-[EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) bus.
-These events have the following structure:
+[EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
+bus. These events have the following structure:
 
 ```json
 {
