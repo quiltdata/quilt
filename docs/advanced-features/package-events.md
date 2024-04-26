@@ -1,9 +1,9 @@
 # Package events
 
-Every time a package revision is created in one of the Quilt stack buckets, the
-Quilt stack emits event to the default
-[EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html)
-bus. The event has the following structure:
+When a package is created or revised in a Quilt stack bucket,
+the stack emits a `package-revision` event on the default
+[EventBridge](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-what-is.html) bus.
+These events have the following structure:
 
 ```json
 {
@@ -25,31 +25,23 @@ bus. The event has the following structure:
 }
 ```
 
-To handle such events you need to create an
-[EventBridge rule](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html).
+You can create an
+[EventBridge rule](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rules.html)
+similar to the following to respond to `package-revision` events:
 
 ## Example: send email on package creation
 
 ```yaml
 Description: >
-  Example Cloudformation template demonstrating usage
-  of Quilt package events.
+  Demonstrate how to respond to package events.
 
-  Email specified by `EmailToSubscribe` parameter will get notifications
-  about new revisions of package with name prefix specified by
-  `PackageNamePrefix` parameter in `PackageBucket` bucket.
-  After stack creation specified email will receive mail message to confirm
-  subscription.
-
-  To customize what events are processed and how they are processed
-  you need to modify `EventBridgeRule`.
+  Modify `EventBridgeRule` to customize event processing. 
 
   See https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html
-  for syntax of event patterns.
+  for event pattern syntax.
 
   See https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-targets.html
-  for a list of supported targets.
-
+  for rule targets.
 Parameters:
   PackageBucket:
     Type: String
@@ -58,7 +50,8 @@ Parameters:
     Description: Leave empty to match every package.
   EmailToSubscribe:
     Type: String
-    Description: Email that will get package notifications.
+    Description: Confirm subscription over email to receive a copy of package events
+    that occur under `PackageNamePrefix` in `PackageBucket`.
 
 Resources:
   EventBridgeRule:
