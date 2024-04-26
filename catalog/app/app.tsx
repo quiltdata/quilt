@@ -41,6 +41,7 @@ import { BucketCacheProvider } from 'utils/BucketCache'
 import GlobalAPI from 'utils/GlobalAPI'
 import log from 'utils/Logging'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import { PFSCookieManager } from 'utils/PFSCookieManager'
 import * as Cache from 'utils/ResourceCache'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
@@ -124,6 +125,7 @@ const render = () => {
       Notifications.WithNotifications,
       Errors.ErrorBoundary,
       BucketCacheProvider,
+      PFSCookieManager,
       App,
     ),
     MOUNT_NODE,

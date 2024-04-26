@@ -14,19 +14,18 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
-# unreleased - YYYY-MM-DD
+# 6.0.0a3 - 2024-04-25
 ## Python API
 * [Added] `quilt3.search()` and `quilt3.Bucket.search()` now accept custom Elasticsearch queries ([#3448](https://github.com/quiltdata/quilt/pull/3448))
 * [Fixed] `quilt3.search()` and `quilt3.Bucket.search()` now work with 2022+ Quilt stacks ([#3448](https://github.com/quiltdata/quilt/pull/3448))
 
-## CLI
-
 ## Catalog, Lambdas
 * [Added] Added "text" as a file type for quilt_summarize.json ([#3946](https://github.com/quiltdata/quilt/pull/3946))
 * [Added] Sign URL in undocumented `compressedIndexURL` IGV property ([#3947](https://github.com/quiltdata/quilt/pull/3947))
+* [Fixed] Robust handling of PFS cookies ([#3962](https://github.com/quiltdata/quilt/pull/3962))
 * [Changed] Pre-select first catalog and database for Athena ([#3949](https://github.com/quiltdata/quilt/pull/3949))
 * [Changed] Move pagination to the bottom ([#3950](https://github.com/quiltdata/quilt/pull/3950))
-* [Changed] Search UI QoL improvements ([#3960](https://github.com/quiltdata/quilt/pull/3960))
+* [Changed] Search UI QoL improvements ([#3960](https://github.com/quiltdata/quilt/pull/3960), [#3967](https://github.com/quiltdata/quilt/pull/3967))
 
 # 6.0.0a2 - 2024-04-15
 ## Python API

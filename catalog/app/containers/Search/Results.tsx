@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 import { ES_REF_SYNTAX } from 'components/SearchResults'
 import Skeleton from 'components/Skeleton'
 import { useNavBar } from 'containers/NavBar'
+import * as GQL from 'utils/GraphQL'
 import StyledLink from 'utils/StyledLink'
 
 import * as SearchUIModel from './model'
@@ -103,6 +104,7 @@ export function EmptyResults({ className }: EmptyResultsProps) {
   const classes = useEmptyResultsStyles()
   const {
     actions: { clearFilters, reset, setBuckets, setResultType },
+    baseSearchQuery,
     state,
   } = SearchUIModel.use()
   const focus = useNavBar()?.focus
@@ -121,6 +123,29 @@ export function EmptyResults({ className }: EmptyResultsProps) {
       ? SearchUIModel.ResultType.S3Object
       : SearchUIModel.ResultType.QuiltPackage
 
+  const getTotalResults = (resultType: SearchUIModel.ResultType) =>
+    GQL.fold(baseSearchQuery, {
+      data: (data) => {
+        const r =
+          resultType === SearchUIModel.ResultType.QuiltPackage
+            ? data.searchPackages
+            : data.searchObjects
+        switch (r.__typename) {
+          case 'EmptySearchResultSet':
+            return 0
+          case 'ObjectsSearchResultSet':
+          case 'PackagesSearchResultSet':
+            return r.stats.total
+          default:
+            return null
+        }
+      },
+      fetching: () => null,
+      error: () => null,
+    })
+
+  const totalOtherResults = getTotalResults(otherResultType)
+
   const switchResultType = React.useCallback(() => {
     setResultType(otherResultType)
   }, [setResultType, otherResultType])
@@ -136,10 +161,10 @@ export function EmptyResults({ className }: EmptyResultsProps) {
 
       <M.Box mt={3} />
       <M.Typography variant="body1" align="center" className={classes.body}>
-        Could not find any <b>{LABELS[state.resultType]}</b> matching your search
-        criteria.
-        <br />
-        Some suggestions to help you find what you're looking for:
+        Search for{' '}
+        <StyledLink onClick={switchResultType}>{LABELS[otherResultType]}</StyledLink>{' '}
+        instead{totalOtherResults != null && ` (${totalOtherResults} found)`} or adjust
+        your search:
       </M.Typography>
 
       <ul className={classes.list}>
@@ -154,12 +179,7 @@ export function EmptyResults({ className }: EmptyResultsProps) {
           </li>
         )}
         <li>
-          Search for{' '}
-          <StyledLink onClick={switchResultType}>{LABELS[otherResultType]}</StyledLink>{' '}
-          instead
-        </li>
-        <li>
-          Adjust your <StyledLink onClick={focus}>search query</StyledLink>
+          Edit your <StyledLink onClick={focus}>search query</StyledLink>
         </li>
         <li>
           Start <StyledLink onClick={startNewSearch}>from scratch</StyledLink>
