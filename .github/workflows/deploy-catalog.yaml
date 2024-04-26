@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - pfs-cookie
     paths:
       - '.github/workflows/deploy-catalog.yaml'
       - 'catalog/**'
