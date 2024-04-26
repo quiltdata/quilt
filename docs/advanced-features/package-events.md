@@ -35,7 +35,7 @@ similar to the following to respond to `package-revision` events:
 Description: >
   Demonstrate how to respond to package events.
 
-  Modify `EventBridgeRule` to customize event processing. 
+  Modify `EventBridgeRule` to customize event processing.
 
   See https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html
   for event pattern syntax.
@@ -50,8 +50,9 @@ Parameters:
     Description: Leave empty to match every package.
   EmailToSubscribe:
     Type: String
-    Description: Confirm subscription over email to receive a copy of package events
-    that occur under `PackageNamePrefix` in `PackageBucket`.
+    Description: >
+      Confirm subscription over email to receive a copy of package events
+      that occur under `PackageNamePrefix` in `PackageBucket`.
 
 Resources:
   EventBridgeRule:
