@@ -2,10 +2,12 @@ import invariant from 'invariant'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { createSelector } from 'reselect'
+import * as Sentry from '@sentry/react'
 
 import cfg from 'constants/config'
 import { tokens as tokensSelector } from 'containers/Auth/selectors'
 import { useApi } from 'utils/APIConnector'
+import log from 'utils/Logging'
 
 type Ensure = () => Promise<void>
 
@@ -29,16 +31,19 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
 
   const setPFSCookie = React.useCallback(
     (token: string | undefined) => {
-      const cookieRequest = token
-        ? req({
-            auth: { tokens: { token }, handleInvalidToken: false },
-            url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
-            method: 'POST',
-            credentials: 'include',
-          }).catch((e: any) => {
-            throw new Error(`Could not set PFS cookie: ${e.message}`)
-          })
-        : Promise.resolve()
+      if (!token) {
+        stateRef.current = { token, lastRequest: Promise.resolve(), state: 'success' }
+        return stateRef.current.lastRequest
+      }
+
+      const cookieRequest = req({
+        auth: { tokens: { token }, handleInvalidToken: false },
+        url: `${cfg.s3Proxy}/browse/set_browse_cookie`,
+        method: 'POST',
+        credentials: 'include',
+      }).catch((e: any) => {
+        throw new Error(`Could not set PFS cookie: ${e.message}`)
+      })
 
       stateRef.current = { token, lastRequest: cookieRequest, state: 'pending' }
 
@@ -54,6 +59,8 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
             stateRef.current.state = state
           }
         })
+
+      return cookieRequest
     },
     [req, stateRef],
   )
@@ -88,7 +95,10 @@ export function PFSCookieManager({ children }: React.PropsWithChildren<{}>) {
         if (state.token === token) return
 
         // set new cookie and replace the stored request
-        setPFSCookie(token)
+        setPFSCookie(token).catch((e) => {
+          log.error(e)
+          Sentry.captureException(e)
+        })
       }),
     [store, stateRef, setPFSCookie],
   )
