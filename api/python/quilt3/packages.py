@@ -1541,6 +1541,7 @@ class Package:
             pkg._set(logical_key, new_entry)
 
         # Needed if the files already exist in S3, but were uploaded without ChecksumAlgorithm='SHA256'.
+        # XXX: do we need this now?
         pkg._fix_sha256()
 
         top_hash = pkg._calculate_top_hash(pkg._meta, pkg.walk())

@@ -530,43 +530,59 @@ def _copy_remote_file(ctx: WorkerContext, size: int, src_bucket: str, src_key: s
             ctx.run(upload_part, i, start, end)
 
 
-def _upload_or_copy_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str):
+def _calculate_local_checksum(path: str, size: int):
+    chunksize = get_checksum_chunksize(size)
+
+    part_hashes = []
+    for start in range(0, size, chunksize):
+        end = min(start + chunksize, size)
+        part_hashes.append(_calculate_local_part_checksum(path, start, end - start))
+
+    return _make_checksum_from_parts(part_hashes)
+
+
+def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str):
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
-    if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
-        try:
-            params = dict(Bucket=dest_bucket, Key=dest_path)
-            s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
-            resp = s3_client.head_object(**params, ChecksumMode='ENABLED')
-        except ClientError:
-            # Destination doesn't exist, so fall through to the normal upload.
-            pass
-        except S3NoValidClientError:
-            # S3ClientProvider can't currently distinguish between a user that has PUT but not LIST permissions and a
-            # user that has no permissions. If we can't find a valid client, proceed to the upload stage anyway.
-            pass
-        else:
-            # Check the ETag.
-            dest_size = resp['ContentLength']
-            dest_etag = resp['ETag']
-            dest_version_id = resp.get('VersionId')
-            if size == dest_size and resp.get('ServerSideEncryption') != 'aws:kms':
-                src_etag = _calculate_etag(src_path)
-                if src_etag == dest_etag:
-                    # Nothing more to do. We should not attempt to copy the object because
-                    # that would cause the "copy object to itself" error.
-                    # TODO: Check SHA256 before checking ETag?
-                    s3_checksum = resp.get('ChecksumSHA256')
-                    if s3_checksum is None:
-                        checksum = None
-                    elif '-' in s3_checksum:
-                        checksum, _ = s3_checksum.split('-', 1)
-                    else:
-                        checksum = _simple_s3_to_quilt_checksum(s3_checksum)
-                    ctx.progress(size)
-                    ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum)
-                    return  # Optimization succeeded.
+    if size < UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
+        return None
+    try:
+        params = dict(Bucket=dest_bucket, Key=dest_path)
+        s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
+        resp = s3_client.head_object(**params, ChecksumMode='ENABLED')
+    except ClientError:
+        # Destination doesn't exist, so fall through to the normal upload.
+        pass
+    except S3NoValidClientError:
+        # S3ClientProvider can't currently distinguish between a user that has PUT but not LIST permissions and a
+        # user that has no permissions. If we can't find a valid client, proceed to the upload stage anyway.
+        pass
+    else:
+        dest_size = resp['ContentLength']
+        if dest_size != size:
+            return None
+        # XXX: shouldn't we check part sizes?
+        s3_checksum = resp.get('ChecksumSHA256')
+        if s3_checksum is not None:
+            if '-' in s3_checksum:
+                checksum, _ = s3_checksum.split('-', 1)
+            else:
+                checksum = _simple_s3_to_quilt_checksum(s3_checksum)
+            if checksum == _calculate_local_checksum(src_path, size):
+                return resp.get('VersionId'), checksum
+        elif resp.get('ServerSideEncryption') != 'aws:kms' and resp['ETag'] == _calculate_etag(src_path):
+            return resp.get('VersionId'), _calculate_local_checksum(src_path, size)
 
+    return None
+
+
+def _upload_or_reuse_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket: str, dest_path: str):
+    result = _reuse_remote_file(ctx, size, src_path, dest_bucket, dest_path)
+    if result is not None:
+        dest_version_id, checksum = result
+        ctx.progress(size)
+        ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id), checksum)
+        return  # Optimization succeeded.
     # If the optimization didn't happen, do the normal upload.
     _upload_file(ctx, size, src_path, dest_bucket, dest_path)
 
@@ -648,7 +664,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                 else:
                     if dest.version_id:
                         raise ValueError("Cannot set VersionId on destination")
-                    _upload_or_copy_file(ctx, size, src.path, dest.bucket, dest.path)
+                    _upload_or_reuse_file(ctx, size, src.path, dest.bucket, dest.path)
             else:
                 if dest.is_local():
                     _download_file(ctx, size, src.bucket, src.path, src.version_id, dest.path)
@@ -970,6 +986,29 @@ def with_lock(f):
     return wrapper
 
 
+# XXX: name
+def _calculate_local_part_checksum(src: str, offset: int, length: int, callback=None) -> bytes:
+    hash_obj = hashlib.sha256()
+    bytes_remaining = length
+    with open(src, "rb") as fd:
+        fd.seek(offset)
+        while bytes_remaining > 0:
+            chunk = fd.read(min(s3_transfer_config.io_chunksize, bytes_remaining))
+            if not chunk:
+                # Should not happen, but let's not get stuck in an infinite loop.
+                raise QuiltException("Unexpected end of file")
+            hash_obj.update(chunk)
+            if callback is not None:
+                callback(len(chunk))
+            bytes_remaining -= len(chunk)
+
+    return hash_obj.digest()
+
+
+def _make_checksum_from_parts(parts: List[bytes]) -> str:  # XXX: name
+    return binascii.b2a_base64(hashlib.sha256(b"".join(parts)).digest(), newline=False).decode()
+
+
 @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
        wait=wait_exponential(multiplier=1, min=1, max=10),
        retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
@@ -990,21 +1029,10 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
         progress_update = with_lock(progress.update)
 
         def _process_url_part(src: PhysicalKey, offset: int, length: int):
-            hash_obj = hashlib.sha256()
-
             if src.is_local():
-                bytes_remaining = length
-                with open(src.path, 'rb') as fd:
-                    fd.seek(offset)
-                    while bytes_remaining > 0:
-                        chunk = fd.read(min(s3_transfer_config.io_chunksize, bytes_remaining))
-                        if not chunk:
-                            # Should not happen, but let's not get stuck in an infinite loop.
-                            raise QuiltException("Unexpected end of file")
-                        hash_obj.update(chunk)
-                        progress_update(len(chunk))
-                        bytes_remaining -= len(chunk)
+                return _calculate_local_part_checksum(src.path, offset, length, progress_update)
             else:
+                hash_obj = hashlib.sha256()
                 end = offset + length - 1
                 params = dict(
                     Bucket=src.bucket,
@@ -1026,7 +1054,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
                 except (ConnectionError, HTTPClientError, ReadTimeoutError) as ex:
                     return ex
 
-            return hash_obj.digest()
+                return hash_obj.digest()
 
         futures: List[Tuple[int, List[Future]]] = []
 
@@ -1046,11 +1074,7 @@ def _calculate_checksum_internal(src_list, sizes, results) -> List[bytes]:
             for idx, future_list in futures:
                 future_results = [future.result() for future in future_list]
                 exceptions = [ex for ex in future_results if isinstance(ex, Exception)]
-                if exceptions:
-                    results[idx] = exceptions[0]
-                else:
-                    hashes_hash = hashlib.sha256(b''.join(future_results)).digest()
-                    results[idx] = binascii.b2a_base64(hashes_hash, newline=False).decode()
+                results[idx] = exceptions[0] if exceptions else _make_checksum_from_parts(future_results)
         finally:
             stopped = True
             for _, future_list in futures:
