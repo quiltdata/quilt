@@ -549,7 +549,7 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
     try:
         params = dict(Bucket=dest_bucket, Key=dest_path)
         s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
-        resp = s3_client.head_object(**params, ChecksumMode='ENABLED')
+        resp = s3_client.head_object(**params, ChecksumMode="ENABLED")
     except ClientError:
         # Destination doesn't exist, so fall through to the normal upload.
         pass
@@ -558,22 +558,22 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
         # user that has no permissions. If we can't find a valid client, proceed to the upload stage anyway.
         pass
     else:
-        dest_size = resp['ContentLength']
+        dest_size = resp["ContentLength"]
         if dest_size != size:
             return None
         # XXX: shouldn't we check part sizes?
         # XXX: we could check hashes of parts, to finish faster
         # XXX: support other checksum algorithms?
-        s3_checksum = resp.get('ChecksumSHA256')
+        s3_checksum = resp.get("ChecksumSHA256")
         if s3_checksum is not None:
-            if '-' in s3_checksum:
-                checksum, _ = s3_checksum.split('-', 1)
+            if "-" in s3_checksum:
+                checksum, _ = s3_checksum.split("-", 1)
             else:
                 checksum = _simple_s3_to_quilt_checksum(s3_checksum)
             if checksum == _calculate_local_checksum(src_path, size):
-                return resp.get('VersionId'), checksum
-        elif resp.get('ServerSideEncryption') != 'aws:kms' and resp['ETag'] == _calculate_etag(src_path):
-            return resp.get('VersionId'), _calculate_local_checksum(src_path, size)
+                return resp.get("VersionId"), checksum
+        elif resp.get("ServerSideEncryption") != "aws:kms" and resp["ETag"] == _calculate_etag(src_path):
+            return resp.get("VersionId"), _calculate_local_checksum(src_path, size)
 
     return None
 
