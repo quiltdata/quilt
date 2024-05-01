@@ -988,7 +988,6 @@ def with_lock(f):
     return wrapper
 
 
-# XXX: name
 def _calculate_local_part_checksum(src: str, offset: int, length: int, callback=None) -> bytes:
     hash_obj = hashlib.sha256()
     bytes_remaining = length
@@ -1007,7 +1006,7 @@ def _calculate_local_part_checksum(src: str, offset: int, length: int, callback=
     return hash_obj.digest()
 
 
-def _make_checksum_from_parts(parts: List[bytes]) -> str:  # XXX: name
+def _make_checksum_from_parts(parts: List[bytes]) -> str:
     return binascii.b2a_base64(hashlib.sha256(b"".join(parts)).digest(), newline=False).decode()
 
 
