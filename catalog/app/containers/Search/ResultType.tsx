@@ -1,13 +1,14 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as GQL from 'utils/GraphQL'
 import * as SearchUIModel from './model'
 
 const VALUES = [SearchUIModel.ResultType.QuiltPackage, SearchUIModel.ResultType.S3Object]
 
 const LABELS = {
-  [SearchUIModel.ResultType.QuiltPackage]: 'Quilt Packages',
-  [SearchUIModel.ResultType.S3Object]: 'S3 Objects',
+  [SearchUIModel.ResultType.QuiltPackage]: 'Packages',
+  [SearchUIModel.ResultType.S3Object]: 'Objects',
 }
 
 const getLabel = (value: SearchUIModel.ResultType) => LABELS[value]
@@ -45,6 +46,10 @@ const useResultTypeStyles = M.makeStyles((t) => ({
   icon: {
     minWidth: t.spacing(3.5),
   },
+  chip: {
+    backgroundColor: t.palette.text.hint,
+    color: t.palette.getContrastText(t.palette.text.hint),
+  },
   item: {
     paddingLeft: t.spacing(1.5),
     paddingRight: t.spacing(1),
@@ -60,10 +65,47 @@ const useResultTypeStyles = M.makeStyles((t) => ({
 export default function ResultType() {
   const classes = useResultTypeStyles()
   const model = SearchUIModel.use()
+
+  const getTotalSelectedResults = () => {
+    if (model.firstPageQuery._tag !== 'data') return null
+    const d = model.firstPageQuery.data
+    switch (d.__typename) {
+      case 'ObjectsSearchResultSet':
+      case 'PackagesSearchResultSet':
+        return d.stats.total
+      case 'EmptySearchResultSet':
+        return 0
+      default:
+        return null
+    }
+  }
+
+  const getTotalOtherResults = (resultType: SearchUIModel.ResultType) =>
+    GQL.fold(model.baseSearchQuery, {
+      data: (data) => {
+        const r =
+          resultType === SearchUIModel.ResultType.QuiltPackage
+            ? data.searchPackages
+            : data.searchObjects
+        switch (r.__typename) {
+          case 'EmptySearchResultSet':
+            return 0
+          case 'ObjectsSearchResultSet':
+          case 'PackagesSearchResultSet':
+            return r.stats.total
+          default:
+            return null
+        }
+      },
+      fetching: () => null,
+      error: () => null,
+    })
+
   return (
     <M.List dense disablePadding className={classes.root}>
       {VALUES.map((v) => {
         const selected = model.state.resultType === v
+        const total = selected ? getTotalSelectedResults() : getTotalOtherResults(v)
         return (
           <M.ListItem
             button
@@ -77,6 +119,11 @@ export default function ResultType() {
               <Icon resultType={v} />
             </M.ListItemIcon>
             <M.ListItemText primary={getLabel(v)} />
+            {total != null && (
+              <M.ListItemSecondaryAction>
+                <M.Chip className={classes.chip} size="small" label={total} />
+              </M.ListItemSecondaryAction>
+            )}
           </M.ListItem>
         )
       })}

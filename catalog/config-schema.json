@@ -89,6 +89,10 @@
     "desktop": {
       "type": "boolean"
     },
+    "chunkedChecksums": {
+      "type": "boolean",
+      "description": "Whether to use chunked checksums when creating / modifying packages via the Catalog UI."
+    },
     "build_version": {
       "type": "string",
       "description": "Optional"

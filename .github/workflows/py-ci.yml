@@ -156,7 +156,7 @@ jobs:
       matrix:
         path:
           - access_counts
-          - es/indexer
+          - indexer
           - molecule
           - pkgevents
           - pkgpush
@@ -167,11 +167,8 @@ jobs:
           - shared
           - status_reports
           - tabular_preview
+          - thumbnail
           - transcode
-        python-version: ['3.8']
-        include:
-          - path: thumbnail
-            python-version: '3.9'
     runs-on: ubuntu-latest
     env:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -181,7 +178,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version-file: lambdas/${{ matrix.path }}/.python-version
       - name: Install dependencies
         run: |
           # Due to behavior change in pip>=23.1 installing tifffile==0.15.1

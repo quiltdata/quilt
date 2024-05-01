@@ -4,7 +4,7 @@
 #
 #    pip-compile --output-file=requirements.txt ../shared/setup.py setup.py
 #
-aiohttp==3.9.2
+aiohttp==3.9.4
     # via fsspec
 aiosignal==1.2.0
     # via aiohttp
@@ -30,7 +30,7 @@ fsspec[http]==2022.1.0
     # via
     #   fsspec
     #   t4_lambda_tabular_preview (setup.py)
-idna==3.3
+idna==3.7
     # via
     #   requests
     #   yarl

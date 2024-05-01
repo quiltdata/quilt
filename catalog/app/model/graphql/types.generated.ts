@@ -86,6 +86,7 @@ export type BucketAddResult =
   | NotificationConfigurationError
   | NotificationTopicNotFound
   | SnsInvalid
+  | SubscriptionInvalid
 
 export interface BucketAddSuccess {
   readonly __typename: 'BucketAddSuccess'
@@ -312,7 +313,6 @@ export interface Mutation {
   readonly __typename: 'Mutation'
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
-  readonly packageFromFolder: PackageFromFolderResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
   readonly bucketAdd: BucketAddResult
   readonly bucketUpdate: BucketUpdateResult
@@ -341,11 +341,6 @@ export interface MutationpackageConstructArgs {
 export interface MutationpackagePromoteArgs {
   params: PackagePushParams
   src: PackagePromoteSource
-}
-
-export interface MutationpackageFromFolderArgs {
-  params: PackagePushParams
-  src: PackageFromFolderSource
 }
 
 export interface MutationpackageRevisionDeleteArgs {
@@ -530,7 +525,7 @@ export interface PackageaccessCountsArgs {
 export interface PackageConstructEntry {
   readonly logicalKey: Scalars['String']
   readonly physicalKey: Scalars['String']
-  readonly hash: Maybe<Scalars['String']>
+  readonly hash: Maybe<PackageEntryHash>
   readonly size: Maybe<Scalars['Float']>
   readonly meta: Maybe<Scalars['JsonRecord']>
 }
@@ -551,25 +546,17 @@ export interface PackageDir {
 
 export type PackageEntry = PackageFile | PackageDir
 
+export interface PackageEntryHash {
+  readonly type: Scalars['String']
+  readonly value: Scalars['String']
+}
+
 export interface PackageFile {
   readonly __typename: 'PackageFile'
   readonly path: Scalars['String']
   readonly metadata: Maybe<Scalars['JsonRecord']>
   readonly size: Scalars['Float']
   readonly physicalKey: Scalars['String']
-}
-
-export interface PackageFromFolderEntry {
-  readonly isDir: Scalars['Boolean']
-  readonly logicalKey: Scalars['String']
-  readonly path: Scalars['String']
-}
-
-export type PackageFromFolderResult = PackagePushSuccess | InvalidInput | OperationError
-
-export interface PackageFromFolderSource {
-  readonly bucket: Scalars['String']
-  readonly entries: ReadonlyArray<PackageFromFolderEntry>
 }
 
 export interface PackageList {
@@ -780,6 +767,7 @@ export interface Query {
   readonly searchPackages: PackagesSearchResult
   readonly searchMoreObjects: ObjectsSearchMoreResult
   readonly searchMorePackages: PackagesSearchMoreResult
+  readonly subscription: SubscriptionState
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
   readonly roles: ReadonlyArray<Role>
@@ -1014,6 +1002,17 @@ export enum StatusReportListOrder {
 }
 
 export type StatusResult = Status | Unavailable
+
+export interface SubscriptionInvalid {
+  readonly __typename: 'SubscriptionInvalid'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface SubscriptionState {
+  readonly __typename: 'SubscriptionState'
+  readonly active: Scalars['Boolean']
+  readonly timestamp: Scalars['Datetime']
+}
 
 export interface TestStats {
   readonly __typename: 'TestStats'

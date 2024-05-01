@@ -12,13 +12,11 @@ jobs:
     defaults:
       run:
         working-directory: catalog
-    env:
-      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '16.11'
+          node-version-file: 'catalog/package.json'
           cache: 'npm'
           cache-dependency-path: 'catalog/package-lock.json'
       - run: npm ci
@@ -44,5 +42,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '16.11'
+          node-version-file: 'catalog/package.json'
       - run: npx --package=markdownlint-cli markdownlint --ignore node_modules **/*.md

@@ -42,17 +42,17 @@ interface SelectProps {
   label: string
   onChange: (value: string) => void
   onLoadMore: (prev: Response) => void
+  value: string | null
 }
 
-function Select({ data, label, onChange, onLoadMore }: SelectProps) {
+function Select({ data, label, onChange, onLoadMore, value }: SelectProps) {
   const classes = useSelectStyles()
   const handleChange = React.useCallback(
     (event) => {
-      const { value } = event.target
-      if (value === LOAD_MORE) {
+      if (event.target.value === LOAD_MORE) {
         onLoadMore(data)
       } else {
-        onChange(value)
+        onChange(event.target.value)
       }
     },
     [data, onLoadMore, onChange],
@@ -61,10 +61,10 @@ function Select({ data, label, onChange, onLoadMore }: SelectProps) {
   return (
     <M.FormControl className={classes.root}>
       <M.InputLabel>{label}</M.InputLabel>
-      <M.Select onChange={handleChange}>
-        {data.list.map((value) => (
-          <M.MenuItem key={value} value={value}>
-            {value}
+      <M.Select onChange={handleChange} value={value?.toLowerCase()}>
+        {data.list.map((item) => (
+          <M.MenuItem key={item} value={item.toLowerCase()}>
+            {item}
           </M.MenuItem>
         ))}
         {data.next && <M.MenuItem value={LOAD_MORE}>Load more</M.MenuItem>}
@@ -74,10 +74,11 @@ function Select({ data, label, onChange, onLoadMore }: SelectProps) {
 }
 
 interface SelectCatalogNameProps {
-  onChange: (catalogName: string) => void
+  value: requests.athena.CatalogName | null
+  onChange: (catalogName: requests.athena.CatalogName) => void
 }
 
-function SelectCatalogName({ onChange }: SelectCatalogNameProps) {
+function SelectCatalogName({ value, onChange }: SelectCatalogNameProps) {
   const [prev, setPrev] = React.useState<requests.athena.CatalogNamesResponse | null>(
     null,
   )
@@ -89,6 +90,7 @@ function SelectCatalogName({ onChange }: SelectCatalogNameProps) {
         label="Data catalog"
         onChange={onChange}
         onLoadMore={setPrev}
+        value={value}
       />
     ),
     Err: (error) => <SelectError error={error} />,
@@ -99,14 +101,21 @@ function SelectCatalogName({ onChange }: SelectCatalogNameProps) {
 interface SelectDatabaseProps {
   catalogName: requests.athena.CatalogName | null
   onChange: (database: requests.athena.Database) => void
+  value: requests.athena.Database | null
 }
 
-function SelectDatabase({ catalogName, onChange }: SelectDatabaseProps) {
+function SelectDatabase({ catalogName, onChange, value }: SelectDatabaseProps) {
   const [prev, setPrev] = React.useState<requests.athena.DatabasesResponse | null>(null)
   const data = requests.athena.useDatabases(catalogName, prev)
   return data.case({
     Ok: (response) => (
-      <Select data={response} label="Database" onChange={onChange} onLoadMore={setPrev} />
+      <Select
+        data={response}
+        label="Database"
+        onChange={onChange}
+        onLoadMore={setPrev}
+        value={value}
+      />
     ),
     Err: (error) => <SelectError error={error} />,
     _: () => <SelectSkeleton />,
@@ -146,11 +155,15 @@ function Dialog({ initialValue, open, onChange, onClose }: DialogProps) {
       <M.DialogTitle>Select data catalog and database</M.DialogTitle>
       <M.DialogContent>
         <div className={classes.select}>
-          <SelectCatalogName onChange={setCatalogName} />
+          <SelectCatalogName onChange={setCatalogName} value={catalogName} />
         </div>
         {catalogName && (
           <div className={classes.select}>
-            <SelectDatabase catalogName={catalogName} onChange={setDatabase} />
+            <SelectDatabase
+              catalogName={catalogName}
+              onChange={setDatabase}
+              value={database}
+            />
           </div>
         )}
       </M.DialogContent>

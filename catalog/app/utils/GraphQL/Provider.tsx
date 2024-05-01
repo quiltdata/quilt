@@ -110,6 +110,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,
+          SubscriptionState: () => null,
           TestStats: () => null,
           TestStatsTimeSeries: () => null,
           DatetimeExtents: () => null,
@@ -303,9 +304,6 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             },
             packagePromote: (result, _vars, cache) => {
               handlePackageCreation(result.packagePromote, cache)
-            },
-            packageFromFolder: (result, _vars, cache) => {
-              handlePackageCreation(result.packageFromFolder, cache)
             },
           },
         },

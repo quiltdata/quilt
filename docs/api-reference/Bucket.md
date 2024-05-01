@@ -14,36 +14,23 @@ __Returns__
 
 A new Bucket
 
-## Bucket.search(self, query, limit=10)  {#Bucket.search}
+## Bucket.search(self, query: Union[str, dict], limit: int = 10) -> List[dict]  {#Bucket.search}
 
 Execute a search against the configured search endpoint.
 
 __Arguments__
 
-* __query (str)__:  query string to search
-* __limit (number)__:  maximum number of results to return. Defaults to 10
+* __query__:  query string to query if passed as `str`, DSL query body if passed as `dict`
+* __limit__:  maximum number of results to return. Defaults to 10
 
 Query Syntax:
-    By default, a normal plaintext search will be executed over the query string.
-    You can use field-match syntax to filter on exact matches for fields in
-        your metadata.
-    The syntax for field match is `user_meta.$field_name:"exact_match"`.
+    [Query String Query](
+        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html)
+    [Query DSL](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl.html)
 
 __Returns__
 
-a list of objects with the following structure:
-```
-[{
-`"key"`: <key of the object>,
-`"version_id"`: <version_id of object version>,
-`"operation"`: <"Create" or "Delete">,
-`"meta"`: <metadata attached to object>,
-`"size"`: <size of object in bytes>,
-`"text"`: <indexed text of object>,
-`"source"`: <source document for object (what is actually stored in ElasticSeach)>,
-`"time"`: <timestamp for operation>,
-}...]
-```
+search results
 
 
 ## Bucket.put\_file(self, key, path)  {#Bucket.put\_file}

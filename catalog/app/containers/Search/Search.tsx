@@ -10,14 +10,13 @@ import Skeleton from 'components/Skeleton'
 import * as GQL from 'utils/GraphQL'
 import * as JSONPointer from 'utils/JSONPointer'
 import MetaTitle from 'utils/MetaTitle'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as Format from 'utils/format'
 
 import * as SearchUIModel from './model'
 import BucketSelector from './Buckets'
 import ResultTypeSelector from './ResultType'
-import { EmptyResults, ResultsSkeleton } from './Results'
+import { EmptyResults, ResultsSkeleton, SearchError } from './Results'
 import SortSelector from './Sort'
 
 function useMobileView() {
@@ -1074,26 +1073,20 @@ function NextPage({ after, className, resultType }: NextPageProps) {
           case 'fetching':
             return <LoadNextPage className={className} loading />
           case 'error':
-            return (
-              <EmptyResults
-                className={className}
-                description={r.error.message}
-                image="error"
-                title="GQL error"
-              />
-            )
+            return <SearchError className={className} details={r.error.message} />
           case 'data':
             switch (r.data.__typename) {
               case 'InvalidInput':
                 // should not happen
-                return (
-                  <EmptyResults
-                    className={className}
-                    description={r.data.errors[0].message}
-                    image="error"
-                    title="Invalid input"
-                  />
+                const [err] = r.data.errors
+                const details = (
+                  <>
+                    Invalid input at <code>{err.path}</code>: {err.name}
+                    <br />
+                    {err.message}
+                  </>
                 )
+                return <SearchError className={className} details={details} />
               case 'PackagesSearchResultSetPage':
               case 'ObjectsSearchResultSetPage':
                 return (
@@ -1127,38 +1120,17 @@ function ResultsInner({ className }: ResultsInnerProps) {
     case 'fetching':
       return <ResultsSkeleton className={className} />
     case 'error':
-      return (
-        <EmptyResults
-          className={className}
-          description={r.error.message}
-          image="error"
-          title="GraphQL Error"
-        />
-      )
+      return <SearchError className={className} details={r.error.message} />
     case 'data':
       switch (r.data.__typename) {
         case 'EmptySearchResultSet':
           return <EmptyResults className={className} />
         case 'InvalidInput':
           const [err] = r.data.errors
-          const title =
-            err.name === 'QuerySyntaxError' ? 'Query syntax error' : `Invalid input`
-          const description =
+          const kind = err.name === 'QuerySyntaxError' ? 'syntax' : 'unexpected'
+          const details =
             err.name === 'QuerySyntaxError' ? (
-              <>
-                Oops, couldn&apos;t parse that search.
-                <br />
-                Try quoting your query or read about{' '}
-                <StyledLink href={SearchResults.ES_REF_SYNTAX} target="_blank">
-                  supported query syntax
-                </StyledLink>
-                .
-                <br />
-                <br />
-                Error details:
-                <br />
-                {err.message}
-              </>
+              err.message
             ) : (
               <>
                 Invalid input at <code>{err.path}</code>: {err.name}
@@ -1166,14 +1138,7 @@ function ResultsInner({ className }: ResultsInnerProps) {
                 {err.message}
               </>
             )
-          return (
-            <EmptyResults
-              className={className}
-              description={description}
-              image="error"
-              title={title}
-            />
-          )
+          return <SearchError className={className} kind={kind} details={details} />
         case 'ObjectsSearchResultSet':
         case 'PackagesSearchResultSet':
           return (
