@@ -280,7 +280,10 @@ class DataTransferTest(QuiltTestCase):
         urls = data_transfer.copy_file_list([
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == (PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'), None)
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'

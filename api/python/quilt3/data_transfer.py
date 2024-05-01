@@ -562,6 +562,8 @@ def _reuse_remote_file(ctx: WorkerContext, size: int, src_path: str, dest_bucket
         if dest_size != size:
             return None
         # XXX: shouldn't we check part sizes?
+        # XXX: we could check hashes of parts, to finish faster
+        # XXX: support other checksum algorithms?
         s3_checksum = resp.get('ChecksumSHA256')
         if s3_checksum is not None:
             if '-' in s3_checksum:
