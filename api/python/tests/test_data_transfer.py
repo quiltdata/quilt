@@ -325,6 +325,58 @@ class DataTransferTest(QuiltTestCase):
             'Ij4KFgr52goD5t0sRxnFb11mpjPL6E54qqnzc1hlUio=',
         )
 
+    def test_upload_file_checksum_match(self):
+        path = DATA_DIR / 'large_file.npy'
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': data_transfer._calculate_etag(path),
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'J+KTXLmOXrP7AmRZQQZWSj6DznTh7TbeeP6YbL1j+5w=',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
+
+    def test_upload_file_checksum_multipart_match(self):
+        path = DATA_DIR / 'large_file.npy'
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': data_transfer._calculate_etag(path),
+                'VersionId': 'v1',
+                'ChecksumSHA256': 'IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=-1',
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'ChecksumMode': 'ENABLED',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
+        ])
+        assert urls[0] == (
+            PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1'),
+            "IsygGcHBbQgZ3DCzdPy9+0od5VqDJjcW4R0mF2v/Bu8=",
+        )
+
     def test_multipart_upload(self):
         name = 'very_large_file.bin'
         path = pathlib.Path(name)
