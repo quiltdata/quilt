@@ -10,7 +10,7 @@ import { handleToHttpsUri } from 'utils/s3paths'
 import * as Credentials from './Credentials'
 import * as S3 from './S3'
 
-const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
+const DEFAULT_URL_EXPIRATION = 10 * 60 // in seconds
 const POLL_INTERVAL = 10 // in seconds
 const LAG = POLL_INTERVAL * 3
 

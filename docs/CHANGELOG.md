@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Changed] Double the expiration time of URL signing ([#3978](https://github.com/quiltdata/quilt/pull/3978))
+
 # 6.0.0a3 - 2024-04-25
 ## Python API
 * [Added] `quilt3.search()` and `quilt3.Bucket.search()` now accepts custom Elasticsearch queries ([#3448](https://github.com/quiltdata/quilt/pull/3448))
