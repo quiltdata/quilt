@@ -59,7 +59,7 @@ interface PreviewResult {
 }
 
 export const Loader = function IgvLoader({ gated, handle, children }: IgvLoaderProps) {
-  const signUrls = useSignObjectUrls(handle, traverseUrls)
+  const signUrls = useSignObjectUrls(handle, traverseUrls, { asyncReady: true })
 
   const { result, fetch } = utils.usePreview({
     type: 'txt',

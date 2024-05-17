@@ -14,6 +14,14 @@ Entries inside each section should be ordered by type:
 
 ## Catalog, Lambdas
 !-->
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Changed] Use promises for URLs in IGV to have fresh signing each time they used ([#3979](https://github.com/quiltdata/quilt/pull/3979))
+
 # 6.0.0a3 - 2024-04-25
 ## Python API
 * [Added] `quilt3.search()` and `quilt3.Bucket.search()` now accepts custom Elasticsearch queries ([#3448](https://github.com/quiltdata/quilt/pull/3448))
