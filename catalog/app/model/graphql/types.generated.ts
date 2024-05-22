@@ -36,6 +36,16 @@ export interface AccessCounts {
   readonly counts: ReadonlyArray<AccessCountForDate>
 }
 
+export interface AdminMutations {
+  readonly __typename: 'AdminMutations'
+  readonly user: UserAdminMutations
+}
+
+export interface AdminQueries {
+  readonly __typename: 'AdminQueries'
+  readonly user: UserAdminQueries
+}
+
 export interface BooleanPackageUserMetaFacet extends IPackageUserMetaFacet {
   readonly __typename: 'BooleanPackageUserMetaFacet'
   readonly path: Scalars['String']
@@ -309,11 +319,38 @@ export interface ManagedRoleInput {
   readonly policies: ReadonlyArray<Scalars['ID']>
 }
 
+export interface MutateUserAdminMutations {
+  readonly __typename: 'MutateUserAdminMutations'
+  readonly delete: OperationResult
+  readonly setEmail: UserResult
+  readonly setRole: UserResult
+  readonly setAdmin: UserResult
+  readonly setActive: UserResult
+  readonly resetPassword: OperationResult
+}
+
+export interface MutateUserAdminMutationssetEmailArgs {
+  email: Scalars['String']
+}
+
+export interface MutateUserAdminMutationssetRoleArgs {
+  roleName: Maybe<Scalars['String']>
+}
+
+export interface MutateUserAdminMutationssetAdminArgs {
+  admin: Scalars['Boolean']
+}
+
+export interface MutateUserAdminMutationssetActiveArgs {
+  active: Scalars['Boolean']
+}
+
 export interface Mutation {
   readonly __typename: 'Mutation'
   readonly packageConstruct: PackageConstructResult
   readonly packagePromote: PackagePromoteResult
   readonly packageRevisionDelete: PackageRevisionDeleteResult
+  readonly admin: AdminMutations
   readonly bucketAdd: BucketAddResult
   readonly bucketUpdate: BucketUpdateResult
   readonly bucketRemove: BucketRemoveResult
@@ -503,6 +540,8 @@ export interface OperationError {
   readonly name: Scalars['String']
   readonly context: Maybe<Scalars['JsonRecord']>
 }
+
+export type OperationResult = Ok | InvalidInput | OperationError
 
 export interface Package {
   readonly __typename: 'Package'
@@ -768,6 +807,7 @@ export interface Query {
   readonly searchMoreObjects: ObjectsSearchMoreResult
   readonly searchMorePackages: PackagesSearchMoreResult
   readonly subscription: SubscriptionState
+  readonly admin: AdminQueries
   readonly policies: ReadonlyArray<Policy>
   readonly policy: Maybe<Policy>
   readonly roles: ReadonlyArray<Role>
@@ -1059,3 +1099,48 @@ export interface UnmanagedRoleInput {
   readonly name: Scalars['String']
   readonly arn: Scalars['String']
 }
+
+export interface User {
+  readonly __typename: 'User'
+  readonly name: Scalars['String']
+  readonly email: Scalars['String']
+  readonly dateJoined: Scalars['Datetime']
+  readonly lastLogin: Scalars['Datetime']
+  readonly isActive: Scalars['Boolean']
+  readonly isAdmin: Scalars['Boolean']
+  readonly isSsoOnly: Scalars['Boolean']
+  readonly isService: Scalars['Boolean']
+  readonly role: Maybe<Role>
+}
+
+export interface UserAdminMutations {
+  readonly __typename: 'UserAdminMutations'
+  readonly create: UserResult
+  readonly mutate: Maybe<MutateUserAdminMutations>
+}
+
+export interface UserAdminMutationscreateArgs {
+  input: UserInput
+}
+
+export interface UserAdminMutationsmutateArgs {
+  name: Scalars['String']
+}
+
+export interface UserAdminQueries {
+  readonly __typename: 'UserAdminQueries'
+  readonly list: ReadonlyArray<User>
+  readonly get: Maybe<User>
+}
+
+export interface UserAdminQueriesgetArgs {
+  name: Scalars['String']
+}
+
+export interface UserInput {
+  readonly name: Scalars['String']
+  readonly email: Scalars['String']
+  readonly roleName: Maybe<Scalars['String']>
+}
+
+export type UserResult = User | InvalidInput | OperationError
