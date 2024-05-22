@@ -16,6 +16,7 @@ const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExch
 const BUCKET_CONFIGS_QUERY = urql.gql`{ bucketConfigs { name } }`
 const POLICIES_QUERY = urql.gql`{ policies { id } }`
 const ROLES_QUERY = urql.gql`{ roles { id } }`
+const USERS_QUERY = urql.gql`{ admin { user { list { name } } } }`
 const DEFAULT_ROLE_QUERY = urql.gql`{ defaultRole { id } }`
 
 function handlePackageCreation(result: any, cache: GraphCache.Cache) {
@@ -110,6 +111,7 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           Status: () => null,
           StatusReport: (r) => (typeof r.timestamp === 'string' ? r.timestamp : null),
           StatusReportList: () => null,
+          Unavailable: () => null,
           SubscriptionState: () => null,
           TestStats: () => null,
           TestStatsTimeSeries: () => null,
@@ -130,6 +132,12 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
           PackagesSearchResultSet: () => null,
           InvalidInput: () => null,
           InputError: () => null,
+          User: (u) => (u.name as string) ?? null,
+          AdminQueries: () => null,
+          UserAdminQueries: () => null,
+          AdminMutations: () => null,
+          UserAdminMutations: () => null,
+          MutateUserAdminMutations: () => null,
         },
         updates: {
           Mutation: {
@@ -305,8 +313,30 @@ export default function GraphQLProvider({ children }: React.PropsWithChildren<{}
             packagePromote: (result, _vars, cache) => {
               handlePackageCreation(result.packagePromote, cache)
             },
+            admin: (result: any, _vars, cache, info) => {
+              // XXX: newer versions of GraphCache support updaters on arbitrary types
+              if (result.admin?.user?.create?.__typename === 'User') {
+                // Add created User to user list
+                // XXX: sort?
+                const addUser = R.append(result.admin.user.create)
+                cache.updateQuery(
+                  { query: USERS_QUERY },
+                  R.evolve({ admin: { user: { list: addUser } } }),
+                )
+              }
+              if (result.admin?.user?.mutate?.delete?.__typename === 'Ok') {
+                // XXX: handle "user not found" somehow?
+                // Remove deleted User from user list
+                const rmUser = R.reject(R.propEq('name', info.variables.name))
+                cache.updateQuery(
+                  { query: USERS_QUERY },
+                  R.evolve({ admin: { user: { list: rmUser } } }),
+                )
+              }
+            },
           },
         },
+        // XXX: make an exchange for handling optimistic responses
         optimistic: {
           bucketRemove: () => ({ __typename: 'BucketRemoveSuccess' }),
           roleDelete: () => ({ __typename: 'RoleDeleteSuccess' }),
