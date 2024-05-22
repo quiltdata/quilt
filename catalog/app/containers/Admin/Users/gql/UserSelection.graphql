@@ -1,0 +1,22 @@
+fragment UserSelection on User {
+  __typename
+  name
+  email
+  dateJoined
+  lastLogin
+  isActive
+  isAdmin
+  isSsoOnly
+  isService
+  role {
+    __typename
+    ... on ManagedRole {
+      id
+      name
+    }
+    ... on UnmanagedRole {
+      id
+      name
+    }
+  }
+}

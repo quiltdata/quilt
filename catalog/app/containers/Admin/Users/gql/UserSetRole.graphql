@@ -1,0 +1,13 @@
+# import UserResultSelection from "./UserResultSelection.graphql"
+
+mutation ($name: String!, $roleName: String!) {
+  admin {
+    user {
+      mutate(name: $name) {
+        setRole(roleName: $roleName) {
+          ...UserResultSelection
+        }
+      }
+    }
+  }
+}
