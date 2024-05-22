@@ -37,6 +37,8 @@ type Ok {
   _: Boolean
 }
 
+union OperationResult = Ok | InvalidInput | OperationError
+
 type Unavailable {
   _: Boolean
 }
@@ -187,6 +189,18 @@ type RoleBucketPermission implements BucketPermission {
   role: Role!
   bucket: BucketConfig!
   level: BucketPermissionLevel!
+}
+
+type User {
+  name: String!
+  email: String!
+  dateJoined: Datetime!
+  lastLogin: Datetime!
+  isActive: Boolean!
+  isAdmin: Boolean!
+  isSsoOnly: Boolean!
+  isService: Boolean!
+  role: Role
 }
 
 type AccessCountForDate {
@@ -477,6 +491,15 @@ type SubscriptionState {
   timestamp: Datetime!
 }
 
+type UserAdminQueries {
+  list: [User!]!
+  get(name: String!): User
+}
+
+type AdminQueries {
+  user: UserAdminQueries!
+}
+
 type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
@@ -498,6 +521,9 @@ type Query {
   searchMoreObjects(after: String!, size: Int = 30): ObjectsSearchMoreResult!
   searchMorePackages(after: String!, size: Int = 30): PackagesSearchMoreResult!
   subscription: SubscriptionState!
+
+  admin: AdminQueries! @admin
+
   policies: [Policy!]! @admin
   policy(id: ID!): Policy @admin
   roles: [Role!]! @admin
@@ -792,6 +818,32 @@ union BrowsingSessionRefreshResult =
 
 union BrowsingSessionDisposeResult = Ok | OperationError
 
+input UserInput {
+  name: String!
+  email: String!
+  roleName: String
+}
+
+union UserResult = User | InvalidInput | OperationError
+
+type MutateUserAdminMutations {
+  delete: OperationResult!
+  setEmail(email: String!): UserResult!
+  setRole(roleName: String): UserResult!
+  setAdmin(admin: Boolean!): UserResult!
+  setActive(active: Boolean!): UserResult!
+  resetPassword: OperationResult!
+}
+
+type UserAdminMutations {
+  create(input: UserInput!): UserResult!
+  mutate(name: String!): MutateUserAdminMutations
+}
+
+type AdminMutations {
+  user: UserAdminMutations!
+}
+
 type Mutation {
   packageConstruct(
     params: PackagePushParams!
@@ -806,6 +858,8 @@ type Mutation {
     name: String!
     hash: String!
   ): PackageRevisionDeleteResult!
+
+  admin: AdminMutations! @admin
 
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
