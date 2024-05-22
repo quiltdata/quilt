@@ -1296,7 +1296,6 @@ function CRUD({ bucketName }: CRUDProps) {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        // @ts-expect-error
         openDialog(({ close }) => <Add {...{ close }} />)
       }, [openDialog]),
     },
@@ -1311,7 +1310,6 @@ function CRUD({ bucketName }: CRUDProps) {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
       fn: () => {
-        // @ts-expect-error
         openDialog(({ close }) => <Delete {...{ bucket, close }} />)
       },
     },
