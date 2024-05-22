@@ -34,7 +34,7 @@ pyrsistent==0.15.4
 python-dateutil==2.8.0
 python-pptx==0.6.21
 pytz==2019.2
-requests==2.31.0
+requests==2.32.2
 s3transfer==0.10.0
 six==1.12.0
 sortedcontainers==2.4.0
